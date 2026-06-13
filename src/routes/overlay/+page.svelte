@@ -2,11 +2,20 @@
 	import { onMount } from 'svelte';
 	import { on, isTauri } from '$lib/tauri';
 	import type { Caption } from '$lib/types';
+	import { DEFAULT_OVERLAY_FONT, OVERLAY_FONT_KEY } from '$lib/types';
 
 	// The overlay keeps only what it needs to render: the current line(s).
 	let current = $state<Caption | null>(null);
 	let previous = $state<string>('');
-	let fontSize = $state(38);
+
+	// Initial size comes from the shared localStorage key (same origin as the operator),
+	// then the operator pushes live updates via the overlay-config event.
+	function initialFont(): number {
+		if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
+		const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
+		return Number.isFinite(v) && v > 0 ? v : DEFAULT_OVERLAY_FONT;
+	}
+	let fontSize = $state(initialFont());
 
 	// Hide a finalized caption after a few seconds of silence so the overlay
 	// doesn't sit on a stale line over the slides.
@@ -25,7 +34,7 @@
 			return;
 		}
 
-		const unlisten = on.caption((c) => {
+		const unlistenCaption = on.caption((c) => {
 			if (c.final && current && current.turnId !== c.turnId && current.text.trim()) {
 				previous = current.text;
 			}
@@ -39,7 +48,14 @@
 			}
 		});
 
-		return () => void unlisten.then((f) => f());
+		const unlistenConfig = on.overlayConfig((cfg) => {
+			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0) fontSize = cfg.fontSize;
+		});
+
+		return () => {
+			void unlistenCaption.then((f) => f());
+			void unlistenConfig.then((f) => f());
+		};
 	});
 
 	function bump(delta: number) {

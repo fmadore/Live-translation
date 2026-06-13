@@ -40,6 +40,7 @@ pub fn run() {
             commands::stop_session,
             commands::set_overlay_click_through,
             commands::show_overlay,
+            commands::save_transcript,
         ])
         .setup(|app| {
             // Make the overlay click-through from the start so it floats over slides

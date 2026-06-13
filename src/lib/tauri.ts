@@ -6,6 +6,7 @@ import type {
 	AudioDevice,
 	Caption,
 	AudioLevel,
+	OverlayConfig,
 	StartOptions,
 	StatusUpdate
 } from './types';
@@ -30,6 +31,12 @@ async function listen<T>(event: string, handler: (payload: T) => void): Promise<
 	return listen<T>(event, (e) => handler(e.payload));
 }
 
+async function emit<T>(event: string, payload: T): Promise<void> {
+	if (!isTauri()) return;
+	const { emit } = await import('@tauri-apps/api/event');
+	await emit(event, payload);
+}
+
 // ---- Commands -------------------------------------------------------------
 
 export const api = {
@@ -44,7 +51,14 @@ export const api = {
 
 	setOverlayClickThrough: (enabled: boolean) =>
 		invoke<void>('set_overlay_click_through', { enabled }),
-	showOverlay: (visible: boolean) => invoke<void>('show_overlay', { visible })
+	showOverlay: (visible: boolean) => invoke<void>('show_overlay', { visible }),
+
+	/** Push live overlay appearance (font size) to the overlay window. */
+	setOverlayConfig: (config: OverlayConfig) => emit(EVT.overlayConfig, config),
+
+	/** Write the transcript to disk; returns the saved file path. */
+	saveTranscript: (content: string, filename: string) =>
+		invoke<string>('save_transcript', { content, filename })
 };
 
 // ---- Events ---------------------------------------------------------------
@@ -52,5 +66,6 @@ export const api = {
 export const on = {
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),
-	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h)
+	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h),
+	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h)
 };

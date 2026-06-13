@@ -71,9 +71,28 @@ export interface AudioDevice {
 	isDefault: boolean;
 }
 
-/** Names of events emitted from Rust to the front-end (see commands.rs). */
+/** Live overlay appearance, pushed from the operator window to the overlay window. */
+export interface OverlayConfig {
+	fontSize: number;
+}
+
+/** A finalized transcript line, kept for the on-screen log and disk export. */
+export interface TranscriptLine {
+	/** Local clock time the line was finalized, e.g. "14:03:21". */
+	time: string;
+	text: string;
+	sourceText: string;
+	origin: AudioSource;
+}
+
+/** Event names. Rust→front-end: caption/level/status. Operator→overlay: overlayConfig. */
 export const EVT = {
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
+	overlayConfig: 'overlay-config',
 } as const;
+
+/** localStorage key shared by both windows (same origin) for the overlay font size. */
+export const OVERLAY_FONT_KEY = 'overlay.fontSize';
+export const DEFAULT_OVERLAY_FONT = 38;

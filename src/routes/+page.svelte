@@ -10,6 +10,7 @@
 		transcript,
 		micLevel,
 		systemLevel,
+		overlayFontSize,
 		pushCaption
 	} from '$lib/stores';
 	import type { AudioDevice, AudioSource, TargetLanguage, TranslationMode } from '$lib/types';
@@ -27,6 +28,8 @@
 		if (browserMode) return;
 
 		void refresh();
+		// Sync the overlay to the operator's current caption size on load.
+		void api.setOverlayConfig({ fontSize: $overlayFontSize });
 
 		const unlisteners: Array<Promise<() => void>> = [
 			on.caption((c) => pushCaption(c)),
@@ -106,6 +109,41 @@
 	// Quick flip of the caption language — handy when speakers alternate.
 	function flipDirection() {
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
+	}
+
+	// Caption size: update the store (persists) and push it live to the overlay.
+	function setFont(size: number) {
+		const clamped = Math.max(20, Math.min(96, Math.round(size)));
+		overlayFontSize.set(clamped);
+		void api.setOverlayConfig({ fontSize: clamped });
+	}
+
+	let savedPath = $state('');
+
+	const pad = (n: number) => String(n).padStart(2, '0');
+
+	async function saveTranscript() {
+		const lines = [...$transcript].reverse(); // chronological order
+		if (!lines.length) return;
+		const now = new Date();
+		const header = `# Live translation transcript\n\n${now.toLocaleString()} · STIAS DH & AI workshop\n\n`;
+		const body = lines
+			.map((l) => {
+				const src = l.sourceText ? `\n  - _source_: ${l.sourceText}` : '';
+				return `- **${l.time}** · ${l.origin}\n  - ${l.text}${src}`;
+			})
+			.join('\n');
+		const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+		try {
+			savedPath = await api.saveTranscript(`${header}${body}\n`, `transcript-${stamp}.md`);
+		} catch (e) {
+			statusMessage.set(String(e));
+		}
+	}
+
+	function clearTranscript() {
+		transcript.set([]);
+		savedPath = '';
 	}
 
 	const stateLabel: Record<string, string> = {
@@ -254,11 +292,30 @@
 			<span class="status-msg">{$statusMessage}</span>
 		{/if}
 		<div class="spacer"></div>
+		<div class="font-ctl" title="Caption font size on the overlay">
+			<span class="font-label">Caption size</span>
+			<button class="ghost step" onclick={() => setFont($overlayFontSize - 2)}>−</button>
+			<span class="font-val">{$overlayFontSize}</span>
+			<button class="ghost step" onclick={() => setFont($overlayFontSize + 2)}>+</button>
+		</div>
 		<button class="ghost" onclick={() => api.showOverlay(true)}>Show overlay</button>
 	</section>
 
 	<section class="panel monitor">
-		<h2>Live monitor</h2>
+		<div class="monitor-head">
+			<h2>Live monitor</h2>
+			<div class="monitor-actions">
+				<button class="ghost" disabled={!$transcript.length} onclick={saveTranscript}>
+					Save transcript
+				</button>
+				<button class="ghost" disabled={!$transcript.length} onclick={clearTranscript}>
+					Clear
+				</button>
+			</div>
+		</div>
+		{#if savedPath}
+			<p class="saved">Saved to <code>{savedPath}</code></p>
+		{/if}
 		{#if $latestCaption}
 			<div class="current">
 				<div class="src">{$latestCaption.sourceText}</div>
@@ -270,8 +327,8 @@
 
 		{#if $transcript.length}
 			<ul class="log">
-				{#each $transcript as line (line.turnId + line.origin)}
-					<li>{line.text}</li>
+				{#each $transcript as line (line.time + line.text)}
+					<li><span class="log-time">{line.time}</span> {line.text}</li>
 				{/each}
 			</ul>
 		{/if}
@@ -424,6 +481,44 @@
 	.status-msg {
 		color: var(--warn);
 		font-size: 13px;
+	}
+	.font-ctl {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.font-label {
+		font-size: 12px;
+		color: var(--muted);
+	}
+	.font-val {
+		min-width: 28px;
+		text-align: center;
+		font-variant-numeric: tabular-nums;
+	}
+	.step {
+		padding: 6px 12px;
+		line-height: 1;
+	}
+	.monitor-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.monitor-actions {
+		display: flex;
+		gap: 8px;
+	}
+	.saved {
+		font-size: 12px;
+		color: var(--accent-2);
+		margin: 0 0 10px;
+		word-break: break-all;
+	}
+	.log-time {
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+		margin-right: 6px;
 	}
 	.state {
 		display: flex;

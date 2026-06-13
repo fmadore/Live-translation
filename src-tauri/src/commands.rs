@@ -65,3 +65,31 @@ pub fn show_overlay(app: AppHandle, visible: bool) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Write the transcript to a `Live-translation` folder under the user's Documents directory
+/// (falling back to Downloads, then the temp dir). `filename` is sanitized. Returns the path.
+#[tauri::command]
+pub fn save_transcript(app: AppHandle, content: String, filename: String) -> Result<String, String> {
+    let dir = app
+        .path()
+        .document_dir()
+        .or_else(|_| app.path().download_dir())
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("Live-translation");
+
+    std::fs::create_dir_all(&dir).map_err(|e| format!("could not create {dir:?}: {e}"))?;
+
+    let safe: String = filename
+        .chars()
+        .map(|c| if c.is_alphanumeric() || matches!(c, '-' | '_' | '.') { c } else { '-' })
+        .collect();
+    let safe = if safe.trim_matches(|c| c == '-' || c == '.').is_empty() {
+        "transcript.md".to_string()
+    } else {
+        safe
+    };
+
+    let path = dir.join(safe);
+    std::fs::write(&path, content).map_err(|e| format!("could not write {path:?}: {e}"))?;
+    Ok(path.to_string_lossy().into_owned())
+}
