@@ -1,0 +1,55 @@
+[package]
+name = "live-translation"
+version = "0.1.0"
+description = "Real-time FR<->EN speech translation overlay"
+authors = ["Frédérick Madore"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+# Tauri's mobile/desktop entrypoint lives in the lib; main.rs is a thin shim.
+name = "live_translation_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# `macos-private-api` backs the transparent overlay on macOS; harmless on Windows/Linux.
+tauri = { version = "2", features = ["macos-private-api"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime + WebSocket to Gemini Live.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+tokio-util = "0.7"
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+futures-util = "0.3"
+url = "2"
+
+# Audio capture.
+cpal = "0.15"
+
+# Encoding / config / errors / logging.
+base64 = "0.22"
+keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+dotenvy = "0.15"
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# WASAPI loopback capture is Windows-only.
+[target.'cfg(windows)'.dependencies]
+wasapi = "0.15"
+
+[features]
+# Enables macOS transparent-window private API if ever built for macOS.
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

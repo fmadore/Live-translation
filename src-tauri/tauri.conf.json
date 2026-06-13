@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Live Translation",
+  "version": "0.1.0",
+  "identifier": "org.stias.live-translation",
+  "build": {
+    "frontendDist": "../build",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "withGlobalTauri": false,
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+    },
+    "windows": [
+      {
+        "label": "operator",
+        "title": "Live Translation — Operator",
+        "url": "/",
+        "width": 900,
+        "height": 760,
+        "minWidth": 520,
+        "minHeight": 480,
+        "resizable": true,
+        "center": true
+      },
+      {
+        "label": "overlay",
+        "title": "Captions",
+        "url": "/overlay",
+        "width": 1280,
+        "height": 720,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "shadow": false,
+        "skipTaskbar": true,
+        "resizable": true,
+        "focus": false,
+        "center": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Live FR/EN translation captions",
+    "longDescription": "Real-time French/English speech translation with a transparent caption overlay, for hybrid conferences."
+  }
+}

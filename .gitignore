@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+/build/
+/.svelte-kit/
+/dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Secrets / local config
+.env
+.env.local
+*.local
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+npm-debug.log*
+
+# Tauri signing keys
+*.key
