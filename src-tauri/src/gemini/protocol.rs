@@ -15,20 +15,37 @@ pub struct SetupMessage {
 pub struct Setup {
     pub model: String,
     pub generation_config: GenerationConfig,
+    /// Translate prompt for speech-to-text mode; absent for the dedicated translate model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub system_instruction: Option<Content>,
     /// Empty object enables transcription of the recognised source speech.
-    pub input_audio_transcription: Empty,
-    /// Empty object enables transcription of the translated output speech.
-    pub output_audio_transcription: Empty,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub input_audio_transcription: Option<Empty>,
+    /// Empty object enables transcription of the translated output speech (translate mode).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub output_audio_transcription: Option<Empty>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct Empty {}
 
 #[derive(Debug, Serialize)]
+pub struct Content {
+    pub parts: Vec<TextPart>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct TextPart {
+    pub text: String,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerationConfig {
     pub response_modalities: Vec<String>,
-    pub translation_config: TranslationConfig,
+    /// Only set for the dedicated speech-to-speech translate model.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub translation_config: Option<TranslationConfig>,
 }
 
 #[derive(Debug, Serialize)]
@@ -58,21 +75,48 @@ pub struct MediaChunk {
 }
 
 impl SetupMessage {
-    pub fn new(model: &str, target_language_code: &str) -> Self {
+    /// Dedicated speech-to-speech translate model. AUDIO is its native modality; we read
+    /// only the input/output transcriptions and discard the audio.
+    pub fn live_translate(model: &str, target_language_code: &str) -> Self {
         SetupMessage {
             setup: Setup {
                 model: format!("models/{model}"),
                 generation_config: GenerationConfig {
-                    // The translate model is speech-to-speech; AUDIO is its native
-                    // modality. We consume only the transcriptions below.
                     response_modalities: vec!["AUDIO".to_string()],
-                    translation_config: TranslationConfig {
+                    translation_config: Some(TranslationConfig {
                         target_language_code: target_language_code.to_string(),
                         echo_target_language: false,
-                    },
+                    }),
                 },
-                input_audio_transcription: Empty {},
-                output_audio_transcription: Empty {},
+                system_instruction: None,
+                input_audio_transcription: Some(Empty {}),
+                output_audio_transcription: Some(Empty {}),
+            },
+        }
+    }
+
+    /// General Live model: audio in, translated TEXT out via a system instruction. No audio
+    /// is synthesized. The translated text arrives in `serverContent.modelTurn.parts[].text`.
+    pub fn speech_to_text(model: &str, target_language_name: &str) -> Self {
+        let prompt = format!(
+            "You are a live simultaneous interpreter at an academic conference. Translate the \
+             incoming speech into {target_language_name}. Output only the {target_language_name} \
+             translation — no commentary, labels, or quotation marks. If the speech is already in \
+             {target_language_name}, repeat it verbatim. Preserve technical and academic terminology."
+        );
+        SetupMessage {
+            setup: Setup {
+                model: format!("models/{model}"),
+                generation_config: GenerationConfig {
+                    response_modalities: vec!["TEXT".to_string()],
+                    translation_config: None,
+                },
+                system_instruction: Some(Content {
+                    parts: vec![TextPart { text: prompt }],
+                }),
+                // Source transcription still drives the operator monitor.
+                input_audio_transcription: Some(Empty {}),
+                output_audio_transcription: None,
             },
         }
     }
@@ -112,13 +156,34 @@ pub struct ServerContent {
     pub input_transcription: Option<Transcription>,
     #[serde(default)]
     pub output_transcription: Option<Transcription>,
-    /// Translated audio parts — parsed for schema completeness but intentionally ignored
-    /// (we render captions only and never play the synthesized audio).
+    /// In speech-to-text mode the translated text arrives here as TEXT parts. In translate
+    /// mode this carries audio parts we ignore (the typed `text()` returns empty for those).
     #[serde(default)]
-    #[allow(dead_code)]
-    pub model_turn: Option<serde_json::Value>,
+    pub model_turn: Option<ModelTurn>,
     #[serde(default)]
     pub turn_complete: Option<bool>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct ModelTurn {
+    #[serde(default)]
+    pub parts: Vec<PartIn>,
+}
+
+impl ModelTurn {
+    /// Concatenate the text of any text parts (ignores audio/inline-data parts).
+    pub fn text(&self) -> String {
+        self.parts
+            .iter()
+            .filter_map(|p| p.text.as_deref())
+            .collect()
+    }
+}
+
+#[derive(Debug, Default, Deserialize)]
+pub struct PartIn {
+    #[serde(default)]
+    pub text: Option<String>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -132,22 +197,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn setup_serializes_to_expected_shape() {
-        let v = serde_json::to_value(SetupMessage::new("gemini-3.5-live-translate-preview", "en"))
-            .unwrap();
+    fn live_translate_setup_serializes_to_expected_shape() {
+        let v =
+            serde_json::to_value(SetupMessage::live_translate("gemini-3.5-live-translate-preview", "en"))
+                .unwrap();
         assert_eq!(
             v["setup"]["model"],
             "models/gemini-3.5-live-translate-preview"
         );
         assert_eq!(
+            v["setup"]["generationConfig"]["responseModalities"][0],
+            "AUDIO"
+        );
+        assert_eq!(
             v["setup"]["generationConfig"]["translationConfig"]["targetLanguageCode"],
             "en"
         );
-        assert_eq!(
-            v["setup"]["generationConfig"]["translationConfig"]["echoTargetLanguage"],
-            false
-        );
         assert!(v["setup"]["inputAudioTranscription"].is_object());
+        assert!(v["setup"]["outputAudioTranscription"].is_object());
+        assert!(v["setup"]["systemInstruction"].is_null());
+    }
+
+    #[test]
+    fn speech_to_text_setup_uses_text_modality_and_prompt() {
+        let v = serde_json::to_value(SetupMessage::speech_to_text("gemini-live-2.5-flash", "French"))
+            .unwrap();
+        assert_eq!(
+            v["setup"]["generationConfig"]["responseModalities"][0],
+            "TEXT"
+        );
+        // No translationConfig in this mode.
+        assert!(v["setup"]["generationConfig"]["translationConfig"].is_null());
+        assert!(v["setup"]["outputAudioTranscription"].is_null());
+        let prompt = v["setup"]["systemInstruction"]["parts"][0]["text"]
+            .as_str()
+            .unwrap();
+        assert!(prompt.contains("French"));
+    }
+
+    #[test]
+    fn model_turn_text_concatenates_text_parts() {
+        let raw = r#"{"serverContent":{"modelTurn":{"parts":[{"text":"Bon"},{"text":"jour"}]}}}"#;
+        let msg: ServerMessage = serde_json::from_str(raw).unwrap();
+        let mt = msg.server_content.unwrap().model_turn.unwrap();
+        assert_eq!(mt.text(), "Bonjour");
     }
 
     #[test]

@@ -10,9 +10,12 @@ live between **French and English** with **Google Gemini 3.5 Live Translate**, a
 the result as **live captions** in a transparent, always-on-top overlay that can float
 over a PowerPoint presentation.
 
-> **Output is text captions only.** The Gemini Live Translate model is speech-to-speech;
-> we request input/output transcription and display the *translated transcript* as the
-> caption, **discarding the synthesized audio** so it never talks over the live speaker.
+> **Output is text captions only.** Two engines are selectable in the operator UI:
+> **Live Translate** (the dedicated speech-to-speech model — we display its translated
+> *transcript* and discard the synthesized audio so it never talks over the speaker) and
+> **Speech → Text** (a general Live model with text output and a translate prompt — audio
+> in, translated text out, no audio generated). See
+> [`docs/gemini-live-api.md`](docs/gemini-live-api.md) for the trade-offs.
 
 ## Architecture
 

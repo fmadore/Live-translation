@@ -18,10 +18,21 @@ export type Direction = 'fr-to-en' | 'en-to-fr';
 /** BCP-47 codes we use for the two workshop languages. */
 export type TargetLanguage = 'en' | 'fr';
 
+/**
+ * How we turn speech into translated text:
+ * - `live-translate` : dedicated speech-to-speech model; captions from its output
+ *                      transcription sidecar (audio discarded). Purpose-tuned for translation.
+ * - `speech-to-text` : general Live model with TEXT output + a translate prompt; audio in,
+ *                      translated text out, no audio synthesized.
+ */
+export type TranslationMode = 'live-translate' | 'speech-to-text';
+
 export interface StartOptions {
 	source: AudioSource;
 	/** Caption language (translation target). */
 	targetLanguage: TargetLanguage;
+	/** Translation engine / model path. */
+	mode: TranslationMode;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
 }

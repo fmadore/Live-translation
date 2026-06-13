@@ -32,9 +32,11 @@
    16 kHz (streaming linear resampler), converts to PCM-16 LE, and emits ~100 ms `AudioChunk`s.
    It also computes an RMS/peak level (~20 Hz) for the meter.
 2. **Translate.** `gemini::client::run_session` opens a WebSocket per source, sends the
-   `setup` frame with the translation target, then streams base64 audio chunks. It reads
-   `inputTranscription` (source text, operator monitor) and `outputTranscription`
-   (translated text, the caption), accumulating deltas until `turnComplete`.
+   `setup` frame for the selected **engine**, then streams base64 audio chunks. Source text
+   (operator monitor) always comes from `inputTranscription`; the caption text comes from
+   `outputTranscription` in **Live Translate** mode or `modelTurn.parts[].text` in
+   **Speech → Text** mode. Deltas accumulate until `turnComplete`. The engine and model ids
+   are selected in `session.rs` (`GEMINI_TRANSLATE_MODEL` / `GEMINI_STT_MODEL` to override).
 3. **Render.** Captions are emitted as Tauri events. Tauri broadcasts events to **all**
    windows, so the operator monitor and the overlay both receive them with no extra plumbing.
 

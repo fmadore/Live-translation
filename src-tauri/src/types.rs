@@ -42,6 +42,26 @@ impl TargetLanguage {
             TargetLanguage::Fr => "fr",
         }
     }
+
+    /// Human-readable name, used in the speech-to-text translate prompt.
+    pub fn name(self) -> &'static str {
+        match self {
+            TargetLanguage::En => "English",
+            TargetLanguage::Fr => "French",
+        }
+    }
+}
+
+/// How we get from speech to translated text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum TranslationMode {
+    /// Dedicated speech-to-speech translate model; captions come from the output
+    /// transcription sidecar (audio is discarded).
+    LiveTranslate,
+    /// General Live model with TEXT output and a translate system instruction: audio in,
+    /// translated text out, no audio synthesized.
+    SpeechToText,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -49,6 +69,7 @@ impl TargetLanguage {
 pub struct StartOptions {
     pub source: AudioSource,
     pub target_language: TargetLanguage,
+    pub mode: TranslationMode,
     #[serde(default)]
     pub mic_device_name: Option<String>,
 }

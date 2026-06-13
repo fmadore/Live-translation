@@ -12,6 +12,7 @@ export const hasKey = writable<boolean>(false);
 export const options = writable<StartOptions>({
 	source: 'system',
 	targetLanguage: 'en',
+	mode: 'live-translate',
 	micDeviceName: null
 });
 

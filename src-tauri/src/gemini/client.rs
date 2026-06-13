@@ -14,9 +14,12 @@ use tokio_util::sync::CancellationToken;
 
 use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage};
 use crate::audio::AudioChunk;
-use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
+use crate::types::{events, Caption, Origin, SessionState, StatusUpdate, TranslationMode};
 
-pub const DEFAULT_MODEL: &str = "gemini-3.5-live-translate-preview";
+/// Dedicated speech-to-speech translate model.
+pub const DEFAULT_TRANSLATE_MODEL: &str = "gemini-3.5-live-translate-preview";
+/// General half-cascade Live model used for audio-in / text-out translation.
+pub const DEFAULT_STT_MODEL: &str = "gemini-live-2.5-flash";
 pub const DEFAULT_HOST: &str = "generativelanguage.googleapis.com";
 
 #[derive(Clone)]
@@ -24,7 +27,9 @@ pub struct GeminiConfig {
     pub api_key: String,
     pub model: String,
     pub host: String,
+    pub mode: TranslationMode,
     pub target_language_code: String,
+    pub target_language_name: String,
     pub origin: Origin,
 }
 
@@ -108,7 +113,14 @@ async fn connect_and_run(
     let (mut write, mut read) = ws.split();
 
     // Hand the model its translation configuration before any audio.
-    let setup = SetupMessage::new(&cfg.model, &cfg.target_language_code);
+    let setup = match cfg.mode {
+        TranslationMode::LiveTranslate => {
+            SetupMessage::live_translate(&cfg.model, &cfg.target_language_code)
+        }
+        TranslationMode::SpeechToText => {
+            SetupMessage::speech_to_text(&cfg.model, &cfg.target_language_name)
+        }
+    };
     write
         .send(Message::Text(serde_json::to_string(&setup)?))
         .await
@@ -149,12 +161,12 @@ async fn connect_and_run(
             maybe_msg = read.next() => {
                 match maybe_msg {
                     Some(Ok(Message::Text(text))) => {
-                        handle_server_message(app, cfg.origin, &text, &mut acc);
+                        handle_server_message(app, cfg.origin, cfg.mode, &text, &mut acc);
                     }
                     Some(Ok(Message::Binary(bytes))) => {
                         // The server occasionally frames JSON as binary.
                         if let Ok(text) = String::from_utf8(bytes) {
-                            handle_server_message(app, cfg.origin, &text, &mut acc);
+                            handle_server_message(app, cfg.origin, cfg.mode, &text, &mut acc);
                         }
                     }
                     Some(Ok(Message::Close(_))) | None => return Ok(()),
@@ -166,7 +178,13 @@ async fn connect_and_run(
     }
 }
 
-fn handle_server_message(app: &AppHandle, origin: Origin, text: &str, acc: &mut TurnAccumulator) {
+fn handle_server_message(
+    app: &AppHandle,
+    origin: Origin,
+    mode: TranslationMode,
+    text: &str,
+    acc: &mut TurnAccumulator,
+) {
     let msg: ServerMessage = match serde_json::from_str(text) {
         Ok(m) => m,
         Err(e) => {
@@ -186,20 +204,29 @@ fn handle_server_message(app: &AppHandle, origin: Origin, text: &str, acc: &mut 
         return;
     };
 
+    // Source text (operator monitor) comes from input transcription in both modes.
     if let Some(t) = &content.input_transcription {
         acc.source.push_str(&t.text);
     }
-    if let Some(t) = &content.output_transcription {
-        acc.translated.push_str(&t.text);
+
+    // Translated text source differs by mode:
+    //  - LiveTranslate: the output-audio transcription sidecar.
+    //  - SpeechToText:  the model's TEXT parts.
+    let translated_delta = match mode {
+        TranslationMode::LiveTranslate => {
+            content.output_transcription.as_ref().map(|t| t.text.clone())
+        }
+        TranslationMode::SpeechToText => content.model_turn.as_ref().map(|m| m.text()),
+    };
+    let got_translation = translated_delta.as_deref().is_some_and(|s| !s.is_empty());
+    if let Some(delta) = translated_delta {
+        acc.translated.push_str(&delta);
     }
 
     let turn_complete = content.turn_complete.unwrap_or(false);
 
-    // Emit whenever we have new translated text, or to mark the turn final.
-    if content.output_transcription.is_some()
-        || content.input_transcription.is_some()
-        || turn_complete
-    {
+    // Emit whenever we have new text, or to mark the turn final.
+    if got_translation || content.input_transcription.is_some() || turn_complete {
         let caption = Caption {
             turn_id: acc.id,
             text: acc.translated.clone(),

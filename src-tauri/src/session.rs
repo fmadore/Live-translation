@@ -13,9 +13,11 @@ use tokio_util::sync::CancellationToken;
 use crate::audio::capture::run_microphone;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
-use crate::gemini::{run_session, GeminiConfig, DEFAULT_HOST, DEFAULT_MODEL};
+use crate::gemini::{
+    run_session, GeminiConfig, DEFAULT_HOST, DEFAULT_STT_MODEL, DEFAULT_TRANSLATE_MODEL,
+};
 use crate::secrets;
-use crate::types::{events, Origin, SessionState, StartOptions, StatusUpdate};
+use crate::types::{events, Origin, SessionState, StartOptions, StatusUpdate, TranslationMode};
 
 #[derive(Default)]
 pub struct SessionManager {
@@ -33,9 +35,16 @@ impl SessionManager {
         self.stop(app);
 
         let api_key = secrets::resolve_api_key()?;
-        let model = std::env::var("GEMINI_MODEL").unwrap_or_else(|_| DEFAULT_MODEL.to_string());
         let host = std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
-        let target = options.target_language.bcp47().to_string();
+        let model = match options.mode {
+            TranslationMode::LiveTranslate => std::env::var("GEMINI_TRANSLATE_MODEL")
+                .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string()),
+            TranslationMode::SpeechToText => {
+                std::env::var("GEMINI_STT_MODEL").unwrap_or_else(|_| DEFAULT_STT_MODEL.to_string())
+            }
+        };
+        let target_code = options.target_language.bcp47().to_string();
+        let target_name = options.target_language.name().to_string();
 
         let cancel = CancellationToken::new();
         let mut capture_threads = Vec::new();
@@ -75,7 +84,9 @@ impl SessionManager {
                 api_key: api_key.clone(),
                 model: model.clone(),
                 host: host.clone(),
-                target_language_code: target.clone(),
+                mode: options.mode,
+                target_language_code: target_code.clone(),
+                target_language_name: target_name.clone(),
                 origin,
             };
             let client_app = app.clone();

@@ -12,7 +12,7 @@
 		systemLevel,
 		pushCaption
 	} from '$lib/stores';
-	import type { AudioDevice, AudioSource, TargetLanguage } from '$lib/types';
+	import type { AudioDevice, AudioSource, TargetLanguage, TranslationMode } from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
@@ -92,6 +92,16 @@
 	function setTarget(t: TargetLanguage) {
 		$options = { ...$options, targetLanguage: t };
 	}
+
+	function setMode(m: TranslationMode) {
+		$options = { ...$options, mode: m };
+	}
+
+	const engineHint = $derived(
+		$options.mode === 'live-translate'
+			? 'Dedicated speech translation model. Captions come from its transcript; audio is discarded.'
+			: 'General model: audio in → translated text out. No audio generated; more promptable.'
+	);
 
 	// Quick flip of the caption language — handy when speakers alternate.
 	function flipDirection() {
@@ -208,6 +218,25 @@
 			<button class="ghost flip" onclick={flipDirection}>⇄ Flip (F2)</button>
 		</section>
 	</div>
+
+	<section class="panel">
+		<h2>Translation engine</h2>
+		<div class="segmented">
+			<button
+				class:active={$options.mode === 'live-translate'}
+				onclick={() => setMode('live-translate')}
+			>
+				Live Translate (speech model)
+			</button>
+			<button
+				class:active={$options.mode === 'speech-to-text'}
+				onclick={() => setMode('speech-to-text')}
+			>
+				Speech → Text (general)
+			</button>
+		</div>
+		<p class="hint engine-hint">{engineHint}</p>
+	</section>
 
 	<section class="panel controls">
 		{#if running}
@@ -349,6 +378,9 @@
 	}
 	.flip {
 		margin-top: 12px;
+	}
+	.engine-hint {
+		margin: 10px 0 0;
 	}
 	.meters {
 		margin-top: 14px;
