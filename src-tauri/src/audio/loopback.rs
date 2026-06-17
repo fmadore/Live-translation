@@ -2,11 +2,10 @@
 //! remote speaker on a Zoom call. On Windows this uses WASAPI loopback, which captures the
 //! render endpoint mix without any virtual audio device. On other platforms it is a stub.
 //!
-//! ⚠️ The Windows path below could not be compiled in the (Linux) scaffolding environment.
-//! It follows the `wasapi` crate's loopback example; validate signatures against the
-//! installed `wasapi` version and a real device during the rehearsal. Everything downstream
-//! (resampling, chunking, leveling via `CaptureState`) is shared with the mic path and is
-//! exercised by tests.
+//! The Windows path follows the `wasapi` 0.15 loopback example. `wasapi`'s fallible calls
+//! return `Box<dyn Error>` (not `Send + Sync`), so they can't flow straight into `anyhow`;
+//! the `WasapiCtx` bridge below adapts them. Everything downstream (resampling, chunking,
+//! leveling via `CaptureState`) is shared with the mic path and is exercised by tests.
 
 use anyhow::Result;
 use tauri::AppHandle;
@@ -49,28 +48,41 @@ mod windows_impl {
     use crate::audio::AudioChunk;
     use crate::types::Origin;
 
+    /// `wasapi`'s fallible calls return `Box<dyn Error>`, which is neither `Send` nor
+    /// `Sync` and so cannot flow into `anyhow` through `?` or `.context()`. This bridges
+    /// them by stringifying the error behind a static context message.
+    trait WasapiCtx<T> {
+        fn ctx(self, msg: &'static str) -> Result<T>;
+    }
+
+    impl<T> WasapiCtx<T> for std::result::Result<T, Box<dyn std::error::Error>> {
+        fn ctx(self, msg: &'static str) -> Result<T> {
+            self.map_err(|e| anyhow::anyhow!("{msg}: {e}"))
+        }
+    }
+
     pub fn run(
         app: AppHandle,
         chunk_tx: UnboundedSender<AudioChunk>,
         cancel: CancellationToken,
     ) -> Result<()> {
-        // COM must be initialised on the capture thread.
+        // COM must be initialised on the capture thread. `initialize_mta` returns an
+        // `HRESULT`; `.ok()` turns it into a `windows::core::Result` that anyhow accepts.
         initialize_mta().ok().context("failed to initialise COM (MTA)")?;
 
         let device = wasapi::get_default_device(&Direction::Render)
-            .context("no default render device for loopback")?;
+            .ctx("no default render device for loopback")?;
         let mut audio_client = device
             .get_iaudioclient()
-            .context("failed to get IAudioClient")?;
+            .ctx("failed to get IAudioClient")?;
 
         // Shared-mode mix format is what's actually playing; usually 32-bit float.
         let format: WaveFormat = audio_client
             .get_mixformat()
-            .context("failed to get mix format")?;
+            .ctx("failed to get mix format")?;
         let in_rate = format.get_samplespersec();
         let channels = format.get_nchannels() as usize;
         let bits = format.get_bitspersample();
-        let block_align = format.get_blockalign() as usize;
         let sample_type = format.get_subformat().unwrap_or(SampleType::Float);
 
         tracing::info!(
@@ -83,7 +95,7 @@ mod windows_impl {
 
         let (_def_period, min_period) = audio_client
             .get_periods()
-            .context("failed to get device periods")?;
+            .ctx("failed to get device periods")?;
 
         // Loopback = render endpoint opened for capture.
         audio_client
@@ -94,18 +106,18 @@ mod windows_impl {
                 &ShareMode::Shared,
                 true,
             )
-            .context("failed to initialise loopback client")?;
+            .ctx("failed to initialise loopback client")?;
 
         let event = audio_client
             .set_get_eventhandle()
-            .context("failed to set event handle")?;
+            .ctx("failed to set event handle")?;
         let capture_client = audio_client
             .get_audiocaptureclient()
-            .context("failed to get capture client")?;
+            .ctx("failed to get capture client")?;
 
         audio_client
             .start_stream()
-            .context("failed to start loopback stream")?;
+            .ctx("failed to start loopback stream")?;
 
         let mut state = CaptureState::new(Origin::System, in_rate, app, chunk_tx);
         let mut raw: VecDeque<u8> = VecDeque::new();
@@ -114,8 +126,8 @@ mod windows_impl {
         while !cancel.is_cancelled() {
             // Drain whatever the device has buffered into `raw`.
             capture_client
-                .read_from_device_to_deque(block_align, &mut raw)
-                .context("failed to read loopback buffer")?;
+                .read_from_device_to_deque(&mut raw)
+                .ctx("failed to read loopback buffer")?;
 
             if !raw.is_empty() {
                 frame.clear();
