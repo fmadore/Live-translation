@@ -19,6 +19,7 @@
 	let microphones = $state<AudioDevice[]>([]);
 	let apiKeyInput = $state('');
 	let savingKey = $state(false);
+	let editingKey = $state(false);
 	let browserMode = $state(false);
 
 	const running = $derived($sessionState === 'running' || $sessionState === 'reconnecting');
@@ -60,6 +61,7 @@
 			await api.setApiKey(apiKeyInput.trim());
 			apiKeyInput = '';
 			$hasKey = true;
+			editingKey = false;
 		} catch (e) {
 			statusMessage.set(String(e));
 		} finally {
@@ -180,24 +182,40 @@
 		</div>
 	{/if}
 
-	{#if !$hasKey && !browserMode}
+	{#if !browserMode}
 		<section class="panel key">
 			<h2>Gemini API key</h2>
-			<p class="hint">
-				Stored in the OS keychain, used only from the Rust core. Needs access to
-				<code>gemini-3.5-live-translate-preview</code>.
-			</p>
-			<div class="row">
-				<input
-					type="password"
-					placeholder="Paste your Gemini API key"
-					bind:value={apiKeyInput}
-					onkeydown={(e) => e.key === 'Enter' && saveKey()}
-				/>
-				<button class="primary" disabled={savingKey || !apiKeyInput.trim()} onclick={saveKey}>
-					{savingKey ? 'Saving…' : 'Save key'}
-				</button>
-			</div>
+			{#if $hasKey && !editingKey}
+				<div class="row key-saved">
+					<span class="key-ok">✓ Saved to the OS keychain</span>
+					<div class="spacer"></div>
+					<button class="ghost" onclick={() => { editingKey = true; apiKeyInput = ''; }}>
+						Replace
+					</button>
+					<button class="ghost remove" onclick={clearKey}>Remove</button>
+				</div>
+			{:else}
+				<p class="hint">
+					Stored in the OS keychain, used only from the Rust core. Needs access to
+					<code>gemini-3.5-live-translate-preview</code>.
+				</p>
+				<div class="row">
+					<input
+						type="password"
+						placeholder="Paste your Gemini API key"
+						bind:value={apiKeyInput}
+						onkeydown={(e) => e.key === 'Enter' && saveKey()}
+					/>
+					<button class="primary" disabled={savingKey || !apiKeyInput.trim()} onclick={saveKey}>
+						{savingKey ? 'Saving…' : 'Save key'}
+					</button>
+					{#if $hasKey}
+						<button class="ghost" onclick={() => { editingKey = false; apiKeyInput = ''; }}>
+							Cancel
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</section>
 	{/if}
 
@@ -395,6 +413,17 @@
 	.row {
 		display: flex;
 		gap: 8px;
+	}
+	.key-saved {
+		align-items: center;
+	}
+	.key-ok {
+		color: var(--accent-2);
+		font-size: 14px;
+	}
+	button.ghost.remove {
+		color: var(--danger);
+		border-color: var(--danger);
 	}
 	input,
 	select {

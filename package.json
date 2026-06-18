@@ -1,6 +1,6 @@
 {
   "name": "live-translation",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Real-time FR⇄EN speech translation overlay for the STIAS DH & AI in African Studies workshop",
   "license": "MIT",
   "type": "module",

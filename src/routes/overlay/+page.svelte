@@ -17,8 +17,11 @@
 	}
 	let fontSize = $state(initialFont());
 
-	// Hide a finalized caption after a few seconds of silence so the overlay
-	// doesn't sit on a stale line over the slides.
+	// Auto-hide captions after the last update so the overlay never sits on a stale line
+	// over the slides. A finalized line gets a short reading pause; an in-progress line
+	// that stalls (Gemini didn't send `turnComplete`) clears a little sooner.
+	const FINAL_HOLD_MS = 4000;
+	const INTERIM_HOLD_MS = 3000;
 	let clearTimer: ReturnType<typeof setTimeout> | undefined;
 
 	onMount(() => {
@@ -39,13 +42,16 @@
 				previous = current.text;
 			}
 			current = c;
+			// Always re-arm the auto-hide: even when a turn ends on an interim update and
+			// Gemini never sends `turnComplete`, the line must still disappear on its own.
 			clearTimeout(clearTimer);
-			if (c.final) {
-				clearTimer = setTimeout(() => {
+			clearTimer = setTimeout(
+				() => {
 					previous = '';
 					current = null;
-				}, 6000);
-			}
+				},
+				c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
+			);
 		});
 
 		const unlistenConfig = on.overlayConfig((cfg) => {
