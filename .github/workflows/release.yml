@@ -1,0 +1,71 @@
+name: Release installers
+
+# Builds one-click installers for Windows (x64 + ARM64) and macOS (Apple Silicon)
+# and attaches them to the GitHub release for the pushed tag.
+#
+# Normal flow:   git tag v0.1.2 && git push origin v0.1.2  -> builds + publishes.
+# Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
+# an existing tag (e.g. v0.1.1) to add the other platforms' installers to it.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build installers for (e.g. v0.1.1)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest      # x64 Windows
+            target: x86_64-pc-windows-msvc
+          - platform: windows-11-arm      # ARM64 Windows (Snapdragon)
+            target: aarch64-pc-windows-msvc
+          - platform: macos-latest        # Apple Silicon macOS
+            target: aarch64-apple-darwin
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Install Rust (stable + target)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build app and publish installers to the release
+        uses: tauri-apps/tauri-action@action-v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ inputs.tag || github.ref_name }}
+          releaseName: ${{ inputs.tag || github.ref_name }}
+          releaseDraft: false
+          prerelease: false
+          args: --target ${{ matrix.target }}
