@@ -14,7 +14,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
 
 use super::resample::{downmix_to_mono, f32_to_pcm16_le, LinearResampler};
-use super::{AudioChunk, CHUNK_SAMPLES, TARGET_RATE};
+use super::{chunk_samples, AudioChunk};
 use crate::types::{events, AudioDevice, AudioLevel, Origin};
 
 /// Enumerate available input devices for the operator UI.
@@ -54,6 +54,7 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
 pub fn run_microphone(
     app: AppHandle,
     device_name: Option<String>,
+    target_rate: u32,
     chunk_tx: UnboundedSender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
@@ -74,7 +75,7 @@ pub fn run_microphone(
     );
 
     // Per-stream state captured by the callback.
-    let mut state = CaptureState::new(Origin::Microphone, in_rate, app.clone(), chunk_tx);
+    let mut state = CaptureState::new(Origin::Microphone, in_rate, target_rate, app.clone(), chunk_tx);
 
     let err_app = app.clone();
     let err_fn = move |e: cpal::StreamError| {
@@ -127,9 +128,11 @@ pub struct CaptureState {
     app: AppHandle,
     chunk_tx: UnboundedSender<AudioChunk>,
     resampler: LinearResampler,
+    // Samples in one ~100 ms chunk at the target rate.
+    chunk_len: usize,
     mono_buf: Vec<f32>,
     resampled: Vec<f32>,
-    // Accumulates resampled samples until we have a full 100 ms chunk.
+    // Accumulates resampled samples until we have a full ~100 ms chunk.
     pending: Vec<f32>,
     last_level: Instant,
     peak_accum: f32,
@@ -138,15 +141,23 @@ pub struct CaptureState {
 }
 
 impl CaptureState {
-    pub fn new(origin: Origin, in_rate: u32, app: AppHandle, chunk_tx: UnboundedSender<AudioChunk>) -> Self {
+    pub fn new(
+        origin: Origin,
+        in_rate: u32,
+        target_rate: u32,
+        app: AppHandle,
+        chunk_tx: UnboundedSender<AudioChunk>,
+    ) -> Self {
+        let chunk_len = chunk_samples(target_rate);
         Self {
             origin,
             app,
             chunk_tx,
-            resampler: LinearResampler::new(in_rate, TARGET_RATE),
+            resampler: LinearResampler::new(in_rate, target_rate),
+            chunk_len,
             mono_buf: Vec::with_capacity(4096),
             resampled: Vec::with_capacity(4096),
-            pending: Vec::with_capacity(CHUNK_SAMPLES * 2),
+            pending: Vec::with_capacity(chunk_len * 2),
             last_level: Instant::now(),
             peak_accum: 0.0,
             sq_sum: 0.0,
@@ -174,9 +185,9 @@ impl CaptureState {
         self.resampler.process(&self.mono_buf, &mut self.resampled);
         self.pending.extend_from_slice(&self.resampled);
 
-        while self.pending.len() >= CHUNK_SAMPLES {
-            let chunk: Vec<f32> = self.pending.drain(..CHUNK_SAMPLES).collect();
-            let mut pcm = Vec::with_capacity(CHUNK_SAMPLES * 2);
+        while self.pending.len() >= self.chunk_len {
+            let chunk: Vec<f32> = self.pending.drain(..self.chunk_len).collect();
+            let mut pcm = Vec::with_capacity(self.chunk_len * 2);
             f32_to_pcm16_le(&chunk, &mut pcm);
             // If the consumer is gone the session is shutting down — stop quietly.
             if self.chunk_tx.send(AudioChunk { pcm_le: pcm }).is_err() {

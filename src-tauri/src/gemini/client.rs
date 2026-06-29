@@ -30,6 +30,8 @@ pub struct GeminiConfig {
     pub mode: TranslationMode,
     pub target_language_code: String,
     pub target_language_name: String,
+    /// Speech-to-text engine only: FR↔EN per utterance, `target_language_name` as the fallback.
+    pub auto_bidirectional: bool,
     pub origin: Origin,
 }
 
@@ -116,6 +118,9 @@ async fn connect_and_run(
     let setup = match cfg.mode {
         TranslationMode::LiveTranslate => {
             SetupMessage::live_translate(&cfg.model, &cfg.target_language_code)
+        }
+        TranslationMode::SpeechToText if cfg.auto_bidirectional => {
+            SetupMessage::speech_to_text_bidirectional(&cfg.model, &cfg.target_language_name)
         }
         TranslationMode::SpeechToText => {
             SetupMessage::speech_to_text(&cfg.model, &cfg.target_language_name)

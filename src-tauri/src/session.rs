@@ -14,10 +14,17 @@ use crate::audio::capture::run_microphone;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
 use crate::gemini::{
-    run_session, GeminiConfig, DEFAULT_HOST, DEFAULT_STT_MODEL, DEFAULT_TRANSLATE_MODEL,
+    run_session as run_gemini_session, GeminiConfig, DEFAULT_HOST, DEFAULT_STT_MODEL,
+    DEFAULT_TRANSLATE_MODEL,
+};
+use crate::openai::{
+    run_session as run_openai_session, OpenAiConfig, DEFAULT_OPENAI_HOST,
+    DEFAULT_OPENAI_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSLATE_MODEL,
 };
 use crate::secrets;
-use crate::types::{events, Origin, SessionState, StartOptions, StatusUpdate, TranslationMode};
+use crate::types::{
+    events, Origin, Provider, SessionState, StartOptions, StatusUpdate, TranslationMode,
+};
 
 #[derive(Default)]
 pub struct SessionManager {
@@ -34,17 +41,28 @@ impl SessionManager {
     pub fn start(&self, app: &AppHandle, options: StartOptions) -> Result<()> {
         self.stop(app);
 
-        let api_key = secrets::resolve_api_key()?;
-        let host = std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
-        let model = match options.mode {
+        let provider = options.provider;
+        let api_key = secrets::resolve_api_key(provider)?;
+        let target_rate = provider.input_sample_rate();
+        let target_code = options.target_language.bcp47().to_string();
+        let target_name = options.target_language.name().to_string();
+
+        // Provider-specific connection details; only the selected provider's are used.
+        let gemini_host =
+            std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
+        let gemini_model = match options.mode {
             TranslationMode::LiveTranslate => std::env::var("GEMINI_TRANSLATE_MODEL")
                 .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string()),
             TranslationMode::SpeechToText => {
                 std::env::var("GEMINI_STT_MODEL").unwrap_or_else(|_| DEFAULT_STT_MODEL.to_string())
             }
         };
-        let target_code = options.target_language.bcp47().to_string();
-        let target_name = options.target_language.name().to_string();
+        let openai_host =
+            std::env::var("OPENAI_WS_HOST").unwrap_or_else(|_| DEFAULT_OPENAI_HOST.to_string());
+        let openai_model = std::env::var("OPENAI_TRANSLATE_MODEL")
+            .unwrap_or_else(|_| DEFAULT_OPENAI_TRANSLATE_MODEL.to_string());
+        let openai_transcribe = std::env::var("OPENAI_TRANSCRIBE_MODEL")
+            .unwrap_or_else(|_| DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string());
 
         let cancel = CancellationToken::new();
         let mut capture_threads = Vec::new();
@@ -52,7 +70,8 @@ impl SessionManager {
         let mut spawn_source = |origin: Origin| -> Result<()> {
             let (tx, rx) = unbounded_channel::<AudioChunk>();
 
-            // Capture thread (blocking; owns the cpal/WASAPI stream).
+            // Capture thread (blocking; owns the cpal/WASAPI stream). Resamples to the
+            // provider's input rate (16 kHz Gemini / 24 kHz OpenAI).
             let cap_app = app.clone();
             let cap_cancel = cancel.clone();
             let mic_name = options.mic_device_name.clone();
@@ -61,9 +80,11 @@ impl SessionManager {
                 .spawn(move || {
                     let result = match origin {
                         Origin::Microphone => {
-                            run_microphone(cap_app.clone(), mic_name, tx, cap_cancel)
+                            run_microphone(cap_app.clone(), mic_name, target_rate, tx, cap_cancel)
                         }
-                        Origin::System => run_system_loopback(cap_app.clone(), tx, cap_cancel),
+                        Origin::System => {
+                            run_system_loopback(cap_app.clone(), target_rate, tx, cap_cancel)
+                        }
                     };
                     if let Err(e) = result {
                         tracing::error!(?origin, "capture failed: {e:#}");
@@ -79,19 +100,45 @@ impl SessionManager {
                 .context("failed to spawn capture thread")?;
             capture_threads.push(handle);
 
-            // Gemini client task for this source.
-            let cfg = GeminiConfig {
-                api_key: api_key.clone(),
-                model: model.clone(),
-                host: host.clone(),
-                mode: options.mode,
-                target_language_code: target_code.clone(),
-                target_language_name: target_name.clone(),
-                origin,
-            };
+            // Translation client task for this source, dispatched by provider.
             let client_app = app.clone();
             let client_cancel = cancel.clone();
-            tauri::async_runtime::spawn(run_session(client_app, cfg, rx, client_cancel));
+            match provider {
+                Provider::Gemini => {
+                    let cfg = GeminiConfig {
+                        api_key: api_key.clone(),
+                        model: gemini_model.clone(),
+                        host: gemini_host.clone(),
+                        mode: options.mode,
+                        target_language_code: target_code.clone(),
+                        target_language_name: target_name.clone(),
+                        auto_bidirectional: options.auto_bidirectional,
+                        origin,
+                    };
+                    tauri::async_runtime::spawn(run_gemini_session(
+                        client_app,
+                        cfg,
+                        rx,
+                        client_cancel,
+                    ));
+                }
+                Provider::OpenAi => {
+                    let cfg = OpenAiConfig {
+                        api_key: api_key.clone(),
+                        model: openai_model.clone(),
+                        transcribe_model: openai_transcribe.clone(),
+                        host: openai_host.clone(),
+                        target_language_code: target_code.clone(),
+                        origin,
+                    };
+                    tauri::async_runtime::spawn(run_openai_session(
+                        client_app,
+                        cfg,
+                        rx,
+                        client_cancel,
+                    ));
+                }
+            }
             Ok(())
         };
 

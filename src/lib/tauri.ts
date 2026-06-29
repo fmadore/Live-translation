@@ -7,6 +7,7 @@ import type {
 	Caption,
 	AudioLevel,
 	OverlayConfig,
+	Provider,
 	StartOptions,
 	StatusUpdate
 } from './types';
@@ -42,9 +43,10 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 export const api = {
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 
-	hasApiKey: () => invoke<boolean>('has_api_key'),
-	setApiKey: (key: string) => invoke<void>('set_api_key', { key }),
-	clearApiKey: () => invoke<void>('clear_api_key'),
+	hasApiKey: (provider: Provider) => invoke<boolean>('has_api_key', { provider }),
+	setApiKey: (provider: Provider, key: string) =>
+		invoke<void>('set_api_key', { provider, key }),
+	clearApiKey: (provider: Provider) => invoke<void>('clear_api_key', { provider }),
 
 	startSession: (options: StartOptions) => invoke<void>('start_session', { options }),
 	stopSession: () => invoke<void>('stop_session'),

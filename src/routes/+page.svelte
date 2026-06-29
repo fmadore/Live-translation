@@ -13,7 +13,13 @@
 		overlayFontSize,
 		pushCaption
 	} from '$lib/stores';
-	import type { AudioDevice, AudioSource, TargetLanguage, TranslationMode } from '$lib/types';
+	import type {
+		AudioDevice,
+		AudioSource,
+		Provider,
+		TargetLanguage,
+		TranslationMode
+	} from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
@@ -48,7 +54,16 @@
 
 	async function refresh() {
 		try {
-			[microphones, $hasKey] = await Promise.all([api.listMicrophones(), api.hasApiKey()]);
+			microphones = await api.listMicrophones();
+			await checkKey();
+		} catch (e) {
+			statusMessage.set(String(e));
+		}
+	}
+
+	async function checkKey() {
+		try {
+			$hasKey = await api.hasApiKey($options.provider);
 		} catch (e) {
 			statusMessage.set(String(e));
 		}
@@ -58,7 +73,7 @@
 		if (!apiKeyInput.trim()) return;
 		savingKey = true;
 		try {
-			await api.setApiKey(apiKeyInput.trim());
+			await api.setApiKey($options.provider, apiKeyInput.trim());
 			apiKeyInput = '';
 			$hasKey = true;
 			editingKey = false;
@@ -70,7 +85,7 @@
 	}
 
 	async function clearKey() {
-		await api.clearApiKey();
+		await api.clearApiKey($options.provider);
 		$hasKey = false;
 	}
 
@@ -102,10 +117,38 @@
 		$options = { ...$options, mode: m };
 	}
 
+	function setAuto(on: boolean) {
+		$options = { ...$options, autoBidirectional: on };
+	}
+
+	function setProvider(p: Provider) {
+		if (p === $options.provider) return;
+		$options = { ...$options, provider: p };
+		// The key panel and Start gating follow the active provider's key.
+		editingKey = false;
+		apiKeyInput = '';
+		void checkKey();
+	}
+
 	const engineHint = $derived(
 		$options.mode === 'live-translate'
 			? 'Dedicated speech translation model. Captions come from its transcript; audio is discarded.'
 			: 'General model: audio in → translated text out. No audio generated; more promptable.'
+	);
+
+	// Provider-specific key panel copy.
+	const keyInfo = $derived(
+		$options.provider === 'openai'
+			? {
+					name: 'OpenAI',
+					model: 'gpt-realtime-translate',
+					url: 'https://platform.openai.com/api-keys'
+				}
+			: {
+					name: 'Gemini',
+					model: 'gemini-3.5-live-translate-preview',
+					url: 'https://aistudio.google.com/apikey'
+				}
 	);
 
 	// Quick flip of the caption language — handy when speakers alternate.
@@ -184,7 +227,7 @@
 
 	{#if !browserMode}
 		<section class="panel key">
-			<h2>Gemini API key</h2>
+			<h2>{keyInfo.name} API key</h2>
 			{#if $hasKey && !editingKey}
 				<div class="row key-saved">
 					<span class="key-ok">✓ Saved to the OS keychain</span>
@@ -197,12 +240,13 @@
 			{:else}
 				<p class="hint">
 					Stored in the OS keychain, used only from the Rust core. Needs access to
-					<code>gemini-3.5-live-translate-preview</code>.
+					<code>{keyInfo.model}</code>. Get one at
+						<a href={keyInfo.url} target="_blank" rel="noreferrer">{keyInfo.url}</a>.
 				</p>
 				<div class="row">
 					<input
 						type="password"
-						placeholder="Paste your Gemini API key"
+						placeholder="Paste your {keyInfo.name} API key"
 						bind:value={apiKeyInput}
 						onkeydown={(e) => e.key === 'Enter' && saveKey()}
 					/>
@@ -262,7 +306,11 @@
 
 		<section class="panel">
 			<h2>Caption language</h2>
-			<p class="hint">Spoken language is auto-detected; pick the language the audience reads.</p>
+			<p class="hint">
+				{$options.autoBidirectional
+					? 'French ↔ English, chosen automatically per speaker. Pick the fallback for any other language:'
+					: 'Spoken language is auto-detected; pick the language the audience reads.'}
+			</p>
 			<div class="segmented">
 				<button class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
 					🇬🇧 English
@@ -272,26 +320,58 @@
 				</button>
 			</div>
 			<button class="ghost flip" onclick={flipDirection}>⇄ Flip (F2)</button>
+
+			<label class="auto-toggle">
+				<input
+					type="checkbox"
+					checked={$options.autoBidirectional}
+					onchange={(e) => setAuto(e.currentTarget.checked)}
+				/>
+				<span>🔁 Auto (FR ⇄ EN) — caption each speaker in the <em>other</em> language</span>
+			</label>
+			{#if $options.autoBidirectional && !($options.provider === 'gemini' && $options.mode === 'speech-to-text')}
+				<p class="hint warn-hint">
+					Auto direction only applies to Gemini's Speech → Text engine; the selected engine will
+					use the fixed language above.
+				</p>
+			{/if}
 		</section>
 	</div>
 
 	<section class="panel">
 		<h2>Translation engine</h2>
-		<div class="segmented">
-			<button
-				class:active={$options.mode === 'live-translate'}
-				onclick={() => setMode('live-translate')}
-			>
-				Live Translate (speech model)
-			</button>
-			<button
-				class:active={$options.mode === 'speech-to-text'}
-				onclick={() => setMode('speech-to-text')}
-			>
-				Speech → Text (general)
-			</button>
-		</div>
-		<p class="hint engine-hint">{engineHint}</p>
+			<div class="segmented sub">
+				<button class:active={$options.provider === 'gemini'} onclick={() => setProvider('gemini')}>
+					Google Gemini
+				</button>
+				<button class:active={$options.provider === 'openai'} onclick={() => setProvider('openai')}>
+					OpenAI
+				</button>
+			</div>
+
+			{#if $options.provider === 'gemini'}
+				<div class="segmented">
+					<button
+						class:active={$options.mode === 'live-translate'}
+						onclick={() => setMode('live-translate')}
+					>
+						Live Translate (speech model)
+					</button>
+					<button
+						class:active={$options.mode === 'speech-to-text'}
+						onclick={() => setMode('speech-to-text')}
+					>
+						Speech → Text (general)
+					</button>
+				</div>
+				<p class="hint engine-hint">{engineHint}</p>
+			{:else}
+				<p class="hint engine-hint">
+					<code>gpt-realtime-translate</code> — OpenAI's dedicated live speech-translation model
+					(70+ languages in, 13 out). Captions come from its transcript; audio is discarded. Fixed
+					target language.
+				</p>
+			{/if}
 	</section>
 
 	<section class="panel controls">
@@ -465,8 +545,34 @@
 	.flip {
 		margin-top: 12px;
 	}
+	.auto-toggle {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 14px;
+		font-size: 13px;
+		color: var(--text);
+		cursor: pointer;
+	}
+	.auto-toggle input {
+		width: auto;
+		cursor: pointer;
+	}
+	.auto-toggle em {
+		font-style: italic;
+	}
+	.warn-hint {
+		color: var(--warn);
+		margin-top: 8px;
+	}
 	.engine-hint {
 		margin: 10px 0 0;
+	}
+	.segmented.sub {
+		margin-bottom: 10px;
+	}
+	.hint a {
+		color: var(--accent-2);
 	}
 	.meters {
 		margin-top: 14px;

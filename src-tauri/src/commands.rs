@@ -6,7 +6,7 @@ use tauri::{AppHandle, Manager, State};
 use crate::audio::list_input_devices;
 use crate::secrets;
 use crate::session::SessionManager;
-use crate::types::{AudioDevice, StartOptions};
+use crate::types::{AudioDevice, Provider, StartOptions};
 
 const OVERLAY_LABEL: &str = "overlay";
 
@@ -16,18 +16,18 @@ pub fn list_microphones() -> Vec<AudioDevice> {
 }
 
 #[tauri::command]
-pub fn has_api_key() -> bool {
-    secrets::has_api_key()
+pub fn has_api_key(provider: Provider) -> bool {
+    secrets::has_api_key(provider)
 }
 
 #[tauri::command]
-pub fn set_api_key(key: String) -> Result<(), String> {
-    secrets::set_api_key(&key).map_err(|e| e.to_string())
+pub fn set_api_key(provider: Provider, key: String) -> Result<(), String> {
+    secrets::set_api_key(provider, &key).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub fn clear_api_key() -> Result<(), String> {
-    secrets::clear_api_key().map_err(|e| e.to_string())
+pub fn clear_api_key(provider: Provider) -> Result<(), String> {
+    secrets::clear_api_key(provider).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

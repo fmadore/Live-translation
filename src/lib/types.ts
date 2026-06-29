@@ -4,19 +4,11 @@
 /** Which audio input(s) to translate. */
 export type AudioSource = 'microphone' | 'system' | 'both';
 
-/**
- * Translation direction. The Live Translate model auto-detects the spoken language;
- * `targetLanguageCode` is the language we want captions in.
- *
- * - `fr-to-en`  : target English (a French speaker → English captions)
- * - `en-to-fr`  : target French  (an English speaker → French captions)
- * - `auto`      : let the operator flip quickly; we still send a concrete target,
- *                 defaulting to English, and expose a one-key toggle in the UI.
- */
-export type Direction = 'fr-to-en' | 'en-to-fr';
-
-/** BCP-47 codes we use for the two workshop languages. */
+/** BCP-47 codes we use for the two workshop languages. The spoken language is auto-detected. */
 export type TargetLanguage = 'en' | 'fr';
+
+/** Translation provider / backend. Each has its own realtime API and API key. */
+export type Provider = 'gemini' | 'openai';
 
 /**
  * How we turn speech into translated text:
@@ -29,10 +21,18 @@ export type TranslationMode = 'live-translate' | 'speech-to-text';
 
 export interface StartOptions {
 	source: AudioSource;
-	/** Caption language (translation target). */
+	/** Caption language (translation target). In auto-bidirectional mode, the fallback language. */
 	targetLanguage: TargetLanguage;
-	/** Translation engine / model path. */
+	/** Translation backend. */
+	provider: Provider;
+	/** Gemini engine / model path; ignored when provider is OpenAI. */
 	mode: TranslationMode;
+	/**
+	 * Speech → Text engine only: translate each utterance into the *other* of French/English
+	 * (direction picked per utterance from the detected language); `targetLanguage` is the
+	 * fallback for any other language. Ignored by the Live Translate engine.
+	 */
+	autoBidirectional?: boolean;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
 }

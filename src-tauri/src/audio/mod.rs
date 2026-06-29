@@ -1,19 +1,21 @@
 //! Audio capture: microphone (cpal, cross-platform) and system loopback (WASAPI, Windows).
-//! Both feed a uniform stream of 16 kHz mono PCM-16 chunks to the Gemini client, and emit
-//! a level meter to the UI.
+//! Both feed a uniform stream of mono PCM-16 chunks to the active translation client at the
+//! provider's input rate (16 kHz for Gemini, 24 kHz for OpenAI), and emit a level meter to the
+//! UI. The target rate is chosen per session and threaded into capture.
 
 pub mod capture;
 pub mod loopback;
 pub mod resample;
 
-/// Sample rate Gemini Live expects on input.
-pub const TARGET_RATE: u32 = 16_000;
-/// We send ~100 ms chunks, the cadence recommended by the Live API.
+/// We send ~100 ms chunks, the cadence the realtime APIs recommend.
 pub const CHUNK_MS: usize = 100;
-/// Samples per chunk at the target rate (16000 * 100 / 1000 = 1600).
-pub const CHUNK_SAMPLES: usize = TARGET_RATE as usize * CHUNK_MS / 1000;
 
-/// One 100 ms chunk of mono 16 kHz PCM, little-endian bytes, ready to base64-encode.
+/// Samples in one ~100 ms chunk at `rate` Hz (e.g. 1600 at 16 kHz, 2400 at 24 kHz).
+pub fn chunk_samples(rate: u32) -> usize {
+    rate as usize * CHUNK_MS / 1000
+}
+
+/// One ~100 ms chunk of mono PCM-16, little-endian bytes, ready to base64-encode.
 /// The source is implied by the channel it arrives on (one channel per origin).
 #[derive(Debug, Clone)]
 pub struct AudioChunk {

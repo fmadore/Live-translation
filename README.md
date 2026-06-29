@@ -6,16 +6,19 @@ AI in African Studies"** (STIAS, Stellenbosch, 21–24 Sept 2026). Companion too
 
 It captures two kinds of audio — a **presenter at the laptop** (microphone) and **audio
 coming out of the laptop** (system/loopback, e.g. a remote speaker on Zoom) — translates
-live between **French and English** with **Google Gemini 3.5 Live Translate**, and shows
-the result as **live captions** in a transparent, always-on-top overlay that can float
-over a PowerPoint presentation.
+speech live between **French and English** (any language is auto-detected) using your choice
+of **Google Gemini** or **OpenAI** live-translation models, and shows the result as **live
+captions** in a transparent, always-on-top overlay that can float over a PowerPoint
+presentation.
 
 > **Output is text captions only.** Two engines are selectable in the operator UI:
 > **Live Translate** (the dedicated speech-to-speech model — we display its translated
 > *transcript* and discard the synthesized audio so it never talks over the speaker) and
 > **Speech → Text** (a general Live model with text output and a translate prompt — audio
-> in, translated text out, no audio generated). See
-> [`docs/gemini-live-api.md`](docs/gemini-live-api.md) for the trade-offs.
+> in, translated text out, no audio generated; can auto-translate each speaker into the
+> *other* of French/English). You can also switch the **provider** from Gemini to **OpenAI**
+> (`gpt-realtime-translate`). See [`docs/gemini-live-api.md`](docs/gemini-live-api.md) and
+> [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md) for the trade-offs.
 
 ## Architecture
 
@@ -52,8 +55,9 @@ validation: a Windows build and a rehearsal against a real Zoom call + room mic.
 - **Rust** (stable) — <https://rustup.rs>
 - **Tauri prerequisites** for your OS — <https://tauri.app/start/prerequisites/>
   - Windows: Microsoft C++ Build Tools + WebView2 (bundled on Win 11)
-- A **Gemini API key** with access to `gemini-3.5-live-translate-preview`
-  — <https://aistudio.google.com/apikey>
+- An API key for whichever provider you use:
+  - **Gemini** with access to `gemini-3.5-live-translate-preview` — <https://aistudio.google.com/apikey>
+  - **OpenAI** with access to `gpt-realtime-translate` — <https://platform.openai.com/api-keys>
 
 ## Getting started
 

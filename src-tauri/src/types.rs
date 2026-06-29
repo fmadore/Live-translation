@@ -52,6 +52,25 @@ impl TargetLanguage {
     }
 }
 
+/// Translation provider / backend. Each has its own realtime API, audio rate, and key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Provider {
+    #[default]
+    Gemini,
+    OpenAi,
+}
+
+impl Provider {
+    /// Sample rate the provider's realtime API expects on input, in Hz.
+    pub fn input_sample_rate(self) -> u32 {
+        match self {
+            Provider::Gemini => 16_000,
+            Provider::OpenAi => 24_000,
+        }
+    }
+}
+
 /// How we get from speech to translated text.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -69,7 +88,15 @@ pub enum TranslationMode {
 pub struct StartOptions {
     pub source: AudioSource,
     pub target_language: TargetLanguage,
+    /// Translation backend. Defaults to Gemini for older front-ends that omit it.
+    #[serde(default)]
+    pub provider: Provider,
+    /// Gemini engine selector; ignored when `provider` is OpenAI.
     pub mode: TranslationMode,
+    /// Gemini Speech-to-Text engine only: translate each utterance into the *other* of
+    /// French/English, using `target_language` as the fallback for any other detected language.
+    #[serde(default)]
+    pub auto_bidirectional: bool,
     #[serde(default)]
     pub mic_device_name: Option<String>,
 }

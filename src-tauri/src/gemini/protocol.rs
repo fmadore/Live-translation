@@ -104,6 +104,27 @@ impl SetupMessage {
              translation — no commentary, labels, or quotation marks. If the speech is already in \
              {target_language_name}, repeat it verbatim. Preserve technical and academic terminology."
         );
+        Self::text_translate(model, prompt)
+    }
+
+    /// Like [`speech_to_text`], but bidirectional: the model picks the direction per utterance
+    /// from the detected language — French in → English out, English in → French out — and falls
+    /// back to `fallback_language_name` for any other language.
+    pub fn speech_to_text_bidirectional(model: &str, fallback_language_name: &str) -> Self {
+        let prompt = format!(
+            "You are a live simultaneous interpreter at an academic conference with a bilingual \
+             French and English audience. Translate each utterance into the *other* of those two \
+             languages: if the speech is in French, output English; if it is in English, output \
+             French. If the speech is in any other language, translate it into \
+             {fallback_language_name}. Output only the translation — no commentary, labels, \
+             language names, or quotation marks. Preserve technical and academic terminology."
+        );
+        Self::text_translate(model, prompt)
+    }
+
+    /// Shared builder for the text-output translate engine: TEXT modality, a translate system
+    /// instruction, input transcription on (operator monitor), no output audio.
+    fn text_translate(model: &str, prompt: String) -> Self {
         SetupMessage {
             setup: Setup {
                 model: format!("models/{model}"),
@@ -233,6 +254,25 @@ mod tests {
             .as_str()
             .unwrap();
         assert!(prompt.contains("French"));
+    }
+
+    #[test]
+    fn bidirectional_setup_prompts_both_directions() {
+        let v = serde_json::to_value(SetupMessage::speech_to_text_bidirectional(
+            "gemini-live-2.5-flash",
+            "English",
+        ))
+        .unwrap();
+        assert_eq!(
+            v["setup"]["generationConfig"]["responseModalities"][0],
+            "TEXT"
+        );
+        let prompt = v["setup"]["systemInstruction"]["parts"][0]["text"]
+            .as_str()
+            .unwrap();
+        // Mentions both languages so the model flips direction per utterance.
+        assert!(prompt.contains("French"));
+        assert!(prompt.contains("English"));
     }
 
     #[test]

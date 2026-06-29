@@ -13,7 +13,9 @@ export const hasKey = writable<boolean>(false);
 export const options = writable<StartOptions>({
 	source: 'system',
 	targetLanguage: 'en',
+	provider: 'gemini',
 	mode: 'live-translate',
+	autoBidirectional: false,
 	micDeviceName: null
 });
 

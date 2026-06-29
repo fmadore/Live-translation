@@ -53,6 +53,13 @@ The translated text arrives in `serverContent.modelTurn.parts[].text`. More prom
 (academic terminology, formatting) and lighter, but not purpose-tuned for simultaneous
 interpretation. Model id is configurable via `GEMINI_STT_MODEL`.
 
+Because the direction lives entirely in the prompt, this engine also supports an
+**auto-bidirectional** mode (operator toggle, `autoBidirectional` in `StartOptions`): one system
+instruction tells the model to render French as English and English as French, picking the
+direction per utterance, with the operator-selected language as the fallback for any other
+detected language. Engine A can't do this — its `targetLanguageCode` is fixed for the session —
+so auto mode applies to Engine B only.
+
 > ⚠️ Verify both model ids before the event — preview ids change. The
 > `gemini-live-2.5-flash` family is the half-cascade Live model recommended for TEXT output;
 > `*-native-audio` variants are optimized for audio output instead.

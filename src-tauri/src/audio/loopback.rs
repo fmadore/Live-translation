@@ -17,6 +17,7 @@ use super::AudioChunk;
 #[cfg(not(windows))]
 pub fn run_system_loopback(
     _app: AppHandle,
+    _target_rate: u32,
     _chunk_tx: UnboundedSender<AudioChunk>,
     _cancel: CancellationToken,
 ) -> Result<()> {
@@ -26,10 +27,11 @@ pub fn run_system_loopback(
 #[cfg(windows)]
 pub fn run_system_loopback(
     app: AppHandle,
+    target_rate: u32,
     chunk_tx: UnboundedSender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
-    windows_impl::run(app, chunk_tx, cancel)
+    windows_impl::run(app, target_rate, chunk_tx, cancel)
 }
 
 #[cfg(windows)]
@@ -63,6 +65,7 @@ mod windows_impl {
 
     pub fn run(
         app: AppHandle,
+        target_rate: u32,
         chunk_tx: UnboundedSender<AudioChunk>,
         cancel: CancellationToken,
     ) -> Result<()> {
@@ -119,7 +122,7 @@ mod windows_impl {
             .start_stream()
             .ctx("failed to start loopback stream")?;
 
-        let mut state = CaptureState::new(Origin::System, in_rate, app, chunk_tx);
+        let mut state = CaptureState::new(Origin::System, in_rate, target_rate, app, chunk_tx);
         let mut raw: VecDeque<u8> = VecDeque::new();
         let mut frame: Vec<f32> = Vec::new();
 

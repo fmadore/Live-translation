@@ -7,6 +7,7 @@
 mod audio;
 mod commands;
 mod gemini;
+mod openai;
 mod secrets;
 mod session;
 mod types;
