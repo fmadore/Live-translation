@@ -31,76 +31,49 @@ wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.G
 
 MIME type on input chunks: `audio/pcm;rate=16000`.
 
-## Two engines (operator-selectable)
+## Engine: Live Translate in TEXT mode (`gemini-3.5-live-translate-preview`)
 
-The app supports two paths from speech to translated text; the operator picks one and we
-compare them at the rehearsal.
+The dedicated translate model, configured with `responseModalities: ["TEXT"]`. It emits the
+translation as **text only** — **no audio is synthesized**, so there are no audio-output tokens to
+pay for. The translated text arrives via `outputTranscription`; `inputTranscription` carries the
+recognised source for the operator monitor. Purpose-tuned across 70+ languages; source
+auto-detected. Verified end-to-end: this model accepts TEXT modality and still honours
+`translationConfig`.
 
-### A. Live Translate (dedicated, `gemini-3.5-live-translate-preview`)
-
-**Speech-to-speech**: its primary output is translated *audio*. There is **no text-only
-mode** — text is available only as a sidecar via `outputAudioTranscription`. We render that
-output transcription as the caption and never play the audio, so it can't talk over the
-speaker. Purpose-tuned for translation across 70+ languages. Note: input transcription for
-this model arrives as one complete message (not streamed partials); output transcription
-streams.
-
-### B. Speech → Text (general, `gemini-3.1-flash-live-preview`)
-
-A general half-cascade Live model with `responseModalities: ["TEXT"]` and a translate
-**system instruction**. Audio in → translated **text** out, with **no audio synthesized**.
-The translated text arrives in `serverContent.modelTurn.parts[].text`. More promptable
-(academic terminology, formatting) and lighter, but not purpose-tuned for simultaneous
-interpretation. Model id is configurable via `GEMINI_STT_MODEL`.
-
-> ⚠️ Verify both model ids before the event — preview ids change. `gemini-3.1-flash-live-preview`
-> is the current half-cascade Live model for TEXT output (the older `gemini-live-2.5-flash` was
-> retired); the `*-native-audio` variants are AUDIO-only and won't work for the TEXT engine.
+> **Why no separate "Speech → Text" engine?** As of June 2026 **no general Gemini Live model
+> accepts `responseModalities: ["TEXT"]`**: the `*-native-audio` models and
+> `gemini-3.1-flash-live-preview` reject it (close 1007, "response modalities (TEXT) is not
+> supported by the model"), and the old half-cascade `gemini-live-2.5-flash*` ids were retired.
+> The **only** Live model that accepts TEXT output is `gemini-3.5-live-translate-preview` itself —
+> so it is the single engine, run in TEXT mode. (An earlier two-engine design was removed.)
 >
-> **Cost note:** Engine A (Live Translate) is speech-to-speech — it always *generates* translated
-> audio (billed as audio output tokens) and we only read the transcript. Engine B emits **text
-> only** (no audio synthesized), so it avoids audio-output cost — prefer it for text captions.
+> ⚠️ Re-verify model ids before the event — preview ids change.
 
 ## Setup message (first frame after connect)
-
-**Engine A — Live Translate:**
 
 ```json
 {
   "setup": {
     "model": "models/gemini-3.5-live-translate-preview",
     "generationConfig": {
-      "responseModalities": ["AUDIO"],
+      "responseModalities": ["TEXT"],
       "translationConfig": {
         "targetLanguageCode": "en",
         "echoTargetLanguage": false
       }
     },
-    "inputAudioTranscription": {},
-    "outputAudioTranscription": {}
-  }
-}
-```
-
-- `targetLanguageCode` — BCP-47 caption language (`en` or `fr` here). Source language is
-  auto-detected.
-- `echoTargetLanguage` — when input is already in the target language: `true` repeats it,
-  `false` stays silent. We use `false`.
-
-**Engine B — Speech → Text:**
-
-```json
-{
-  "setup": {
-    "model": "models/gemini-3.1-flash-live-preview",
-    "generationConfig": { "responseModalities": ["TEXT"] },
-    "systemInstruction": {
-      "parts": [{ "text": "…translate the incoming speech into English…" }]
-    },
     "inputAudioTranscription": {}
   }
 }
 ```
+
+- `responseModalities: ["TEXT"]` — text only; no audio synthesized, so no audio-output cost.
+- `targetLanguageCode` — BCP-47 caption language (`en` or `fr` here). Source language is
+  auto-detected.
+- `echoTargetLanguage` — when input is already in the target language: `true` repeats it,
+  `false` stays silent. We use `false`.
+- No `outputAudioTranscription`: in TEXT mode the translation comes through `outputTranscription`
+  on its own.
 
 The server replies with `{"setupComplete": {}}` when ready for audio.
 
@@ -133,9 +106,8 @@ The server replies with `{"setupComplete": {}}` when ready for audio.
 - Transcription `text` arrives as **deltas**; concatenate within a turn.
 - `turnComplete: true` finalizes the current caption; we then reset the accumulator and
   bump the turn id.
-- Caption text source by engine:
-  - **Live Translate** → `outputTranscription.text` (`modelTurn` audio is ignored).
-  - **Speech → Text** → `modelTurn.parts[].text` (there is no `outputTranscription`).
+- Caption text comes from `outputTranscription.text` (the translation). Even in TEXT mode the
+  translate model delivers the translation there, not in `modelTurn.parts[].text`.
 - `{ "goAway": {…} }` warns the connection is about to close — we proactively reconnect.
 
 ## Resilience

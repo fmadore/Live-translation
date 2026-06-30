@@ -11,14 +11,12 @@ of **Google Gemini** or **OpenAI** live-translation models, and shows the result
 captions** in a transparent, always-on-top overlay that can float over a PowerPoint
 presentation.
 
-> **Output is text captions only.** Two engines are selectable in the operator UI:
-> **Live Translate** (the dedicated speech-to-speech model — we display its translated
-> *transcript* and discard the synthesized audio so it never talks over the speaker) and
-> **Speech → Text** (a general Live model with text output and a translate prompt — audio
-> in, translated text out, no audio generated). You can also switch the **provider** from
-> Gemini to **OpenAI**
-> (`gpt-realtime-translate`). See [`docs/gemini-live-api.md`](docs/gemini-live-api.md) and
-> [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md) for the trade-offs.
+> **Output is text captions only.** The Gemini engine is **Live Translate**
+> (`gemini-3.5-live-translate-preview`) run in **text mode** — it returns the translation as text
+> with no audio synthesized, so there are no audio-output costs. You can also switch the
+> **provider** to **OpenAI** (`gpt-realtime-translate`). See
+> [`docs/gemini-live-api.md`](docs/gemini-live-api.md) and
+> [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md) for details.
 
 ## Architecture
 

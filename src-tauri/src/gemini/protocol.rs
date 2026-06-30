@@ -75,14 +75,17 @@ pub struct MediaChunk {
 }
 
 impl SetupMessage {
-    /// Dedicated speech-to-speech translate model. AUDIO is its native modality; we read
-    /// only the input/output transcriptions and discard the audio.
+    /// Dedicated translate model, run in **TEXT** mode: it emits the translation as text only,
+    /// with no audio synthesized — so there are no audio-output tokens to pay for. The translated
+    /// text arrives via `outputTranscription`; `inputTranscription` carries the recognised source
+    /// for the operator monitor. (Verified: this model accepts `responseModalities: ["TEXT"]` and
+    /// still honours `translationConfig`.)
     pub fn live_translate(model: &str, target_language_code: &str) -> Self {
         SetupMessage {
             setup: Setup {
                 model: format!("models/{model}"),
                 generation_config: GenerationConfig {
-                    response_modalities: vec!["AUDIO".to_string()],
+                    response_modalities: vec!["TEXT".to_string()],
                     translation_config: Some(TranslationConfig {
                         target_language_code: target_language_code.to_string(),
                         echo_target_language: false,
@@ -90,7 +93,7 @@ impl SetupMessage {
                 },
                 system_instruction: None,
                 input_audio_transcription: Some(Empty {}),
-                output_audio_transcription: Some(Empty {}),
+                output_audio_transcription: None,
             },
         }
     }
@@ -207,14 +210,15 @@ mod tests {
         );
         assert_eq!(
             v["setup"]["generationConfig"]["responseModalities"][0],
-            "AUDIO"
+            "TEXT"
         );
         assert_eq!(
             v["setup"]["generationConfig"]["translationConfig"]["targetLanguageCode"],
             "en"
         );
         assert!(v["setup"]["inputAudioTranscription"].is_object());
-        assert!(v["setup"]["outputAudioTranscription"].is_object());
+        // TEXT mode: no audio synthesized, so no output-audio transcription sidecar.
+        assert!(v["setup"]["outputAudioTranscription"].is_null());
         assert!(v["setup"]["systemInstruction"].is_null());
     }
 

@@ -18,8 +18,7 @@
 		AudioDevice,
 		AudioSource,
 		Provider,
-		TargetLanguage,
-		TranslationMode
+		TargetLanguage
 	} from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 
@@ -116,10 +115,6 @@
 		$options = { ...$options, targetLanguage: t };
 	}
 
-	function setMode(m: TranslationMode) {
-		$options = { ...$options, mode: m };
-	}
-
 	function setProvider(p: Provider) {
 		if (p === $options.provider) return;
 		$options = { ...$options, provider: p };
@@ -128,12 +123,6 @@
 		apiKeyInput = '';
 		void checkKey();
 	}
-
-	const engineHint = $derived(
-		$options.mode === 'live-translate'
-			? 'Dedicated speech translation model. Captions come from its transcript; audio is discarded.'
-			: 'General model: audio in → translated text out. No audio generated; more promptable.'
-	);
 
 	// Provider-specific key panel copy.
 	const keyInfo = $derived(
@@ -330,21 +319,10 @@
 			</div>
 
 			{#if $options.provider === 'gemini'}
-				<div class="segmented">
-					<button
-						class:active={$options.mode === 'live-translate'}
-						onclick={() => setMode('live-translate')}
-					>
-						Live Translate (speech model)
-					</button>
-					<button
-						class:active={$options.mode === 'speech-to-text'}
-						onclick={() => setMode('speech-to-text')}
-					>
-						Speech → Text (general)
-					</button>
-				</div>
-				<p class="hint engine-hint">{engineHint}</p>
+				<p class="hint engine-hint">
+					<code>gemini-3.5-live-translate-preview</code> — text-only output (no audio synthesized,
+					so no audio-output cost). Any spoken language → the caption language above.
+				</p>
 			{:else}
 				<p class="hint engine-hint">
 					<code>gpt-realtime-translate</code> — OpenAI's dedicated live speech-translation model
