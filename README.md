@@ -25,15 +25,15 @@ Tauri app (Rust core + SvelteKit front-end)
 ├── Audio capture (Rust)
 │   ├── Microphone        — cpal (cross-platform)        → presenter in the room
 │   └── System loopback   — WASAPI loopback (Windows)    → Zoom / remote speaker
-│        → resampled to 16 kHz mono 16-bit PCM (the format Gemini Live expects)
+│        → resampled to mono 16-bit PCM (16 kHz for Gemini, 24 kHz for OpenAI)
 │
-├── Gemini Live client (Rust)
-│   └── WebSocket bidi stream → sends 100 ms PCM chunks,
-│       receives input + output transcription in real time.
-│       API key kept in the OS keychain, used only from Rust — never in the front-end.
+├── Translation client (Rust) — Gemini or OpenAI, chosen per session
+│   └── WebSocket bidi stream → sends 100 ms PCM chunks, receives the translated
+│       text + source transcription in real time. Text-only — no audio is synthesized.
+│       The API key lives in the OS keychain, used only from Rust — never in the front-end.
 │
 └── Two windows (SvelteKit)
-    ├── Operator window   — source selector, FR⇄EN direction, start/stop, level meter
+    ├── Operator window   — source + caption-language selector, start/stop, level meter
     └── Caption overlay   — frameless, transparent, always-on-top, click-through captions
 ```
 
@@ -42,10 +42,12 @@ See [`docs/gemini-live-api.md`](docs/gemini-live-api.md) for the verified API su
 
 ## Status
 
-Milestone scaffold. The full project structure, operator UI, caption overlay, audio
-capture (mic + Windows loopback), resampling, the Gemini Live WebSocket client, secure
-key storage, and the Tauri command/event wiring are in place. What remains is hardware
-validation: a Windows build and a rehearsal against a real Zoom call + room mic.
+Working and released. Operator UI, caption overlay (rolling subtitle-style auto-clear),
+mic + Windows-loopback capture, resampling, the Gemini and OpenAI Live WebSocket clients,
+text-only translation, secure per-provider key storage, transcript saving, and the
+multi-platform release installers are all in place and verified on Windows. Re-verify the
+model ids and run a full rehearsal (real Zoom call + room mic) before the event — the Live
+APIs are in preview.
 
 ## Prerequisites
 
@@ -69,7 +71,7 @@ npm run dev
 npm run tauri dev
 ```
 
-On first launch, open the operator window and paste your Gemini API key — it is stored in
+On first launch, open the operator window and paste your provider's API key — it is stored in
 the OS keychain (Windows Credential Manager / macOS Keychain / Secret Service), never on disk
 in plaintext and never committed. Alternatively set `GEMINI_API_KEY` in an uncommitted `.env`
 (see [`.env.example`](.env.example)) for development.
@@ -83,7 +85,7 @@ npm run tauri build           # produces .msi and .exe (NSIS) in src-tauri/targe
 ## Running the app at the event
 
 1. Run the **operator window** on the laptop. Pick the audio source (mic / system / both)
-   and the translation direction, then **Start**.
+   and the caption language, then **Start**.
 2. Drag the **caption overlay** onto the projector output and let it float over the
    PowerPoint (PowerPoint windowed or in Presenter view). The overlay is click-through, so
    it never steals clicks from your slides.
@@ -100,7 +102,8 @@ src/                     SvelteKit front-end
 src-tauri/               Rust core
   src/audio/             cpal microphone + WASAPI loopback capture, resampling
   src/gemini/            Gemini Live WebSocket client
-  src/secrets.rs         OS keychain storage for the API key
+  src/openai/            OpenAI Realtime translation client
+  src/secrets.rs         OS keychain storage for the per-provider API keys
   src/commands.rs        Tauri commands exposed to the front-end
 docs/                    API notes and architecture
 ```
