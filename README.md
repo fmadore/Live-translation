@@ -15,8 +15,8 @@ presentation.
 > **Live Translate** (the dedicated speech-to-speech model — we display its translated
 > *transcript* and discard the synthesized audio so it never talks over the speaker) and
 > **Speech → Text** (a general Live model with text output and a translate prompt — audio
-> in, translated text out, no audio generated; can auto-translate each speaker into the
-> *other* of French/English). You can also switch the **provider** from Gemini to **OpenAI**
+> in, translated text out, no audio generated). You can also switch the **provider** from
+> Gemini to **OpenAI**
 > (`gpt-realtime-translate`). See [`docs/gemini-live-api.md`](docs/gemini-live-api.md) and
 > [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md) for the trade-offs.
 

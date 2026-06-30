@@ -93,10 +93,6 @@ pub struct StartOptions {
     pub provider: Provider,
     /// Gemini engine selector; ignored when `provider` is OpenAI.
     pub mode: TranslationMode,
-    /// Gemini Speech-to-Text engine only: translate each utterance into the *other* of
-    /// French/English, using `target_language` as the fallback for any other detected language.
-    #[serde(default)]
-    pub auto_bidirectional: bool,
     #[serde(default)]
     pub mic_device_name: Option<String>,
 }

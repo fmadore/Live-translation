@@ -15,7 +15,6 @@ export const options = writable<StartOptions>({
 	targetLanguage: 'en',
 	provider: 'gemini',
 	mode: 'live-translate',
-	autoBidirectional: false,
 	micDeviceName: null
 });
 
@@ -25,16 +24,42 @@ export const latestCaption = writable<Caption | null>(null);
 // Rolling transcript log (most recent finalized lines first).
 export const transcript = writable<TranscriptLine[]>([]);
 
+// Track the in-flight turn so a transcript line is logged even when a stream never emits
+// `turnComplete` (e.g. one long continuous utterance) — otherwise the log stays empty and the
+// Save/Clear buttons are disabled.
+let pending: Caption | null = null;
+
+function commit(c: Caption) {
+	if (!c.text.trim()) return;
+	const line: TranscriptLine = {
+		time: new Date().toLocaleTimeString(),
+		text: c.text.trim(),
+		sourceText: c.sourceText.trim(),
+		origin: c.origin
+	};
+	transcript.update((list) => [line, ...list].slice(0, 1000));
+}
+
 export function pushCaption(c: Caption) {
 	latestCaption.set(c);
-	if (c.final && c.text.trim()) {
-		const line: TranscriptLine = {
-			time: new Date().toLocaleTimeString(),
-			text: c.text.trim(),
-			sourceText: c.sourceText.trim(),
-			origin: c.origin
-		};
-		transcript.update((list) => [line, ...list].slice(0, 1000));
+	// A new turn id means the previous turn is done, even without an explicit turnComplete.
+	if (pending && pending.turnId !== c.turnId) {
+		commit(pending);
+		pending = null;
+	}
+	if (c.final) {
+		commit(c);
+		pending = null;
+	} else {
+		pending = c;
+	}
+}
+
+/** Commit the in-flight line (call when the session ends) so it isn't lost. */
+export function flushTranscript() {
+	if (pending) {
+		commit(pending);
+		pending = null;
 	}
 }
 

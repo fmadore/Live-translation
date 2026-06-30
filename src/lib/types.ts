@@ -21,18 +21,12 @@ export type TranslationMode = 'live-translate' | 'speech-to-text';
 
 export interface StartOptions {
 	source: AudioSource;
-	/** Caption language (translation target). In auto-bidirectional mode, the fallback language. */
+	/** Caption language (translation target). */
 	targetLanguage: TargetLanguage;
 	/** Translation backend. */
 	provider: Provider;
 	/** Gemini engine / model path; ignored when provider is OpenAI. */
 	mode: TranslationMode;
-	/**
-	 * Speech → Text engine only: translate each utterance into the *other* of French/English
-	 * (direction picked per utterance from the detected language); `targetLanguage` is the
-	 * fallback for any other language. Ignored by the Live Translate engine.
-	 */
-	autoBidirectional?: boolean;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
 }

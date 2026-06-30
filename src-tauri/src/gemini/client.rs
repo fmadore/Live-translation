@@ -19,7 +19,8 @@ use crate::types::{events, Caption, Origin, SessionState, StatusUpdate, Translat
 /// Dedicated speech-to-speech translate model.
 pub const DEFAULT_TRANSLATE_MODEL: &str = "gemini-3.5-live-translate-preview";
 /// General half-cascade Live model used for audio-in / text-out translation.
-pub const DEFAULT_STT_MODEL: &str = "gemini-live-2.5-flash";
+/// (The older `gemini-live-2.5-flash` half-cascade id was retired; this is its successor.)
+pub const DEFAULT_STT_MODEL: &str = "gemini-3.1-flash-live-preview";
 pub const DEFAULT_HOST: &str = "generativelanguage.googleapis.com";
 
 #[derive(Clone)]
@@ -30,8 +31,6 @@ pub struct GeminiConfig {
     pub mode: TranslationMode,
     pub target_language_code: String,
     pub target_language_name: String,
-    /// Speech-to-text engine only: FR↔EN per utterance, `target_language_name` as the fallback.
-    pub auto_bidirectional: bool,
     pub origin: Origin,
 }
 
@@ -118,9 +117,6 @@ async fn connect_and_run(
     let setup = match cfg.mode {
         TranslationMode::LiveTranslate => {
             SetupMessage::live_translate(&cfg.model, &cfg.target_language_code)
-        }
-        TranslationMode::SpeechToText if cfg.auto_bidirectional => {
-            SetupMessage::speech_to_text_bidirectional(&cfg.model, &cfg.target_language_name)
         }
         TranslationMode::SpeechToText => {
             SetupMessage::speech_to_text(&cfg.model, &cfg.target_language_name)

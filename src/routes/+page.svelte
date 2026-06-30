@@ -11,7 +11,8 @@
 		micLevel,
 		systemLevel,
 		overlayFontSize,
-		pushCaption
+		pushCaption,
+		flushTranscript
 	} from '$lib/stores';
 	import type {
 		AudioDevice,
@@ -44,6 +45,8 @@
 			on.status((s) => {
 				sessionState.set(s.state);
 				statusMessage.set(s.message ?? '');
+				// When the session ends, commit any in-flight caption so it can be saved.
+				if (s.state === 'idle') flushTranscript();
 			})
 		];
 
@@ -115,10 +118,6 @@
 
 	function setMode(m: TranslationMode) {
 		$options = { ...$options, mode: m };
-	}
-
-	function setAuto(on: boolean) {
-		$options = { ...$options, autoBidirectional: on };
 	}
 
 	function setProvider(p: Provider) {
@@ -306,11 +305,7 @@
 
 		<section class="panel">
 			<h2>Caption language</h2>
-			<p class="hint">
-				{$options.autoBidirectional
-					? 'French ↔ English, chosen automatically per speaker. Pick the fallback for any other language:'
-					: 'Spoken language is auto-detected; pick the language the audience reads.'}
-			</p>
+			<p class="hint">Spoken language is auto-detected; pick the language the audience reads.</p>
 			<div class="segmented">
 				<button class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
 					🇬🇧 English
@@ -320,21 +315,6 @@
 				</button>
 			</div>
 			<button class="ghost flip" onclick={flipDirection}>⇄ Flip (F2)</button>
-
-			<label class="auto-toggle">
-				<input
-					type="checkbox"
-					checked={$options.autoBidirectional}
-					onchange={(e) => setAuto(e.currentTarget.checked)}
-				/>
-				<span>🔁 Auto (FR ⇄ EN) — caption each speaker in the <em>other</em> language</span>
-			</label>
-			{#if $options.autoBidirectional && !($options.provider === 'gemini' && $options.mode === 'speech-to-text')}
-				<p class="hint warn-hint">
-					Auto direction only applies to Gemini's Speech → Text engine; the selected engine will
-					use the fixed language above.
-				</p>
-			{/if}
 		</section>
 	</div>
 
@@ -544,26 +524,6 @@
 	}
 	.flip {
 		margin-top: 12px;
-	}
-	.auto-toggle {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		margin-top: 14px;
-		font-size: 13px;
-		color: var(--text);
-		cursor: pointer;
-	}
-	.auto-toggle input {
-		width: auto;
-		cursor: pointer;
-	}
-	.auto-toggle em {
-		font-style: italic;
-	}
-	.warn-hint {
-		color: var(--warn);
-		margin-top: 8px;
 	}
 	.engine-hint {
 		margin: 10px 0 0;

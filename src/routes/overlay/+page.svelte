@@ -24,6 +24,20 @@
 	const INTERIM_HOLD_MS = 3000;
 	let clearTimer: ReturnType<typeof setTimeout> | undefined;
 
+	// Keep captions subtitle-sized. A Gemini turn streams until `turnComplete`, which during
+	// continuous speech can run for many sentences, so render only the most recent slice of the
+	// (still-growing) turn instead of the whole thing — otherwise it fills the screen.
+	const MAX_CHARS = 220;
+	function tail(text: string): string {
+		const t = text.replace(/\s+/g, ' ').trim();
+		if (t.length <= MAX_CHARS) return t;
+		let cut = t.length - MAX_CHARS;
+		// Don't start mid-word: jump to the next space if it's close.
+		const sp = t.indexOf(' ', cut);
+		if (sp !== -1 && sp - cut < 24) cut = sp + 1;
+		return '… ' + t.slice(cut);
+	}
+
 	onMount(() => {
 		if (!isTauri()) {
 			// Demo content so the overlay can be previewed in a browser.
@@ -79,10 +93,10 @@
 <div class="stage">
 	<div class="captions" style="--fs: {fontSize}px">
 		{#if previous}
-			<p class="line prev">{previous}</p>
+			<p class="line prev">{tail(previous)}</p>
 		{/if}
 		{#if current}
-			<p class="line cur" class:interim={!current.final}>{current.text}</p>
+			<p class="line cur" class:interim={!current.final}>{tail(current.text)}</p>
 		{/if}
 	</div>
 </div>

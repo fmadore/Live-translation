@@ -45,7 +45,7 @@ speaker. Purpose-tuned for translation across 70+ languages. Note: input transcr
 this model arrives as one complete message (not streamed partials); output transcription
 streams.
 
-### B. Speech → Text (general, `gemini-live-2.5-flash`)
+### B. Speech → Text (general, `gemini-3.1-flash-live-preview`)
 
 A general half-cascade Live model with `responseModalities: ["TEXT"]` and a translate
 **system instruction**. Audio in → translated **text** out, with **no audio synthesized**.
@@ -53,16 +53,13 @@ The translated text arrives in `serverContent.modelTurn.parts[].text`. More prom
 (academic terminology, formatting) and lighter, but not purpose-tuned for simultaneous
 interpretation. Model id is configurable via `GEMINI_STT_MODEL`.
 
-Because the direction lives entirely in the prompt, this engine also supports an
-**auto-bidirectional** mode (operator toggle, `autoBidirectional` in `StartOptions`): one system
-instruction tells the model to render French as English and English as French, picking the
-direction per utterance, with the operator-selected language as the fallback for any other
-detected language. Engine A can't do this — its `targetLanguageCode` is fixed for the session —
-so auto mode applies to Engine B only.
-
-> ⚠️ Verify both model ids before the event — preview ids change. The
-> `gemini-live-2.5-flash` family is the half-cascade Live model recommended for TEXT output;
-> `*-native-audio` variants are optimized for audio output instead.
+> ⚠️ Verify both model ids before the event — preview ids change. `gemini-3.1-flash-live-preview`
+> is the current half-cascade Live model for TEXT output (the older `gemini-live-2.5-flash` was
+> retired); the `*-native-audio` variants are AUDIO-only and won't work for the TEXT engine.
+>
+> **Cost note:** Engine A (Live Translate) is speech-to-speech — it always *generates* translated
+> audio (billed as audio output tokens) and we only read the transcript. Engine B emits **text
+> only** (no audio synthesized), so it avoids audio-output cost — prefer it for text captions.
 
 ## Setup message (first frame after connect)
 
@@ -95,7 +92,7 @@ so auto mode applies to Engine B only.
 ```json
 {
   "setup": {
-    "model": "models/gemini-live-2.5-flash",
+    "model": "models/gemini-3.1-flash-live-preview",
     "generationConfig": { "responseModalities": ["TEXT"] },
     "systemInstruction": {
       "parts": [{ "text": "…translate the incoming speech into English…" }]

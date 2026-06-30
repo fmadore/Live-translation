@@ -112,7 +112,6 @@ impl SessionManager {
                         mode: options.mode,
                         target_language_code: target_code.clone(),
                         target_language_name: target_name.clone(),
-                        auto_bidirectional: options.auto_bidirectional,
                         origin,
                     };
                     tauri::async_runtime::spawn(run_gemini_session(
