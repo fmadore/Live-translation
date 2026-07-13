@@ -1915,7 +1915,7 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "live-translation"
-version = "0.2.3"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -1927,13 +1927,11 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
- "thiserror 2.0.18",
  "tokio",
  "tokio-tungstenite",
  "tokio-util",
  "tracing",
  "tracing-subscriber",
- "url",
  "wasapi",
 ]
 

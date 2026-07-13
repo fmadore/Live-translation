@@ -35,19 +35,11 @@ pub enum TargetLanguage {
 }
 
 impl TargetLanguage {
-    /// BCP-47 code sent to Gemini as `targetLanguageCode`.
+    /// BCP-47 code sent to the provider as the target language.
     pub fn bcp47(self) -> &'static str {
         match self {
             TargetLanguage::En => "en",
             TargetLanguage::Fr => "fr",
-        }
-    }
-
-    /// Human-readable name, used in the speech-to-text translate prompt.
-    pub fn name(self) -> &'static str {
-        match self {
-            TargetLanguage::En => "English",
-            TargetLanguage::Fr => "French",
         }
     }
 }
@@ -71,18 +63,6 @@ impl Provider {
     }
 }
 
-/// How we get from speech to translated text.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum TranslationMode {
-    /// Dedicated speech-to-speech translate model; captions come from the output
-    /// transcription sidecar (audio is discarded).
-    LiveTranslate,
-    /// General Live model with TEXT output and a translate system instruction: audio in,
-    /// translated text out, no audio synthesized.
-    SpeechToText,
-}
-
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartOptions {
@@ -91,8 +71,6 @@ pub struct StartOptions {
     /// Translation backend. Defaults to Gemini for older front-ends that omit it.
     #[serde(default)]
     pub provider: Provider,
-    /// Gemini engine selector; ignored when `provider` is OpenAI.
-    pub mode: TranslationMode,
     #[serde(default)]
     pub mic_device_name: Option<String>,
 }
@@ -103,21 +81,10 @@ pub struct Caption {
     pub turn_id: u64,
     pub text: String,
     pub source_text: String,
+    /// `final` is a Rust keyword; serde exposes it to JS under the real name.
+    #[serde(rename = "final")]
     pub final_: bool,
     pub origin: Origin,
-}
-
-// `final` is a Rust keyword; expose it as `final` to JS.
-impl Caption {
-    pub fn to_json(&self) -> serde_json::Value {
-        serde_json::json!({
-            "turnId": self.turn_id,
-            "text": self.text,
-            "sourceText": self.source_text,
-            "final": self.final_,
-            "origin": self.origin,
-        })
-    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -144,6 +111,11 @@ pub struct StatusUpdate {
     pub state: SessionState,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// Which source this update is about; `None` means the whole session (e.g. stop).
+    /// The operator UI aggregates per-origin states so concurrent sources don't clobber
+    /// each other.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origin: Option<Origin>,
 }
 
 #[derive(Debug, Clone, Serialize)]

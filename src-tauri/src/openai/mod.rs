@@ -4,6 +4,6 @@ pub mod client;
 pub mod protocol;
 
 pub use client::{
-    run_session, OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
+    OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
     DEFAULT_OPENAI_TRANSLATE_MODEL,
 };
