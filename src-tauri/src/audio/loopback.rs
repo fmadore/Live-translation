@@ -8,16 +8,16 @@
 //! leveling via `CaptureState`) is shared with the mic path and is exercised by tests.
 
 use anyhow::Result;
-use tauri::AppHandle;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_util::sync::CancellationToken;
 
 use super::AudioChunk;
+use crate::types::AudioLevel;
 
 #[cfg(not(windows))]
 pub fn run_system_loopback(
-    _app: AppHandle,
     _target_rate: u32,
+    _level_tx: UnboundedSender<AudioLevel>,
     _chunk_tx: UnboundedSender<AudioChunk>,
     _cancel: CancellationToken,
 ) -> Result<()> {
@@ -26,12 +26,12 @@ pub fn run_system_loopback(
 
 #[cfg(windows)]
 pub fn run_system_loopback(
-    app: AppHandle,
     target_rate: u32,
+    level_tx: UnboundedSender<AudioLevel>,
     chunk_tx: UnboundedSender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
-    windows_impl::run(app, target_rate, chunk_tx, cancel)
+    windows_impl::run(target_rate, level_tx, chunk_tx, cancel)
 }
 
 #[cfg(windows)]
@@ -39,16 +39,13 @@ mod windows_impl {
     use std::collections::VecDeque;
 
     use anyhow::{Context, Result};
-    use tauri::AppHandle;
     use tokio::sync::mpsc::UnboundedSender;
     use tokio_util::sync::CancellationToken;
-    use wasapi::{
-        initialize_mta, Direction, SampleType, ShareMode, WaveFormat,
-    };
+    use wasapi::{initialize_mta, Direction, SampleType, ShareMode, WaveFormat};
 
     use crate::audio::capture::CaptureState;
     use crate::audio::AudioChunk;
-    use crate::types::Origin;
+    use crate::types::{AudioLevel, Origin};
 
     /// `wasapi`'s fallible calls return `Box<dyn Error>`, which is neither `Send` nor
     /// `Sync` and so cannot flow into `anyhow` through `?` or `.context()`. This bridges
@@ -64,14 +61,16 @@ mod windows_impl {
     }
 
     pub fn run(
-        app: AppHandle,
         target_rate: u32,
+        level_tx: UnboundedSender<AudioLevel>,
         chunk_tx: UnboundedSender<AudioChunk>,
         cancel: CancellationToken,
     ) -> Result<()> {
         // COM must be initialised on the capture thread. `initialize_mta` returns an
         // `HRESULT`; `.ok()` turns it into a `windows::core::Result` that anyhow accepts.
-        initialize_mta().ok().context("failed to initialise COM (MTA)")?;
+        initialize_mta()
+            .ok()
+            .context("failed to initialise COM (MTA)")?;
 
         let device = wasapi::get_default_device(&Direction::Render)
             .ctx("no default render device for loopback")?;
@@ -122,7 +121,7 @@ mod windows_impl {
             .start_stream()
             .ctx("failed to start loopback stream")?;
 
-        let mut state = CaptureState::new(Origin::System, in_rate, target_rate, app, chunk_tx);
+        let mut state = CaptureState::new(Origin::System, in_rate, target_rate, level_tx, chunk_tx);
         let mut raw: VecDeque<u8> = VecDeque::new();
         let mut frame: Vec<f32> = Vec::new();
 
@@ -134,7 +133,7 @@ mod windows_impl {
 
             if !raw.is_empty() {
                 frame.clear();
-                decode_interleaved(&raw, sample_type, bits, &mut frame);
+                decode_interleaved(&mut raw, sample_type, bits, &mut frame);
                 raw.clear();
                 state.push_samples(&frame, channels);
             }
@@ -151,8 +150,9 @@ mod windows_impl {
     }
 
     /// Decode raw interleaved endpoint bytes into f32 samples in [-1, 1].
-    fn decode_interleaved(bytes: &VecDeque<u8>, ty: SampleType, bits: u16, out: &mut Vec<f32>) {
-        let buf: Vec<u8> = bytes.iter().copied().collect();
+    /// `make_contiguous` rotates the deque in place instead of copying it out.
+    fn decode_interleaved(bytes: &mut VecDeque<u8>, ty: SampleType, bits: u16, out: &mut Vec<f32>) {
+        let buf: &[u8] = bytes.make_contiguous();
         match (ty, bits) {
             (SampleType::Float, 32) => {
                 for c in buf.chunks_exact(4) {

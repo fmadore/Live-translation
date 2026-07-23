@@ -32,16 +32,18 @@
    the provider's input rate (16 kHz Gemini / 24 kHz OpenAI; streaming linear resampler),
    converts to PCM-16 LE, and emits ~100 ms `AudioChunk`s.
    It also computes an RMS/peak level (~20 Hz) for the meter.
-2. **Translate.** `session.rs` dispatches on the selected **provider**. For **Gemini**,
-   `gemini::client::run_session` opens a WebSocket per source, sends the `setup` frame for the
-   selected engine, then streams base64 audio chunks; caption text comes from
-   `outputTranscription` (Live Translate) or `modelTurn.parts[].text` (Speech → Text), with
-   deltas accumulating until `turnComplete`. For **OpenAI**, `openai::client::run_session`
-   connects to `/v1/realtime/translations` (auth via an `Authorization` header), sends a
-   `session.update`, and reads `output_transcript` deltas — that stream has no turn-complete
-   event, so captions finalize after a short idle gap. Source text (operator monitor) comes
-   from the input transcription in both. Model ids are overridable via env vars
-   (`GEMINI_TRANSLATE_MODEL` / `GEMINI_STT_MODEL` / `OPENAI_TRANSLATE_MODEL`).
+2. **Translate.** `session.rs` dispatches on the selected **provider** and spawns
+   `realtime::run_session` per source — the shared runner that owns the reconnect/backoff
+   loop (backoff resets after a stable connection; a 4xx handshake stops with an error
+   instead of retrying), drops audio that went stale while disconnected, and pumps the
+   select loop. Each provider implements the `RealtimeProtocol` trait with only its
+   specifics. **Gemini** (`gemini::client`): setup frame for the translate model, caption
+   text from `outputTranscription`, deltas accumulating until `turnComplete`. **OpenAI**
+   (`openai::client`): connects to `/v1/realtime/translations` (auth via an `Authorization`
+   header), sends a `session.update`, reads `output_transcript` deltas — that stream has no
+   turn-complete event, so the runner finalizes captions after a short idle gap. Source
+   text (operator monitor) comes from the input transcription in both. Model ids are
+   overridable via env vars (`GEMINI_TRANSLATE_MODEL` / `OPENAI_TRANSLATE_MODEL`).
 3. **Render.** Captions are emitted as Tauri events. Tauri broadcasts events to **all**
    windows, so the operator monitor and the overlay both receive them with no extra plumbing.
 

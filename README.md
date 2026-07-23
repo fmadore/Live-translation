@@ -86,9 +86,10 @@ npm run tauri build           # produces .msi and .exe (NSIS) in src-tauri/targe
 
 1. Run the **operator window** on the laptop. Pick the audio source (mic / system / both)
    and the caption language, then **Start**.
-2. Drag the **caption overlay** onto the projector output and let it float over the
-   PowerPoint (PowerPoint windowed or in Presenter view). The overlay is click-through, so
-   it never steals clicks from your slides.
+2. Click **Move overlay** in the operator window, drag the **caption overlay** onto the
+   projector output (drag its edges to resize), then click **Done moving**. Let it float
+   over the PowerPoint (PowerPoint windowed or in Presenter view) — outside move mode the
+   overlay is click-through, so it never steals clicks from your slides.
 3. **Rehearse the full chain** (Zoom audio + room mic → captions on the projector) before
    the session — system-audio routing is the most failure-prone piece.
 
@@ -101,12 +102,15 @@ src/                     SvelteKit front-end
   lib/                   Shared stores, types, Tauri bridge
 src-tauri/               Rust core
   src/audio/             cpal microphone + WASAPI loopback capture, resampling
-  src/gemini/            Gemini Live WebSocket client
-  src/openai/            OpenAI Realtime translation client
+  src/realtime.rs        Shared WebSocket session runner (reconnect, turns, captions)
+  src/gemini/            Gemini Live protocol (connection + event handling)
+  src/openai/            OpenAI Realtime translation protocol
   src/secrets.rs         OS keychain storage for the per-provider API keys
   src/commands.rs        Tauri commands exposed to the front-end
 docs/                    API notes and architecture
 ```
+
+See [`ROADMAP.md`](ROADMAP.md) for recently landed fixes and future ideas.
 
 ## License
 

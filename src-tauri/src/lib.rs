@@ -8,6 +8,7 @@ mod audio;
 mod commands;
 mod gemini;
 mod openai;
+mod realtime;
 mod secrets;
 mod session;
 mod types;

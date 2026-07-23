@@ -79,7 +79,11 @@ mod tests {
         r.process(&input, &mut out);
         // ~1/3 of the input length, allowing for warm-up of one sample.
         let expected = input.len() / 3;
-        assert!((out.len() as i64 - expected as i64).abs() <= 2, "got {}", out.len());
+        assert!(
+            (out.len() as i64 - expected as i64).abs() <= 2,
+            "got {}",
+            out.len()
+        );
     }
 
     #[test]

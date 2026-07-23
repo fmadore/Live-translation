@@ -21,6 +21,7 @@ export default defineConfig({
 			ignored: ['**/src-tauri/**']
 		}
 	},
-	// Surface Tauri's target so we can tune the build if needed.
-	envPrefix: ['VITE_', 'TAURI_ENV_*']
+	// Surface Tauri's target so we can tune the build if needed. (Vite prefixes are
+	// literal `startsWith` matches — no globs.)
+	envPrefix: ['VITE_', 'TAURI_ENV_']
 });

@@ -3,7 +3,9 @@
 	import { api, on, isTauri } from '$lib/tauri';
 	import {
 		sessionState,
+		isRunning,
 		statusMessage,
+		applyStatus,
 		hasKey,
 		options,
 		latestCaption,
@@ -11,8 +13,7 @@
 		micLevel,
 		systemLevel,
 		overlayFontSize,
-		pushCaption,
-		flushTranscript
+		pushCaption
 	} from '$lib/stores';
 	import type {
 		AudioDevice,
@@ -20,6 +21,7 @@
 		Provider,
 		TargetLanguage
 	} from '$lib/types';
+	import { clampOverlayFont } from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
@@ -27,8 +29,6 @@
 	let savingKey = $state(false);
 	let editingKey = $state(false);
 	let browserMode = $state(false);
-
-	const running = $derived($sessionState === 'running' || $sessionState === 'reconnecting');
 
 	onMount(() => {
 		browserMode = !isTauri();
@@ -41,12 +41,7 @@
 		const unlisteners: Array<Promise<() => void>> = [
 			on.caption((c) => pushCaption(c)),
 			on.level((l) => (l.source === 'microphone' ? micLevel.set(l) : systemLevel.set(l))),
-			on.status((s) => {
-				sessionState.set(s.state);
-				statusMessage.set(s.message ?? '');
-				// When the session ends, commit any in-flight caption so it can be saved.
-				if (s.state === 'idle') flushTranscript();
-			})
+			on.status((s) => applyStatus(s))
 		];
 
 		return () => {
@@ -92,6 +87,7 @@
 	}
 
 	async function start() {
+		statusMessage.set('');
 		try {
 			await api.startSession($options);
 		} catch (e) {
@@ -146,9 +142,24 @@
 
 	// Caption size: update the store (persists) and push it live to the overlay.
 	function setFont(size: number) {
-		const clamped = Math.max(20, Math.min(96, Math.round(size)));
+		const clamped = clampOverlayFont(size);
 		overlayFontSize.set(clamped);
-		void api.setOverlayConfig({ fontSize: clamped });
+		void api.setOverlayConfig({ fontSize: clamped, interactive: moveOverlay });
+	}
+
+	// Move mode: the overlay is click-through while captioning; this flips it into an
+	// interactive drag region so it can be dragged/resized into place, then flipped back.
+	let moveOverlay = $state(false);
+
+	async function toggleMoveOverlay() {
+		moveOverlay = !moveOverlay;
+		try {
+			await api.showOverlay(true);
+			await api.setOverlayClickThrough(!moveOverlay);
+			await api.setOverlayConfig({ fontSize: $overlayFontSize, interactive: moveOverlay });
+		} catch (e) {
+			statusMessage.set(String(e));
+		}
 	}
 
 	let savedPath = $state('');
@@ -333,14 +344,10 @@
 	</section>
 
 	<section class="panel controls">
-		{#if running}
+		{#if $isRunning}
 			<button class="danger big" onclick={stop}>■ Stop</button>
 		{:else}
-			<button
-				class="primary big"
-				disabled={!$hasKey || browserMode || $sessionState === 'connecting'}
-				onclick={start}
-			>
+			<button class="primary big" disabled={!$hasKey || browserMode} onclick={start}>
 				▶ Start translating
 			</button>
 		{/if}
@@ -354,6 +361,9 @@
 			<span class="font-val">{$overlayFontSize}</span>
 			<button class="ghost step" onclick={() => setFont($overlayFontSize + 2)}>+</button>
 		</div>
+		<button class="ghost" class:active-toggle={moveOverlay} onclick={toggleMoveOverlay}>
+			{moveOverlay ? '✓ Done moving' : 'Move overlay'}
+		</button>
 		<button class="ghost" onclick={() => api.showOverlay(true)}>Show overlay</button>
 	</section>
 
@@ -383,7 +393,7 @@
 
 		{#if $transcript.length}
 			<ul class="log">
-				{#each $transcript as line (line.time + line.text)}
+				{#each $transcript as line (line.id)}
 					<li><span class="log-time">{line.time}</span> {line.text}</li>
 				{/each}
 			</ul>
@@ -538,6 +548,10 @@
 		border: 1px solid var(--border);
 		border-radius: 8px;
 		padding: 9px 14px;
+	}
+	button.ghost.active-toggle {
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 	.big {
 		font-size: 16px;

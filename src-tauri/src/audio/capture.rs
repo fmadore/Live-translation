@@ -15,14 +15,12 @@ use tokio_util::sync::CancellationToken;
 
 use super::resample::{downmix_to_mono, f32_to_pcm16_le, LinearResampler};
 use super::{chunk_samples, AudioChunk};
-use crate::types::{events, AudioDevice, AudioLevel, Origin};
+use crate::types::{events, AudioDevice, AudioLevel, Origin, SessionState, StatusUpdate};
 
 /// Enumerate available input devices for the operator UI.
 pub fn list_input_devices() -> Vec<AudioDevice> {
     let host = cpal::default_host();
-    let default_name = host
-        .default_input_device()
-        .and_then(|d| d.name().ok());
+    let default_name = host.default_input_device().and_then(|d| d.name().ok());
 
     let mut out = Vec::new();
     if let Ok(devices) = host.input_devices() {
@@ -55,6 +53,7 @@ pub fn run_microphone(
     app: AppHandle,
     device_name: Option<String>,
     target_rate: u32,
+    level_tx: UnboundedSender<AudioLevel>,
     chunk_tx: UnboundedSender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
@@ -75,12 +74,18 @@ pub fn run_microphone(
     );
 
     // Per-stream state captured by the callback.
-    let mut state = CaptureState::new(Origin::Microphone, in_rate, target_rate, app.clone(), chunk_tx);
+    let mut state = CaptureState::new(Origin::Microphone, in_rate, target_rate, level_tx, chunk_tx);
 
-    let err_app = app.clone();
     let err_fn = move |e: cpal::StreamError| {
         tracing::error!("microphone stream error: {e}");
-        let _ = err_app.emit(events::STATUS, ());
+        let _ = app.emit(
+            events::STATUS,
+            StatusUpdate {
+                state: SessionState::Error,
+                message: Some(format!("Microphone stream error: {e}")),
+                origin: Some(Origin::Microphone),
+            },
+        );
     };
 
     let stream = match sample_format {
@@ -93,8 +98,7 @@ pub fn run_microphone(
         SampleFormat::I16 => device.build_input_stream(
             &stream_config,
             move |data: &[i16], _| {
-                let f: Vec<f32> = data.iter().map(|&s| s as f32 / 32768.0).collect();
-                state.push_samples(&f, channels);
+                state.push_converted(data.iter().map(|&s| s as f32 / 32768.0), channels)
             },
             err_fn,
             None,
@@ -102,8 +106,10 @@ pub fn run_microphone(
         SampleFormat::U16 => device.build_input_stream(
             &stream_config,
             move |data: &[u16], _| {
-                let f: Vec<f32> = data.iter().map(|&s| (s as f32 - 32768.0) / 32768.0).collect();
-                state.push_samples(&f, channels);
+                state.push_converted(
+                    data.iter().map(|&s| (s as f32 - 32768.0) / 32768.0),
+                    channels,
+                )
             },
             err_fn,
             None,
@@ -123,13 +129,15 @@ pub fn run_microphone(
 }
 
 /// Mutable state shared into a cpal callback: resampling, chunk accumulation, level metering.
+/// All buffers are reused across callbacks — real-time audio threads must not allocate.
 pub struct CaptureState {
     origin: Origin,
-    app: AppHandle,
+    level_tx: UnboundedSender<AudioLevel>,
     chunk_tx: UnboundedSender<AudioChunk>,
     resampler: LinearResampler,
     // Samples in one ~100 ms chunk at the target rate.
     chunk_len: usize,
+    conv_buf: Vec<f32>,
     mono_buf: Vec<f32>,
     resampled: Vec<f32>,
     // Accumulates resampled samples until we have a full ~100 ms chunk.
@@ -145,16 +153,17 @@ impl CaptureState {
         origin: Origin,
         in_rate: u32,
         target_rate: u32,
-        app: AppHandle,
+        level_tx: UnboundedSender<AudioLevel>,
         chunk_tx: UnboundedSender<AudioChunk>,
     ) -> Self {
         let chunk_len = chunk_samples(target_rate);
         Self {
             origin,
-            app,
+            level_tx,
             chunk_tx,
             resampler: LinearResampler::new(in_rate, target_rate),
             chunk_len,
+            conv_buf: Vec::with_capacity(4096),
             mono_buf: Vec::with_capacity(4096),
             resampled: Vec::with_capacity(4096),
             pending: Vec::with_capacity(chunk_len * 2),
@@ -163,6 +172,16 @@ impl CaptureState {
             sq_sum: 0.0,
             sq_count: 0,
         }
+    }
+
+    /// Feed interleaved samples that first need converting to f32, without allocating:
+    /// they go through a reused scratch buffer.
+    pub fn push_converted(&mut self, samples: impl Iterator<Item = f32>, channels: usize) {
+        let mut conv = std::mem::take(&mut self.conv_buf);
+        conv.clear();
+        conv.extend(samples);
+        self.push_samples(&conv, channels);
+        self.conv_buf = conv;
     }
 
     /// Feed interleaved f32 samples at the device rate.
@@ -186,9 +205,9 @@ impl CaptureState {
         self.pending.extend_from_slice(&self.resampled);
 
         while self.pending.len() >= self.chunk_len {
-            let chunk: Vec<f32> = self.pending.drain(..self.chunk_len).collect();
             let mut pcm = Vec::with_capacity(self.chunk_len * 2);
-            f32_to_pcm16_le(&chunk, &mut pcm);
+            f32_to_pcm16_le(&self.pending[..self.chunk_len], &mut pcm);
+            self.pending.drain(..self.chunk_len);
             // If the consumer is gone the session is shutting down — stop quietly.
             if self.chunk_tx.send(AudioChunk { pcm_le: pcm }).is_err() {
                 return;
@@ -201,14 +220,13 @@ impl CaptureState {
             return;
         }
         let rms = (self.sq_sum / self.sq_count as f64).sqrt() as f32;
-        let _ = self.app.emit(
-            events::LEVEL,
-            AudioLevel {
-                source: self.origin,
-                rms,
-                peak: self.peak_accum,
-            },
-        );
+        // Sent through a channel: the webview IPC hop happens on the emitter task, not here
+        // on the real-time audio thread.
+        let _ = self.level_tx.send(AudioLevel {
+            source: self.origin,
+            rms,
+            peak: self.peak_accum,
+        });
         self.last_level = Instant::now();
         self.peak_accum = 0.0;
         self.sq_sum = 0.0;

@@ -1,6 +1,6 @@
 [package]
 name = "live-translation"
-version = "0.2.3"
+version = "0.3.0"
 description = "Real-time FR<->EN speech translation overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"
@@ -28,7 +28,6 @@ tokio-util = "0.7"
 # aarch64-windows — SChannel is pure-Rust here and keeps the ARM64 build toolchain-free.
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
-url = "2"
 
 # Audio capture.
 cpal = "0.15"
@@ -38,7 +37,6 @@ base64 = "0.22"
 keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
 dotenvy = "0.15"
 anyhow = "1"
-thiserror = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
@@ -47,7 +45,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 wasapi = "0.15"
 
 [features]
-# Enables macOS transparent-window private API if ever built for macOS.
+# Standard Tauri production feature: serve the bundled front-end assets over the custom
+# protocol instead of the dev server. Enabled automatically by `tauri build`.
 custom-protocol = ["tauri/custom-protocol"]
 
 [profile.release]

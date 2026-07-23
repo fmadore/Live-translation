@@ -85,7 +85,6 @@ or immediately on a `*.done` / `*.completed` event. See `openai/client.rs`.
 ## Notes vs Gemini
 
 - Auto-bidirectional (FR⇄EN per utterance) is **not** available here: like Gemini's dedicated
-  translate model, the target language is fixed for the session. It's a Gemini Speech → Text
-  feature only.
+  translate model, the target language is fixed for the session.
 - Reconnect/backoff, level metering, and the caption event shape are shared with the Gemini
-  path; only the connection, setup frame, and event schema differ.
+  path (`realtime.rs`); only the connection, setup frame, and event schema differ.

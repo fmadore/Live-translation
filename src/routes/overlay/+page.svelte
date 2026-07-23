@@ -1,32 +1,39 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { on, isTauri } from '$lib/tauri';
-	import type { Caption } from '$lib/types';
-	import { DEFAULT_OVERLAY_FONT, OVERLAY_FONT_KEY } from '$lib/types';
+	import type { Caption, Origin } from '$lib/types';
+	import { clampOverlayFont, loadOverlayFont } from '$lib/types';
 
-	// The overlay keeps only what it needs to render: the current line(s).
-	let current = $state<Caption | null>(null);
+	// The overlay keeps only what it needs to render: one current line per origin (mic and
+	// system turns have independent ids, so they must never share a slot) plus the last
+	// finalized line, shown dimmed while a new turn streams in.
+	let current = $state<Partial<Record<Origin, Caption>>>({});
 	let previous = $state<string>('');
+
+	// Stable render order: the remote speaker (system) above the room mic.
+	const ORIGIN_ORDER: Origin[] = ['system', 'microphone'];
+	const lines = $derived(
+		ORIGIN_ORDER.flatMap((o) => (current[o] ? [current[o] as Caption] : []))
+	);
 
 	// Initial size comes from the shared localStorage key (same origin as the operator),
 	// then the operator pushes live updates via the overlay-config event.
-	function initialFont(): number {
-		if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
-		const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
-		return Number.isFinite(v) && v > 0 ? v : DEFAULT_OVERLAY_FONT;
-	}
-	let fontSize = $state(initialFont());
+	let fontSize = $state(loadOverlayFont());
+
+	// Move mode (operator-driven): click-through is off and the whole stage becomes a
+	// Tauri drag region so the window can be dragged/resized into place.
+	let interactive = $state(false);
 
 	// Auto-hide captions after the last update so the overlay never sits on a stale line
 	// over the slides. A finalized line gets a short reading pause; an in-progress line
-	// that stalls (Gemini didn't send `turnComplete`) clears a little sooner.
+	// that stalls (no turn-complete arriving) clears a little sooner.
 	const FINAL_HOLD_MS = 4000;
 	const INTERIM_HOLD_MS = 3000;
-	let clearTimer: ReturnType<typeof setTimeout> | undefined;
+	const clearTimers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
 
-	// Keep captions subtitle-sized. A Gemini turn streams until `turnComplete`, which during
-	// continuous speech can run for many sentences, so render only the most recent slice of the
-	// (still-growing) turn instead of the whole thing — otherwise it fills the screen.
+	// Keep captions subtitle-sized. A turn streams until it completes, which during
+	// continuous speech can run for many sentences, so render only the most recent slice of
+	// the (still-growing) turn instead of the whole thing — otherwise it fills the screen.
 	const MAX_CHARS = 220;
 	function tail(text: string): string {
 		const t = text.replace(/\s+/g, ' ').trim();
@@ -41,7 +48,7 @@
 	onMount(() => {
 		if (!isTauri()) {
 			// Demo content so the overlay can be previewed in a browser.
-			current = {
+			current.system = {
 				turnId: 0,
 				text: 'Bienvenue — les sous-titres apparaîtront ici.',
 				sourceText: '',
@@ -52,24 +59,29 @@
 		}
 
 		const unlistenCaption = on.caption((c) => {
-			if (c.final && current && current.turnId !== c.turnId && current.text.trim()) {
-				previous = current.text;
+			const cur = current[c.origin];
+			// A caption for a new turn of this origin: keep the finished line dimmed above
+			// the fresh one while it streams in.
+			if (cur && cur.final && cur.turnId !== c.turnId && cur.text.trim()) {
+				previous = cur.text;
 			}
-			current = c;
-			// Always re-arm the auto-hide: even when a turn ends on an interim update and
-			// Gemini never sends `turnComplete`, the line must still disappear on its own.
-			clearTimeout(clearTimer);
-			clearTimer = setTimeout(
+			current[c.origin] = c;
+			// Always re-arm this origin's auto-hide: even when a turn ends on an interim
+			// update and no turn-complete ever arrives, the line must disappear on its own.
+			clearTimeout(clearTimers[c.origin]);
+			clearTimers[c.origin] = setTimeout(
 				() => {
-					previous = '';
-					current = null;
+					delete current[c.origin];
+					if (!ORIGIN_ORDER.some((o) => current[o])) previous = '';
 				},
 				c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
 			);
 		});
 
 		const unlistenConfig = on.overlayConfig((cfg) => {
-			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0) fontSize = cfg.fontSize;
+			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
+				fontSize = clampOverlayFont(cfg.fontSize);
+			if (typeof cfg.interactive === 'boolean') interactive = cfg.interactive;
 		});
 
 		return () => {
@@ -78,8 +90,9 @@
 		};
 	});
 
+	// Reachable while move mode has the window focused (it's click-through otherwise).
 	function bump(delta: number) {
-		fontSize = Math.max(20, Math.min(96, fontSize + delta));
+		fontSize = clampOverlayFont(fontSize + delta);
 	}
 </script>
 
@@ -90,14 +103,17 @@
 	}}
 />
 
-<div class="stage">
+<div class="stage" class:interactive data-tauri-drag-region={interactive || undefined}>
+	{#if interactive}
+		<p class="move-hint">Drag to move · drag edges to resize · “Done moving” in the operator window locks it</p>
+	{/if}
 	<div class="captions" style="--fs: {fontSize}px">
 		{#if previous}
 			<p class="line prev">{tail(previous)}</p>
 		{/if}
-		{#if current}
-			<p class="line cur" class:interim={!current.final}>{tail(current.text)}</p>
-		{/if}
+		{#each lines as line (line.origin)}
+			<p class="line cur" class:interim={!line.final}>{tail(line.text)}</p>
+		{/each}
 	</div>
 </div>
 
@@ -118,12 +134,34 @@
 		pointer-events: none;
 		user-select: none;
 	}
+	.stage.interactive {
+		pointer-events: auto;
+		cursor: move;
+		outline: 2px dashed rgba(255, 255, 255, 0.55);
+		outline-offset: -3px;
+		background: rgba(30, 60, 120, 0.12);
+	}
+	.move-hint {
+		position: absolute;
+		top: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		margin: 0;
+		font-size: 14px;
+		color: #fff;
+		background: rgba(0, 0, 0, 0.62);
+		padding: 6px 14px;
+		border-radius: 8px;
+		pointer-events: none;
+		white-space: nowrap;
+	}
 	.captions {
 		max-width: 90%;
 		text-align: center;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+		pointer-events: none;
 	}
 	.line {
 		margin: 0;

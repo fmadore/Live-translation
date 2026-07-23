@@ -1,6 +1,6 @@
-//! Session orchestration: wires audio capture (one thread per active source) to a Gemini
-//! Live client (one task per active source). A single `CancellationToken` tears everything
-//! down cleanly on stop.
+//! Session orchestration: wires audio capture (one thread per active source) to a realtime
+//! translation client (one task per active source). A single `CancellationToken` tears
+//! everything down cleanly on stop.
 
 use std::sync::Mutex;
 use std::thread::JoinHandle;
@@ -13,17 +13,15 @@ use tokio_util::sync::CancellationToken;
 use crate::audio::capture::run_microphone;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
-use crate::gemini::{
-    run_session as run_gemini_session, GeminiConfig, DEFAULT_HOST, DEFAULT_STT_MODEL,
-    DEFAULT_TRANSLATE_MODEL,
-};
+use crate::gemini::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
 use crate::openai::{
-    run_session as run_openai_session, OpenAiConfig, DEFAULT_OPENAI_HOST,
-    DEFAULT_OPENAI_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSLATE_MODEL,
+    OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
+    DEFAULT_OPENAI_TRANSLATE_MODEL,
 };
+use crate::realtime::run_session;
 use crate::secrets;
 use crate::types::{
-    events, Origin, Provider, SessionState, StartOptions, StatusUpdate, TranslationMode,
+    events, AudioLevel, Origin, Provider, SessionState, StartOptions, StatusUpdate,
 };
 
 #[derive(Default)]
@@ -45,18 +43,12 @@ impl SessionManager {
         let api_key = secrets::resolve_api_key(provider)?;
         let target_rate = provider.input_sample_rate();
         let target_code = options.target_language.bcp47().to_string();
-        let target_name = options.target_language.name().to_string();
 
         // Provider-specific connection details; only the selected provider's are used.
         let gemini_host =
             std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
-        let gemini_model = match options.mode {
-            TranslationMode::LiveTranslate => std::env::var("GEMINI_TRANSLATE_MODEL")
-                .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string()),
-            TranslationMode::SpeechToText => {
-                std::env::var("GEMINI_STT_MODEL").unwrap_or_else(|_| DEFAULT_STT_MODEL.to_string())
-            }
-        };
+        let gemini_model = std::env::var("GEMINI_TRANSLATE_MODEL")
+            .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string());
         let openai_host =
             std::env::var("OPENAI_WS_HOST").unwrap_or_else(|_| DEFAULT_OPENAI_HOST.to_string());
         let openai_model = std::env::var("OPENAI_TRANSLATE_MODEL")
@@ -65,7 +57,20 @@ impl SessionManager {
             .unwrap_or_else(|_| DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string());
 
         let cancel = CancellationToken::new();
+        // If anything below fails we return early with sources already spawned; the guard
+        // cancels them on the error path (dropping a token alone does NOT cancel it).
+        let cancel_guard = cancel.clone().drop_guard();
         let mut capture_threads = Vec::new();
+
+        // Level-meter events are forwarded here so the real-time capture callbacks never
+        // touch webview IPC themselves. The task ends when the last sender drops.
+        let (level_tx, mut level_rx) = unbounded_channel::<AudioLevel>();
+        let level_app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            while let Some(level) = level_rx.recv().await {
+                let _ = level_app.emit(events::LEVEL, &level);
+            }
+        });
 
         let mut spawn_source = |origin: Origin| -> Result<()> {
             let (tx, rx) = unbounded_channel::<AudioChunk>();
@@ -74,16 +79,22 @@ impl SessionManager {
             // provider's input rate (16 kHz Gemini / 24 kHz OpenAI).
             let cap_app = app.clone();
             let cap_cancel = cancel.clone();
+            let cap_level_tx = level_tx.clone();
             let mic_name = options.mic_device_name.clone();
             let handle = std::thread::Builder::new()
                 .name(format!("capture-{origin:?}"))
                 .spawn(move || {
                     let result = match origin {
-                        Origin::Microphone => {
-                            run_microphone(cap_app.clone(), mic_name, target_rate, tx, cap_cancel)
-                        }
+                        Origin::Microphone => run_microphone(
+                            cap_app.clone(),
+                            mic_name,
+                            target_rate,
+                            cap_level_tx,
+                            tx,
+                            cap_cancel,
+                        ),
                         Origin::System => {
-                            run_system_loopback(cap_app.clone(), target_rate, tx, cap_cancel)
+                            run_system_loopback(target_rate, cap_level_tx, tx, cap_cancel)
                         }
                     };
                     if let Err(e) = result {
@@ -93,6 +104,7 @@ impl SessionManager {
                             StatusUpdate {
                                 state: SessionState::Error,
                                 message: Some(format!("{origin:?} capture: {e}")),
+                                origin: Some(origin),
                             },
                         );
                     }
@@ -109,17 +121,10 @@ impl SessionManager {
                         api_key: api_key.clone(),
                         model: gemini_model.clone(),
                         host: gemini_host.clone(),
-                        mode: options.mode,
                         target_language_code: target_code.clone(),
-                        target_language_name: target_name.clone(),
                         origin,
                     };
-                    tauri::async_runtime::spawn(run_gemini_session(
-                        client_app,
-                        cfg,
-                        rx,
-                        client_cancel,
-                    ));
+                    tauri::async_runtime::spawn(run_session(client_app, cfg, rx, client_cancel));
                 }
                 Provider::OpenAi => {
                     let cfg = OpenAiConfig {
@@ -130,12 +135,7 @@ impl SessionManager {
                         target_language_code: target_code.clone(),
                         origin,
                     };
-                    tauri::async_runtime::spawn(run_openai_session(
-                        client_app,
-                        cfg,
-                        rx,
-                        client_cancel,
-                    ));
+                    tauri::async_runtime::spawn(run_session(client_app, cfg, rx, client_cancel));
                 }
             }
             Ok(())
@@ -148,6 +148,8 @@ impl SessionManager {
             spawn_source(Origin::System)?;
         }
 
+        // Everything is up: hand cancellation ownership to the stored session.
+        let cancel = cancel_guard.disarm();
         *self.active.lock().unwrap() = Some(ActiveSession {
             cancel,
             capture_threads,
@@ -168,6 +170,7 @@ impl SessionManager {
                 StatusUpdate {
                     state: SessionState::Idle,
                     message: None,
+                    origin: None,
                 },
             );
             tracing::info!("session stopped");

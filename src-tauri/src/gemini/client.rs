@@ -1,26 +1,18 @@
-//! Gemini Live WebSocket client: opens a bidirectional stream, sends 16 kHz PCM chunks,
-//! and turns the returned transcriptions into caption events. Auto-reconnects on drop.
-
-use std::time::Duration;
+//! Gemini Live protocol: connection details and server-message handling for the shared
+//! realtime session runner (`crate::realtime`). Sends 16 kHz PCM chunks and turns the
+//! returned transcriptions into caption events.
 
 use anyhow::{Context, Result};
-use base64::Engine;
-use futures_util::{SinkExt, StreamExt};
-use tauri::{AppHandle, Emitter};
-use tokio::sync::mpsc::UnboundedReceiver;
-use tokio_tungstenite::connect_async;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_util::sync::CancellationToken;
+use tauri::AppHandle;
+use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage};
-use crate::audio::AudioChunk;
-use crate::types::{events, Caption, Origin, SessionState, StatusUpdate, TranslationMode};
+use crate::realtime::{emit_caption, RealtimeProtocol, TurnAccumulator};
+use crate::types::Origin;
 
-/// Dedicated speech-to-speech translate model.
+/// Dedicated speech-to-speech translate model, run in TEXT mode (no audio synthesized).
 pub const DEFAULT_TRANSLATE_MODEL: &str = "gemini-3.5-live-translate-preview";
-/// General half-cascade Live model used for audio-in / text-out translation.
-/// (The older `gemini-live-2.5-flash` half-cascade id was retired; this is its successor.)
-pub const DEFAULT_STT_MODEL: &str = "gemini-3.1-flash-live-preview";
 pub const DEFAULT_HOST: &str = "generativelanguage.googleapis.com";
 
 #[derive(Clone)]
@@ -28,9 +20,7 @@ pub struct GeminiConfig {
     pub api_key: String,
     pub model: String,
     pub host: String,
-    pub mode: TranslationMode,
     pub target_language_code: String,
-    pub target_language_name: String,
     pub origin: Origin,
 }
 
@@ -43,208 +33,74 @@ impl GeminiConfig {
     }
 }
 
-/// Accumulates transcription deltas for the current turn.
-#[derive(Default)]
-struct TurnAccumulator {
-    id: u64,
-    source: String,
-    translated: String,
-}
+impl RealtimeProtocol for GeminiConfig {
+    const NAME: &'static str = "Gemini";
 
-/// Run a session for one audio source, reconnecting until cancelled.
-pub async fn run_session(
-    app: AppHandle,
-    cfg: GeminiConfig,
-    mut audio_rx: UnboundedReceiver<AudioChunk>,
-    cancel: CancellationToken,
-) {
-    let mut backoff = Duration::from_secs(1);
-    let mut first = true;
+    fn origin(&self) -> Origin {
+        self.origin
+    }
 
-    while !cancel.is_cancelled() {
-        emit_status(
-            &app,
-            if first {
-                SessionState::Connecting
-            } else {
-                SessionState::Reconnecting
-            },
-            None,
-        );
+    fn connect_request(&self) -> Result<Request> {
+        self.ws_url()
+            .into_client_request()
+            .context("failed to build Gemini request")
+    }
 
-        match connect_and_run(&app, &cfg, &mut audio_rx, &cancel).await {
-            Ok(()) => {
-                // Clean close. If we weren't cancelled, the server hung up — reconnect.
-                if cancel.is_cancelled() {
-                    break;
-                }
-                tracing::warn!(origin = ?cfg.origin, "Gemini stream closed; reconnecting");
-            }
+    fn setup_json(&self) -> Result<String> {
+        let setup = SetupMessage::live_translate(&self.model, &self.target_language_code);
+        Ok(serde_json::to_string(&setup)?)
+    }
+
+    fn audio_json(&self, base64_pcm: String) -> Result<String> {
+        Ok(serde_json::to_string(&RealtimeInputMessage::pcm16(
+            base64_pcm,
+        ))?)
+    }
+
+    fn handle_message(&mut self, app: &AppHandle, text: &str, acc: &mut TurnAccumulator) -> bool {
+        let msg: ServerMessage = match serde_json::from_str(text) {
+            Ok(m) => m,
             Err(e) => {
-                tracing::error!(origin = ?cfg.origin, "Gemini stream error: {e:#}");
-                emit_status(&app, SessionState::Reconnecting, Some(format!("{e}")));
+                tracing::debug!("unparsed server message: {e} :: {text}");
+                return false;
             }
-        }
-
-        first = false;
-        if cancel.is_cancelled() {
-            break;
-        }
-
-        // Backoff, but stay responsive to cancellation.
-        tokio::select! {
-            _ = cancel.cancelled() => break,
-            _ = tokio::time::sleep(backoff) => {}
-        }
-        backoff = (backoff * 2).min(Duration::from_secs(16));
-    }
-
-    tracing::info!(origin = ?cfg.origin, "session loop ended");
-}
-
-async fn connect_and_run(
-    app: &AppHandle,
-    cfg: &GeminiConfig,
-    audio_rx: &mut UnboundedReceiver<AudioChunk>,
-    cancel: &CancellationToken,
-) -> Result<()> {
-    let (ws, _resp) = connect_async(cfg.ws_url())
-        .await
-        .context("WebSocket connect failed")?;
-    let (mut write, mut read) = ws.split();
-
-    // Hand the model its translation configuration before any audio.
-    let setup = match cfg.mode {
-        TranslationMode::LiveTranslate => {
-            SetupMessage::live_translate(&cfg.model, &cfg.target_language_code)
-        }
-        TranslationMode::SpeechToText => {
-            SetupMessage::speech_to_text(&cfg.model, &cfg.target_language_name)
-        }
-    };
-    write
-        .send(Message::Text(serde_json::to_string(&setup)?))
-        .await
-        .context("failed to send setup")?;
-
-    tracing::info!(origin = ?cfg.origin, target = %cfg.target_language_code, "connected to Gemini Live");
-    emit_status(app, SessionState::Running, None);
-
-    let mut acc = TurnAccumulator::default();
-
-    loop {
-        tokio::select! {
-            biased;
-
-            _ = cancel.cancelled() => {
-                let _ = write.send(Message::Close(None)).await;
-                return Ok(());
-            }
-
-            maybe_chunk = audio_rx.recv() => {
-                match maybe_chunk {
-                    Some(chunk) => {
-                        let data = base64::engine::general_purpose::STANDARD.encode(&chunk.pcm_le);
-                        let msg = RealtimeInputMessage::pcm16(data);
-                        write
-                            .send(Message::Text(serde_json::to_string(&msg)?))
-                            .await
-                            .context("failed to send audio chunk")?;
-                    }
-                    // All capture senders dropped: the session is stopping.
-                    None => {
-                        let _ = write.send(Message::Close(None)).await;
-                        return Ok(());
-                    }
-                }
-            }
-
-            maybe_msg = read.next() => {
-                match maybe_msg {
-                    Some(Ok(Message::Text(text))) => {
-                        handle_server_message(app, cfg.origin, cfg.mode, &text, &mut acc);
-                    }
-                    Some(Ok(Message::Binary(bytes))) => {
-                        // The server occasionally frames JSON as binary.
-                        if let Ok(text) = String::from_utf8(bytes) {
-                            handle_server_message(app, cfg.origin, cfg.mode, &text, &mut acc);
-                        }
-                    }
-                    Some(Ok(Message::Close(_))) | None => return Ok(()),
-                    Some(Ok(_)) => { /* ping/pong handled by the library */ }
-                    Some(Err(e)) => return Err(e).context("WebSocket read error"),
-                }
-            }
-        }
-    }
-}
-
-fn handle_server_message(
-    app: &AppHandle,
-    origin: Origin,
-    mode: TranslationMode,
-    text: &str,
-    acc: &mut TurnAccumulator,
-) {
-    let msg: ServerMessage = match serde_json::from_str(text) {
-        Ok(m) => m,
-        Err(e) => {
-            tracing::debug!("unparsed server message: {e} :: {text}");
-            return;
-        }
-    };
-
-    if msg.setup_complete.is_some() {
-        tracing::debug!(?origin, "Gemini setup complete; streaming audio");
-    }
-    if msg.go_away.is_some() {
-        tracing::info!("Gemini sent goAway; will reconnect");
-    }
-
-    let Some(content) = msg.server_content else {
-        return;
-    };
-
-    // Source text (operator monitor) comes from input transcription in both modes.
-    if let Some(t) = &content.input_transcription {
-        acc.source.push_str(&t.text);
-    }
-
-    // Translated text source differs by mode:
-    //  - LiveTranslate: the output-audio transcription sidecar.
-    //  - SpeechToText:  the model's TEXT parts.
-    let translated_delta = match mode {
-        TranslationMode::LiveTranslate => {
-            content.output_transcription.as_ref().map(|t| t.text.clone())
-        }
-        TranslationMode::SpeechToText => content.model_turn.as_ref().map(|m| m.text()),
-    };
-    let got_translation = translated_delta.as_deref().is_some_and(|s| !s.is_empty());
-    if let Some(delta) = translated_delta {
-        acc.translated.push_str(&delta);
-    }
-
-    let turn_complete = content.turn_complete.unwrap_or(false);
-
-    // Emit whenever we have new text, or to mark the turn final.
-    if got_translation || content.input_transcription.is_some() || turn_complete {
-        let caption = Caption {
-            turn_id: acc.id,
-            text: acc.translated.clone(),
-            source_text: acc.source.clone(),
-            final_: turn_complete,
-            origin,
         };
-        let _ = app.emit(events::CAPTION, caption.to_json());
-    }
 
-    if turn_complete {
-        acc.id += 1;
-        acc.source.clear();
-        acc.translated.clear();
-    }
-}
+        if msg.setup_complete.is_some() {
+            tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
+        }
+        if msg.go_away.is_some() {
+            tracing::info!("Gemini sent goAway; will reconnect");
+        }
 
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<String>) {
-    let _ = app.emit(events::STATUS, StatusUpdate { state, message });
+        let Some(content) = msg.server_content else {
+            return false;
+        };
+
+        // Source text (operator monitor) comes from the input transcription; the
+        // translated text from the output-audio transcription sidecar.
+        if let Some(t) = &content.input_transcription {
+            acc.source.push_str(&t.text);
+        }
+        let translated_delta = content
+            .output_transcription
+            .as_ref()
+            .map(|t| t.text.as_str());
+        let got_translation = translated_delta.is_some_and(|s| !s.is_empty());
+        if let Some(delta) = translated_delta {
+            acc.translated.push_str(delta);
+        }
+
+        let turn_complete = content.turn_complete.unwrap_or(false);
+
+        // Emit whenever we have new text, or to mark the turn final.
+        if got_translation || content.input_transcription.is_some() || turn_complete {
+            emit_caption(app, self.origin, acc, turn_complete);
+        }
+        if turn_complete {
+            acc.next_turn();
+        }
+
+        false // Gemini has a real turn lifecycle; the idle-finalize timer stays disabled.
+    }
 }
