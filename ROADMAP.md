@@ -88,6 +88,29 @@ Items are checked off as they land; the git history references the phase numbers
 - **Session cost estimate** (audio minutes streamed per provider).
 - **Auto-restart on `goAway`** — proactively reconnect before Gemini closes the socket
   instead of waiting for the drop.
-- **macOS system-loopback capture** (ScreenCaptureKit audio taps) — currently Windows-only.
+- **macOS system-loopback capture** — currently Windows-only (WASAPI). Not scheduled: the
+  STIAS event laptop is Windows. **The gate is code signing, not the audio code.** Both
+  native routes are TCC-gated and reportedly need a binary signed with a Developer ID
+  certificate (Team ID); ad-hoc/unsigned — what `release.yml` produces today — cannot hold
+  the permission on recent macOS. That means an Apple Developer Program membership
+  ($99/yr) plus signing + notarization secrets in CI *before* any capture code is useful.
+  Three routes, cheapest first:
+  - **BlackHole** (or any virtual audio device): no signing, no new backend. It registers
+    as a normal CoreAudio input device, so it should already work as a source today — but
+    it is tagged `Origin::Microphone`, so Both mode labels its captions wrong. Making it
+    first-class ("treat this input device as the System origin") is a small change to
+    `audio/capture.rs` plus the operator UI, and needs no Apple account. Costs the operator
+    a driver install and a Multi-Output Device on the day.
+  - **Core Audio process taps** (macOS 14.4+): the right native answer. Audio-only
+    permission (`NSAudioCaptureUsageDescription`) rather than the scarier Screen Recording
+    prompt. ~300–400 lines against `objc2-core-audio`. Reference: `insidegui/AudioCap`.
+  - **ScreenCaptureKit** (macOS 13+): less code via the `screencapturekit` crate (v8, well
+    maintained), but needs Screen Recording permission — a harder sell on a shared
+    conference laptop.
+
+  Either native backend slots in behind the existing `run_system_loopback` seam in
+  `audio/loopback.rs`, and needs no echo filtering: the app never plays audio, so there is
+  no self-capture feedback loop. Note that a macOS backend can only be *compile*-verified
+  from CI — TCC grants and real audio flow need a physical Mac, so budget a rehearsal.
 - **Rehearsal mode** — play a bundled FR/EN sample file through the pipeline to validate
   keys/models before the event without speaking.
