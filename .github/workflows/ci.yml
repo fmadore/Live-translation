@@ -19,12 +19,15 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      matrix:
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
 
       - run: npm ci
@@ -58,7 +61,7 @@ jobs:
       # compilation, so the production frontend must exist even for Clippy and tests.
       - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - run: npm ci

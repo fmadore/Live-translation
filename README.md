@@ -43,7 +43,7 @@ provider flushes. Keys remain in the OS keychain and are used only by Rust. See
 
 ## Prerequisites
 
-- Node.js **20.19+** and npm
+- Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites](https://tauri.app/start/prerequisites/) for the target OS
 - At least one provider key:
