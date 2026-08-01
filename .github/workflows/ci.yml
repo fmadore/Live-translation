@@ -42,6 +42,7 @@ jobs:
         run: npm audit --audit-level=moderate
 
   rust:
+    needs: frontend
     # The Windows lane is essential: the WASAPI loopback implementation is behind
     # cfg(windows), so an Ubuntu-only job never even compiles the event-day audio path.
     strategy:
@@ -52,6 +53,18 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+
+      # `tauri::generate_context!()` validates and embeds `frontendDist` during Rust
+      # compilation, so the production frontend must exist even for Clippy and tests.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build frontend for Tauri context
+        run: npm run build
 
       - name: Install Tauri system dependencies
         if: runner.os == 'Linux'
