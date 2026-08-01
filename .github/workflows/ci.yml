@@ -108,6 +108,9 @@ jobs:
   rust-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      checks: write
     steps:
       - uses: actions/checkout@v7
       - name: RustSec audit
