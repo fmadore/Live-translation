@@ -1,4 +1,4 @@
-//! Live Translation — Tauri desktop core.
+//! Live Captions — Tauri desktop core for translation and transcription.
 //!
 //! Captures microphone and system-loopback audio, streams it to Google Gemini 3.5 Live
 //! Translate over a WebSocket, and renders the returned translation as live captions in a
@@ -7,6 +7,7 @@
 mod audio;
 mod commands;
 mod gemini;
+mod mistral;
 mod openai;
 mod realtime;
 mod secrets;
@@ -54,5 +55,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running the Live Translation app");
+        .expect("error while running the Live Captions app");
 }

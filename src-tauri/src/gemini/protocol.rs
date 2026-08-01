@@ -1,9 +1,6 @@
-//! Wire types for the Gemini Live `BidiGenerateContent` WebSocket protocol.
-//! See `docs/gemini-live-api.md` for the verified schema and references.
+//! Wire types for Gemini 3.5 Live Translate's current WebSocket protocol.
 
 use serde::{Deserialize, Serialize};
-
-// ---- Outgoing ------------------------------------------------------------
 
 #[derive(Debug, Serialize)]
 pub struct SetupMessage {
@@ -15,12 +12,6 @@ pub struct SetupMessage {
 pub struct Setup {
     pub model: String,
     pub generation_config: GenerationConfig,
-    /// Empty object enables transcription of the recognised source speech.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub input_audio_transcription: Option<Empty>,
-    /// Empty object enables transcription of the translated output speech (audio mode only).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub output_audio_transcription: Option<Empty>,
 }
 
 #[derive(Debug, Serialize)]
@@ -30,8 +21,9 @@ pub struct Empty {}
 #[serde(rename_all = "camelCase")]
 pub struct GenerationConfig {
     pub response_modalities: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub translation_config: Option<TranslationConfig>,
+    pub input_audio_transcription: Empty,
+    pub output_audio_transcription: Empty,
+    pub translation_config: TranslationConfig,
 }
 
 #[derive(Debug, Serialize)]
@@ -48,37 +40,33 @@ pub struct RealtimeInputMessage {
 }
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RealtimeInput {
-    pub media_chunks: Vec<MediaChunk>,
+    pub audio: AudioBlob,
 }
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MediaChunk {
-    pub mime_type: String,
+pub struct AudioBlob {
+    pub mime_type: &'static str,
     pub data: String,
 }
 
 impl SetupMessage {
-    /// Dedicated translate model, run in **TEXT** mode: it emits the translation as text only,
-    /// with no audio synthesized — so there are no audio-output tokens to pay for. The translated
-    /// text arrives via `outputTranscription`; `inputTranscription` carries the recognised source
-    /// for the operator monitor. (Verified: this model accepts `responseModalities: ["TEXT"]` and
-    /// still honours `translationConfig`.)
     pub fn live_translate(model: &str, target_language_code: &str) -> Self {
-        SetupMessage {
+        Self {
             setup: Setup {
                 model: format!("models/{model}"),
                 generation_config: GenerationConfig {
-                    response_modalities: vec!["TEXT".to_string()],
-                    translation_config: Some(TranslationConfig {
+                    // The current translate guide documents AUDIO output only. We discard
+                    // audio payloads and use outputAudioTranscription for captions.
+                    response_modalities: vec!["AUDIO".to_string()],
+                    input_audio_transcription: Empty {},
+                    output_audio_transcription: Empty {},
+                    translation_config: TranslationConfig {
                         target_language_code: target_language_code.to_string(),
                         echo_target_language: false,
-                    }),
+                    },
                 },
-                input_audio_transcription: Some(Empty {}),
-                output_audio_transcription: None,
             },
         }
     }
@@ -86,18 +74,16 @@ impl SetupMessage {
 
 impl RealtimeInputMessage {
     pub fn pcm16(base64_data: String) -> Self {
-        RealtimeInputMessage {
+        Self {
             realtime_input: RealtimeInput {
-                media_chunks: vec![MediaChunk {
-                    mime_type: "audio/pcm;rate=16000".to_string(),
+                audio: AudioBlob {
+                    mime_type: "audio/pcm;rate=16000",
                     data: base64_data,
-                }],
+                },
             },
         }
     }
 }
-
-// ---- Incoming ------------------------------------------------------------
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -106,9 +92,10 @@ pub struct ServerMessage {
     pub setup_complete: Option<serde_json::Value>,
     #[serde(default)]
     pub server_content: Option<ServerContent>,
-    /// Sent shortly before the server closes the connection.
     #[serde(default)]
     pub go_away: Option<serde_json::Value>,
+    #[serde(default)]
+    pub error: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -133,46 +120,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn live_translate_setup_serializes_to_expected_shape() {
-        let v = serde_json::to_value(SetupMessage::live_translate(
+    fn live_translate_setup_matches_current_documented_shape() {
+        let value = serde_json::to_value(SetupMessage::live_translate(
             "gemini-3.5-live-translate-preview",
             "en",
         ))
         .unwrap();
-        assert_eq!(
-            v["setup"]["model"],
-            "models/gemini-3.5-live-translate-preview"
-        );
-        assert_eq!(
-            v["setup"]["generationConfig"]["responseModalities"][0],
-            "TEXT"
-        );
-        assert_eq!(
-            v["setup"]["generationConfig"]["translationConfig"]["targetLanguageCode"],
-            "en"
-        );
-        assert!(v["setup"]["inputAudioTranscription"].is_object());
-        // TEXT mode: no audio synthesized, so no output-audio transcription sidecar.
-        assert!(v["setup"]["outputAudioTranscription"].is_null());
+        let generation = &value["setup"]["generationConfig"];
+        assert_eq!(generation["responseModalities"][0], "AUDIO");
+        assert!(generation["inputAudioTranscription"].is_object());
+        assert!(generation["outputAudioTranscription"].is_object());
+        assert_eq!(generation["translationConfig"]["targetLanguageCode"], "en");
+        assert!(value["setup"].get("inputAudioTranscription").is_none());
     }
 
     #[test]
-    fn realtime_input_uses_media_chunks() {
-        let v = serde_json::to_value(RealtimeInputMessage::pcm16("AAA=".into())).unwrap();
+    fn realtime_input_uses_current_audio_blob_shape() {
+        let value = serde_json::to_value(RealtimeInputMessage::pcm16("AAA=".into())).unwrap();
         assert_eq!(
-            v["realtimeInput"]["mediaChunks"][0]["mimeType"],
+            value["realtimeInput"]["audio"]["mimeType"],
             "audio/pcm;rate=16000"
         );
-        assert_eq!(v["realtimeInput"]["mediaChunks"][0]["data"], "AAA=");
+        assert_eq!(value["realtimeInput"]["audio"]["data"], "AAA=");
     }
 
     #[test]
-    fn parses_server_content_transcriptions() {
-        let raw =
-            r#"{"serverContent":{"outputTranscription":{"text":"Hello"},"turnComplete":true}}"#;
-        let msg: ServerMessage = serde_json::from_str(raw).unwrap();
-        let sc = msg.server_content.unwrap();
-        assert_eq!(sc.output_transcription.unwrap().text, "Hello");
-        assert_eq!(sc.turn_complete, Some(true));
+    fn parses_transcription_and_turn_complete() {
+        let message: ServerMessage = serde_json::from_str(
+            r#"{"serverContent":{"inputTranscription":{"text":"Hello"},"outputTranscription":{"text":"Bonjour"},"turnComplete":true}}"#,
+        )
+        .unwrap();
+        let content = message.server_content.unwrap();
+        assert_eq!(content.input_transcription.unwrap().text, "Hello");
+        assert_eq!(content.output_transcription.unwrap().text, "Bonjour");
+        assert_eq!(content.turn_complete, Some(true));
     }
 }

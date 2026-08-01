@@ -2,13 +2,12 @@
 //! remote speaker on a Zoom call. On Windows this uses WASAPI loopback, which captures the
 //! render endpoint mix without any virtual audio device. On other platforms it is a stub.
 //!
-//! The Windows path follows the `wasapi` 0.15 loopback example. `wasapi`'s fallible calls
-//! return `Box<dyn Error>` (not `Send + Sync`), so they can't flow straight into `anyhow`;
-//! the `WasapiCtx` bridge below adapts them. Everything downstream (resampling, chunking,
-//! leveling via `CaptureState`) is shared with the mic path and is exercised by tests.
+//! The Windows path follows the current `wasapi` event-driven shared-stream API.
+//! Everything downstream (resampling, chunking, leveling via `CaptureState`) is shared
+//! with the mic path and is exercised by tests.
 
 use anyhow::Result;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
 use super::AudioChunk;
@@ -17,8 +16,8 @@ use crate::types::AudioLevel;
 #[cfg(not(windows))]
 pub fn run_system_loopback(
     _target_rate: u32,
-    _level_tx: UnboundedSender<AudioLevel>,
-    _chunk_tx: UnboundedSender<AudioChunk>,
+    _level_tx: Sender<AudioLevel>,
+    _chunk_tx: Sender<AudioChunk>,
     _cancel: CancellationToken,
 ) -> Result<()> {
     anyhow::bail!("System (loopback) capture is only supported on Windows in this build")
@@ -27,8 +26,8 @@ pub fn run_system_loopback(
 #[cfg(windows)]
 pub fn run_system_loopback(
     target_rate: u32,
-    level_tx: UnboundedSender<AudioLevel>,
-    chunk_tx: UnboundedSender<AudioChunk>,
+    level_tx: Sender<AudioLevel>,
+    chunk_tx: Sender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
     windows_impl::run(target_rate, level_tx, chunk_tx, cancel)
@@ -39,9 +38,9 @@ mod windows_impl {
     use std::collections::VecDeque;
 
     use anyhow::{Context, Result};
-    use tokio::sync::mpsc::UnboundedSender;
+    use tokio::sync::mpsc::Sender;
     use tokio_util::sync::CancellationToken;
-    use wasapi::{initialize_mta, Direction, SampleType, ShareMode, WaveFormat};
+    use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
 
     use crate::audio::capture::CaptureState;
     use crate::audio::AudioChunk;
@@ -54,7 +53,7 @@ mod windows_impl {
         fn ctx(self, msg: &'static str) -> Result<T>;
     }
 
-    impl<T> WasapiCtx<T> for std::result::Result<T, Box<dyn std::error::Error>> {
+    impl<T, E: std::fmt::Display> WasapiCtx<T> for std::result::Result<T, E> {
         fn ctx(self, msg: &'static str) -> Result<T> {
             self.map_err(|e| anyhow::anyhow!("{msg}: {e}"))
         }
@@ -62,8 +61,8 @@ mod windows_impl {
 
     pub fn run(
         target_rate: u32,
-        level_tx: UnboundedSender<AudioLevel>,
-        chunk_tx: UnboundedSender<AudioChunk>,
+        level_tx: Sender<AudioLevel>,
+        chunk_tx: Sender<AudioChunk>,
         cancel: CancellationToken,
     ) -> Result<()> {
         // COM must be initialised on the capture thread. `initialize_mta` returns an
@@ -72,7 +71,9 @@ mod windows_impl {
             .ok()
             .context("failed to initialise COM (MTA)")?;
 
-        let device = wasapi::get_default_device(&Direction::Render)
+        let enumerator = DeviceEnumerator::new().ctx("failed to create device enumerator")?;
+        let device = enumerator
+            .get_default_device(&Direction::Render)
             .ctx("no default render device for loopback")?;
         let mut audio_client = device
             .get_iaudioclient()
@@ -95,19 +96,17 @@ mod windows_impl {
             "starting WASAPI loopback capture"
         );
 
-        let (_def_period, min_period) = audio_client
-            .get_periods()
+        let (_default_period, min_period) = audio_client
+            .get_device_period()
             .ctx("failed to get device periods")?;
 
         // Loopback = render endpoint opened for capture.
+        let mode = StreamMode::EventsShared {
+            autoconvert: true,
+            buffer_duration_hns: min_period,
+        };
         audio_client
-            .initialize_client(
-                &format,
-                min_period,
-                &Direction::Capture,
-                &ShareMode::Shared,
-                true,
-            )
+            .initialize_client(&format, &Direction::Capture, &mode)
             .ctx("failed to initialise loopback client")?;
 
         let event = audio_client

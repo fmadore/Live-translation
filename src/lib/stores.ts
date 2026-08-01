@@ -45,6 +45,7 @@ export function applyStatus(u: StatusUpdate) {
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
+		latestCaption.set(null);
 	}
 	if (u.message) {
 		statusMessage.set(u.message);
@@ -57,6 +58,7 @@ export const hasKey = writable<boolean>(false);
 
 export const options = writable<StartOptions>({
 	source: 'system',
+	mode: 'translate',
 	targetLanguage: 'en',
 	provider: 'gemini',
 	micDeviceName: null
@@ -113,6 +115,19 @@ export function flushTranscript() {
 		if (c) commit(c);
 		delete pending[origin];
 	}
+}
+
+/** Prepare the monitor for a new run without discarding already finalized transcript lines. */
+export function beginSession() {
+	flushTranscript();
+	latestCaption.set(null);
+}
+
+/** Clear both finalized and in-flight transcript state. */
+export function clearTranscript() {
+	transcript.set([]);
+	latestCaption.set(null);
+	for (const origin of Object.keys(pending) as Origin[]) delete pending[origin];
 }
 
 // ---- Overlay font size ------------------------------------------------------

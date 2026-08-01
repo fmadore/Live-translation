@@ -1,7 +1,7 @@
 // Shared types between the operator window, the caption overlay, and the Rust core.
 // These mirror the serde structs in `src-tauri/src/types.rs` — keep them in sync.
 
-/** Which audio input(s) to translate. */
+/** Which audio input(s) to translate or transcribe. */
 export type AudioSource = 'microphone' | 'system' | 'both';
 
 /** A single capture source — the `origin` on captions, levels, and status updates. */
@@ -10,25 +10,29 @@ export type Origin = 'microphone' | 'system';
 /** BCP-47 codes we use for the two workshop languages. The spoken language is auto-detected. */
 export type TargetLanguage = 'en' | 'fr';
 
-/** Translation provider / backend. Each has its own realtime API and API key. */
-export type Provider = 'gemini' | 'openai';
+/** Realtime provider / backend. Each has its own API and API key. */
+export type Provider = 'gemini' | 'openai' | 'mistral';
+
+/** Translate speech, or show a same-language transcription as live subtitles. */
+export type OutputMode = 'translate' | 'transcribe';
 
 export interface StartOptions {
 	source: AudioSource;
+	mode: OutputMode;
 	/** Caption language (translation target). */
 	targetLanguage: TargetLanguage;
-	/** Translation backend. */
+	/** Realtime translation/transcription backend. */
 	provider: Provider;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
 }
 
-/** A caption update streamed from the active translation session. */
+/** A caption update streamed from the active translation or subtitle session. */
 export interface Caption {
 	/** Monotonic id for the current utterance of this origin; a new turn increments it.
 	 *  Only unique per origin — always key captions by (origin, turnId). */
 	turnId: number;
-	/** The translated text shown to the audience (output transcription). */
+	/** Text shown to the audience: translated text or same-language subtitles. */
 	text: string;
 	/** The recognised source-language text, for the operator monitor only. */
 	sourceText: string;
@@ -69,7 +73,7 @@ export interface OverlayConfig {
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */
 export interface TranscriptLine {
-	/** Monotonic id, unique within the session (stable list key). */
+	/** Monotonic id, unique for the app lifetime (stable list key). */
 	id: number;
 	/** Local clock time the line was finalized, e.g. "14:03:21". */
 	time: string;

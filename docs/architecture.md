@@ -1,90 +1,77 @@
 # Architecture
 
-## Overview
-
-```
-┌──────────────────────────── Tauri app (one process) ────────────────────────────┐
-│                                                                                   │
-│  Rust core                                                                        │
-│  ┌─────────────────────┐   AudioChunk (16 kHz mono PCM-16, 100 ms)               │
-│  │ audio::capture       │ ──┐  via tokio unbounded channel                       │
-│  │  (cpal microphone)   │   │                                                     │
-│  └─────────────────────┘   ├──▶ gemini::client ── WebSocket ──▶ Gemini 3.5 Live  │
-│  ┌─────────────────────┐   │     (one task per source)            Translate      │
-│  │ audio::loopback      │ ──┘                                                     │
-│  │  (WASAPI, Windows)   │        ◀── inputTranscription / outputTranscription     │
-│  └─────────────────────┘                                                          │
-│           │ level meter (RMS/peak)        │ Caption events                        │
-│           ▼                               ▼                                       │
-│  ┌────────────────────────── Tauri events (broadcast) ──────────────────────┐    │
-│  └───────────────┬───────────────────────────────────┬──────────────────────┘    │
-│                  ▼                                     ▼                           │
-│        Operator window (/)                   Caption overlay (/overlay)            │
-│        controls + monitor + meters           transparent · always-on-top ·        │
-│                                              click-through captions                │
-└───────────────────────────────────────────────────────────────────────────────────┘
-```
-
 ## Data flow
 
-1. **Capture.** One thread per active source. `cpal` (mic) / WASAPI loopback (system) hands
-   interleaved device-rate samples to `CaptureState`, which downmixes to mono, resamples to
-   the provider's input rate (16 kHz Gemini / 24 kHz OpenAI; streaming linear resampler),
-   converts to PCM-16 LE, and emits ~100 ms `AudioChunk`s.
-   It also computes an RMS/peak level (~20 Hz) for the meter.
-2. **Translate.** `session.rs` dispatches on the selected **provider** and spawns
-   `realtime::run_session` per source — the shared runner that owns the reconnect/backoff
-   loop (backoff resets after a stable connection; a 4xx handshake stops with an error
-   instead of retrying), drops audio that went stale while disconnected, and pumps the
-   select loop. Each provider implements the `RealtimeProtocol` trait with only its
-   specifics. **Gemini** (`gemini::client`): setup frame for the translate model, caption
-   text from `outputTranscription`, deltas accumulating until `turnComplete`. **OpenAI**
-   (`openai::client`): connects to `/v1/realtime/translations` (auth via an `Authorization`
-   header), sends a `session.update`, reads `output_transcript` deltas — that stream has no
-   turn-complete event, so the runner finalizes captions after a short idle gap. Source
-   text (operator monitor) comes from the input transcription in both. Model ids are
-   overridable via env vars (`GEMINI_TRANSLATE_MODEL` / `OPENAI_TRANSLATE_MODEL`).
-3. **Render.** Captions are emitted as Tauri events. Tauri broadcasts events to **all**
-   windows, so the operator monitor and the overlay both receive them with no extra plumbing.
+```text
+microphone (cpal) ─┐
+                   ├─ downmix → low-pass/resample → PCM16 → bounded channel ─┐
+system (WASAPI) ───┘                                                         │
+                                                                             ▼
+                     one realtime WebSocket per active source and provider
+                     ├─ Gemini/OpenAI: translated transcript
+                     └─ Mistral: same-language transcript
+                                      │
+                                      ▼
+                          Tauri caption/status/level events
+                                ┌─────┴─────┐
+                         operator UI    overlay window
+```
 
-## Why one client per source
+1. **Capture.** Each source owns a native thread. `CaptureState` downmixes device samples,
+   applies a four-stage anti-alias low-pass when downsampling, resamples to 16 kHz
+   (Gemini/Mistral) or 24 kHz (OpenAI), converts to mono PCM16 LE, and forms roughly 100 ms
+   chunks. CPAL integer and floating-point sample formats are normalized through reusable
+   scratch buffers.
+2. **Backpressure.** Audio crosses a bounded five-chunk channel (at most about 500 ms), and
+   meter updates cross a bounded eight-event channel. The realtime callback never blocks.
+   After a network stall the consumer coalesces queued chunks to the newest one instead of
+   replaying stale speech; reconnect-buffered audio is discarded outright.
+3. **Provider session.** `session.rs` validates the selected mode/provider pair, resolves its
+   key, and spawns one `realtime::run_session` task per source. `realtime.rs` owns connection
+   timeouts, setup/audio pumping, message controls, idle caption segmentation, stable-connection
+   backoff reset, retryable-vs-permanent HTTP classification, and turn finalization.
+4. **Render/export.** Caption events are broadcast to both windows. The operator store tracks
+   pending turns independently by `(origin, turnId)`; finalized lines can be exported in
+   chronological plain text or Markdown. Mistral places its source-language transcription in
+   the normal caption `text` field, so overlay and export need no provider-specific branch.
 
-Running mic and system as independent sessions keeps them simple and lets the operator
-translate both at once (e.g. a French speaker in the room while an English speaker is on
-Zoom). Each session reconnects independently, so one dropping doesn't disturb the other.
+## Provider contracts
 
-## Concurrency & shutdown
+| Provider | Mode | Input | Caption event | Graceful stop |
+|---|---|---|---|---|
+| Gemini 3.5 Live Translate | Translate | 16 kHz PCM16 | `serverContent.outputTranscription` | WebSocket close |
+| OpenAI Realtime Translate | Translate | 24 kHz PCM16, 200 ms engine frames | `session.output_transcript.delta` | `session.close`, drain to `session.closed` |
+| Mistral Voxtral Mini Realtime | Transcribe | 16 kHz PCM16 | `transcription.text.delta` | `input_audio.flush`, then `input_audio.end`, drain to `transcription.done` |
 
-A single `CancellationToken` per session is shared by every capture thread and client task.
-`stop()` cancels it: capture threads exit their park loop and drop their channel senders,
-which makes each client's `audio_rx.recv()` return `None`, closing the WebSocket cleanly.
+The Mistral provider is intentionally unavailable in translation mode: Voxtral Mini
+Transcribe Realtime is a speech-to-text model, not a live translation model.
+
+## Concurrency and shutdown
+
+`SessionManager` serializes start/stop operations with a lifecycle mutex, preventing an older
+stop request from cancelling a newly started session. A parent `CancellationToken` owns the
+whole run and each source gets a child token. A capture failure cancels only that source, so
+the other half of “Both” can continue.
+
+Stop first cancels capture, then each provider flushes its pending input and briefly drains
+tail transcript events before the socket closes. Capture threads are joined, pending captions
+are finalized, status/meters return to idle, and the monitor drops its stale current caption.
 
 ## Security
 
-- API keys (one per provider: Gemini, OpenAI) live in the **OS keychain** (`keyring`) or a
-  dev `.env`; they are read only in Rust — Gemini's goes in the WebSocket URL, OpenAI's in an
-  `Authorization` header. They never reach the renderer, and the CSP blocks outbound
-  `connect-src` from the webview.
-- **Hardening (future):** mint **ephemeral tokens** on the `v1alpha` endpoint and connect
-  with those, so even the Rust process holds only a short-lived credential. See
-  `docs/gemini-live-api.md`.
+- Each provider key has a separate OS-keychain entry, with `.env` fallback for development.
+- Keys never enter the Svelte renderer. Gemini currently authenticates in the WebSocket URL;
+  OpenAI and Mistral use `Authorization: Bearer` headers from Rust.
+- The webview CSP blocks outbound connections.
+- CI uses least-privilege read permissions except the tag-driven release workflow, which needs
+  `contents: write` to upload installers.
 
-## Known gaps / next steps
+## Remaining operational limits
 
-- **WASAPI loopback** (`audio/loopback.rs`) is written to the `wasapi` crate's loopback
-  pattern but **not yet compiled/run on Windows** — validate during the rehearsal.
-- **OpenAI** is wired as a second provider (`gpt-realtime-translate`); see
-  `docs/openai-realtime-api.md`. **DeepL Voice** remains a candidate for a further provider
-  (native speech→**text** translation, excellent FR⇄EN;
-  `wss://api.deepl.com/v3/voice/realtime/connect`) — it needs a separate key and its schema
-  confirmed. The `Provider` enum in `types.rs` (with per-provider client/model/rate selection
-  in `session.rs`) is the seam to extend.
-- Ephemeral-token auth not yet implemented (Gemini); key is read only in Rust for now.
-- App icons are placeholders generated by `tauri icon`; swap in real branding before the event.
-
-### Recently added
-
-- Operator-side **caption font-size control**: persisted in `localStorage` (shared by both
-  windows) and pushed live to the overlay via the `overlay-config` event.
-- **Transcript to disk**: `save_transcript` writes a timestamped Markdown file to
-  `Documents/Live-translation/` (operator "Save transcript" button).
+- Native system-loopback capture is Windows-only. Other OS builds can use a normal microphone
+  input (including a virtual device such as BlackHole on macOS).
+- Provider integrations are contract-tested locally but not called from CI: live tests need
+  billable secrets and representative bilingual audio. Rehearse all three providers manually.
+- The low-latency resampler is optimized for speech, not archival audio production.
+- Gemini/OpenAI still generate translated audio server-side even though the app discards it;
+  account for provider audio-output pricing.

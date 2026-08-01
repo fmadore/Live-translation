@@ -1,6 +1,6 @@
 name: CI
 
-# Checks on every push/PR: front-end type-check, Rust format/lint/tests.
+# Checks on every push/PR: front-end type-check/build, Rust format/lint/tests.
 # (release.yml builds the installers; this keeps day-to-day changes honest.)
 
 on:
@@ -8,13 +8,21 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -24,12 +32,29 @@ jobs:
       - name: svelte-check
         run: npm run check
 
+      - name: unit tests
+        run: npm test
+
+      - name: production build
+        run: npm run build
+
+      - name: dependency audit (moderate and above)
+        run: npm audit --audit-level=moderate
+
   rust:
-    runs-on: ubuntu-latest
+    # The Windows lane is essential: the WASAPI loopback implementation is behind
+    # cfg(windows), so an Ubuntu-only job never even compiles the event-day audio path.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Tauri system dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libasound2-dev \
@@ -50,9 +75,30 @@ jobs:
         working-directory: src-tauri
 
       - name: clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
         working-directory: src-tauri
 
       - name: tests
-        run: cargo test
+        run: cargo test --locked --all-features
         working-directory: src-tauri
+
+  workflow-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: actionlint
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+  rust-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: RustSec audit
+        uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri

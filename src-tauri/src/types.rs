@@ -51,6 +51,7 @@ pub enum Provider {
     #[default]
     Gemini,
     OpenAi,
+    Mistral,
 }
 
 impl Provider {
@@ -59,8 +60,19 @@ impl Provider {
         match self {
             Provider::Gemini => 16_000,
             Provider::OpenAi => 24_000,
+            Provider::Mistral => 16_000,
         }
     }
+}
+
+/// What the audience should see. Mistral currently powers transcription-only subtitles;
+/// Gemini and OpenAI power translated captions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputMode {
+    #[default]
+    Translate,
+    Transcribe,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -68,7 +80,10 @@ impl Provider {
 pub struct StartOptions {
     pub source: AudioSource,
     pub target_language: TargetLanguage,
-    /// Translation backend. Defaults to Gemini for older front-ends that omit it.
+    /// Output behavior. Defaults to translation for older front-ends that omit it.
+    #[serde(default)]
+    pub mode: OutputMode,
+    /// Realtime backend. Defaults to Gemini for older front-ends that omit it.
     #[serde(default)]
     pub provider: Provider,
     #[serde(default)]

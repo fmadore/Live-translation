@@ -45,9 +45,9 @@ Items are checked off as they land; the git history references the phase numbers
 
 - [x] **No per-wake copy in WASAPI loopback decode** (`make_contiguous` instead of
   collecting the deque into a fresh `Vec` every ~10 ms).
-- [x] **No allocations in the cpal callback**: reusable scratch buffer for i16/u16 sample
-  conversion; PCM chunks are converted straight from the pending buffer without an
-  intermediate `Vec`.
+- [x] **Minimize callback allocations**: reusable conversion/resampling scratch buffers;
+  one owned PCM allocation remains per completed chunk so the callback can transfer it to
+  the async pipeline without blocking.
 - [x] **Async Tauri commands.** Sync commands run on the main thread; keychain access,
   transcript file I/O, and `stop_session` (which joins capture threads) could block the UI.
 
@@ -77,6 +77,26 @@ Items are checked off as they land; the git history references the phase numbers
   engine and the new session runner.
 - [x] Version bump to **0.3.0**.
 
+## Phase 6 — Subtitles, hardening, and CI (August 2026)
+
+- [x] **Mistral Live subtitles** using `voxtral-mini-transcribe-realtime-2602`, with a
+  dedicated mode so transcription cannot be mistaken for translation.
+- [x] **Plain-text and Markdown export**, shared by both translated captions and subtitles,
+  with pure formatter tests.
+- [x] **Current provider contracts**: Gemini's documented AUDIO/setup/blob shape; OpenAI's
+  translation session schema and graceful `session.close`; Mistral's official SDK frames.
+- [x] **Serialized start/stop lifecycle**, per-source cancellation, connection timeout,
+  graceful tail draining, proactive Gemini `goAway`, retryable 429 handling, and turn
+  finalization across reconnects.
+- [x] **Bounded audio and meter channels**, nonblocking callbacks, periodic pending-buffer
+  compaction, broader CPAL sample-format support, and an anti-alias filter before downsampling.
+- [x] **Frontend refactor** into API-key and transcript-monitor components; configuration
+  locks while starting/running/stopping and stale async key checks are ignored.
+- [x] **Toolchain/security maintenance**: current SvelteKit/Svelte/Vite/Tauri packages,
+  frontend unit tests, Windows+Linux Rust CI, npm/RustSec audits, actionlint, Dependabot, and
+  current release actions.
+- [x] Version bump to **0.4.0**.
+
 ## Future ideas (not scheduled)
 
 - **Persist overlay position/size** across launches (tauri-plugin-window-state).
@@ -86,8 +106,6 @@ Items are checked off as they land; the git history references the phase numbers
   instead of two buttons.
 - **Latency metrics** in the operator monitor (audio-sent → first-delta round trip).
 - **Session cost estimate** (audio minutes streamed per provider).
-- **Auto-restart on `goAway`** — proactively reconnect before Gemini closes the socket
-  instead of waiting for the drop.
 - **macOS system-loopback capture** — currently Windows-only (WASAPI). Not scheduled: the
   STIAS event laptop is Windows. **The gate is code signing, not the audio code.** Both
   native routes are TCC-gated and reportedly need a binary signed with a Developer ID
@@ -114,3 +132,6 @@ Items are checked off as they land; the git history references the phase numbers
   from CI — TCC grants and real audio flow need a physical Mac, so budget a rehearsal.
 - **Rehearsal mode** — play a bundled FR/EN sample file through the pipeline to validate
   keys/models before the event without speaking.
+- **Billable provider smoke workflow** — an explicitly manual workflow could exercise live
+  credentials and a golden audio fixture. It is intentionally not automatic because it costs
+  money and CI secrets are not available to forked pull requests.

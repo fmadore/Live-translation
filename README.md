@@ -1,116 +1,107 @@
-# Live Translation (FR ⇄ EN)
+# Live Translation & Subtitles
 
-Real-time speech translation desktop app for the workshop **"Digital Humanities and
-AI in African Studies"** (STIAS, Stellenbosch, 21–24 Sept 2026). Companion tool to the
-[conference website](https://github.com/fmadore/stias-dh-ai-workshop-2026).
+Real-time captions for the **Digital Humanities and AI in African Studies** workshop
+(STIAS, Stellenbosch, 21–24 September 2026). The desktop app captures a presenter’s
+microphone, Windows system/Zoom audio, or both and renders captions in a transparent,
+always-on-top overlay.
 
-It captures two kinds of audio — a **presenter at the laptop** (microphone) and **audio
-coming out of the laptop** (system/loopback, e.g. a remote speaker on Zoom) — translates
-speech live between **French and English** (any language is auto-detected) using your choice
-of **Google Gemini** or **OpenAI** live-translation models, and shows the result as **live
-captions** in a transparent, always-on-top overlay that can float over a PowerPoint
-presentation.
+It has two deliberately separate modes:
 
-> **Output is text captions only.** The Gemini engine is **Live Translate**
-> (`gemini-3.5-live-translate-preview`) run in **text mode** — it returns the translation as text
-> with no audio synthesized, so there are no audio-output costs. You can also switch the
-> **provider** to **OpenAI** (`gpt-realtime-translate`). See
-> [`docs/gemini-live-api.md`](docs/gemini-live-api.md) and
-> [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md) for details.
+- **Live translation** — speech is auto-detected and translated into English or French by
+  Google Gemini (`gemini-3.5-live-translate-preview`) or OpenAI
+  (`gpt-realtime-translate`). Their generated audio is discarded; only transcript text is
+  displayed.
+- **Live subtitles** — Mistral Voxtral Mini Transcribe Realtime
+  (`voxtral-mini-transcribe-realtime-2602`) produces same-language text without translating
+  it. The transcript can be saved as plain `.txt` or Markdown.
+
+Provider details and verified wire formats are documented in
+[`docs/gemini-live-api.md`](docs/gemini-live-api.md),
+[`docs/openai-realtime-api.md`](docs/openai-realtime-api.md), and
+[`docs/mistral-realtime-api.md`](docs/mistral-realtime-api.md).
 
 ## Architecture
 
-```
+```text
 Tauri app (Rust core + SvelteKit front-end)
-├── Audio capture (Rust)
-│   ├── Microphone        — cpal (cross-platform)        → presenter in the room
-│   └── System loopback   — WASAPI loopback (Windows)    → Zoom / remote speaker
-│        → resampled to mono 16-bit PCM (16 kHz for Gemini, 24 kHz for OpenAI)
-│
-├── Translation client (Rust) — Gemini or OpenAI, chosen per session
-│   └── WebSocket bidi stream → sends 100 ms PCM chunks, receives the translated
-│       text + source transcription in real time. Text-only — no audio is synthesized.
-│       The API key lives in the OS keychain, used only from Rust — never in the front-end.
-│
-└── Two windows (SvelteKit)
-    ├── Operator window   — source + caption-language selector, start/stop, level meter
-    └── Caption overlay   — frameless, transparent, always-on-top, click-through captions
+├── Audio capture
+│   ├── Microphone — cpal
+│   └── System/Zoom — WASAPI loopback on Windows
+│       └── mono PCM16: 16 kHz Gemini/Mistral or 24 kHz OpenAI
+├── Bounded realtime pipeline — one capture + WebSocket session per source
+│   ├── Gemini/OpenAI → translated transcript captions
+│   └── Mistral → same-language subtitle captions
+└── Windows
+    ├── Operator — mode/source/provider controls, meters, monitor, export
+    └── Overlay — transparent, always-on-top, click-through captions
 ```
 
-See [`docs/gemini-live-api.md`](docs/gemini-live-api.md) for the verified API surface and
-[`docs/architecture.md`](docs/architecture.md) for the design and data flow.
-
-## Status
-
-Working and released. Operator UI, caption overlay (rolling subtitle-style auto-clear),
-mic + Windows-loopback capture, resampling, the Gemini and OpenAI Live WebSocket clients,
-text-only translation, secure per-provider key storage, transcript saving, and the
-multi-platform release installers are all in place and verified on Windows. Re-verify the
-model ids and run a full rehearsal (real Zoom call + room mic) before the event — the Live
-APIs are in preview.
+The shared runner provides connection timeouts, bounded queues, stale-audio discard,
+exponential reconnect backoff, provider-error classification, turn isolation, and graceful
+provider flushes. Keys remain in the OS keychain and are used only by Rust. See
+[`docs/architecture.md`](docs/architecture.md) for the complete flow.
 
 ## Prerequisites
 
-- **Node.js** ≥ 20 and **npm**
-- **Rust** (stable) — <https://rustup.rs>
-- **Tauri prerequisites** for your OS — <https://tauri.app/start/prerequisites/>
-  - Windows: Microsoft C++ Build Tools + WebView2 (bundled on Win 11)
-- An API key for whichever provider you use:
-  - **Gemini** with access to `gemini-3.5-live-translate-preview` — <https://aistudio.google.com/apikey>
-  - **OpenAI** with access to `gpt-realtime-translate` — <https://platform.openai.com/api-keys>
+- Node.js **20.19+** and npm
+- Stable Rust
+- [Tauri prerequisites](https://tauri.app/start/prerequisites/) for the target OS
+- At least one provider key:
+  - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
+  - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
+  - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
 
-## Getting started
+## Development
 
 ```bash
 npm install
+npm test
+npm run check
+npm run build
 
-# Front-end only (browser, no audio/Tauri APIs):
+# Frontend preview only (no native capture)
 npm run dev
 
-# Full desktop app (recommended):
+# Full desktop app
 npm run tauri dev
 ```
 
-On first launch, open the operator window and paste your provider's API key — it is stored in
-the OS keychain (Windows Credential Manager / macOS Keychain / Secret Service), never on disk
-in plaintext and never committed. Alternatively set `GEMINI_API_KEY` in an uncommitted `.env`
-(see [`.env.example`](.env.example)) for development.
+The operator stores each provider key separately in Windows Credential Manager, macOS
+Keychain, or Secret Service. For development, copy `.env.example` to an uncommitted `.env`
+and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
 
-### Building a Windows installer
+Build Windows installers with `npm run tauri build`.
 
-```bash
-npm run tauri build           # produces .msi and .exe (NSIS) in src-tauri/target/release/bundle
-```
+## Event-day workflow
 
-## Running the app at the event
-
-1. Run the **operator window** on the laptop. Pick the audio source (mic / system / both)
-   and the caption language, then **Start**.
-2. Click **Move overlay** in the operator window, drag the **caption overlay** onto the
-   projector output (drag its edges to resize), then click **Done moving**. Let it float
-   over the PowerPoint (PowerPoint windowed or in Presenter view) — outside move mode the
-   overlay is click-through, so it never steals clicks from your slides.
-3. **Rehearse the full chain** (Zoom audio + room mic → captions on the projector) before
-   the session — system-audio routing is the most failure-prone piece.
+1. Choose **Live translation** or **Live subtitles**, then select the audio source. For
+   translation, select the target language and Gemini/OpenAI provider.
+2. Start the session and confirm the source meter and live monitor move.
+3. Use **Move overlay** to position/resize captions on the projector, then lock it back into
+   click-through mode.
+4. Use **Save text** or **Save Markdown** after captions finalize. Files are written under
+   `Documents/Live-translation/` (with Downloads/temp fallbacks).
+5. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
+   provider surfaces should be re-verified shortly beforehand.
 
 ## Project layout
 
-```
-src/                     SvelteKit front-end
-  routes/+page.svelte    Operator / control window
-  routes/overlay/        Caption overlay window
-  lib/                   Shared stores, types, Tauri bridge
-src-tauri/               Rust core
-  src/audio/             cpal microphone + WASAPI loopback capture, resampling
-  src/realtime.rs        Shared WebSocket session runner (reconnect, turns, captions)
-  src/gemini/            Gemini Live protocol (connection + event handling)
-  src/openai/            OpenAI Realtime translation protocol
-  src/secrets.rs         OS keychain storage for the per-provider API keys
-  src/commands.rs        Tauri commands exposed to the front-end
-docs/                    API notes and architecture
+```text
+src/                         SvelteKit operator and overlay windows
+  lib/ApiKeyPanel.svelte     provider key management
+  lib/TranscriptMonitor.svelte monitor and text/Markdown export
+  lib/transcript.ts          pure export formatting (unit tested)
+src-tauri/src/audio/         capture, metering, resampling
+src-tauri/src/realtime.rs    shared WebSocket lifecycle
+src-tauri/src/{gemini,openai,mistral}/ provider protocols
+.github/workflows/           frontend/Rust/security/workflow CI + releases
 ```
 
-See [`ROADMAP.md`](ROADMAP.md) for recently landed fixes and future ideas.
+## CI and maintenance
+
+Pull requests and `main` pushes run frontend tests/type-check/build/audit, Rust format,
+Clippy and tests on Linux and Windows, RustSec, and actionlint. Dependabot checks npm, Cargo,
+and GitHub Actions weekly. Installer releases remain tag-driven.
 
 ## License
 

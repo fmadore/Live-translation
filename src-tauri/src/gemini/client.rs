@@ -8,10 +8,13 @@ use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage};
-use crate::realtime::{emit_caption, RealtimeProtocol, TurnAccumulator};
+use crate::realtime::{
+    emit_caption, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+};
 use crate::types::Origin;
 
-/// Dedicated speech-to-speech translate model, run in TEXT mode (no audio synthesized).
+/// Dedicated speech-to-speech translate model; audio output is discarded after its
+/// transcription sidecar is extracted.
 pub const DEFAULT_TRANSLATE_MODEL: &str = "gemini-3.5-live-translate-preview";
 pub const DEFAULT_HOST: &str = "generativelanguage.googleapis.com";
 
@@ -57,12 +60,17 @@ impl RealtimeProtocol for GeminiConfig {
         ))?)
     }
 
-    fn handle_message(&mut self, app: &AppHandle, text: &str, acc: &mut TurnAccumulator) -> bool {
+    fn handle_message(
+        &mut self,
+        app: &AppHandle,
+        text: &str,
+        acc: &mut TurnAccumulator,
+    ) -> MessageOutcome {
         let msg: ServerMessage = match serde_json::from_str(text) {
             Ok(m) => m,
             Err(e) => {
                 tracing::debug!("unparsed server message: {e} :: {text}");
-                return false;
+                return MessageOutcome::default();
             }
         };
 
@@ -70,11 +78,16 @@ impl RealtimeProtocol for GeminiConfig {
             tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
         }
         if msg.go_away.is_some() {
-            tracing::info!("Gemini sent goAway; will reconnect");
+            return MessageOutcome::control(MessageControl::Reconnect);
+        }
+        if let Some(error) = msg.error {
+            return MessageOutcome::control(MessageControl::Fatal(format!(
+                "Gemini realtime error: {error}"
+            )));
         }
 
         let Some(content) = msg.server_content else {
-            return false;
+            return MessageOutcome::default();
         };
 
         // Source text (operator monitor) comes from the input transcription; the
@@ -101,6 +114,6 @@ impl RealtimeProtocol for GeminiConfig {
             acc.next_turn();
         }
 
-        false // Gemini has a real turn lifecycle; the idle-finalize timer stays disabled.
+        MessageOutcome::default()
     }
 }

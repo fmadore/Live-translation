@@ -1,6 +1,6 @@
-//! Streaming linear resampler (mono f32). Good enough for speech recognition and keeps
-//! us dependency-free. It maintains fractional position across calls, so feeding it the
-//! capture stream chunk-by-chunk produces a continuous, click-free 16 kHz signal.
+//! Streaming mono speech resampler. Linear interpolation preserves continuity across input
+//! blocks; a four-stage low-pass filter suppresses frequencies above the new Nyquist limit
+//! before downsampling so device-rate ultrasonic content does not alias into speech.
 
 pub struct LinearResampler {
     /// Input samples consumed per output sample (`in_rate / out_rate`).
@@ -10,16 +10,27 @@ pub struct LinearResampler {
     prev: f32,
     has_prev: bool,
     passthrough: bool,
+    lowpass_alpha: f32,
+    lowpass_state: [f32; 4],
+    has_filter_state: bool,
 }
 
 impl LinearResampler {
     pub fn new(in_rate: u32, out_rate: u32) -> Self {
+        let downsampling = out_rate < in_rate;
+        // One-pole coefficient at 90% of the output Nyquist frequency. Cascading four
+        // stages gives materially stronger rejection without a large FIR or extra crate.
+        let cutoff_hz = out_rate as f32 * 0.45;
+        let lowpass_alpha = 1.0 - (-2.0 * std::f32::consts::PI * cutoff_hz / in_rate as f32).exp();
         Self {
             step: in_rate as f64 / out_rate as f64,
             frac: 0.0,
             prev: 0.0,
             has_prev: false,
             passthrough: in_rate == out_rate,
+            lowpass_alpha: if downsampling { lowpass_alpha } else { 1.0 },
+            lowpass_state: [0.0; 4],
+            has_filter_state: false,
         }
     }
 
@@ -29,7 +40,22 @@ impl LinearResampler {
             out.extend_from_slice(input);
             return;
         }
-        for &cur in input {
+        for &input_sample in input {
+            let cur = if self.lowpass_alpha < 1.0 {
+                if !self.has_filter_state {
+                    self.lowpass_state.fill(input_sample);
+                    self.has_filter_state = true;
+                } else {
+                    let mut stage_input = input_sample;
+                    for state in &mut self.lowpass_state {
+                        *state += self.lowpass_alpha * (stage_input - *state);
+                        stage_input = *state;
+                    }
+                }
+                self.lowpass_state[3]
+            } else {
+                input_sample
+            };
             if !self.has_prev {
                 self.prev = cur;
                 self.has_prev = true;
@@ -93,6 +119,18 @@ mod tests {
         let mut out = Vec::new();
         r.process(&input, &mut out);
         assert_eq!(out, input);
+    }
+
+    #[test]
+    fn downsampling_attenuates_content_above_output_nyquist() {
+        let mut resampler = LinearResampler::new(48_000, 16_000);
+        let input: Vec<f32> = (0..48_000)
+            .map(|i| (2.0 * std::f32::consts::PI * 15_000.0 * i as f32 / 48_000.0).sin())
+            .collect();
+        let mut output = Vec::new();
+        resampler.process(&input, &mut output);
+        let rms = (output.iter().map(|s| s * s).sum::<f32>() / output.len() as f32).sqrt();
+        assert!(rms < 0.2, "out-of-band RMS was {rms}");
     }
 
     #[test]

@@ -16,7 +16,9 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
-use crate::realtime::{emit_caption, RealtimeProtocol, TurnAccumulator};
+use crate::realtime::{
+    emit_caption, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+};
 use crate::types::Origin;
 
 /// Dedicated speech-to-speech translate model (captions come from its transcript sidecar).
@@ -76,48 +78,66 @@ impl RealtimeProtocol for OpenAiConfig {
         Ok(serde_json::to_string(&InputAudioAppend::pcm16(base64_pcm))?)
     }
 
-    fn handle_message(&mut self, app: &AppHandle, text: &str, acc: &mut TurnAccumulator) -> bool {
+    fn closing_json(&self) -> Result<Vec<String>> {
+        Ok(vec![r#"{"type":"session.close"}"#.to_string()])
+    }
+
+    fn handle_message(
+        &mut self,
+        app: &AppHandle,
+        text: &str,
+        acc: &mut TurnAccumulator,
+    ) -> MessageOutcome {
         let ev: ServerEvent = match serde_json::from_str(text) {
             Ok(e) => e,
             Err(e) => {
                 tracing::debug!("unparsed OpenAI event: {e} :: {text}");
-                return false;
+                return MessageOutcome::default();
             }
         };
 
-        if ev.error.is_some() {
-            tracing::warn!(origin = ?self.origin, "OpenAI error event: {text}");
-            return false;
+        if let Some(error) = ev.error {
+            return MessageOutcome::control(MessageControl::Fatal(format!(
+                "OpenAI realtime error: {error}"
+            )));
         }
 
         let kind = ev.kind.as_str();
+
+        if kind == "session.closed" {
+            return MessageOutcome::control(MessageControl::Closed);
+        }
 
         if kind.ends_with("input_transcript.delta") {
             if let Some(t) = ev.payload() {
                 acc.source.push_str(t);
                 emit_caption(app, self.origin, acc, false);
-                return true;
+                // Source transcription may lead translated output by a noticeable amount;
+                // only target-text activity should start the caption-finalize timer.
+                return MessageOutcome::default();
             }
         } else if kind.ends_with("output_transcript.delta") {
             if let Some(t) = ev.payload() {
                 acc.translated.push_str(t);
                 emit_caption(app, self.origin, acc, false);
-                return true;
+                return MessageOutcome::activity();
             }
         } else if kind.ends_with("output_transcript.done")
             || kind.ends_with("output_transcript.completed")
         {
             // Some preview builds send an explicit completion; finalize immediately.
-            if acc.translated.is_empty() {
-                if let Some(t) = ev.transcript.as_deref() {
-                    acc.translated.push_str(t);
+            if !acc.is_empty() {
+                if acc.translated.is_empty() {
+                    if let Some(t) = ev.transcript.as_deref() {
+                        acc.translated.push_str(t);
+                    }
                 }
+                emit_caption(app, self.origin, acc, true);
+                acc.next_turn();
             }
-            emit_caption(app, self.origin, acc, true);
-            acc.next_turn();
         }
 
-        false
+        MessageOutcome::default()
     }
 
     fn finalize_after(&self) -> Option<Duration> {

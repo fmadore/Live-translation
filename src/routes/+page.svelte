@@ -13,22 +13,25 @@
 		micLevel,
 		systemLevel,
 		overlayFontSize,
-		pushCaption
+		pushCaption,
+		beginSession
 	} from '$lib/stores';
 	import type {
 		AudioDevice,
 		AudioSource,
+		OutputMode,
 		Provider,
 		TargetLanguage
 	} from '$lib/types';
 	import { clampOverlayFont } from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
+	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
+	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
-	let apiKeyInput = $state('');
-	let savingKey = $state(false);
-	let editingKey = $state(false);
 	let browserMode = $state(false);
+	let sessionBusy = $state(false);
+	const controlsLocked = $derived($isRunning || sessionBusy);
 
 	onMount(() => {
 		browserMode = !isTauri();
@@ -52,91 +55,65 @@
 	async function refresh() {
 		try {
 			microphones = await api.listMicrophones();
-			await checkKey();
 		} catch (e) {
 			statusMessage.set(String(e));
 		}
-	}
-
-	async function checkKey() {
-		try {
-			$hasKey = await api.hasApiKey($options.provider);
-		} catch (e) {
-			statusMessage.set(String(e));
-		}
-	}
-
-	async function saveKey() {
-		if (!apiKeyInput.trim()) return;
-		savingKey = true;
-		try {
-			await api.setApiKey($options.provider, apiKeyInput.trim());
-			apiKeyInput = '';
-			$hasKey = true;
-			editingKey = false;
-		} catch (e) {
-			statusMessage.set(String(e));
-		} finally {
-			savingKey = false;
-		}
-	}
-
-	async function clearKey() {
-		await api.clearApiKey($options.provider);
-		$hasKey = false;
 	}
 
 	async function start() {
+		if (sessionBusy || $isRunning) return;
+		sessionBusy = true;
 		statusMessage.set('');
+		beginSession();
 		try {
 			await api.startSession($options);
 		} catch (e) {
 			statusMessage.set(String(e));
+		} finally {
+			sessionBusy = false;
 		}
 	}
 
 	async function stop() {
+		if (sessionBusy) return;
+		sessionBusy = true;
 		try {
 			await api.stopSession();
 		} catch (e) {
 			statusMessage.set(String(e));
+		} finally {
+			sessionBusy = false;
 		}
 	}
 
 	function setSource(s: AudioSource) {
+		if (controlsLocked) return;
 		$options = { ...$options, source: s };
 	}
 
 	function setTarget(t: TargetLanguage) {
+		if (controlsLocked || $options.mode !== 'translate') return;
 		$options = { ...$options, targetLanguage: t };
 	}
 
 	function setProvider(p: Provider) {
+		if (controlsLocked || p === 'mistral') return;
 		if (p === $options.provider) return;
 		$options = { ...$options, provider: p };
-		// The key panel and Start gating follow the active provider's key.
-		editingKey = false;
-		apiKeyInput = '';
-		void checkKey();
 	}
 
-	// Provider-specific key panel copy.
-	const keyInfo = $derived(
-		$options.provider === 'openai'
-			? {
-					name: 'OpenAI',
-					model: 'gpt-realtime-translate',
-					url: 'https://platform.openai.com/api-keys'
-				}
-			: {
-					name: 'Gemini',
-					model: 'gemini-3.5-live-translate-preview',
-					url: 'https://aistudio.google.com/apikey'
-				}
-	);
+	function setMode(mode: OutputMode) {
+		if (controlsLocked || mode === $options.mode) return;
+		$options = {
+			...$options,
+			mode,
+			provider: mode === 'transcribe' ? 'mistral' : 'gemini'
+		};
+	}
 
 	// Quick flip of the caption language — handy when speakers alternate.
 	function flipDirection() {
+		if ($options.mode !== 'translate' || controlsLocked) return;
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
@@ -162,34 +139,6 @@
 		}
 	}
 
-	let savedPath = $state('');
-
-	const pad = (n: number) => String(n).padStart(2, '0');
-
-	async function saveTranscript() {
-		const lines = [...$transcript].reverse(); // chronological order
-		if (!lines.length) return;
-		const now = new Date();
-		const header = `# Live translation transcript\n\n${now.toLocaleString()} · STIAS DH & AI workshop\n\n`;
-		const body = lines
-			.map((l) => {
-				const src = l.sourceText ? `\n  - _source_: ${l.sourceText}` : '';
-				return `- **${l.time}** · ${l.origin}\n  - ${l.text}${src}`;
-			})
-			.join('\n');
-		const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-		try {
-			savedPath = await api.saveTranscript(`${header}${body}\n`, `transcript-${stamp}.md`);
-		} catch (e) {
-			statusMessage.set(String(e));
-		}
-	}
-
-	function clearTranscript() {
-		transcript.set([]);
-		savedPath = '';
-	}
-
 	const stateLabel: Record<string, string> = {
 		idle: 'Idle',
 		connecting: 'Connecting…',
@@ -208,8 +157,8 @@
 <main>
 	<header>
 		<div class="title">
-			<h1>Live Translation</h1>
-			<span class="subtitle">FR ⇄ EN · STIAS DH &amp; AI workshop</span>
+			<h1>Live Captions</h1>
+			<span class="subtitle">Translation · subtitles · STIAS DH &amp; AI workshop</span>
 		</div>
 		<div class="state state-{$sessionState}">
 			<span class="dot"></span>
@@ -220,59 +169,59 @@
 	{#if browserMode}
 		<div class="banner">
 			Running in a browser without the Tauri runtime — controls are disabled. Launch with
-			<code>npm run tauri dev</code> for audio capture and translation.
+			<code>npm run tauri dev</code> for audio capture, translation, and subtitles.
 		</div>
 	{/if}
 
-	{#if !browserMode}
-		<section class="panel key">
-			<h2>{keyInfo.name} API key</h2>
-			{#if $hasKey && !editingKey}
-				<div class="row key-saved">
-					<span class="key-ok">✓ Saved to the OS keychain</span>
-					<div class="spacer"></div>
-					<button class="ghost" onclick={() => { editingKey = true; apiKeyInput = ''; }}>
-						Replace
-					</button>
-					<button class="ghost remove" onclick={clearKey}>Remove</button>
-				</div>
+	<section class="panel">
+		<h2>Caption mode</h2>
+		<div class="segmented mode-select">
+			<button
+				class:active={$options.mode === 'translate'}
+				disabled={controlsLocked}
+				onclick={() => setMode('translate')}
+			>
+				Live translation
+			</button>
+			<button
+				class:active={$options.mode === 'transcribe'}
+				disabled={controlsLocked}
+				onclick={() => setMode('transcribe')}
+			>
+				Live subtitles
+			</button>
+		</div>
+		<p class="hint engine-hint">
+			{#if $options.mode === 'translate'}
+				Translate speech into English or French using Gemini or OpenAI.
 			{:else}
-				<p class="hint">
-					Stored in the OS keychain, used only from the Rust core. Needs access to
-					<code>{keyInfo.model}</code>. Get one at
-						<a href={keyInfo.url} target="_blank" rel="noreferrer">{keyInfo.url}</a>.
-				</p>
-				<div class="row">
-					<input
-						type="password"
-						placeholder="Paste your {keyInfo.name} API key"
-						bind:value={apiKeyInput}
-						onkeydown={(e) => e.key === 'Enter' && saveKey()}
-					/>
-					<button class="primary" disabled={savingKey || !apiKeyInput.trim()} onclick={saveKey}>
-						{savingKey ? 'Saving…' : 'Save key'}
-					</button>
-					{#if $hasKey}
-						<button class="ghost" onclick={() => { editingKey = false; apiKeyInput = ''; }}>
-							Cancel
-						</button>
-					{/if}
-				</div>
+				Transcribe speech in its original language with Mistral Voxtral; save the result as plain text or Markdown.
 			{/if}
-		</section>
+		</p>
+	</section>
+
+	{#if !browserMode}
+		<ApiKeyPanel
+			provider={$options.provider}
+			locked={controlsLocked}
+			onAvailability={(provider, available) => {
+				if ($options.provider === provider) $hasKey = available;
+			}}
+			onError={(message) => statusMessage.set(message)}
+		/>
 	{/if}
 
 	<div class="grid">
 		<section class="panel">
 			<h2>Audio source</h2>
 			<div class="segmented">
-				<button class:active={$options.source === 'microphone'} onclick={() => setSource('microphone')}>
+				<button disabled={controlsLocked} class:active={$options.source === 'microphone'} onclick={() => setSource('microphone')}>
 					🎤 Microphone
 				</button>
-				<button class:active={$options.source === 'system'} onclick={() => setSource('system')}>
+				<button disabled={controlsLocked} class:active={$options.source === 'system'} onclick={() => setSource('system')}>
 					🔊 System (Zoom)
 				</button>
-				<button class:active={$options.source === 'both'} onclick={() => setSource('both')}>
+				<button disabled={controlsLocked} class:active={$options.source === 'both'} onclick={() => setSource('both')}>
 					Both
 				</button>
 			</div>
@@ -281,6 +230,7 @@
 				<label class="field">
 					<span>Microphone device</span>
 					<select
+						disabled={controlsLocked}
 						value={$options.micDeviceName ?? ''}
 						onchange={(e) =>
 							($options = { ...$options, micDeviceName: e.currentTarget.value || null })}
@@ -304,35 +254,43 @@
 		</section>
 
 		<section class="panel">
-			<h2>Caption language</h2>
-			<p class="hint">Spoken language is auto-detected; pick the language the audience reads.</p>
-			<div class="segmented">
-				<button class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
-					🇬🇧 English
-				</button>
-				<button class:active={$options.targetLanguage === 'fr'} onclick={() => setTarget('fr')}>
-					🇫🇷 Français
-				</button>
-			</div>
-			<button class="ghost flip" onclick={flipDirection}>⇄ Flip (F2)</button>
+			{#if $options.mode === 'translate'}
+				<h2>Caption language</h2>
+				<p class="hint">Spoken language is auto-detected; pick the language the audience reads.</p>
+				<div class="segmented">
+					<button disabled={controlsLocked} class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
+						🇬🇧 English
+					</button>
+					<button disabled={controlsLocked} class:active={$options.targetLanguage === 'fr'} onclick={() => setTarget('fr')}>
+						🇫🇷 Français
+					</button>
+				</div>
+				<button class="ghost flip" disabled={controlsLocked} onclick={flipDirection}>⇄ Flip (F2)</button>
+			{:else}
+				<h2>Subtitle language</h2>
+				<p class="hint">
+					Voxtral auto-detects the spoken language and writes same-language subtitles. No translation target is needed.
+				</p>
+			{/if}
 		</section>
 	</div>
 
 	<section class="panel">
-		<h2>Translation engine</h2>
+		<h2>{$options.mode === 'translate' ? 'Translation engine' : 'Transcription engine'}</h2>
+		{#if $options.mode === 'translate'}
 			<div class="segmented sub">
-				<button class:active={$options.provider === 'gemini'} onclick={() => setProvider('gemini')}>
+				<button disabled={controlsLocked} class:active={$options.provider === 'gemini'} onclick={() => setProvider('gemini')}>
 					Google Gemini
 				</button>
-				<button class:active={$options.provider === 'openai'} onclick={() => setProvider('openai')}>
+				<button disabled={controlsLocked} class:active={$options.provider === 'openai'} onclick={() => setProvider('openai')}>
 					OpenAI
 				</button>
 			</div>
 
 			{#if $options.provider === 'gemini'}
 				<p class="hint engine-hint">
-					<code>gemini-3.5-live-translate-preview</code> — text-only output (no audio synthesized,
-					so no audio-output cost). Any spoken language → the caption language above.
+					<code>gemini-3.5-live-translate-preview</code> — translated captions come from the
+					output transcription; generated audio is discarded.
 				</p>
 			{:else}
 				<p class="hint engine-hint">
@@ -341,14 +299,20 @@
 					target language.
 				</p>
 			{/if}
+		{:else}
+			<p class="hint engine-hint">
+				<code>voxtral-mini-transcribe-realtime-2602</code> — 16 kHz realtime speech-to-text
+				with a 480 ms target delay. Its text appears directly as subtitles and in the saved transcript.
+			</p>
+		{/if}
 	</section>
 
 	<section class="panel controls">
 		{#if $isRunning}
-			<button class="danger big" onclick={stop}>■ Stop</button>
+			<button class="danger big" disabled={sessionBusy} onclick={stop}>{sessionBusy ? 'Stopping…' : '■ Stop'}</button>
 		{:else}
-			<button class="primary big" disabled={!$hasKey || browserMode} onclick={start}>
-				▶ Start translating
+			<button class="primary big" disabled={!$hasKey || browserMode || sessionBusy} onclick={start}>
+				{sessionBusy ? 'Starting…' : $options.mode === 'translate' ? '▶ Start translating' : '▶ Start subtitles'}
 			</button>
 		{/if}
 		{#if $statusMessage}
@@ -367,38 +331,12 @@
 		<button class="ghost" onclick={() => api.showOverlay(true)}>Show overlay</button>
 	</section>
 
-	<section class="panel monitor">
-		<div class="monitor-head">
-			<h2>Live monitor</h2>
-			<div class="monitor-actions">
-				<button class="ghost" disabled={!$transcript.length} onclick={saveTranscript}>
-					Save transcript
-				</button>
-				<button class="ghost" disabled={!$transcript.length} onclick={clearTranscript}>
-					Clear
-				</button>
-			</div>
-		</div>
-		{#if savedPath}
-			<p class="saved">Saved to <code>{savedPath}</code></p>
-		{/if}
-		{#if $latestCaption}
-			<div class="current">
-				<div class="src">{$latestCaption.sourceText}</div>
-				<div class="trans" class:interim={!$latestCaption.final}>{$latestCaption.text}</div>
-			</div>
-		{:else}
-			<p class="hint">Translated captions will appear here and on the overlay.</p>
-		{/if}
-
-		{#if $transcript.length}
-			<ul class="log">
-				{#each $transcript as line (line.id)}
-					<li><span class="log-time">{line.time}</span> {line.text}</li>
-				{/each}
-			</ul>
-		{/if}
-	</section>
+	<TranscriptMonitor
+		mode={$options.mode}
+		latestCaption={$latestCaption}
+		transcript={$transcript}
+		onError={(message) => statusMessage.set(message)}
+	/>
 </main>
 
 <style>
@@ -458,22 +396,6 @@
 		border-radius: 4px;
 		font-size: 0.9em;
 	}
-	.row {
-		display: flex;
-		gap: 8px;
-	}
-	.key-saved {
-		align-items: center;
-	}
-	.key-ok {
-		color: var(--accent-2);
-		font-size: 14px;
-	}
-	button.ghost.remove {
-		color: var(--danger);
-		border-color: var(--danger);
-	}
-	input,
 	select {
 		background: var(--panel-2);
 		border: 1px solid var(--border);
@@ -518,9 +440,6 @@
 	}
 	.segmented.sub {
 		margin-bottom: 10px;
-	}
-	.hint a {
-		color: var(--accent-2);
 	}
 	.meters {
 		margin-top: 14px;
@@ -587,26 +506,6 @@
 		padding: 6px 12px;
 		line-height: 1;
 	}
-	.monitor-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.monitor-actions {
-		display: flex;
-		gap: 8px;
-	}
-	.saved {
-		font-size: 12px;
-		color: var(--accent-2);
-		margin: 0 0 10px;
-		word-break: break-all;
-	}
-	.log-time {
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
-		margin-right: 6px;
-	}
 	.state {
 		display: flex;
 		align-items: center;
@@ -630,37 +529,6 @@
 	}
 	.state-error .dot {
 		background: var(--danger);
-	}
-	.current {
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-	}
-	.current .src {
-		color: var(--muted);
-		font-size: 14px;
-	}
-	.current .trans {
-		font-size: 22px;
-		line-height: 1.3;
-	}
-	.current .trans.interim {
-		opacity: 0.65;
-		font-style: italic;
-	}
-	.log {
-		list-style: none;
-		margin: 14px 0 0;
-		padding: 0;
-		max-height: 180px;
-		overflow-y: auto;
-		border-top: 1px solid var(--border);
-	}
-	.log li {
-		padding: 7px 0;
-		border-bottom: 1px solid var(--border);
-		font-size: 14px;
-		color: var(--muted);
 	}
 	@media (max-width: 680px) {
 		.grid {

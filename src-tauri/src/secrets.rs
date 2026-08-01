@@ -14,6 +14,7 @@ fn account(provider: Provider) -> &'static str {
     match provider {
         Provider::Gemini => "gemini-api-key",
         Provider::OpenAi => "openai-api-key",
+        Provider::Mistral => "mistral-api-key",
     }
 }
 
@@ -22,6 +23,7 @@ fn env_var(provider: Provider) -> &'static str {
     match provider {
         Provider::Gemini => "GEMINI_API_KEY",
         Provider::OpenAi => "OPENAI_API_KEY",
+        Provider::Mistral => "MISTRAL_API_KEY",
     }
 }
 
@@ -29,6 +31,7 @@ fn label(provider: Provider) -> &'static str {
     match provider {
         Provider::Gemini => "Gemini",
         Provider::OpenAi => "OpenAI",
+        Provider::Mistral => "Mistral",
     }
 }
 

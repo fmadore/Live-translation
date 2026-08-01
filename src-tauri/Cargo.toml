@@ -1,10 +1,10 @@
 [package]
 name = "live-translation"
-version = "0.3.0"
-description = "Real-time FR<->EN speech translation overlay"
+version = "0.4.0"
+description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.88"
 
 [lib]
 # Tauri's mobile/desktop entrypoint lives in the lib; main.rs is a thin shim.
@@ -20,21 +20,23 @@ tauri = { version = "2", features = ["macos-private-api"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
-# Async runtime + WebSocket to Gemini Live.
+# Async runtime + WebSockets for the realtime providers.
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
 tokio-util = "0.7"
 # Uses the OS-native TLS stack (SChannel on Windows, Secure Transport on macOS). This
 # avoids rustls' `ring` dependency, which needs `clang` to assemble its asm on
 # aarch64-windows — SChannel is pure-Rust here and keeps the ARM64 build toolchain-free.
-tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
 futures-util = "0.3"
 
 # Audio capture.
-cpal = "0.15"
+cpal = "0.18"
 
 # Encoding / config / errors / logging.
-base64 = "0.22"
-keyring = { version = "3", features = ["windows-native", "apple-native", "sync-secret-service"] }
+base64 = "0.23"
+# v4's default `v1` feature selects Windows Credential Manager, macOS Keychain, and
+# Secret Service backends while preserving the synchronous Entry API used here.
+keyring = "4.1"
 dotenvy = "0.15"
 anyhow = "1"
 tracing = "0.1"
@@ -42,7 +44,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]
-wasapi = "0.15"
+# Direct event-driven WASAPI access for render-device loopback capture.
+wasapi = "0.23"
 
 [features]
 # Standard Tauri production feature: serve the bundled front-end assets over the custom

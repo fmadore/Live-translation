@@ -1,35 +1,33 @@
-//! Shared realtime WebSocket session runner.
-//!
-//! Both providers stream audio the same way: connect, send one setup frame, then pump
-//! ~100 ms PCM chunks up and transcript events down until cancelled, reconnecting on drop.
-//! This module owns that machinery — the reconnect/backoff loop, the turn accumulator, the
-//! select loop, stale-audio handling, and the caption/status emits — so a provider only
-//! implements [`RealtimeProtocol`]: how to connect, what the setup and audio frames look
-//! like, and how to turn server messages into captions.
+//! Shared realtime WebSocket runner for translation and transcription providers.
+//! It owns bounded audio consumption, connection timeouts, graceful shutdown, transcript
+//! turn bookkeeping, and reconnect backoff so provider modules only describe their wire format.
 
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
 use base64::Engine;
-use futures_util::{SinkExt, StreamExt};
+use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tauri::{AppHandle, Emitter};
-use tokio::sync::mpsc::UnboundedReceiver;
-use tokio_tungstenite::connect_async;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc::Receiver;
 use tokio_tungstenite::tungstenite::{self, handshake::client::Request, Message};
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+const CLOSE_DRAIN_TIMEOUT: Duration = Duration::from_secs(4);
 const INITIAL_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(16);
-/// A connection that stayed up at least this long counts as healthy: the next drop starts
-/// the backoff ladder from the bottom again instead of wherever earlier flaps left it.
 const STABLE_CONNECTION: Duration = Duration::from_secs(30);
-/// "Disarm" sentinel for the idle-finalize timer (far in the future).
 const IDLE: Duration = Duration::from_secs(24 * 60 * 60);
+/// Four queued 100 ms chunks means the five-slot producer queue was effectively full.
+const STALE_AUDIO_BACKLOG: usize = 4;
 
-/// Accumulates transcript deltas for the current turn of one audio source.
+type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
+
 #[derive(Default)]
 pub struct TurnAccumulator {
     pub id: u64,
@@ -38,7 +36,6 @@ pub struct TurnAccumulator {
 }
 
 impl TurnAccumulator {
-    /// Close out the current turn and advance to the next id.
     pub fn next_turn(&mut self) {
         self.id += 1;
         self.source.clear();
@@ -50,46 +47,77 @@ impl TurnAccumulator {
     }
 }
 
-/// Provider-specific parts of a realtime translation session. Everything else — the
-/// reconnect loop, audio pump, turn bookkeeping — lives in [`run_session`].
+#[derive(Debug, Default)]
+pub enum MessageControl {
+    #[default]
+    Continue,
+    Reconnect,
+    Fatal(String),
+    Closed,
+}
+
+#[derive(Debug, Default)]
+pub struct MessageOutcome {
+    pub transcript_activity: bool,
+    pub control: MessageControl,
+}
+
+impl MessageOutcome {
+    pub fn activity() -> Self {
+        Self {
+            transcript_activity: true,
+            control: MessageControl::Continue,
+        }
+    }
+
+    pub fn control(control: MessageControl) -> Self {
+        Self {
+            transcript_activity: false,
+            control,
+        }
+    }
+}
+
 pub trait RealtimeProtocol {
-    /// Short provider name for logs and operator-facing errors ("Gemini", "OpenAI").
     const NAME: &'static str;
 
     fn origin(&self) -> Origin;
-
-    /// The WebSocket connection request (URL and any auth headers).
     fn connect_request(&self) -> Result<Request>;
-
-    /// The first frame sent after connect (session / setup configuration), as JSON text.
     fn setup_json(&self) -> Result<String>;
-
-    /// A frame carrying one base64-encoded PCM-16 chunk, as JSON text.
     fn audio_json(&self, base64_pcm: String) -> Result<String>;
 
-    /// Apply one server frame, mutating the accumulator and emitting captions as needed.
-    /// Returns `true` if the frame carried transcript activity — used to re-arm the
-    /// idle-finalize timer when [`finalize_after`](Self::finalize_after) is set.
-    fn handle_message(&mut self, app: &AppHandle, text: &str, acc: &mut TurnAccumulator) -> bool;
+    /// Provider frames used to flush pending audio before the socket is closed.
+    fn closing_json(&self) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
 
-    /// For streams with no turn-complete event: finalize the current caption after this
-    /// much time without transcript activity. `None` disables the timer.
+    fn handle_message(
+        &mut self,
+        app: &AppHandle,
+        text: &str,
+        acc: &mut TurnAccumulator,
+    ) -> MessageOutcome;
+
     fn finalize_after(&self) -> Option<Duration> {
         None
     }
 }
 
-/// Run a translation session for one audio source, reconnecting until cancelled.
+enum RunEnd {
+    Stopped,
+    Reconnect,
+    Fatal(String),
+}
+
 pub async fn run_session<P: RealtimeProtocol>(
     app: AppHandle,
     mut proto: P,
-    mut audio_rx: UnboundedReceiver<AudioChunk>,
+    mut audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
 ) {
     let origin = proto.origin();
     let mut backoff = INITIAL_BACKOFF;
     let mut first = true;
-    // Lives across reconnects so turn ids stay monotonic for the whole session.
     let mut acc = TurnAccumulator::default();
 
     while !cancel.is_cancelled() {
@@ -104,8 +132,6 @@ pub async fn run_session<P: RealtimeProtocol>(
             origin,
         );
 
-        // Captions are live: audio that piled up while the socket was down is stale by
-        // definition, and replaying it would put us tens of seconds behind the speaker.
         let mut dropped = 0usize;
         while audio_rx.try_recv().is_ok() {
             dropped += 1;
@@ -120,22 +146,17 @@ pub async fn run_session<P: RealtimeProtocol>(
 
         let connected_at = Instant::now();
         match connect_and_run(&app, &mut proto, &mut audio_rx, &cancel, &mut acc).await {
-            Ok(()) => {
-                // Clean close. If we weren't cancelled, the server hung up — reconnect.
-                if cancel.is_cancelled() {
-                    break;
-                }
+            Ok(RunEnd::Stopped) => break,
+            Ok(RunEnd::Fatal(message)) => {
+                tracing::error!(?origin, provider = P::NAME, %message, "provider stopped the session");
+                emit_status(&app, SessionState::Error, Some(message), origin);
+                return;
+            }
+            Ok(RunEnd::Reconnect) => {
                 tracing::warn!(?origin, "{} stream closed; reconnecting", P::NAME);
             }
-            Err(e) => {
-                // A 4xx handshake rejection (bad key, bad model) won't fix itself; stop
-                // with a clear message instead of looping "Reconnecting…" forever.
-                if let Some(status) = handshake_rejection(&e) {
-                    tracing::error!(
-                        ?origin,
-                        "{} rejected the connection: HTTP {status}",
-                        P::NAME
-                    );
+            Err(error) => {
+                if let Some(status) = fatal_handshake_rejection(&error) {
                     emit_status(
                         &app,
                         SessionState::Error,
@@ -147,16 +168,17 @@ pub async fn run_session<P: RealtimeProtocol>(
                     );
                     return;
                 }
-                tracing::error!(?origin, "{} stream error: {e:#}", P::NAME);
+                tracing::error!(?origin, "{} stream error: {error:#}", P::NAME);
                 emit_status(
                     &app,
                     SessionState::Reconnecting,
-                    Some(format!("{e}")),
+                    Some(error.to_string()),
                     origin,
                 );
             }
         }
 
+        finalize_accumulator(&app, origin, &mut acc);
         first = false;
         if cancel.is_cancelled() {
             break;
@@ -165,33 +187,42 @@ pub async fn run_session<P: RealtimeProtocol>(
             backoff = INITIAL_BACKOFF;
         }
 
-        // Backoff, but stay responsive to cancellation.
+        // A small per-source offset prevents two failed "Both" sessions from reconnecting
+        // in lock-step and producing synchronized request spikes.
+        let jitter = match origin {
+            Origin::Microphone => Duration::ZERO,
+            Origin::System => Duration::from_millis(173),
+        };
         tokio::select! {
             _ = cancel.cancelled() => break,
-            _ = tokio::time::sleep(backoff) => {}
+            _ = tokio::time::sleep(backoff + jitter) => {}
         }
         backoff = (backoff * 2).min(MAX_BACKOFF);
     }
 
+    finalize_accumulator(&app, origin, &mut acc);
     tracing::info!(?origin, "{} session loop ended", P::NAME);
 }
 
 async fn connect_and_run<P: RealtimeProtocol>(
     app: &AppHandle,
     proto: &mut P,
-    audio_rx: &mut UnboundedReceiver<AudioChunk>,
+    audio_rx: &mut Receiver<AudioChunk>,
     cancel: &CancellationToken,
     acc: &mut TurnAccumulator,
-) -> Result<()> {
+) -> Result<RunEnd> {
     let request = proto.connect_request()?;
-    let (ws, _resp) = connect_async(request)
-        .await
-        .context("WebSocket connect failed")?;
+    let connected = tokio::select! {
+        _ = cancel.cancelled() => return Ok(RunEnd::Stopped),
+        result = tokio::time::timeout(CONNECT_TIMEOUT, connect_async(request)) => {
+            result.context("WebSocket connect timed out")?
+        }
+    };
+    let (ws, _response) = connected.context("WebSocket connect failed")?;
     let (mut write, mut read) = ws.split();
 
-    // Hand the provider its session configuration before any audio.
     write
-        .send(Message::Text(proto.setup_json()?))
+        .send(Message::Text(proto.setup_json()?.into()))
         .await
         .context("failed to send setup")?;
 
@@ -199,83 +230,144 @@ async fn connect_and_run<P: RealtimeProtocol>(
     tracing::info!(?origin, "connected to {}", P::NAME);
     emit_status(app, SessionState::Running, None, origin);
 
-    // Idle-finalize timer for streams with no turn lifecycle: armed on transcript
-    // activity, disarmed (far-future) otherwise.
     let finalize_after = proto.finalize_after();
     let finalize = tokio::time::sleep(IDLE);
     tokio::pin!(finalize);
-    let rearm = |finalize: &mut std::pin::Pin<&mut tokio::time::Sleep>, active: bool| {
-        if let (true, Some(after)) = (active, finalize_after) {
-            finalize.as_mut().reset(tokio::time::Instant::now() + after);
-        }
-    };
 
     loop {
         tokio::select! {
-            biased;
-
             _ = cancel.cancelled() => {
-                let _ = write.send(Message::Close(None)).await;
-                return Ok(());
+                graceful_close(app, proto, &mut write, &mut read, acc).await;
+                return Ok(RunEnd::Stopped);
             }
 
             maybe_chunk = audio_rx.recv() => {
                 match maybe_chunk {
-                    Some(chunk) => {
+                    Some(mut chunk) => {
+                        // Preserve ordinary short scheduling backlogs. Only coalesce once
+                        // the bounded queue was effectively full, which indicates a real
+                        // network stall and avoids replaying stale live speech.
+                        if audio_rx.len() >= STALE_AUDIO_BACKLOG {
+                            while let Ok(newer) = audio_rx.try_recv() {
+                                chunk = newer;
+                            }
+                        }
                         let data = base64::engine::general_purpose::STANDARD.encode(&chunk.pcm_le);
                         write
-                            .send(Message::Text(proto.audio_json(data)?))
+                            .send(Message::Text(proto.audio_json(data)?.into()))
                             .await
                             .context("failed to send audio chunk")?;
                     }
-                    // All capture senders dropped: the session is stopping.
                     None => {
-                        let _ = write.send(Message::Close(None)).await;
-                        return Ok(());
+                        graceful_close(app, proto, &mut write, &mut read, acc).await;
+                        return Ok(RunEnd::Stopped);
                     }
                 }
             }
 
-            maybe_msg = read.next() => {
-                match maybe_msg {
-                    Some(Ok(Message::Text(text))) => {
-                        let active = proto.handle_message(app, &text, acc);
-                        rearm(&mut finalize, active);
+            maybe_message = read.next() => {
+                let Some(message) = maybe_message else {
+                    return Ok(RunEnd::Reconnect);
+                };
+                let outcome = handle_socket_message(app, proto, message.context("WebSocket read error")?, acc);
+                if outcome.transcript_activity {
+                    if let Some(after) = finalize_after {
+                        finalize.as_mut().reset(tokio::time::Instant::now() + after);
                     }
-                    Some(Ok(Message::Binary(bytes))) => {
-                        // The server occasionally frames JSON as binary.
-                        if let Ok(text) = String::from_utf8(bytes) {
-                            let active = proto.handle_message(app, &text, acc);
-                            rearm(&mut finalize, active);
-                        }
-                    }
-                    Some(Ok(Message::Close(_))) | None => return Ok(()),
-                    Some(Ok(_)) => { /* ping/pong handled by the library */ }
-                    Some(Err(e)) => return Err(e).context("WebSocket read error"),
+                }
+                match outcome.control {
+                    MessageControl::Continue => {}
+                    MessageControl::Reconnect => return Ok(RunEnd::Reconnect),
+                    MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
+                    MessageControl::Closed => return Ok(RunEnd::Stopped),
                 }
             }
 
             _ = &mut finalize => {
-                // Idle gap with no new transcript: close out the current caption.
-                if !acc.is_empty() {
-                    emit_caption(app, origin, acc, true);
-                    acc.next_turn();
-                }
+                finalize_accumulator(app, origin, acc);
                 finalize.as_mut().reset(tokio::time::Instant::now() + IDLE);
             }
         }
     }
 }
 
-/// If the error chain contains a WebSocket handshake rejected with a 4xx status, return it.
-fn handshake_rejection(e: &anyhow::Error) -> Option<u16> {
-    e.chain()
-        .find_map(|cause| match cause.downcast_ref::<tungstenite::Error>() {
-            Some(tungstenite::Error::Http(resp)) if resp.status().is_client_error() => {
-                Some(resp.status().as_u16())
+fn handle_socket_message<P: RealtimeProtocol>(
+    app: &AppHandle,
+    proto: &mut P,
+    message: Message,
+    acc: &mut TurnAccumulator,
+) -> MessageOutcome {
+    match message {
+        Message::Text(text) => proto.handle_message(app, &text, acc),
+        Message::Binary(bytes) => String::from_utf8(bytes.to_vec())
+            .map(|text| proto.handle_message(app, &text, acc))
+            .unwrap_or_default(),
+        Message::Close(_) => MessageOutcome::control(MessageControl::Reconnect),
+        _ => MessageOutcome::default(),
+    }
+}
+
+async fn graceful_close<P: RealtimeProtocol>(
+    app: &AppHandle,
+    proto: &mut P,
+    write: &mut SplitSink<Socket, Message>,
+    read: &mut SplitStream<Socket>,
+    acc: &mut TurnAccumulator,
+) {
+    let frames = match proto.closing_json() {
+        Ok(frames) => frames,
+        Err(error) => {
+            tracing::warn!(provider = P::NAME, "failed to build closing frame: {error}");
+            Vec::new()
+        }
+    };
+
+    if frames.is_empty() {
+        let _ = write.send(Message::Close(None)).await;
+        return;
+    }
+    for frame in frames {
+        if write.send(Message::Text(frame.into())).await.is_err() {
+            return;
+        }
+    }
+
+    let deadline = tokio::time::sleep(CLOSE_DRAIN_TIMEOUT);
+    tokio::pin!(deadline);
+    loop {
+        tokio::select! {
+            _ = &mut deadline => break,
+            message = read.next() => {
+                let Some(Ok(message)) = message else { break; };
+                if matches!(
+                    handle_socket_message(app, proto, message, acc).control,
+                    MessageControl::Closed | MessageControl::Fatal(_)
+                ) {
+                    break;
+                }
             }
-            _ => None,
-        })
+        }
+    }
+    let _ = write.send(Message::Close(None)).await;
+}
+
+fn finalize_accumulator(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator) {
+    if !acc.is_empty() {
+        emit_caption(app, origin, acc, true);
+        acc.next_turn();
+    }
+}
+
+/// Permanent client errors will not improve on retry. Rate limits and timeouts remain
+/// retryable and use the normal exponential backoff path.
+fn fatal_handshake_rejection(error: &anyhow::Error) -> Option<u16> {
+    error.chain().find_map(|cause| {
+        let tungstenite::Error::Http(response) = cause.downcast_ref::<tungstenite::Error>()? else {
+            return None;
+        };
+        let status = response.status().as_u16();
+        matches!(status, 400 | 401 | 403 | 404 | 405 | 410 | 422).then_some(status)
+    })
 }
 
 pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &TurnAccumulator, final_: bool) {
@@ -300,4 +392,21 @@ fn emit_status(app: &AppHandle, state: SessionState, message: Option<String>, or
             origin: Some(origin),
         },
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accumulator_advances_without_reusing_text() {
+        let mut acc = TurnAccumulator {
+            id: 7,
+            source: "hello".into(),
+            translated: "bonjour".into(),
+        };
+        acc.next_turn();
+        assert_eq!(acc.id, 8);
+        assert!(acc.is_empty());
+    }
 }
