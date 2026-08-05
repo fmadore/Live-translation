@@ -1,7 +1,8 @@
 # Live Translation & Subtitles
 
-Real-time captions for the **Digital Humanities and AI in African Studies** workshop
-(STIAS, Stellenbosch, 21–24 September 2026). The desktop app captures a presenter’s
+Real-time captions for the **Digital Humanities and Artificial Intelligence in African
+Studies** / **Humanités numériques et intelligence artificielle en études africaines**
+workshop (STIAS, Stellenbosch, 21–24 September 2026). The desktop app captures a presenter’s
 microphone, Windows system/Zoom audio, or both and renders captions in a transparent,
 always-on-top overlay.
 

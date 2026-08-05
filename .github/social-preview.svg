@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1017"/>
+      <stop offset="55%" stop-color="#12151d"/>
+      <stop offset="100%" stop-color="#0b1a18"/>
+    </linearGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="55%" stop-color="#4f8cff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#4f8cff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <ellipse cx="1120" cy="120" rx="420" ry="300" fill="url(#glow)"/>
+
+  <!-- App mark -->
+  <g transform="translate(80,54)">
+    <rect width="100" height="100" rx="25" fill="#10b981"/>
+    <g transform="translate(50,50) scale(2.7) translate(-12,-12)" fill="none" stroke="#062e22"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m5 8 6 6"/>
+      <path d="m4 14 6-6 2-3"/>
+      <path d="M2 5h12"/>
+      <path d="M7 2h1"/>
+      <path d="m22 22-5-10-5 10"/>
+      <path d="M14 18h6"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="Segoe UI, Inter, Helvetica Neue, Arial, sans-serif">
+    <text x="212" y="104" font-size="54" font-weight="700" fill="#e7e9ee"
+          letter-spacing="-1">Live Translation &amp; Subtitles</text>
+    <text x="212" y="144" font-size="23" font-weight="400" fill="#9aa3b2">Real-time captions &#183; STIAS, Stellenbosch &#183; 21&#8211;24 September 2026</text>
+  </g>
+
+  <rect x="80" y="192" width="1120" height="2" fill="url(#rule)"/>
+
+  <!-- Mock caption overlay: the workshop's own bilingual title as the FR -> EN pair -->
+  <g transform="translate(80,226)">
+    <rect width="1120" height="254" rx="22" fill="#171a21" stroke="#2a2f3a" stroke-width="1.5"/>
+    <g font-family="Segoe UI, Inter, Helvetica Neue, Arial, sans-serif">
+      <circle cx="44" cy="45" r="7" fill="#ff5c5c"/>
+      <text x="62" y="52" font-size="19" font-weight="600" fill="#ff5c5c" letter-spacing="1.6">LIVE</text>
+      <text x="140" y="52" font-size="19" font-weight="500" fill="#4f8cff">FR &#8594; EN</text>
+      <text x="252" y="52" font-size="19" font-weight="400" fill="#9aa3b2">system audio &#183; always-on-top overlay</text>
+
+      <text x="44" y="120" font-size="38" font-weight="600" fill="#e7e9ee">Digital Humanities and Artificial Intelligence</text>
+      <text x="44" y="166" font-size="38" font-weight="600" fill="#e7e9ee">in African Studies</text>
+      <text x="44" y="214" font-size="24" font-weight="400" fill="#6ee7b7" opacity="0.85">Humanit&#233;s num&#233;riques et intelligence artificielle en &#233;tudes africaines</text>
+    </g>
+  </g>
+
+  <!-- Tech chips -->
+  <g font-family="Segoe UI, Inter, Helvetica Neue, Arial, sans-serif" font-size="21" font-weight="500">
+    <rect x="80"  y="522" width="142" height="46" rx="23" fill="#1e222b" stroke="#2a2f3a"/>
+    <text x="151" y="552" text-anchor="middle" fill="#c9cfdb">Tauri 2</text>
+
+    <rect x="238" y="522" width="126" height="46" rx="23" fill="#1e222b" stroke="#2a2f3a"/>
+    <text x="301" y="552" text-anchor="middle" fill="#c9cfdb">Rust</text>
+
+    <rect x="380" y="522" width="170" height="46" rx="23" fill="#1e222b" stroke="#2a2f3a"/>
+    <text x="465" y="552" text-anchor="middle" fill="#c9cfdb">SvelteKit</text>
+
+    <rect x="566" y="522" width="300" height="46" rx="23" fill="#1e222b" stroke="#2a2f3a"/>
+    <text x="716" y="552" text-anchor="middle" fill="#c9cfdb">Gemini &#183; OpenAI &#183; Mistral</text>
+
+    <rect x="882" y="522" width="230" height="46" rx="23" fill="#1e222b" stroke="#2a2f3a"/>
+    <text x="997" y="552" text-anchor="middle" fill="#c9cfdb">Windows &#183; macOS</text>
+  </g>
+</svg>

@@ -5,6 +5,11 @@ description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"
 rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/fmadore/Live-translation"
+readme = "../README.md"
+# Desktop app, not a library — never goes to crates.io.
+publish = false
 
 [lib]
 # Tauri's mobile/desktop entrypoint lives in the lib; main.rs is a thin shim.
