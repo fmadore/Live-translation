@@ -4,17 +4,14 @@
 	import type { Caption, Origin } from '$lib/types';
 	import { clampOverlayFont, loadOverlayFont } from '$lib/types';
 
-	// The overlay keeps only what it needs to render: one current line per origin (mic and
-	// system turns have independent ids, so they must never share a slot) plus the last
-	// finalized line, shown dimmed while a new turn streams in.
+	// The overlay keeps only what it needs to render: one current turn per origin (mic and
+	// system turns have independent ids, so they must never share a slot) plus that origin's
+	// previous turn, which trails into the current one so the audience can finish reading it.
 	let current = $state<Partial<Record<Origin, Caption>>>({});
-	let previous = $state<string>('');
+	let previous = $state<Partial<Record<Origin, string>>>({});
 
 	// Stable render order: the remote speaker (system) above the room mic.
 	const ORIGIN_ORDER: Origin[] = ['system', 'microphone'];
-	const lines = $derived(
-		ORIGIN_ORDER.flatMap((o) => (current[o] ? [current[o] as Caption] : []))
-	);
 
 	// Initial size comes from the shared localStorage key (same origin as the operator),
 	// then the operator pushes live updates via the overlay-config event.
@@ -35,22 +32,45 @@
 	// continuous speech can run for many sentences, so render only the most recent slice of
 	// the (still-growing) turn instead of the whole thing — otherwise it fills the screen.
 	const MAX_CHARS = 220;
-	function tail(text: string): string {
+
+	/** Keep the last `limit` characters, cutting on a word boundary. */
+	function tail(text: string, limit: number): string {
 		const t = text.replace(/\s+/g, ' ').trim();
-		if (t.length <= MAX_CHARS) return t;
-		let cut = t.length - MAX_CHARS;
+		if (t.length <= limit) return t;
+		let cut = t.length - limit;
 		// Don't start mid-word: jump to the next space if it's close.
 		const sp = t.indexOf(' ', cut);
 		if (sp !== -1 && sp - cut < 24) cut = sp + 1;
 		return '… ' + t.slice(cut);
 	}
 
+	// A speaker's previous turn and current turn are usually one continuous sentence, so they
+	// render as one block of running text at one size: the tail of the finished turn (dimmed)
+	// flowing straight into the live one. They share the character budget, so the block never
+	// grows past a caption's worth — as the new turn streams in, the old text is pushed out.
+	// Only the space left over by the current turn is spent on the lead-in, and once the
+	// current turn fills the budget the previous one is gone entirely.
+	const MIN_LEAD_CHARS = 40;
+
+	const lines = $derived(
+		ORIGIN_ORDER.flatMap((origin) => {
+			const caption = current[origin];
+			if (!caption) return [];
+			const text = tail(caption.text, MAX_CHARS);
+			const room = MAX_CHARS - text.length;
+			const lead = room >= MIN_LEAD_CHARS ? tail(previous[origin] ?? '', room) : '';
+			return [{ origin, lead, text, interim: !caption.final }];
+		})
+	);
+
 	onMount(() => {
 		if (!isTauri()) {
-			// Demo content so the overlay can be previewed in a browser.
+			// Demo content so the overlay can be previewed in a browser — a sentence split
+			// across two turns, which is the common case and the one worth eyeballing.
+			previous.system = 'Bienvenue — les sous-titres apparaîtront ici. Il me semble';
 			current.system = {
-				turnId: 0,
-				text: 'Bienvenue — les sous-titres apparaîtront ici.',
+				turnId: 1,
+				text: "que c'est un peu bizarre comment le texte apparaît.",
 				sourceText: '',
 				final: true,
 				origin: 'system'
@@ -60,10 +80,11 @@
 
 		const unlistenCaption = on.caption((c) => {
 			const cur = current[c.origin];
-			// A caption for a new turn of this origin: keep the finished line dimmed above
-			// the fresh one while it streams in.
-			if (cur && cur.final && cur.turnId !== c.turnId && cur.text.trim()) {
-				previous = cur.text;
+			// A caption for a new turn of this origin: keep the finished text as the dimmed
+			// lead-in to the fresh one. A turn can end without ever being flagged final, so
+			// this keys off the turn id changing rather than on `cur.final`.
+			if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
+				previous[c.origin] = cur.text;
 			}
 			current[c.origin] = c;
 			// Always re-arm this origin's auto-hide: even when a turn ends on an interim
@@ -72,7 +93,7 @@
 			clearTimers[c.origin] = setTimeout(
 				() => {
 					delete current[c.origin];
-					if (!ORIGIN_ORDER.some((o) => current[o])) previous = '';
+					delete previous[c.origin];
 				},
 				c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
 			);
@@ -108,11 +129,12 @@
 		<p class="move-hint">Drag to move · drag edges to resize · “Done moving” in the operator window locks it</p>
 	{/if}
 	<div class="captions" style="--fs: {fontSize}px">
-		{#if previous}
-			<p class="line prev">{tail(previous)}</p>
-		{/if}
 		{#each lines as line (line.origin)}
-			<p class="line cur" class:interim={!line.final}>{tail(line.text)}</p>
+			<!-- One block per speaker: dimmed lead-in, then the live text, as running text.
+			     The separating space is explicit — Svelte trims literal whitespace here. -->
+			<p class="line" class:interim={line.interim}>
+				{#if line.lead}<span class="lead">{line.lead}</span>{' '}{/if}{line.text}
+			</p>
 		{/each}
 	</div>
 </div>
@@ -178,10 +200,10 @@
 			0 0 2px rgba(0, 0, 0, 0.9);
 		backdrop-filter: blur(2px);
 	}
-	.line.prev {
-		font-size: calc(var(--fs) * 0.62);
-		opacity: 0.6;
-		font-weight: 600;
+	/* The lead-in is the same size and sits in the same block as the live text — only its
+	   contrast drops, so a sentence spanning two turns still reads as one line. */
+	.lead {
+		opacity: 0.55;
 	}
 	.line.interim {
 		opacity: 0.82;
