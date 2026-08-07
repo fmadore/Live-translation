@@ -42,10 +42,13 @@ describe('formatTranscript', () => {
 		expect(result).toContain('# Live captions transcript');
 		expect(result).toContain('**Microphone**');
 		expect(result).toContain('**System**');
-		expect(result).not.toMatch(/\d{2}:\d{2}:\d{2}/);
 		expect(result.indexOf('Ça fonctionne.')).toBeLessThan(
 			result.indexOf('Les sous-titres apparaissent sous.')
 		);
+		// The header keeps its export date — the transcript itself carries no clock times.
+		// Asserted on the body only, since `toLocaleString` renders the header per locale.
+		const body = result.slice(result.indexOf('**Microphone**'));
+		expect(body).not.toMatch(/\d{1,2}[:.h]\d{2}/);
 	});
 });
 
