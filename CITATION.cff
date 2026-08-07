@@ -3,8 +3,8 @@ message: "If you use this software, please cite it using the metadata below."
 title: "Live Translation & Subtitles"
 abstract: >-
   A Tauri desktop application that produces real-time captions for hybrid and
-  in-person conferences. It captures a presenter's microphone, Windows
-  system/Zoom audio, or both, and renders captions in a transparent,
+  in-person conferences. It captures a presenter's microphone, Windows system
+  audio from any application, or both, and renders captions in a transparent,
   always-on-top overlay. Two modes are kept deliberately separate: live
   translation into English or French via Google Gemini or OpenAI realtime
   speech models, and same-language live subtitles via Mistral Voxtral. Built
@@ -20,8 +20,8 @@ authors:
 repository-code: "https://github.com/fmadore/Live-translation"
 url: "https://github.com/fmadore/Live-translation"
 license: MIT
-version: 0.4.0
-date-released: "2026-08-01"
+version: 0.5.0
+date-released: "2026-08-07"
 keywords:
   - live captions
   - speech translation

@@ -214,12 +214,16 @@
 	<div class="grid">
 		<section class="panel">
 			<h2>Audio source</h2>
+			<p class="hint">
+				System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab,
+				a media player.
+			</p>
 			<div class="segmented">
 				<button disabled={controlsLocked} class:active={$options.source === 'microphone'} onclick={() => setSource('microphone')}>
 					🎤 Microphone
 				</button>
 				<button disabled={controlsLocked} class:active={$options.source === 'system'} onclick={() => setSource('system')}>
-					🔊 System (Zoom)
+					🔊 System audio
 				</button>
 				<button disabled={controlsLocked} class:active={$options.source === 'both'} onclick={() => setSource('both')}>
 					Both

@@ -9,6 +9,7 @@ mod commands;
 mod gemini;
 mod mistral;
 mod openai;
+mod overlay;
 mod realtime;
 mod secrets;
 mod session;
@@ -16,9 +17,8 @@ mod types;
 
 use tauri::Manager;
 
+use overlay::OVERLAY_LABEL;
 use session::SessionManager;
-
-const OVERLAY_LABEL: &str = "overlay";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -48,10 +48,14 @@ pub fn run() {
         .setup(|app| {
             // Make the overlay click-through from the start so it floats over slides
             // without ever stealing a click. Toggle via `set_overlay_click_through`.
-            if let Some(overlay) = app.get_webview_window(OVERLAY_LABEL) {
-                let _ = overlay.set_ignore_cursor_events(true);
-                let _ = overlay.set_always_on_top(true);
+            if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
+                let _ = window.set_ignore_cursor_events(true);
+                overlay::set_no_activate(&window, true);
+                overlay::raise(&window);
             }
+            // Other topmost windows (Zoom, Teams, a slideshow) jump above the overlay when
+            // they are activated, so keep re-raising it for as long as the app runs.
+            overlay::spawn_topmost_keeper(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())

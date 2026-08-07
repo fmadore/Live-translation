@@ -73,10 +73,8 @@ export interface OverlayConfig {
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */
 export interface TranscriptLine {
-	/** Monotonic id, unique for the app lifetime (stable list key). */
+	/** Monotonic id, unique for the app lifetime (stable list key) and the log's ordering. */
 	id: number;
-	/** Local clock time the line was finalized, e.g. "14:03:21". */
-	time: string;
 	text: string;
 	sourceText: string;
 	origin: Origin;

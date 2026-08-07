@@ -1,6 +1,6 @@
 [package]
 name = "live-translation"
-version = "0.4.0"
+version = "0.5.0"
 description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"
@@ -51,6 +51,12 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 [target.'cfg(windows)'.dependencies]
 # Direct event-driven WASAPI access for render-device loopback capture.
 wasapi = "0.23"
+# Win32 z-order/activation control for the caption overlay (`src/overlay.rs`). Already in
+# the dependency graph via tauri/tokio, so this adds no extra compilation.
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+] }
 
 [features]
 # Standard Tauri production feature: serve the bundled front-end assets over the custom

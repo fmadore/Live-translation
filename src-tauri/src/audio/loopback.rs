@@ -1,6 +1,7 @@
-//! System (loopback) audio capture — the "audio coming out of the laptop" path, e.g. a
-//! remote speaker on a Zoom call. On Windows this uses WASAPI loopback, which captures the
-//! render endpoint mix without any virtual audio device. On other platforms it is a stub.
+//! System (loopback) audio capture — the "audio coming out of the laptop" path: a remote
+//! speaker on Zoom or Teams, a browser tab, a media player. On Windows this uses WASAPI
+//! loopback, which captures the render endpoint mix — every application's output, whatever
+//! it is — without any virtual audio device. On other platforms it is a stub.
 //!
 //! The Windows path follows the current `wasapi` event-driven shared-stream API.
 //! Everything downstream (resampling, chunking, leveling via `CaptureState`) is shared

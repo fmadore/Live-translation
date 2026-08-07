@@ -3,8 +3,8 @@
 Real-time captions for the **Digital Humanities and Artificial Intelligence in African
 Studies** / **Humanités numériques et intelligence artificielle en études africaines**
 workshop (STIAS, Stellenbosch, 21–24 September 2026). The desktop app captures a presenter’s
-microphone, Windows system/Zoom audio, or both and renders captions in a transparent,
-always-on-top overlay.
+microphone, Windows system audio (whatever is playing — Zoom, Teams, a browser tab, a media
+player), or both and renders captions in a transparent, always-on-top overlay.
 
 It has two deliberately separate modes:
 
@@ -27,7 +27,7 @@ Provider details and verified wire formats are documented in
 Tauri app (Rust core + SvelteKit front-end)
 ├── Audio capture
 │   ├── Microphone — cpal
-│   └── System/Zoom — WASAPI loopback on Windows
+│   └── System audio — WASAPI loopback on Windows (any app's output)
 │       └── mono PCM16: 16 kHz Gemini/Mistral or 24 kHz OpenAI
 ├── Bounded realtime pipeline — one capture + WebSocket session per source
 │   ├── Gemini/OpenAI → translated transcript captions

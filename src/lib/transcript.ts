@@ -1,6 +1,37 @@
-import type { TranscriptLine } from './types';
+import type { Origin, TranscriptLine } from './types';
 
 export type TranscriptFormat = 'markdown' | 'text';
+
+/** A run of consecutive lines from the same audio source, rendered as one paragraph. */
+export interface TranscriptParagraph {
+	/** Id of the paragraph's first line — a stable list key. */
+	id: number;
+	origin: Origin;
+	text: string;
+}
+
+/** Human label for an audio source; replaces per-line timestamps in the transcript. */
+export const ORIGIN_LABEL: Record<Origin, string> = {
+	microphone: 'Microphone',
+	system: 'System'
+};
+
+/**
+ * Turn the newest-first log into chronological paragraphs, one per contiguous run of the
+ * same source. A speaker change (mic ⇄ system) starts a new paragraph; everything else is
+ * joined into flowing text.
+ */
+export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagraph[] {
+	const paragraphs: TranscriptParagraph[] = [];
+	for (const line of [...newestFirst].reverse()) {
+		const text = line.text.trim();
+		if (!text) continue;
+		const last = paragraphs[paragraphs.length - 1];
+		if (last && last.origin === line.origin) last.text += ` ${text}`;
+		else paragraphs.push({ id: line.id, origin: line.origin, text });
+	}
+	return paragraphs;
+}
 
 /** Produce a chronological, portable transcript without depending on Svelte or Tauri. */
 export function formatTranscript(
@@ -8,24 +39,19 @@ export function formatTranscript(
 	format: TranscriptFormat,
 	createdAt = new Date()
 ): string {
-	const lines = [...newestFirst].reverse();
+	const paragraphs = groupTranscript(newestFirst);
+
 	if (format === 'text') {
-		return `${lines
-			.map((line) => {
-				const source = line.sourceText ? `\n  Source: ${line.sourceText}` : '';
-				return `[${line.time}] ${line.origin}: ${line.text}${source}`;
-			})
-			.join('\n\n')}\n`;
+		return paragraphs
+			.map((p) => `${ORIGIN_LABEL[p.origin]}\n${p.text}\n`)
+			.join('\n');
 	}
 
-	const header = `# Live captions transcript\n\n${createdAt.toLocaleString()} · STIAS DH & AI workshop\n\n`;
-	const body = lines
-		.map((line) => {
-			const source = line.sourceText ? `\n  - _source_: ${line.sourceText}` : '';
-			return `- **${line.time}** · ${line.origin}\n  - ${line.text}${source}`;
-		})
-		.join('\n');
-	return `${header}${body}\n`;
+	const header = `# Live captions transcript\n\n${createdAt.toLocaleString()} · STIAS DH & AI workshop\n`;
+	const body = paragraphs
+		.map((p) => `\n**${ORIGIN_LABEL[p.origin]}**\n\n${p.text}\n`)
+		.join('');
+	return `${header}${body}`;
 }
 
 export function transcriptFilename(createdAt: Date, format: TranscriptFormat): string {

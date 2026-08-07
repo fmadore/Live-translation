@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { api } from './tauri';
 	import { clearTranscript as clearTranscriptStore } from './stores';
-	import { formatTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
+	import {
+		formatTranscript,
+		groupTranscript,
+		transcriptFilename,
+		ORIGIN_LABEL,
+		type TranscriptFormat
+	} from './transcript';
 	import type { Caption, OutputMode, TranscriptLine } from './types';
 
 	interface Props {
@@ -13,6 +19,18 @@
 
 	let { mode, latestCaption, transcript, onError }: Props = $props();
 	let savedPath = $state('');
+
+	// Show the log exactly as it will be saved: chronological, grouped into a paragraph per
+	// audio source, newest at the bottom.
+	const paragraphs = $derived(groupTranscript(transcript));
+
+	let logEl = $state<HTMLUListElement | null>(null);
+
+	$effect(() => {
+		// Re-runs whenever the log grows so the newest paragraph stays in view.
+		paragraphs;
+		if (logEl) logEl.scrollTop = logEl.scrollHeight;
+	});
 
 	async function save(format: TranscriptFormat) {
 		if (!transcript.length) return;
@@ -58,10 +76,13 @@
 		</p>
 	{/if}
 
-	{#if transcript.length}
-		<ul class="log">
-			{#each transcript as line (line.id)}
-				<li><span class="log-time">{line.time}</span> {line.text}</li>
+	{#if paragraphs.length}
+		<ul class="log" bind:this={logEl}>
+			{#each paragraphs as paragraph (paragraph.id)}
+				<li>
+					<span class="log-origin">{ORIGIN_LABEL[paragraph.origin]}</span>
+					{paragraph.text}
+				</li>
 			{/each}
 		</ul>
 	{/if}
@@ -82,5 +103,5 @@
 	.hint { color: var(--muted); font-size: 13px; }
 	.log { list-style: none; margin: 14px 0 0; padding: 0; max-height: 180px; overflow-y: auto; border-top: 1px solid var(--border); }
 	.log li { padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--muted); }
-	.log-time { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+	.log-origin { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-2); }
 </style>

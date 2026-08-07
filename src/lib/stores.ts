@@ -83,7 +83,6 @@ function commit(c: Caption) {
 	if (!c.text.trim()) return;
 	const line: TranscriptLine = {
 		id: nextLineId++,
-		time: new Date().toLocaleTimeString(),
 		text: c.text.trim(),
 		sourceText: c.sourceText.trim(),
 		origin: c.origin

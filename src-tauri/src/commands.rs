@@ -7,11 +7,10 @@
 use tauri::{AppHandle, Manager, State};
 
 use crate::audio::list_input_devices;
+use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
 use crate::types::{AudioDevice, Provider, StartOptions};
-
-const OVERLAY_LABEL: &str = "overlay";
 
 #[tauri::command]
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, String> {
@@ -72,6 +71,9 @@ pub async fn set_overlay_click_through(app: AppHandle, enabled: bool) -> Result<
     if let Some(win) = app.get_webview_window(OVERLAY_LABEL) {
         win.set_ignore_cursor_events(enabled)
             .map_err(|e| e.to_string())?;
+        // Click-through and no-activate go together: while captioning the overlay must never
+        // take focus, but in move mode it has to in order to be dragged.
+        overlay::set_no_activate(&win, enabled);
     }
     Ok(())
 }
@@ -82,7 +84,7 @@ pub async fn show_overlay(app: AppHandle, visible: bool) -> Result<(), String> {
         let r = if visible { win.show() } else { win.hide() };
         r.map_err(|e| e.to_string())?;
         if visible {
-            let _ = win.set_always_on_top(true);
+            overlay::raise(&win);
         }
     }
     Ok(())
