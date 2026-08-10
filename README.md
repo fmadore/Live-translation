@@ -52,6 +52,42 @@ provider flushes. Keys remain in the OS keychain and are used only by Rust. See
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
   - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
 
+## Running costs
+
+Every provider bills per minute of streamed audio, so the meter runs for as long as a session
+is open. Rates verified 10 August 2026 against
+[Gemini](https://ai.google.dev/gemini-api/docs/pricing),
+[OpenAI](https://developers.openai.com/api/docs/pricing) and
+[Mistral](https://mistral.ai/pricing/api) pricing.
+
+| Mode | Model | Rate | One hour |
+| --- | --- | --- | --- |
+| Translation | `gemini-3.5-live-translate-preview` | $0.0053/min audio in + $0.0315/min audio out | **$1.25–2.21** |
+| Translation | `gpt-realtime-translate` | $0.034/min | $2.04 |
+| ↳ source monitor | `gpt-realtime-whisper` | $0.017/min | $1.02 |
+| Translation | OpenAI total | | **$3.06** |
+| Subtitles | `voxtral-mini-transcribe-realtime-2602` | $0.006/min | **$0.36** |
+
+Gemini's input leg is billed on the full wall clock because silence stays in the stream, but
+its expensive output leg accrues only while the model generates translated speech — pauses,
+slide changes and Q&A gaps lower the bill, hence the range. That output audio is charged even
+though the app discards it. OpenAI is duration-billed and therefore flat: silence costs the
+same as speech, and the `gpt-realtime-whisper` source transcription that feeds the operator
+monitor is a separate charge on top.
+
+Selecting **Both** as the source doubles every figure — the pipeline opens one capture and
+one WebSocket session per origin.
+
+Scaled to the workshop, the programme's captionable sessions (panels, keynotes, discussions
+and plenaries — the Day 2 and Day 3 afternoons are excursions) total **18 hours**, or about
+21 hours of wall clock if the session is left running through coffee breaks. Translation over
+those hours costs roughly **$25–45 on Gemini** or **$55–65 on OpenAI** for a single source,
+doubling to about $50–90 and $110–130 if the room microphone and the Teams feed are both
+captioned throughout.
+
+Both translation models are preview-tier; re-check the rates alongside the wire formats
+before the event.
+
 ## Development
 
 ```bash
