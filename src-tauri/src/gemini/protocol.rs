@@ -12,6 +12,10 @@ pub struct SetupMessage {
 pub struct Setup {
     pub model: String,
     pub generation_config: GenerationConfig,
+    // Transcription sidecars are `BidiGenerateContentSetup` fields, not
+    // `generationConfig` ones; the server rejects the whole setup if they are nested.
+    pub input_audio_transcription: Empty,
+    pub output_audio_transcription: Empty,
 }
 
 #[derive(Debug, Serialize)]
@@ -21,8 +25,6 @@ pub struct Empty {}
 #[serde(rename_all = "camelCase")]
 pub struct GenerationConfig {
     pub response_modalities: Vec<String>,
-    pub input_audio_transcription: Empty,
-    pub output_audio_transcription: Empty,
     pub translation_config: TranslationConfig,
 }
 
@@ -60,8 +62,6 @@ impl SetupMessage {
                     // The current translate guide documents AUDIO output only. We discard
                     // audio payloads and use outputAudioTranscription for captions.
                     response_modalities: vec!["AUDIO".to_string()],
-                    input_audio_transcription: Empty {},
-                    output_audio_transcription: Empty {},
                     translation_config: TranslationConfig {
                         target_language_code: target_language_code.to_string(),
                         // Keep captions continuous in bilingual meetings: when speech is
@@ -70,6 +70,8 @@ impl SetupMessage {
                         echo_target_language: true,
                     },
                 },
+                input_audio_transcription: Empty {},
+                output_audio_transcription: Empty {},
             },
         }
     }
@@ -129,13 +131,18 @@ mod tests {
             "en",
         ))
         .unwrap();
-        let generation = &value["setup"]["generationConfig"];
+        let setup = &value["setup"];
+        let generation = &setup["generationConfig"];
         assert_eq!(generation["responseModalities"][0], "AUDIO");
-        assert!(generation["inputAudioTranscription"].is_object());
-        assert!(generation["outputAudioTranscription"].is_object());
         assert_eq!(generation["translationConfig"]["targetLanguageCode"], "en");
         assert_eq!(generation["translationConfig"]["echoTargetLanguage"], true);
-        assert!(value["setup"].get("inputAudioTranscription").is_none());
+
+        // The transcription sidecars sit on setup itself. Nesting them under
+        // generationConfig makes the server reject setup with "Cannot find field".
+        assert!(setup["inputAudioTranscription"].is_object());
+        assert!(setup["outputAudioTranscription"].is_object());
+        assert!(generation.get("inputAudioTranscription").is_none());
+        assert!(generation.get("outputAudioTranscription").is_none());
     }
 
     #[test]
