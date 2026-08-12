@@ -60,6 +60,10 @@ impl RealtimeProtocol for GeminiConfig {
         ))?)
     }
 
+    fn wait_for_setup_complete(&self) -> bool {
+        true
+    }
+
     fn handle_message(
         &mut self,
         app: &AppHandle,
@@ -76,6 +80,7 @@ impl RealtimeProtocol for GeminiConfig {
 
         if msg.setup_complete.is_some() {
             tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
+            return MessageOutcome::setup_complete();
         }
         if msg.go_away.is_some() {
             return MessageOutcome::control(MessageControl::Reconnect);

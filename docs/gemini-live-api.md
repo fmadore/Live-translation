@@ -28,7 +28,7 @@ wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.G
       "outputAudioTranscription": {},
       "translationConfig": {
         "targetLanguageCode": "en",
-        "echoTargetLanguage": false
+        "echoTargetLanguage": true
       }
     }
   }
@@ -54,6 +54,8 @@ Google’s current guide places both transcription settings and `translationConf
 
 - `serverContent.inputTranscription.text` is source-language monitor text.
 - `serverContent.outputTranscription.text` is translated caption text.
+- `echoTargetLanguage` stays enabled so speech already in the target language still appears
+  in the caption stream; this is essential for bilingual meetings.
 - `serverContent.turnComplete` finalizes and advances the per-source turn.
 - `goAway` asks the shared runner to reconnect immediately rather than waiting for a socket
   failure.

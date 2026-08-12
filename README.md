@@ -11,7 +11,8 @@ It has two deliberately separate modes:
 - **Live translation** — speech is auto-detected and translated into English or French by
   Google Gemini (`gemini-3.5-live-translate-preview`) or OpenAI
   (`gpt-realtime-translate`). Their generated audio is discarded; only transcript text is
-  displayed.
+  displayed. Gemini also captions speech that is already in the selected target language,
+  so mixed-language meetings do not go blank during same-language passages.
 - **Live subtitles** — Mistral Voxtral Mini Transcribe Realtime
   (`voxtral-mini-transcribe-realtime-2602`) produces same-language text without translating
   it. The transcript can be saved as plain `.txt` or Markdown.

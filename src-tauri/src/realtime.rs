@@ -18,6 +18,7 @@ use crate::audio::AudioChunk;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
+const SETUP_TIMEOUT: Duration = Duration::from_secs(15);
 const CLOSE_DRAIN_TIMEOUT: Duration = Duration::from_secs(4);
 const INITIAL_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(16);
@@ -59,6 +60,7 @@ pub enum MessageControl {
 #[derive(Debug, Default)]
 pub struct MessageOutcome {
     pub transcript_activity: bool,
+    pub setup_complete: bool,
     pub control: MessageControl,
 }
 
@@ -66,6 +68,15 @@ impl MessageOutcome {
     pub fn activity() -> Self {
         Self {
             transcript_activity: true,
+            setup_complete: false,
+            control: MessageControl::Continue,
+        }
+    }
+
+    pub fn setup_complete() -> Self {
+        Self {
+            transcript_activity: false,
+            setup_complete: true,
             control: MessageControl::Continue,
         }
     }
@@ -73,6 +84,7 @@ impl MessageOutcome {
     pub fn control(control: MessageControl) -> Self {
         Self {
             transcript_activity: false,
+            setup_complete: false,
             control,
         }
     }
@@ -85,6 +97,12 @@ pub trait RealtimeProtocol {
     fn connect_request(&self) -> Result<Request>;
     fn setup_json(&self) -> Result<String>;
     fn audio_json(&self, base64_pcm: String) -> Result<String>;
+
+    /// Whether this provider requires an explicit setup acknowledgement before accepting
+    /// audio. Gemini's Live API contract requires clients to wait for `setupComplete`.
+    fn wait_for_setup_complete(&self) -> bool {
+        false
+    }
 
     /// Provider frames used to flush pending audio before the socket is closed.
     fn closing_json(&self) -> Result<Vec<String>> {
@@ -227,7 +245,64 @@ async fn connect_and_run<P: RealtimeProtocol>(
         .context("failed to send setup")?;
 
     let origin = proto.origin();
-    tracing::info!(?origin, "connected to {}", P::NAME);
+    tracing::info!(?origin, "connected to {}; waiting for setup", P::NAME);
+
+    if proto.wait_for_setup_complete() {
+        let setup = tokio::time::sleep(SETUP_TIMEOUT);
+        tokio::pin!(setup);
+
+        loop {
+            let message = tokio::select! {
+                _ = cancel.cancelled() => {
+                    let _ = write.send(Message::Close(None)).await;
+                    return Ok(RunEnd::Stopped);
+                }
+                _ = &mut setup => {
+                    return Ok(RunEnd::Fatal(format!(
+                        "{} did not confirm session setup within {} seconds",
+                        P::NAME,
+                        SETUP_TIMEOUT.as_secs()
+                    )));
+                }
+                message = read.next() => message,
+            };
+
+            let Some(message) = message else {
+                return Ok(RunEnd::Fatal(format!(
+                    "{} closed the connection before accepting session setup",
+                    P::NAME
+                )));
+            };
+            let message = message.context("WebSocket read error during setup")?;
+            if let Message::Close(frame) = &message {
+                let reason = frame
+                    .as_ref()
+                    .map(|frame| frame.reason.trim())
+                    .filter(|reason| !reason.is_empty())
+                    .map(|reason| format!(": {reason}"))
+                    .unwrap_or_default();
+                return Ok(RunEnd::Fatal(format!(
+                    "{} rejected session setup{reason}",
+                    P::NAME
+                )));
+            }
+
+            let outcome = handle_socket_message(app, proto, message, acc);
+            match outcome.control {
+                MessageControl::Continue if outcome.setup_complete => break,
+                MessageControl::Continue => {}
+                MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
+                MessageControl::Reconnect | MessageControl::Closed => {
+                    return Ok(RunEnd::Fatal(format!(
+                        "{} closed the connection before accepting session setup",
+                        P::NAME
+                    )));
+                }
+            }
+        }
+    }
+
+    tracing::info!(?origin, "{} setup complete; streaming audio", P::NAME);
     emit_status(app, SessionState::Running, None, origin);
 
     let finalize_after = proto.finalize_after();

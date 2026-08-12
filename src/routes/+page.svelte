@@ -260,7 +260,10 @@
 		<section class="panel">
 			{#if $options.mode === 'translate'}
 				<h2>Caption language</h2>
-				<p class="hint">Spoken language is auto-detected; pick the language the audience reads.</p>
+				<p class="hint">
+					Spoken language is auto-detected; pick the language the audience reads. Speech already
+					in that language remains captioned.
+				</p>
 				<div class="segmented">
 					<button disabled={controlsLocked} class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
 						🇬🇧 English

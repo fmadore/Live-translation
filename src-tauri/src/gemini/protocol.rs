@@ -64,7 +64,10 @@ impl SetupMessage {
                     output_audio_transcription: Empty {},
                     translation_config: TranslationConfig {
                         target_language_code: target_language_code.to_string(),
-                        echo_target_language: false,
+                        // Keep captions continuous in bilingual meetings: when speech is
+                        // already in the target language, Gemini should transcribe it into
+                        // the output sidecar instead of deliberately staying silent.
+                        echo_target_language: true,
                     },
                 },
             },
@@ -131,6 +134,7 @@ mod tests {
         assert!(generation["inputAudioTranscription"].is_object());
         assert!(generation["outputAudioTranscription"].is_object());
         assert_eq!(generation["translationConfig"]["targetLanguageCode"], "en");
+        assert_eq!(generation["translationConfig"]["echoTargetLanguage"], true);
         assert!(value["setup"].get("inputAudioTranscription").is_none());
     }
 
