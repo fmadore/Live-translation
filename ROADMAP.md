@@ -103,12 +103,24 @@ Installers are unsigned, so every recipient meets a SmartScreen "unknown publish
 The full analysis, route comparison and phased plan live in
 [`docs/microsoft-store.md`](docs/microsoft-store.md). Summary: package as **MSIX** and submit
 to the **Microsoft Store**, which re-signs the package with a Microsoft certificate at no
-cost, removing the warning entirely. Three app-specific gates decide the schedule — Store
-policy 10.8.3 treats provider **API keys** as financial information and may force a company
-account, an MSIX version's first segment cannot be `0` (so the Store debut is **1.0.0**), and
-certification needs a way to exercise the app **without** a paid key, which promotes
-*rehearsal mode* below from nice-to-have to prerequisite. Not on the critical path for the
-September 2026 workshop; the unsigned installer remains the event-day route.
+cost, removing the warning entirely.
+
+The critical path is not packaging but a **keyless on-device subtitle engine**. Store policy
+10.8.3 classifies provider **API keys** as financial information and bars individual accounts
+from requiring them for primary functionality; a company account is out of scope, so captions
+have to work with no credential at all. Inbox `Windows.Media.SpeechRecognition` is the stable
+route today — the newer Whisper-derived Speech Recognition Windows AI API is still in the
+Windows App SDK experimental channel. The same work answers policy 10.3.1's demand that
+certification be able to test the app. **Gemini, OpenAI and Mistral are unaffected**: the
+on-device engine is an additional keyless provider under Live subtitles, and translation stays
+cloud-only because Windows has no on-device translation API.
+
+Also required: a **1.0.0** release (an MSIX version's first segment cannot be `0`) and a
+published privacy policy. Not on the critical path for the September 2026 workshop; the
+unsigned installer remains the event-day route.
+
+macOS support was dropped as part of this; Windows is the only supported target and the Linux
+CI lane is a compile check only.
 
 ## Future ideas (not scheduled)
 
@@ -119,30 +131,6 @@ September 2026 workshop; the unsigned installer remains the event-day route.
   instead of two buttons.
 - **Latency metrics** in the operator monitor (audio-sent → first-delta round trip).
 - **Session cost estimate** (audio minutes streamed per provider).
-- **macOS system-loopback capture** — currently Windows-only (WASAPI). Not scheduled: the
-  STIAS event laptop is Windows. **The gate is code signing, not the audio code.** Both
-  native routes are TCC-gated and reportedly need a binary signed with a Developer ID
-  certificate (Team ID); ad-hoc/unsigned — what `release.yml` produces today — cannot hold
-  the permission on recent macOS. That means an Apple Developer Program membership
-  ($99/yr) plus signing + notarization secrets in CI *before* any capture code is useful.
-  Three routes, cheapest first:
-  - **BlackHole** (or any virtual audio device): no signing, no new backend. It registers
-    as a normal CoreAudio input device, so it should already work as a source today — but
-    it is tagged `Origin::Microphone`, so Both mode labels its captions wrong. Making it
-    first-class ("treat this input device as the System origin") is a small change to
-    `audio/capture.rs` plus the operator UI, and needs no Apple account. Costs the operator
-    a driver install and a Multi-Output Device on the day.
-  - **Core Audio process taps** (macOS 14.4+): the right native answer. Audio-only
-    permission (`NSAudioCaptureUsageDescription`) rather than the scarier Screen Recording
-    prompt. ~300–400 lines against `objc2-core-audio`. Reference: `insidegui/AudioCap`.
-  - **ScreenCaptureKit** (macOS 13+): less code via the `screencapturekit` crate (v8, well
-    maintained), but needs Screen Recording permission — a harder sell on a shared
-    conference laptop.
-
-  Either native backend slots in behind the existing `run_system_loopback` seam in
-  `audio/loopback.rs`, and needs no echo filtering: the app never plays audio, so there is
-  no self-capture feedback loop. Note that a macOS backend can only be *compile*-verified
-  from CI — TCC grants and real audio flow need a physical Mac, so budget a rehearsal.
 - **Rehearsal mode** — play a bundled FR/EN sample file through the pipeline to validate
   keys/models before the event without speaking.
 - **Billable provider smoke workflow** — an explicitly manual workflow could exercise live

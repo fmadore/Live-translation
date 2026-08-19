@@ -25,16 +25,21 @@ certificate during publishing. A Store install never takes the unknown-publisher
 Three gates are specific to *this* app and are the reason this document exists rather than a
 one-line "use MSIX":
 
-1. Policy **10.8.3** classifies **"API secret keys"** as financial information, and products
-   that require it for primary functionality **must be submitted from a company account**.
-   Live Translation cannot caption a single word without a Gemini/OpenAI/Mistral key.
-2. An MSIX package version's **first segment cannot be `0`**, so `0.5.3` cannot ship. The
-   Store forces a **1.0.0** release.
-3. Certification runs the app on a clean machine. With no key, the tester sees an app that
+1. Policy **10.8.3** classifies **"API secret keys"** as financial information, and bars
+   individual accounts from requiring it for **primary functionality**. Today Live Translation
+   cannot caption a single word without a Gemini/OpenAI/Mistral key. A company account is out
+   of scope, so the fix has to be technical: a **keyless on-device captioning path**, after
+   which the provider keys are an optional upgrade rather than a precondition.
+2. Certification runs the app on a clean machine. With no key, the tester sees an app that
    does nothing — policy **10.3.1** wants a working demo credential in *Notes for
-   certification*, and handing a live paid key to a stranger is not acceptable here.
+   certification*, and handing a live paid key to a stranger is not acceptable here. The same
+   keyless path answers this.
+3. An MSIX package version's **first segment cannot be `0`**, so `0.5.3` cannot ship. The
+   Store forces a **1.0.0** release.
 
-None of the three is fatal. All three need a decision before any packaging work starts.
+Gates 1 and 2 collapse into one piece of work, described under *On-device captioning* below.
+It is the critical path for this whole plan, and it does not displace any existing provider —
+Gemini, OpenAI and Mistral stay exactly as they are.
 
 ## Route comparison
 
@@ -78,42 +83,54 @@ is how you debug the packaged-only failures in Phase D without re-signing an MSI
 
 ## Gates and unknowns specific to this app
 
-### 1. Account type — policy 10.8.3
+### 1. API keys as "financial information" — policy 10.8.3
 
 > "If your product requires financial account information, you must submit that product from a
 > company account type. Products from individual accounts cannot require financial
 > information for primary functionality." Financial information "includes, but is not limited
 > to … **API secret keys**, private keys, or recovery phrases."
 
-Read literally, an individual-account submission of this app is rejectable. Options, best
-first:
+**A company account is out of scope**, so the only way through is to stop *requiring* the
+key. Note the exact wording: the prohibition is on requiring financial information for
+**primary functionality**. It is not a ban on accepting an API key at all.
 
-- **Submit from a company account** in the name of the institution that the workshop belongs
-  to (ZMO / STIAS). Company registration is free as of May 2026 but requires Entra ID and an
-  organisational verification, so it needs a real human on the institution's side and lead
-  time. This is the safe route.
-- **Submit from an individual account and argue the point** in Notes for certification: the
-  key is a third-party service credential the user already holds, the app never transmits it
-  anywhere except to the provider that issued it, and no payment happens in-app. This may
-  well pass — plenty of bring-your-own-key apps are on the Store — but budget for one
-  rejection round.
+Two things in combination:
 
-Decide this **first**. It gates the timeline more than any code.
+1. **Ship a keyless on-device subtitle path** (see *On-device captioning* below) so the app
+   captions speech out of the box with no credential of any kind. Provider keys become an
+   optional upgrade — better accuracy, and the only route to translation — rather than a
+   precondition. This is what actually takes the app out of 10.8.3's scope.
+2. **Argue the scoping in Notes for certification.** Section 10.8's own opening line limits it
+   to products that "include in-product purchase, subscriptions, virtual currency, billing
+   functionality or capture financial information". Live Translation has none of the first
+   four. The key it accepts is a third-party service credential the user already holds, is
+   sent only to the provider that issued it, grants access to no account balance, and buys
+   nothing in-app.
+
+Even with the keyless path, budget for one rejection round — the enumeration names "API secret
+keys" literally, and a reviewer may apply it literally. **If certification rejects it anyway,
+there is no fallback inside the Store**: with a company account ruled out, the app stays on
+GitHub releases and the SmartScreen mitigations below become the permanent answer rather than
+a stopgap. Weigh that before investing in Phase C.
 
 ### 2. Testability without a key — policy 10.3.1
 
-Certification needs to see the app work. Two things fix this together:
+> "If your product requires login credentials, provide us with a working demo account using
+> the **Notes for certification** field."
 
+Certification needs to see the app work on a clean machine. Three things, in order of value:
+
+- **The keyless on-device subtitle path** (gate 1) — the tester installs, speaks, and sees
+  captions. No credential to hand over, nothing to revoke afterwards.
 - **Rehearsal mode** — already on the roadmap under "Future ideas". Play a bundled short FR/EN
-  audio fixture through the pipeline. If it runs offline against a canned transcript, the
-  certification tester can exercise capture, the overlay, move mode, and export with no key
-  and no billing. This turns a nice-to-have into a submission enabler and is the single
-  highest-value code item in this plan.
-- **Notes for certification** text explaining the BYO-key model, linking the three provider
-  signup pages, and pointing at rehearsal mode.
+  fixture through the pipeline so the overlay, move mode and export can be exercised without a
+  microphone at all. Cheap once the keyless path exists, and useful on event day.
+- **Notes for certification** text explaining that captions work out of the box, that provider
+  keys are an optional upgrade for accuracy and translation, and linking the three provider
+  signup pages.
 
-If rehearsal mode slips, the fallback is issuing a Mistral key (cheapest at $0.006/min) with a
-low spend cap, used once and revoked.
+Last resort if both slip: issue a Mistral key (cheapest at $0.006/min) with a low spend cap,
+hand it over once, and revoke it after certification.
 
 ### 3. Privacy policy — policy 10.5.1
 
@@ -201,7 +218,7 @@ about five weeks, and the critical path is not code:
 
 | Step | Realistic elapsed |
 | --- | --- |
-| Company-account verification (if taking route 1 of gate 1) | days to weeks, dependent on the institution |
+| Building the keyless on-device subtitle path (gate 1, the critical path) | the real cost — a new capture-to-caption engine, plus UI |
 | Identity verification (government ID + selfie) | hours to days |
 | First-submission certification | up to ~3 business days, longer for a first-time publisher |
 | One rejection round on 10.8.3 or 10.3.1 | add a week |
@@ -227,9 +244,11 @@ Independent of the Store, and worth doing this week:
 
 ### Phase A — decisions and paperwork (no code, start immediately)
 
-- [ ] Decide the account type against gate 1 (company via the institution, or individual with
-      an argued 10.8.3 case). Everything else waits on this.
-- [ ] Enrol in Partner Center and complete identity verification.
+- [ ] Enrol in Partner Center as an **individual** and complete identity verification
+      (government ID plus selfie). Company accounts are out of scope, so gate 1 is answered in
+      code, not paperwork.
+- [ ] Draft the 10.8.3 scoping argument for Notes for certification now, while the reasoning
+      is fresh — it is needed at submission and it sanity-checks the keyless design.
 - [ ] Reserve the app name. "Live Translation" is generic and probably taken; reserve
       **"Live Translation & Subtitles"** to match the README title.
 - [ ] Note the assigned publisher identity (`CN=…`) and package identity name — the manifest
@@ -256,13 +275,22 @@ Independent of the Store, and worth doing this week:
       (`--arch x64,arm64`) as a release asset. Keep the NSIS installer alongside it — the
       GitHub release stays the fallback channel.
 
-### Phase D — app changes for packaged reality
+### Phase D — app changes
 
+**The first item is the critical path — gates 1 and 2 both depend on it, and it should start
+before Phase C rather than after.**
+
+- [ ] **Keyless on-device subtitle engine** against inbox `Windows.Media.SpeechRecognition`,
+      surfaced as a fourth provider under **Live subtitles** alongside Mistral. Sibling of
+      `realtime::run_session`, consuming the same bounded audio channel and emitting the same
+      `Caption` / `StatusUpdate` events. Gemini, OpenAI and Mistral are untouched.
+- [ ] First-run state that captions immediately with no key, and presents provider keys as an
+      optional upgrade (accuracy, and translation) rather than a precondition.
 - [ ] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline.
 - [ ] Permission-denied microphone path with an actionable message (gate 6).
-- [ ] First-run state with no key configured that explains the BYO-key model in-app rather
-      than looking broken.
 - [ ] WebView2 presence assertion (gate 9).
+- [ ] *Deferred:* re-target the Speech Recognition Windows AI API once it leaves the Windows
+      App SDK experimental channel.
 
 ### Phase E — listing and submission
 
@@ -282,29 +310,92 @@ Independent of the Store, and worth doing this week:
 - [ ] Store submissions on tag, ideally via the Partner Center submission API from
       `release.yml`.
 
-## Dropping macOS
+## macOS support: dropped
 
-Raised alongside this plan, and it fits: this route is Windows-only by construction, macOS
-system-audio capture is
-[gated on a $99/year Apple Developer membership](../ROADMAP.md) before any of its capture code
-becomes useful, and the STIAS event laptop is Windows. Removing it deletes a CI lane and a
-whole unresolved signing question.
+Done — this route is Windows-only by construction, macOS system-audio capture was gated on a
+$99/year Apple Developer membership before any of its capture code became useful, and the
+STIAS event laptop is Windows. Removed from `release.yml`, `tauri.conf.json` (`macOSPrivateApi`,
+`icon.icns`), `Cargo.toml` (the `macos-private-api` feature), the roadmap's system-loopback
+item, and the README/SECURITY/architecture prose.
 
-Surface area:
+Linux stays as a **CI compile check only**: the Ubuntu Rust lane is cheap and catches
+regressions in the non-`cfg(windows)` code. It produces no release artifact.
 
-- `.github/workflows/release.yml` — drop the `macos-latest` / `aarch64-apple-darwin` matrix
-  entry.
-- `src-tauri/tauri.conf.json` — drop `macOSPrivateApi`, drop `icons/icon.icns` from the bundle
-  icon list.
-- `src-tauri/Cargo.toml` — drop the `macos-private-api` Tauri feature.
-- `src-tauri/icons/icon.icns` — delete.
-- `ROADMAP.md` — retire the macOS system-loopback item, replaced by this document.
-- `README.md`, `SECURITY.md`, `docs/architecture.md` — remove macOS mentions (Keychain,
-  Gatekeeper, BlackHole).
+## On-device captioning (the 10.8.3 mitigation)
 
-Linux is a separate question: the Rust CI lane on Ubuntu is cheap and catches
-non-`cfg(windows)` regressions, so keep it as a build check even with no Linux release
-target.
+With a company account off the table, this stops being a nice-to-have and becomes the
+load-bearing part of the plan. It also pays for itself three other ways: it removes the
+API-key wall from first run, it gives certification something to test (gate 2), and it gives
+the workshop a fallback when the venue network fails.
+
+**None of this replaces Gemini, OpenAI or Mistral.** They stay exactly as they are — the
+on-device engine is an additional, keyless source of captions, and the cloud providers remain
+the quality path and the *only* path for translation.
+
+### What Windows can and cannot do on-device
+
+**Speech-to-text: yes.** Microsoft's
+[Speech Recognition Windows AI API](https://learn.microsoft.com/en-us/windows/ai/apis/speech-recognition)
+does real-time on-device transcription from live audio, free, no network, no key, built on
+components of OpenAI Whisper. Both French and English are supported.
+
+**Translation: no.** There is no on-device translation API on Windows; the Windows AI
+catalogue has no translator and lists "Live Caption Translations" as *not yet supported*. So
+**Live translation stays cloud-only and stays key-gated.** The keyless path covers **Live
+subtitles** — which is enough for 10.8.3, because captioning is the primary functionality and
+it works with no credential.
+
+### Copilot+ is an upgrade, not the gate — and that matters
+
+The instinct to target Copilot+ PCs is understandable, but **do not restrict the feature to
+them**. If the keyless mode only ran on Copilot+ hardware, the 10.8.3 argument would become
+hardware-dependent and a certification tester on an ordinary VM would still meet a key-walled
+app — defeating the whole point.
+
+Fortunately that restriction no longer exists. At Build 2026 Microsoft
+[extended Windows AI APIs from NPU-only to CPU and GPU](https://blogs.windows.com/windowsdeveloper/2026/06/02/build-2026-furthering-windows-as-the-trusted-platform-for-development/).
+On a Copilot+ PC the model is preinstalled and runs on the NPU; elsewhere it downloads on
+demand through Windows Update the first time the app calls `EnsureReadyAsync`, then runs on
+CPU. Copilot+ buys latency and battery, not access.
+
+### The blocker: it is still experimental
+
+**The Speech Recognition Windows AI API is in the Windows App SDK experimental channel, not
+stable.** Shipping an experimental-channel dependency in a Store submission is not defensible,
+so on today's timeline this cannot be the shipped implementation.
+
+That gives a two-step plan:
+
+| | Engine | Status | Quality | Cost |
+| --- | --- | --- | --- | --- |
+| **Now** | Inbox [`Windows.Media.SpeechRecognition`](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition) | Stable since Windows 10; no App SDK needed; exposed by the Rust `windows` crate behind the `Media_SpeechRecognition` feature | Dictation-grade. Clearly worse than Voxtral, depends on installed language packs | Free |
+| **Later** | Speech Recognition Windows AI API | Experimental channel — adopt when it reaches stable | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free |
+
+Ship the inbox API first. It is unglamorous, but it is stable, needs no bootstrapper, and is
+sufficient to make "captions work without a key" true and demonstrable — which is the only
+property 10.8.3 and 10.3.1 care about. Swap the engine later behind the same seam.
+
+### Where it fits in the architecture
+
+`session.rs` spawns one `realtime::run_session` per active source, each consuming the bounded
+audio channel and emitting `Caption` / `StatusUpdate` events. An on-device engine is a sibling
+of that task, not a `RealtimeProtocol` implementation — it skips the WebSocket entirely but
+consumes the same channel and emits the same events, so the operator UI, the overlay, the
+per-origin turn accounting and the transcript export all work unchanged. It appears in the UI
+as a fourth provider under **Live subtitles**, alongside Mistral.
+
+Two consequences worth planning for: the model download on first use needs the loading-UI
+pattern (`EnsureReadyAsync` progress) if the AI API is ever adopted, and **Windows AI APIs
+require package identity** — which the MSIX build supplies anyway, but which the NSIS build
+would need a sparse package to obtain. The inbox API has no such requirement.
+
+### One speculative option, worth an experiment and not a plan
+
+The app renders in WebView2, and Edge 148 ships on-device `Translator` and `LanguageDetector`
+JavaScript APIs covering 145+ languages at no cost. Whether those surface inside WebView2, at
+what runtime version, and whether they are usable for realtime caption text is unknown. If
+they are, an on-device *translation* leg becomes possible after all — which would close the
+one gap above. Timebox it to an afternoon before believing it.
 
 ## Sources
 
@@ -318,3 +409,7 @@ target.
 - [Code signing options for Windows app developers](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options)
 - [`Choochmeque/tauri-windows-bundle`](https://github.com/Choochmeque/tauri-windows-bundle)
 - [`microsoft/winappCli`](https://github.com/microsoft/winappCli)
+- [Speech Recognition with Windows AI APIs](https://learn.microsoft.com/en-us/windows/ai/apis/speech-recognition)
+- [What are Windows AI APIs?](https://learn.microsoft.com/en-us/windows/ai/apis/)
+- [Build 2026 — Windows as the trusted platform for development](https://blogs.windows.com/windowsdeveloper/2026/06/02/build-2026-furthering-windows-as-the-trusted-platform-for-development/)
+- [`Windows.Media.SpeechRecognition` namespace](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition)
