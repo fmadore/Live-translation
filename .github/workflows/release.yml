@@ -1,7 +1,7 @@
 name: Release installers
 
-# Builds one-click installers for Windows (x64 + ARM64) and macOS (Apple Silicon)
-# and attaches them to the GitHub release for the pushed tag.
+# Builds one-click installers for Windows (x64 + ARM64) and attaches them to the
+# GitHub release for the pushed tag.
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2  -> builds + publishes.
 # Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
@@ -34,8 +34,6 @@ jobs:
             target: x86_64-pc-windows-msvc
           - platform: windows-11-arm      # ARM64 Windows (Snapdragon)
             target: aarch64-pc-windows-msvc
-          - platform: macos-latest        # Apple Silicon macOS
-            target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 90

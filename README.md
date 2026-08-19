@@ -40,14 +40,19 @@ Tauri app (Rust core + SvelteKit front-end)
 
 The shared runner provides connection timeouts, bounded queues, stale-audio discard,
 exponential reconnect backoff, provider-error classification, turn isolation, and graceful
-provider flushes. Keys remain in the OS keychain and are used only by Rust. See
+provider flushes. Keys remain in Windows Credential Manager and are used only by Rust. See
 [`docs/architecture.md`](docs/architecture.md) for the complete flow.
 
 ## Prerequisites
 
+**Windows only.** System-audio capture is WASAPI loopback and the app is not built or
+released for any other platform. The Linux lane in CI is a compile check for the
+non-`cfg(windows)` code, not a supported target.
+
+- Windows 10 or 11, x64 or ARM64
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
-- [Tauri prerequisites](https://tauri.app/start/prerequisites/) for the target OS
+- [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
 - At least one provider key:
   - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
@@ -104,8 +109,8 @@ npm run dev
 npm run tauri dev
 ```
 
-The operator stores each provider key separately in Windows Credential Manager, macOS
-Keychain, or Secret Service. For development, copy `.env.example` to an uncommitted `.env`
+The operator stores each provider key separately in Windows Credential Manager. For
+development, copy `.env.example` to an uncommitted `.env`
 and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
 
 Build Windows installers with `npm run tauri build`.

@@ -68,8 +68,8 @@ are finalized, status/meters return to idle, and the monitor drops its stale cur
 
 ## Remaining operational limits
 
-- Native system-loopback capture is Windows-only. Other OS builds can use a normal microphone
-  input (including a virtual device such as BlackHole on macOS).
+- Windows is the only supported target. The Linux CI lane exists to catch regressions in the
+  non-`cfg(windows)` code; it produces no release artifact and has no system-loopback backend.
 - Provider integrations are contract-tested locally but not called from CI: live tests need
   billable secrets and representative bilingual audio. Rehearse all three providers manually.
 - The low-latency resampler is optimized for speech, not archival audio production.

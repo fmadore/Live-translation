@@ -20,17 +20,16 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-# `macos-private-api` backs the transparent overlay on macOS; harmless on Windows/Linux.
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # Async runtime + WebSockets for the realtime providers.
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
 tokio-util = "0.7"
-# Uses the OS-native TLS stack (SChannel on Windows, Secure Transport on macOS). This
-# avoids rustls' `ring` dependency, which needs `clang` to assemble its asm on
-# aarch64-windows — SChannel is pure-Rust here and keeps the ARM64 build toolchain-free.
+# Uses the OS-native TLS stack — SChannel on Windows. This avoids rustls' `ring`
+# dependency, which needs `clang` to assemble its asm on aarch64-windows, keeping the
+# ARM64 build toolchain-free.
 tokio-tungstenite = { version = "0.30", features = ["native-tls"] }
 futures-util = "0.3"
 
@@ -39,8 +38,8 @@ cpal = "0.18"
 
 # Encoding / config / errors / logging.
 base64 = "0.23"
-# v4's default `v1` feature selects Windows Credential Manager, macOS Keychain, and
-# Secret Service backends while preserving the synchronous Entry API used here.
+# v4's default `v1` feature selects the Windows Credential Manager backend (and Secret
+# Service on the Linux CI lane) while preserving the synchronous Entry API used here.
 keyring = "4.1"
 dotenvy = "0.15"
 anyhow = "1"
