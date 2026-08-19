@@ -118,8 +118,11 @@ a `Recognizer` seam, the operator UI, and unit tests. Inbox `Windows.Media.Speec
 turned out to be unusable here — it has no audio-input API and always opens the default
 microphone, so it can serve neither system-loopback audio nor *Both* mode. The Whisper-derived
 Speech Recognition Windows AI API is the migration target once it leaves the Windows App SDK
-experimental channel; it would remove the bundled model entirely. Still to verify on real
-hardware: caption latency and accuracy, and the whisper.cpp build on the ARM64 Windows runner.
+experimental channel; it would remove the bundled model entirely — and would restore native
+ARM64, since **ARM64 Windows had to be dropped from releases**: ggml refuses to build with
+MSVC on ARM ("MSVC is not supported for ARM, use clang") and whisper-rs-sys pins the Visual
+Studio CMake generator, which always uses cl.exe. ARM64 machines run the x64 build under
+emulation in the meantime. Still to verify on real hardware: caption latency and accuracy.
 
 Also required: a **1.0.0** release (an MSIX version's first segment cannot be `0`) and a
 published privacy policy. Not on the critical path for the September 2026 workshop; the

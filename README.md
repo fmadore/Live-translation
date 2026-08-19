@@ -57,7 +57,7 @@ provider flushes. Keys remain in Windows Credential Manager and are used only by
 released for any other platform. The Linux lane in CI is a compile check for the
 non-`cfg(windows)` code, not a supported target.
 
-- Windows 10 or 11, x64 or ARM64
+- Windows 10 or 11 (x64; ARM64 machines run it under emulation)
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)

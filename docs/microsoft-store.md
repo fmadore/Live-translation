@@ -67,9 +67,9 @@ the Windows SDK.
 - **[`@choochmeque/tauri-windows-bundle`](https://github.com/Choochmeque/tauri-windows-bundle)**
   — Tauri-aware. Reads `tauri.conf.json` for name/version/icons, generates the
   `Package.appxmanifest`, auto-adds the `runFullTrust` restricted capability that every Tauri
-  app needs, and — the deciding feature — builds **x64 and ARM64 into one `.msixbundle`** with
-  `--arch x64,arm64`. `release.yml` already builds both architectures, so this maps onto the
-  existing matrix with no rework.
+  app needs, and can build **x64 and ARM64 into one `.msixbundle`** with `--arch x64,arm64`.
+  Only x64 is built today (see *ARM64* below), so a single-architecture bundle is what ships
+  for now.
 - **[`winapp` CLI](https://github.com/microsoft/winappCli)** — Microsoft's own, in public
   preview since January 2026, with an
   [official Tauri guide](https://github.com/microsoft/winappCli/blob/main/docs/guides/tauri.md).
@@ -272,7 +272,7 @@ Independent of the Store, and worth doing this week:
       Credential Manager round-trip. Also re-check the transparent click-through overlay and
       the `Documents/Live-translation/` export path under package identity.
 - [ ] Add an `msix` job to `release.yml` producing an unsigned `.msixbundle`
-      (`--arch x64,arm64`) as a release asset. Keep the NSIS installer alongside it — the
+      (`--arch x64` for now) as a release asset. Keep the NSIS installer alongside it — the
       GitHub release stays the fallback channel.
 
 ### Phase D — app changes
@@ -417,9 +417,27 @@ Complete and on the branch:
   panel hidden for the keyless engine, Start no longer gated on a key, and a language hint
   for the recognizer.
 
-**Not yet verified:** caption latency and accuracy against real conference audio, and the
-build on the `windows-11-arm` runner — whisper.cpp compiles from source, so ARM64 Windows is
-a genuine risk to check before relying on a release. Neither can be tested from CI alone.
+**Not yet verified:** caption latency and accuracy against real conference audio. That needs
+a rehearsal on the event hardware and cannot be settled from CI.
+
+### ARM64: dropped, and why it comes back for free later
+
+A release build confirmed the risk flagged here: **whisper.cpp cannot be built for ARM64
+Windows with MSVC.** ggml stops with `MSVC is not supported for ARM, use clang`, and its
+guard — `if (MSVC AND NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")` — *would* accept clang-cl,
+except that `whisper-rs-sys` pins the Visual Studio CMake generator, which always uses
+`cl.exe` no matter what `CC`/`CXX` say. Forcing clang-cl means switching to the Ninja
+generator and hand-rolling the MSVC developer environment that the VS generator provides
+automatically.
+
+Releases are therefore **x64 only**. This costs less than it sounds: Windows on ARM runs x64
+under emulation, and the Store serves the x64 package to ARM64 devices, so Snapdragon and
+Copilot+ machines still install and run the app — only the on-device engine is slower there,
+and the cloud providers are network-bound and unaffected.
+
+The neat part: migrating to the Speech Recognition Windows AI API removes this problem
+entirely, because there would be no C++ to compile. The same change that drops the bundled
+model also restores native ARM64 — on exactly the NPU hardware that API targets.
 
 ### Where it fits in the architecture
 

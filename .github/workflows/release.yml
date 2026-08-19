@@ -1,7 +1,16 @@
 name: Release installers
 
-# Builds one-click installers for Windows (x64 + ARM64) and attaches them to the
-# GitHub release for the pushed tag.
+# Builds one-click installers for Windows x64 and attaches them to the GitHub release
+# for the pushed tag.
+#
+# x64 only: ggml (whisper.cpp), which backs the keyless on-device caption engine, refuses
+# to build with MSVC on ARM64 — "MSVC is not supported for ARM, use clang" — and
+# whisper-rs-sys pins the Visual Studio CMake generator, which always uses cl.exe. Getting
+# clang-cl in would mean forcing the Ninja generator plus a hand-rolled MSVC developer
+# environment. Windows on ARM runs x64 apps under emulation and the Store serves the x64
+# package to ARM64 devices, so those machines are still covered. Native ARM64 comes back
+# for free if the on-device engine ever moves to the Speech Recognition Windows AI API,
+# which needs no C++ build at all.
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2  -> builds + publishes.
 # Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
@@ -32,8 +41,6 @@ jobs:
         include:
           - platform: windows-latest      # x64 Windows
             target: x86_64-pc-windows-msvc
-          - platform: windows-11-arm      # ARM64 Windows (Snapdragon)
-            target: aarch64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}
     timeout-minutes: 90
@@ -66,24 +73,6 @@ jobs:
       # bundles it as an app resource, so it has to be present before the build.
       - name: Fetch on-device speech model
         run: npm run fetch:whisper-model
-
-      # ggml (whisper.cpp) refuses to build with MSVC on ARM64 — its CMake stops with
-      # "MSVC is not supported for ARM, use clang". clang-cl is MSVC-ABI compatible, so the
-      # C/C++ compiles with it and still links against the aarch64-pc-windows-msvc Rust
-      # target. Only the ARM64 lane needs this; x64 builds fine with MSVC.
-      - name: Provide clang-cl for ARM64 native code
-        if: runner.arch == 'ARM64'
-        shell: pwsh
-        run: |
-          if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue)) {
-            choco install llvm --no-progress -y
-            $llvmBin = "C:\Program Files\LLVM\bin"
-            if (Test-Path $llvmBin) {
-              $llvmBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-            }
-          }
-          "CC=clang-cl"  | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Build app and publish installers to the release
         uses: tauri-apps/tauri-action@action-v1.0.0
