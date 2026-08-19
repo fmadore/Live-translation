@@ -280,17 +280,21 @@ Independent of the Store, and worth doing this week:
 **The first item is the critical path — gates 1 and 2 both depend on it, and it should start
 before Phase C rather than after.**
 
-- [ ] **Keyless on-device subtitle engine** against inbox `Windows.Media.SpeechRecognition`,
-      surfaced as a fourth provider under **Live subtitles** alongside Mistral. Sibling of
-      `realtime::run_session`, consuming the same bounded audio channel and emitting the same
-      `Caption` / `StatusUpdate` events. Gemini, OpenAI and Mistral are untouched.
+- [x] **Keyless on-device backend, engine-independent half** — `Provider::OnDevice`,
+      `ondevice/run_session`, the operator UI, and unit tests. Gemini, OpenAI and Mistral are
+      untouched.
+- [ ] **Pick and implement the recognizer** in `ondevice/engine.rs` — `whisper-rs` ships
+      today; the Speech Recognition Windows AI API is the migration target once it leaves the
+      experimental channel. Inbox `Windows.Media.SpeechRecognition` is ruled out: no audio
+      input API.
 - [ ] First-run state that captions immediately with no key, and presents provider keys as an
       optional upgrade (accuracy, and translation) rather than a precondition.
 - [ ] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline.
 - [ ] Permission-denied microphone path with an actionable message (gate 6).
 - [ ] WebView2 presence assertion (gate 9).
 - [ ] *Deferred:* re-target the Speech Recognition Windows AI API once it leaves the Windows
-      App SDK experimental channel.
+      App SDK experimental channel — free, no bundled model, and NPU-accelerated on Copilot+
+      hardware. Tracked in `ondevice/engine.rs`.
 
 ### Phase E — listing and submission
 
@@ -358,22 +362,50 @@ On a Copilot+ PC the model is preinstalled and runs on the NPU; elsewhere it dow
 demand through Windows Update the first time the app calls `EnsureReadyAsync`, then runs on
 CPU. Copilot+ buys latency and battery, not access.
 
-### The blocker: it is still experimental
+### Engine selection: what is ruled out, and what is left
 
-**The Speech Recognition Windows AI API is in the Windows App SDK experimental channel, not
-stable.** Shipping an experimental-channel dependency in a Store submission is not defensible,
-so on today's timeline this cannot be the shipped implementation.
+A recognizer here must accept **pushed PCM**. That is not a preference: the app captures
+system audio over WASAPI loopback and offers microphone selection, so an engine that opens
+its own audio device can caption neither system audio nor a chosen microphone, and cannot
+serve *Both* mode at all.
 
-That gives a two-step plan:
+**That rules out the inbox `Windows.Media.SpeechRecognition` namespace**, which this document
+previously recommended. Its API surface has no audio input of any kind — no stream, file,
+buffer or device selector; it always opens the system default capture device itself.
+Verified against the generated bindings for the `windows` crate 0.62, where `SpeechRecognizer`
+exposes only constraints, timeouts, UI options and the continuous-session handle. It could
+back a microphone-only demo, but not this app's actual feature set.
 
-| | Engine | Status | Quality | Cost |
+Two candidates remain:
+
+| Engine | Accepts pushed PCM | Ships today? | Quality | Cost |
 | --- | --- | --- | --- | --- |
-| **Now** | Inbox [`Windows.Media.SpeechRecognition`](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition) | Stable since Windows 10; no App SDK needed; exposed by the Rust `windows` crate behind the `Media_SpeechRecognition` feature | Dictation-grade. Clearly worse than Voxtral, depends on installed language packs | Free |
-| **Later** | Speech Recognition Windows AI API | Experimental channel — adopt when it reaches stable | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free |
+| **Speech Recognition Windows AI API** | Yes — `SpeechAudioProvider` | **No** — Windows App SDK *experimental channel*, which cannot back a Store submission. Also a `Microsoft.Windows.*` App SDK type, not an OS `Windows.*` one, so the `windows` crate does not project it: Rust use needs the App SDK bootstrapper and a projection of its own | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free |
+| **`whisper-rs` (whisper.cpp)** | Yes — f32/i16 PCM directly | **Yes** — stable, no Windows version dependency | Best available here; well above anything else stable | Bundled model (~75 MB tiny, ~142 MB base), a C++/CMake step in CI, CPU headroom |
 
-Ship the inbox API first. It is unglamorous, but it is stable, needs no bootstrapper, and is
-sufficient to make "captions work without a key" true and demonstrable — which is the only
-property 10.8.3 and 10.3.1 care about. Swap the engine later behind the same seam.
+The Windows AI API is the better long-term answer and the one to migrate to the moment it
+reaches the stable channel — it is free, needs no bundled model, and uses the NPU where one
+exists. It simply cannot carry a Store submission today. `whisper-rs` is what can ship now,
+at the price of package size and a C++ build step.
+
+### What is already built
+
+The engine-independent half of this is done and on the branch — everything except the
+recognizer itself:
+
+- `Provider::OnDevice` end to end, with `requires_api_key` and `can_translate` predicates so
+  the keyless path is a first-class backend rather than a special case. `session.rs` skips
+  key resolution for it, and validates mode/provider through the capability rather than a
+  provider list.
+- `ondevice/mod.rs` — the session driver, mirroring `realtime::run_session`'s signature:
+  bounded audio consumption, drop-newest backpressure, turn bookkeeping, per-origin status,
+  graceful flush on stop. Unit tested (partials replace rather than append, an empty final
+  closes an open turn but not an idle one, subtitles land in the audience field).
+- `ondevice/engine.rs` — the one pluggable point, documenting the decision above and
+  returning an actionable error until an engine lands.
+- Operator UI — **Mistral Voxtral | On-device · no key** under Live subtitles, the API-key
+  panel hidden for the keyless engine, Start no longer gated on a key, and a language hint
+  for the recognizer.
 
 ### Where it fits in the architecture
 

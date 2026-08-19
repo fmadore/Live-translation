@@ -23,7 +23,7 @@
 		Provider,
 		TargetLanguage
 	} from '$lib/types';
-	import { clampOverlayFont } from '$lib/types';
+	import { clampOverlayFont, providerCanTranslate, providerRequiresKey } from '$lib/types';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
@@ -32,6 +32,13 @@
 	let browserMode = $state(false);
 	let sessionBusy = $state(false);
 	const controlsLocked = $derived($isRunning || sessionBusy);
+
+	// The on-device engine has no key panel to report readiness, so mark it ready here.
+	// Switching back to a cloud provider remounts ApiKeyPanel, which re-checks the keychain.
+	const needsKey = $derived(providerRequiresKey($options.provider));
+	$effect(() => {
+		if (!needsKey) hasKey.set(true);
+	});
 
 	onMount(() => {
 		browserMode = !isTauri();
@@ -97,8 +104,9 @@
 	}
 
 	function setProvider(p: Provider) {
-		if (controlsLocked || p === 'mistral') return;
-		if (p === $options.provider) return;
+		if (controlsLocked || p === $options.provider) return;
+		// Each mode accepts only the backends that can serve it.
+		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
 		$options = { ...$options, provider: p };
 	}
 
@@ -195,12 +203,13 @@
 			{#if $options.mode === 'translate'}
 				Translate speech into English or French using Gemini or OpenAI.
 			{:else}
-				Transcribe speech in its original language with Mistral Voxtral; save the result as plain text or Markdown.
+				Transcribe speech in its original language — with Mistral Voxtral, or entirely on this
+				machine with no API key. Save the result as plain text or Markdown.
 			{/if}
 		</p>
 	</section>
 
-	{#if !browserMode}
+	{#if !browserMode && needsKey}
 		<ApiKeyPanel
 			provider={$options.provider}
 			locked={controlsLocked}
@@ -275,9 +284,24 @@
 				<button class="ghost flip" disabled={controlsLocked} onclick={flipDirection}>⇄ Flip (F2)</button>
 			{:else}
 				<h2>Subtitle language</h2>
-				<p class="hint">
-					Voxtral auto-detects the spoken language and writes same-language subtitles. No translation target is needed.
-				</p>
+				{#if $options.provider === 'ondevice'}
+					<p class="hint">
+						The on-device recognizer is told which language to expect, so pick the one that will
+						be spoken. It writes same-language subtitles and never translates.
+					</p>
+					<div class="segmented">
+						<button disabled={controlsLocked} class:active={$options.targetLanguage === 'en'} onclick={() => setTarget('en')}>
+							🇬🇧 English
+						</button>
+						<button disabled={controlsLocked} class:active={$options.targetLanguage === 'fr'} onclick={() => setTarget('fr')}>
+							🇫🇷 Français
+						</button>
+					</div>
+				{:else}
+					<p class="hint">
+						Voxtral auto-detects the spoken language and writes same-language subtitles. No translation target is needed.
+					</p>
+				{/if}
 			{/if}
 		</section>
 	</div>
@@ -307,10 +331,27 @@
 				</p>
 			{/if}
 		{:else}
-			<p class="hint engine-hint">
-				<code>voxtral-mini-transcribe-realtime-2602</code> — 16 kHz realtime speech-to-text
-				with a 480 ms target delay. Its text appears directly as subtitles and in the saved transcript.
-			</p>
+			<div class="segmented sub">
+				<button disabled={controlsLocked} class:active={$options.provider === 'mistral'} onclick={() => setProvider('mistral')}>
+					Mistral Voxtral
+				</button>
+				<button disabled={controlsLocked} class:active={$options.provider === 'ondevice'} onclick={() => setProvider('ondevice')}>
+					On-device · no key
+				</button>
+			</div>
+
+			{#if $options.provider === 'ondevice'}
+				<p class="hint engine-hint">
+					Runs entirely on this machine: no API key, no network, nothing billed per minute.
+					Audio never leaves the computer. Accuracy is below Voxtral's, so prefer Voxtral when
+					the network is reliable and keep this for offline use and rehearsals.
+				</p>
+			{:else}
+				<p class="hint engine-hint">
+					<code>voxtral-mini-transcribe-realtime-2602</code> — 16 kHz realtime speech-to-text
+					with a 480 ms target delay. Its text appears directly as subtitles and in the saved transcript.
+				</p>
+			{/if}
 		{/if}
 	</section>
 

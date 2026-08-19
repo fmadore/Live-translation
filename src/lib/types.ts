@@ -10,8 +10,22 @@ export type Origin = 'microphone' | 'system';
 /** BCP-47 codes we use for the two workshop languages. The spoken language is auto-detected. */
 export type TargetLanguage = 'en' | 'fr';
 
-/** Realtime provider / backend. Each has its own API and API key. */
-export type Provider = 'gemini' | 'openai' | 'mistral';
+/** Caption backend. The cloud providers each have their own API and API key; `ondevice`
+ *  runs a local recognizer and needs no credential at all. Mirrors `Provider` in types.rs. */
+export type Provider = 'gemini' | 'openai' | 'mistral' | 'ondevice';
+
+/** Backends that produce translated captions. On-device recognition is same-language only:
+ *  Windows exposes no on-device translation API. */
+export function providerCanTranslate(provider: Provider): boolean {
+	return provider === 'gemini' || provider === 'openai';
+}
+
+/** Whether an API key must be saved before a session can start. The on-device engine is the
+ *  one backend that works with no credential, which is what keeps provider keys out of the
+ *  app's primary functionality — see `docs/microsoft-store.md`. */
+export function providerRequiresKey(provider: Provider): boolean {
+	return provider !== 'ondevice';
+}
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
 export type OutputMode = 'translate' | 'transcribe';

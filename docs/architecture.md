@@ -7,9 +7,10 @@ microphone (cpal) ─┐
                    ├─ downmix → low-pass/resample → PCM16 → bounded channel ─┐
 system (WASAPI) ───┘                                                         │
                                                                              ▼
-                     one realtime WebSocket per active source and provider
-                     ├─ Gemini/OpenAI: translated transcript
-                     └─ Mistral: same-language transcript
+                     one client per active source and provider
+                     ├─ Gemini/OpenAI: translated transcript (WebSocket)
+                     ├─ Mistral: same-language transcript (WebSocket)
+                     └─ On-device: same-language transcript (local, keyless)
                                       │
                                       ▼
                           Tauri caption/status/level events
@@ -27,9 +28,16 @@ system (WASAPI) ───┘                                                    
    After a network stall the consumer coalesces queued chunks to the newest one instead of
    replaying stale speech; reconnect-buffered audio is discarded outright.
 3. **Provider session.** `session.rs` validates the selected mode/provider pair, resolves its
-   key, and spawns one `realtime::run_session` task per source. `realtime.rs` owns connection
-   timeouts, setup/audio pumping, message controls, idle caption segmentation, stable-connection
-   backoff reset, retryable-vs-permanent HTTP classification, and turn finalization.
+   key if the backend needs one, and spawns one client task per source. For the cloud
+   providers that is `realtime::run_session`, which owns connection timeouts, setup/audio
+   pumping, message controls, idle caption segmentation, stable-connection backoff reset,
+   retryable-vs-permanent HTTP classification, and turn finalization.
+   `Provider::OnDevice` instead spawns `ondevice::run_session`: no socket, no key, no
+   reconnect loop. It consumes the same bounded audio channel and emits the same caption and
+   status events, so everything downstream is unchanged. Recognition is blocking and
+   CPU-bound, so it runs on a dedicated native thread behind a bounded queue; when the
+   recognizer falls behind, the newest chunk is dropped rather than the queue reordered,
+   which keeps the audio the recognizer *does* see contiguous.
 4. **Render/export.** Caption events are broadcast to both windows. The operator store tracks
    pending turns independently by `(origin, turnId)`; finalized lines can be exported in
    chronological plain text or Markdown. Mistral places its source-language transcription in
@@ -42,9 +50,23 @@ system (WASAPI) ───┘                                                    
 | Gemini 3.5 Live Translate | Translate | 16 kHz PCM16 | `serverContent.outputTranscription` | WebSocket close |
 | OpenAI Realtime Translate | Translate | 24 kHz PCM16, 200 ms engine frames | `session.output_transcript.delta` | `session.close`, drain to `session.closed` |
 | Mistral Voxtral Mini Realtime | Transcribe | 16 kHz PCM16 | `transcription.text.delta` | `input_audio.flush`, then `input_audio.end`, drain to `transcription.done` |
+| On-device recognizer | Transcribe | 16 kHz PCM16, pushed | `RecognitionEvent::Partial`/`Final` | drop the sample sender, drain the flush |
 
-The Mistral provider is intentionally unavailable in translation mode: Voxtral Mini
-Transcribe Realtime is a speech-to-text model, not a live translation model.
+Mistral and the on-device engine are intentionally unavailable in translation mode: Voxtral
+Mini Transcribe Realtime is a speech-to-text model, and Windows exposes no on-device
+translation API. `session.rs` enforces this through `Provider::can_translate` rather than a
+provider list, so a new translating backend cannot silently become a subtitle engine.
+
+### On-device recognizer selection
+
+`ondevice/engine.rs` is the single pluggable point, and **no engine is wired up yet** — it
+returns an actionable error and the operator UI keeps Mistral available. The binding
+constraint is that a recognizer must accept **pushed PCM**: the app captures system audio
+over WASAPI loopback and offers device selection, so an engine that opens its own microphone
+can serve neither system audio nor *Both* mode. That constraint rules out the inbox
+`Windows.Media.SpeechRecognition` namespace, whose API surface has no audio input at all —
+verified against the generated `windows` 0.62 bindings. The candidates that remain, and their
+trade-offs, are documented in `engine.rs`.
 
 ## Concurrency and shutdown
 

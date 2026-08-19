@@ -8,6 +8,7 @@ mod audio;
 mod commands;
 mod gemini;
 mod mistral;
+mod ondevice;
 mod openai;
 mod overlay;
 mod realtime;

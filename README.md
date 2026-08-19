@@ -13,9 +13,17 @@ It has two deliberately separate modes:
   (`gpt-realtime-translate`). Their generated audio is discarded; only transcript text is
   displayed. Gemini also captions speech that is already in the selected target language,
   so mixed-language meetings do not go blank during same-language passages.
-- **Live subtitles** — Mistral Voxtral Mini Transcribe Realtime
-  (`voxtral-mini-transcribe-realtime-2602`) produces same-language text without translating
-  it. The transcript can be saved as plain `.txt` or Markdown.
+- **Live subtitles** — same-language text, without translating it, from either Mistral
+  Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) or an
+  **on-device recognizer that needs no API key at all**. The transcript can be saved as
+  plain `.txt` or Markdown.
+
+The on-device engine runs entirely on the machine: no key, no network, nothing billed per
+minute, and audio that never leaves the computer. It is same-language only — Windows exposes
+no on-device translation API — and less accurate than Voxtral, so it is the offline and
+rehearsal path rather than the default. See
+[`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
+Store distribution.
 
 Provider details and verified wire formats are documented in
 [`docs/gemini-live-api.md`](docs/gemini-live-api.md),
@@ -53,7 +61,7 @@ non-`cfg(windows)` code, not a supported target.
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
-- At least one provider key:
+- A provider key for anything except on-device subtitles, which need none:
   - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
   - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
@@ -73,6 +81,7 @@ is open. Rates verified 10 August 2026 against
 | ↳ source monitor | `gpt-realtime-whisper` | $0.017/min | $1.02 |
 | Translation | OpenAI total | | **$3.06** |
 | Subtitles | `voxtral-mini-transcribe-realtime-2602` | $0.006/min | **$0.36** |
+| Subtitles | on-device recognizer | free | **$0.00** |
 
 Gemini's input leg is billed on the full wall clock because silence stays in the stream, but
 its expensive output leg accrues only while the model generates translated speech — pauses,
@@ -137,6 +146,7 @@ src/                         SvelteKit operator and overlay windows
 src-tauri/src/audio/         capture, metering, resampling
 src-tauri/src/realtime.rs    shared WebSocket lifecycle
 src-tauri/src/{gemini,openai,mistral}/ provider protocols
+src-tauri/src/ondevice/      keyless local recognition (engine.rs picks the recognizer)
 .github/workflows/           frontend/Rust/security/workflow CI + releases
 ```
 

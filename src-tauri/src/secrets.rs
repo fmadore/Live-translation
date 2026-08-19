@@ -9,21 +9,24 @@ use crate::types::Provider;
 
 const SERVICE: &str = "org.stias.live-translation";
 
-/// Keychain account name (one entry per provider).
-fn account(provider: Provider) -> &'static str {
+/// Credential-store account name (one entry per provider). `None` for backends that need
+/// no credential.
+fn account(provider: Provider) -> Option<&'static str> {
     match provider {
-        Provider::Gemini => "gemini-api-key",
-        Provider::OpenAi => "openai-api-key",
-        Provider::Mistral => "mistral-api-key",
+        Provider::Gemini => Some("gemini-api-key"),
+        Provider::OpenAi => Some("openai-api-key"),
+        Provider::Mistral => Some("mistral-api-key"),
+        Provider::OnDevice => None,
     }
 }
 
 /// Environment-variable fallback name.
-fn env_var(provider: Provider) -> &'static str {
+fn env_var(provider: Provider) -> Option<&'static str> {
     match provider {
-        Provider::Gemini => "GEMINI_API_KEY",
-        Provider::OpenAi => "OPENAI_API_KEY",
-        Provider::Mistral => "MISTRAL_API_KEY",
+        Provider::Gemini => Some("GEMINI_API_KEY"),
+        Provider::OpenAi => Some("OPENAI_API_KEY"),
+        Provider::Mistral => Some("MISTRAL_API_KEY"),
+        Provider::OnDevice => None,
     }
 }
 
@@ -32,11 +35,14 @@ fn label(provider: Provider) -> &'static str {
         Provider::Gemini => "Gemini",
         Provider::OpenAi => "OpenAI",
         Provider::Mistral => "Mistral",
+        Provider::OnDevice => "On-device",
     }
 }
 
 fn entry(provider: Provider) -> Result<keyring::Entry> {
-    keyring::Entry::new(SERVICE, account(provider)).context("failed to open OS keychain entry")
+    let account =
+        account(provider).with_context(|| format!("{} needs no API key", label(provider)))?;
+    keyring::Entry::new(SERVICE, account).context("failed to open OS keychain entry")
 }
 
 /// Store the provider's key in the OS keychain.
@@ -62,12 +68,15 @@ pub fn clear_api_key(provider: Provider) -> Result<()> {
 
 /// Resolve the provider's key for use: keychain first, then the environment/.env fallback.
 pub fn resolve_api_key(provider: Provider) -> Result<String> {
+    let Some(env_var) = env_var(provider) else {
+        anyhow::bail!("{} needs no API key", label(provider));
+    };
     if let Ok(pw) = entry(provider).and_then(|e| e.get_password().map_err(Into::into)) {
         if !pw.trim().is_empty() {
             return Ok(pw);
         }
     }
-    if let Ok(env_key) = std::env::var(env_var(provider)) {
+    if let Ok(env_key) = std::env::var(env_var) {
         if !env_key.trim().is_empty() {
             return Ok(env_key);
         }
@@ -75,11 +84,15 @@ pub fn resolve_api_key(provider: Provider) -> Result<String> {
     anyhow::bail!(
         "No {} API key found. Save one in the operator window or set {}.",
         label(provider),
-        env_var(provider)
+        env_var
     )
 }
 
-/// True if a key for this provider is available from either source.
+/// True once this provider is ready to start a session. Backends that need no credential
+/// are always ready, so the operator's Start button is never gated on a key for them.
 pub fn has_api_key(provider: Provider) -> bool {
+    if !provider.requires_api_key() {
+        return true;
+    }
     resolve_api_key(provider).is_ok()
 }

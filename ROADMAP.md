@@ -108,12 +108,18 @@ cost, removing the warning entirely.
 The critical path is not packaging but a **keyless on-device subtitle engine**. Store policy
 10.8.3 classifies provider **API keys** as financial information and bars individual accounts
 from requiring them for primary functionality; a company account is out of scope, so captions
-have to work with no credential at all. Inbox `Windows.Media.SpeechRecognition` is the stable
-route today — the newer Whisper-derived Speech Recognition Windows AI API is still in the
-Windows App SDK experimental channel. The same work answers policy 10.3.1's demand that
+have to work with no credential at all. The same work answers policy 10.3.1's demand that
 certification be able to test the app. **Gemini, OpenAI and Mistral are unaffected**: the
 on-device engine is an additional keyless provider under Live subtitles, and translation stays
 cloud-only because Windows has no on-device translation API.
+
+The engine-independent half has landed — `Provider::OnDevice`, the `ondevice::run_session`
+driver, the operator UI and unit tests. What remains is the recognizer itself in
+`ondevice/engine.rs`. Inbox `Windows.Media.SpeechRecognition` turned out to be unusable here:
+it has no audio-input API and always opens the default microphone, so it can serve neither
+system-loopback audio nor *Both* mode. `whisper-rs` can ship today; the Whisper-derived Speech
+Recognition Windows AI API is the migration target once it leaves the Windows App SDK
+experimental channel.
 
 Also required: a **1.0.0** release (an MSIX version's first segment cannot be `0`) and a
 published privacy policy. Not on the critical path for the September 2026 workshop; the

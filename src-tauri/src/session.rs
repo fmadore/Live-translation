@@ -18,6 +18,7 @@ use crate::gemini::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
 use crate::mistral::{
     MistralConfig, DEFAULT_MISTRAL_HOST, DEFAULT_MISTRAL_MODEL, DEFAULT_TARGET_STREAMING_DELAY_MS,
 };
+use crate::ondevice::{self, OnDeviceConfig};
 use crate::openai::{
     OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
     DEFAULT_OPENAI_TRANSLATE_MODEL,
@@ -63,14 +64,27 @@ impl SessionManager {
             (OutputMode::Translate, Provider::Mistral) => {
                 anyhow::bail!("Mistral Voxtral is transcription-only; choose Live subtitles")
             }
-            (OutputMode::Transcribe, Provider::Gemini | Provider::OpenAi) => {
-                anyhow::bail!("Live subtitles currently use the Mistral provider")
+            (OutputMode::Translate, Provider::OnDevice) => {
+                anyhow::bail!(
+                    "On-device captions are same-language only; choose Live subtitles, or \
+                     Gemini/OpenAI to translate"
+                )
+            }
+            // Guarded on the capability rather than a provider list, so adding another
+            // translating backend cannot silently become a valid subtitle engine.
+            (OutputMode::Transcribe, provider) if provider.can_translate() => {
+                anyhow::bail!("Live subtitles use the Mistral or on-device engine")
             }
             _ => {}
         }
 
         let provider = options.provider;
-        let api_key = secrets::resolve_api_key(provider)?;
+        // The on-device engine is the one backend that starts with no credential at all.
+        let api_key = if provider.requires_api_key() {
+            secrets::resolve_api_key(provider)?
+        } else {
+            String::new()
+        };
         let target_rate = provider.input_sample_rate();
         let target_code = options.target_language.bcp47().to_string();
 
@@ -196,6 +210,18 @@ impl SessionManager {
                         received_delta: false,
                     };
                     client_tasks.push(tauri::async_runtime::spawn(run_session(
+                        client_app,
+                        config,
+                        audio_rx,
+                        source_cancel,
+                    )));
+                }
+                Provider::OnDevice => {
+                    let config = OnDeviceConfig {
+                        origin,
+                        language_tag: ondevice::language_tag(options.target_language),
+                    };
+                    client_tasks.push(tauri::async_runtime::spawn(ondevice::run_session(
                         client_app,
                         config,
                         audio_rx,
