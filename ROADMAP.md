@@ -97,6 +97,19 @@ Items are checked off as they land; the git history references the phase numbers
   current release actions.
 - [x] Version bump to **0.4.0**.
 
+## Phase 7 — Distribution (planned)
+
+Installers are unsigned, so every recipient meets a SmartScreen "unknown publisher" wall.
+The full analysis, route comparison and phased plan live in
+[`docs/microsoft-store.md`](docs/microsoft-store.md). Summary: package as **MSIX** and submit
+to the **Microsoft Store**, which re-signs the package with a Microsoft certificate at no
+cost, removing the warning entirely. Three app-specific gates decide the schedule — Store
+policy 10.8.3 treats provider **API keys** as financial information and may force a company
+account, an MSIX version's first segment cannot be `0` (so the Store debut is **1.0.0**), and
+certification needs a way to exercise the app **without** a paid key, which promotes
+*rehearsal mode* below from nice-to-have to prerequisite. Not on the critical path for the
+September 2026 workshop; the unsigned installer remains the event-day route.
+
 ## Future ideas (not scheduled)
 
 - **Persist overlay position/size** across launches (tauri-plugin-window-state).
