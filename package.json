@@ -21,6 +21,7 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
+    "fetch:whisper-model": "node scripts/fetch-whisper-model.mjs",
     "tauri": "tauri"
   },
   "devDependencies": {

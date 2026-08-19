@@ -18,10 +18,10 @@ It has two deliberately separate modes:
   **on-device recognizer that needs no API key at all**. The transcript can be saved as
   plain `.txt` or Markdown.
 
-The on-device engine runs entirely on the machine: no key, no network, nothing billed per
-minute, and audio that never leaves the computer. It is same-language only — Windows exposes
-no on-device translation API — and less accurate than Voxtral, so it is the offline and
-rehearsal path rather than the default. See
+The on-device engine (whisper.cpp, bundled `ggml-base-q5_1`) runs entirely on the machine:
+no key, no network, nothing billed per minute, and audio that never leaves the computer. It
+is same-language only — Windows exposes no on-device translation API — and less accurate than
+Voxtral, so it is the offline and rehearsal path rather than the default. See
 [`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
 Store distribution.
 
@@ -61,6 +61,8 @@ non-`cfg(windows)` code, not a supported target.
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
+- CMake and a C++ compiler — whisper.cpp, which backs on-device subtitles, is built from
+  source (the Visual Studio "Desktop development with C++" workload covers both)
 - A provider key for anything except on-device subtitles, which need none:
   - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
@@ -107,6 +109,7 @@ before the event.
 
 ```bash
 npm install
+npm run fetch:whisper-model   # ~57 MiB speech model for on-device subtitles; not committed
 npm test
 npm run check
 npm run build
@@ -146,7 +149,8 @@ src/                         SvelteKit operator and overlay windows
 src-tauri/src/audio/         capture, metering, resampling
 src-tauri/src/realtime.rs    shared WebSocket lifecycle
 src-tauri/src/{gemini,openai,mistral}/ provider protocols
-src-tauri/src/ondevice/      keyless local recognition (engine.rs picks the recognizer)
+src-tauri/src/ondevice/      keyless local recognition (whisper.cpp behind a Recognizer seam)
+scripts/fetch-whisper-model.mjs  downloads the bundled speech model
 .github/workflows/           frontend/Rust/security/workflow CI + releases
 ```
 

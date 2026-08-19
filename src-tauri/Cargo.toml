@@ -36,6 +36,11 @@ futures-util = "0.3"
 # Audio capture.
 cpal = "0.18"
 
+# Local speech recognition for the keyless on-device caption path. No GPU features: those
+# would pull CUDA/Vulkan toolchains into the build for no gain on the event hardware.
+# Builds whisper.cpp from source, so the build toolchain needs CMake and a C++ compiler.
+whisper-rs = { version = "0.16", default-features = false }
+
 # Encoding / config / errors / logging.
 base64 = "0.23"
 # v4's default `v1` feature selects the Windows Credential Manager backend (and Secret

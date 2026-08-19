@@ -57,16 +57,25 @@ Mini Transcribe Realtime is a speech-to-text model, and Windows exposes no on-de
 translation API. `session.rs` enforces this through `Provider::can_translate` rather than a
 provider list, so a new translating backend cannot silently become a subtitle engine.
 
-### On-device recognizer selection
+### On-device recognizer
 
-`ondevice/engine.rs` is the single pluggable point, and **no engine is wired up yet** — it
-returns an actionable error and the operator UI keeps Mistral available. The binding
-constraint is that a recognizer must accept **pushed PCM**: the app captures system audio
-over WASAPI loopback and offers device selection, so an engine that opens its own microphone
-can serve neither system audio nor *Both* mode. That constraint rules out the inbox
-`Windows.Media.SpeechRecognition` namespace, whose API surface has no audio input at all —
-verified against the generated `windows` 0.62 bindings. The candidates that remain, and their
-trade-offs, are documented in `engine.rs`.
+`ondevice/engine.rs` is the single pluggable point; `ondevice/whisper.rs` is the current
+implementation, whisper.cpp via `whisper-rs`. The binding constraint is that a recognizer must
+accept **pushed PCM**: the app captures system audio over WASAPI loopback and offers device
+selection, so an engine that opens its own microphone can serve neither system audio nor
+*Both* mode. That constraint ruled out the inbox `Windows.Media.SpeechRecognition` namespace,
+whose API surface has no audio input at all — verified against the generated `windows` 0.62
+bindings. The Speech Recognition Windows AI API is the migration target once it leaves the
+Windows App SDK experimental channel; `engine.rs` records both.
+
+Whisper transcribes a buffer, not a stream, so realtime captions come from a sliding window:
+audio accumulates into the current utterance, inference runs every 2 s of new audio for an
+interim caption, and the utterance is committed after 800 ms of silence or at a 15 s cap. An
+energy gate keeps the model away from pure silence, where whisper reliably invents text, and
+wholly bracketed outputs (`[BLANK_AUDIO]`, `(soft music)`) are filtered before they can reach
+the overlay. Model weights are shared through a process-wide cache, so *Both* mode loads one
+copy and gives each origin its own decode state. The timing constants are untuned against
+real conference audio on the event hardware — that needs a rehearsal.
 
 ## Concurrency and shutdown
 

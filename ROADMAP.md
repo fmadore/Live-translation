@@ -113,13 +113,13 @@ certification be able to test the app. **Gemini, OpenAI and Mistral are unaffect
 on-device engine is an additional keyless provider under Live subtitles, and translation stays
 cloud-only because Windows has no on-device translation API.
 
-The engine-independent half has landed — `Provider::OnDevice`, the `ondevice::run_session`
-driver, the operator UI and unit tests. What remains is the recognizer itself in
-`ondevice/engine.rs`. Inbox `Windows.Media.SpeechRecognition` turned out to be unusable here:
-it has no audio-input API and always opens the default microphone, so it can serve neither
-system-loopback audio nor *Both* mode. `whisper-rs` can ship today; the Whisper-derived Speech
-Recognition Windows AI API is the migration target once it leaves the Windows App SDK
-experimental channel.
+This has landed: `Provider::OnDevice`, the `ondevice::run_session` driver, whisper.cpp behind
+a `Recognizer` seam, the operator UI, and unit tests. Inbox `Windows.Media.SpeechRecognition`
+turned out to be unusable here — it has no audio-input API and always opens the default
+microphone, so it can serve neither system-loopback audio nor *Both* mode. The Whisper-derived
+Speech Recognition Windows AI API is the migration target once it leaves the Windows App SDK
+experimental channel; it would remove the bundled model entirely. Still to verify on real
+hardware: caption latency and accuracy, and the whisper.cpp build on the ARM64 Windows runner.
 
 Also required: a **1.0.0** release (an MSIX version's first segment cannot be `0`) and a
 published privacy policy. Not on the critical path for the September 2026 workshop; the

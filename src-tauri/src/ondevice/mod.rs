@@ -25,6 +25,7 @@ use crate::realtime::{emit_caption, TurnAccumulator};
 use crate::types::{events, Origin, SessionState, StatusUpdate};
 
 mod engine;
+mod whisper;
 
 /// How many chunks may queue between the async driver and the recognition thread before the
 /// driver starts discarding the oldest. Recognition is CPU-bound and may transiently fall
@@ -94,9 +95,12 @@ pub async fn run_session(
     // Engine construction can be slow — a first-run model load, or a download. Keep it off
     // the async runtime and cancellable.
     let language_tag = config.language_tag.clone();
+    let engine_app = app.clone();
     let recognizer = tokio::select! {
         _ = cancel.cancelled() => return,
-        built = tauri::async_runtime::spawn_blocking(move || engine::new_recognizer(language_tag.as_deref())) => built,
+        built = tauri::async_runtime::spawn_blocking(move || {
+            engine::new_recognizer(&engine_app, language_tag.as_deref())
+        }) => built,
     };
 
     let recognizer = match recognizer {

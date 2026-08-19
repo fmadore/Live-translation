@@ -23,3 +23,7 @@ npm-debug.log*
 
 # Tauri signing keys
 *.key
+
+# Speech model for on-device subtitles: ~142 MB, fetched by scripts/fetch-whisper-model.mjs.
+# The directory itself is tracked (its README keeps the Tauri resource glob matching).
+src-tauri/resources/models/*.bin

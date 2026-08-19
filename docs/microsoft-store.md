@@ -376,22 +376,27 @@ Verified against the generated bindings for the `windows` crate 0.62, where `Spe
 exposes only constraints, timeouts, UI options and the continuous-session handle. It could
 back a microphone-only demo, but not this app's actual feature set.
 
-Two candidates remain:
+Two candidates remained, and **`whisper-rs` is now implemented**:
 
 | Engine | Accepts pushed PCM | Ships today? | Quality | Cost |
 | --- | --- | --- | --- | --- |
-| **Speech Recognition Windows AI API** | Yes — `SpeechAudioProvider` | **No** — Windows App SDK *experimental channel*, which cannot back a Store submission. Also a `Microsoft.Windows.*` App SDK type, not an OS `Windows.*` one, so the `windows` crate does not project it: Rust use needs the App SDK bootstrapper and a projection of its own | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free |
-| **`whisper-rs` (whisper.cpp)** | Yes — f32/i16 PCM directly | **Yes** — stable, no Windows version dependency | Best available here; well above anything else stable | Bundled model (~75 MB tiny, ~142 MB base), a C++/CMake step in CI, CPU headroom |
+| **`whisper-rs` (whisper.cpp)** — *shipped* | Yes — PCM directly | **Yes** — stable, no Windows version dependency | Best available from anything stable | Bundled model, a C++/CMake step in the build, CPU headroom |
+| **Speech Recognition Windows AI API** — *migration target* | Yes — `SpeechAudioProvider` | **No** — Windows App SDK *experimental channel*, which cannot back a Store submission. Also a `Microsoft.Windows.*` App SDK type, not an OS `Windows.*` one, so the `windows` crate does not project it: Rust use needs the App SDK bootstrapper and a projection of its own | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free, and **no bundled model at all** |
 
-The Windows AI API is the better long-term answer and the one to migrate to the moment it
-reaches the stable channel — it is free, needs no bundled model, and uses the NPU where one
-exists. It simply cannot carry a Store submission today. `whisper-rs` is what can ship now,
-at the price of package size and a C++ build step.
+The Windows AI API remains the better long-term answer and the one to migrate to the moment
+it reaches the stable channel: free, NPU-accelerated where hardware allows, and it would drop
+the model from the installer entirely. It simply cannot carry a Store submission today.
 
-### What is already built
+**On installer size** — the obvious objection to whisper — the bundled model defaults to the
+5-bit quantized `ggml-base-q5_1` at **57 MiB** rather than full `base` at 141 MiB. That is a
+small accuracy cost on an engine already documented as less accurate than Voxtral, and it
+keeps the Store package in a defensible range. `WHISPER_MODEL` selects another size at build
+time and `WHISPER_MODEL_PATH` overrides at runtime, so this is tunable after a rehearsal
+rather than baked in.
 
-The engine-independent half of this is done and on the branch — everything except the
-recognizer itself:
+### What is built
+
+Complete and on the branch:
 
 - `Provider::OnDevice` end to end, with `requires_api_key` and `can_translate` predicates so
   the keyless path is a first-class backend rather than a special case. `session.rs` skips
@@ -401,11 +406,20 @@ recognizer itself:
   bounded audio consumption, drop-newest backpressure, turn bookkeeping, per-origin status,
   graceful flush on stop. Unit tested (partials replace rather than append, an empty final
   closes an open turn but not an idle one, subtitles land in the audience field).
-- `ondevice/engine.rs` — the one pluggable point, documenting the decision above and
-  returning an actionable error until an engine lands.
+- `ondevice/engine.rs` — the pluggable point and model resolution;
+  `ondevice/whisper.rs` — whisper.cpp behind the `Recognizer` trait, with a sliding-window
+  strategy (whisper transcribes buffers, not streams), an energy gate that keeps the model
+  away from silence where it invents text, a filter for bracketed non-speech annotations, and
+  a shared model cache so *Both* mode loads one copy of the weights.
+- `scripts/fetch-whisper-model.mjs` plus a release-workflow step; the model is bundled as a
+  Tauri resource and deliberately not committed.
 - Operator UI — **Mistral Voxtral | On-device · no key** under Live subtitles, the API-key
   panel hidden for the keyless engine, Start no longer gated on a key, and a language hint
   for the recognizer.
+
+**Not yet verified:** caption latency and accuracy against real conference audio, and the
+build on the `windows-11-arm` runner — whisper.cpp compiles from source, so ARM64 Windows is
+a genuine risk to check before relying on a release. Neither can be tested from CI alone.
 
 ### Where it fits in the architecture
 
