@@ -74,6 +74,9 @@ jobs:
         with:
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: ${{ inputs.tag || github.ref_name }}
-          releaseDraft: false
-          prerelease: false
+          # A hyphenated tag (v1.0.0-rc1, v0.5.4-arm64-check) is a pre-release or a build
+          # validation, so it stays an unpublished draft until a human promotes it. Plain
+          # version tags publish as before.
+          releaseDraft: ${{ contains(inputs.tag || github.ref_name, '-') }}
+          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
           args: --target ${{ matrix.target }}

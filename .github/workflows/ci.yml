@@ -51,7 +51,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # windows-11-arm matches the ARM64 release target. It matters more since the
+        # on-device engine builds whisper.cpp from source: a C++ break would otherwise only
+        # surface during a release.
+        os: [ubuntu-latest, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
