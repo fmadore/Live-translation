@@ -56,7 +56,8 @@ jobs:
         # surface during a release.
         os: [ubuntu-latest, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # whisper.cpp is compiled from source, so the Rust lane is much heavier than it was.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -88,6 +89,24 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+
+      # ggml (whisper.cpp) refuses to build with MSVC on ARM64 — its CMake stops with
+      # "MSVC is not supported for ARM, use clang". clang-cl is MSVC-ABI compatible, so the
+      # C/C++ compiles with it and still links against the aarch64-pc-windows-msvc Rust
+      # target. Only the ARM64 lane needs this; x64 builds fine with MSVC.
+      - name: Provide clang-cl for ARM64 native code
+        if: runner.arch == 'ARM64'
+        shell: pwsh
+        run: |
+          if (-not (Get-Command clang-cl -ErrorAction SilentlyContinue)) {
+            choco install llvm --no-progress -y
+            $llvmBin = "C:\Program Files\LLVM\bin"
+            if (Test-Path $llvmBin) {
+              $llvmBin | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+            }
+          }
+          "CC=clang-cl"  | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "CXX=clang-cl" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: rustfmt
         run: cargo fmt --check
