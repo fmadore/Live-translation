@@ -286,22 +286,25 @@ Listing (live once the first submission passes certification):
 
 ### Phase B — repository preparation
 
-- [ ] `docs/privacy.md` + GitHub Pages, per gate 3.
-- [ ] Version bump to **1.0.0** across `package.json`, `Cargo.toml`, `tauri.conf.json`.
-- [ ] Drop macOS (see below) so the release matrix is Windows-only.
+- [x] `docs/privacy.md` + GitHub Pages, per gate 3. Published at
+      <https://fmadore.github.io/Live-translation/privacy> (Pages serves `/docs` on `main`).
+- [x] Version bump to **1.0.0** across `package.json`, `Cargo.toml`, `tauri.conf.json`.
+- [x] Drop macOS (see below) so the release matrix is Windows-only.
 - [ ] README: Installing on Windows section; SHA-256 checksums in `release.yml`.
 
 ### Phase C — packaging pipeline
 
-- [ ] `npx @choochmeque/tauri-windows-bundle@latest init`; commit `bundle.config.json` and the
-      manifest template.
-- [ ] Manifest: identity values from *Store identity* above, `runFullTrust`, `microphone`
-      device capability, `1.0.0.0`.
+- [x] Bundler scaffold committed: `src-tauri/gen/windows/` holds `bundle.config.json`, the
+      `AppxManifest.xml.template`, and the tile assets; `npm run bundle:msix` builds the
+      package. The full flow is documented in [`packaging-msix.md`](packaging-msix.md).
+- [x] Manifest: identity values from *Store identity* above, `runFullTrust`, `microphone`
+      device capability, `1.0.0.0` — verified byte for byte against the assigned identity.
 - [ ] Build locally, sign with a self-signed certificate, install, and **verify gates 6, 7 and
       8 on real hardware** — microphone, WASAPI loopback against a live Teams/Zoom call, and
       Credential Manager round-trip. Also re-check the transparent click-through overlay and
-      the `Documents/Live-translation/` export path under package identity.
-- [ ] Add an `msix` job to `release.yml` producing an unsigned `.msixbundle`
+      the `Documents/Live-translation/` export path under package identity. Step-by-step
+      commands: [`packaging-msix.md`](packaging-msix.md).
+- [x] Add an `msix` job to `release.yml` producing an unsigned `.msixbundle`
       (`--arch x64` for now) as a release asset. Keep the NSIS installer alongside it — the
       GitHub release stays the fallback channel.
 
@@ -313,12 +316,14 @@ before Phase C rather than after.**
 - [x] **Keyless on-device backend, engine-independent half** — `Provider::OnDevice`,
       `ondevice/run_session`, the operator UI, and unit tests. Gemini, OpenAI and Mistral are
       untouched.
-- [ ] **Pick and implement the recognizer** in `ondevice/engine.rs` — `whisper-rs` ships
-      today; the Speech Recognition Windows AI API is the migration target once it leaves the
-      experimental channel. Inbox `Windows.Media.SpeechRecognition` is ruled out: no audio
-      input API.
-- [ ] First-run state that captions immediately with no key, and presents provider keys as an
-      optional upgrade (accuracy, and translation) rather than a precondition.
+- [x] **Pick and implement the recognizer** in `ondevice/engine.rs` — `whisper-rs`, with the
+      bundled `ggml-base-q5_1` model; the Speech Recognition Windows AI API is the migration
+      target once it leaves the experimental channel. Inbox `Windows.Media.SpeechRecognition`
+      is ruled out: no audio input API.
+- [x] First-run state that captions immediately with no key, and presents provider keys as an
+      optional upgrade (accuracy, and translation) rather than a precondition: a fresh
+      install defaults to on-device subtitles over system audio, and the operator's setup
+      persists across launches (`session.options`).
 - [ ] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline.
 - [ ] Permission-denied microphone path with an actionable message (gate 6).
 - [ ] WebView2 presence assertion (gate 9).

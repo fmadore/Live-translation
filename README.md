@@ -26,7 +26,9 @@ Voxtral, so it is the offline and rehearsal path rather than the default. See
 [`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
 Store distribution. The Store name **Live Translation & Subtitles** is reserved (Store ID
 `9PFB8LR3RR9X`); once the first submission passes certification the listing will be at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X>.
+<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. How the app handles audio, provider keys and
+transcripts is set out in [`docs/privacy.md`](docs/privacy.md), published at
+<https://fmadore.github.io/Live-translation/privacy>.
 
 Provider details and verified wire formats are documented in
 [`docs/gemini-live-api.md`](docs/gemini-live-api.md),
