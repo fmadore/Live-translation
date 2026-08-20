@@ -76,8 +76,10 @@ pub trait Recognizer: Send {
 /// fabricating a sample from it.
 fn decode_pcm16(pcm_le: &[u8]) -> Vec<i16> {
     pcm_le
-        .chunks_exact(2)
-        .map(|pair| i16::from_le_bytes([pair[0], pair[1]]))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| i16::from_le_bytes(*pair))
         .collect()
 }
 

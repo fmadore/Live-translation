@@ -155,18 +155,18 @@ mod windows_impl {
         let buf: &[u8] = bytes.make_contiguous();
         match (ty, bits) {
             (SampleType::Float, 32) => {
-                for c in buf.chunks_exact(4) {
-                    out.push(f32::from_le_bytes([c[0], c[1], c[2], c[3]]));
+                for c in buf.as_chunks::<4>().0 {
+                    out.push(f32::from_le_bytes(*c));
                 }
             }
             (SampleType::Int, 16) => {
-                for c in buf.chunks_exact(2) {
-                    out.push(i16::from_le_bytes([c[0], c[1]]) as f32 / 32768.0);
+                for c in buf.as_chunks::<2>().0 {
+                    out.push(i16::from_le_bytes(*c) as f32 / 32768.0);
                 }
             }
             (SampleType::Int, 32) => {
-                for c in buf.chunks_exact(4) {
-                    let v = i32::from_le_bytes([c[0], c[1], c[2], c[3]]);
+                for c in buf.as_chunks::<4>().0 {
+                    let v = i32::from_le_bytes(*c);
                     out.push(v as f32 / 2_147_483_648.0);
                 }
             }
