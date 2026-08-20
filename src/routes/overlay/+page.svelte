@@ -378,9 +378,8 @@
 			</div>
 		</div>
 	{:else if lines.length > 0}
-		<!-- The scrim exists only while there is something to read: with no captions the
-		     window must paint nothing at all, or it would veil the presenter's slides. -->
-		<div class="scrim"></div>
+		<!-- Painted only while there is something to read: with no captions the window must
+		     paint nothing at all, or it would veil the presenter's slides. -->
 		<div class="captions">
 			{#each lines as line (line.origin)}
 				<div class="row">
@@ -418,22 +417,9 @@
 
 	/* ---- Audience view ---------------------------------------------------- */
 
-	/* A full-width fade instead of per-line boxes: the captions sit on the slide rather
-	   than in a rectangle cut through it. */
-	.scrim {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		height: 45%;
-		pointer-events: none;
-		background: linear-gradient(
-			to top,
-			rgba(6, 8, 10, 0.94) 0%,
-			rgba(6, 8, 10, 0.86) 42%,
-			rgba(6, 8, 10, 0) 100%
-		);
-	}
+	/* The backing fade is the container's own background, so it is exactly as tall as the
+	   captions plus the padded fade-out above them — a light veil the slide shows through,
+	   not a band that blanks its lower half. The text shadow carries the legibility. */
 	.captions {
 		position: absolute;
 		left: 0;
@@ -441,18 +427,26 @@
 		bottom: 0;
 		display: flex;
 		flex-direction: column;
+		align-items: center;
 		gap: 18px;
-		padding: 0 6.5vw 8vh;
+		padding: 9vh 6.5vw 6vh;
 		pointer-events: none;
+		background: linear-gradient(
+			to top,
+			rgba(6, 8, 10, 0.72) 0%,
+			rgba(6, 8, 10, 0.42) 55%,
+			rgba(6, 8, 10, 0) 100%
+		);
 	}
+	/* Centred like cinema subtitles; with labels on, the label+text pair centres as a unit. */
 	.row {
 		display: flex;
+		justify-content: center;
 		align-items: baseline;
 		gap: 20px;
 	}
-	/* Fixed column so the two speakers' text starts on the same vertical line. */
 	.origin {
-		flex: 0 0 96px;
+		flex: 0 0 auto;
 		font-weight: 600;
 		/* Scales with the caption so the label stays legible at projector distance. */
 		font-size: max(11px, calc(var(--fs) * 0.37));
@@ -468,8 +462,13 @@
 		font-size: var(--fs);
 		line-height: 1.34;
 		letter-spacing: -0.005em;
+		text-align: center;
 		color: #ffffff;
-		text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+		/* A tight dark edge plus a soft halo: keeps white text readable over a bright
+		   slide even where the fade above has thinned to nothing. */
+		text-shadow:
+			0 1px 3px rgba(0, 0, 0, 0.9),
+			0 2px 14px rgba(0, 0, 0, 0.8);
 		text-wrap: pretty;
 	}
 	/* A finished line loses a little weight of colour, never size or slant: both cost
