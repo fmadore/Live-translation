@@ -141,7 +141,7 @@ jobs:
       # msixbundle-cli names its output after the manifest DisplayName ("Live Translation &
       # Subtitles"), which makes a poor release asset, so rename to the convention the NSIS
       # and MSI assets already follow.
-      - name: Name the release asset
+      - name: Name the release assets
         id: package
         shell: pwsh
         run: |
@@ -149,13 +149,23 @@ jobs:
           if (-not (Test-Path 'src-tauri/target/appx/x64/models/*.bin')) {
             throw 'No speech model in the package payload; the MSIX would ship without on-device subtitles.'
           }
-          $built = Get-ChildItem 'src-tauri/target/msix' -Filter '*.msixbundle' | Select-Object -First 1
-          if (-not $built) { throw 'tauri-windows-bundle produced no .msixbundle.' }
-          $asset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_x64.msixbundle"
-          Move-Item -LiteralPath $built.FullName -Destination $asset -Force
-          "asset=$asset" >> $env:GITHUB_OUTPUT
+          # Both artifacts ship: the .msixbundle is the Store submission format, and the bare
+          # .msix is what a tester signs and installs locally — signing a bundle does not sign
+          # the package inside it, so the bundle alone cannot be side-loaded for verification.
+          $msix = Get-ChildItem 'src-tauri/target/msix' | Where-Object Extension -eq '.msix' | Select-Object -First 1
+          if (-not $msix) { throw 'tauri-windows-bundle produced no .msix.' }
+          $bundle = Get-ChildItem 'src-tauri/target/msix' | Where-Object Extension -eq '.msixbundle' | Select-Object -First 1
+          if (-not $bundle) { throw 'tauri-windows-bundle produced no .msixbundle.' }
+          $msixAsset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_x64.msix"
+          $bundleAsset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_x64.msixbundle"
+          Move-Item -LiteralPath $msix.FullName -Destination $msixAsset -Force
+          Move-Item -LiteralPath $bundle.FullName -Destination $bundleAsset -Force
+          "msix=$msixAsset" >> $env:GITHUB_OUTPUT
+          "bundle=$bundleAsset" >> $env:GITHUB_OUTPUT
 
       - name: Attach the MSIX to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ inputs.tag || github.ref_name }}" "${{ steps.package.outputs.asset }}" --clobber
+        run: >-
+          gh release upload "${{ inputs.tag || github.ref_name }}"
+          "${{ steps.package.outputs.msix }}" "${{ steps.package.outputs.bundle }}" --clobber
