@@ -14,8 +14,10 @@ import type {
 import {
 	loadOverlayFont,
 	loadOverlayPlaced,
+	loadStartOptions,
 	OVERLAY_FONT_KEY,
-	OVERLAY_PLACED_KEY
+	OVERLAY_PLACED_KEY,
+	SESSION_OPTIONS_KEY
 } from './types';
 
 // ---- Session status --------------------------------------------------------
@@ -67,12 +69,14 @@ export function applyStatus(u: StatusUpdate) {
 
 export const hasKey = writable<boolean>(false);
 
-export const options = writable<StartOptions>({
-	source: 'system',
-	mode: 'translate',
-	targetLanguage: 'en',
-	provider: 'gemini',
-	micDeviceName: null
+// Persisted to localStorage: the keyless on-device default applies to a first run only, and a
+// configured operator's setup survives a restart.
+export const options = writable<StartOptions>(loadStartOptions());
+
+options.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem(SESSION_OPTIONS_KEY, JSON.stringify(v));
+	}
 });
 
 // ---- Captions & transcript --------------------------------------------------

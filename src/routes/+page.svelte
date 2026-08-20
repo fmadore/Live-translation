@@ -41,10 +41,12 @@
 	const controlsLocked = $derived($isRunning || sessionBusy);
 
 	// The on-device engine has no key panel to report readiness, so mark it ready here.
-	// Switching back to a cloud provider remounts ApiKeyPanel, which re-checks the keychain.
+	// A cloud provider starts NOT ready: clearing the flag on the switch itself closes the
+	// tick where the previous provider's `true` would leave Start enabled before the
+	// remounted ApiKeyPanel has re-checked the keychain.
 	const needsKey = $derived(providerRequiresKey($options.provider));
 	$effect(() => {
-		if (!needsKey) hasKey.set(true);
+		hasKey.set(!needsKey);
 	});
 
 	const meta = $derived(PROVIDER_META[$options.provider]);
@@ -147,6 +149,12 @@
 	async function refresh() {
 		try {
 			microphones = await api.listMicrophones();
+			// Options persist across launches, so a remembered device may be gone (unplugged,
+			// renamed). Falling back to the system default beats failing at session start.
+			const name = $options.micDeviceName;
+			if (name && !microphones.some((d) => d.name === name)) {
+				$options = { ...$options, micDeviceName: null };
+			}
 		} catch (e) {
 			statusMessage.set(String(e));
 		}

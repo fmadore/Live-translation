@@ -141,3 +141,64 @@ export function loadOverlayPlaced(): boolean {
 	if (typeof localStorage === 'undefined') return false;
 	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
 }
+
+/** Fresh-install session setup. On-device subtitles over system audio need neither an API key
+ *  nor the microphone permission prompt, so a new install captions on the first Start — the
+ *  keyless primary functionality `docs/microsoft-store.md` argues for. */
+export const DEFAULT_START_OPTIONS: StartOptions = {
+	source: 'system',
+	mode: 'transcribe',
+	targetLanguage: 'en',
+	provider: 'ondevice',
+	micDeviceName: null
+};
+
+/** localStorage key for the operator's last setup, so the keyless default above is a first-run
+ *  state rather than a reset on every launch. */
+export const SESSION_OPTIONS_KEY = 'session.options';
+
+// Runtime members of the unions declared above; persisted values are untrusted input, so each
+// field is checked against its list. Keep these in step with the types.
+const AUDIO_SOURCES: readonly AudioSource[] = ['microphone', 'system', 'both'];
+const OUTPUT_MODES: readonly OutputMode[] = ['translate', 'transcribe'];
+const TARGET_LANGUAGES: readonly TargetLanguage[] = ['en', 'fr'];
+const PROVIDERS: readonly Provider[] = ['gemini', 'openai', 'mistral', 'ondevice'];
+
+function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
+	return typeof value === 'string' && (allowed as readonly string[]).includes(value)
+		? (value as T)
+		: fallback;
+}
+
+/** Read the persisted setup. Absent, unparseable or non-object storage yields the first-run
+ *  defaults; otherwise each field falls back to its own default when missing or outside its
+ *  union. A stored mode/provider pair that violates `providerCanTranslate` discards the whole
+ *  record — the rail offers no such pair, so repairing one field would only guess which of the
+ *  two the operator meant. */
+export function loadStartOptions(): StartOptions {
+	if (typeof localStorage === 'undefined') return { ...DEFAULT_START_OPTIONS };
+	const raw = localStorage.getItem(SESSION_OPTIONS_KEY);
+	if (!raw) return { ...DEFAULT_START_OPTIONS };
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return { ...DEFAULT_START_OPTIONS };
+	}
+	if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_START_OPTIONS };
+	const stored = parsed as Record<string, unknown>;
+	const loaded: StartOptions = {
+		source: oneOf(AUDIO_SOURCES, stored.source, DEFAULT_START_OPTIONS.source),
+		mode: oneOf(OUTPUT_MODES, stored.mode, DEFAULT_START_OPTIONS.mode),
+		targetLanguage: oneOf(
+			TARGET_LANGUAGES,
+			stored.targetLanguage,
+			DEFAULT_START_OPTIONS.targetLanguage
+		),
+		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
+		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null
+	};
+	return providerCanTranslate(loaded.provider) === (loaded.mode === 'translate')
+		? loaded
+		: { ...DEFAULT_START_OPTIONS };
+}
