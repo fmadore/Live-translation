@@ -339,7 +339,7 @@
 			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06261b" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg>
 		</span>
 		<span class="app-name">Live Captions</span>
-		<span class="context">STIAS · DH &amp; AI workshop</span>
+		<span class="context">Realtime translation &amp; subtitles</span>
 		<span class="grow"></span>
 		<div class="pill {stateTone[$sessionState]}" aria-live="polite">
 			<span class="pill-dot"></span>

@@ -1,10 +1,11 @@
 # Live Translation & Subtitles
 
-Real-time captions for the **Digital Humanities and Artificial Intelligence in African
-Studies** / **Humanités numériques et intelligence artificielle en études africaines**
-workshop (STIAS, Stellenbosch, 21–24 September 2026). The desktop app captures a presenter’s
+Real-time captions for hybrid rooms and events. The desktop app captures a presenter’s
 microphone, Windows system audio (whatever is playing — Zoom, Teams, a browser tab, a media
-player), or both and renders captions in a transparent, always-on-top overlay.
+player), or both and renders captions in a transparent, always-on-top overlay. Built for —
+and first deployed at — the **Digital Humanities and Artificial Intelligence in African
+Studies** / **Humanités numériques et intelligence artificielle en études africaines**
+workshop (STIAS, Stellenbosch, 21–24 September 2026).
 
 It has two deliberately separate modes:
 

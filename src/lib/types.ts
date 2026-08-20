@@ -7,7 +7,7 @@ export type AudioSource = 'microphone' | 'system' | 'both';
 /** A single capture source — the `origin` on captions, levels, and status updates. */
 export type Origin = 'microphone' | 'system';
 
-/** BCP-47 codes we use for the two workshop languages. The spoken language is auto-detected. */
+/** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
 export type TargetLanguage = 'en' | 'fr';
 
 /** Caption backend. The cloud providers each have their own API and API key; `ondevice`

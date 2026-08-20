@@ -47,7 +47,7 @@ export function formatTranscript(
 			.join('\n');
 	}
 
-	const header = `# Live captions transcript\n\n${createdAt.toLocaleString()} · STIAS DH & AI workshop\n`;
+	const header = `# Live captions transcript\n\n${createdAt.toLocaleString()}\n`;
 	const body = paragraphs
 		.map((p) => `\n**${ORIGIN_LABEL[p.origin]}**\n\n${p.text}\n`)
 		.join('');
