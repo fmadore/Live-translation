@@ -1,15 +1,64 @@
+/* Design tokens for both windows. The legacy names (--bg … --warn) stay defined because
+   existing components reference them; they are remapped onto the new palette rather than
+   removed. Mint is the primary/live identity; blue is reserved for the room speaker. */
+
 :root {
-	--bg: #0f1115;
-	--panel: #171a21;
-	--panel-2: #1e222b;
-	--border: #2a2f3a;
-	--text: #e7e9ee;
-	--muted: #9aa3b2;
-	--accent: #4f8cff;
-	--accent-2: #6ee7b7;
+	/* Legacy names, remapped to the new palette. */
+	--bg: #08090b;
+	--panel: #111419;
+	--panel-2: #14171c;
+	--border: #262b33;
+	--text: #e9ebef;
+	--muted: #8b93a1;
+	--accent: #5ad1a0;
+	--accent-2: #7fdcb6;
 	--danger: #ff5c5c;
 	--warn: #ffb454;
-	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+	/* Surfaces. --bg is the deepest ground; --surface-0 is the window/frame surface. */
+	--surface-0: #0e1013;
+	--surface-3: #191d23;
+
+	/* Lines. --hairline for section dividers and row borders, --border-2 for subtle card
+	   borders, --border-hover for interactive elements under the pointer. */
+	--hairline: #1f242b;
+	--border-2: #22262e;
+	--border-hover: #3a4150;
+
+	/* Room speaker identity — never used for "live" or primary actions. */
+	--room: #4f8cff;
+	--room-soft: #9db4e8;
+	--room-bg: rgba(79, 140, 255, 0.14);
+
+	/* Primary (mint). --on-accent is the only text colour legible on a filled accent. */
+	--accent-soft: #7fdcb6;
+	--on-accent: #05271b;
+	--accent-border: rgba(90, 209, 160, 0.42);
+	--accent-bg: rgba(90, 209, 160, 0.075);
+	--accent-chip-bg: rgba(90, 209, 160, 0.14);
+
+	/* Attention. */
+	--warn-bg: rgba(255, 180, 84, 0.14);
+	--warn-border: rgba(255, 180, 84, 0.4);
+	--warn-soft: #ffd39a;
+
+	/* Stop / failure. */
+	--danger-bg: rgba(255, 92, 92, 0.1);
+	--danger-border: rgba(255, 92, 92, 0.45);
+	--danger-soft: #ff8f8f;
+
+	/* Text ramp, brightest to faintest. */
+	--text-bright: #f2f4f7;
+	--text-soft: #c3c9d2;
+	--text-dim: #b9c0ca;
+	--muted-2: #7f8794;
+	--muted-3: #6f7783;
+	--faint: #5b6472;
+
+	/* Numbers, model ids, timers and paths. */
+	--font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+	font-family: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -40,4 +89,39 @@ button:disabled {
 input,
 select {
 	font: inherit;
+}
+
+/* Shared animations — declared globally because both windows use them. */
+
+/* Caret on an interim caption. */
+@keyframes blink {
+	0%,
+	55% {
+		opacity: 1;
+	}
+	56%,
+	100% {
+		opacity: 0;
+	}
+}
+
+/* Indeterminate progress sweeping across a track. */
+@keyframes sweep {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(100%);
+	}
+}
+
+/* Slow pulse for a live/connecting indicator. */
+@keyframes breathe {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.45;
+	}
 }

@@ -7,6 +7,7 @@ import type {
 	Caption,
 	AudioLevel,
 	OverlayConfig,
+	OverlayStateMsg,
 	Provider,
 	StartOptions,
 	StatusUpdate
@@ -58,6 +59,9 @@ export const api = {
 	/** Push live overlay appearance (font size) to the overlay window. */
 	setOverlayConfig: (config: OverlayConfig) => emit(EVT.overlayConfig, config),
 
+	/** Report a change made on the overlay itself back to the operator window. */
+	emitOverlayState: (msg: OverlayStateMsg) => emit(EVT.overlayState, msg),
+
 	/** Write the transcript to disk; returns the saved file path. */
 	saveTranscript: (content: string, filename: string) =>
 		invoke<string>('save_transcript', { content, filename })
@@ -69,5 +73,6 @@ export const on = {
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),
 	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h),
-	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h)
+	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
+	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h)
 };

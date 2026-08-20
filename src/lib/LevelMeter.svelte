@@ -1,54 +1,99 @@
 <script lang="ts">
 	import type { AudioLevel } from './types';
 
-	let { level, label }: { level: AudioLevel; label: string } = $props();
+	interface Props {
+		level: AudioLevel;
+		label: string;
+		/** Taller track and a brighter label, for the running session's "Audio arriving" rail. */
+		active?: boolean;
+	}
 
-	// Map RMS (0..1) to a percentage with a gentle curve so quiet speech is visible.
-	const pct = $derived(Math.min(100, Math.round(Math.sqrt(level.rms) * 100)));
-	const peakPct = $derived(Math.min(100, Math.round(Math.sqrt(level.peak) * 100)));
+	let { level, label, active = false }: Props = $props();
+
+	// Map RMS (0..1) to a fraction with a gentle curve so quiet speech is visible. Levels arrive
+	// ~10–20×/s, so both bars move via `transform` only — animating width or left would force a
+	// layout pass on every event.
+	const fill = $derived(Math.min(1, Math.sqrt(Math.max(0, level.rms))));
+	const peak = $derived(Math.min(1, Math.sqrt(Math.max(0, level.peak))));
 </script>
 
-<div class="meter">
+<div class="meter" class:active>
 	<span class="label">{label}</span>
 	<div class="track">
-		<div class="fill" style="width: {pct}%"></div>
-		<div class="peak" style="left: {peakPct}%"></div>
+		<div class="fill" style="transform: scaleX({fill.toFixed(4)})"></div>
+		{#if peak > 0}
+			<div class="peak" style="transform: translateX({(peak * 100).toFixed(2)}%)"></div>
+		{/if}
+		<div class="hatch"></div>
 	</div>
 </div>
 
 <style>
 	.meter {
 		display: grid;
-		grid-template-columns: 64px 1fr;
+		grid-template-columns: 74px 1fr;
 		align-items: center;
-		gap: 8px;
+		gap: 10px;
 	}
 	.label {
-		font-size: 12px;
+		font-size: 10.5px;
+		font-weight: 500;
+		line-height: 1;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--muted-3);
+	}
+	.meter.active .label {
 		color: var(--muted);
 	}
 	.track {
 		position: relative;
-		height: 10px;
-		border-radius: 5px;
-		background: var(--panel-2);
+		height: 8px;
+		border-radius: 3px;
+		background: #1a1e25;
+		border: 1px solid var(--border-2);
 		overflow: hidden;
-		border: 1px solid var(--border);
 	}
+	.meter.active .track {
+		height: 10px;
+	}
+	/* Full-width bar scaled from the left edge: the gradient compresses with it, so the tip is
+	   amber at any level, exactly as a width-driven fill would render. */
 	.fill {
 		position: absolute;
-		left: 0;
-		top: 0;
-		bottom: 0;
-		background: linear-gradient(90deg, var(--accent-2), var(--warn) 80%, var(--danger));
-		transition: width 60ms linear;
+		inset: 0;
+		transform-origin: left center;
+		transform: scaleX(0);
+		background: linear-gradient(90deg, var(--accent), var(--accent) 78%, var(--warn));
+		transition: transform 60ms linear;
+		will-change: transform;
 	}
+	/* Full-width carrier translated by a percentage of the track; the marker rides its edge. */
 	.peak {
 		position: absolute;
+		inset: 0;
+		will-change: transform;
+	}
+	.peak::before {
+		content: '';
+		position: absolute;
+		left: 0;
 		top: 0;
 		bottom: 0;
 		width: 2px;
 		background: var(--text);
 		opacity: 0.7;
+	}
+	/* Segment ticks, drawn over the fill so the meter reads as discrete steps. */
+	.hatch {
+		position: absolute;
+		inset: 0;
+		background: repeating-linear-gradient(90deg, transparent 0 5px, var(--surface-0) 5px 7px);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.fill {
+			transition: none;
+		}
 	}
 </style>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { api } from './tauri';
+	import { PROVIDER_META } from './providers';
 	import type { Provider } from './types';
 
 	interface Props {
@@ -16,12 +17,11 @@
 	let available = $state(false);
 	let requestId = 0;
 
-	const keyInfo = $derived(
-		provider === 'mistral'
-			? { name: 'Mistral', model: 'voxtral-mini-transcribe-realtime-2602', url: 'https://console.mistral.ai/api-keys' }
-			: provider === 'openai'
-				? { name: 'OpenAI', model: 'gpt-realtime-translate', url: 'https://platform.openai.com/api-keys' }
-				: { name: 'Gemini', model: 'gemini-3.5-live-translate-preview', url: 'https://aistudio.google.com/apikey' }
+	const meta = $derived(PROVIDER_META[provider]);
+
+	// The row title wants the credential's short name, not the full product name.
+	const keyName = $derived(
+		provider === 'openai' ? 'OpenAI' : provider === 'mistral' ? 'Mistral' : 'Gemini'
 	);
 
 	async function checkKey(activeProvider: Provider) {
@@ -74,46 +74,164 @@
 	}
 </script>
 
-<section class="panel key">
-	<h2>{keyInfo.name} API key</h2>
+<div class="row" class:pending={!available || editing}>
 	{#if available && !editing}
-		<div class="row key-saved">
-			<span class="key-ok">✓ Saved to the OS keychain</span>
-			<div class="spacer"></div>
+		<span class="mark ok">
+			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+		</span>
+		<div class="body">
+			<span class="title">{keyName} key</span>
+			<span class="desc">Saved in Windows Credential Manager · read only by the Rust core</span>
+		</div>
+		<div class="actions">
 			<button class="ghost" disabled={locked} onclick={() => { editing = true; apiKeyInput = ''; }}>Replace</button>
-			<button class="ghost remove" disabled={locked} onclick={clearKey}>Remove</button>
+			<button class="ghost" disabled={locked} onclick={clearKey}>Remove</button>
 		</div>
 	{:else}
-		<p class="hint">
-			Stored in the OS keychain and used only from the Rust core. Needs access to
-			<code>{keyInfo.model}</code>. Get a key at
-			<a href={keyInfo.url} target="_blank" rel="noreferrer">{keyInfo.url}</a>.
-		</p>
-		<div class="row">
-			<input type="password" placeholder="Paste your {keyInfo.name} API key" bind:value={apiKeyInput}
-				disabled={locked} onkeydown={(event) => event.key === 'Enter' && void saveKey()} />
-			<button class="primary" disabled={locked || saving || !apiKeyInput.trim()} onclick={saveKey}>
-				{saving ? 'Saving…' : 'Save key'}
+		<span class="mark wait"><span class="dot"></span></span>
+		<div class="body">
+			<span class="title">{keyName} key</span>
+			<span class="desc">
+				Stored in Windows Credential Manager, used only from the Rust core. Needs access to
+				<code>{meta.modelId}</code>.
+				{#if meta.keyUrl}
+					<a href={meta.keyUrl} target="_blank" rel="noreferrer">Get a key</a>
+				{/if}
+			</span>
+		</div>
+		<div class="actions">
+			<input
+				type="password"
+				placeholder="Paste your {keyName} API key"
+				bind:value={apiKeyInput}
+				disabled={locked}
+				onkeydown={(event) => event.key === 'Enter' && void saveKey()}
+			/>
+			<button class="save" disabled={locked || saving || !apiKeyInput.trim()} onclick={saveKey}>
+				{saving ? 'Saving…' : 'Save'}
 			</button>
 			{#if available}
 				<button class="ghost" onclick={() => { editing = false; apiKeyInput = ''; }}>Cancel</button>
 			{/if}
 		</div>
 	{/if}
-</section>
+</div>
 
 <style>
-	.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-	h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-	.row { display: flex; gap: 8px; }
-	.key-saved { align-items: center; }
-	.key-ok { color: var(--accent-2); font-size: 14px; }
-	.spacer { flex: 1; }
-	.hint { color: var(--muted); font-size: 13px; }
-	.hint a { color: var(--accent-2); }
-	code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
-	input { background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 11px; width: 100%; }
-	button.primary { background: var(--accent); color: white; border: 0; border-radius: 8px; padding: 9px 16px; }
-	button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; }
-	button.remove { color: var(--danger); border-color: var(--danger); }
+	.row {
+		display: grid;
+		grid-template-columns: 24px 1fr auto;
+		align-items: center;
+		gap: 14px;
+		padding: 15px 0;
+		border-bottom: 1px solid var(--hairline);
+	}
+	/* While a key is being entered the description wraps to two lines, so the row's parts
+	   align to the top rather than to a shifting centre. */
+	.row.pending {
+		align-items: start;
+	}
+	.mark {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.row.pending .mark {
+		margin-top: 3px;
+	}
+	.mark.ok {
+		background: var(--accent-chip-bg);
+		color: var(--accent);
+	}
+	.mark.wait {
+		background: var(--warn-bg);
+		color: var(--warn);
+	}
+	.mark .dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+	.body {
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+		min-width: 0;
+	}
+	.title {
+		font-size: 13.5px;
+		font-weight: 500;
+		line-height: 1.2;
+	}
+	.desc {
+		font-size: 12px;
+		line-height: 1.35;
+		color: var(--muted-2);
+	}
+	code {
+		font-family: var(--font-mono);
+		font-size: 11px;
+		color: var(--text-dim);
+	}
+	a {
+		color: var(--accent-soft);
+		text-decoration: none;
+	}
+	a:hover {
+		text-decoration: underline;
+	}
+	.actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	button {
+		font-size: 11.5px;
+		font-weight: 500;
+		line-height: 1;
+		padding: 7px 11px;
+		border-radius: 7px;
+	}
+	button.ghost {
+		color: var(--text-soft);
+		border: 1px solid var(--border);
+		background: transparent;
+	}
+	button.ghost:hover:not(:disabled) {
+		border-color: var(--border-hover);
+		color: var(--text);
+	}
+	button.save {
+		border: 0;
+		background: linear-gradient(#5ad1a0, #43b989);
+		color: var(--on-accent);
+		font-weight: 600;
+		padding: 8px 13px;
+	}
+	button.save:hover:not(:disabled) {
+		filter: brightness(1.06);
+	}
+	input {
+		width: 220px;
+		background: var(--panel-2);
+		border: 1px solid var(--border);
+		color: var(--text);
+		border-radius: 7px;
+		padding: 7px 10px;
+		font-size: 12.5px;
+	}
+	input:focus {
+		outline: none;
+		border-color: var(--accent-border);
+	}
+	/* Matches the tightened checklist rhythm the stage adopts on a short window. */
+	@media (max-height: 740px) {
+		.row {
+			padding: 12px 0;
+		}
+	}
 </style>

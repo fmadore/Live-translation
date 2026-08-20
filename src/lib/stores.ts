@@ -11,7 +11,12 @@ import type {
 	StatusUpdate,
 	TranscriptLine
 } from './types';
-import { loadOverlayFont, OVERLAY_FONT_KEY } from './types';
+import {
+	loadOverlayFont,
+	loadOverlayPlaced,
+	OVERLAY_FONT_KEY,
+	OVERLAY_PLACED_KEY
+} from './types';
 
 // ---- Session status --------------------------------------------------------
 // Up to four backend tasks (two captures + two clients in "Both" mode) report status
@@ -33,6 +38,10 @@ export const isRunning = derived(originStates, (m) =>
 
 export const statusMessage = writable<string>('');
 
+/** Wall-clock start of the current run, or null when idle. Drives the elapsed timer and the
+ *  running cost estimate. */
+export const sessionStartedAt = writable<number | null>(null);
+
 /** Apply one status event from the Rust core. */
 export function applyStatus(u: StatusUpdate) {
 	if (u.origin) {
@@ -46,6 +55,8 @@ export function applyStatus(u: StatusUpdate) {
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
 		latestCaption.set(null);
+		currentCaptions.set({});
+		sessionStartedAt.set(null);
 	}
 	if (u.message) {
 		statusMessage.set(u.message);
@@ -68,6 +79,11 @@ export const options = writable<StartOptions>({
 
 // Latest caption (any origin), for the operator monitor.
 export const latestCaption = writable<Caption | null>(null);
+
+// The turn currently on screen for each origin, so the operator can show both speakers at
+// once. Key insertion order is kept in least-recently-updated order, which is the order the
+// stage renders the blocks in — newest at the bottom.
+export const currentCaptions = writable<Partial<Record<Origin, Caption>>>({});
 
 // Rolling transcript log (most recent finalized lines first).
 export const transcript = writable<TranscriptLine[]>([]);
@@ -92,6 +108,13 @@ function commit(c: Caption) {
 
 export function pushCaption(c: Caption) {
 	latestCaption.set(c);
+	// Re-insert this origin last so the object's key order tracks recency.
+	currentCaptions.update((m) => {
+		const next: Partial<Record<Origin, Caption>> = {};
+		for (const o of Object.keys(m) as Origin[]) if (o !== c.origin) next[o] = m[o];
+		next[c.origin] = c;
+		return next;
+	});
 	const prev = pending[c.origin];
 	// A new turn id means this origin's previous turn is done, even without an explicit
 	// turn-complete.
@@ -120,12 +143,15 @@ export function flushTranscript() {
 export function beginSession() {
 	flushTranscript();
 	latestCaption.set(null);
+	currentCaptions.set({});
+	sessionStartedAt.set(Date.now());
 }
 
 /** Clear both finalized and in-flight transcript state. */
 export function clearTranscript() {
 	transcript.set([]);
 	latestCaption.set(null);
+	currentCaptions.set({});
 	for (const origin of Object.keys(pending) as Origin[]) delete pending[origin];
 }
 
@@ -136,6 +162,14 @@ export const overlayFontSize = writable<number>(loadOverlayFont());
 
 overlayFontSize.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_FONT_KEY, String(v));
+});
+
+// Whether the caption region has been positioned on the presentation display; persisted so
+// the pre-flight check survives a restart.
+export const overlayPlaced = writable<boolean>(loadOverlayPlaced());
+
+overlayPlaced.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_PLACED_KEY, String(v));
 });
 
 // ---- Audio levels ------------------------------------------------------------

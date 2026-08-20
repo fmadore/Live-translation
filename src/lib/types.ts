@@ -94,12 +94,25 @@ export interface TranscriptLine {
 	origin: Origin;
 }
 
-/** Event names. Rust→front-end: caption/level/status. Operator→overlay: overlayConfig. */
+/** State the overlay reports back to the operator window, so the two stay in sync when the
+ *  operator acts on the overlay itself rather than on the control panel. */
+export interface OverlayStateMsg {
+	/** False when the overlay leaves move mode ("Lock into place"). */
+	interactive?: boolean;
+	/** True once the caption region has been positioned on the presentation display. */
+	placed?: boolean;
+	/** Font size chosen from the overlay's own toolbar. */
+	fontSize?: number;
+}
+
+/** Event names. Rust→front-end: caption/level/status. Operator→overlay: overlayConfig.
+ *  Overlay→operator: overlayState. */
 export const EVT = {
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
 	overlayConfig: 'overlay-config',
+	overlayState: 'overlay-state',
 } as const;
 
 /** localStorage key shared by both windows (same origin) for the overlay font size. */
@@ -118,4 +131,13 @@ export function loadOverlayFont(): number {
 	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
 	const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
+}
+
+/** Whether the caption region has ever been placed, so the pre-flight check survives a
+ *  restart instead of asking the operator to position the overlay again. */
+export const OVERLAY_PLACED_KEY = 'overlay.placed';
+
+export function loadOverlayPlaced(): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
 }
