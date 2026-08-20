@@ -240,19 +240,49 @@ Independent of the Store, and worth doing this week:
 - SECURITY.md already states installers are unsigned; link it from the README download section
   rather than leaving it to be discovered.
 
+## Store identity (assigned)
+
+Partner Center enrolment is done and the name **Live Translation & Subtitles** is reserved
+(2026-08-20). The MSIX manifest must carry the declared values **byte for byte** or ingestion
+fails. None of these are secrets — PFN, SID and Store ID are public for any listed app.
+
+Declared in the package manifest:
+
+| Manifest element | Value |
+| --- | --- |
+| `Package/Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
+| `Package/Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
+| `Package/Properties/PublisherDisplayName` | `FMadore` |
+
+Calculated by the Store (never declared in the manifest):
+
+| | |
+| --- | --- |
+| Package Family Name | `49346FMadore.LiveTranslationSubtitles_6yxybgjxsxtpc` |
+| Package SID | `S-1-15-2-1233961425-1643808569-2040622846-2277874231-155921610-3711290785-1900266030` |
+
+Listing (live once the first submission passes certification):
+
+| | |
+| --- | --- |
+| Store URL | <https://apps.microsoft.com/detail/9PFB8LR3RR9X> |
+| Store ID | `9PFB8LR3RR9X` |
+| Store protocol link | `ms-windows-store://pdp/?productid=9PFB8LR3RR9X` |
+| Application MSA ID | `61f2ffc5-706a-4738-a8ce-a3e9fed4f558` |
+
 ## Phased plan
 
 ### Phase A — decisions and paperwork (no code, start immediately)
 
-- [ ] Enrol in Partner Center as an **individual** and complete identity verification
+- [x] Enrol in Partner Center as an **individual** and complete identity verification
       (government ID plus selfie). Company accounts are out of scope, so gate 1 is answered in
       code, not paperwork.
 - [ ] Draft the 10.8.3 scoping argument for Notes for certification now, while the reasoning
       is fresh — it is needed at submission and it sanity-checks the keyless design.
-- [ ] Reserve the app name. "Live Translation" is generic and probably taken; reserve
-      **"Live Translation & Subtitles"** to match the README title.
-- [ ] Note the assigned publisher identity (`CN=…`) and package identity name — the manifest
-      must match them byte for byte or ingestion fails.
+- [x] Reserve the app name. Done: **"Live Translation & Subtitles"**, matching the README
+      title. See *Store identity* above.
+- [x] Note the assigned publisher identity (`CN=…`) and package identity name — the manifest
+      must match them byte for byte or ingestion fails. Recorded in *Store identity* above.
 
 ### Phase B — repository preparation
 
@@ -265,8 +295,8 @@ Independent of the Store, and worth doing this week:
 
 - [ ] `npx @choochmeque/tauri-windows-bundle@latest init`; commit `bundle.config.json` and the
       manifest template.
-- [ ] Manifest: publisher identity from Phase A, `runFullTrust`, `microphone` device
-      capability, `1.0.0.0`.
+- [ ] Manifest: identity values from *Store identity* above, `runFullTrust`, `microphone`
+      device capability, `1.0.0.0`.
 - [ ] Build locally, sign with a self-signed certificate, install, and **verify gates 6, 7 and
       8 on real hardware** — microphone, WASAPI loopback against a live Teams/Zoom call, and
       Credential Manager round-trip. Also re-check the transparent click-through overlay and

@@ -23,7 +23,9 @@ no key, no network, nothing billed per minute, and audio that never leaves the c
 is same-language only — Windows exposes no on-device translation API — and less accurate than
 Voxtral, so it is the offline and rehearsal path rather than the default. See
 [`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
-Store distribution.
+Store distribution. The Store name **Live Translation & Subtitles** is reserved (Store ID
+`9PFB8LR3RR9X`); once the first submission passes certification the listing will be at
+<https://apps.microsoft.com/detail/9PFB8LR3RR9X>.
 
 Provider details and verified wire formats are documented in
 [`docs/gemini-live-api.md`](docs/gemini-live-api.md),
@@ -133,7 +135,10 @@ Build Windows installers with `npm run tauri build`.
    translation, select the target language and Gemini/OpenAI provider.
 2. Start the session and confirm the source meter and live monitor move.
 3. Use **Move overlay** to position/resize captions on the projector, then lock it back into
-   click-through mode.
+   click-through mode. In move mode the overlay itself has the keyboard: **Enter** locks it in
+   place, **Esc** cancels and restores where it was, arrow keys nudge by a pixel (**Shift** for
+   10), and **+**/**−** resize the text. **Hide overlay** blanks the captions mid-session (a
+   video clip, a coffee break) without stopping anything; **F2** flips the caption language.
 4. Use **Save text** or **Save Markdown** after captions finalize. Files are written under
    `Documents/Live-translation/` (with Downloads/temp fallbacks).
 5. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
