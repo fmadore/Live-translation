@@ -75,19 +75,34 @@ https://github.com/fmadore/Live-translation/issues
 
 ### Product declarations
 
-Leave every box unticked except where noted. The two that matter:
+Three boxes arrive **ticked by default** (alternate drives, OneDrive backup, record/broadcast
+clips). Two of those are right for this app and one is not, so go through the list rather than
+accepting the defaults.
 
-- **"This app allows users to make purchases, but does not use the Microsoft commerce
-  engine"** → **leave unticked.** The app sells nothing. Ticking this would contradict the
-  10.8.3 argument in the certification notes and invite exactly the review this submission is
-  designed to avoid.
-- **"Customers can install this product to alternate drives or removable storage"** → tick it.
-  There is no reason to pin the install to the system drive.
-- "This app has been tested to meet accessibility guidelines" → unticked. It has not been
-  formally tested against them, whatever its purpose.
-- "Windows can include this product's primary executable in its automatic launch or restart"
-  → unticked.
-- "This product depends on non-Microsoft drivers or NT services" → unticked.
+| Declaration | Set it to | Why |
+| --- | --- | --- |
+| Allows purchases, but not through the Microsoft commerce system | **unticked** | The app sells nothing. Ticking it contradicts the 10.8.3 argument in the certification notes and invites exactly the review this submission is designed to avoid. |
+| Tested to meet accessibility guidelines | **unticked** | Tempting for a captioning tool, but this declares that *the app's own interface* was engineered and tested for screen readers, keyboard navigation, 4.5:1 contrast and high-contrast mode. That work has not been done. Declaring it falsely earns bad reviews from the people who rely on it. |
+| Customers can install to alternate drives or removable storage | **ticked** (default) | No reason to pin the install to the system drive. |
+| Windows can include this product's data in automatic OneDrive backups | **ticked** (default) | What lives in app data is the WebView2 profile: overlay font size, saved placement, last session setup. Harmless to back up, and it means settings follow the operator to a new machine. API keys are *not* included — they sit in Windows Credential Manager, which is the user's vault and not part of the package's app data. |
+| Customers can use Windows 10/11 features to record and broadcast clips | **untick it** | Ticked by default, but it applies only to the Games category, and Partner Center says so in the warning right underneath. On a non-game it has no effect. Do not declare a game feature on a productivity app. |
+| Supports pen and ink input | **unticked** | No stylus, inking or annotation surface. |
+| Incorporates generative AI features | **ticked** | See below. |
+
+**The generative AI declaration is a yes.** Microsoft's wording covers apps that generate
+content dynamically using AI models, "accessed via cloud services or APIs" as well as built in.
+Translation is the part that decides it: Gemini and OpenAI's realtime models produce
+target-language text that did not previously exist, which is generation rather than lookup, and
+they are a headline feature of the app. The bundled whisper recognizer is a neural model too,
+even though transcription alone is closer to rendering existing speech than to creating
+content.
+
+Ticking it brings the Store's expectations for AI content into scope, and this app already
+meets them: it is open source, and the *Support contact info* field points at the public issue
+tracker, which is the means for a user to report a problem to the developer. The store
+description already names Google, OpenAI and Mistral and explains what is streamed to them.
+There is no separate obligation to moderate captions — the app reproduces speech that people in
+the room are already saying, to those same people, and publishes nothing.
 
 If a declaration asks whether the product **accesses, collects or transmits personal
 information**, answer **yes** and point at the privacy policy. Audio leaves the machine on the
