@@ -138,10 +138,15 @@ byte, and they already do — they are hardcoded in
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
 
+All three were read back out of the built `v1.0.0` bundle and match, as does the package
+version `1.0.0.0` — first segment non-zero, last segment zero, which is what the Store
+requires.
+
 After the upload settles:
 
-- **Device family availability** — `Windows 10/11 Desktop` is the only family the package
-  declares. Leave it ticked; leave the other families alone.
+- **Device family availability** — `Windows.Desktop` is the only family the package declares,
+  with a minimum of `10.0.17763.0` (Windows 10 version 1809). Leave it ticked; leave the other
+  families alone.
 - **Gradual package rollout** — off. A first submission has nobody to roll out to.
 - The package is **unsigned on purpose**. The Store signs it with the publisher certificate at
   ingestion. Do not upload a self-signed build.
