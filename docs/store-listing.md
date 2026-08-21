@@ -182,43 +182,40 @@ a wrong answer is a certification and legal problem rather than a cosmetic one. 
 below only to recognise what each question is asking about and to spot an answer that would
 contradict the app.
 
-**Category.** Utility / productivity tool. Not a game, and not a reference or social product.
-When the questionnaire offers a general-purpose or utility application route, take it: the
-game-specific branches do not apply.
+Start by choosing **"I am ready to complete the IARC questionnaire"** — there is no existing
+IARC or GRID certificate for this app to reuse.
 
-Expected answers, given the app as it stands:
+These were the questions as presented in August 2026, with the answer each one takes:
 
-| Question area | Expected answer | Why |
+| Section | Question | Answer |
 | --- | --- | --- |
-| Violence, injury, blood, weapons | No | No such content anywhere in the product. |
-| Sexual content, nudity, suggestive themes | No | None. |
-| Profanity, crude humour | No | The app authors no text of its own. |
-| Controlled substances, alcohol, tobacco | No | No references. |
-| Gambling, simulated gambling, real-money wagering | No | None, and no virtual currency. |
-| Fear, horror, disturbing content | No | None. |
-| In-app purchases, paid random items | No | The app sells nothing. Provider keys are bought from the provider, outside the app. |
-| Advertising, advertising identifiers | No | No ads, no ad ID, no ad SDK. |
-| User-generated content shared with other users | No | Captions and transcripts stay on the local machine and are shown only in this room. Nothing is uploaded, published, or exchanged between users. |
-| Users can interact or communicate with each other | No | There is no messaging, no chat, no lobby, no account and no user directory. |
-| Location collected or shared | No | The app requests no location capability and reads no location. |
-| Personal information collected or shared by the developer | No | No telemetry, no analytics, no crash reporting, no server. See the privacy policy. |
-| Digital purchases / unrestricted web access | No | No browser surface, no store front, no external navigation beyond static links to the privacy policy and the providers' key pages. |
-| Connects to third-party services / shares data with third parties | **Yes** | When the user selects a cloud engine and supplies their own key, audio is streamed to Google, OpenAI or Mistral under that provider's own terms. Declare this. Point to the privacy policy URL if a free-text field is offered. |
+| App type | Game / Social or Communication / **All other app types** | **All other app types**. Not a game. Not social either: "Social or Communication" means apps whose purpose is meeting or talking to people (Facebook, Skype, SMS). This app captions a room locally, with no account, no messaging and no link between users. |
+| Downloaded app | Does the package contain rating-relevant content (sex, violence, language) in its code or assets? | **No.** The package ships the executable, the whisper model and two rehearsal speech fixtures. The fixtures are neutral synthesized speech with nothing rating-relevant in them. |
+| User content sharing | Can users natively interact or exchange content with other users through voice, text, images or audio? | **No.** No messaging, no chat, no lobby, no account, no user directory. Captions and transcripts never leave the machine. |
+| Online content | Does the app contain or promote content that is not part of the initial download but is reachable from the app — films, product listings, tracks, **AI-generated content**, news articles? | **Yes.** See below. |
+| Age-restricted goods | Is the app focused on promoting or selling age-restricted items or activities (tobacco, alcohol, firearms, gambling)? | **No.** |
+| Miscellaneous | Does the app share the user's precise current location with other users? | **No.** No location capability is requested and none is read. |
+| Miscellaneous | Can users purchase digital items? | **No.** The app sells nothing. Provider keys are bought from the provider, outside the app. |
+| Miscellaneous | Cash rewards, gift cards, play-to-earn, convertible crypto rewards, transferable digital assets (NFTs)? | **No.** |
+| Miscellaneous | Is the app a web browser or a search engine? | **No.** It hosts its interface in WebView2, but it exposes no address bar and no arbitrary navigation. A runtime is not a browser. |
+| Miscellaneous | Is the app essentially a news or education product? | **No.** It is a utility. It is *used* in lectures; it is not itself educational content. |
+| Final | Will this product use ratings obtained directly from a ratings board, and/or be distributed on physical media in any region? | **No.** |
 
-Two points that are easy to get wrong:
+**Why "Online content" is a yes.** The question lists *AI-generated content* among its own
+examples, and the cloud engines produce caption text at runtime that is plainly not part of the
+download. Answering no here would also contradict the generative AI product declaration ticked
+on the Properties page — a discrepancy a reviewer can spot in one click. If IARC follows up on
+the nature of that content, the accurate description is: it is a transcription or translation
+of speech from the user's own room, generated on demand, displayed only on that machine, never
+uploaded, published or exchanged between users, and neither hosted nor curated by the
+developer.
 
-- The **third-party connection question is a yes**, and answering it honestly costs nothing.
-  Understating it is the kind of discrepancy a reviewer can check against the privacy policy
-  in one click.
-- Captions reproduce whatever is said in the room, so the *displayed* text is not authored by
-  the developer and cannot be guaranteed free of strong language. That is not
-  user-generated content in IARC's sense, because nothing is shared, published or transmitted
-  between users. If a question asks specifically about unmoderated content that users can see
-  from other users, the answer is still no.
-
-Expected outcome for a utility of this shape: the lowest rating available from each board
-(PEGI 3, ESRB Everyone, USK 0, and equivalents). If the questionnaire returns anything
-higher, an answer has been misread; go back through it rather than accepting the rating.
+**What to expect back.** The age rating itself should still come out at the lowest tier from
+every board (PEGI 3, ESRB Everyone, USK 0), because nothing in the product is rating-relevant.
+The online-content answer may attach an interactive descriptor — something in the shape of
+"unmoderated content" or "users interact" — and that is normal and not a problem. A raised
+*age*, on the other hand, means an answer was misread: go back through the questionnaire rather
+than accepting the rating.
 
 Re-run the questionnaire whenever the product gains anything with content of its own, notably
 if the bundled rehearsal fixture is ever replaced with different recorded speech.
