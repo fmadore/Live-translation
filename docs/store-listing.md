@@ -164,6 +164,10 @@ A free key can be created in a few minutes at any of the three providers. Mistra
 
 Paste the key into the key panel that appears on the pre-flight screen once a cloud engine is selected, then start a session.
 
+WHY THE PACKAGE DECLARES runFullTrust
+
+This is a Win32 desktop application packaged as MSIX through the Desktop Bridge, so its Windows.FullTrustApplication entry point requires the capability and the application cannot start without it. The justification field allows only 500 characters, so in full: full trust is used for WASAPI loopback capture of Windows system audio through IMMDeviceEnumerator, IAudioClient and IAudioCaptureClient (a Win32-only API with no sandboxed equivalent, and the default audio source that carries the keyless primary functionality described above); microphone capture through the Win32 audio APIs; execution of the bundled whisper.cpp native inference library and loading its model from the package install folder, which is what lets the app caption with no key and no network; Windows Credential Manager, through CredWrite and CredRead under the service name org.stias.live-translation, to hold the user's own optional provider key; a transparent, click-through, always-on-top overlay window that must sit above full-screen presentation software without intercepting mouse input; and writing transcript exports to a Live-translation folder under the user's Documents directory on explicit user action. Nothing else. The application installs no driver and no NT service, registers no background task, does not start automatically, and contacts no server operated by the developer.
+
 PRIVACY POLICY
 
 https://fmadore.github.io/Live-translation/privacy
