@@ -34,6 +34,20 @@ concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
+# ggml's GGML_NATIVE defaults ON, which tunes whisper.cpp for the *runner's* CPU — GitHub's
+# Xeon/EPYC machines have AVX-512, which most consumer x64 laptops (Intel 12th gen onwards)
+# and Windows-on-ARM x64 emulation do not. The shipped binary then dies with
+# STATUS_ILLEGAL_INSTRUCTION the moment on-device recognition starts. Pin the portable
+# x86-64-v3 baseline instead: AVX2/FMA/F16C is every x64 CPU since ~2013 and is emulated by
+# Prism on Windows 11 24H2+. whisper-rs-sys forwards any GGML_* env var to CMake.
+env:
+  GGML_NATIVE: OFF
+  GGML_AVX: ON
+  GGML_AVX2: ON
+  GGML_FMA: ON
+  GGML_F16C: ON
+  GGML_AVX512: OFF
+
 jobs:
   build:
     strategy:
@@ -60,6 +74,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # whisper-rs-sys does not rerun-if-env-changed on GGML_*, so a restored cache would
+          # silently keep objects compiled with the old ISA flags. The prefix pins the cache
+          # to the flag set: bump it whenever the GGML_* env block changes.
+          prefix-key: ggml-x86-64-v3
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -117,6 +135,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # whisper-rs-sys does not rerun-if-env-changed on GGML_*, so a restored cache would
+          # silently keep objects compiled with the old ISA flags. The prefix pins the cache
+          # to the flag set: bump it whenever the GGML_* env block changes.
+          prefix-key: ggml-x86-64-v3
 
       - name: Setup Node
         uses: actions/setup-node@v7

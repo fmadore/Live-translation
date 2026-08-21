@@ -74,6 +74,14 @@ Credential Manager.
 ```powershell
 npm ci
 npm run fetch:whisper-model
+
+# Portable ISA baseline for whisper.cpp — without these, GGML_NATIVE tunes ggml for THIS
+# machine's CPU and the package crashes with STATUS_ILLEGAL_INSTRUCTION on machines
+# without the same instruction set (release.yml pins the same set; whisper-rs-sys
+# forwards GGML_* env vars to CMake).
+$env:GGML_NATIVE = "OFF"; $env:GGML_AVX = "ON"; $env:GGML_AVX2 = "ON"
+$env:GGML_FMA = "ON"; $env:GGML_F16C = "ON"; $env:GGML_AVX512 = "OFF"
+
 npm run bundle:msix
 ```
 

@@ -57,6 +57,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     # whisper.cpp is compiled from source, so the Rust lane is much heavier than it was.
     timeout-minutes: 45
+    # Same portable ISA baseline as release.yml: GGML_NATIVE would tune ggml for the
+    # runner's AVX-512 CPU, which shipped binaries must not assume — keep CI compiling
+    # exactly what releases compile. whisper-rs-sys forwards GGML_* env vars to CMake.
+    env:
+      GGML_NATIVE: OFF
+      GGML_AVX: ON
+      GGML_AVX2: ON
+      GGML_FMA: ON
+      GGML_F16C: ON
+      GGML_AVX512: OFF
     steps:
       - uses: actions/checkout@v7
 
@@ -88,6 +98,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # whisper-rs-sys does not rerun-if-env-changed on GGML_*, so a restored cache would
+          # silently keep objects compiled with the old ISA flags. The prefix pins the cache
+          # to the flag set: bump it whenever the GGML_* env block changes.
+          prefix-key: ggml-x86-64-v3
 
       - name: rustfmt
         run: cargo fmt --check
