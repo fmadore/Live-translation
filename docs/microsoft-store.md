@@ -330,9 +330,13 @@ before Phase C rather than after.**
       optional upgrade (accuracy, and translation) rather than a precondition: a fresh
       install defaults to on-device subtitles over system audio, and the operator's setup
       persists across launches (`session.options`).
-- [ ] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline.
-- [ ] Permission-denied microphone path with an actionable message (gate 6).
-- [ ] WebView2 presence assertion (gate 9).
+- [x] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline: the
+      Rehearse button on the pre-flight screen loops a ~20 s TTS recording as a System-origin
+      stream (`src-tauri/src/audio/fixture.rs`; regenerate the WAVs with
+      `npm run generate:rehearsal-fixtures`).
+- [x] Permission-denied microphone path with an actionable message (gate 6) — mic failures
+      now name the Windows privacy toggle (`ms-settings:privacy-microphone`).
+- [x] WebView2 presence assertion (gate 9) — native message box at startup, then exit.
 - [ ] *Deferred:* re-target the Speech Recognition Windows AI API once it leaves the Windows
       App SDK experimental channel — free, no bundled model, and NPU-accelerated on Copilot+
       hardware. Tracked in `ondevice/engine.rs`.
@@ -340,10 +344,16 @@ before Phase C rather than after.**
 ### Phase E — listing and submission
 
 - [ ] Screenshots (1366×768 minimum) — operator window, overlay over a slide, move mode.
-- [ ] Description opening with the API-key dependency (gate 4) and carrying the cost table.
-- [ ] IARC age rating questionnaire.
-- [ ] Notes for certification: BYO-key explanation, rehearsal-mode walkthrough, 10.8.3
-      argument if submitting from an individual account.
+      Shot-list staged in [`store-listing.md`](store-listing.md); decide the window-title vs
+      Store-name mismatch ("Live Captions — Operator" vs "Live Translation & Subtitles")
+      before capturing.
+- [x] Description opening with the key/cost disclosure (gate 4, updated framing: keyless
+      captions out of the box, keys as the paid upgrade) and carrying the cost table —
+      drafted EN + FR in [`store-listing.md`](store-listing.md).
+- [ ] IARC age rating questionnaire — guidance in [`store-listing.md`](store-listing.md);
+      answer in Partner Center.
+- [x] Notes for certification: keyless walkthrough, rehearsal steps, 10.8.3 argument —
+      drafted in [`store-listing.md`](store-listing.md).
 - [ ] Submit; expect one round of feedback.
 
 ### Phase F — after launch
