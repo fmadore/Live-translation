@@ -783,8 +783,12 @@
 									: 'Not placed yet — captions will sit bottom-centre on this display'}
 							</span>
 						</div>
+						<!-- Placement is never final: re-entering move mode is the way to adjust
+						     position and caption size, so the row keeps a button in both states. -->
 						{#if $overlayPlaced}
-							<span></span>
+							<button class="adjust" aria-pressed={moveOverlay} onclick={toggleMoveOverlay}>
+								{moveOverlay ? 'Done' : 'Adjust'}
+							</button>
 						{:else}
 							<button class="place" aria-pressed={moveOverlay} onclick={toggleMoveOverlay}>
 								{moveOverlay ? 'Done' : 'Place it'}
@@ -1603,6 +1607,21 @@
 	}
 	.place:hover {
 		background: var(--warn-bg);
+	}
+	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
+	.adjust {
+		font-size: 11.5px;
+		font-weight: 500;
+		line-height: 1;
+		color: var(--text-soft);
+		padding: 7px 11px;
+		border-radius: 7px;
+		border: 1px solid var(--border);
+		background: transparent;
+	}
+	.adjust:hover {
+		border-color: var(--border-hover);
+		color: var(--text);
 	}
 
 	.launch {
