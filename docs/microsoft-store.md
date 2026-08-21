@@ -333,7 +333,8 @@ before Phase C rather than after.**
 - [x] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline: the
       Rehearse button on the pre-flight screen loops a ~20 s TTS recording as a System-origin
       stream (`src-tauri/src/audio/fixture.rs`; regenerate the WAVs with
-      `npm run generate:rehearsal-fixtures`).
+      `npm run generate:rehearsal-fixtures`). Verified in the packaged `v1.0.0-rc.4` build
+      on 2026-08-21: silent room, System meter moving, fixture captioned.
 - [x] Permission-denied microphone path with an actionable message (gate 6) — mic failures
       now name the Windows privacy toggle (`ms-settings:privacy-microphone`).
 - [x] WebView2 presence assertion (gate 9) — native message box at startup, then exit.
