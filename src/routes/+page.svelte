@@ -810,6 +810,17 @@
 					</div>
 				</div>
 
+				<!-- Straight after Stop, saving the transcript is the operator's next job, so it
+				     sits above the Start row — below it, past the spacer, it scrolls out of view
+				     and reads as lost (the store keeps the lines regardless). -->
+				{#if $transcript.length > 0}
+					<TranscriptMonitor
+						mode={$options.mode}
+						transcript={$transcript}
+						onError={(message) => statusMessage.set(message)}
+					/>
+				{/if}
+
 				<span class="grow"></span>
 
 				{#if $statusMessage}
@@ -832,14 +843,6 @@
 							: `Nothing leaves the machine except audio to ${meta.vendor}.`}
 					</span>
 				</div>
-
-				{#if $transcript.length > 0}
-					<TranscriptMonitor
-						mode={$options.mode}
-						transcript={$transcript}
-						onError={(message) => statusMessage.set(message)}
-					/>
-				{/if}
 			{/if}
 		</main>
 	</div>

@@ -179,6 +179,15 @@ fails with a publisher mismatch.
    Add-AppxPackage -Path ".\src-tauri\target\msix\Live Translation & Subtitles_1.0.0.0_x64.msix"
    ```
 
+   Installing a *rebuilt* package with the same version fails with `0x80073CFB` ("same
+   identity, different contents") — Windows only swaps packages in place when the version
+   increases. Remove the old one first; Credential Manager keys survive, WebView-stored
+   preferences reset:
+
+   ```powershell
+   Remove-AppxPackage 49346FMadore.LiveTranslationSubtitles_1.0.0.0_x64__6yxybgjxsxtpc
+   ```
+
 6. Confirm the identity is the one Partner Center assigned — the family name's hash suffix is
    derived from `Name` plus `Publisher`, so this is a byte-for-byte check of both:
 
