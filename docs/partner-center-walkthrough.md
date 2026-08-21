@@ -298,10 +298,38 @@ policy 10.8.3 objection before it is raised.
 
 **Publishing hold options** — none. Publish as soon as it passes certification.
 
-**Restricted capabilities** — none to justify. The package declares `runFullTrust` (standard
-for every desktop Tauri app) and the `microphone` device capability. Neither is a restricted
-capability, so no justification field should appear. If one does, the microphone is used to
-caption a room microphone and nothing else.
+**Restricted capabilities** — `runFullTrust` **is** a restricted capability, and Partner Center
+detects it in the manifest and asks you to justify it before the submission can proceed. This
+is routine for every Win32 desktop app packaged as MSIX; it is not a sign that anything is
+wrong with the package. (`microphone` is a device capability, not a restricted one, and needs
+no justification.)
+
+Paste this into *Why do you need the runFullTrust capability and how will it be used in your
+product?*:
+
+```text
+This product is a Win32 desktop application packaged as MSIX through the Desktop Bridge. Its manifest declares EntryPoint="Windows.FullTrustApplication", which requires runFullTrust by construction: the capability is added by the packaging tool for every desktop application of this kind, and the application cannot start without it. It is not used to reach anything beyond the desktop APIs listed below.
+
+The application is built with Tauri: a Rust core with a WebView2 user interface. It puts real-time captions on screen for bilingual meetings, lectures and conference sessions. Full trust is required for these specific Win32 APIs:
+
+1. WASAPI loopback capture. To caption Windows system audio (a Teams or Zoom call, a browser tab, a media player), the application opens the default audio render endpoint for capture through the WASAPI COM interfaces IMMDeviceEnumerator, IAudioClient and IAudioCaptureClient. Loopback capture is a Win32-only API and is not reachable from a sandboxed UWP process. This is the default audio source on a fresh install and the path that provides the product's keyless primary functionality.
+
+2. Microphone capture through the Win32 audio APIs, for captioning a room microphone. The microphone device capability is declared separately in the manifest.
+
+3. On-device speech recognition. The package bundles whisper.cpp, a native C++ inference library, together with a GGML model file. Executing that native inference code and loading the model from the package install folder requires full trust. This is what allows the product to caption with no API key and no network connection at all.
+
+4. Windows Credential Manager. If the user chooses one of the optional cloud engines, the API key they created on their own account with that provider is stored through CredWrite and read back with CredRead, under the service name org.stias.live-translation. Nothing else is stored there, and the key is transmitted only to the provider that issued it.
+
+5. A transparent, click-through, always-on-top overlay window. The caption overlay is a second window that has to sit above full-screen presentation software without intercepting mouse input, so it is created undecorated and transparent, kept topmost, and made click-through by setting the extended window style that makes it ignore cursor events. It is repositioned and resized across displays when the operator places it on the projector.
+
+6. Writing transcript exports. On an explicit user action only, the transcript is written to a Live-translation folder under the user's Documents directory. Nothing is written to disk otherwise; captured audio is never persisted.
+
+The application installs no driver and no NT service, registers no background task, and does not start automatically. It runs only while the user has it open. It contacts no server operated by the developer: there is no telemetry, no analytics and no crash reporting. Network access occurs only when the user has selected a cloud engine, in which case audio is streamed over a wss:// connection to Google, OpenAI or Mistral using the key that user supplied.
+
+The application is open source and the whole of the above can be verified in the code: https://github.com/fmadore/Live-translation
+
+Privacy policy: https://fmadore.github.io/Live-translation/privacy
+```
 
 ---
 
