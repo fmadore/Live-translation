@@ -381,8 +381,8 @@ to place" bar, the "Move mode / Captions are paused on the overlay" panel, the k
 row (Enter locks, Esc cancels, Arrows nudge), the size stepper and "Snap to bottom". Frame it
 over the same slide as shot 3 so the two read as a sequence.
 
-One thing to settle before capturing: the operator window's title bar reads **Live Captions**
-and its window title is *Live Captions — Operator*, while the reserved Store name is **Live
-Translation & Subtitles**. The screenshots will show that difference. It is defensible as a
-short in-product name, but if it is going to be aligned, align it before the shots are taken
-rather than after.
+One difference the screenshots will show, settled deliberately: the operator window's own title
+is **Live Translation & Subtitles**, matching the reserved Store name, so that is what appears
+in the taskbar and in Alt-Tab. The in-app header keeps the shorter wordmark **Live Captions**
+above the line *Realtime translation & subtitles*. A short in-product name alongside the full
+name in the window title is ordinary and accurate, so shots 1 and 2 can be taken as they are.

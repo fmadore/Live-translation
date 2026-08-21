@@ -344,10 +344,15 @@ before Phase C rather than after.**
 
 ### Phase E — listing and submission
 
+The screen-by-screen sequence, with every short field answered, is in
+[`partner-center-walkthrough.md`](partner-center-walkthrough.md).
+
+- [x] `v1.0.0` tagged (2026-08-21); the `msix` job attaches the `.msixbundle` for Partner
+      Center and the bare `.msix` for side-loading.
 - [ ] Screenshots (1366×768 minimum) — operator window, overlay over a slide, move mode.
-      Shot-list staged in [`store-listing.md`](store-listing.md); decide the window-title vs
-      Store-name mismatch ("Live Captions — Operator" vs "Live Translation & Subtitles")
-      before capturing.
+      Shot-list staged in [`store-listing.md`](store-listing.md). The window title now matches
+      the reserved Store name; the in-app header keeps the short **Live Captions** wordmark,
+      which is settled and needs no change before capturing.
 - [x] Description opening with the key/cost disclosure (gate 4, updated framing: keyless
       captions out of the box, keys as the paid upgrade) and carrying the cost table —
       drafted EN + FR in [`store-listing.md`](store-listing.md).
