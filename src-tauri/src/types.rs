@@ -105,6 +105,13 @@ pub struct StartOptions {
     pub provider: Provider,
     #[serde(default)]
     pub mic_device_name: Option<String>,
+    /// Rehearsal mode: play the bundled speech fixture for this language through the whole
+    /// pipeline instead of capturing audio, so the overlay, move mode and the export can be
+    /// exercised with no microphone and no sound in the room. Absent — the normal case — runs
+    /// a live session. `source` and `mic_device_name` are ignored while it is set.
+    /// See gate 2 in `docs/microsoft-store.md`.
+    #[serde(default)]
+    pub rehearsal: Option<TargetLanguage>,
 }
 
 #[derive(Debug, Clone, Serialize)]

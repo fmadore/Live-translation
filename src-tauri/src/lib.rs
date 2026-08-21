@@ -21,6 +21,50 @@ use tauri::Manager;
 use overlay::OVERLAY_LABEL;
 use session::SessionManager;
 
+/// Fail loudly and legibly if the WebView2 Runtime is absent, instead of launching into
+/// nothing.
+///
+/// A packaged desktop app must not silently fail when the runtime is missing: the MSIX
+/// package deliberately does not declare WebView2 as a package dependency (declaring it is
+/// known to be unreliable), and the release build is a `windows` subsystem binary, so an
+/// unexplained exit is all the user would otherwise see. Windows 11 ships the Evergreen
+/// Runtime and Windows 10 has had it through Edge for years, so this is a last-resort path.
+/// See gate 9 in `docs/microsoft-store.md`.
+fn assert_webview_runtime() {
+    let Err(error) = tauri::webview_version() else {
+        return;
+    };
+    tracing::error!("WebView2 runtime unavailable: {error}");
+
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
+
+        // Win32 wants NUL-terminated UTF-16.
+        fn wide(text: &str) -> Vec<u16> {
+            text.encode_utf16().chain(std::iter::once(0)).collect()
+        }
+
+        let text = wide(
+            "Live Translation & Subtitles needs the Microsoft Edge WebView2 Runtime, which is \
+             not installed on this PC.\n\nInstall it from \
+             https://developer.microsoft.com/microsoft-edge/webview2/ and start the app again.",
+        );
+        let caption = wide("Live Translation & Subtitles");
+        // SAFETY: both buffers are NUL-terminated and outlive this modal, synchronous call.
+        unsafe {
+            MessageBoxW(
+                std::ptr::null_mut(),
+                text.as_ptr(),
+                caption.as_ptr(),
+                MB_ICONERROR | MB_OK,
+            );
+        }
+    }
+
+    std::process::exit(1);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Load .env for development (GEMINI_API_KEY etc.); ignored if absent.
@@ -32,6 +76,8 @@ pub fn run() {
                 .unwrap_or_else(|_| "live_translation_lib=info,warn".into()),
         )
         .init();
+
+    assert_webview_runtime();
 
     tauri::Builder::default()
         .manage(SessionManager::default())

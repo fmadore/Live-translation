@@ -12,6 +12,7 @@ use tokio::sync::{mpsc::channel, Mutex as AsyncMutex};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::capture::run_microphone;
+use crate::audio::fixture::run_rehearsal;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
 use crate::gemini::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
@@ -46,6 +47,9 @@ pub struct SessionManager {
 struct ActiveSession {
     cancel: CancellationToken,
     capture_threads: Vec<JoinHandle<()>>,
+    /// Rehearsal fixture playback, which stands in for a capture thread. Async rather than a
+    /// thread because it is a timer feeding a channel, not a device callback.
+    fixture_tasks: Vec<AsyncJoinHandle<()>>,
     client_tasks: Vec<AsyncJoinHandle<()>>,
 }
 
@@ -53,6 +57,40 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+/// Report a failure on the audio side of one source: log it, tell the operator which source
+/// died, and stop that source's client. The other source, if any, stays live.
+///
+/// The microphone gets its own wording on purpose. Under package identity Windows gates the
+/// microphone per app, so a blocked install fails at device open with an ordinary cpal error
+/// and nothing pointing at the toggle — see gate 6 in `docs/microsoft-store.md`. The message
+/// covers a denied device and an absent one alike, because cpal reports both the same way,
+/// and it keeps the underlying error so the real cause is still visible.
+fn report_source_failure(
+    app: &AppHandle,
+    origin: Origin,
+    error: &anyhow::Error,
+    cancel: &CancellationToken,
+) {
+    tracing::error!(?origin, "capture failed: {error:#}");
+    let message = match origin {
+        Origin::Microphone => format!(
+            "Microphone capture failed ({error:#}). If access is blocked, enable it under \
+             Windows Settings > Privacy & security > Microphone \
+             (ms-settings:privacy-microphone), then start again."
+        ),
+        Origin::System => format!("{origin:?} capture: {error}"),
+    };
+    let _ = app.emit(
+        events::STATUS,
+        StatusUpdate {
+            state: SessionState::Error,
+            message: Some(message),
+            origin: Some(origin),
+        },
+    );
+    cancel.cancel();
 }
 
 impl SessionManager {
@@ -112,6 +150,7 @@ impl SessionManager {
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
         let mut capture_threads = Vec::new();
+        let mut fixture_tasks = Vec::new();
         let mut client_tasks = Vec::new();
 
         let (level_tx, mut level_rx) = channel::<AudioLevel>(LEVEL_CHANNEL_CAPACITY);
@@ -126,46 +165,66 @@ impl SessionManager {
             let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             let source_cancel = cancel.child_token();
 
-            let capture_app = app.clone();
-            let capture_cancel = source_cancel.clone();
-            let capture_error_cancel = source_cancel.clone();
-            let capture_level_tx = level_tx.clone();
-            let mic_name = options.mic_device_name.clone();
-            let handle = std::thread::Builder::new()
-                .name(format!("capture-{origin:?}"))
-                .spawn(move || {
-                    let result = match origin {
-                        Origin::Microphone => run_microphone(
-                            capture_app.clone(),
-                            mic_name,
+            match options.rehearsal {
+                // Rehearsal swaps the capture device for a bundled recording and changes
+                // nothing else: same channel, same chunk shape, same engine below it.
+                Some(language) => {
+                    let fixture_app = app.clone();
+                    let fixture_cancel = source_cancel.clone();
+                    let fixture_level_tx = level_tx.clone();
+                    fixture_tasks.push(tauri::async_runtime::spawn(async move {
+                        let result = run_rehearsal(
+                            &fixture_app,
+                            language,
                             target_rate,
-                            capture_level_tx,
+                            fixture_level_tx,
                             audio_tx,
-                            capture_cancel,
-                        ),
-                        Origin::System => run_system_loopback(
-                            target_rate,
-                            capture_level_tx,
-                            audio_tx,
-                            capture_cancel,
-                        ),
-                    };
-                    if let Err(error) = result {
-                        tracing::error!(?origin, "capture failed: {error:#}");
-                        let _ = capture_app.emit(
-                            events::STATUS,
-                            StatusUpdate {
-                                state: SessionState::Error,
-                                message: Some(format!("{origin:?} capture: {error}")),
-                                origin: Some(origin),
-                            },
-                        );
-                        // Stop this source's client. The other source, if any, stays live.
-                        capture_error_cancel.cancel();
-                    }
-                })
-                .context("failed to spawn capture thread")?;
-            capture_threads.push(handle);
+                            fixture_cancel.clone(),
+                        )
+                        .await;
+                        if let Err(error) = result {
+                            report_source_failure(&fixture_app, origin, &error, &fixture_cancel);
+                        }
+                    }));
+                }
+                None => {
+                    let capture_app = app.clone();
+                    let capture_cancel = source_cancel.clone();
+                    let capture_error_cancel = source_cancel.clone();
+                    let capture_level_tx = level_tx.clone();
+                    let mic_name = options.mic_device_name.clone();
+                    let handle = std::thread::Builder::new()
+                        .name(format!("capture-{origin:?}"))
+                        .spawn(move || {
+                            let result = match origin {
+                                Origin::Microphone => run_microphone(
+                                    capture_app.clone(),
+                                    mic_name,
+                                    target_rate,
+                                    capture_level_tx,
+                                    audio_tx,
+                                    capture_cancel,
+                                ),
+                                Origin::System => run_system_loopback(
+                                    target_rate,
+                                    capture_level_tx,
+                                    audio_tx,
+                                    capture_cancel,
+                                ),
+                            };
+                            if let Err(error) = result {
+                                report_source_failure(
+                                    &capture_app,
+                                    origin,
+                                    &error,
+                                    &capture_error_cancel,
+                                );
+                            }
+                        })
+                        .context("failed to spawn capture thread")?;
+                    capture_threads.push(handle);
+                }
+            }
 
             let client_app = app.clone();
             match provider {
@@ -232,17 +291,25 @@ impl SessionManager {
             Ok(())
         };
 
-        if options.source.wants_mic() {
-            spawn_source(Origin::Microphone)?;
-        }
-        if options.source.wants_system() {
+        // A rehearsal runs exactly one origin, System, off the bundled fixture: `source` and
+        // the microphone selection are deliberately ignored, because the point of the mode is
+        // to exercise the pipeline with no audio hardware involved at all.
+        if options.rehearsal.is_some() {
             spawn_source(Origin::System)?;
+        } else {
+            if options.source.wants_mic() {
+                spawn_source(Origin::Microphone)?;
+            }
+            if options.source.wants_system() {
+                spawn_source(Origin::System)?;
+            }
         }
 
         let cancel = cancel_guard.disarm();
         *lock(&self.active) = Some(ActiveSession {
             cancel,
             capture_threads,
+            fixture_tasks,
             client_tasks,
         });
         Ok(())
@@ -268,6 +335,15 @@ impl SessionManager {
             .await
             {
                 tracing::warn!("capture join task failed: {error}");
+            }
+
+            // Rehearsal playback holds the producer end of its audio channel, and the client
+            // below only sees the stream end once that is dropped — so drain it here, in the
+            // same place the capture threads are joined.
+            for result in join_all(session.fixture_tasks.iter_mut()).await {
+                if let Err(error) = result {
+                    tracing::warn!("rehearsal playback task failed: {error}");
+                }
             }
 
             // Providers may emit their last transcript while flushing. Do not report Idle

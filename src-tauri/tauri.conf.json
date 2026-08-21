@@ -47,7 +47,8 @@
     "active": true,
     "targets": "all",
     "resources": {
-      "resources/models/*": "models/"
+      "resources/models/*": "models/",
+      "resources/fixtures/*": "fixtures/"
     },
     "icon": [
       "icons/32x32.png",

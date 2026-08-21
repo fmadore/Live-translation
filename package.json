@@ -23,7 +23,8 @@
     "test": "vitest run",
     "fetch:whisper-model": "node scripts/fetch-whisper-model.mjs",
     "bundle:msix": "tauri-windows-bundle build --arch x64 --runner npm",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "generate:rehearsal-fixtures": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-rehearsal-fixtures.ps1"
   },
   "devDependencies": {
     "@choochmeque/tauri-windows-bundle": "^0.1.28",

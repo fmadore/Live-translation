@@ -101,8 +101,18 @@
 		}
 	}
 
-	const usesMic = $derived($options.source !== 'system');
-	const usesSystem = $derived($options.source !== 'microphone');
+	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
+	// instead of live audio. It only ever reaches the backend as one extra field on the start
+	// call: writing it into the options store would persist it, and the next launch would
+	// silently rehearse instead of captioning the room. Declared here because the meter gates
+	// below depend on it.
+	let rehearsing = $state(false);
+
+	// A rehearsal is a single System-origin stream no matter what source is saved, so the
+	// meters follow the fixture rather than showing a dead Room meter. Idle is unaffected
+	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
+	const usesMic = $derived(!rehearsing && $options.source !== 'system');
+	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
 	const audioReady = $derived((!usesMic || micSignal) && (!usesSystem || systemSignal));
 
 	const audioTitle = $derived(
@@ -160,19 +170,47 @@
 		}
 	}
 
-	async function start() {
+	// ---- Launching --------------------------------------------------------------
+	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
+	// the whole-session idle status clears it (stores.ts), so it is null exactly when the app is
+	// back at idle — including after a stop, an error, or a backend-side end of session.
+	$effect(() => {
+		if ($sessionStartedAt === null) rehearsing = false;
+	});
+
+	/** Which language the sample recording should be spoken in. Translation rehearses on the
+	 *  language the room is *not* reading, so the operator sees real translation rather than a
+	 *  passthrough; the transcribers rehearse in the language they expect — the on-device
+	 *  recognizer in the one it was told to listen for, Voxtral (which auto-detects) in English. */
+	const fixtureLanguage = $derived<TargetLanguage>(
+		$options.mode === 'translate'
+			? $options.targetLanguage === 'en'
+				? 'fr'
+				: 'en'
+			: $options.provider === 'ondevice'
+				? $options.targetLanguage
+				: 'en'
+	);
+
+	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
+	async function launch(rehearsal?: TargetLanguage) {
 		if (sessionBusy || $isRunning) return;
 		sessionBusy = true;
 		statusMessage.set('');
 		beginSession();
+		rehearsing = rehearsal !== undefined;
 		try {
-			await api.startSession($options);
+			await api.startSession(rehearsal === undefined ? $options : { ...$options, rehearsal });
 		} catch (e) {
 			statusMessage.set(String(e));
+			rehearsing = false;
 		} finally {
 			sessionBusy = false;
 		}
 	}
+
+	const start = () => launch();
+	const rehearse = () => launch(fixtureLanguage);
 
 	async function stop() {
 		if (sessionBusy) return;
@@ -380,7 +418,8 @@
 					</div>
 					<div class="chip">
 						<span class="chip-label">Source</span>
-						<span class="chip-value">{SOURCE_LABEL[$options.source]}</span>
+						<!-- A rehearsal ignores the chosen source entirely: the fixture is the audio. -->
+						<span class="chip-value">{rehearsing ? 'Sample' : SOURCE_LABEL[$options.source]}</span>
 					</div>
 					<div class="chip">
 						<span class="chip-label">Room reads</span>
@@ -395,6 +434,9 @@
 				<p class="rail-note">
 					<!-- The target language is fixed at session start (the backend takes it once),
 					     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
+					{#if rehearsing}
+						<span>A sample recording is playing — nothing in the room is being captured.</span>
+					{/if}
 					<span>Stop the session to change any of these.</span>
 				</p>
 
@@ -836,6 +878,21 @@
 								? 'Start translating'
 								: 'Start subtitles'}
 					</button>
+					<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
+					     key and the same desktop runtime. -->
+					<div class="rehearse-slot">
+						<button
+							class="rehearse"
+							disabled={!$hasKey || browserMode || sessionBusy}
+							onclick={rehearse}
+						>
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg>
+							{sessionBusy ? 'Starting…' : 'Rehearse'}
+						</button>
+						<span class="rehearse-hint">
+							Plays a bundled sample recording through the live pipeline — no microphone needed.
+						</span>
+					</div>
 					<span class="privacy">
 						Transcript is held in memory until you save it.
 						{$options.provider === 'ondevice'
@@ -1654,6 +1711,42 @@
 	.start:disabled {
 		box-shadow: none;
 	}
+	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
+	   the thing the operator came to press. */
+	.rehearse-slot {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+		min-width: 0;
+	}
+	.rehearse {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 13px 18px;
+		border-radius: 11px;
+		border: 1px solid var(--border);
+		background: transparent;
+		color: var(--text-soft);
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1;
+		white-space: nowrap;
+		flex: 0 0 auto;
+	}
+	.rehearse:hover:not(:disabled) {
+		border-color: var(--border-hover);
+		color: var(--text);
+	}
+	.rehearse-hint {
+		font-size: 11.5px;
+		line-height: 1.45;
+		color: var(--muted-3);
+		max-width: 38ch;
+		text-wrap: pretty;
+	}
+
 	.privacy {
 		font-size: 12.5px;
 		line-height: 1.5;

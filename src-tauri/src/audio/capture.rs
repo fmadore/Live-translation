@@ -48,6 +48,11 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
 }
 
 /// Capture from the microphone until `cancel` fires. Blocks the calling thread.
+///
+/// Everything that can fail here fails *before* the stream starts — device resolution, config,
+/// and the stream build below — and the errors stay technical on purpose. The operator-facing
+/// wording, including the Windows privacy-setting guidance a packaged build needs, is added
+/// where the failure becomes a `StatusUpdate`: `session::report_source_failure`.
 pub fn run_microphone(
     app: AppHandle,
     device_name: Option<String>,

@@ -39,6 +39,14 @@ export interface StartOptions {
 	provider: Provider;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
+	/** Rehearse instead of capturing: the backend plays a bundled ~20 s speech fixture spoken in
+	 *  this language through the real pipeline — one System-origin stream, looping until Stop —
+	 *  so captions, levels, transcript and overlay behave exactly as in a live session. `source`
+	 *  and `micDeviceName` are ignored while it is set; absent means a normal live session.
+	 *  Cloud engines still stream to the provider and bill normally; `ondevice` rehearses fully
+	 *  offline. Per-launch only: it is never written to the options store, so it can never reach
+	 *  the persisted record. Keep in sync with `StartOptions` in `src-tauri/src/types.rs`. */
+	rehearsal?: TargetLanguage;
 }
 
 /** A caption update streamed from the active translation or subtitle session. */
@@ -174,7 +182,9 @@ function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback
  *  defaults; otherwise each field falls back to its own default when missing or outside its
  *  union. A stored mode/provider pair that violates `providerCanTranslate` discards the whole
  *  record — the rail offers no such pair, so repairing one field would only guess which of the
- *  two the operator meant. */
+ *  two the operator meant. The result is built field by field rather than spread from storage,
+ *  so `rehearsal` (never persisted, and meaningless outside the launch that asked for it) can
+ *  never come back out of localStorage. */
 export function loadStartOptions(): StartOptions {
 	if (typeof localStorage === 'undefined') return { ...DEFAULT_START_OPTIONS };
 	const raw = localStorage.getItem(SESSION_OPTIONS_KEY);
