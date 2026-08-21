@@ -299,11 +299,17 @@ Listing (live once the first submission passes certification):
       package. The full flow is documented in [`packaging-msix.md`](packaging-msix.md).
 - [x] Manifest: identity values from *Store identity* above, `runFullTrust`, `microphone`
       device capability, `1.0.0.0` — verified byte for byte against the assigned identity.
-- [ ] Build locally, sign with a self-signed certificate, install, and **verify gates 6, 7 and
+- [x] Build locally, sign with a self-signed certificate, install, and **verify gates 6, 7 and
       8 on real hardware** — microphone, WASAPI loopback against a live Teams/Zoom call, and
       Credential Manager round-trip. Also re-check the transparent click-through overlay and
       the `Documents/Live-translation/` export path under package identity. Step-by-step
       commands: [`packaging-msix.md`](packaging-msix.md).
+      **Verified 2026-08-21** with the CI-built `v1.0.0-rc.3` package on ARM64 Windows under
+      x64 emulation: identity/family name, WASAPI loopback, Credential Manager, cloud
+      translation and Mistral subtitles, the on-device engine (after the ISA-baseline fix —
+      slow under emulation, as expected), overlay placement/adjust, and the post-session
+      transcript. Still worth a spot-check on a native x64 machine before submission:
+      microphone capture and real on-device latency.
 - [x] Add an `msix` job to `release.yml` producing an unsigned `.msixbundle`
       (`--arch x64` for now) as a release asset. Keep the NSIS installer alongside it — the
       GitHub release stays the fallback channel.
