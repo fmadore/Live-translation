@@ -23,12 +23,14 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 ## What leaves the machine
 
 Captured audio is streamed to whichever provider you select, under that provider's terms.
-Nothing is sent when no session is running. Transcripts are written only to the local path
-you choose via **Save text** / **Save Markdown**.
+Nothing is sent when no session is running. Transcripts are written only when you choose
+**Save text** or **Save Markdown**, under `Documents/Live-translation/`. A native Save As
+workflow is planned in [issue #26](https://github.com/fmadore/Live-translation/issues/26).
 
 ## Installer signing
 
-Release installers are currently **unsigned**, so Windows SmartScreen warns on first
-launch ("Windows protected your PC" — choose **More info → Run anyway**). Verify downloads
-come from the official releases page above. Removing that warning is planned via Microsoft
-Store distribution; see [`docs/microsoft-store.md`](docs/microsoft-store.md).
+The NSIS installers on GitHub Releases are currently **unsigned**, so Windows SmartScreen may
+warn on first launch ("Windows protected your PC" — choose **More info → Run anyway**). Verify
+downloads come from the official releases page above. Version 1.0.0 has also been submitted as
+an MSIX to the Microsoft Store and is awaiting certification; Store-distributed packages are
+signed by Microsoft. See [`docs/microsoft-store.md`](docs/microsoft-store.md).
