@@ -38,6 +38,13 @@ Provider details and verified wire formats are documented in
 
 ## Install
 
+<a href="https://get.microsoft.com/installer/download/9pfb8lr3rr9x?referrer=appbadge">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20light.svg" />
+    <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" alt="Get it from Microsoft" />
+  </picture>
+</a>
+
 **[Get it from the Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X)** —
 native x64 and ARM64, signed by Microsoft, and it updates itself. This is the recommended
 route.
