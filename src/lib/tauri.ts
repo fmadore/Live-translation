@@ -13,7 +13,8 @@ import type {
 	OnDeviceReadiness,
 	Provider,
 	StartOptions,
-	StatusUpdate
+	StatusUpdate,
+	StoredRecovery
 } from './types';
 import { EVT } from './types';
 
@@ -75,7 +76,28 @@ export const api = {
 
 	/** Write the transcript to disk; returns the saved file path. */
 	saveTranscript: (content: string, filename: string) =>
-		invoke<string>('save_transcript', { content, filename })
+		invoke<string>('save_transcript', { content, filename }),
+
+	/** Overwrite the crash-recovery spool; returns its path. Opt-in — see `recoveryEnabled`. */
+	writeRecovery: (contents: string) => invoke<string>('write_recovery', { contents }),
+
+	/** Read the spool left by a previous run, or null when there is nothing to recover. */
+	readRecovery: () => invoke<StoredRecovery | null>('read_recovery'),
+
+	/** Delete the spool. Called on save, clear, discard, and when recovery is switched off. */
+	clearRecovery: () => invoke<void>('clear_recovery'),
+
+	/** Tell the core whether closing the window would lose something, so it knows when to
+	 *  intercept a close and when to leave it alone. See `shouldGuardClose`. */
+	setCloseGuard: (guard: boolean) => invoke<void>('set_close_guard', { guard }),
+
+	/** Say that an intercepted close is being handled. Sent immediately, before the session is
+	 *  stopped: without it the core releases the window after `ACK_TIMEOUT` rather than let a
+	 *  wedged renderer hold it shut. */
+	ackClose: () => invoke<void>('ack_close'),
+
+	/** Answer an intercepted close: quit for real. */
+	confirmClose: () => invoke<void>('confirm_close')
 };
 
 // ---- Events ---------------------------------------------------------------
@@ -85,6 +107,8 @@ export const on = {
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),
 	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h),
 	audioTest: (h: (t: AudioTestUpdate) => void) => listen<AudioTestUpdate>(EVT.audioTest, h),
+	/** The operator tried to close the window and the core held it open for an answer. */
+	closeRequested: (h: () => void) => listen<null>(EVT.closeRequested, () => h()),
 	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
 	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h)
 };

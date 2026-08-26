@@ -12,14 +12,17 @@ mod ondevice;
 mod openai;
 mod overlay;
 mod realtime;
+mod recovery;
 mod secrets;
 mod session;
 mod types;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 use overlay::OVERLAY_LABEL;
+use recovery::{CloseGuard, ACK_TIMEOUT, OPERATOR_LABEL};
 use session::SessionManager;
+use types::events;
 
 /// Fail loudly and legibly if the WebView2 Runtime is absent, instead of launching into
 /// nothing.
@@ -81,6 +84,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(SessionManager::default())
+        .manage(CloseGuard::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::has_api_key,
@@ -95,7 +99,56 @@ pub fn run() {
             commands::set_overlay_click_through,
             commands::show_overlay,
             commands::save_transcript,
+            recovery::ack_close,
+            recovery::write_recovery,
+            recovery::read_recovery,
+            recovery::clear_recovery,
+            recovery::set_close_guard,
+            recovery::confirm_close,
         ])
+        .on_window_event(|window, event| {
+            // The overlay is a caption surface with no controls; only the operator window
+            // can be holding an answer the app needs.
+            if window.label() != OPERATOR_LABEL {
+                return;
+            }
+            match event {
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    // Intercept only while the front-end says there is something to lose.
+                    if !window.state::<CloseGuard>().should_intercept() {
+                        return;
+                    }
+                    api.prevent_close();
+                    let attempt = window.state::<CloseGuard>().begin_attempt();
+                    // Broadcast, like every other core event: the front-end's `listen`
+                    // registers against `EventTarget::Any`, which a labeled `emit_to` would
+                    // filter straight back out.
+                    let _ = window.emit(events::CLOSE_REQUESTED, ());
+
+                    // …and make sure the window still closes if nothing answers. Without this
+                    // a renderer that wedged while the transcript was unsaved would leave the
+                    // operator with a window that only Task Manager can shut.
+                    let window = window.clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(ACK_TIMEOUT).await;
+                        let guard = window.state::<CloseGuard>();
+                        if guard.acknowledged(attempt) {
+                            return;
+                        }
+                        tracing::warn!(
+                            "front-end did not acknowledge close attempt {attempt}; closing anyway"
+                        );
+                        guard.release();
+                        let _ = window.close();
+                    });
+                }
+                // The overlay is undecorated, always-on-top and absent from the taskbar, so
+                // outliving the operator window would leave a caption layer floating over
+                // everything with nothing left that can dismiss it.
+                tauri::WindowEvent::Destroyed => window.app_handle().exit(0),
+                _ => {}
+            }
+        })
         .setup(|app| {
             // Make the overlay click-through from the start so it floats over slides
             // without ever stealing a click. Toggle via `set_overlay_click_through`.

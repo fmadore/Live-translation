@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { api, on, isTauri } from '$lib/tauri';
 	import {
 		sessionState,
@@ -10,6 +11,9 @@
 		options,
 		currentCaptions,
 		transcript,
+		transcriptDirty,
+		recoveryEnabled,
+		restoreTranscript,
 		micLevel,
 		systemLevel,
 		overlayFontSize,
@@ -18,6 +22,15 @@
 		pushCaption,
 		beginSession
 	} from '$lib/stores';
+	import {
+		decodeRecovery,
+		encodeRecovery,
+		newestLineId,
+		shouldGuardClose,
+		type CloseChoice,
+		type RecoverySnapshot
+	} from '$lib/document';
+	import { acknowledgeClose, prepareClose, resolveClose } from '$lib/quit';
 	import type {
 		AudioDevice,
 		AudioLevel,
@@ -40,6 +53,8 @@
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
+	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
+	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
@@ -221,6 +236,7 @@
 
 		void refresh();
 		void refreshLocalReadiness();
+		void loadRecovery();
 		// Sync the overlay to the operator's current caption size on load.
 		void api.setOverlayConfig({ fontSize: $overlayFontSize });
 
@@ -231,6 +247,9 @@
 			// A test is not a session, so it reports on its own channel and never touches the
 			// session state machine. Rust is authoritative: it also ends the test when a
 			// session starts, and says so here.
+			// Closing with unsaved captions, or mid-session, is held by the core until this
+			// answers it — see `recovery::CloseGuard`.
+			on.closeRequested(() => void onCloseRequested()),
 			on.audioTest((t) => {
 				audioTesting = t.active;
 				if (!t.active) {
@@ -291,6 +310,134 @@
 				canPrepare: false,
 				detail: String(e)
 			};
+		}
+	}
+
+	// ---- Quit and crash safety (issue #25) --------------------------------------
+	// The transcript is a document with a saved state, not a scrolling side effect: it is
+	// never truncated, closing the window with unsaved lines asks first, and — only if the
+	// operator opts in — a local spool covers the crash the prompt cannot.
+
+	/** How often the opt-in spool is refreshed while captions are arriving. Long enough that a
+	 *  busy session is not writing constantly, short enough that a crash costs a sentence. */
+	const RECOVERY_INTERVAL_MS = 8000;
+
+	let closePrompt = $state(false);
+	let closeEndedSession = $state(false);
+	let closeSaving = $state(false);
+	let closeError = $state('');
+	let answeringClose = false;
+
+	let recovered = $state<{ snapshot: RecoverySnapshot; path: string } | null>(null);
+
+	// Keep the core's guard current. While it is false a close is not intercepted at all, so
+	// a wedged renderer cannot produce a window that refuses to close.
+	$effect(() => {
+		if (browserMode) return;
+		void api.setCloseGuard(shouldGuardClose($transcriptDirty, $isRunning)).catch(() => {});
+	});
+
+	async function onCloseRequested() {
+		// Claimed first, unconditionally. A second click on the window's X while the prompt is
+		// already up is still an interception the core is counting down on, and letting that
+		// one lapse would release the window with the transcript still unsaved.
+		await acknowledgeClose();
+		if (closePrompt || answeringClose) return;
+		answeringClose = true;
+		try {
+			const outcome = await prepareClose(stop);
+			closeEndedSession = outcome.endedSession;
+			closeError = '';
+			closePrompt = outcome.prompt;
+		} catch (e) {
+			statusMessage.set(String(e));
+		} finally {
+			answeringClose = false;
+		}
+	}
+
+	async function onCloseChoice(choice: CloseChoice) {
+		if (choice === 'cancel') {
+			closePrompt = false;
+			closeEndedSession = false;
+			closeError = '';
+			return;
+		}
+		closeSaving = choice === 'save';
+		closeError = '';
+		try {
+			await resolveClose(choice);
+			closePrompt = false;
+		} catch (e) {
+			// Stay open on a failed write: quitting here would lose exactly what the operator
+			// just asked to keep.
+			closeError = String(e);
+		} finally {
+			closeSaving = false;
+		}
+	}
+
+	// ---- Recovery spool ---------------------------------------------------------
+
+	$effect(() => {
+		if (browserMode || !$recoveryEnabled) return;
+		// Tracked inside the effect so switching recovery off and on again starts clean.
+		let spooledId = -1;
+		let writing = false;
+		let stopped = false;
+		const id = setInterval(() => {
+			if (writing || stopped) return;
+			const lines = get(transcript);
+			const newest = newestLineId(lines);
+			// Nothing new since the last spool, or nothing unsaved to protect.
+			if (newest === spooledId || !get(transcriptDirty)) return;
+			writing = true;
+			void api
+				.writeRecovery(encodeRecovery(lines, new Date()))
+				.then(() => {
+					spooledId = newest;
+				})
+				.catch((error) => {
+					// Said once. A spool that cannot be written must not bury the session's own
+					// status messages under the same failure every few seconds.
+					stopped = true;
+					statusMessage.set(`Recovery copy could not be written: ${error}`);
+				})
+				.finally(() => {
+					writing = false;
+				});
+		}, RECOVERY_INTERVAL_MS);
+		return () => clearInterval(id);
+	});
+
+	async function loadRecovery() {
+		try {
+			const stored = await api.readRecovery();
+			if (!stored) return;
+			const snapshot = decodeRecovery(stored.contents);
+			if (!snapshot) {
+				// Truncated mid-write, or hand-edited. There is nothing to offer, and leaving it
+				// would strand caption text on disk that no prompt will ever clear.
+				await api.clearRecovery();
+				return;
+			}
+			recovered = { snapshot, path: stored.path };
+		} catch (error) {
+			statusMessage.set(String(error));
+		}
+	}
+
+	/** Answer the recovery offer. Either answer retires the spool — the operator has now
+	 *  decided, and a file nobody chose to keep must not survive the decision. */
+	async function answerRecovery(restore: boolean) {
+		const found = recovered;
+		recovered = null;
+		if (!found) return;
+		if (restore) restoreTranscript(found.snapshot.lines);
+		try {
+			await api.clearRecovery();
+		} catch (error) {
+			statusMessage.set(String(error));
 		}
 	}
 
@@ -1064,7 +1211,9 @@
 						</span>
 					</div>
 					<span class="privacy">
-						Transcript is held in memory until you save it.
+						{$recoveryEnabled
+							? 'Transcript is held in memory and spooled locally until you save it.'
+							: 'Transcript is held in memory until you save it.'}
 						{$options.provider === 'ondevice'
 							? 'The bundled demo stays entirely inside the app.'
 							: `Nothing leaves the machine except audio to ${meta.vendor}.`}
@@ -1074,6 +1223,28 @@
 		</main>
 	</div>
 </div>
+
+<!-- Both are modal on purpose: each is the last moment at which an event's record can still
+     be kept, and each has to be answered before the log underneath it changes again. -->
+{#if recovered}
+	<RecoveryPrompt
+		lines={recovered.snapshot.lines.length}
+		savedAt={new Date(recovered.snapshot.savedAt).toLocaleString()}
+		path={recovered.path}
+		onRestore={() => void answerRecovery(true)}
+		onDelete={() => void answerRecovery(false)}
+	/>
+{/if}
+
+{#if closePrompt}
+	<UnsavedPrompt
+		lines={$transcript.length}
+		endedSession={closeEndedSession}
+		saving={closeSaving}
+		error={closeError}
+		onChoice={(choice) => void onCloseChoice(choice)}
+	/>
+{/if}
 
 <style>
 	.app {
