@@ -184,3 +184,64 @@ pub async fn confirm_close(
     app.exit(0);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn leaves_a_close_alone_when_there_is_nothing_to_lose() {
+        assert!(!CloseGuard::default().should_intercept());
+    }
+
+    #[test]
+    fn intercepts_while_the_front_end_reports_something_to_lose() {
+        let guard = CloseGuard::default();
+        guard.set(true);
+        assert!(guard.should_intercept());
+
+        guard.set(false);
+        assert!(!guard.should_intercept());
+    }
+
+    #[test]
+    fn lets_the_quit_through_once_the_operator_has_answered() {
+        let guard = CloseGuard::default();
+        guard.set(true);
+        guard.confirm();
+        assert!(!guard.should_intercept());
+    }
+
+    /// The watchdog exists for a renderer that wedged while something was unsaved: nothing
+    /// acknowledges the interception, so the window has to be released rather than held shut
+    /// until Task Manager.
+    #[test]
+    fn an_unacknowledged_attempt_can_be_released() {
+        let guard = CloseGuard::default();
+        guard.set(true);
+        let attempt = guard.begin_attempt();
+
+        assert!(!guard.acknowledged(attempt));
+        guard.release();
+        assert!(!guard.should_intercept());
+    }
+
+    /// A second click on the window's X while the prompt is already up must not be satisfied
+    /// by the acknowledgement the first one got — its watchdog would then close the window
+    /// out from under the prompt, taking the unsaved transcript with it.
+    #[test]
+    fn every_attempt_needs_its_own_acknowledgement() {
+        let guard = CloseGuard::default();
+        guard.set(true);
+
+        let first = guard.begin_attempt();
+        guard.ack();
+        assert!(guard.acknowledged(first));
+
+        let second = guard.begin_attempt();
+        assert!(!guard.acknowledged(second));
+
+        guard.ack();
+        assert!(guard.acknowledged(second));
+    }
+}

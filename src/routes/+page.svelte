@@ -30,7 +30,7 @@
 		type CloseChoice,
 		type RecoverySnapshot
 	} from '$lib/document';
-	import { prepareClose, resolveClose } from '$lib/quit';
+	import { acknowledgeClose, prepareClose, resolveClose } from '$lib/quit';
 	import type {
 		AudioDevice,
 		AudioLevel,
@@ -338,6 +338,10 @@
 	});
 
 	async function onCloseRequested() {
+		// Claimed first, unconditionally. A second click on the window's X while the prompt is
+		// already up is still an interception the core is counting down on, and letting that
+		// one lapse would release the window with the transcript still unsaved.
+		await acknowledgeClose();
 		if (closePrompt || answeringClose) return;
 		answeringClose = true;
 		try {

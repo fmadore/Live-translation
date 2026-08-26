@@ -16,6 +16,12 @@ import { api } from './tauri';
  *  bounds its own drain at five seconds; this bounds the wait on the whole call. */
 export const QUIT_DRAIN_TIMEOUT_MS = 8000;
 
+/** Claim an intercepted close so the core stops counting down on it.
+ *
+ *  Every `close-requested` needs one, including a repeat that lands while the prompt is
+ *  already on screen: the core counts attempts, and an unclaimed one releases the window a
+ *  few seconds later — which, with the prompt still open, would take the transcript with it. */
+
 export interface CloseOutcome {
 	/** A session was running and has been stopped and drained, so the prompt can explain
 	 *  where the last few lines came from. */
@@ -43,13 +49,17 @@ function withTimeout(work: Promise<unknown>, ms: number): Promise<unknown> {
  * `stopSession` is injected because the page owns the busy flag and the status line that a
  * stop touches; this only needs to know when it has finished.
  */
+export async function acknowledgeClose(): Promise<void> {
+	await api.ackClose().catch(() => {});
+}
+
 export async function prepareClose(
 	stopSession: () => Promise<void>,
 	timeoutMs = QUIT_DRAIN_TIMEOUT_MS
 ): Promise<CloseOutcome> {
 	// First, before the drain: the core releases the window if nothing claims the close within
 	// a few seconds, and stopping a session takes longer than that.
-	await api.ackClose().catch(() => {});
+	await acknowledgeClose();
 
 	let endedSession = false;
 	if (get(isRunning)) {
