@@ -30,7 +30,12 @@
 		SessionState,
 		TargetLanguage
 	} from '$lib/types';
-	import { clampOverlayFont, providerCanTranslate, providerRequiresKey } from '$lib/types';
+	import {
+		canFlipDirection,
+		clampOverlayFont,
+		providerCanTranslate,
+		providerRequiresKey
+	} from '$lib/types';
 	import { PROVIDER_META, estimateSessionCost, formatUsd } from '$lib/providers';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
@@ -295,7 +300,7 @@
 
 	// Quick flip of the caption language — handy when speakers alternate.
 	function flipDirection() {
-		if ($options.mode !== 'translate' || controlsLocked) return;
+		if (!canFlipDirection($options.mode, controlsLocked)) return;
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
@@ -707,7 +712,7 @@
 						</div>
 						{#if $options.mode === 'translate'}
 							<p class="hint inline-hint">
-								<span>Speakers alternating? Flip mid-session with</span>
+								<span>Speakers alternating? Swap it before you start with</span>
 								<span class="key">F2</span>
 							</p>
 						{:else}

@@ -37,6 +37,16 @@ export function providerRequiresKey(provider: Provider): boolean {
 /** Translate speech, or show a same-language transcription as live subtitles. */
 export type OutputMode = 'translate' | 'transcribe';
 
+/** Whether the F2 direction shortcut can act right now.
+ *
+ *  Translation is the only mode with a direction to flip, and the target language is handed
+ *  to the provider once at session start — so it cannot change while a session is running,
+ *  and `locked` is true for the whole of one. Genuine live switching needs provider-aware
+ *  reconnection, hysteresis and in-flight-turn handling; that is issue #12, not this. */
+export function canFlipDirection(mode: OutputMode, locked: boolean): boolean {
+	return mode === 'translate' && !locked;
+}
+
 export interface StartOptions {
 	source: AudioSource;
 	mode: OutputMode;
