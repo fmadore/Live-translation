@@ -1,15 +1,21 @@
 name: Release installers
 
 # Builds the x64 one-click installers and attaches them to the GitHub release, then packages
-# native x64 and ARM64 unsigned MSIX bundles for the Microsoft Store (see
-# docs/microsoft-store.md and docs/packaging-msix.md).
+# native x64 and ARM64 MSIX packages and combines them into one unsigned multi-architecture
+# .msixbundle for the Microsoft Store (see docs/microsoft-store.md, docs/packaging-msix.md
+# and docs/store-automation.md).
 #
-# The ordinary installer remains x64. Store packages are x64 + native ARM64 because Windows
-# Speech and every cloud-provider path are architecture-native.
+# The ordinary installer remains x64. Store packages are x64 + native ARM64 because every
+# cloud-provider path is architecture-native.
+#
+# Release assets: Live.Translation_<version>_<arch>.msix  — sideload/verification packages
+#                 Live.Translation_<version>.msixbundle   — the Store submission artifact
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2  -> builds + publishes.
 # Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
 # an existing tag (e.g. v0.1.1) to add the other platforms' installers to it.
+#
+# Submitting the bundle to the Store is a separate, manual workflow: store-submission.yml.
 
 on:
   push:
@@ -127,35 +133,96 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      # Writes an architecture-specific .msix and its single-architecture .msixbundle wrapper.
+      # Writes an architecture-specific .msix and a single-architecture .msixbundle wrapper.
+      # Only the bare .msix is kept: the `bundle` job below combines both architectures into
+      # the one multi-architecture bundle the Store submission wants.
       - name: Build MSIX package
         run: npm run bundle:msix:${{ matrix.arch }}
 
       # msixbundle-cli names its output after the manifest DisplayName ("Live Translation &
       # Subtitles"), which makes a poor release asset, so rename to the convention the NSIS
       # and MSI assets already follow.
-      - name: Name the release assets
+      - name: Name the package
         id: package
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          # Both artifacts ship: the .msixbundle is the Store submission format, and the bare
-          # .msix is what a tester signs and installs locally — signing a bundle does not sign
-          # the package inside it, so the bundle alone cannot be side-loaded for verification.
           $msix = Get-ChildItem 'src-tauri/target/msix' | Where-Object Extension -eq '.msix' | Select-Object -First 1
           if (-not $msix) { throw 'tauri-windows-bundle produced no .msix.' }
-          $bundle = Get-ChildItem 'src-tauri/target/msix' | Where-Object Extension -eq '.msixbundle' | Select-Object -First 1
-          if (-not $bundle) { throw 'tauri-windows-bundle produced no .msixbundle.' }
           $msixAsset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_${{ matrix.arch }}.msix"
-          $bundleAsset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_${{ matrix.arch }}.msixbundle"
           Move-Item -LiteralPath $msix.FullName -Destination $msixAsset -Force
-          Move-Item -LiteralPath $bundle.FullName -Destination $bundleAsset -Force
           "msix=$msixAsset" >> $env:GITHUB_OUTPUT
-          "bundle=$bundleAsset" >> $env:GITHUB_OUTPUT
 
+      # The bare .msix is what a tester signs and installs locally (scripts/install-local-msix.ps1):
+      # signing a bundle does not sign the packages inside it, so a bundle cannot be side-loaded
+      # for verification.
       - name: Attach the MSIX to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: >-
           gh release upload "${{ inputs.tag || github.ref_name }}"
-          "${{ steps.package.outputs.msix }}" "${{ steps.package.outputs.bundle }}" --clobber
+          "${{ steps.package.outputs.msix }}" --clobber
+
+      # Handed to the `bundle` job, which needs both architectures on one runner.
+      - name: Upload the MSIX for bundling
+        uses: actions/upload-artifact@v7
+        with:
+          name: msix-${{ matrix.arch }}
+          path: ${{ steps.package.outputs.msix }}
+          retention-days: 1
+          if-no-files-found: error
+
+  # One multi-architecture .msixbundle carrying both packages. This is the Store submission
+  # artifact, and it has to be a single file: `msstore publish` uploads one package and marks
+  # only the first existing package with a matching extension for deletion, so two separate
+  # single-architecture bundles would leave a stale one behind on every update
+  # (docs/store-automation.md).
+  bundle:
+    name: Store bundle (x64 + ARM64)
+    needs: msix
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Download both architectures
+        uses: actions/download-artifact@v8
+        with:
+          pattern: msix-*
+          path: packages
+          merge-multiple: true
+
+      - name: Bundle
+        id: bundle
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+
+          $packages = Get-ChildItem 'packages' -Filter *.msix
+          if ($packages.Count -ne 2) {
+            throw "Expected an x64 and an ARM64 .msix, found $($packages.Count): $($packages.Name -join ', ')"
+          }
+
+          # MakeAppx ships with the Windows SDK, which is preinstalled on windows-latest.
+          # Take the highest SDK version rather than assuming one.
+          $makeAppx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" |
+            Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
+            Select-Object -First 1
+          if (-not $makeAppx) { throw 'MakeAppx.exe was not found; the Windows SDK is missing.' }
+
+          $bundle = "Live.Translation_${version}.msixbundle"
+          # /bv must be a four-part version and at least as high as the packages inside it.
+          & $makeAppx.FullName bundle /d 'packages' /p $bundle /bv "$version.0" /o
+          if ($LASTEXITCODE -ne 0) { throw "MakeAppx failed with exit code $LASTEXITCODE" }
+
+          "bundle=$bundle" >> $env:GITHUB_OUTPUT
+
+      - name: Attach the bundle to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release upload "${{ inputs.tag || github.ref_name }}"
+          "${{ steps.bundle.outputs.bundle }}" --clobber
