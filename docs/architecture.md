@@ -3,106 +3,64 @@
 ## Data flow
 
 ```text
-microphone (cpal) ─┐
-                   ├─ downmix → low-pass/resample → PCM16 → bounded channel ─┐
-system (WASAPI) ───┘                                                         │
-                                                                             ▼
-                     one client per active source and provider
-                     ├─ Gemini/OpenAI: translated transcript (WebSocket)
-                     ├─ Mistral: same-language transcript (WebSocket)
-                     └─ On-device: same-language transcript (local, keyless)
-                                      │
-                                      ▼
-                          Tauri caption/status/level events
-                                ┌─────┴─────┐
-                         operator UI    overlay window
+live microphone (CPAL) ─┐
+                        ├─ PCM16 bounded channel ── provider WebSocket ─┐
+system audio (WASAPI) ──┘                                              │
+                                                                        ├─ caption/status/level events
+built-in demo ───────────── deterministic caption + level timeline ────┘
+                                                                                 │
+                                                                         operator + overlay
 ```
 
-1. **Capture.** Each source owns a native thread. `CaptureState` downmixes device samples,
-   applies a four-stage anti-alias low-pass when downsampling, resamples to 16 kHz
-   (Gemini/Mistral) or 24 kHz (OpenAI), converts to mono PCM16 LE, and forms roughly 100 ms
-   chunks. CPAL integer and floating-point sample formats are normalized through reusable
-   scratch buffers.
-2. **Backpressure.** Audio crosses a bounded five-chunk channel (at most about 500 ms), and
-   meter updates cross a bounded eight-event channel. The realtime callback never blocks.
-   After a network stall the consumer coalesces queued chunks to the newest one instead of
-   replaying stale speech; reconnect-buffered audio is discarded outright.
-3. **Provider session.** `session.rs` validates the selected mode/provider pair, resolves its
-   key if the backend needs one, and spawns one client task per source. For the cloud
-   providers that is `realtime::run_session`, which owns connection timeouts, setup/audio
-   pumping, message controls, idle caption segmentation, stable-connection backoff reset,
-   retryable-vs-permanent HTTP classification, and turn finalization.
-   `Provider::OnDevice` instead spawns `ondevice::run_session`: no socket, no key, no
-   reconnect loop. It consumes the same bounded audio channel and emits the same caption and
-   status events, so everything downstream is unchanged. Recognition is blocking and
-   CPU-bound, so it runs on a dedicated native thread behind a bounded queue; when the
-   recognizer falls behind, the newest chunk is dropped rather than the queue reordered,
-   which keeps the audio the recognizer *does* see contiguous.
-4. **Render/export.** Caption events are broadcast to both windows. The operator store tracks
-   pending turns independently by `(origin, turnId)`; finalized lines can be exported in
-   chronological plain text or Markdown. Mistral places its source-language transcription in
-   the normal caption `text` field, so overlay and export need no provider-specific branch.
+1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
+   low-pass filters when downsampling, resamples to the provider rate, converts to mono PCM16,
+   and forms roughly 100 ms chunks. Realtime callbacks write only to bounded channels.
+2. **Provider sessions.** Gemini and OpenAI produce translated captions; Mistral produces
+   same-language captions. One async client runs per selected source and owns setup, timeouts,
+   backoff, reconnect classification, audio pumping, turn finalization, and graceful shutdown.
+3. **Built-in demonstration.** The compatibility provider id `ondevice` starts
+   `ondevice::run_session`, which opens no device and contacts no service. A deterministic
+   English or French timeline emits the same session-status, audio-level, partial-caption, and
+   final-caption events as a live provider. This tests the shipping UI, timer, overlay,
+   transcript, and export paths identically on x64 and ARM64. It is explicitly presented as a
+   demonstration, not speech recognition.
+4. **Render/export.** Both windows receive caption events. Pending turns are keyed by
+   `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
 ## Provider contracts
 
-| Provider | Mode | Input | Caption event | Graceful stop |
+| Provider | Mode | Input | Caption source | Graceful stop |
 |---|---|---|---|---|
-| Gemini 3.5 Live Translate | Translate | 16 kHz PCM16 | `serverContent.outputTranscription` | WebSocket close |
-| OpenAI Realtime Translate | Translate | 24 kHz PCM16, 200 ms engine frames | `session.output_transcript.delta` | `session.close`, drain to `session.closed` |
-| Mistral Voxtral Mini Realtime | Transcribe | 16 kHz PCM16 | `transcription.text.delta` | `input_audio.flush`, then `input_audio.end`, drain to `transcription.done` |
-| On-device recognizer | Transcribe | 16 kHz PCM16, pushed | `RecognitionEvent::Partial`/`Final` | drop the sample sender, drain the flush |
+| Google Gemini Live | Translate | 16 kHz PCM16 | output transcription | WebSocket close |
+| OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
+| Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
+| Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
-Mistral and the on-device engine are intentionally unavailable in translation mode: Voxtral
-Mini Transcribe Realtime is a speech-to-text model, and Windows exposes no on-device
-translation API. `session.rs` enforces this through `Provider::can_translate` rather than a
-provider list, so a new translating backend cannot silently become a subtitle engine.
-
-### On-device recognizer
-
-`ondevice/engine.rs` is the single pluggable point; `ondevice/whisper.rs` is the current
-implementation, whisper.cpp via `whisper-rs`. The binding constraint is that a recognizer must
-accept **pushed PCM**: the app captures system audio over WASAPI loopback and offers device
-selection, so an engine that opens its own microphone can serve neither system audio nor
-*Both* mode. That constraint ruled out the inbox `Windows.Media.SpeechRecognition` namespace,
-whose API surface has no audio input at all — verified against the generated `windows` 0.62
-bindings. The Speech Recognition Windows AI API is the migration target once it leaves the
-Windows App SDK experimental channel; `engine.rs` records both.
-
-Whisper transcribes a buffer, not a stream, so realtime captions come from a sliding window:
-audio accumulates into the current utterance, inference runs every 2 s of new audio for an
-interim caption, and the utterance is committed after 800 ms of silence or at a 15 s cap. An
-energy gate keeps the model away from pure silence, where whisper reliably invents text, and
-wholly bracketed outputs (`[BLANK_AUDIO]`, `(soft music)`) are filtered before they can reach
-the overlay. Model weights are shared through a process-wide cache, so *Both* mode loads one
-copy and gives each origin its own decode state. The timing constants are untuned against
-real conference audio on the event hardware — that needs a rehearsal.
+Mistral and the built-in demo are unavailable in translation mode. `session.rs` enforces the
+mode/provider relationship through `Provider::can_translate`.
 
 ## Concurrency and shutdown
 
-`SessionManager` serializes start/stop operations with a lifecycle mutex, preventing an older
-stop request from cancelling a newly started session. A parent `CancellationToken` owns the
-whole run and each source gets a child token. A capture failure cancels only that source, so
-the other half of “Both” can continue.
+`SessionManager` serializes start and stop operations with a lifecycle mutex. A parent
+`CancellationToken` owns the run and each live source gets a child token. A capture failure
+cancels that source. Stop cancels producers, lets live providers flush and drain briefly, joins
+capture threads, clears meters and current captions, and retains completed transcript lines.
 
-Stop first cancels capture, then each provider flushes its pending input and briefly drains
-tail transcript events before the socket closes. Capture threads are joined, pending captions
-are finalized, status/meters return to idle, and the monitor drops its stale current caption.
+The built-in demo observes the same cancellation token on every short delay, so Stop remains
+responsive and cannot leave an audio or recognizer thread behind.
 
-## Security
+## Security and privacy
 
-- Each provider key has a separate OS-keychain entry, with `.env` fallback for development.
-- Keys never enter the Svelte renderer. Gemini currently authenticates in the WebSocket URL;
-  OpenAI and Mistral use `Authorization: Bearer` headers from Rust.
-- The webview CSP blocks outbound connections.
-- CI uses least-privilege read permissions except the tag-driven release workflow, which needs
-  `contents: write` to upload installers.
+- The built-in demo opens no audio device, uses no network, and needs no credential.
+- Each optional provider key has a separate Windows Credential Manager entry, with `.env`
+  fallback for development.
+- Keys never enter the Svelte renderer. Provider authentication happens in Rust.
+- The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
+- The webview content-security policy blocks direct renderer connections.
 
-## Remaining operational limits
+## Operational limits
 
-- Windows is the only supported target. The Linux CI lane exists to catch regressions in the
-  non-`cfg(windows)` code; it produces no release artifact and has no system-loopback backend.
-- Provider integrations are contract-tested locally but not called from CI: live tests need
-  billable secrets and representative bilingual audio. Rehearse all three providers manually.
-- The low-latency resampler is optimized for speech, not archival audio production.
-- Gemini/OpenAI still generate translated audio server-side even though the app discards it;
-  account for provider audio-output pricing.
+- Windows is the supported release target; native x64 and ARM64 packages are built.
+- CI contract-tests provider messages but does not call billable services.
+- Live caption accuracy and availability depend on the selected third-party provider.
+- The built-in demo verifies product presentation and workflow, not microphone recognition.

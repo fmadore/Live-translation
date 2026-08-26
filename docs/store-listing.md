@@ -1,279 +1,128 @@
-# Microsoft Store listing material
+# Partner Center listing text
 
-Everything Phase E of [`microsoft-store.md`](microsoft-store.md) needs typed into Partner
-Center: the two store descriptions, the certification notes, guidance for the IARC
-questionnaire, and the screenshot plan. Store ID `9PFB8LR3RR9X`; the listing goes live at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X> once the first submission passes. The
-screen-by-screen sequence, and the shorter fields, are in
-[`partner-center-walkthrough.md`](partner-center-walkthrough.md).
+Each heading below corresponds to a separate Partner Center field. Paste only the text inside
+the relevant code block. Do not paste the headings or explanations.
 
-Blocks in fenced `text` boxes are ready to paste as-is. Partner Center descriptions are
-**plain text** and do not render Markdown, so those blocks carry no formatting characters:
-line breaks and hyphen bullets only. The description field allows 10,000 characters; both
-languages below sit around 4,000.
+## English (United States)
 
-**Each paragraph in those blocks is one long unwrapped line, deliberately.** Partner Center
-preserves the line breaks you paste, so a paragraph hard-wrapped for readability here would
-reach the product page broken into ragged short lines. Copy a whole block, breaks included,
-and change nothing. For the same reason the price rows are hyphen bullets rather than a
-space-aligned table: the Store renders the description in a proportional font, where column
-alignment made of spaces falls apart.
+### Description — full text
 
-The disclosure in the opening lines is deliberate and satisfies policy 10.2.4, which requires
-a dependency on non-integrated software to be disclosed *at the beginning of the description*.
-It is worded to be accurate now that the on-device engine ships: captioning itself needs no
-key, and the paid dependency applies to translation and to the higher-accuracy subtitle
-engines. Do not soften it further, and do not move it below the feature list.
-
----
-
-## 1. Store description (EN)
+Paste this into **Description**:
 
 ```text
-Live Translation & Subtitles puts real-time captions on screen for bilingual meetings, lectures and conference sessions. It captions out of the box, free, with no account and no API key: the bundled on-device speech recognizer runs entirely on your own computer and never sends audio anywhere. Live translation between English and French, and higher-accuracy subtitles, are optional upgrades that require your own API key from Google Gemini, OpenAI or Mistral. Those are paid third-party services. They bill your own account with that provider per minute of streamed audio, roughly $0.36 to $3.06 per hour at the list prices below. This app sells nothing: no keys, no credits, no subscription, no in-app purchase.
+Live microphone or system-audio captions and translation require your own compatible API key and account from Google Gemini, OpenAI, or Mistral. These third-party services may charge your account based on usage.
 
-WHAT IT DOES
+Live Translation & Subtitles is a Windows presentation tool for meetings, lectures, and conferences. It displays captions in a dedicated operator window and in a transparent, always-on-top overlay that can be positioned over slides, video calls, or other content.
 
-- Live subtitles with no key. The bundled on-device recognizer (whisper) turns speech into same-language captions using only your PC. No network connection, no credential, nothing billed per minute. This is the default on a fresh install.
-- Live translation, English to French and French to English. Google Gemini or OpenAI, with your own key. The spoken language is detected automatically and the caption appears in the target language you chose. Gemini also captions speech that is already in that language, so a mixed-language room does not go blank during same-language passages.
-- Higher-accuracy subtitles. Mistral Voxtral realtime transcription, with your own key, when the on-device engine is not accurate enough for the room.
-- A transparent, always-on-top caption overlay. It is click-through, so it sits over a slide deck or a video call without intercepting a single click. Move mode lets you drag, nudge and resize it on the projector, then locks it back into place. Captions can be hidden mid-session for a video clip or a break without stopping anything.
-- Capture from the room microphone, from Windows system audio (whatever is playing: Teams, Zoom, a browser tab, a media player), or from both at once, captioned side by side.
-- Transcript export to plain text or Markdown, written to your Documents folder only when you ask for it.
-- A running cost meter. Streamed minutes and an estimate in dollars for the engine you picked, visible while the session runs, so nothing arrives as a surprise on a provider bill.
-- Rehearsal mode. A short bundled French and English speech sample plays through the real pipeline, so you can test the overlay, its placement and the transcript export before an event without a microphone, a key or a network.
+A built-in English and French demonstration works without an account, API key, microphone, language pack, internet connection, or payment. It uses bundled scripted captions to demonstrate the overlay, timer, audio-level display, transcript, and export workflow. It does not recognize live speech.
 
-WHAT IT COSTS TO RUN
+For real-time use, select Gemini or OpenAI for English–French translation, or Mistral for same-language subtitles. Live providers can capture a selected room microphone, Windows system audio, or both.
 
-The on-device engine is free. The cloud engines are billed by the provider that issued your key, per minute of audio streamed, for as long as a session is open. Per hour, per audio source:
+The app does not sell subscriptions, credits, or API access. Provider keys are stored in Windows Credential Manager and sent only to the selected provider. The developer operates no server and receives no audio, keys, transcripts, analytics, or telemetry.
 
-- Subtitles, on-device recognizer (whisper, bundled): free
-- Subtitles, Mistral voxtral-mini-transcribe-realtime: $0.36 per hour
-- Translation, Google gemini-3.5-live-translate-preview: $1.25 to $2.21 per hour
-- Translation, OpenAI gpt-realtime-translate: $3.06 per hour
-
-Gemini is a range because its expensive output leg accrues only while the model is generating, so pauses and slide changes lower the bill. The OpenAI figure includes the separate source transcription that feeds the operator's monitor. Captioning the room microphone and system audio at the same time doubles these figures, because one stream is opened per source.
-
-These are provider list prices, verified on 10 August 2026, and they are set by the provider, not by this app. They change. Check Google, OpenAI and Mistral pricing pages before budgeting a long event.
-
-SYSTEM REQUIREMENTS
-
-- Windows 10 or Windows 11, 64-bit. ARM64 devices install and run the x64 package under Windows emulation; only the on-device engine is slower there.
-- Microsoft Edge WebView2 Runtime, which is already present on Windows 11 and on any Windows 10 machine kept current through Edge.
-- Microphone access allowed for this app under Settings, Privacy & security, Microphone, if you want to caption a room microphone. Capturing system audio needs no permission.
-- An internet connection only for the cloud engines. The on-device engine works offline.
-
-PRIVACY
-
-No account, no sign-in, no telemetry, no analytics, no advertising. The developer runs no server and receives nothing. Audio is captured only while a session is running, is never written to disk, and leaves your computer only when you have selected a cloud engine, in which case it goes to that provider and to nobody else. API keys are stored in Windows Credential Manager and are sent only to the provider that issued them. Transcripts are saved only when you click Save.
-
-Full privacy policy: https://fmadore.github.io/Live-translation/privacy
-
-Open source under the MIT licence: https://github.com/fmadore/Live-translation
+Requires Windows 11 and Microsoft Edge WebView2 Runtime. Live modes also require internet access, a compatible provider account and API key, and permission for the selected audio source. Native x64 and ARM64 packages are available.
 ```
 
----
+### Features — one feature per line
 
-## 2. Store description (FR)
+Paste this into **Features**. Each line is one bullet; do not paste these lines into the full
+description:
 
 ```text
-Live Translation & Subtitles affiche des sous-titres en temps réel pour les réunions, les cours et les sessions de conférence bilingues. L'application sous-titre dès l'installation, gratuitement, sans compte et sans clé d'API : le moteur de reconnaissance vocale embarqué fonctionne entièrement sur votre ordinateur et n'envoie aucun son à l'extérieur. La traduction en direct entre le français et l'anglais, ainsi que des sous-titres plus précis, sont des options qui exigent votre propre clé d'API Google Gemini, OpenAI ou Mistral. Ces services tiers sont payants : ils facturent votre propre compte à la minute d'audio transmis, soit environ 0,36 à 3,06 USD l'heure aux tarifs publics repris ci-dessous. L'application ne vend rien : ni clé, ni crédit, ni abonnement, ni achat intégré.
-
-CE QUE FAIT L'APPLICATION
-
-- Des sous-titres en direct sans aucune clé. Le moteur embarqué (whisper) transforme la parole en sous-titres dans la même langue en n'utilisant que votre PC : aucune connexion, aucun identifiant, rien de facturé à la minute. C'est le réglage par défaut à la première ouverture.
-- La traduction en direct, du français vers l'anglais et de l'anglais vers le français. Google Gemini ou OpenAI, avec votre propre clé. La langue parlée est détectée automatiquement et le sous-titre s'affiche dans la langue que vous avez choisie. Gemini sous-titre également les passages déjà prononcés dans cette langue, de sorte qu'une salle bilingue ne se retrouve jamais sans texte.
-- Des sous-titres plus précis. La transcription temps réel Mistral Voxtral, avec votre propre clé, lorsque le moteur embarqué ne suffit pas à l'acoustique de la salle.
-- Une incrustation transparente, toujours au premier plan. Elle laisse passer les clics et se superpose donc à une présentation ou à une visioconférence sans jamais en intercepter un seul. Un mode déplacement permet de la positionner et de la redimensionner sur le vidéoprojecteur, puis de la verrouiller. Les sous-titres peuvent être masqués en cours de session, le temps d'un extrait vidéo ou d'une pause, sans rien interrompre.
-- La capture du micro de la salle, du son système de Windows (ce qui joue sur la machine : Teams, Zoom, un onglet du navigateur, un lecteur multimédia), ou des deux à la fois, sous-titrés côte à côte.
-- L'export de la transcription en texte brut ou en Markdown, écrit dans votre dossier Documents uniquement lorsque vous le demandez.
-- Un compteur de coût. Les minutes transmises et une estimation en dollars pour le moteur choisi restent visibles pendant la session : aucune mauvaise surprise sur la facture du fournisseur.
-- Un mode répétition. Un court extrait sonore français et anglais fourni avec l'application traverse toute la chaîne de traitement : vous pouvez donc essayer l'incrustation, son positionnement et l'export avant un événement, sans micro, sans clé et sans réseau.
-
-CE QUE COÛTE UNE SESSION
-
-Le moteur embarqué est gratuit. Les moteurs en ligne sont facturés par le fournisseur qui a émis votre clé, à la minute d'audio transmis, tant que la session reste ouverte. Par heure et par source audio :
-
-- Sous-titres, moteur embarqué (whisper, fourni) : gratuit
-- Sous-titres, Mistral voxtral-mini-transcribe-realtime : 0,36 USD l'heure
-- Traduction, Google gemini-3.5-live-translate-preview : 1,25 à 2,21 USD l'heure
-- Traduction, OpenAI gpt-realtime-translate : 3,06 USD l'heure
-
-Le tarif de Gemini est une fourchette parce que son poste de sortie, le plus cher, n'est facturé que pendant la génération : les silences et les changements de diapositive font baisser la note. Le chiffre d'OpenAI inclut la transcription de la source qui alimente le moniteur de l'opérateur. Sous-titrer en même temps le micro de la salle et le son système double ces montants, puisqu'un flux est ouvert par source.
-
-Ce sont les tarifs publics des fournisseurs, vérifiés le 10 août 2026. Ils sont fixés par eux et non par cette application, et ils évoluent. Consultez les pages tarifaires de Google, d'OpenAI et de Mistral avant de budgéter un événement long.
-
-CONFIGURATION REQUISE
-
-- Windows 10 ou Windows 11, 64 bits. Les machines ARM64 installent et exécutent le paquet x64 par émulation ; seul le moteur embarqué y est plus lent.
-- Le runtime Microsoft Edge WebView2, déjà présent sous Windows 11 et sur toute machine Windows 10 tenue à jour par Edge.
-- L'accès au micro autorisé pour cette application dans Paramètres, Confidentialité et sécurité, Microphone, si vous souhaitez sous-titrer un micro de salle. La capture du son système ne demande aucune autorisation.
-- Une connexion Internet pour les seuls moteurs en ligne. Le moteur embarqué fonctionne hors ligne.
-
-CONFIDENTIALITÉ
-
-Aucun compte, aucune inscription, aucune télémétrie, aucune analyse d'usage, aucune publicité. Le développeur n'exploite aucun serveur et ne reçoit rien. L'audio n'est capté que pendant une session, n'est jamais écrit sur le disque, et ne quitte votre ordinateur que si vous avez choisi un moteur en ligne : il va alors à ce fournisseur et à personne d'autre. Les clés d'API sont conservées dans le Gestionnaire d'identifiants de Windows et ne sont transmises qu'au fournisseur qui les a émises. Les transcriptions ne sont enregistrées que sur votre demande explicite.
-
-Politique de confidentialité complète : https://fmadore.github.io/Live-translation/privacy
-
-Code source ouvert, licence MIT : https://github.com/fmadore/Live-translation
+Built-in English and French caption demonstration with no account, API key, microphone, or network
+Live English–French translation with your own Google Gemini or OpenAI API key
+Live same-language subtitles with your own Mistral API key
+Capture a selected microphone, Windows system audio, or both in live modes
+Transparent, always-on-top caption overlay that remains click-through
+Move, resize, show, or hide the overlay during a session
+Save completed transcripts as plain text or Markdown
+See elapsed time and estimated provider cost while live audio is streaming
 ```
 
----
+### Short description — 175 characters
 
-## 3. Notes for certification
-
-Paste into the *Notes for certification* field. It answers policy 10.3.1 (testability) and
-pre-empts policy 10.8.3 (API keys as financial information), per gates 1 and 2 of
-[`microsoft-store.md`](microsoft-store.md).
+Paste this into **Short description**:
 
 ```text
-HOW TO SEE THE PRIMARY FUNCTIONALITY WITH ZERO SETUP
-
-There is no account, no sign-in and no demo credential to hand over, because none is needed. Captioning works on a clean machine with no key and no network connection.
-
-1. Install and launch. The operator window opens on its pre-flight screen with the first-run defaults already selected: mode "Live subtitles", source "System audio", engine "On-device". The checklist shows "No key needed / Runs entirely on this machine" and the cost row reads "Free".
-2. Click "Rehearse". A short bundled speech sample in French and English is played through the full capture-to-caption pipeline. Captions appear in the operator window and in the transparent overlay. With the on-device engine selected, which is the default described in step 1, this uses no microphone, no API key and no network connection at all.
-3. Or, equivalently, play any audio on the machine (a video in a browser tab, a media player, a Teams call) and click "Start subtitles". The app captures Windows system audio through WASAPI loopback, which requires no permission prompt, and captions it locally.
-
-Either path exercises the overlay, its move mode (drag, arrow-key nudge, resize, Enter to lock, Esc to cancel) and the transcript export to text or Markdown.
-
-Please allow a few seconds for the first caption. The on-device recognizer is whisper.cpp running on the CPU; on a virtual machine, or on an ARM64 device running the x64 package under emulation, it is noticeably slower than on native x64 hardware, but it does produce captions.
-
-POLICY 10.8.3 AND THE OPTIONAL PROVIDER KEYS
-
-This product does not require financial information for its primary functionality. The primary functionality is captioning, and captioning runs on a fresh install with no credential of any kind, through the bundled on-device engine described above.
-
-Section 10.8 applies to products that include in-product purchase, subscriptions, virtual currency or billing functionality, or that capture financial information. This product has none of the first four. It sells nothing, offers no in-app purchase and no subscription, handles no payment, and has no billing functionality of its own.
-
-The API key the app optionally accepts is a developer credential that the user has already created on their own account with Google, OpenAI or Mistral, for a third-party service the user has chosen to use. The user types it into the app themselves. It is stored in Windows Credential Manager under the service name org.stias.live-translation, read only by the app's Rust core, and used only to authenticate a wss:// connection to the provider that issued it. It is never collected by the developer, who operates no server, no relay and no proxy, and receives no data of any kind: there is no telemetry, no analytics and no crash reporting. The key grants no access to an account balance and buys nothing inside the app. Removing it does not disable the app; the app returns to the keyless on-device engine.
-
-What the optional key unlocks is translation between English and French (there is no on-device translation API on Windows) and two higher-accuracy cloud subtitle engines. The dependency, and the fact that those providers bill the user's own account per minute, is disclosed in the opening lines of the store description together with a per-hour price table, per policy 10.2.4.
-
-MICROPHONE PERMISSION
-
-The package declares the microphone device capability. Capturing a room microphone therefore depends on Settings > Privacy & security > Microphone being enabled for this app; if it is off, the app reports that and names the settings path rather than failing silently. This does not affect the test above: the first-run default source is Windows system audio, which needs no permission, so the keyless primary functionality can be verified without changing any privacy setting.
-
-IF YOU WISH TO EXERCISE THE PAID PATHS
-
-A free key can be created in a few minutes at any of the three providers. Mistral is the cheapest at $0.006 per minute of audio.
-
-- Google Gemini (translation): https://aistudio.google.com/apikey
-- OpenAI (translation): https://platform.openai.com/api-keys
-- Mistral Voxtral (subtitles): https://console.mistral.ai/api-keys
-
-Paste the key into the key panel that appears on the pre-flight screen once a cloud engine is selected, then start a session.
-
-WHY THE PACKAGE DECLARES runFullTrust
-
-This is a Win32 desktop application packaged as MSIX through the Desktop Bridge, so its Windows.FullTrustApplication entry point requires the capability and the application cannot start without it. The justification field allows only 500 characters, so in full: full trust is used for WASAPI loopback capture of Windows system audio through IMMDeviceEnumerator, IAudioClient and IAudioCaptureClient (a Win32-only API with no sandboxed equivalent, and the default audio source that carries the keyless primary functionality described above); microphone capture through the Win32 audio APIs; execution of the bundled whisper.cpp native inference library and loading its model from the package install folder, which is what lets the app caption with no key and no network; Windows Credential Manager, through CredWrite and CredRead under the service name org.stias.live-translation, to hold the user's own optional provider key; a transparent, click-through, always-on-top overlay window that must sit above full-screen presentation software without intercepting mouse input; and writing transcript exports to a Live-translation folder under the user's Documents directory on explicit user action. Nothing else. The application installs no driver and no NT service, registers no background task, does not start automatically, and contacts no server operated by the developer.
-
-PRIVACY POLICY
-
-https://fmadore.github.io/Live-translation/privacy
-
-The application is open source: https://github.com/fmadore/Live-translation
+Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
----
+## Français (France)
 
-## 4. IARC questionnaire guidance
+### Description — texte complet
 
-The rating is generated from the answers, and the answers are a compliance statement, not
-listing copy. **Answer the live questionnaire from the app's actual behaviour at the moment of
-submission, not from this sheet.** IARC revises its questions and their wording regularly, and
-a wrong answer is a certification and legal problem rather than a cosmetic one. Use the table
-below only to recognise what each question is asking about and to spot an answer that would
-contradict the app.
+Collez ce texte dans **Description** :
 
-Start by choosing **"I am ready to complete the IARC questionnaire"** — there is no existing
-IARC or GRID certificate for this app to reuse.
+```text
+Les sous-titres et la traduction en direct depuis un microphone ou l’audio système exigent votre propre clé API et un compte compatibles chez Google Gemini, OpenAI ou Mistral. Ces services tiers peuvent facturer votre compte selon l’utilisation.
 
-These were the questions as presented in August 2026, with the answer each one takes:
+Live Translation & Subtitles est un outil de présentation Windows destiné aux réunions, cours et conférences. Il affiche les sous-titres dans une fenêtre de contrôle et dans une surimpression transparente et toujours visible, qui peut être placée au-dessus de diapositives, d’un appel vidéo ou d’un autre contenu.
 
-| Section | Question | Answer |
-| --- | --- | --- |
-| App type | Game / Social or Communication / **All other app types** | **All other app types**. Not a game. Not social either: "Social or Communication" means apps whose purpose is meeting or talking to people (Facebook, Skype, SMS). This app captions a room locally, with no account, no messaging and no link between users. |
-| Downloaded app | Does the package contain rating-relevant content (sex, violence, language) in its code or assets? | **No.** The package ships the executable, the whisper model and two rehearsal speech fixtures. The fixtures are neutral synthesized speech with nothing rating-relevant in them. |
-| User content sharing | Can users natively interact or exchange content with other users through voice, text, images or audio? | **No.** No messaging, no chat, no lobby, no account, no user directory. Captions and transcripts never leave the machine. |
-| Online content | Does the app contain or promote content that is not part of the initial download but is reachable from the app — films, product listings, tracks, **AI-generated content**, news articles? | **Yes.** See below. |
-| Age-restricted goods | Is the app focused on promoting or selling age-restricted items or activities (tobacco, alcohol, firearms, gambling)? | **No.** |
-| Miscellaneous | Does the app share the user's precise current location with other users? | **No.** No location capability is requested and none is read. |
-| Miscellaneous | Can users purchase digital items? | **No.** The app sells nothing. Provider keys are bought from the provider, outside the app. |
-| Miscellaneous | Cash rewards, gift cards, play-to-earn, convertible crypto rewards, transferable digital assets (NFTs)? | **No.** |
-| Miscellaneous | Is the app a web browser or a search engine? | **No.** It hosts its interface in WebView2, but it exposes no address bar and no arbitrary navigation. A runtime is not a browser. |
-| Miscellaneous | Is the app essentially a news or education product? | **No.** It is a utility. It is *used* in lectures; it is not itself educational content. |
-| Final | Will this product use ratings obtained directly from a ratings board, and/or be distributed on physical media in any region? | **No.** |
+Une démonstration intégrée en anglais et en français fonctionne sans compte, clé API, microphone, module linguistique, connexion Internet ni paiement. Elle utilise des sous-titres scénarisés fournis avec l’application pour montrer la surimpression, le chronomètre, l’indicateur de niveau, la transcription et l’export. Elle ne reconnaît pas la parole en direct.
 
-**Why "Online content" is a yes.** The question lists *AI-generated content* among its own
-examples, and the cloud engines produce caption text at runtime that is plainly not part of the
-download. Answering no here would also contradict the generative AI product declaration ticked
-on the Properties page — a discrepancy a reviewer can spot in one click. If IARC follows up on
-the nature of that content, the accurate description is: it is a transcription or translation
-of speech from the user's own room, generated on demand, displayed only on that machine, never
-uploaded, published or exchanged between users, and neither hosted nor curated by the
-developer.
+Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Mistral pour les sous-titres dans la langue parlée. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux.
 
-**What to expect back.** The age rating itself should still come out at the lowest tier from
-every board (PEGI 3, ESRB Everyone, USK 0), because nothing in the product is rating-relevant.
-The online-content answer may attach an interactive descriptor — something in the shape of
-"unmoderated content" or "users interact" — and that is normal and not a problem. A raised
-*age*, on the other hand, means an answer was misread: go back through the questionnaire rather
-than accepting the rating.
+L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
 
-Re-run the questionnaire whenever the product gains anything with content of its own, notably
-if the bundled rehearsal fixture is ever replaced with different recorded speech.
+Nécessite Windows 11 et Microsoft Edge WebView2 Runtime. Les modes en direct exigent également un accès Internet, un compte et une clé API compatibles, ainsi que l’autorisation d’utiliser la source audio sélectionnée. Des paquets x64 et ARM64 natifs sont disponibles.
+```
 
----
+### Fonctionnalités — une fonctionnalité par ligne
 
-## 5. Screenshot shot-list
+Collez ce bloc dans **Fonctionnalités**. Chaque ligne devient une puce; ne le collez pas dans
+la description complète :
 
-Partner Center requires screenshots of **at least 1366×768 pixels**, in PNG. Four are enough;
-the field accepts up to ten. Order them as listed, because the first one is what appears in
-search results and it is the shot that has to say "this works without a key".
+```text
+Démonstration intégrée en anglais et en français, sans compte, clé API, microphone ni réseau
+Traduction français–anglais en direct avec votre propre clé API Google Gemini ou OpenAI
+Sous-titres en direct dans la langue parlée avec votre propre clé API Mistral
+Capture d’un microphone sélectionné, de l’audio système Windows ou des deux en mode direct
+Surimpression de sous-titres transparente, toujours visible et transparente aux clics
+Déplacement, redimensionnement, affichage ou masquage de la surimpression pendant une session
+Enregistrement des transcriptions terminées en texte brut ou en Markdown
+Affichage du temps écoulé et du coût estimé pendant la transmission audio en direct
+```
 
-The operator window defaults to 1200×820, which is **below the minimum width**. Either widen
-the window past 1366 before capturing, or capture the whole screen on a display running at
-1920×1080 or better. Never upscale a smaller capture to reach the minimum.
+### Description courte — 171 caractères
 
-The app is dark-themed throughout, so a straight capture reads well against both the light and
-dark Store backgrounds. Do not add drop shadows, gradients, device frames or marketing text
-over the shots: Store screenshots are meant to be the product. Capture at 100% display scaling
-so the type is crisp, and keep real bilingual French and English caption text in every shot
-rather than placeholder strings.
+Collez ce texte dans **Description courte** :
 
-**1. Operator pre-flight, idle, checklist green.** Launch on the first-run defaults (Live
-subtitles / System audio / On-device). Play some audio so the "Audio arriving" check flips
-green, and place the overlay once so "Overlay placement" reads "Placed". The shot should show:
-the numbered setup rail on the left (01 What to show, 02 Where the audio comes from, 03
-language, 04 Engine), the "No key needed / Runs entirely on this machine" row with its green
-tick, the "Running cost" row reading "Free", and the primary button reading "Start subtitles".
-This is the 10.8.3 argument in one image.
+```text
+Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
+```
 
-**2. Operator running, captions on the stage.** Start a session with bilingual speech (the
-rehearsal fixture is the easiest source) and capture mid-sentence, so a live unfinalized
-caption with its caret is visible alongside a finished one. The shot should show the origin
-chip on each turn block, the source-language line above the caption, the "Audio arriving"
-meters showing signal, and the cost card. Use a cloud engine for this one if you want the
-"Est. cost" figure to appear, since the on-device engine shows elapsed time only; a Mistral
-session is the cheap way to get that. Two turn blocks at once, from "Both" sources, sells the
-dual-capture feature better than one.
+## Notes for certification — separate Partner Center field
 
-**3. The audience overlay over a real slide.** Full-screen a genuine presentation slide, run a
-session, and capture the entire screen. The overlay should be in its locked, click-through
-state, sitting where an operator would actually have placed it, showing one complete caption
-line. Keep the operator window off this shot: it is the audience view. Use your own slide, and
-check the frame for anything identifiable, since a projected Zoom or Teams roster will show
-participants' names.
+Paste the following into **Notes for certification**. This is not Store-facing description
+text:
 
-**4. Overlay move mode with the placement chrome.** Click "Place it" (or "Adjust", or "Move"
-during a session) and capture the overlay with its full move-mode furniture visible: the "Drag
-to place" bar, the "Move mode / Captions are paused on the overlay" panel, the keyboard hint
-row (Enter locks, Esc cancels, Arrows nudge), the size stepper and "Snap to bottom". Frame it
-over the same slide as shot 3 so the two read as a sequence.
+```text
+Product ID: 9PFB8LR3RR9X
 
-One difference the screenshots will show, settled deliberately: the operator window's own title
-is **Live Translation & Subtitles**, matching the reserved Store name, so that is what appears
-in the taskbar and in Alt-Tab. The in-app header keeps the shorter wordmark **Live Captions**
-above the line *Realtime translation & subtitles*. A short in-product name alongside the full
-name in the window title is ordinary and accurate, so shots 1 and 2 can be taken as they are.
+Version 1.0.5 addresses the previous 10.1.2.10 report, “Unusable Feature: Start Subtitles.” The device-dependent Windows Speech implementation has been removed.
+
+No account, API key, microphone, language pack, or network connection is required for the default test:
+
+1. Install and launch the x64 or ARM64 package.
+2. Keep the defaults: Subtitles, Demo audio, English, Built-in demo.
+3. Click Start demo subtitles.
+4. Within one second, the status changes to Demo, the Elapsed clock advances, and the Demo audio meter moves.
+5. Partial and final English captions appear automatically in the operator window and presentation overlay.
+6. Click Stop captions. The completed transcript remains available for export.
+7. Select Français and repeat to verify the French captions.
+
+The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
+
+Live microphone and system-audio recognition are optional provider-dependent modes. Mistral provides live same-language subtitles. Gemini and OpenAI provide live English–French translation. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
+
+The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
+```
+
+## Screenshot order
+
+1. Idle screen showing Built-in demo, Demo audio, Free, and Start demo subtitles.
+2. Running English demo showing Demo status, moving meter, elapsed time, and overlay caption.
+3. Running French demo showing a French caption.
+4. Optional live-provider configuration showing its key requirement and estimated cost.
+
+Do not upload screenshots from the removed Windows Speech implementation.
