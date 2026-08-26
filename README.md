@@ -142,6 +142,20 @@ The operator stores each provider key separately in Windows Credential Manager. 
 development, copy `.env.example` to an uncommitted `.env`
 and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
 
+### Testing
+
+`npm test` runs two vitest projects. Pure logic runs in **node** — faster, and a test cannot
+start depending on the DOM by accident. Anything that renders a component opts in to
+**jsdom** by being named `*.svelte.test.ts`; those get Testing Library, jest-dom matchers and
+automatic cleanup via `vitest-setup-client.ts`.
+
+Before opening a PR that touches the UI, run the **browser-preview smoke test**: `npm run dev`,
+load <http://localhost:5173>, and check the console is clean. The operator window degrades
+deliberately without a Tauri runtime, and this catches the class of bug where a component
+invokes a Tauri command before the app knows it is running in a browser. Note that this
+preview cannot exercise audio capture, provider sessions or the overlay — anything touching
+those needs `npm run tauri dev` on Windows.
+
 Build Windows installers with `npm run tauri build`. The Store packages are built separately —
 `npm run bundle:msix:x64` and `npm run bundle:msix:arm64` write an unsigned `.msix` each, which
 CI then combines into the multi-architecture bundle described in
