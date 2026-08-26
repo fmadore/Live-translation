@@ -14,11 +14,14 @@ import type {
 import {
 	loadOverlayFont,
 	loadOverlayPlaced,
+	loadRecoveryEnabled,
 	loadStartOptions,
 	OVERLAY_FONT_KEY,
 	OVERLAY_PLACED_KEY,
+	RECOVERY_ENABLED_KEY,
 	SESSION_OPTIONS_KEY
 } from './types';
+import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 
 // ---- Session status --------------------------------------------------------
 // Up to four backend tasks (two captures + two clients in "Both" mode) report status
@@ -89,8 +92,34 @@ export const latestCaption = writable<Caption | null>(null);
 // stage renders the blocks in — newest at the bottom.
 export const currentCaptions = writable<Partial<Record<Origin, Caption>>>({});
 
-// Rolling transcript log (most recent finalized lines first).
+// The transcript log, most recent finalized line first.
+//
+// Deliberately unbounded. It used to be capped at 1,000 lines, which silently dropped the
+// beginning of any long event — exactly the sessions worth keeping (issue #25). A finalized
+// line is a sentence or two of text, so even a day-long session is a few megabytes; the
+// operator is warned to save well before then (`TRANSCRIPT_WARN_LINES`) rather than losing
+// anything behind their back.
 export const transcript = writable<TranscriptLine[]>([]);
+
+// ---- Saved / unsaved document state -----------------------------------------
+
+/** Highest line id written to disk, so a second save with nothing new stays saved. */
+export const savedLineId = writable<number>(NOTHING_SAVED);
+
+/** Path of the last successful save, shown next to the saved badge. */
+export const savedPath = writable<string>('');
+
+/** True while the log holds finalized text that has not reached disk. */
+export const transcriptDirty = derived(
+	[transcript, savedLineId],
+	([lines, saved]) => isDirty(lines, saved)
+);
+
+/** Record a successful write: everything logged up to now is on disk at `path`. */
+export function markTranscriptSaved(lines: TranscriptLine[], path: string) {
+	savedLineId.set(newestLineId(lines));
+	savedPath.set(path);
+}
 
 // Track the in-flight turn *per origin* so a transcript line is logged even when a stream
 // never emits an explicit turn-complete, and so mic and system turns (whose ids are
@@ -107,7 +136,7 @@ function commit(c: Caption) {
 		sourceText: c.sourceText.trim(),
 		origin: c.origin
 	};
-	transcript.update((list) => [line, ...list].slice(0, 1000));
+	transcript.update((list) => [line, ...list]);
 }
 
 export function pushCaption(c: Caption) {
@@ -151,12 +180,26 @@ export function beginSession() {
 	sessionStartedAt.set(Date.now());
 }
 
-/** Clear both finalized and in-flight transcript state. */
+/** Clear both finalized and in-flight transcript state, and the saved marker with them —
+ *  an empty document is neither saved nor unsaved, and the next run's line ids continue
+ *  upward, so a stale marker could otherwise make fresh text look already written. */
 export function clearTranscript() {
 	transcript.set([]);
 	latestCaption.set(null);
 	currentCaptions.set({});
+	savedLineId.set(NOTHING_SAVED);
+	savedPath.set('');
 	for (const origin of Object.keys(pending) as Origin[]) delete pending[origin];
+}
+
+/** Replace the log with a recovered snapshot. The restored lines are unsaved by definition —
+ *  the file they came from is a crash spool, not the operator's transcript — and ids continue
+ *  above the snapshot so a later run cannot collide with them. */
+export function restoreTranscript(lines: TranscriptLine[]) {
+	transcript.set(lines);
+	savedLineId.set(NOTHING_SAVED);
+	savedPath.set('');
+	nextLineId = Math.max(nextLineId, newestLineId(lines) + 1);
 }
 
 // ---- Overlay font size ------------------------------------------------------
@@ -174,6 +217,17 @@ export const overlayPlaced = writable<boolean>(loadOverlayPlaced());
 
 overlayPlaced.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_PLACED_KEY, String(v));
+});
+
+// ---- Crash recovery ----------------------------------------------------------
+// Off until the operator asks for it: writing captions to disk on a timer is exactly what
+// the privacy policy promises the app does not do by default. Persisted so a room that
+// wants the safety net does not have to re-enable it before every event.
+
+export const recoveryEnabled = writable<boolean>(loadRecoveryEnabled());
+
+recoveryEnabled.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(RECOVERY_ENABLED_KEY, String(v));
 });
 
 // ---- Audio levels ------------------------------------------------------------

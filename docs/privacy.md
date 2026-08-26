@@ -27,8 +27,34 @@ write captured audio to disk.
 
 ## Captions and transcripts
 
-Caption text is held in memory while the app runs. A transcript is written to disk only when the
-user explicitly chooses to save it. The app does not automatically upload saved transcripts.
+Caption text is held in memory while the app runs, and the whole session is kept: the transcript
+is never shortened or discarded behind the user's back. A transcript is written to disk only when
+the user explicitly chooses to save it, or through the optional recovery copy described below.
+The app does not automatically upload saved transcripts.
+
+Closing the app with unsaved caption text asks whether to save or discard it first.
+
+## Optional local recovery copy
+
+Recovery is **off by default**. When the user switches on *Keep a local recovery copy while
+captioning*, the app periodically writes the finalized caption lines of the current session to a
+single file in its own local application-data folder on the same PC:
+
+`%LOCALAPPDATA%\org.stias.live-translation\recovery\transcript.json`
+ecovery	ranscript.json`
+
+- It contains finalized caption text only — no audio, no API key, no provider identity, and no
+  device name.
+- It is never uploaded, transmitted, or shared. The developer operates no service that could
+  receive it.
+- There is one file and no history: each write replaces the previous one.
+- It is deleted as soon as the transcript is saved, the log is cleared, the unsaved-transcript
+  prompt is answered, the recovery option is switched off, or a recovered transcript is restored
+  or refused at the next launch.
+- If the app is closed cleanly, no recovery file remains. One is only ever found at startup after
+  a crash or a power cut, and the user is asked whether to restore or delete it.
+
+Deleting the file by hand at any time is safe and removes the data.
 
 ## API keys
 
@@ -40,8 +66,9 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, audio source, language, overlay position, and caption size. These preferences contain
-no captured audio or provider key.
+provider, audio source, language, overlay position, caption size, and whether the optional
+recovery copy is enabled. These preferences contain no captured audio, caption text, or provider
+key.
 
 ## What the developer collects
 

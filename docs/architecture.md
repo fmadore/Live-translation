@@ -27,6 +27,25 @@ built-in demo ───────────── deterministic caption + le
 4. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
+## The transcript document
+
+The transcript is an explicit document with a saved state, not a scrolling side effect.
+
+- **No truncation.** The log is unbounded. It was previously capped at 1,000 lines and
+  silently truncated, which discarded the beginning of exactly the long events worth keeping.
+  Past `TRANSCRIPT_WARN_LINES` (`src/lib/document.ts`) an unsaved log is flagged on screen;
+  nothing is ever dropped.
+- **Saved vs unsaved.** `savedLineId` records the highest line id written to disk, so a second
+  save of an unchanged document stays saved while one further line makes it unsaved again.
+  `clearTranscript` resets the marker with the text, because line ids keep climbing and a
+  stale marker would make a later run's first lines look as if they were already saved.
+- **Optional recovery spool.** Off by default. When enabled, `src/routes/+page.svelte` writes
+  the finalized lines to one file in the app's local data directory every few seconds while
+  the document is unsaved. `recovery.rs` reads and writes that file as opaque UTF-8 and never
+  interprets it; the format lives in `src/lib/document.ts` and carries caption fields only.
+  It is deleted on save, clear, discard, disable, and once a startup recovery offer is
+  answered. A malformed or truncated spool is deleted rather than shown.
+
 ## Provider contracts
 
 | Provider | Mode | Input | Caption source | Graceful stop |
@@ -49,12 +68,23 @@ capture threads, clears meters and current captions, and retains completed trans
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
 
+Closing the operator window runs the same shutdown, in order: `recovery::CloseGuard` holds the
+close only while the front-end reports unsaved text or a live session, `prepareClose`
+(`src/lib/quit.ts`) stops the session and waits on the bounded drain, the in-flight turn is
+committed, and only then is the operator asked to save, discard, or cancel. A save that fails
+keeps the app open. Two rules keep the guard from ever producing a window that refuses to close:
+it defaults to off, and an interception the front-end does not acknowledge within `ACK_TIMEOUT`
+is released. `WindowEvent::Destroyed` on the operator window exits the process, so the
+undecorated always-on-top overlay cannot outlive its controls.
+
 ## Security and privacy
 
 - The built-in demo opens no audio device, uses no network, and needs no credential.
 - Each optional provider key has a separate Windows Credential Manager entry, with `.env`
   fallback for development.
 - Keys never enter the Svelte renderer. Provider authentication happens in Rust.
+- The optional recovery spool is local-only, off by default, holds finalized caption text and
+  nothing else, and is deleted as soon as the transcript is saved or discarded.
 - The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
 - The webview content-security policy blocks direct renderer connections.
 

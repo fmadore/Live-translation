@@ -185,4 +185,7 @@ pub mod events {
     /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
     /// must never move the operator UI's session state machine.
     pub const AUDIO_TEST: &str = "audio-test";
+    /// The operator tried to close the window while something was still unsaved or running,
+    /// and the core held the window open for an answer. See `recovery::CloseGuard`.
+    pub const CLOSE_REQUESTED: &str = "close-requested";
 }

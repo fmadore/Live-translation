@@ -1,7 +1,14 @@
 <script lang="ts">
-	import { api } from './tauri';
-	import { clearTranscript as clearTranscriptStore } from './stores';
-	import { formatTranscript, groupTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
+	import { api, isTauri } from './tauri';
+	import {
+		clearTranscript as clearTranscriptStore,
+		recoveryEnabled,
+		savedPath,
+		transcriptDirty
+	} from './stores';
+	import { TRANSCRIPT_WARN_LINES } from './document';
+	import { saveTranscriptDocument } from './saveDocument';
+	import { groupTranscript, type TranscriptFormat } from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
 
 	interface Props {
@@ -11,7 +18,13 @@
 	}
 
 	let { mode, transcript, onError }: Props = $props();
-	let savedPath = $state('');
+	// A browser preview has no filesystem to spool to, and inviting the operator to switch on a
+	// feature whose only outcome would be an IPC error is the mistake issue #29 fixed elsewhere.
+	const desktop = isTauri();
+	let saving = $state(false);
+	// Clear throws away unsaved text, so when there is any it asks once rather than acting on
+	// the first click.
+	let confirmingClear = $state(false);
 
 	// The log names the two sides of the room, not the devices — the device names
 	// (`ORIGIN_LABEL`) are what the saved file uses.
@@ -21,6 +34,10 @@
 	// audio source, newest at the bottom.
 	const paragraphs = $derived(groupTranscript(transcript));
 
+	// Nothing is ever dropped (issue #25), but a log this long is a session worth putting on
+	// disk before something else decides for the operator.
+	const veryLong = $derived(transcript.length >= TRANSCRIPT_WARN_LINES);
+
 	let logEl = $state<HTMLUListElement | null>(null);
 
 	$effect(() => {
@@ -29,22 +46,42 @@
 		if (logEl) logEl.scrollTop = logEl.scrollHeight;
 	});
 
+	// Only Clear resets the two-step; a save or new captions leave the question standing no
+	// longer than the operator's next glance.
+	$effect(() => {
+		transcript.length;
+		confirmingClear = false;
+	});
+
 	async function save(format: TranscriptFormat) {
-		if (!transcript.length) return;
-		const now = new Date();
+		if (!transcript.length || saving) return;
+		saving = true;
 		try {
-			savedPath = await api.saveTranscript(
-				formatTranscript(transcript, format, now),
-				transcriptFilename(now, format)
-			);
+			await saveTranscriptDocument(format);
 		} catch (error) {
 			onError(String(error));
+		} finally {
+			saving = false;
 		}
 	}
 
 	function clear() {
+		if ($transcriptDirty && !confirmingClear) {
+			confirmingClear = true;
+			return;
+		}
+		confirmingClear = false;
 		clearTranscriptStore();
-		savedPath = '';
+		// The spool covered exactly the text just discarded, so it goes with it.
+		if (desktop) void api.clearRecovery().catch(() => {});
+	}
+
+	function toggleRecovery(enabled: boolean) {
+		if (!desktop) return;
+		recoveryEnabled.set(enabled);
+		// Switching it off has to remove what it already wrote, or "disabled" would still
+		// leave captions sitting on disk.
+		if (!enabled) void api.clearRecovery().catch((error) => onError(String(error)));
 	}
 </script>
 
@@ -52,14 +89,41 @@
 	<div class="head">
 		<span class="kicker">Transcript</span>
 		<span class="count">{transcript.length} {transcript.length === 1 ? 'line' : 'lines'}</span>
+		<!-- The whole point of the badge: on screen, a transcript that exists only in memory
+		     looks exactly like one that is on disk. -->
+		{#if transcript.length}
+			<span class="state" class:unsaved={$transcriptDirty} data-testid="save-state">
+				{$transcriptDirty ? 'Unsaved' : 'Saved'}
+			</span>
+		{/if}
 		<div class="spacer"></div>
-		<button class="ghost" disabled={!transcript.length} onclick={() => save('text')}>Save text</button>
-		<button class="ghost" disabled={!transcript.length} onclick={() => save('markdown')}>Save Markdown</button>
-		<button class="ghost quiet" disabled={!transcript.length} onclick={clear}>Clear</button>
+		<button class="ghost" disabled={!transcript.length || saving} onclick={() => save('text')}>
+			Save text
+		</button>
+		<button class="ghost" disabled={!transcript.length || saving} onclick={() => save('markdown')}>
+			Save Markdown
+		</button>
+		<button
+			class="ghost quiet"
+			class:confirming={confirmingClear}
+			disabled={!transcript.length || saving}
+			onclick={clear}
+		>
+			{confirmingClear ? 'Discard unsaved lines?' : 'Clear'}
+		</button>
 	</div>
 
-	{#if savedPath}
-		<p class="saved">Saved to <code>{savedPath}</code></p>
+	{#if $savedPath && !$transcriptDirty}
+		<p class="saved">Saved to <code>{$savedPath}</code></p>
+	{:else if $savedPath}
+		<p class="hint">Lines added since the save to <code>{$savedPath}</code> are not on disk yet.</p>
+	{/if}
+
+	{#if veryLong && $transcriptDirty}
+		<p class="warn" role="status">
+			This is a long session and none of it has been saved since it grew past {TRANSCRIPT_WARN_LINES}
+			lines. Nothing is being dropped, but save it now so a crash cannot take it.
+		</p>
 	{/if}
 
 	{#if paragraphs.length}
@@ -78,6 +142,27 @@
 				: 'Finalized subtitles collect here, ready to save as text or Markdown.'}
 		</p>
 	{/if}
+
+	<label class="recovery">
+		<input
+			type="checkbox"
+			checked={$recoveryEnabled}
+			disabled={!desktop}
+			onchange={(e) => toggleRecovery(e.currentTarget.checked)}
+		/>
+		<span>
+			<span class="recovery-title">Keep a local recovery copy while captioning</span>
+			<span class="recovery-note">
+				{#if desktop}
+					Writes the finalized lines to this PC every few seconds so a crash or a power cut
+					cannot take the session. Never leaves the machine, holds no audio and no API key,
+					and is deleted as soon as you save, clear, or switch this off.
+				{:else}
+					Needs the desktop app — a browser preview has nowhere to write it.
+				{/if}
+			</span>
+		</span>
+	</label>
 </section>
 
 <style>
@@ -136,13 +221,33 @@
 		border-color: transparent;
 		color: var(--text);
 	}
+	.state {
+		font-size: 9.5px;
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		padding: 4px 7px;
+		border-radius: 5px;
+		color: var(--accent-soft);
+		background: var(--accent-chip-bg);
+	}
+	.state.unsaved {
+		color: var(--warn-soft);
+		background: var(--warn-bg);
+	}
+	button.ghost.quiet.confirming {
+		color: var(--danger-soft);
+		border-color: var(--danger-border);
+	}
 	.saved {
 		margin: 0;
 		font-size: 12px;
 		color: var(--accent-soft);
 		word-break: break-all;
 	}
-	.saved code {
+	.saved code,
+	.hint code {
 		font-family: var(--font-mono);
 		font-size: 11px;
 	}
@@ -151,6 +256,42 @@
 		font-size: 12.5px;
 		line-height: 1.55;
 		color: var(--muted-3);
+		word-break: break-word;
+	}
+	.warn {
+		margin: 0;
+		padding: 9px 11px;
+		border-radius: 8px;
+		border: 1px solid var(--warn-border);
+		background: var(--warn-bg);
+		color: var(--warn-soft);
+		font-size: 12px;
+		line-height: 1.55;
+		text-wrap: pretty;
+	}
+	.recovery {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 9px;
+		align-items: start;
+		cursor: pointer;
+	}
+	.recovery input {
+		margin: 2px 0 0;
+		accent-color: var(--accent);
+	}
+	.recovery-title {
+		display: block;
+		font-size: 12px;
+		color: var(--text-soft);
+	}
+	.recovery-note {
+		display: block;
+		margin-top: 3px;
+		font-size: 11.5px;
+		line-height: 1.5;
+		color: var(--muted-3);
+		text-wrap: pretty;
 	}
 	.log {
 		list-style: none;

@@ -127,6 +127,15 @@ export interface TranscriptLine {
 	origin: Origin;
 }
 
+/** A recovery file as the Rust core hands it over: the raw JSON it read, plus where it sits
+ *  so the operator can be told exactly which file to delete. Mirrors `StoredRecovery` in
+ *  `src-tauri/src/recovery.rs`. Parsing is the front-end's job (`decodeRecovery`) — the core
+ *  never interprets caption text. */
+export interface StoredRecovery {
+	path: string;
+	contents: string;
+}
+
 /** State the overlay reports back to the operator window, so the two stay in sync when the
  *  operator acts on the overlay itself rather than on the control panel. */
 export interface OverlayStateMsg {
@@ -138,13 +147,14 @@ export interface OverlayStateMsg {
 	fontSize?: number;
 }
 
-/** Event names. Rust→front-end: caption/level/status. Operator→overlay: overlayConfig.
- *  Overlay→operator: overlayState. */
+/** Event names. Rust→front-end: caption/level/status/closeRequested. Operator→overlay:
+ *  overlayConfig. Overlay→operator: overlayState. */
 export const EVT = {
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
 	audioTest: 'audio-test',
+	closeRequested: 'close-requested',
 	overlayConfig: 'overlay-config',
 	overlayState: 'overlay-state',
 } as const;
@@ -174,6 +184,15 @@ export const OVERLAY_PLACED_KEY = 'overlay.placed';
 export function loadOverlayPlaced(): boolean {
 	if (typeof localStorage === 'undefined') return false;
 	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
+}
+
+/** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
+ *  privacy-first default: nothing is written to disk unless the operator asks for it. */
+export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
+
+export function loadRecoveryEnabled(): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	return localStorage.getItem(RECOVERY_ENABLED_KEY) === 'true';
 }
 
 /** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,
