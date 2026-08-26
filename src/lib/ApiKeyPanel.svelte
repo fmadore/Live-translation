@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { api } from './tauri';
+	import { api, isTauri } from './tauri';
 	import { PROVIDER_META } from './providers';
 	import type { Provider } from './types';
 
@@ -25,6 +25,11 @@
 	);
 
 	async function checkKey(activeProvider: Provider) {
+		// Second line of defence behind the caller's `browserMode` check: a browser preview has
+		// no Credential Manager to ask, and the effect below has already reported "no key", so
+		// there is nothing to do but leave it at that. Invoking anyway would surface a Tauri IPC
+		// error the operator can neither act on nor dismiss.
+		if (!isTauri()) return;
 		const currentRequest = ++requestId;
 		try {
 			const result = await api.hasApiKey(activeProvider);
