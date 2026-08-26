@@ -56,18 +56,18 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 	},
 	ondevice: {
 		id: 'ondevice',
-		vendor: 'On-device',
-		modelId: 'whisper · runs locally',
+		vendor: 'Built-in demo',
+		modelId: 'Bundled sample · deterministic',
 		hourlyText: 'Free',
 		hourlyEstimate: 0,
 		perStream: false,
 		keyUrl: null,
-		blurb: 'No API key, no network, nothing billed per minute — audio never leaves the computer.'
+		blurb: 'Demonstrates captions, overlay, timing and export without capturing or recognizing live audio.'
 	}
 };
 
 /** Cost accrued so far, in USD. Per-stream providers bill once per open source, so "Both"
- *  doubles the rate; the on-device engine bills nothing either way. */
+ *  doubles the rate; the built-in demonstration bills nothing. */
 export function estimateSessionCost(
 	provider: Provider,
 	elapsedMs: number,

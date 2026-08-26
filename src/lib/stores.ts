@@ -69,7 +69,7 @@ export function applyStatus(u: StatusUpdate) {
 
 export const hasKey = writable<boolean>(false);
 
-// Persisted to localStorage: the keyless on-device default applies to a first run only, and a
+// Persisted to localStorage: the keyless built-in demo applies to a first run only, and a
 // configured operator's setup survives a restart.
 export const options = writable<StartOptions>(loadStartOptions());
 

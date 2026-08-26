@@ -8,6 +8,7 @@ import type {
 	AudioLevel,
 	OverlayConfig,
 	OverlayStateMsg,
+	OnDeviceReadiness,
 	Provider,
 	StartOptions,
 	StatusUpdate
@@ -48,6 +49,8 @@ export const api = {
 	setApiKey: (provider: Provider, key: string) =>
 		invoke<void>('set_api_key', { provider, key }),
 	clearApiKey: (provider: Provider) => invoke<void>('clear_api_key', { provider }),
+	onDeviceReadiness: () => invoke<OnDeviceReadiness>('ondevice_readiness'),
+	prepareOnDeviceModel: () => invoke<OnDeviceReadiness>('prepare_ondevice_model'),
 
 	startSession: (options: StartOptions) => invoke<void>('start_session', { options }),
 	stopSession: () => invoke<void>('stop_session'),

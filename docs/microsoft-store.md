@@ -1,252 +1,54 @@
 # Microsoft Store distribution
 
-Plan for shipping Live Translation through the Microsoft Store so that other people can
-install it without the SmartScreen "Windows protected your PC / unknown publisher" wall that
-today's unsigned NSIS installer produces.
+Current certification target: **1.0.5**, native x64 and ARM64 MSIX.
 
-Researched 19 August 2026. Every Store policy number below is from the
-[Microsoft Store Policies](https://learn.microsoft.com/en-us/windows/apps/publish/store-policies);
-re-check them before submitting, because they move.
+## Certification objective
 
-## Verdict
+The 1.0.3 submission failed policy 10.1.2.10 because **Start Subtitles** was unusable on the
+review device. Two attempted credential-free Windows recognizers were not sufficiently portable:
 
-**Yes — go to the Store, but as an MSIX package, and not as the event-day install path for
-STIAS.**
+- the experimental Windows AI Speech/ML component crashed natively on the target ARM64 Surface;
+- `Windows.Media.SpeechRecognition` depended on Windows privacy consent, installed speech
+  languages, network behavior, and a usable default microphone, and still produced no captions
+  on the target ARM64 machine.
 
-The intuition that it "got attractive" is right, and for a bigger reason than usual:
-Microsoft removed the developer registration fee in 2026 for
-[individual](https://learn.microsoft.com/en-us/windows/apps/publish/whats-new-individual-developer)
-and [company](https://learn.microsoft.com/en-us/windows/apps/publish/whats-new-company-developer)
-accounts alike, so the entire cost of the recommended route is now zero. The part that
-actually solves the warning is the signing model: an MSIX submitted to the Store **does not
-need a code-signing certificate**, because Microsoft re-signs the package with its own
-certificate during publishing. A Store install never takes the unknown-publisher path at all.
+Version 1.0.5 removes both paths. The default path is now a transparent, deterministic
+**Built-in demo** that opens no device, needs no account/key/language pack/network, and drives
+the real session status, elapsed clock, level meter, partial/final caption events, overlay,
+transcript, Stop flow, and export. Live microphone/system speech remains available through the
+user’s chosen Gemini, OpenAI, or Mistral provider.
 
-Three gates are specific to *this* app and are the reason this document exists rather than a
-one-line "use MSIX":
+This is not presented as local speech recognition. The UI, Store descriptions, privacy policy,
+screenshots, and certification notes all call it a demonstration and state that it uses bundled
+scripted content.
 
-1. Policy **10.8.3** classifies **"API secret keys"** as financial information, and bars
-   individual accounts from requiring it for **primary functionality**. Today Live Translation
-   cannot caption a single word without a Gemini/OpenAI/Mistral key. A company account is out
-   of scope, so the fix has to be technical: a **keyless on-device captioning path**, after
-   which the provider keys are an optional upgrade rather than a precondition.
-2. Certification runs the app on a clean machine. With no key, the tester sees an app that
-   does nothing — policy **10.3.1** wants a working demo credential in *Notes for
-   certification*, and handing a live paid key to a stranger is not acceptable here. The same
-   keyless path answers this.
-3. An MSIX package version's **first segment cannot be `0`**, so `0.5.3` cannot ship. The
-   Store forces a **1.0.0** release.
+## Why this is the lowest-risk certification path
 
-Gates 1 and 2 collapse into one piece of work, described under *On-device captioning* below.
-It is the critical path for this whole plan, and it does not displace any existing provider —
-Gemini, OpenAI and Mistral stay exactly as they are.
+The relevant current Microsoft Store policies are:
 
-## Route comparison
+- **10.1 / 10.1.1:** metadata and the first-run experience must accurately represent features
+  and limitations.
+- **10.1.2:** the product must be fully functional on targeted systems and devices.
+- **10.2.4:** a non-integrated dependency used for primary functionality must be disclosed at
+  the beginning of the description.
+- **10.3:** the product must be testable; required credentials must be supplied in certification
+  notes.
+- **10.4.1 / 10.4.2:** supported devices must be compatible and the product must remain
+  responsive and not close unexpectedly.
+- **10.8.3:** products from individual accounts cannot require financial information, which
+  explicitly includes API secret keys, for primary functionality.
 
-| Route | Cost | Does it kill the warning? | Effort | Verdict |
-| --- | --- | --- | --- | --- |
-| **Store, MSIX package** | **free** | **Yes — Microsoft signs it; Store installs bypass SmartScreen entirely** | Medium: a new packaging pipeline | **Recommended** |
-| Store, "EXE or MSI app" listing | free account, but you still buy a certificate | No — the Store only links to *your* installer, which must already be signed | Low | Pointless: it solves discovery, not trust |
-| Azure Artifact Signing (ex-Trusted Signing) | $9.99/month | Partly — reputation-based, same as an OV certificate; no instant trust | Low | **Likely ineligible**: individual sign-up is US/Canada only, EU only as an organization |
-| OV / EV certificate | ~$200–600/year (EV needs a hardware token) | EV yes, OV only after reputation accrues | Low | Expensive for a workshop tool |
-| Status quo (unsigned NSIS) | free | No | none | Current state |
+The 1.0.5 approach addresses the reported failure by removing every environmental dependency
+from the default Start action. It also avoids misleading the reviewer: live recognition is a
+separate optional provider-dependent capability disclosed in the first sentence of the listing.
 
-Note the trap in row two. Tauri's own
-[Microsoft Store guide](https://v2.tauri.app/distribute/microsoft-store/) documents exactly
-that route — reserve the name under "EXE or MSI app" and point the listing at a hosted
-installer — because Tauri's bundler emits only MSI and NSIS. That route explicitly requires a
-code-signed installer and therefore **does not** solve the problem we are trying to solve.
-Getting the Microsoft signature means producing an MSIX, which is outside the Tauri bundler
-and needs one of the tools below.
-
-## Packaging toolchain
-
-Tauri has no MSIX bundle target. Two tools close the gap; both wrap `makeappx`/`makepri` from
-the Windows SDK.
-
-- **[`@choochmeque/tauri-windows-bundle`](https://github.com/Choochmeque/tauri-windows-bundle)**
-  — Tauri-aware. Reads `tauri.conf.json` for name/version/icons, generates the
-  `Package.appxmanifest`, auto-adds the `runFullTrust` restricted capability that every Tauri
-  app needs, and can build **x64 and ARM64 into one `.msixbundle`** with `--arch x64,arm64`.
-  Only x64 is built today (see *ARM64* below), so a single-architecture bundle is what ships
-  for now.
-- **[`winapp` CLI](https://github.com/microsoft/winappCli)** — Microsoft's own, in public
-  preview since January 2026, with an
-  [official Tauri guide](https://github.com/microsoft/winappCli/blob/main/docs/guides/tauri.md).
-  `winapp init` writes the manifest and assets, `winapp cert generate` makes a dev
-  certificate, `winapp pack .\dist --cert .\devcert.pfx` produces the MSIX. First-party and
-  the safer long-term bet, but the documented flow is single-architecture.
-
-**Recommendation:** use `tauri-windows-bundle` for the shipped artifact, and keep `winapp`
-installed for local work — `winapp run` grants package identity to an unpackaged build, which
-is how you debug the packaged-only failures in Phase D without re-signing an MSIX each time.
-
-## Gates and unknowns specific to this app
-
-### 1. API keys as "financial information" — policy 10.8.3
-
-> "If your product requires financial account information, you must submit that product from a
-> company account type. Products from individual accounts cannot require financial
-> information for primary functionality." Financial information "includes, but is not limited
-> to … **API secret keys**, private keys, or recovery phrases."
-
-**A company account is out of scope**, so the only way through is to stop *requiring* the
-key. Note the exact wording: the prohibition is on requiring financial information for
-**primary functionality**. It is not a ban on accepting an API key at all.
-
-Two things in combination:
-
-1. **Ship a keyless on-device subtitle path** (see *On-device captioning* below) so the app
-   captions speech out of the box with no credential of any kind. Provider keys become an
-   optional upgrade — better accuracy, and the only route to translation — rather than a
-   precondition. This is what actually takes the app out of 10.8.3's scope.
-2. **Argue the scoping in Notes for certification.** Section 10.8's own opening line limits it
-   to products that "include in-product purchase, subscriptions, virtual currency, billing
-   functionality or capture financial information". Live Translation has none of the first
-   four. The key it accepts is a third-party service credential the user already holds, is
-   sent only to the provider that issued it, grants access to no account balance, and buys
-   nothing in-app.
-
-Even with the keyless path, budget for one rejection round — the enumeration names "API secret
-keys" literally, and a reviewer may apply it literally. **If certification rejects it anyway,
-there is no fallback inside the Store**: with a company account ruled out, the app stays on
-GitHub releases and the SmartScreen mitigations below become the permanent answer rather than
-a stopgap. Weigh that before investing in Phase C.
-
-### 2. Testability without a key — policy 10.3.1
-
-> "If your product requires login credentials, provide us with a working demo account using
-> the **Notes for certification** field."
-
-Certification needs to see the app work on a clean machine. Three things, in order of value:
-
-- **The keyless on-device subtitle path** (gate 1) — the tester installs, speaks, and sees
-  captions. No credential to hand over, nothing to revoke afterwards.
-- **Rehearsal mode** — already on the roadmap under "Future ideas". Play a bundled short FR/EN
-  fixture through the pipeline so the overlay, move mode and export can be exercised without a
-  microphone at all. Cheap once the keyless path exists, and useful on event day.
-- **Notes for certification** text explaining that captions work out of the box, that provider
-  keys are an optional upgrade for accuracy and translation, and linking the three provider
-  signup pages.
-
-Last resort if both slip: issue a Mistral key (cheapest at $0.006/min) with a low spend cap,
-hand it over once, and revoke it after certification.
-
-### 3. Privacy policy — policy 10.5.1
-
-> "Product types that inherently have access to Personal Information must always have privacy
-> policies. These include, but are not limited to, Desktop Bridge and Win32 products."
-
-This app captures a microphone and streams audio to third parties, so it is squarely in
-scope, and Partner Center requires a **public URL**, not a repository file. The substance
-already exists in [`SECURITY.md`](../SECURITY.md) under *How this app handles credentials* and
-*What leaves the machine*; it needs restating as a standalone `docs/privacy.md` published via
-GitHub Pages. It must name: what audio is captured and when, that it is transmitted to the
-selected provider under that provider's terms, that keys live in Windows Credential Manager,
-that transcripts are written only locally on explicit user action, and that the app collects
-no telemetry.
-
-### 4. Listing disclosure — policy 10.2.4
-
-> "Your product may depend on non-integrated software … to deliver its primary functionality
-> if you disclose the dependency **at the beginning of the description**."
-
-So the Store description must open with the paid-API-key requirement — not bury it. Something
-like: *"Requires your own API key from Google Gemini, OpenAI, or Mistral. These services bill
-per minute of audio; see the pricing table in the description."* The cost table in the README
-should be restated in the listing so nobody installs expecting a free tool.
-
-### 5. Version number
-
-The last segment of an MSIX version is reserved for the Store and must be `0`; the **first
-segment cannot be `0`**. `0.5.3` is therefore not packageable. Ship the Store debut as
-**1.0.0** (`1.0.0.0` in the manifest), bumping `package.json`, `src-tauri/Cargo.toml`, and
-`src-tauri/tauri.conf.json` together. Every subsequent Store submission must strictly
-increase.
-
-### 6. Microphone under package identity — needs hardware verification
-
-Unpackaged Win32 apps read the microphone with no per-app gate. A packaged app is different:
-it declares `<DeviceCapability Name="microphone"/>` and is then subject to
-**Settings → Privacy & security → Microphone**, per app. The realistic failure on event day is
-an operator whose fresh install is toggled off, seeing a bare cpal error.
-
-Two consequences:
-
-- Add the capability to the manifest (`tauri-windows-bundle` exposes a `device` capability
-  category for this).
-- Teach `audio/capture.rs` to recognise a permission-denied device open and surface a
-  `StatusUpdate` that names the exact Settings path, instead of the raw cpal string. The
-  per-origin `StatusUpdate` plumbing from Phase 1 of the roadmap already carries this.
-
-### 7. WASAPI loopback under package identity — needs hardware verification
-
-**The biggest genuine unknown in this plan.** System-audio capture is the feature that makes
-this app worth installing, and it is the one CI cannot check: a packaged full-trust app runs
-at medium integrity outside an AppContainer, so `wasapi` loopback on the default render
-endpoint *should* behave identically — but "should" is not a rehearsal. Verify on real
-hardware, capturing a Zoom or Teams call, before anything is submitted. Do this early: if
-loopback needs a manifest capability or breaks under identity, it invalidates the whole route
-and you want to know in Phase C, not Phase E.
-
-### 8. Credential Manager under package identity — verify
-
-`keyring` v4 uses Windows Credential Manager, which is not virtualised for packaged apps, so
-the `org.stias.live-translation` service entries should resolve unchanged — including keys
-saved by an earlier unpackaged install. Confirm by saving a key unpackaged and reading it from
-the MSIX build.
-
-### 9. WebView2 — low risk, but assert it
-
-Windows 11 ships the Evergreen Runtime and Windows 10 has received it through Edge for years,
-so the practical risk is small. Declaring it as an MSIX package dependency is
-[known to be unreliable](https://github.com/MicrosoftEdge/WebView2Feedback/issues/1165), so do
-not: instead fail loudly and legibly at startup if the runtime is absent. Note that this
-diverges from the NSIS build, which currently uses Tauri's default downloadBootstrapper.
-
-### 10. Updates
-
-The app ships no updater plugin today, and that is the right shape — the Store owns updates
-for Store installs. If `tauri-plugin-updater` is ever added for the GitHub-release build, it
-must be compiled out of the Store package; a self-updating Store app is a certification
-failure.
-
-## Timeline against the STIAS workshop
-
-The workshop is **21–24 September 2026**; this was written on **19 August 2026**. That is
-about five weeks, and the critical path is not code:
-
-| Step | Realistic elapsed |
-| --- | --- |
-| Building the keyless on-device subtitle path (gate 1, the critical path) | the real cost — a new capture-to-caption engine, plus UI |
-| Identity verification (government ID + selfie) | hours to days |
-| First-submission certification | up to ~3 business days, longer for a first-time publisher |
-| One rejection round on 10.8.3 or 10.3.1 | add a week |
-
-**Recommendation: do not make the Store the event-day install path.** Keep the signed-nothing
-NSIS installer as the STIAS plan, and treat the Store as the durable answer for everyone who
-comes to the project afterwards. A rejection on 10.8.3 the week before the workshop, with the
-answer being "get a company account", is a bad place to be.
-
-### Cheap mitigation for the event itself
-
-Independent of the Store, and worth doing this week:
-
-- A short **Installing on Windows** section in the README with the literal SmartScreen
-  click-path (*More info → Run anyway*) and a screenshot, so a nervous attendee has something
-  official-looking to follow.
-- **Publish SHA-256 checksums** with each release so the download can be verified. `release.yml`
-  does not emit them today.
-- SECURITY.md already states installers are unsigned; link it from the README download section
-  rather than leaving it to be discovered.
+Certification can never be guaranteed before Microsoft reviews the exact submission. The main
+remaining policy risk is how Microsoft interprets 10.8.3 in relation to optional BYOK live
+features. The strongest defensible submission is therefore the present one: the default complete
+caption-presentation workflow needs no secret, while all live-provider dependencies and costs are
+prominent and accurate.
 
 ## Store identity (assigned)
-
-Partner Center enrolment is done and the name **Live Translation & Subtitles** is reserved
-(2026-08-20). The MSIX manifest must carry the declared values **byte for byte** or ingestion
-fails. None of these are secrets — PFN, SID and Store ID are public for any listed app.
-
-Declared in the package manifest:
 
 | Manifest element | Value |
 | --- | --- |
@@ -254,283 +56,56 @@ Declared in the package manifest:
 | `Package/Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Package/Properties/PublisherDisplayName` | `FMadore` |
 
-Calculated by the Store (never declared in the manifest):
-
-| | |
+| Store value | Value |
 | --- | --- |
 | Package Family Name | `49346FMadore.LiveTranslationSubtitles_6yxybgjxsxtpc` |
-| Package SID | `S-1-15-2-1233961425-1643808569-2040622846-2277874231-155921610-3711290785-1900266030` |
-
-Listing (live once the first submission passes certification):
-
-| | |
-| --- | --- |
+| Product ID | `9PFB8LR3RR9X` |
 | Store URL | <https://apps.microsoft.com/detail/9PFB8LR3RR9X> |
-| Store ID | `9PFB8LR3RR9X` |
-| Store protocol link | `ms-windows-store://pdp/?productid=9PFB8LR3RR9X` |
-| Application MSA ID | `61f2ffc5-706a-4738-a8ce-a3e9fed4f558` |
 
-## Phased plan
+## Submission checklist
 
-### Phase A — decisions and paperwork (no code, start immediately)
+- [x] Remove Whisper and experimental Windows AI ML components.
+- [x] Remove `Windows.Media.SpeechRecognition` and all language/privacy-setting dependencies.
+- [x] Make Built-in demo the fresh-install default.
+- [x] Label Demo audio, Built-in demo, Demo language, Start demo subtitles, Demo state, and
+  Elapsed time in the UI.
+- [x] Emit deterministic level, partial caption, final caption, status, and cancellation events.
+- [x] Keep live providers and capture paths unchanged.
+- [x] Disclose live-provider dependency in the first sentence of EN and FR descriptions.
+- [x] Add exact no-credential certification steps to `docs/store-listing.md`.
+- [ ] Install and manually run the signed 1.0.5 ARM64 MSIX.
+- [ ] Confirm meter movement, elapsed clock, English and French captions, overlay, Stop, and
+  transcript export under package identity.
+- [ ] Run Windows App Certification Kit against the final package.
+- [ ] Capture new screenshots; do not reuse any Windows Speech screenshots.
+- [ ] Upload the final native x64 and ARM64 packages and paste the 1.0.5 certification notes.
 
-- [x] Enrol in Partner Center as an **individual** and complete identity verification
-      (government ID plus selfie). Company accounts are out of scope, so gate 1 is answered in
-      code, not paperwork.
-- [ ] Draft the 10.8.3 scoping argument for Notes for certification now, while the reasoning
-      is fresh — it is needed at submission and it sanity-checks the keyless design.
-- [x] Reserve the app name. Done: **"Live Translation & Subtitles"**, matching the README
-      title. See *Store identity* above.
-- [x] Note the assigned publisher identity (`CN=…`) and package identity name — the manifest
-      must match them byte for byte or ingestion fails. Recorded in *Store identity* above.
+## Store package identity and signing
 
-### Phase B — repository preparation
+The Store re-signs an accepted MSIX with a Microsoft certificate. Local sideload testing needs a
+self-signed certificate whose subject exactly matches the manifest Publisher; install that
+certificate into the local trusted store before `Add-AppxPackage`. See
+[`packaging-msix.md`](packaging-msix.md).
 
-- [x] `docs/privacy.md` + GitHub Pages, per gate 3. Published at
-      <https://fmadore.github.io/Live-translation/privacy> (Pages serves `/docs` on `main`).
-- [x] Version bump to **1.0.0** across `package.json`, `Cargo.toml`, `tauri.conf.json`.
-- [x] Drop macOS (see below) so the release matrix is Windows-only.
-- [ ] README: Installing on Windows section; SHA-256 checksums in `release.yml`.
+## Required manual test
 
-### Phase C — packaging pipeline
+From a clean signed install:
 
-- [x] Bundler scaffold committed: `src-tauri/gen/windows/` holds `bundle.config.json`, the
-      `AppxManifest.xml.template`, and the tile assets; `npm run bundle:msix` builds the
-      package. The full flow is documented in [`packaging-msix.md`](packaging-msix.md).
-- [x] Manifest: identity values from *Store identity* above, `runFullTrust`, `microphone`
-      device capability, `1.0.0.0` — verified byte for byte against the assigned identity.
-- [x] Build locally, sign with a self-signed certificate, install, and **verify gates 6, 7 and
-      8 on real hardware** — microphone, WASAPI loopback against a live Teams/Zoom call, and
-      Credential Manager round-trip. Also re-check the transparent click-through overlay and
-      the `Documents/Live-translation/` export path under package identity. Step-by-step
-      commands: [`packaging-msix.md`](packaging-msix.md).
-      **Verified 2026-08-21** with the CI-built `v1.0.0-rc.3` package on ARM64 Windows under
-      x64 emulation: identity/family name, WASAPI loopback, Credential Manager, cloud
-      translation and Mistral subtitles, the on-device engine (after the ISA-baseline fix —
-      slow under emulation, as expected), overlay placement/adjust, and the post-session
-      transcript. Still worth a spot-check on a native x64 machine before submission:
-      microphone capture and real on-device latency.
-- [x] Add an `msix` job to `release.yml` producing an unsigned `.msixbundle`
-      (`--arch x64` for now) as a release asset. Keep the NSIS installer alongside it — the
-      GitHub release stays the fallback channel.
-
-### Phase D — app changes
-
-**The first item is the critical path — gates 1 and 2 both depend on it, and it should start
-before Phase C rather than after.**
-
-- [x] **Keyless on-device backend, engine-independent half** — `Provider::OnDevice`,
-      `ondevice/run_session`, the operator UI, and unit tests. Gemini, OpenAI and Mistral are
-      untouched.
-- [x] **Pick and implement the recognizer** in `ondevice/engine.rs` — `whisper-rs`, with the
-      bundled `ggml-base-q5_1` model; the Speech Recognition Windows AI API is the migration
-      target once it leaves the experimental channel. Inbox `Windows.Media.SpeechRecognition`
-      is ruled out: no audio input API.
-- [x] First-run state that captions immediately with no key, and presents provider keys as an
-      optional upgrade (accuracy, and translation) rather than a precondition: a fresh
-      install defaults to on-device subtitles over system audio, and the operator's setup
-      persists across launches (`session.options`).
-- [x] **Rehearsal mode** (gate 2) — bundled FR/EN fixture through the full pipeline: the
-      Rehearse button on the pre-flight screen loops a ~20 s TTS recording as a System-origin
-      stream (`src-tauri/src/audio/fixture.rs`; regenerate the WAVs with
-      `npm run generate:rehearsal-fixtures`). Verified in the packaged `v1.0.0-rc.4` build
-      on 2026-08-21: silent room, System meter moving, fixture captioned.
-- [x] Permission-denied microphone path with an actionable message (gate 6) — mic failures
-      now name the Windows privacy toggle (`ms-settings:privacy-microphone`).
-- [x] WebView2 presence assertion (gate 9) — native message box at startup, then exit.
-- [ ] *Deferred:* re-target the Speech Recognition Windows AI API once it leaves the Windows
-      App SDK experimental channel — free, no bundled model, and NPU-accelerated on Copilot+
-      hardware. Tracked in `ondevice/engine.rs`.
-
-### Phase E — listing and submission
-
-The screen-by-screen sequence, with every short field answered, is in
-[`partner-center-walkthrough.md`](partner-center-walkthrough.md).
-
-- [x] `v1.0.0` tagged (2026-08-21); the `msix` job attaches the `.msixbundle` for Partner
-      Center and the bare `.msix` for side-loading.
-- [ ] Screenshots (1366×768 minimum) — operator window, overlay over a slide, move mode.
-      Shot-list staged in [`store-listing.md`](store-listing.md). The window title now matches
-      the reserved Store name; the in-app header keeps the short **Live Captions** wordmark,
-      which is settled and needs no change before capturing.
-- [x] Description opening with the key/cost disclosure (gate 4, updated framing: keyless
-      captions out of the box, keys as the paid upgrade) and carrying the cost table —
-      drafted EN + FR in [`store-listing.md`](store-listing.md).
-- [ ] IARC age rating questionnaire — guidance in [`store-listing.md`](store-listing.md);
-      answer in Partner Center.
-- [x] Notes for certification: keyless walkthrough, rehearsal steps, 10.8.3 argument —
-      drafted in [`store-listing.md`](store-listing.md).
-- [ ] Submit; expect one round of feedback.
-
-### Phase F — after launch
-
-- [ ] README install section leads with the Store badge, GitHub releases demoted to "advanced
-      / offline".
-- [ ] Consider a `winget` manifest pointing at the Store package — one more install path, no
-      extra signing.
-- [ ] Store submissions on tag, ideally via the Partner Center submission API from
-      `release.yml`.
-
-## macOS support: dropped
-
-Done — this route is Windows-only by construction, macOS system-audio capture was gated on a
-$99/year Apple Developer membership before any of its capture code became useful, and the
-STIAS event laptop is Windows. Removed from `release.yml`, `tauri.conf.json` (`macOSPrivateApi`,
-`icon.icns`), `Cargo.toml` (the `macos-private-api` feature), the roadmap's system-loopback
-item, and the README/SECURITY/architecture prose.
-
-Linux stays as a **CI compile check only**: the Ubuntu Rust lane is cheap and catches
-regressions in the non-`cfg(windows)` code. It produces no release artifact.
-
-## On-device captioning (the 10.8.3 mitigation)
-
-With a company account off the table, this stops being a nice-to-have and becomes the
-load-bearing part of the plan. It also pays for itself three other ways: it removes the
-API-key wall from first run, it gives certification something to test (gate 2), and it gives
-the workshop a fallback when the venue network fails.
-
-**None of this replaces Gemini, OpenAI or Mistral.** They stay exactly as they are — the
-on-device engine is an additional, keyless source of captions, and the cloud providers remain
-the quality path and the *only* path for translation.
-
-### What Windows can and cannot do on-device
-
-**Speech-to-text: yes.** Microsoft's
-[Speech Recognition Windows AI API](https://learn.microsoft.com/en-us/windows/ai/apis/speech-recognition)
-does real-time on-device transcription from live audio, free, no network, no key, built on
-components of OpenAI Whisper. Both French and English are supported.
-
-**Translation: no.** There is no on-device translation API on Windows; the Windows AI
-catalogue has no translator and lists "Live Caption Translations" as *not yet supported*. So
-**Live translation stays cloud-only and stays key-gated.** The keyless path covers **Live
-subtitles** — which is enough for 10.8.3, because captioning is the primary functionality and
-it works with no credential.
-
-### Copilot+ is an upgrade, not the gate — and that matters
-
-The instinct to target Copilot+ PCs is understandable, but **do not restrict the feature to
-them**. If the keyless mode only ran on Copilot+ hardware, the 10.8.3 argument would become
-hardware-dependent and a certification tester on an ordinary VM would still meet a key-walled
-app — defeating the whole point.
-
-Fortunately that restriction no longer exists. At Build 2026 Microsoft
-[extended Windows AI APIs from NPU-only to CPU and GPU](https://blogs.windows.com/windowsdeveloper/2026/06/02/build-2026-furthering-windows-as-the-trusted-platform-for-development/).
-On a Copilot+ PC the model is preinstalled and runs on the NPU; elsewhere it downloads on
-demand through Windows Update the first time the app calls `EnsureReadyAsync`, then runs on
-CPU. Copilot+ buys latency and battery, not access.
-
-### Engine selection: what is ruled out, and what is left
-
-A recognizer here must accept **pushed PCM**. That is not a preference: the app captures
-system audio over WASAPI loopback and offers microphone selection, so an engine that opens
-its own audio device can caption neither system audio nor a chosen microphone, and cannot
-serve *Both* mode at all.
-
-**That rules out the inbox `Windows.Media.SpeechRecognition` namespace**, which this document
-previously recommended. Its API surface has no audio input of any kind — no stream, file,
-buffer or device selector; it always opens the system default capture device itself.
-Verified against the generated bindings for the `windows` crate 0.62, where `SpeechRecognizer`
-exposes only constraints, timeouts, UI options and the continuous-session handle. It could
-back a microphone-only demo, but not this app's actual feature set.
-
-Two candidates remained, and **`whisper-rs` is now implemented**:
-
-| Engine | Accepts pushed PCM | Ships today? | Quality | Cost |
-| --- | --- | --- | --- | --- |
-| **`whisper-rs` (whisper.cpp)** — *shipped* | Yes — PCM directly | **Yes** — stable, no Windows version dependency | Best available from anything stable | Bundled model, a C++/CMake step in the build, CPU headroom |
-| **Speech Recognition Windows AI API** — *migration target* | Yes — `SpeechAudioProvider` | **No** — Windows App SDK *experimental channel*, which cannot back a Store submission. Also a `Microsoft.Windows.*` App SDK type, not an OS `Windows.*` one, so the `windows` crate does not project it: Rust use needs the App SDK bootstrapper and a projection of its own | Whisper-derived; NPU on Copilot+, CPU elsewhere | Free, and **no bundled model at all** |
-
-The Windows AI API remains the better long-term answer and the one to migrate to the moment
-it reaches the stable channel: free, NPU-accelerated where hardware allows, and it would drop
-the model from the installer entirely. It simply cannot carry a Store submission today.
-
-**On installer size** — the obvious objection to whisper — the bundled model defaults to the
-5-bit quantized `ggml-base-q5_1` at **57 MiB** rather than full `base` at 141 MiB. That is a
-small accuracy cost on an engine already documented as less accurate than Voxtral, and it
-keeps the Store package in a defensible range. `WHISPER_MODEL` selects another size at build
-time and `WHISPER_MODEL_PATH` overrides at runtime, so this is tunable after a rehearsal
-rather than baked in.
-
-### What is built
-
-Complete and on the branch:
-
-- `Provider::OnDevice` end to end, with `requires_api_key` and `can_translate` predicates so
-  the keyless path is a first-class backend rather than a special case. `session.rs` skips
-  key resolution for it, and validates mode/provider through the capability rather than a
-  provider list.
-- `ondevice/mod.rs` — the session driver, mirroring `realtime::run_session`'s signature:
-  bounded audio consumption, drop-newest backpressure, turn bookkeeping, per-origin status,
-  graceful flush on stop. Unit tested (partials replace rather than append, an empty final
-  closes an open turn but not an idle one, subtitles land in the audience field).
-- `ondevice/engine.rs` — the pluggable point and model resolution;
-  `ondevice/whisper.rs` — whisper.cpp behind the `Recognizer` trait, with a sliding-window
-  strategy (whisper transcribes buffers, not streams), an energy gate that keeps the model
-  away from silence where it invents text, a filter for bracketed non-speech annotations, and
-  a shared model cache so *Both* mode loads one copy of the weights.
-- `scripts/fetch-whisper-model.mjs` plus a release-workflow step; the model is bundled as a
-  Tauri resource and deliberately not committed.
-- Operator UI — **Mistral Voxtral | On-device · no key** under Live subtitles, the API-key
-  panel hidden for the keyless engine, Start no longer gated on a key, and a language hint
-  for the recognizer.
-
-**Not yet verified:** caption latency and accuracy against real conference audio. That needs
-a rehearsal on the event hardware and cannot be settled from CI.
-
-### ARM64: dropped, and why it comes back for free later
-
-A release build confirmed the risk flagged here: **whisper.cpp cannot be built for ARM64
-Windows with MSVC.** ggml stops with `MSVC is not supported for ARM, use clang`, and its
-guard — `if (MSVC AND NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")` — *would* accept clang-cl,
-except that `whisper-rs-sys` pins the Visual Studio CMake generator, which always uses
-`cl.exe` no matter what `CC`/`CXX` say. Forcing clang-cl means switching to the Ninja
-generator and hand-rolling the MSVC developer environment that the VS generator provides
-automatically.
-
-Releases are therefore **x64 only**. This costs less than it sounds: Windows on ARM runs x64
-under emulation, and the Store serves the x64 package to ARM64 devices, so Snapdragon and
-Copilot+ machines still install and run the app — only the on-device engine is slower there,
-and the cloud providers are network-bound and unaffected.
-
-The neat part: migrating to the Speech Recognition Windows AI API removes this problem
-entirely, because there would be no C++ to compile. The same change that drops the bundled
-model also restores native ARM64 — on exactly the NPU hardware that API targets.
-
-### Where it fits in the architecture
-
-`session.rs` spawns one `realtime::run_session` per active source, each consuming the bounded
-audio channel and emitting `Caption` / `StatusUpdate` events. An on-device engine is a sibling
-of that task, not a `RealtimeProtocol` implementation — it skips the WebSocket entirely but
-consumes the same channel and emits the same events, so the operator UI, the overlay, the
-per-origin turn accounting and the transcript export all work unchanged. It appears in the UI
-as a fourth provider under **Live subtitles**, alongside Mistral.
-
-Two consequences worth planning for: the model download on first use needs the loading-UI
-pattern (`EnsureReadyAsync` progress) if the AI API is ever adopted, and **Windows AI APIs
-require package identity** — which the MSIX build supplies anyway, but which the NSIS build
-would need a sparse package to obtain. The inbox API has no such requirement.
-
-### One speculative option, worth an experiment and not a plan
-
-The app renders in WebView2, and Edge 148 ships on-device `Translator` and `LanguageDetector`
-JavaScript APIs covering 145+ languages at no cost. Whether those surface inside WebView2, at
-what runtime version, and whether they are usable for realtime caption text is unknown. If
-they are, an on-device *translation* leg becomes possible after all — which would close the
-one gap above. Timebox it to an afternoon before believing it.
+1. Launch without changing Windows speech, language, microphone, or network settings.
+2. Verify the default cards read **Subtitles**, **Demo audio**, **English**, **Built-in demo**.
+3. Click **Start demo subtitles**.
+4. Verify Demo status, a moving Demo meter, advancing Elapsed time, partial and final English
+   captions in both windows.
+5. Stop, save the transcript, select Français, and repeat.
+6. Close and reopen the app; repeat after clearing `session.options` or resetting the app so the
+   fresh-install path is exercised.
+7. Optionally test each live provider with the publisher’s own key, then clear that key before
+   capturing/submitting the package.
 
 ## Sources
 
-- [Tauri — Microsoft Store distribution](https://v2.tauri.app/distribute/microsoft-store/)
 - [Microsoft Store Policies](https://learn.microsoft.com/en-us/windows/apps/publish/store-policies)
-- [Free developer registration for individual developers](https://learn.microsoft.com/en-us/windows/apps/publish/whats-new-individual-developer)
-- [Revamped company onboarding with zero registration fees](https://learn.microsoft.com/en-us/windows/apps/publish/whats-new-company-developer)
-- [App package requirements for MSIX apps](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-package-requirements)
+- [MSIX certification process](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-certification-process)
+- [Get your app certified FAQ](https://learn.microsoft.com/en-us/windows/apps/publish/faq/get-your-app-certified)
+- [App package requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/app-package-requirements)
 - [Package version numbering](https://learn.microsoft.com/en-us/windows/uwp/publish/package-version-numbering)
-- [App capability declarations](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/app-capability-declarations)
-- [Code signing options for Windows app developers](https://learn.microsoft.com/en-us/windows/apps/package-and-deploy/code-signing-options)
-- [`Choochmeque/tauri-windows-bundle`](https://github.com/Choochmeque/tauri-windows-bundle)
-- [`microsoft/winappCli`](https://github.com/microsoft/winappCli)
-- [Speech Recognition with Windows AI APIs](https://learn.microsoft.com/en-us/windows/ai/apis/speech-recognition)
-- [What are Windows AI APIs?](https://learn.microsoft.com/en-us/windows/ai/apis/)
-- [Build 2026 — Windows as the trusted platform for development](https://blogs.windows.com/windowsdeveloper/2026/06/02/build-2026-furthering-windows-as-the-trusted-platform-for-development/)
-- [`Windows.Media.SpeechRecognition` namespace](https://learn.microsoft.com/en-us/uwp/api/windows.media.speechrecognition)

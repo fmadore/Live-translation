@@ -7,6 +7,7 @@
 use tauri::{AppHandle, Manager, State};
 
 use crate::audio::list_input_devices;
+use crate::ondevice::{self, OnDeviceReadiness};
 use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
@@ -40,6 +41,23 @@ pub async fn clear_api_key(provider: Provider) -> Result<(), String> {
         .await
         .map_err(|error| format!("keychain task failed: {error}"))?
         .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn ondevice_readiness(app: AppHandle) -> Result<OnDeviceReadiness, String> {
+    tauri::async_runtime::spawn_blocking(move || ondevice::readiness(&app))
+        .await
+        .map_err(|error| format!("local speech readiness check failed: {error}"))
+}
+
+#[tauri::command]
+pub async fn prepare_ondevice_model(app: AppHandle) -> Result<OnDeviceReadiness, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        ondevice::prepare().map_err(|error| error.to_string())?;
+        Ok(ondevice::readiness(&app))
+    })
+    .await
+    .map_err(|error| format!("local speech setup task failed: {error}"))?
 }
 
 #[tauri::command]

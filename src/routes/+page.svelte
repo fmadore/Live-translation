@@ -25,6 +25,7 @@
 		Caption,
 		Origin,
 		OutputMode,
+		OnDeviceReadiness,
 		Provider,
 		SessionState,
 		TargetLanguage
@@ -38,15 +39,16 @@
 	let microphones = $state<AudioDevice[]>([]);
 	let browserMode = $state(false);
 	let sessionBusy = $state(false);
+	let localReadiness = $state<OnDeviceReadiness | null>(null);
 	const controlsLocked = $derived($isRunning || sessionBusy);
 
-	// The on-device engine has no key panel to report readiness, so mark it ready here.
-	// A cloud provider starts NOT ready: clearing the flag on the switch itself closes the
+	// The keyless demonstration is always bundled and ready. A commercial
+	// provider starts NOT ready: clearing the flag on the switch itself closes the
 	// tick where the previous provider's `true` would leave Start enabled before the
 	// remounted ApiKeyPanel has re-checked the keychain.
 	const needsKey = $derived(providerRequiresKey($options.provider));
 	$effect(() => {
-		hasKey.set(!needsKey);
+		hasKey.set(needsKey ? false : (localReadiness?.ready ?? false));
 	});
 
 	const meta = $derived(PROVIDER_META[$options.provider]);
@@ -113,13 +115,23 @@
 	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
 	const usesMic = $derived(!rehearsing && $options.source !== 'system');
 	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
-	const audioReady = $derived((!usesMic || micSignal) && (!usesSystem || systemSignal));
+	const audioReady = $derived(
+		$options.provider === 'ondevice' || ((!usesMic || micSignal) && (!usesSystem || systemSignal))
+	);
 
 	const audioTitle = $derived(
-		$options.source === 'system' ? 'System audio' : $options.source === 'microphone' ? 'Room mic' : 'Audio'
+		$options.provider === 'ondevice'
+			? 'Demo audio'
+			: $options.source === 'system'
+				? 'System audio'
+				: $options.source === 'microphone'
+					? 'Room mic'
+					: 'Audio'
 	);
 	const audioReadyDesc = $derived(
-		$options.source === 'system'
+		$options.provider === 'ondevice'
+			? 'Bundled sample is ready — no microphone is opened'
+			: $options.source === 'system'
 			? 'WASAPI loopback is receiving sound'
 			: $options.source === 'microphone'
 				? 'The room mic is picking up sound'
@@ -131,6 +143,7 @@
 		if (browserMode) return;
 
 		void refresh();
+		void refreshLocalReadiness();
 		// Sync the overlay to the operator's current caption size on load.
 		void api.setOverlayConfig({ fontSize: $overlayFontSize });
 
@@ -157,6 +170,10 @@
 	});
 
 	async function refresh() {
+		if ($options.provider === 'ondevice') {
+			microphones = [];
+			return;
+		}
 		try {
 			microphones = await api.listMicrophones();
 			// Options persist across launches, so a remembered device may be gone (unplugged,
@@ -170,6 +187,20 @@
 		}
 	}
 
+	async function refreshLocalReadiness() {
+		try {
+			localReadiness = await api.onDeviceReadiness();
+		} catch (e) {
+			localReadiness = {
+				ready: false,
+				engine: 'none',
+				state: 'check-failed',
+				canPrepare: false,
+				detail: String(e)
+			};
+		}
+	}
+
 	// ---- Launching --------------------------------------------------------------
 	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
 	// the whole-session idle status clears it (stores.ts), so it is null exactly when the app is
@@ -180,8 +211,8 @@
 
 	/** Which language the sample recording should be spoken in. Translation rehearses on the
 	 *  language the room is *not* reading, so the operator sees real translation rather than a
-	 *  passthrough; the transcribers rehearse in the language they expect — the on-device
-	 *  recognizer in the one it was told to listen for, Voxtral (which auto-detects) in English. */
+	 *  passthrough; Voxtral auto-detects and rehearses with the English fixture. The built-in
+	 *  demonstration already owns a sample timeline, so its separate rehearsal control is disabled. */
 	const fixtureLanguage = $derived<TargetLanguage>(
 		$options.mode === 'translate'
 			? $options.targetLanguage === 'en'
@@ -226,13 +257,14 @@
 
 	function setSource(s: AudioSource) {
 		if (controlsLocked) return;
+		if ($options.provider === 'ondevice' && s !== 'microphone') return;
 		$options = { ...$options, source: s };
 	}
 
 	function setTarget(t: TargetLanguage) {
 		if (controlsLocked) return;
-		// Translation picks the language the room reads; the on-device recognizer is told which
-		// language to expect. Voxtral auto-detects, so it has nothing to set.
+		// Translation picks the language the room reads; the built-in demo picks its script.
+		// Voxtral auto-detects, so it has nothing to set.
 		if ($options.mode !== 'translate' && $options.provider !== 'ondevice') return;
 		$options = { ...$options, targetLanguage: t };
 	}
@@ -241,7 +273,12 @@
 		if (controlsLocked || p === $options.provider) return;
 		// Each mode accepts only the backends that can serve it.
 		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
-		$options = { ...$options, provider: p };
+		$options = {
+			...$options,
+			provider: p,
+			...(p === 'ondevice' ? { source: 'microphone' as const, micDeviceName: null } : {})
+		};
+		if (p !== 'ondevice') void refresh();
 	}
 
 	function setMode(mode: OutputMode) {
@@ -249,7 +286,10 @@
 		$options = {
 			...$options,
 			mode,
-			provider: mode === 'transcribe' ? 'mistral' : 'gemini'
+			provider: mode === 'transcribe' ? 'ondevice' : 'gemini',
+			...(mode === 'transcribe'
+				? { source: 'microphone' as const, micDeviceName: null }
+				: {})
 		};
 	}
 
@@ -330,14 +370,14 @@
 		gemini: 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
-		ondevice: 'On-device'
+		ondevice: 'Built-in demo'
 	};
 	const COST_NOTE: Record<Provider, string> = {
 		gemini:
 			'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
 		openai: 'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
 		mistral: 'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
-		ondevice: 'The recognizer runs on this machine, so nothing is billed and no audio leaves it.'
+		ondevice: 'Bundled demonstration: no live audio is captured, no service is contacted, and nothing is billed.'
 	};
 	const ORIGIN_CHIP: Record<Origin, { label: string; sub: string }> = {
 		system: { label: 'Remote', sub: 'system' },
@@ -349,13 +389,13 @@
 		$options.provider === 'mistral' ? 'Auto' : LANGUAGE_LABEL[$options.targetLanguage]
 	);
 
-	// Step 03 asks a different question per backend: which language to render into, which one
-	// the local recognizer should expect, or none at all when the backend detects it itself.
+	// Step 03 asks which language to render into, which demo script to play, or nothing when
+	// the backend detects the spoken language itself.
 	const languageStepTitle = $derived(
 		$options.mode === 'translate'
 			? 'The room reads'
 			: $options.provider === 'ondevice'
-				? 'Expected language'
+				? 'Demo language'
 				: 'Spoken language'
 	);
 
@@ -389,7 +429,7 @@
 		<span class="grow"></span>
 		<div class="pill {stateTone[$sessionState]}" aria-live="polite">
 			<span class="pill-dot"></span>
-			<span class="pill-label">{stateLabel[$sessionState]}</span>
+			<span class="pill-label">{$sessionState === 'running' && $options.provider === 'ondevice' ? 'Demo' : stateLabel[$sessionState]}</span>
 			{#if $isRunning && $sessionStartedAt !== null}
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
@@ -418,8 +458,7 @@
 					</div>
 					<div class="chip">
 						<span class="chip-label">Source</span>
-						<!-- A rehearsal ignores the chosen source entirely: the fixture is the audio. -->
-						<span class="chip-value">{rehearsing ? 'Sample' : SOURCE_LABEL[$options.source]}</span>
+						<span class="chip-value">{$options.provider === 'ondevice' ? 'Demo audio' : rehearsing ? 'Sample' : SOURCE_LABEL[$options.source]}</span>
 					</div>
 					<div class="chip">
 						<span class="chip-label">Room reads</span>
@@ -434,7 +473,9 @@
 				<p class="rail-note">
 					<!-- The target language is fixed at session start (the backend takes it once),
 					     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
-					{#if rehearsing}
+					{#if $options.provider === 'ondevice'}
+						<span>A bundled demonstration is playing — no microphone or system audio is captured.</span>
+					{:else if rehearsing}
 						<span>A sample recording is playing — nothing in the room is being captured.</span>
 					{/if}
 					<span>Stop the session to change any of these.</span>
@@ -445,7 +486,7 @@
 				<div class="rail-section">
 					<span class="kicker">Audio arriving</span>
 					{#if usesMic}
-						<LevelMeter level={$micLevel} label="Room" active />
+						<LevelMeter level={$micLevel} label={$options.provider === 'ondevice' ? 'Demo' : 'Room'} active />
 					{/if}
 					{#if usesSystem}
 						<LevelMeter level={$systemLevel} label="System" active />
@@ -455,7 +496,7 @@
 				<div class="cost-card">
 					<div class="cost-figures">
 						<div class="figure">
-							<span class="chip-label">Streamed</span>
+							<span class="chip-label">{$options.provider === 'ondevice' ? 'Elapsed' : 'Streamed'}</span>
 							<span class="figure-value">{formatElapsed(elapsedMs)}</span>
 						</div>
 						{#if $options.provider !== 'ondevice'}
@@ -544,8 +585,8 @@
 							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg>
 						</span>
 						<span class="card-body">
-							<span class="card-title">Live subtitles</span>
-							<span class="card-desc">Same-language text, no translation. Saveable as text or Markdown.</span>
+							<span class="card-title">Subtitles</span>
+							<span class="card-desc">Built-in demonstration or live speech with Mistral. Saveable as text or Markdown.</span>
 						</span>
 						{#if $options.mode === 'transcribe'}
 							<span class="card-check" aria-hidden="true">
@@ -571,12 +612,12 @@
 							onclick={() => setSource('microphone')}
 						>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" /><path d="M12 18v3.5" /></svg>
-							<span>Room mic</span>
+							<span>{$options.provider === 'ondevice' ? 'Demo audio' : 'Room mic'}</span>
 						</button>
 						<button
 							class="tile"
 							class:selected={$options.source === 'system'}
-							disabled={controlsLocked}
+							disabled={controlsLocked || $options.provider === 'ondevice'}
 							aria-pressed={$options.source === 'system'}
 							onclick={() => setSource('system')}
 						>
@@ -586,7 +627,7 @@
 						<button
 							class="tile"
 							class:selected={$options.source === 'both'}
-							disabled={controlsLocked}
+							disabled={controlsLocked || $options.provider === 'ondevice'}
 							aria-pressed={$options.source === 'both'}
 							onclick={() => setSource('both')}
 						>
@@ -595,11 +636,14 @@
 						</button>
 					</div>
 					<p class="hint">
-						System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a
-						media player.
+					{#if $options.provider === 'ondevice'}
+							Uses a bundled deterministic sample. Choose Mistral for live microphone or system-audio subtitles.
+						{:else}
+							System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a media player.
+						{/if}
 					</p>
 
-					{#if usesMic}
+					{#if usesMic && $options.provider !== 'ondevice'}
 						<div class="select-row">
 							<select
 								aria-label="Microphone device"
@@ -618,7 +662,7 @@
 
 					<div class="meters">
 						{#if usesMic}
-							<LevelMeter level={$micLevel} label="Room mic" />
+							<LevelMeter level={$micLevel} label={$options.provider === 'ondevice' ? 'Demo audio' : 'Room mic'} />
 						{/if}
 						{#if usesSystem}
 							<LevelMeter level={$systemLevel} label="System" />
@@ -668,8 +712,8 @@
 							</p>
 						{:else}
 							<p class="hint">
-								The on-device recognizer is told which language to expect, so pick the one that will be
-								spoken. It writes same-language subtitles and never translates.
+								Choose the bundled demonstration language. This mode demonstrates the overlay and export;
+								it does not listen to the room.
 							</p>
 						{/if}
 					{/if}
@@ -727,8 +771,8 @@
 						{#each liveTurns as turn (turn.origin)}
 							<article class="turn">
 								<div class="turn-who">
-									<span class="origin-chip {turn.origin}">{ORIGIN_CHIP[turn.origin].label}</span>
-									<span class="origin-sub">{ORIGIN_CHIP[turn.origin].sub}</span>
+									<span class="origin-chip {turn.origin}">{$options.provider === 'ondevice' ? 'Demo' : ORIGIN_CHIP[turn.origin].label}</span>
+									<span class="origin-sub">{$options.provider === 'ondevice' ? 'sample' : ORIGIN_CHIP[turn.origin].sub}</span>
 								</div>
 								<div class="turn-text">
 									{#if turn.caption.sourceText}
@@ -746,7 +790,9 @@
 					<p class="hint stage-hint">
 						{$options.mode === 'translate'
 							? 'Translated captions will appear here and on the overlay.'
-							: 'Live subtitles will appear here and on the overlay.'}
+							: $options.provider === 'ondevice'
+								? 'Demonstration subtitles will appear here and on the overlay.'
+								: 'Live subtitles will appear here and on the overlay.'}
 					</p>
 				{/if}
 
@@ -772,12 +818,18 @@
 				<div class="checklist">
 					{#if !needsKey}
 						<div class="check-row">
-							<span class="mark ok">
-								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
-							</span>
+							{#if localReadiness?.ready}
+								<span class="mark ok">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+								</span>
+							{:else}
+								<span class="mark wait"><span class="dot"></span></span>
+							{/if}
 							<div class="check-body">
-								<span class="check-title">No key needed</span>
-								<span class="check-desc">Runs entirely on this machine</span>
+								<span class="check-title">Built-in demo · no key needed</span>
+								<span class="check-desc" class:warn={!localReadiness?.ready}>
+									{localReadiness?.detail ?? 'Checking the bundled demonstration…'}
+								</span>
 							</div>
 							<span></span>
 						</div>
@@ -844,7 +896,7 @@
 							<span class="check-title">Running cost</span>
 							<span class="check-desc">
 								{$options.provider === 'ondevice'
-									? 'Runs locally — nothing is billed'
+									? 'Built into the app — nothing is billed'
 									: 'Billed per minute of streamed audio, for as long as the session is open'}
 							</span>
 						</div>
@@ -876,27 +928,31 @@
 							? 'Starting…'
 							: $options.mode === 'translate'
 								? 'Start translating'
-								: 'Start subtitles'}
+								: $options.provider === 'ondevice'
+									? 'Start demo subtitles'
+									: 'Start subtitles'}
 					</button>
 					<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
 					     key and the same desktop runtime. -->
 					<div class="rehearse-slot">
 						<button
 							class="rehearse"
-							disabled={!$hasKey || browserMode || sessionBusy}
+							disabled={!$hasKey || browserMode || sessionBusy || $options.provider === 'ondevice'}
 							onclick={rehearse}
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg>
 							{sessionBusy ? 'Starting…' : 'Rehearse'}
 						</button>
 						<span class="rehearse-hint">
-							Plays a bundled sample recording through the live pipeline — no microphone needed.
+							{$options.provider === 'ondevice'
+								? 'Start demo subtitles already runs the bundled demonstration.'
+								: 'Plays a bundled sample recording through the live pipeline — no microphone needed.'}
 						</span>
 					</div>
 					<span class="privacy">
 						Transcript is held in memory until you save it.
 						{$options.provider === 'ondevice'
-							? 'Nothing leaves the machine at all.'
+							? 'The bundled demo stays entirely inside the app.'
 							: `Nothing leaves the machine except audio to ${meta.vendor}.`}
 					</span>
 				</div>

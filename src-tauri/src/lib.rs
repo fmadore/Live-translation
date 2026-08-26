@@ -86,6 +86,8 @@ pub fn run() {
             commands::has_api_key,
             commands::set_api_key,
             commands::clear_api_key,
+            commands::ondevice_readiness,
+            commands::prepare_ondevice_model,
             commands::start_session,
             commands::stop_session,
             commands::set_overlay_click_through,

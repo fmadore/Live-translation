@@ -14,15 +14,17 @@ It has two deliberately separate modes:
   (`gpt-realtime-translate`). Their generated audio is discarded; only transcript text is
   displayed. Gemini also captions speech that is already in the selected target language,
   so mixed-language meetings do not go blank during same-language passages.
-- **Live subtitles** — same-language text, without translating it, from either Mistral
-  Voxtral Mini Transcribe Realtime (`voxtral-mini-transcribe-realtime-2602`) or an
-  **on-device recognizer that needs no API key at all**. The transcript can be saved as
-  plain `.txt` or Markdown.
+- **Subtitles** — a built-in English/French product demonstration requires no setup, while
+  real-time same-language speech recognition uses Mistral Voxtral Mini Transcribe Realtime
+  (`voxtral-mini-transcribe-realtime-2602`). The transcript can be saved as plain `.txt` or
+  Markdown.
 
-The on-device engine (whisper.cpp, bundled `ggml-base-q5_1`) runs entirely on the machine:
-no key, no network, nothing billed per minute, and audio that never leaves the computer. It
-is same-language only — Windows exposes no on-device translation API — and less accurate than
-Voxtral, so it is the offline and rehearsal path rather than the default. See
+The Store build opens on a deterministic **Built-in demo**: no publisher key, account,
+microphone, language pack, network, or per-minute charge. It drives the real caption UI,
+overlay, elapsed timer, level meter, transcript, and export path using clearly labeled bundled
+scripted content; it does not recognize live speech. Live microphone/system subtitles use
+Mistral, while live translation uses Gemini or OpenAI with the user's own provider key.
+See
 [`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
 Store distribution. The Store name **Live Translation & Subtitles** is reserved (Store ID
 `9PFB8LR3RR9X`); once the first submission passes certification the listing will be at
@@ -46,6 +48,7 @@ Tauri app (Rust core + SvelteKit front-end)
 ├── Bounded realtime pipeline — one capture + WebSocket session per source
 │   ├── Gemini/OpenAI → translated transcript captions
 │   └── Mistral → same-language subtitle captions
+├── Built-in deterministic demo → caption/level/status events without capture or network
 └── Windows
     ├── Operator — mode/source/provider controls, meters, monitor, export
     └── Overlay — transparent, always-on-top, click-through captions
@@ -62,13 +65,11 @@ provider flushes. Keys remain in Windows Credential Manager and are used only by
 released for any other platform. The Linux lane in CI is a compile check for the
 non-`cfg(windows)` code, not a supported target.
 
-- Windows 10 or 11 (x64; ARM64 machines run it under emulation)
+- Windows 11 (native x64 and ARM64 Store packages)
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
-- CMake and a C++ compiler — whisper.cpp, which backs on-device subtitles, is built from
-  source (the Visual Studio "Desktop development with C++" workload covers both)
-- A provider key for anything except on-device subtitles, which need none:
+- No key is needed for the built-in demonstration. Live modes need the corresponding provider key:
   - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
   - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
@@ -88,7 +89,7 @@ is open. Rates verified 10 August 2026 against
 | ↳ source monitor | `gpt-realtime-whisper` | $0.017/min | $1.02 |
 | Translation | OpenAI total | | **$3.06** |
 | Subtitles | `voxtral-mini-transcribe-realtime-2602` | $0.006/min | **$0.36** |
-| Subtitles | on-device recognizer | free | **$0.00** |
+| Built-in caption demonstration | bundled scripted content | free | **$0.00** |
 
 Gemini's input leg is billed on the full wall clock because silence stays in the stream, but
 its expensive output leg accrues only while the model generates translated speech — pauses,
@@ -114,7 +115,6 @@ before the event.
 
 ```bash
 npm install
-npm run fetch:whisper-model   # ~57 MiB speech model for on-device subtitles; not committed
 npm test
 npm run check
 npm run build
@@ -157,8 +157,7 @@ src/                         SvelteKit operator and overlay windows
 src-tauri/src/audio/         capture, metering, resampling
 src-tauri/src/realtime.rs    shared WebSocket lifecycle
 src-tauri/src/{gemini,openai,mistral}/ provider protocols
-src-tauri/src/ondevice/      keyless local recognition (whisper.cpp behind a Recognizer seam)
-scripts/fetch-whisper-model.mjs  downloads the bundled speech model
+src-tauri/src/ondevice/      deterministic built-in caption demonstration
 .github/workflows/           frontend/Rust/security/workflow CI + releases
 ```
 

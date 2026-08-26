@@ -10,18 +10,25 @@ export type Origin = 'microphone' | 'system';
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
 export type TargetLanguage = 'en' | 'fr';
 
-/** Caption backend. The cloud providers each have their own API and API key; `ondevice`
- *  runs a local recognizer and needs no credential at all. Mirrors `Provider` in types.rs. */
+/** Caption backend. The commercial providers each have their own API key; `ondevice`
+ *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs. */
 export type Provider = 'gemini' | 'openai' | 'mistral' | 'ondevice';
 
-/** Backends that produce translated captions. On-device recognition is same-language only:
- *  Windows exposes no on-device translation API. */
+export interface OnDeviceReadiness {
+	ready: boolean;
+	engine: 'built-in-demo' | 'none' | string;
+	state: string;
+	canPrepare: boolean;
+	detail: string;
+}
+
+/** Backends that produce translated captions. The built-in demo is same-language only. */
 export function providerCanTranslate(provider: Provider): boolean {
 	return provider === 'gemini' || provider === 'openai';
 }
 
-/** Whether an API key must be saved before a session can start. The on-device engine is the
- *  one backend that works with no credential, which is what keeps provider keys out of the
+/** Whether an API key must be saved before a session can start. The built-in demo is the
+ *  one backend that works with no credential, which keeps provider keys out of the
  *  app's primary functionality — see `docs/microsoft-store.md`. */
 export function providerRequiresKey(provider: Provider): boolean {
 	return provider !== 'ondevice';
@@ -39,12 +46,12 @@ export interface StartOptions {
 	provider: Provider;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
-	/** Rehearse instead of capturing: the backend plays a bundled ~20 s speech fixture spoken in
+	/** Rehearse instead of capturing: a cloud backend plays a bundled ~20 s speech fixture spoken in
 	 *  this language through the real pipeline — one System-origin stream, looping until Stop —
 	 *  so captions, levels, transcript and overlay behave exactly as in a live session. `source`
 	 *  and `micDeviceName` are ignored while it is set; absent means a normal live session.
-	 *  Cloud engines still stream to the provider and bill normally; `ondevice` rehearses fully
-	 *  offline. Per-launch only: it is never written to the options store, so it can never reach
+	 *  Cloud engines still stream to the provider and bill normally. The built-in demo already
+	 *  has its own deterministic timeline and disables this separate rehearsal control. Per-launch only: it is never written to the options store, so it can never reach
 	 *  the persisted record. Keep in sync with `StartOptions` in `src-tauri/src/types.rs`. */
 	rehearsal?: TargetLanguage;
 }
@@ -150,11 +157,10 @@ export function loadOverlayPlaced(): boolean {
 	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
 }
 
-/** Fresh-install session setup. On-device subtitles over system audio need neither an API key
- *  nor the microphone permission prompt, so a new install captions on the first Start — the
- *  keyless primary functionality `docs/microsoft-store.md` argues for. */
+/** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,
+ *  or API key and is transparently identified as a demonstration. */
 export const DEFAULT_START_OPTIONS: StartOptions = {
-	source: 'system',
+	source: 'microphone',
 	mode: 'transcribe',
 	targetLanguage: 'en',
 	provider: 'ondevice',
@@ -208,6 +214,12 @@ export function loadStartOptions(): StartOptions {
 		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
 		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null
 	};
+	// The compatibility id `ondevice` now means the deterministic bundled demonstration.
+	// Repair older saved Windows-speech configurations to its single virtual Demo audio source.
+	if (loaded.provider === 'ondevice') {
+		loaded.source = 'microphone';
+		loaded.micDeviceName = null;
+	}
 	return providerCanTranslate(loaded.provider) === (loaded.mode === 'translate')
 		? loaded
 		: { ...DEFAULT_START_OPTIONS };
