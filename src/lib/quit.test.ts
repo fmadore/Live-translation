@@ -18,7 +18,7 @@ vi.mock('./tauri', () => ({
 	}
 }));
 
-const { prepareClose, resolveClose } = await import('./quit');
+const { endsLiveSession, prepareClose, resolveClose } = await import('./quit');
 const { applyStatus, clearTranscript, pushCaption, savedPath, transcript, transcriptDirty } =
 	await import('./stores');
 import type { Caption } from './types';
@@ -165,5 +165,35 @@ describe('answering the prompt', () => {
 
 		await expect(resolveClose('discard')).resolves.toBeUndefined();
 		expect(mocks.confirmClose).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('confirming before a live session ends', () => {
+	// Issue #22: an accidental click on the window's X must not be what ends an event's
+	// captions, so this is asked before anything is stopped rather than reported after.
+	it('is needed while a session is live', () => {
+		startRunning();
+		expect(endsLiveSession()).toBe(true);
+	});
+
+	it('is not needed once the session has stopped', () => {
+		startRunning();
+		applyStatus({ state: 'idle' });
+		expect(endsLiveSession()).toBe(false);
+	});
+
+	// Connecting and reconnecting are live too: capture is open and a provider socket is in
+	// flight, so leaving costs the same thing it would mid-caption.
+	it('is needed while a session is still connecting or reconnecting', () => {
+		applyStatus({ state: 'connecting', origin: 'microphone' });
+		expect(endsLiveSession()).toBe(true);
+
+		applyStatus({ state: 'reconnecting', origin: 'microphone' });
+		expect(endsLiveSession()).toBe(true);
+	});
+
+	it('is not needed for an idle app holding an unsaved transcript', () => {
+		pushCaption(caption(1, 'from an earlier session'));
+		expect(endsLiveSession()).toBe(false);
 	});
 });

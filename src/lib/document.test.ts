@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	closeAction,
 	decodeRecovery,
 	encodeRecovery,
 	isDirty,
@@ -126,5 +127,20 @@ describe('close guard', () => {
 		expect(shouldGuardClose(true, false)).toBe(true);
 		expect(shouldGuardClose(false, true)).toBe(true);
 		expect(shouldGuardClose(true, true)).toBe(true);
+	});
+});
+
+describe('what closing the window means', () => {
+	// Default install: the X quits, as any Windows app does.
+	it('quits when the operator has not asked for the tray', () => {
+		expect(closeAction(false, false)).toBe('quit');
+		expect(closeAction(false, true)).toBe('quit');
+	});
+
+	// An app that disappears from the taskbar and keeps holding a microphone has to say so —
+	// once, the first time, and never again.
+	it('explains the first hide and then hides silently', () => {
+		expect(closeAction(true, false)).toBe('explain-then-hide');
+		expect(closeAction(true, true)).toBe('hide');
 	});
 });

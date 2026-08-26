@@ -147,14 +147,21 @@ export interface OverlayStateMsg {
 	fontSize?: number;
 }
 
-/** Event names. Rust→front-end: caption/level/status/closeRequested. Operator→overlay:
- *  overlayConfig. Overlay→operator: overlayState. */
+/** A tray menu entry the front-end has to carry out, because it needs session or transcript
+ *  state that only the renderer holds. *Open* is absent on purpose: showing a window needs
+ *  nothing from here, so the core does it itself and the menu keeps working even if this
+ *  window is wedged. Mirrors `TrayCommand` in `src-tauri/src/tray.rs`. */
+export type TrayCommand = 'toggle-overlay' | 'stop-session' | 'quit';
+
+/** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
+ *  Operator→overlay: overlayConfig. Overlay→operator: overlayState. */
 export const EVT = {
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
 	audioTest: 'audio-test',
 	closeRequested: 'close-requested',
+	trayCommand: 'tray-command',
 	overlayConfig: 'overlay-config',
 	overlayState: 'overlay-state',
 } as const;
@@ -193,6 +200,27 @@ export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
 export function loadRecoveryEnabled(): boolean {
 	if (typeof localStorage === 'undefined') return false;
 	return localStorage.getItem(RECOVERY_ENABLED_KEY) === 'true';
+}
+
+/** Whether closing the operator window leaves the app running in the tray.
+ *
+ *  Off by default, so a fresh install keeps ordinary Windows semantics: minimize goes to the
+ *  taskbar, and the X closes the app. An app that silently keeps running after you closed it
+ *  is a thing you opt into. */
+export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
+
+export function loadCloseToTray(): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	return localStorage.getItem(CLOSE_TO_TRAY_KEY) === 'true';
+}
+
+/** Set once the operator has been told, in as many words, that closing the window is no
+ *  longer quitting. Persisted so it is said the first time and never again. */
+export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
+
+export function loadTrayHideExplained(): boolean {
+	if (typeof localStorage === 'undefined') return false;
+	return localStorage.getItem(TRAY_HIDE_EXPLAINED_KEY) === 'true';
 }
 
 /** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,

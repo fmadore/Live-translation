@@ -1,9 +1,13 @@
-// Closing the operator window, in the order the guarantees have to happen (issue #25):
-// stop capture, let the providers hand over their last turn, finalize the document, and only
-// then decide whether the operator has to be asked anything.
+// Leaving the app, in the order the guarantees have to happen (issues #25 and #22): confirm
+// that a live session may end, stop capture, let the providers hand over their last turn,
+// finalize the document, and only then decide whether anything still has to be asked.
 //
-// It lives here rather than in the page so the sequence can be tested directly — a graceful
-// quit is exactly the path nobody exercises by hand until the one event where it matters.
+// The same sequence serves all three ways out — the window's X, Quit in the tray, and the
+// core's watchdog when neither is answered — so none of them can be the cheap path that
+// skips a step.
+//
+// It lives here rather than in the page so it can be tested directly: a graceful quit is
+// exactly the path nobody exercises by hand until the one event where it matters.
 
 import { get } from 'svelte/store';
 
@@ -41,6 +45,17 @@ function withTimeout(work: Promise<unknown>, ms: number): Promise<unknown> {
 			timer = setTimeout(resolve, ms);
 		})
 	]).finally(() => clearTimeout(timer));
+}
+
+/**
+ * Whether leaving now would cut a live session short.
+ *
+ * Asked *before* anything is stopped, because ending an event's captions is the operator's
+ * decision and not a consequence of a mis-aimed click on the window's X — which is the
+ * accident the tray exists to prevent in the first place (issue #22).
+ */
+export function endsLiveSession(): boolean {
+	return get(isRunning);
 }
 
 /**

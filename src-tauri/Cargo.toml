@@ -20,7 +20,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = [] }
+# `tray-icon` builds the system-tray surface in `src/tray.rs`: on Windows a live caption
+# session has to stay reachable and stoppable with the operator window out of the way.
+tauri = { version = "2", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
@@ -45,6 +47,10 @@ dotenvy = "0.15"
 anyhow = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# A second launch must reach the running instance rather than open a second capture process
+# against the same devices. Registered first in the builder chain, as the plugin requires.
+tauri-plugin-single-instance = "2.4.3"
 
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]

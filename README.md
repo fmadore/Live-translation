@@ -38,13 +38,6 @@ Provider details and verified wire formats are documented in
 
 ## Install
 
-<a href="https://get.microsoft.com/installer/download/9pfb8lr3rr9x?referrer=appbadge">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20light.svg" />
-    <img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" alt="Get it from Microsoft" />
-  </picture>
-</a>
-
 **[Get it from the Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X)** —
 native x64 and ARM64, signed by Microsoft, and it updates itself. This is the recommended
 route.
@@ -55,6 +48,11 @@ protected your PC" warning on first launch — choose **More info → Run anyway
 
 Either way you need Windows 11 and the Microsoft Edge WebView2 Runtime, which current
 Windows 11 installs already have.
+
+While the app is running it keeps an icon in the notification area, so a live session stays
+reachable — open the window, show or hide the overlay, stop the session, or quit — with the
+operator window out of the way. Closing the window quits the app unless you turn on **Keep
+running in the tray when I close this window**.
 
 ## Architecture
 

@@ -186,6 +186,9 @@ pub mod events {
     /// must never move the operator UI's session state machine.
     pub const AUDIO_TEST: &str = "audio-test";
     /// The operator tried to close the window while something was still unsaved or running,
-    /// and the core held the window open for an answer. See `recovery::CloseGuard`.
+    /// and the core held the window open for an answer. See `lifecycle::CloseGuard`.
     pub const CLOSE_REQUESTED: &str = "close-requested";
+    /// A tray menu entry the front-end has to carry out, because it needs the session or
+    /// transcript state the renderer owns. Payload is `tray::TrayCommand`.
+    pub const TRAY_COMMAND: &str = "tray-command";
 }

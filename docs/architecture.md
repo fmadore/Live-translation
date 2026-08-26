@@ -68,14 +68,47 @@ capture threads, clears meters and current captions, and retains completed trans
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
 
-Closing the operator window runs the same shutdown, in order: `recovery::CloseGuard` holds the
-close only while the front-end reports unsaved text or a live session, `prepareClose`
-(`src/lib/quit.ts`) stops the session and waits on the bounded drain, the in-flight turn is
-committed, and only then is the operator asked to save, discard, or cancel. A save that fails
-keeps the app open. Two rules keep the guard from ever producing a window that refuses to close:
-it defaults to off, and an interception the front-end does not acknowledge within `ACK_TIMEOUT`
-is released. `WindowEvent::Destroyed` on the operator window exits the process, so the
-undecorated always-on-top overlay cannot outlive its controls.
+## Leaving the app
+
+`lifecycle.rs` owns what closing means; `src/lib/quit.ts` owns the order it happens in. The
+window's X, **Quit** in the tray, and the core's watchdog all run the same sequence, so none of
+them is a cheap path that skips a step:
+
+1. **Claim it.** `ack_close`, before anything is stopped.
+2. **Hide instead?** With *Keep running in the tray* on, closing hides the window and stops
+   here — the session, the overlay and the transcript all carry on. The first hide explains
+   itself in the window rather than as a toast, which Focus Assist or a full-screen slideshow
+   could swallow.
+3. **May this session end?** Asked while it is still running, because ending an event's
+   captions is a decision and not a consequence of a mis-aimed click.
+4. **Stop and drain.** `stop_session` cancels capture and gives the providers a bounded window
+   to hand over their last turn; `prepareClose` bounds the wait on that.
+5. **Finalize.** The in-flight turn is committed, then unsaved text gets Save / Discard /
+   Cancel. A save that fails keeps the app open.
+6. **Exit.** `confirm_close` stops the session again — belt and braces, so releasing the
+   capture devices does not depend on the renderer having got that far — then `app.exit(0)`.
+
+`CloseGuard` intercepts a close only while the front-end reports unsaved text, a live session,
+or the tray preference. Two rules stop it from ever producing a window that refuses to close:
+that default of off, and an interception nothing acknowledges within `ACK_TIMEOUT` is released.
+`WindowEvent::Destroyed` on the operator window exits the process, so the undecorated
+always-on-top overlay cannot outlive its controls. Hiding to the tray never reaches it: that
+window is hidden, never destroyed.
+
+## Tray
+
+`tray.rs` builds the icon and menu once, in `setup`. The menu holds no state of its own —
+session and overlay state live in the front-end and are written onto the live menu items
+through `set_tray_state`, so a menu that offers **Stop session** is a session that is running.
+
+**Open** is handled entirely in the core, because showing a window needs nothing from the
+renderer and the menu has to keep working even if the front-end is wedged. Everything else
+needs session or transcript state, so it goes back over `TRAY_COMMAND` for the front-end to
+carry out.
+
+`tauri-plugin-single-instance` is registered first in the builder chain: a second launch
+focuses the running window instead of starting a second process to fight over the same capture
+devices.
 
 ## Security and privacy
 

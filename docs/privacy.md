@@ -66,9 +66,17 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, audio source, language, overlay position, caption size, and whether the optional
-recovery copy is enabled. These preferences contain no captured audio, caption text, or provider
-key.
+provider, audio source, language, overlay position, caption size, whether the optional recovery
+copy is enabled, and whether closing the window leaves the app running in the notification area.
+These preferences contain no captured audio, caption text, or provider key.
+
+## Running in the notification area
+
+The app does not start with Windows and does not run as a background service. It appears in the
+notification area only while it is running, and closing the window quits it unless the user turns
+on *Keep running in the tray when I close this window*. With that on, the first time the window
+is hidden the app says so explicitly, and quitting from the notification-area icon stops any
+active capture before it exits.
 
 ## What the developer collects
 

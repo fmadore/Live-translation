@@ -7,6 +7,7 @@
 mod audio;
 mod commands;
 mod gemini;
+mod lifecycle;
 mod mistral;
 mod ondevice;
 mod openai;
@@ -15,13 +16,15 @@ mod realtime;
 mod recovery;
 mod secrets;
 mod session;
+mod tray;
 mod types;
 
 use tauri::{Emitter, Manager};
 
+use lifecycle::{show_operator_window, CloseGuard, ACK_TIMEOUT, OPERATOR_LABEL};
 use overlay::OVERLAY_LABEL;
-use recovery::{CloseGuard, ACK_TIMEOUT, OPERATOR_LABEL};
 use session::SessionManager;
+use tray::TrayMenu;
 use types::events;
 
 /// Fail loudly and legibly if the WebView2 Runtime is absent, instead of launching into
@@ -83,8 +86,15 @@ pub fn run() {
     assert_webview_runtime();
 
     tauri::Builder::default()
+        // First in the chain, as the plugin requires. A second launch must reach the running
+        // instance: two processes would fight over the same capture devices, and the operator
+        // would be looking at a window whose Stop button controls nothing.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            show_operator_window(app);
+        }))
         .manage(SessionManager::default())
         .manage(CloseGuard::default())
+        .manage(TrayMenu::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::has_api_key,
@@ -99,12 +109,16 @@ pub fn run() {
             commands::set_overlay_click_through,
             commands::show_overlay,
             commands::save_transcript,
-            recovery::ack_close,
             recovery::write_recovery,
             recovery::read_recovery,
             recovery::clear_recovery,
-            recovery::set_close_guard,
-            recovery::confirm_close,
+            lifecycle::ack_close,
+            lifecycle::set_close_guard,
+            lifecycle::set_close_to_tray,
+            lifecycle::hide_to_tray,
+            lifecycle::show_operator,
+            lifecycle::confirm_close,
+            tray::set_tray_state,
         ])
         .on_window_event(|window, event| {
             // The overlay is a caption surface with no controls; only the operator window
@@ -144,12 +158,17 @@ pub fn run() {
                 }
                 // The overlay is undecorated, always-on-top and absent from the taskbar, so
                 // outliving the operator window would leave a caption layer floating over
-                // everything with nothing left that can dismiss it.
+                // everything with nothing left that can dismiss it. Hiding to the tray does
+                // not come through here: that window is hidden, never destroyed.
                 tauri::WindowEvent::Destroyed => window.app_handle().exit(0),
                 _ => {}
             }
         })
         .setup(|app| {
+            // Before anything else: once a session is live, the tray is the only surface that
+            // can stop it with the window hidden.
+            tray::init(app.handle())?;
+
             // Make the overlay click-through from the start so it floats over slides
             // without ever stealing a click. Toggle via `set_overlay_click_through`.
             if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
