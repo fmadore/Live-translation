@@ -29,8 +29,11 @@ workflow is planned in [issue #26](https://github.com/fmadore/Live-translation/i
 
 ## Installer signing
 
-The NSIS installers on GitHub Releases are currently **unsigned**, so Windows SmartScreen may
-warn on first launch ("Windows protected your PC" — choose **More info → Run anyway**). Verify
-downloads come from the official releases page above. Version 1.0.0 has also been submitted as
-an MSIX to the Microsoft Store and is awaiting certification; Store-distributed packages are
-signed by Microsoft. See [`docs/microsoft-store.md`](docs/microsoft-store.md).
+**Install from the Microsoft Store if you can.** Store packages are signed by Microsoft, so
+they carry no SmartScreen warning and update themselves:
+[apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
+
+The NSIS installers on GitHub Releases remain **unsigned**, so Windows SmartScreen may warn on
+first launch ("Windows protected your PC" — choose **More info → Run anyway**). If you use
+them, verify the download came from the official releases page linked above. See
+[`docs/microsoft-store.md`](docs/microsoft-store.md).

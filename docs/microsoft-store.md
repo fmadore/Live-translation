@@ -1,6 +1,8 @@
 # Microsoft Store distribution
 
-Current certification target: **1.0.5**, native x64 and ARM64 MSIX.
+**Published:** 1.0.5, native x64 and ARM64, at
+<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. Updates go through
+[`store-automation.md`](store-automation.md).
 
 ## Certification objective
 
@@ -62,23 +64,29 @@ prominent and accurate.
 | Product ID | `9PFB8LR3RR9X` |
 | Store URL | <https://apps.microsoft.com/detail/9PFB8LR3RR9X> |
 
-## Submission checklist
+## Checklist for the next update
 
-- [x] Remove Whisper and experimental Windows AI ML components.
-- [x] Remove `Windows.Media.SpeechRecognition` and all language/privacy-setting dependencies.
-- [x] Make Built-in demo the fresh-install default.
-- [x] Label Demo audio, Built-in demo, Demo language, Start demo subtitles, Demo state, and
-  Elapsed time in the UI.
-- [x] Emit deterministic level, partial caption, final caption, status, and cancellation events.
-- [x] Keep live providers and capture paths unchanged.
-- [x] Disclose live-provider dependency in the first sentence of EN and FR descriptions.
-- [x] Add exact no-credential certification steps to `docs/store-listing.md`.
-- [ ] Install and manually run the signed 1.0.5 ARM64 MSIX.
-- [ ] Confirm meter movement, elapsed clock, English and French captions, overlay, Stop, and
-  transcript export under package identity.
-- [ ] Run Windows App Certification Kit against the final package.
-- [ ] Capture new screenshots; do not reuse any Windows Speech screenshots.
-- [ ] Upload the final native x64 and ARM64 packages and paste the 1.0.5 certification notes.
+1.0.5 cleared every item below and was accepted. Work through them again for each update
+rather than trusting that a passing package stays passing — 1.0.3 was a working build that
+failed on a machine configured differently from the developer's.
+
+- [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
+  all three matching and all three above the published version.
+- [ ] The default Start action still needs no account, key, microphone, language pack or
+  network, and still says so in the UI.
+- [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled
+  demonstration as speech recognition.
+- [ ] Live-provider dependency still disclosed in the first sentence of the EN and FR
+  descriptions (policy 10.2.4).
+- [ ] Certification notes in [`store-listing.md`](store-listing.md) still let a reviewer with
+  no credentials exercise the app.
+- [ ] Signed per-architecture `.msix` installed and manually run on x64 **and** ARM64 —
+  [`../scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1). A bundle cannot be
+  side-loaded: signing it does not sign the packages inside.
+- [ ] Meter movement, elapsed clock, English and French captions, overlay, Stop and transcript
+  export all confirmed under package identity.
+- [ ] Windows App Certification Kit run against the final package.
+- [ ] Screenshots re-captured if any of them no longer match the build.
 
 ## Store package identity and signing
 

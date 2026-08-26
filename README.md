@@ -26,9 +26,9 @@ scripted content; it does not recognize live speech. Live microphone/system subt
 Mistral, while live translation uses Gemini or OpenAI with the user's own provider key.
 See
 [`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
-Store distribution. The Store name **Live Translation & Subtitles** is reserved (Store ID
-`9PFB8LR3RR9X`); once the first submission passes certification the listing will be at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. How the app handles audio, provider keys and
+Store distribution. The app is published as **Live Translation & Subtitles** at
+<https://apps.microsoft.com/detail/9PFB8LR3RR9X>, where Microsoft signs the package, so it
+installs without the SmartScreen warning the unsigned NSIS installer still raises. How the app handles audio, provider keys and
 transcripts is set out in [`docs/privacy.md`](docs/privacy.md), published at
 <https://fmadore.github.io/Live-translation/privacy>.
 
