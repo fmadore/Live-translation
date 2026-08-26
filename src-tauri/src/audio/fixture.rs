@@ -25,7 +25,7 @@ use crate::types::{AudioLevel, Origin, TargetLanguage};
 
 /// Directory the fixtures are bundled into, relative to the app's resource directory —
 /// `bundle.resources` in `tauri.conf.json` maps `resources/fixtures/*` here. Resolved through
-/// the same mechanism `ondevice::engine` uses for the bundled speech model.
+/// the same static-resource mechanism used by other bundled app assets.
 const FIXTURE_DIR: &str = "fixtures";
 
 /// The rate the fixtures are generated at. The loader rejects anything else rather than
@@ -230,7 +230,7 @@ pub async fn run_rehearsal(
     let path = fixture_path(app, language)?;
 
     // Reading and decoding the fixture is filesystem work; keep it off the async runtime, as
-    // the on-device engine does for its model load.
+    // a recognizer does while it initializes.
     let load_path = path.clone();
     let samples = tauri::async_runtime::spawn_blocking(move || load_fixture(&load_path))
         .await

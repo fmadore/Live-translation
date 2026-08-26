@@ -1,6 +1,6 @@
 {
   "name": "live-translation",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Real-time speech translation and same-language subtitles with a transparent caption overlay for hybrid rooms and events",
   "license": "MIT",
   "author": "Frédérick Madore (https://orcid.org/0000-0003-0959-2092)",
@@ -21,8 +21,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "fetch:whisper-model": "node scripts/fetch-whisper-model.mjs",
-    "bundle:msix": "tauri-windows-bundle build --arch x64 --runner npm",
+    "bundle:msix:x64": "tauri-windows-bundle build --arch x64 --runner npm",
+    "bundle:msix:arm64": "tauri-windows-bundle build --arch arm64 --runner npm",
     "tauri": "tauri",
     "generate:rehearsal-fixtures": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-rehearsal-fixtures.ps1"
   },

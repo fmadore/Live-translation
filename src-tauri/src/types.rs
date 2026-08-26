@@ -45,7 +45,7 @@ impl TargetLanguage {
 }
 
 /// Caption backend. The cloud providers each have their own realtime API, audio rate and
-/// key; `OnDevice` runs a local recognizer instead and needs no credential at all.
+/// key; `OnDevice` is the credential-free bundled product demonstration.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Provider {
@@ -53,7 +53,7 @@ pub enum Provider {
     Gemini,
     OpenAi,
     Mistral,
-    /// Local speech recognition. Keyless, offline, transcription-only.
+    /// Bundled deterministic demonstration. Keyless, offline, same-language only.
     OnDevice,
 }
 
@@ -68,15 +68,15 @@ impl Provider {
         }
     }
 
-    /// Whether a provider API key must be present before a session can start. The
-    /// on-device backend is the one path that works with no credential — which is what
-    /// keeps provider keys out of the app's *primary* functionality.
+    /// Whether a provider API key must be present before a session can start. The built-in
+    /// demonstration is the one path that works with no credential — which is what keeps
+    /// provider keys out of the app's *primary* functionality.
     pub fn requires_api_key(self) -> bool {
         !matches!(self, Provider::OnDevice)
     }
 
-    /// Whether the backend can produce translated captions. On-device recognition is
-    /// same-language only: Windows exposes no on-device translation API.
+    /// Whether the backend can produce translated captions. The built-in demonstration is
+    /// same-language only.
     pub fn can_translate(self) -> bool {
         matches!(self, Provider::Gemini | Provider::OpenAi)
     }

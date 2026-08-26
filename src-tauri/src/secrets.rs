@@ -35,7 +35,7 @@ fn label(provider: Provider) -> &'static str {
         Provider::Gemini => "Gemini",
         Provider::OpenAi => "OpenAI",
         Provider::Mistral => "Mistral",
-        Provider::OnDevice => "On-device",
+        Provider::OnDevice => "Built-in demo",
     }
 }
 

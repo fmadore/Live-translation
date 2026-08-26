@@ -27,7 +27,8 @@ use crate::openai::{
 use crate::realtime::run_session;
 use crate::secrets;
 use crate::types::{
-    events, AudioLevel, Origin, OutputMode, Provider, SessionState, StartOptions, StatusUpdate,
+    events, AudioLevel, AudioSource, Origin, OutputMode, Provider, SessionState, StartOptions,
+    StatusUpdate,
 };
 
 /// At most half a second of 100 ms chunks. The realtime consumer coalesces queued chunks
@@ -47,8 +48,7 @@ pub struct SessionManager {
 struct ActiveSession {
     cancel: CancellationToken,
     capture_threads: Vec<JoinHandle<()>>,
-    /// Rehearsal fixture playback, which stands in for a capture thread. Async rather than a
-    /// thread because it is a timer feeding a channel, not a device callback.
+    /// Timer-driven audio producers used by commercial-provider rehearsal playback.
     fixture_tasks: Vec<AsyncJoinHandle<()>>,
     client_tasks: Vec<AsyncJoinHandle<()>>,
 }
@@ -104,20 +104,26 @@ impl SessionManager {
             }
             (OutputMode::Translate, Provider::OnDevice) => {
                 anyhow::bail!(
-                    "On-device captions are same-language only; choose Live subtitles, or \
-                     Gemini/OpenAI to translate"
+                    "The built-in demonstration is same-language only; choose Live subtitles, \
+                     or Gemini/OpenAI to translate"
                 )
             }
             // Guarded on the capability rather than a provider list, so adding another
             // translating backend cannot silently become a valid subtitle engine.
             (OutputMode::Transcribe, provider) if provider.can_translate() => {
-                anyhow::bail!("Live subtitles use the Mistral or on-device engine")
+                anyhow::bail!("Live subtitles use Mistral or the built-in demonstration")
             }
             _ => {}
         }
+        if options.provider == Provider::OnDevice && options.source != AudioSource::Microphone {
+            anyhow::bail!("The built-in demonstration uses its bundled sample; select Demo audio")
+        }
+        if options.provider == Provider::OnDevice && options.rehearsal.is_some() {
+            anyhow::bail!("The built-in demonstration already uses bundled content")
+        }
 
         let provider = options.provider;
-        // The on-device engine is the one backend that starts with no credential at all.
+        // The built-in demonstration is the one backend that starts with no credential.
         let api_key = if provider.requires_api_key() {
             secrets::resolve_api_key(provider)?
         } else {
@@ -165,64 +171,75 @@ impl SessionManager {
             let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             let source_cancel = cancel.child_token();
 
-            match options.rehearsal {
-                // Rehearsal swaps the capture device for a bundled recording and changes
-                // nothing else: same channel, same chunk shape, same engine below it.
-                Some(language) => {
-                    let fixture_app = app.clone();
-                    let fixture_cancel = source_cancel.clone();
-                    let fixture_level_tx = level_tx.clone();
-                    fixture_tasks.push(tauri::async_runtime::spawn(async move {
-                        let result = run_rehearsal(
-                            &fixture_app,
-                            language,
-                            target_rate,
-                            fixture_level_tx,
-                            audio_tx,
-                            fixture_cancel.clone(),
-                        )
-                        .await;
-                        if let Err(error) = result {
-                            report_source_failure(&fixture_app, origin, &error, &fixture_cancel);
-                        }
-                    }));
-                }
-                None => {
-                    let capture_app = app.clone();
-                    let capture_cancel = source_cancel.clone();
-                    let capture_error_cancel = source_cancel.clone();
-                    let capture_level_tx = level_tx.clone();
-                    let mic_name = options.mic_device_name.clone();
-                    let handle = std::thread::Builder::new()
-                        .name(format!("capture-{origin:?}"))
-                        .spawn(move || {
-                            let result = match origin {
-                                Origin::Microphone => run_microphone(
-                                    capture_app.clone(),
-                                    mic_name,
-                                    target_rate,
-                                    capture_level_tx,
-                                    audio_tx,
-                                    capture_cancel,
-                                ),
-                                Origin::System => run_system_loopback(
-                                    target_rate,
-                                    capture_level_tx,
-                                    audio_tx,
-                                    capture_cancel,
-                                ),
-                            };
+            if provider == Provider::OnDevice {
+                // The deterministic demo emits its own level/caption timeline and never
+                // opens a capture device. Close the unused producer immediately.
+                drop(audio_tx);
+            } else {
+                match options.rehearsal {
+                    // Rehearsal swaps the capture device for a bundled recording and changes
+                    // nothing else: same channel, same chunk shape, same engine below it.
+                    Some(language) => {
+                        let fixture_app = app.clone();
+                        let fixture_cancel = source_cancel.clone();
+                        let fixture_level_tx = level_tx.clone();
+                        fixture_tasks.push(tauri::async_runtime::spawn(async move {
+                            let result = run_rehearsal(
+                                &fixture_app,
+                                language,
+                                target_rate,
+                                fixture_level_tx,
+                                audio_tx,
+                                fixture_cancel.clone(),
+                            )
+                            .await;
                             if let Err(error) = result {
                                 report_source_failure(
-                                    &capture_app,
+                                    &fixture_app,
                                     origin,
                                     &error,
-                                    &capture_error_cancel,
+                                    &fixture_cancel,
                                 );
                             }
-                        })
-                        .context("failed to spawn capture thread")?;
-                    capture_threads.push(handle);
+                        }));
+                    }
+                    None => {
+                        let capture_app = app.clone();
+                        let capture_cancel = source_cancel.clone();
+                        let capture_error_cancel = source_cancel.clone();
+                        let capture_level_tx = level_tx.clone();
+                        let mic_name = options.mic_device_name.clone();
+                        let handle = std::thread::Builder::new()
+                            .name(format!("capture-{origin:?}"))
+                            .spawn(move || {
+                                let result = match origin {
+                                    Origin::Microphone => run_microphone(
+                                        capture_app.clone(),
+                                        mic_name,
+                                        target_rate,
+                                        capture_level_tx,
+                                        audio_tx,
+                                        capture_cancel,
+                                    ),
+                                    Origin::System => run_system_loopback(
+                                        target_rate,
+                                        capture_level_tx,
+                                        audio_tx,
+                                        capture_cancel,
+                                    ),
+                                };
+                                if let Err(error) = result {
+                                    report_source_failure(
+                                        &capture_app,
+                                        origin,
+                                        &error,
+                                        &capture_error_cancel,
+                                    );
+                                }
+                            })
+                            .context("failed to spawn capture thread")?;
+                        capture_threads.push(handle);
+                    }
                 }
             }
 
@@ -278,7 +295,7 @@ impl SessionManager {
                 Provider::OnDevice => {
                     let config = OnDeviceConfig {
                         origin,
-                        language_tag: ondevice::language_tag(options.target_language),
+                        language: options.target_language,
                     };
                     client_tasks.push(tauri::async_runtime::spawn(ondevice::run_session(
                         client_app,
