@@ -46,8 +46,8 @@
 		if (logEl) logEl.scrollTop = logEl.scrollHeight;
 	});
 
-	// Only Clear resets the two-step; a save or new captions leave the question standing no
-	// longer than the operator's next glance.
+	// New captions withdraw the pending "discard?" question: the log the operator was about to
+	// throw away is no longer the log in front of them.
 	$effect(() => {
 		transcript.length;
 		confirmingClear = false;
