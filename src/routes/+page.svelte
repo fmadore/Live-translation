@@ -42,7 +42,11 @@
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
-	let browserMode = $state(false);
+	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
+	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
+	// available on the very first render — which is what keeps a child like ApiKeyPanel from
+	// mounting and firing a Tauri-only command during `npm run dev`.
+	let browserMode = $state(!isTauri());
 	let sessionBusy = $state(false);
 	let localReadiness = $state<OnDeviceReadiness | null>(null);
 	const controlsLocked = $derived($isRunning || sessionBusy);
@@ -213,7 +217,6 @@
 	);
 
 	onMount(() => {
-		browserMode = !isTauri();
 		if (browserMode) return;
 
 		void refresh();
