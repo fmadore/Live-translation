@@ -4,6 +4,8 @@
 
 import type {
 	AudioDevice,
+	AudioSource,
+	AudioTestUpdate,
 	Caption,
 	AudioLevel,
 	OverlayConfig,
@@ -55,6 +57,12 @@ export const api = {
 	startSession: (options: StartOptions) => invoke<void>('start_session', { options }),
 	stopSession: () => invoke<void>('stop_session'),
 
+	/** Level-only capture for the preflight: no provider connection, no captions, no stored
+	 *  audio. See `SessionManager::start_test`. */
+	startAudioTest: (source: AudioSource, micDeviceName: string | null) =>
+		invoke<void>('start_audio_test', { source, micDeviceName }),
+	stopAudioTest: () => invoke<void>('stop_audio_test'),
+
 	setOverlayClickThrough: (enabled: boolean) =>
 		invoke<void>('set_overlay_click_through', { enabled }),
 	showOverlay: (visible: boolean) => invoke<void>('show_overlay', { visible }),
@@ -76,6 +84,7 @@ export const on = {
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),
 	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h),
+	audioTest: (h: (t: AudioTestUpdate) => void) => listen<AudioTestUpdate>(EVT.audioTest, h),
 	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
 	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h)
 };

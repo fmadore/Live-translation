@@ -90,6 +90,8 @@ pub fn run() {
             commands::prepare_ondevice_model,
             commands::start_session,
             commands::stop_session,
+            commands::start_audio_test,
+            commands::stop_audio_test,
             commands::set_overlay_click_through,
             commands::show_overlay,
             commands::save_transcript,

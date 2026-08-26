@@ -27,8 +27,8 @@ use crate::openai::{
 use crate::realtime::run_session;
 use crate::secrets;
 use crate::types::{
-    events, AudioLevel, AudioSource, Origin, OutputMode, Provider, SessionState, StartOptions,
-    StatusUpdate,
+    events, AudioLevel, AudioSource, AudioTestUpdate, Origin, OutputMode, Provider, SessionState,
+    StartOptions, StatusUpdate,
 };
 
 /// At most half a second of 100 ms chunks. The realtime consumer coalesces queued chunks
@@ -36,6 +36,10 @@ use crate::types::{
 const AUDIO_CHANNEL_CAPACITY: usize = 5;
 const LEVEL_CHANNEL_CAPACITY: usize = 8;
 const CLIENT_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+/// The preflight test throws its audio away, and `capture.rs` accumulates the level meter over
+/// the mono signal *before* resampling, so this rate reaches nothing that can observe it. It
+/// exists only because the capture path requires a target.
+const TEST_SAMPLE_RATE: u32 = 16_000;
 
 #[derive(Default)]
 pub struct SessionManager {
@@ -43,6 +47,16 @@ pub struct SessionManager {
     /// newly-started session.
     lifecycle: AsyncMutex<()>,
     active: Mutex<Option<ActiveSession>>,
+    /// Preflight level test. Shares `lifecycle` with the session, so the two can never be
+    /// holding the same capture device at once.
+    active_test: Mutex<Option<ActiveTest>>,
+}
+
+/// Level-only capture started from the preflight. No client tasks and no fixture tasks by
+/// construction — that absence is the entire point of it.
+struct ActiveTest {
+    cancel: CancellationToken,
+    capture_threads: Vec<JoinHandle<()>>,
 }
 
 struct ActiveSession {
@@ -59,14 +73,26 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// Report a failure on the audio side of one source: log it, tell the operator which source
-/// died, and stop that source's client. The other source, if any, stays live.
+/// Operator-facing wording for a capture failure on one source.
 ///
-/// The microphone gets its own wording on purpose. Under package identity Windows gates the
+/// The microphone gets its own text on purpose. Under package identity Windows gates the
 /// microphone per app, so a blocked install fails at device open with an ordinary cpal error
 /// and nothing pointing at the toggle — see gate 6 in `docs/microsoft-store.md`. The message
 /// covers a denied device and an absent one alike, because cpal reports both the same way,
 /// and it keeps the underlying error so the real cause is still visible.
+fn source_failure_message(origin: Origin, error: &anyhow::Error) -> String {
+    match origin {
+        Origin::Microphone => format!(
+            "Microphone capture failed ({error:#}). If access is blocked, enable it under \
+                 Windows Settings > Privacy & security > Microphone \
+                 (ms-settings:privacy-microphone), then start again."
+        ),
+        Origin::System => format!("{origin:?} capture: {error}"),
+    }
+}
+
+/// Report a failure on the audio side of one source: log it, tell the operator which source
+/// died, and stop that source's client. The other source, if any, stays live.
 fn report_source_failure(
     app: &AppHandle,
     origin: Origin,
@@ -74,14 +100,7 @@ fn report_source_failure(
     cancel: &CancellationToken,
 ) {
     tracing::error!(?origin, "capture failed: {error:#}");
-    let message = match origin {
-        Origin::Microphone => format!(
-            "Microphone capture failed ({error:#}). If access is blocked, enable it under \
-             Windows Settings > Privacy & security > Microphone \
-             (ms-settings:privacy-microphone), then start again."
-        ),
-        Origin::System => format!("{origin:?} capture: {error}"),
-    };
+    let message = source_failure_message(origin, error);
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {
@@ -97,6 +116,8 @@ impl SessionManager {
     pub async fn start(&self, app: &AppHandle, options: StartOptions) -> Result<()> {
         let _lifecycle = self.lifecycle.lock().await;
         self.stop_active(app).await;
+        // A preflight test is holding the very devices this session is about to open.
+        self.stop_test_active(app).await;
 
         match (options.mode, options.provider) {
             (OutputMode::Translate, Provider::Mistral) => {
@@ -330,6 +351,144 @@ impl SessionManager {
             client_tasks,
         });
         Ok(())
+    }
+
+    /// Level-only capture for the preflight, so an operator can confirm the room microphone or
+    /// the loopback is actually producing sound before committing to a session.
+    ///
+    /// It opens the same devices a session would and then throws every sample away. There is no
+    /// provider client, no caption, and nothing written anywhere, so it cannot bill and cannot
+    /// leak room audio. Dropping the audio receiver is the whole mechanism: `capture.rs` sees a
+    /// closed channel, discards the chunk and carries on, while the level channel keeps flowing
+    /// because levels are accumulated before the chunk is ever sent.
+    pub async fn start_test(
+        &self,
+        app: &AppHandle,
+        source: AudioSource,
+        mic_device_name: Option<String>,
+    ) -> Result<()> {
+        let _lifecycle = self.lifecycle.lock().await;
+        if lock(&self.active).is_some() {
+            anyhow::bail!("A session is already running, so its meters are already live");
+        }
+        self.stop_test_active(app).await;
+
+        let cancel = CancellationToken::new();
+        let cancel_guard = cancel.clone().drop_guard();
+        let mut capture_threads = Vec::new();
+
+        let (level_tx, mut level_rx) = channel::<AudioLevel>(LEVEL_CHANNEL_CAPACITY);
+        let level_app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            while let Some(level) = level_rx.recv().await {
+                let _ = level_app.emit(events::LEVEL, &level);
+            }
+        });
+
+        let mut spawn_probe = |origin: Origin| -> Result<()> {
+            let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
+            // The receiver is dropped immediately and deliberately: that is what makes this
+            // level-only rather than a silent session.
+            drop(audio_rx);
+
+            let probe_app = app.clone();
+            let probe_cancel = cancel.child_token();
+            let error_cancel = probe_cancel.clone();
+            let probe_level_tx = level_tx.clone();
+            let mic_name = mic_device_name.clone();
+            let handle = std::thread::Builder::new()
+                .name(format!("audio-test-{origin:?}"))
+                .spawn(move || {
+                    let result = match origin {
+                        Origin::Microphone => run_microphone(
+                            probe_app.clone(),
+                            mic_name,
+                            TEST_SAMPLE_RATE,
+                            probe_level_tx,
+                            audio_tx,
+                            probe_cancel,
+                        ),
+                        Origin::System => run_system_loopback(
+                            TEST_SAMPLE_RATE,
+                            probe_level_tx,
+                            audio_tx,
+                            probe_cancel,
+                        ),
+                    };
+                    if let Err(error) = result {
+                        tracing::error!(?origin, "audio test failed: {error:#}");
+                        // Reported on the test channel, never as a session status: a failed
+                        // preflight must not leave the operator UI looking like a dead session.
+                        let _ = probe_app.emit(
+                            events::AUDIO_TEST,
+                            AudioTestUpdate {
+                                active: false,
+                                message: Some(source_failure_message(origin, &error)),
+                            },
+                        );
+                        error_cancel.cancel();
+                    }
+                })
+                .context("failed to spawn audio test thread")?;
+            capture_threads.push(handle);
+            Ok(())
+        };
+
+        if source.wants_mic() {
+            spawn_probe(Origin::Microphone)?;
+        }
+        if source.wants_system() {
+            spawn_probe(Origin::System)?;
+        }
+
+        let cancel = cancel_guard.disarm();
+        *lock(&self.active_test) = Some(ActiveTest {
+            cancel,
+            capture_threads,
+        });
+        let _ = app.emit(
+            events::AUDIO_TEST,
+            AudioTestUpdate {
+                active: true,
+                message: None,
+            },
+        );
+        tracing::info!(?source, "audio test started");
+        Ok(())
+    }
+
+    pub async fn stop_test(&self, app: &AppHandle) {
+        let _lifecycle = self.lifecycle.lock().await;
+        self.stop_test_active(app).await;
+    }
+
+    /// Releases the capture devices and joins the probe threads. Callers already hold
+    /// `lifecycle`.
+    async fn stop_test_active(&self, app: &AppHandle) {
+        let test = lock(&self.active_test).take();
+        if let Some(test) = test {
+            test.cancel.cancel();
+            let capture_threads = test.capture_threads;
+            if let Err(error) = tauri::async_runtime::spawn_blocking(move || {
+                for handle in capture_threads {
+                    if handle.join().is_err() {
+                        tracing::warn!("audio test thread panicked while stopping");
+                    }
+                }
+            })
+            .await
+            {
+                tracing::warn!("audio test join task failed: {error}");
+            }
+            let _ = app.emit(
+                events::AUDIO_TEST,
+                AudioTestUpdate {
+                    active: false,
+                    message: None,
+                },
+            );
+            tracing::info!("audio test stopped");
+        }
     }
 
     pub async fn stop(&self, app: &AppHandle) {

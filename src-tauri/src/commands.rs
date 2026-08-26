@@ -11,7 +11,7 @@ use crate::ondevice::{self, OnDeviceReadiness};
 use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
-use crate::types::{AudioDevice, Provider, StartOptions};
+use crate::types::{AudioDevice, AudioSource, Provider, StartOptions};
 
 #[tauri::command]
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, String> {
@@ -78,6 +78,31 @@ pub async fn stop_session(
     manager: State<'_, SessionManager>,
 ) -> Result<(), String> {
     manager.stop(&app).await;
+    Ok(())
+}
+
+/// Start level-only capture from the preflight so the operator can confirm a source is
+/// actually producing sound. Opens no provider connection and keeps no audio; see
+/// `SessionManager::start_test`.
+#[tauri::command]
+pub async fn start_audio_test(
+    app: AppHandle,
+    manager: State<'_, SessionManager>,
+    source: AudioSource,
+    mic_device_name: Option<String>,
+) -> Result<(), String> {
+    manager
+        .start_test(&app, source, mic_device_name)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn stop_audio_test(
+    app: AppHandle,
+    manager: State<'_, SessionManager>,
+) -> Result<(), String> {
+    manager.stop_test(&app).await;
     Ok(())
 }
 

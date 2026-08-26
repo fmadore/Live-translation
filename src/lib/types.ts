@@ -88,6 +88,14 @@ export interface StatusUpdate {
 	origin?: Origin;
 }
 
+/** Preflight level test. Deliberately not a `StatusUpdate`: a test is not a session and must
+ *  never move the session state machine. `message` is set only when a device failed.
+ *  Mirrors `AudioTestUpdate` in types.rs. */
+export interface AudioTestUpdate {
+	active: boolean;
+	message?: string | null;
+}
+
 export interface AudioDevice {
 	name: string;
 	isDefault: boolean;
@@ -126,6 +134,7 @@ export const EVT = {
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
+	audioTest: 'audio-test',
 	overlayConfig: 'overlay-config',
 	overlayState: 'overlay-state',
 } as const;

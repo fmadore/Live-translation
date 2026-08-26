@@ -157,6 +157,19 @@ pub struct StatusUpdate {
     pub origin: Option<Origin>,
 }
 
+/// Level-only capture, started from the preflight so an operator can confirm the room
+/// microphone or the loopback is actually producing sound *before* committing to a session.
+/// It opens the same devices as a session, discards every sample, and never reaches a
+/// provider, so it costs nothing and stores nothing.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioTestUpdate {
+    pub active: bool,
+    /// Present when the test stopped because a device failed, not because it was stopped.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioDevice {
@@ -169,4 +182,7 @@ pub mod events {
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";
+    /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
+    /// must never move the operator UI's session state machine.
+    pub const AUDIO_TEST: &str = "audio-test";
 }
