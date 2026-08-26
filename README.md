@@ -19,23 +19,35 @@ It has two deliberately separate modes:
   (`voxtral-mini-transcribe-realtime-2602`). The transcript can be saved as plain `.txt` or
   Markdown.
 
-The Store build opens on a deterministic **Built-in demo**: no publisher key, account,
-microphone, language pack, network, or per-minute charge. It drives the real caption UI,
-overlay, elapsed timer, level meter, transcript, and export path using clearly labeled bundled
-scripted content; it does not recognize live speech. Live microphone/system subtitles use
-Mistral, while live translation uses Gemini or OpenAI with the user's own provider key.
-See
-[`docs/microsoft-store.md`](docs/microsoft-store.md) for why it also matters for Microsoft
-Store distribution. The app is published as **Live Translation & Subtitles** at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X>, where Microsoft signs the package, so it
-installs without the SmartScreen warning the unsigned NSIS installer still raises. How the app handles audio, provider keys and
-transcripts is set out in [`docs/privacy.md`](docs/privacy.md), published at
+The app opens on a deterministic **Built-in demo**: no publisher key, account, microphone,
+language pack, network, or per-minute charge. It drives the real caption UI, overlay, elapsed
+timer, level meter, transcript and export path using clearly labelled bundled scripted
+content; it does not recognize live speech. Live microphone and system subtitles use Mistral,
+and live translation uses Gemini or OpenAI with your own provider key.
+[`docs/microsoft-store.md`](docs/microsoft-store.md) explains why that split is what made
+Microsoft Store distribution possible.
+
+How the app handles audio, provider keys and transcripts is set out in
+[`docs/privacy.md`](docs/privacy.md), published at
 <https://fmadore.github.io/Live-translation/privacy>.
 
 Provider details and verified wire formats are documented in
 [`docs/gemini-live-api.md`](docs/gemini-live-api.md),
 [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md), and
 [`docs/mistral-realtime-api.md`](docs/mistral-realtime-api.md).
+
+## Install
+
+**[Get it from the Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X)** —
+native x64 and ARM64, signed by Microsoft, and it updates itself. This is the recommended
+route.
+
+The [releases page](https://github.com/fmadore/Live-translation/releases) also carries an
+unsigned x64 NSIS installer and MSI. Being unsigned, they meet a SmartScreen "Windows
+protected your PC" warning on first launch — choose **More info → Run anyway**.
+
+Either way you need Windows 11 and the Microsoft Edge WebView2 Runtime, which current
+Windows 11 installs already have.
 
 ## Architecture
 
@@ -59,13 +71,13 @@ exponential reconnect backoff, provider-error classification, turn isolation, an
 provider flushes. Keys remain in Windows Credential Manager and are used only by Rust. See
 [`docs/architecture.md`](docs/architecture.md) for the complete flow.
 
-## Prerequisites
+## Prerequisites (building from source)
 
 **Windows only.** System-audio capture is WASAPI loopback and the app is not built or
 released for any other platform. The Linux lane in CI is a compile check for the
 non-`cfg(windows)` code, not a supported target.
 
-- Windows 11 (native x64 and ARM64 Store packages)
+- Windows 11
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
@@ -130,12 +142,16 @@ The operator stores each provider key separately in Windows Credential Manager. 
 development, copy `.env.example` to an uncommitted `.env`
 and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
 
-Build Windows installers with `npm run tauri build`.
+Build Windows installers with `npm run tauri build`. The Store packages are built separately —
+`npm run bundle:msix:x64` and `npm run bundle:msix:arm64` write an unsigned `.msix` each, which
+CI then combines into the multi-architecture bundle described in
+[`docs/packaging-msix.md`](docs/packaging-msix.md).
 
 ## Event-day workflow
 
-1. Choose **Live translation** or **Live subtitles**, then select the audio source. For
-   translation, select the target language and Gemini/OpenAI provider.
+1. Choose **Live translation** or **Subtitles**, then select the audio source. For
+   translation, select the target language and Gemini/OpenAI provider. (**Subtitles** opens on
+   the built-in demonstration; switch the provider to Mistral for live speech.)
 2. Start the session and confirm the source meter and live monitor move.
 3. Use **Move overlay** to position/resize captions on the projector, then lock it back into
    click-through mode. In move mode the overlay itself has the keyboard: **Enter** locks it in
@@ -158,14 +174,18 @@ src-tauri/src/audio/         capture, metering, resampling
 src-tauri/src/realtime.rs    shared WebSocket lifecycle
 src-tauri/src/{gemini,openai,mistral}/ provider protocols
 src-tauri/src/ondevice/      deterministic built-in caption demonstration
-.github/workflows/           frontend/Rust/security/workflow CI + releases
+.github/workflows/           CI, tag-driven releases, Store submission
 ```
 
 ## CI and maintenance
 
 Pull requests and `main` pushes run frontend tests/type-check/build/audit, Rust format,
 Clippy and tests on Linux and Windows, RustSec, and actionlint. Dependabot checks npm, Cargo,
-and GitHub Actions weekly. Installer releases remain tag-driven.
+and GitHub Actions weekly.
+
+Pushing a `v*` tag builds the installers, both architectures' MSIX, and the multi-architecture
+`.msixbundle` the Store submission uses. Submitting that bundle is a separate manual workflow
+that drafts by default — see [`docs/store-automation.md`](docs/store-automation.md).
 
 ## License
 
