@@ -1,0 +1,157 @@
+name: Microsoft Store submission
+
+# Uploads a released multi-architecture .msixbundle to the "Live Translation & Subtitles"
+# Store listing through the Microsoft Store Developer CLI (msstore).
+#
+# Deliberately manual, and a draft by default. This writes to the live Partner Center
+# submission for a published app: leaving `commit` unticked uploads the package and stops,
+# so the submission can be read in Partner Center before anything reaches certification or
+# users. Tick `commit` to send it to certification in the same run.
+#
+# One-time Partner Center and Microsoft Entra ID setup, plus the four repository secrets
+# this needs, are in docs/store-automation.md. The workflow fails with a clear message
+# rather than a CLI stack trace when they are missing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag holding the .msixbundle to submit (e.g. v1.1.0)'
+        required: true
+      commit:
+        description: 'Send to certification now. Leave unticked to review the draft in Partner Center first.'
+        type: boolean
+        default: false
+      rollout:
+        description: 'Optional gradual rollout percentage (1-100). Blank ships to everyone at once.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+# Partner Center allows one pending submission per product, so two concurrent runs would
+# collide on the server rather than in the workflow.
+concurrency:
+  group: store-submission
+  cancel-in-progress: false
+
+env:
+  # Live Translation & Subtitles — https://apps.microsoft.com/detail/9PFB8LR3RR9X
+  STORE_PRODUCT_ID: 9PFB8LR3RR9X
+
+jobs:
+  submit:
+    name: Submit ${{ inputs.tag }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the Partner Center credentials are configured
+        shell: pwsh
+        env:
+          TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          $missing = @('TENANT_ID', 'CLIENT_ID', 'CLIENT_SECRET', 'SELLER_ID') |
+            Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) }
+          if ($missing) {
+            throw "Missing repository secret(s): $($missing -join ', '). See docs/store-automation.md."
+          }
+
+      - name: Validate the rollout percentage
+        if: inputs.rollout != ''
+        shell: pwsh
+        env:
+          ROLLOUT: ${{ inputs.rollout }}
+        run: |
+          if ($env:ROLLOUT -notmatch '^\d+$' -or [int]$env:ROLLOUT -lt 1 -or [int]$env:ROLLOUT -gt 100) {
+            throw "rollout must be a whole number from 1 to 100, got '$env:ROLLOUT'."
+          }
+
+      - name: Download the Store bundle from the release
+        id: package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release download $env:TAG --repo $env:REPO --pattern '*.msixbundle' --dir package
+          if ($LASTEXITCODE -ne 0) { throw "Could not download a .msixbundle from $env:TAG." }
+
+          # One bundle carries both architectures. Anything else means the release predates
+          # the combined-bundle packaging, and submitting either file alone would ship a
+          # single-architecture update to every device.
+          $bundles = Get-ChildItem 'package' -Filter *.msixbundle
+          if ($bundles.Count -ne 1) {
+            throw "Expected exactly one .msixbundle on $env:TAG, found $($bundles.Count): $($bundles.Name -join ', ')"
+          }
+
+          Write-Host "Submitting $($bundles[0].Name) ($([math]::Round($bundles[0].Length / 1MB, 1)) MB)"
+          "bundle=$($bundles[0].FullName)" >> $env:GITHUB_OUTPUT
+
+      - name: Set up the Microsoft Store Developer CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.4
+
+      - name: Configure Partner Center credentials
+        shell: pwsh
+        env:
+          TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          msstore reconfigure `
+            --tenantId $env:TENANT_ID `
+            --sellerId $env:SELLER_ID `
+            --clientId $env:CLIENT_ID `
+            --clientSecret $env:CLIENT_SECRET
+          if ($LASTEXITCODE -ne 0) { throw 'msstore reconfigure failed.' }
+
+      # The package path is `publish`'s positional argument; the CLI picks its publisher from
+      # the file extension. (Microsoft Learn still documents an `--inputFile` option, which the
+      # released CLI does not have — its `-i` is `--inputDirectory`.)
+      - name: Publish the package
+        shell: pwsh
+        env:
+          BUNDLE: ${{ steps.package.outputs.bundle }}
+          PRODUCT_ID: ${{ env.STORE_PRODUCT_ID }}
+          COMMIT: ${{ inputs.commit }}
+          ROLLOUT: ${{ inputs.rollout }}
+        run: |
+          $publishArgs = @('publish', $env:BUNDLE, '--appId', $env:PRODUCT_ID)
+          if ($env:COMMIT -ne 'true') {
+            # Uploads the package but leaves the submission uncommitted in Partner Center.
+            $publishArgs += '--noCommit'
+          }
+          if ($env:ROLLOUT) {
+            $publishArgs += @('--packageRolloutPercentage', $env:ROLLOUT)
+          }
+
+          msstore @publishArgs
+          if ($LASTEXITCODE -ne 0) { throw "msstore publish failed with exit code $LASTEXITCODE" }
+
+      - name: Summarise
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+          COMMIT: ${{ inputs.commit }}
+          ROLLOUT: ${{ inputs.rollout }}
+        run: |
+          $state = if ($env:COMMIT -eq 'true') {
+            'sent to certification. Microsoft usually reports back within a few hours to a couple of days.'
+          } else {
+            'left as an uncommitted draft. Review it in Partner Center and press Submit to start certification.'
+          }
+          $rollout = if ($env:ROLLOUT) { "$($env:ROLLOUT)%" } else { 'everyone' }
+          @(
+            '### Microsoft Store submission'
+            ''
+            "- Package: multi-architecture bundle (x64 + ARM64) from ``$env:TAG``"
+            "- Rollout: $rollout"
+            "- Status: $state"
+            ''
+            '[Open Partner Center](https://partner.microsoft.com/dashboard/apps-and-games/overview)'
+          ) -join "`n" >> $env:GITHUB_STEP_SUMMARY
