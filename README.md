@@ -150,14 +150,16 @@ CI then combines into the multi-architecture bundle described in
 ## Event-day workflow
 
 1. Choose **Live translation** or **Subtitles**, then select the audio source. For
-   translation, select the target language and Gemini/OpenAI provider. (**Subtitles** opens on
-   the built-in demonstration; switch the provider to Mistral for live speech.)
+   translation, select the target language and Gemini/OpenAI provider — **F2** swaps the
+   direction, but only before you start, because the provider is given the target once at
+   session start. (**Subtitles** opens on the built-in demonstration; switch the provider to
+   Mistral for live speech.)
 2. Start the session and confirm the source meter and live monitor move.
 3. Use **Move overlay** to position/resize captions on the projector, then lock it back into
    click-through mode. In move mode the overlay itself has the keyboard: **Enter** locks it in
    place, **Esc** cancels and restores where it was, arrow keys nudge by a pixel (**Shift** for
    10), and **+**/**−** resize the text. **Hide overlay** blanks the captions mid-session (a
-   video clip, a coffee break) without stopping anything; **F2** flips the caption language.
+   video clip, a coffee break) without stopping anything.
 4. Use **Save text** or **Save Markdown** after captions finalize. Files are written under
    `Documents/Live-translation/` (with Downloads/temp fallbacks).
 5. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
