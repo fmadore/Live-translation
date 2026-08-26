@@ -118,7 +118,22 @@ export type CloseChoice = 'save' | 'discard' | 'cancel';
  * capture and let the provider flush its last turn before the document can be finalized,
  * which cannot happen if the window has already gone. When neither holds, close is left
  * alone entirely, so an unresponsive front-end can never make the window unclosable.
+ *
+ * The tray preference is guarded separately (`lifecycle::CloseGuard::set_close_to_tray`),
+ * because it is a standing setting rather than something the session state decides.
  */
 export function shouldGuardClose(dirty: boolean, running: boolean): boolean {
 	return dirty || running;
+}
+
+// ---- What clicking the X means ----------------------------------------------
+
+/** The three things a close can turn into. `explain-then-hide` is the first hide only: an
+ *  app that vanishes from the taskbar and keeps running has to say so once, or it reads as
+ *  a crash. */
+export type CloseAction = 'quit' | 'hide' | 'explain-then-hide';
+
+export function closeAction(closeToTray: boolean, explained: boolean): CloseAction {
+	if (!closeToTray) return 'quit';
+	return explained ? 'hide' : 'explain-then-hide';
 }

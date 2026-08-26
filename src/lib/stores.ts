@@ -12,14 +12,18 @@ import type {
 	TranscriptLine
 } from './types';
 import {
+	CLOSE_TO_TRAY_KEY,
+	loadCloseToTray,
 	loadOverlayFont,
 	loadOverlayPlaced,
 	loadRecoveryEnabled,
 	loadStartOptions,
+	loadTrayHideExplained,
 	OVERLAY_FONT_KEY,
 	OVERLAY_PLACED_KEY,
 	RECOVERY_ENABLED_KEY,
-	SESSION_OPTIONS_KEY
+	SESSION_OPTIONS_KEY,
+	TRAY_HIDE_EXPLAINED_KEY
 } from './types';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 
@@ -228,6 +232,26 @@ export const recoveryEnabled = writable<boolean>(loadRecoveryEnabled());
 
 recoveryEnabled.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(RECOVERY_ENABLED_KEY, String(v));
+});
+
+// ---- Window and tray ----------------------------------------------------------
+// Off by default, so a fresh install keeps ordinary Windows semantics: the X closes the app.
+// Staying alive after being closed is a thing an operator opts into, usually once, for a room
+// where the window is in the way but the session must not stop.
+
+export const closeToTray = writable<boolean>(loadCloseToTray());
+
+closeToTray.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(CLOSE_TO_TRAY_KEY, String(v));
+});
+
+/** Whether the operator has already been told that closing no longer quits. */
+export const trayHideExplained = writable<boolean>(loadTrayHideExplained());
+
+trayHideExplained.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem(TRAY_HIDE_EXPLAINED_KEY, String(v));
+	}
 });
 
 // ---- Audio levels ------------------------------------------------------------

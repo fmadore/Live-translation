@@ -14,7 +14,8 @@ import type {
 	Provider,
 	StartOptions,
 	StatusUpdate,
-	StoredRecovery
+	StoredRecovery,
+	TrayCommand
 } from './types';
 import { EVT } from './types';
 
@@ -97,7 +98,24 @@ export const api = {
 	ackClose: () => invoke<void>('ack_close'),
 
 	/** Answer an intercepted close: quit for real. */
-	confirmClose: () => invoke<void>('confirm_close')
+	confirmClose: () => invoke<void>('confirm_close'),
+
+	/** Mirror the "keep running in the tray" preference into the core, so the close event
+	 *  knows to hold the window open for a hide rather than let it be destroyed. */
+	setCloseToTray: (enabled: boolean) => invoke<void>('set_close_to_tray', { enabled }),
+
+	/** Put the window away without ending anything — session, overlay and transcript all
+	 *  carry on, and the tray is how they come back. */
+	hideToTray: () => invoke<void>('hide_to_tray'),
+
+	/** Bring the window back and focus it. Used before asking a question that the operator
+	 *  cannot answer from the tray. */
+	showOperator: () => invoke<void>('show_operator'),
+
+	/** Push session and overlay state onto the tray menu, so it cannot describe a state the
+	 *  app has already left. */
+	setTrayState: (sessionActive: boolean, overlayVisible: boolean) =>
+		invoke<void>('set_tray_state', { sessionActive, overlayVisible })
 };
 
 // ---- Events ---------------------------------------------------------------
@@ -109,6 +127,8 @@ export const on = {
 	audioTest: (h: (t: AudioTestUpdate) => void) => listen<AudioTestUpdate>(EVT.audioTest, h),
 	/** The operator tried to close the window and the core held it open for an answer. */
 	closeRequested: (h: () => void) => listen<null>(EVT.closeRequested, () => h()),
+	/** A tray menu entry that needs session or transcript state to carry out. */
+	trayCommand: (h: (c: TrayCommand) => void) => listen<TrayCommand>(EVT.trayCommand, h),
 	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
 	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h)
 };

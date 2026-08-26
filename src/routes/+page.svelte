@@ -14,6 +14,8 @@
 		transcriptDirty,
 		recoveryEnabled,
 		restoreTranscript,
+		closeToTray,
+		trayHideExplained,
 		micLevel,
 		systemLevel,
 		overlayFontSize,
@@ -23,6 +25,7 @@
 		beginSession
 	} from '$lib/stores';
 	import {
+		closeAction,
 		decodeRecovery,
 		encodeRecovery,
 		newestLineId,
@@ -30,7 +33,7 @@
 		type CloseChoice,
 		type RecoverySnapshot
 	} from '$lib/document';
-	import { acknowledgeClose, prepareClose, resolveClose } from '$lib/quit';
+	import { acknowledgeClose, endsLiveSession, prepareClose, resolveClose } from '$lib/quit';
 	import type {
 		AudioDevice,
 		AudioLevel,
@@ -41,7 +44,8 @@
 		OnDeviceReadiness,
 		Provider,
 		SessionState,
-		TargetLanguage
+		TargetLanguage,
+		TrayCommand
 	} from '$lib/types';
 	import {
 		canFlipDirection,
@@ -53,7 +57,9 @@
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
+	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
 	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
+	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
 	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
@@ -248,8 +254,10 @@
 			// session state machine. Rust is authoritative: it also ends the test when a
 			// session starts, and says so here.
 			// Closing with unsaved captions, or mid-session, is held by the core until this
-			// answers it — see `recovery::CloseGuard`.
+			// answers it — see `lifecycle::CloseGuard`.
 			on.closeRequested(() => void onCloseRequested()),
+			// Tray entries that need session or transcript state to carry out.
+			on.trayCommand((command) => void onTrayCommand(command)),
 			on.audioTest((t) => {
 				audioTesting = t.active;
 				if (!t.active) {
@@ -328,31 +336,143 @@
 	let closeError = $state('');
 	let answeringClose = false;
 
+	// Leaving is asked about in stages, and each stage is one question: may this session end,
+	// then what about the unsaved text. Never more than one is on screen.
+	let sessionPrompt = $state(false);
+	let sessionPromptFromTray = $state(false);
+	let hidePrompt = $state(false);
+
 	let recovered = $state<{ snapshot: RecoverySnapshot; path: string } | null>(null);
 
-	// Keep the core's guard current. While it is false a close is not intercepted at all, so
-	// a wedged renderer cannot produce a window that refuses to close.
+	// Keep the core's guard current. While it and the tray preference are both false a close
+	// is not intercepted at all, so a wedged renderer cannot produce an unclosable window.
 	$effect(() => {
 		if (browserMode) return;
 		void api.setCloseGuard(shouldGuardClose($transcriptDirty, $isRunning)).catch(() => {});
 	});
 
+	// The tray preference is a standing setting rather than something session state decides,
+	// so the core tracks it separately.
+	$effect(() => {
+		if (browserMode) return;
+		void api.setCloseToTray($closeToTray).catch(() => {});
+	});
+
+	// The tray menu must never describe a state the app has left: pushed on every change, and
+	// once on mount.
+	$effect(() => {
+		if (browserMode) return;
+		void api.setTrayState($isRunning, overlayVisible).catch(() => {});
+	});
+
 	async function onCloseRequested() {
-		// Claimed first, unconditionally. A second click on the window's X while the prompt is
+		// Claimed first, unconditionally. A second click on the window's X while a prompt is
 		// already up is still an interception the core is counting down on, and letting that
 		// one lapse would release the window with the transcript still unsaved.
 		await acknowledgeClose();
-		if (closePrompt || answeringClose) return;
+		switch (closeAction($closeToTray, $trayHideExplained)) {
+			case 'hide':
+				await hideWindow();
+				return;
+			case 'explain-then-hide':
+				// Said in the window they are looking at, not as a toast: an app that vanishes
+				// from the taskbar while holding a microphone has to be sure the message landed.
+				hidePrompt = true;
+				return;
+			case 'quit':
+				await beginQuit(false);
+		}
+	}
+
+	async function hideWindow() {
+		try {
+			await api.hideToTray();
+		} catch (e) {
+			statusMessage.set(String(e));
+		}
+	}
+
+	async function onHideChoice(choice: 'hide' | 'quit') {
+		hidePrompt = false;
+		if (choice === 'quit') {
+			// They meant to leave. The explanation is deliberately *not* marked as given: the
+			// app never actually hid, so the first hide still deserves it.
+			await beginQuit(false);
+			return;
+		}
+		trayHideExplained.set(true);
+		await hideWindow();
+	}
+
+	/** One shutdown, whichever way it was asked for. */
+	async function beginQuit(fromTray: boolean) {
+		if (closePrompt || sessionPrompt || answeringClose) return;
 		answeringClose = true;
 		try {
-			const outcome = await prepareClose(stop);
-			closeEndedSession = outcome.endedSession;
-			closeError = '';
-			closePrompt = outcome.prompt;
+			// Ending an event's captions is the operator's decision, never a consequence of a
+			// mis-aimed click — so this is asked before anything is stopped.
+			if (endsLiveSession()) {
+				sessionPromptFromTray = fromTray;
+				await showWindowForQuestion();
+				sessionPrompt = true;
+				return;
+			}
+			await finishQuit();
 		} catch (e) {
 			statusMessage.set(String(e));
 		} finally {
 			answeringClose = false;
+		}
+	}
+
+	/** Stop, drain, finalize — then either ask about unsaved text or leave. */
+	async function finishQuit() {
+		const outcome = await prepareClose(stop);
+		closeEndedSession = outcome.endedSession;
+		closeError = '';
+		if (outcome.prompt) {
+			await showWindowForQuestion();
+			closePrompt = true;
+		}
+	}
+
+	/** A question the operator cannot answer from the tray, so the window comes back first.
+	 *  Failure is not fatal: the prompt still renders if the window was already visible. */
+	async function showWindowForQuestion() {
+		try {
+			await api.showOperator();
+		} catch {
+			// Ignored deliberately; see above.
+		}
+	}
+
+	async function onSessionChoice(stopIt: boolean) {
+		sessionPrompt = false;
+		if (!stopIt) return;
+		// Held across the stop and drain as well: with both prompts down, nothing else would
+		// stop a second close request from starting the whole sequence again underneath it.
+		answeringClose = true;
+		try {
+			await finishQuit();
+		} catch (e) {
+			statusMessage.set(String(e));
+		} finally {
+			answeringClose = false;
+		}
+	}
+
+	async function onTrayCommand(command: TrayCommand) {
+		switch (command) {
+			case 'toggle-overlay':
+				await toggleOverlayVisible();
+				return;
+			case 'stop-session':
+				await stop();
+				return;
+			case 'quit':
+				// Quit from the tray is counted down on just like a window close.
+				await acknowledgeClose();
+				await beginQuit(true);
 		}
 	}
 
@@ -662,6 +782,38 @@
 	}}
 />
 
+{#snippet windowSection()}
+	<!-- Rendered in both rail states: the reason to put the window away is strongest mid-session,
+	     and the reason to set the preference is strongest before one starts. -->
+	<div class="divider"></div>
+	<div class="rail-section">
+		<span class="kicker">Window</span>
+		<button class="tool wide" disabled={browserMode} onclick={hideWindow}>
+			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg>
+			Minimize to tray
+		</button>
+		<label class="pref">
+			<input
+				type="checkbox"
+				checked={$closeToTray}
+				disabled={browserMode}
+				onchange={(e) => closeToTray.set(e.currentTarget.checked)}
+			/>
+			<span>
+				<span class="pref-title">Keep running in the tray when I close this window</span>
+				<span class="pref-note">
+					{#if browserMode}
+						Needs the desktop app — a browser preview has no tray.
+					{:else}
+						Off by default, so the close button quits as usual. With it on, closing leaves
+						the session captioning and the tray icon is how you get back.
+					{/if}
+				</span>
+			</span>
+		</label>
+	</div>
+{/snippet}
+
 <div class="app">
 	<header class="titlebar">
 		<span class="brand" aria-hidden="true">
@@ -783,6 +935,8 @@
 						</button>
 					</div>
 				</div>
+
+				{@render windowSection()}
 
 				<span class="grow"></span>
 
@@ -1176,6 +1330,8 @@
 					/>
 				{/if}
 
+				{@render windowSection()}
+
 				<span class="grow"></span>
 
 				{#if $statusMessage}
@@ -1233,6 +1389,18 @@
 		path={recovered.path}
 		onRestore={() => void answerRecovery(true)}
 		onDelete={() => void answerRecovery(false)}
+	/>
+{/if}
+
+{#if hidePrompt}
+	<TrayHidePrompt running={$isRunning} onChoice={(choice) => void onHideChoice(choice)} />
+{/if}
+
+{#if sessionPrompt}
+	<ActiveSessionPrompt
+		elapsed={formatElapsed(elapsedMs)}
+		fromTray={sessionPromptFromTray}
+		onChoice={(stopIt) => void onSessionChoice(stopIt)}
 	/>
 {/if}
 
@@ -1859,9 +2027,42 @@
 		font-weight: 500;
 		line-height: 1;
 	}
-	.tool:hover {
+	.tool:hover:not(:disabled) {
 		border-color: var(--border-hover);
 		color: var(--text);
+	}
+	/* Standalone rather than one of a pair, so it fills the rail. */
+	.tool.wide {
+		width: 100%;
+	}
+	.pref {
+		display: grid;
+		grid-template-columns: auto 1fr;
+		gap: 9px;
+		align-items: start;
+		cursor: pointer;
+	}
+	.pref:has(input:disabled) {
+		cursor: default;
+	}
+	.pref input {
+		margin: 2px 0 0;
+		accent-color: var(--accent);
+	}
+	.pref-title {
+		display: block;
+		font-size: 12px;
+		line-height: 1.4;
+		color: var(--text-soft);
+		text-wrap: pretty;
+	}
+	.pref-note {
+		display: block;
+		margin-top: 3px;
+		font-size: 11.5px;
+		line-height: 1.5;
+		color: var(--muted-3);
+		text-wrap: pretty;
 	}
 	.tool.on {
 		border-color: var(--accent-border);
