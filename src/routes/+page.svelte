@@ -97,15 +97,67 @@
 			micLevel.set(level);
 			if (level.rms <= SIGNAL_RMS) return;
 			micSignal = true;
+			micVerified = true;
 			clearTimeout(micSignalTimer);
 			micSignalTimer = setTimeout(() => (micSignal = false), SIGNAL_HOLD_MS);
 		} else {
 			systemLevel.set(level);
 			if (level.rms <= SIGNAL_RMS) return;
 			systemSignal = true;
+			systemVerified = true;
 			clearTimeout(systemSignalTimer);
 			systemSignalTimer = setTimeout(() => (systemSignal = false), SIGNAL_HOLD_MS);
 		}
+	}
+
+	// ---- Preflight audio test ---------------------------------------------------
+	// Levels only exist while something is capturing, so the idle sheet cannot observe the
+	// room on its own. Rather than implying that it is listening, it offers a deliberate
+	// level-only test: the same devices a session would open, every sample discarded, no
+	// provider contacted and nothing billed or stored. See `SessionManager::start_test`.
+	let audioTesting = $state(false);
+	let audioTestBusy = $state(false);
+	// Latched once a source has genuinely been heard, so the tick survives the test ending.
+	// Dropped whenever the operator changes what is under test.
+	let micVerified = $state(false);
+	let systemVerified = $state(false);
+
+	async function startAudioTest() {
+		if (browserMode || audioTestBusy || audioTesting || controlsLocked) return;
+		audioTestBusy = true;
+		statusMessage.set('');
+		try {
+			await api.startAudioTest($options.source, $options.micDeviceName ?? null);
+		} catch (e) {
+			statusMessage.set(String(e));
+		} finally {
+			audioTestBusy = false;
+		}
+	}
+
+	async function stopAudioTest() {
+		if (browserMode) return;
+		audioTestBusy = true;
+		try {
+			await api.stopAudioTest();
+		} catch (e) {
+			statusMessage.set(String(e));
+		} finally {
+			audioTestBusy = false;
+		}
+	}
+
+	/** A running test holds one specific device. Once the operator changes the source, the
+	 *  device or the provider, that probe is measuring something they are no longer asking
+	 *  about — so release it, and drop the verdict along with it. */
+	function invalidateAudioTest() {
+		micVerified = false;
+		systemVerified = false;
+		micSignal = false;
+		systemSignal = false;
+		clearTimeout(micSignalTimer);
+		clearTimeout(systemSignalTimer);
+		if (audioTesting) void stopAudioTest();
 	}
 
 	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
@@ -120,9 +172,15 @@
 	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
 	const usesMic = $derived(!rehearsing && $options.source !== 'system');
 	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
-	const audioReady = $derived(
-		$options.provider === 'ondevice' || ((!usesMic || micSignal) && (!usesSystem || systemSignal))
+	// The tick means "this source has been heard", not "we are listening now". The old check
+	// asked the second question from a screen where the answer was always no, because levels
+	// only flow once capture is running.
+	const audioVerified = $derived(
+		$options.provider === 'ondevice' ||
+			((!usesMic || micVerified) && (!usesSystem || systemVerified))
 	);
+	// Live view for the duration of a test.
+	const audioHearing = $derived((!usesMic || micSignal) && (!usesSystem || systemSignal));
 
 	const audioTitle = $derived(
 		$options.provider === 'ondevice'
@@ -133,14 +191,25 @@
 					? 'Room mic'
 					: 'Audio'
 	);
-	const audioReadyDesc = $derived(
+	const audioHeardDesc = $derived(
 		$options.provider === 'ondevice'
 			? 'Bundled sample is ready — no microphone is opened'
 			: $options.source === 'system'
-			? 'WASAPI loopback is receiving sound'
-			: $options.source === 'microphone'
-				? 'The room mic is picking up sound'
-				: 'Both the room mic and WASAPI loopback are receiving sound'
+				? 'WASAPI loopback was receiving sound'
+				: $options.source === 'microphone'
+					? 'The room mic was picking up sound'
+					: 'Both the room mic and WASAPI loopback were receiving sound'
+	);
+	const audioCheckDesc = $derived(
+		$options.provider === 'ondevice'
+			? audioHeardDesc
+			: audioTesting
+				? audioHearing
+					? `${audioHeardDesc.replace(' was ', ' is ').replace(' were ', ' are ')} — stop the test when you are satisfied`
+					: 'Listening — say something into the mic or play some audio'
+				: audioVerified
+					? audioHeardDesc
+					: 'Not checked yet — audio is only monitored during a test or a running session'
 	);
 
 	onMount(() => {
@@ -156,6 +225,20 @@
 			on.caption((c) => pushCaption(c)),
 			on.level((l) => noteLevel(l)),
 			on.status((s) => applyStatus(s)),
+			// A test is not a session, so it reports on its own channel and never touches the
+			// session state machine. Rust is authoritative: it also ends the test when a
+			// session starts, and says so here.
+			on.audioTest((t) => {
+				audioTesting = t.active;
+				if (!t.active) {
+					// The live signal belonged to the capture that just ended.
+					micSignal = false;
+					systemSignal = false;
+					clearTimeout(micSignalTimer);
+					clearTimeout(systemSignalTimer);
+					if (t.message) statusMessage.set(t.message);
+				}
+			}),
 			// The overlay can be locked, placed and resized from its own toolbar; mirror that
 			// back so the rail and the pre-flight check don't drift out of sync.
 			on.overlayState((msg) => {
@@ -170,6 +253,8 @@
 		return () => {
 			clearTimeout(micSignalTimer);
 			clearTimeout(systemSignalTimer);
+			// Never leave a capture device open behind a closed window.
+			if (audioTesting) void api.stopAudioTest();
 			void Promise.all(unlisteners).then((fns) => fns.forEach((f) => f()));
 		};
 	});
@@ -263,6 +348,7 @@
 	function setSource(s: AudioSource) {
 		if (controlsLocked) return;
 		if ($options.provider === 'ondevice' && s !== 'microphone') return;
+		if (s !== $options.source) invalidateAudioTest();
 		$options = { ...$options, source: s };
 	}
 
@@ -278,6 +364,7 @@
 		if (controlsLocked || p === $options.provider) return;
 		// Each mode accepts only the backends that can serve it.
 		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
+		invalidateAudioTest();
 		$options = {
 			...$options,
 			provider: p,
@@ -288,6 +375,7 @@
 
 	function setMode(mode: OutputMode) {
 		if (controlsLocked || mode === $options.mode) return;
+		invalidateAudioTest();
 		$options = {
 			...$options,
 			mode,
@@ -654,7 +742,10 @@
 								aria-label="Microphone device"
 								disabled={controlsLocked}
 								value={$options.micDeviceName ?? ''}
-								onchange={(e) => ($options = { ...$options, micDeviceName: e.currentTarget.value || null })}
+								onchange={(e) => {
+									invalidateAudioTest();
+									$options = { ...$options, micDeviceName: e.currentTarget.value || null };
+								}}
 							>
 								<option value="">System default</option>
 								{#each microphones as dev (dev.name)}
@@ -850,7 +941,7 @@
 					{/if}
 
 					<div class="check-row">
-						{#if audioReady}
+						{#if audioVerified}
 							<span class="mark ok">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 							</span>
@@ -859,11 +950,26 @@
 						{/if}
 						<div class="check-body">
 							<span class="check-title">{audioTitle}</span>
-							<span class="check-desc" class:warn={!audioReady}>
-								{audioReady ? audioReadyDesc : 'Waiting for sound — play or say something'}
+							<span class="check-desc" class:warn={audioTesting && !audioHearing}>
+								{audioCheckDesc}
 							</span>
 						</div>
-						<span></span>
+						<!-- The demo opens no device, so there is nothing to test. Otherwise the row keeps
+						     the button in both states: re-checking after moving a cable or switching the
+						     room mic is exactly when an operator needs it. -->
+						{#if $options.provider === 'ondevice' || browserMode}
+							<span></span>
+						{:else if audioTesting}
+							<button class="adjust" disabled={audioTestBusy} onclick={stopAudioTest}>Stop test</button>
+						{:else}
+							<button
+								class="place"
+								disabled={audioTestBusy || controlsLocked}
+								onclick={startAudioTest}
+							>
+								{audioVerified ? 'Re-test' : 'Test audio'}
+							</button>
+						{/if}
 					</div>
 
 					<div class="check-row">
