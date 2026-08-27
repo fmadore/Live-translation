@@ -32,6 +32,10 @@ jobs:
 
       - run: npm ci
 
+      # The Rust job below runs `cargo fmt --check`; this is the frontend's half of that.
+      - name: prettier
+        run: npm run format:check
+
       - name: svelte-check
         run: npm run check
 
