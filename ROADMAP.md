@@ -114,6 +114,12 @@ the app.
 1. [#28 — audio hot-plug and loopback-output selection](https://github.com/fmadore/Live-translation/issues/28)
 2. [#27 — per-application WASAPI loopback capture](https://github.com/fmadore/Live-translation/issues/27)
 3. [#26 — native Save As plus SRT/VTT export](https://github.com/fmadore/Live-translation/issues/26)
+   — its timing prerequisite has landed. The issue asks for cues built on "explicit monotonic
+   caption timing rather than display timestamps", and there was no caption timing anywhere in
+   the app: neither `Caption` nor `TranscriptLine` carried a clock, and the only one in reach
+   was the renderer's arrival time, which is the thing the issue rules out. Captions now carry
+   an interval stamped in the core (`src-tauri/src/timing.rs`), so what is left of #26 is the
+   picker and the formatters.
 
 Device lifecycle work comes first because both all-system and per-process capture need a shared,
 recoverable device model. The process-capture implementation must retain all-system loopback as
@@ -161,7 +167,9 @@ Definition of done for 1.2:
   for. The interface stays English and French:
   [`docs/localization.md`](docs/localization.md) keeps the caption language and the UI language
   independent, and a German caption target does not imply a German UI.
-- Measure audio-to-first-caption latency and make rate-card verification dates visible.
+- Measure audio-to-first-caption latency and make rate-card verification dates visible. The
+  clock this needs now exists: `timing::SessionClock` stamps every caption, so the missing
+  half is a mark on the audio side to measure against.
 
 ## Completed delivery history
 
