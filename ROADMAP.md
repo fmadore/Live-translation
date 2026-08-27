@@ -130,7 +130,26 @@ Definition of done for 1.2:
 - Privacy-preserving diagnostic export: versions, devices, reconnects, queue drops, and sanitized
   errors, but never keys or audio.
 - Persist overlay position/size and add multi-monitor overlay presets.
-- Expand beyond English/French once the localized selector and provider capability model exist.
+- Overlay caption presentation, which is a set of constants in
+  `src/routes/overlay/+page.svelte` today:
+  [#54 — configurable caption width](https://github.com/fmadore/Live-translation/issues/54) and
+  [#55 — operator-chosen typeface, size and colours](https://github.com/fmadore/Live-translation/issues/55).
+  A caption line is capped at `30ch` and centred, so a region snapped across a presentation
+  display spends most of its width on scrim, and every colour is a literal — the font size is
+  the only thing an operator can change. Both are small and both serve the room this app was
+  built for, but neither belongs to 1.2's goal, so they wait here for a presentation milestone.
+  #55 is the one with a trap: the audience view opts out of contrast themes on purpose, its
+  dimmed steps are alphas of white, and the scrim is semi-transparent over a slide nobody
+  controls — so operator-chosen colours need a composite contrast check, not a colour wheel.
+- [#56 — German as a caption output language](https://github.com/fmadore/Live-translation/issues/56)
+  now carries the standing note about expanding beyond English and French. The enum is still
+  trivially extensible and both Rust matches on it are exhaustive, so the compiler names most of
+  the work; what it cannot name is what stops being derivable once there are three languages —
+  the F2 flip, and the rehearsal rule that picks *the language the room is not reading*. It also
+  finally owes the localized selector the two hard-coded language cards have been standing in
+  for. The interface stays English and French:
+  [`docs/localization.md`](docs/localization.md) keeps the caption language and the UI language
+  independent, and a German caption target does not imply a German UI.
 - Measure audio-to-first-caption latency and make rate-card verification dates visible.
 
 ## Completed delivery history
@@ -297,7 +316,8 @@ itself stays open for the three issues listed under *1.1* above.
 - **Per-origin caption styling** on the overlay (e.g. a subtle "🎤 / 🔊" prefix when both
   sources are live).
 - **More target languages** — the enum is trivially extensible; the UI needs a select
-  instead of two buttons.
+  instead of two buttons. Superseded by
+  [#56](https://github.com/fmadore/Live-translation/issues/56).
 - **Latency metrics** in the operator monitor (audio-sent → first-delta round trip).
 - **Session cost estimate** (audio minutes streamed per provider).
 - **Rehearsal mode** — play a bundled FR/EN sample file through the pipeline to validate
