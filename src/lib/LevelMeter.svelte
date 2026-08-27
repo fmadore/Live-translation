@@ -47,12 +47,14 @@
 <style>
 	.meter {
 		display: grid;
-		grid-template-columns: 74px 1fr;
+		/* 74px at 100%, in `em` so MICROPHONE / SYSTEM keeps its column and the bar keeps
+		   the rest, whatever the operator's text size. */
+		grid-template-columns: 4.625em 1fr;
 		align-items: center;
 		gap: 10px;
 	}
 	.label {
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.1em;

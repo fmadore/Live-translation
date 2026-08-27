@@ -62,6 +62,10 @@ windows-sys = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",
 ] }
+# `UISettings.TextScaleFactor` for the accessibility text-size setting (`src/textscale.rs`).
+# WinRT, so it needs the projected `windows` crate rather than the raw `windows-sys` above;
+# that crate is already in the graph via tauri, and only the requested namespace is compiled.
+windows = { version = "0.62", features = ["UI_ViewManagement"] }
 
 [features]
 # Standard Tauri production feature: serve the bundled front-end assets over the custom

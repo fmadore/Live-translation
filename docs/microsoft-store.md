@@ -1,8 +1,12 @@
 # Microsoft Store distribution
 
-**Published:** 1.0.5, native x64 and ARM64, at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. Updates go through
-[`store-automation.md`](store-automation.md).
+**Published:** 1.1.0, native x64 and ARM64, at
+<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. Accepted 27 August 2026; 1.0.5 was the
+release before it. Updates go through [`store-automation.md`](store-automation.md).
+
+The package the Store is serving was cut from the `v1.1.0` tag. Work merged to `main` after
+that tag — the accessibility pass, the capability split, the French interface, Windows text
+scaling — is **not** in it and ships in the next submission.
 
 ## Certification objective
 
@@ -66,12 +70,13 @@ prominent and accurate.
 
 ## Checklist for the next update
 
-1.0.5 cleared every item below and was accepted. Work through them again for each update
-rather than trusting that a passing package stays passing — 1.0.3 was a working build that
-failed on a machine configured differently from the developer's.
+1.0.5 and 1.1.0 each cleared every item below and were accepted. Work through them again for
+each update rather than trusting that a passing package stays passing — 1.0.3 was a working
+build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
-  all three matching and all three above the published version.
+  all three matching and all three above the published version. All three read `1.1.0` today,
+  which is the version now published, so the next submission cannot reuse them.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled

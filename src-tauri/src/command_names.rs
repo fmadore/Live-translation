@@ -27,6 +27,7 @@ pub const COMMANDS: &[&str] = &[
     "set_overlay_click_through",
     "show_overlay",
     "save_transcript",
+    "text_scale_factor",
     "write_recovery",
     "read_recovery",
     "clear_recovery",

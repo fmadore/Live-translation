@@ -589,13 +589,13 @@
 	}
 	.drag-label {
 		font-weight: 600;
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1;
 	}
 	.drag-size {
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		opacity: 0.72;
@@ -625,21 +625,21 @@
 	}
 	.mode-title {
 		font-weight: 600;
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		line-height: 1;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: #ffb454;
 	}
 	.mode-sub {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1;
 		color: #8b93a1;
 	}
 	.keys {
 		margin-top: 3px;
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		line-height: 1.7;
 		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
 		   paints over an unknown desktop and does not inherit the operator's surfaces. */
@@ -667,7 +667,7 @@
 		gap: 8px;
 	}
 	.size-label {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1;
 		color: #8b93a1;
 	}
@@ -675,7 +675,7 @@
 		min-width: 24px;
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		text-align: center;
@@ -690,7 +690,7 @@
 		background: #171b21;
 		color: #c3c9d2;
 		font-weight: 500;
-		font-size: 13px;
+		font-size: var(--type-13);
 		line-height: 1;
 	}
 	.step:hover {
@@ -707,7 +707,7 @@
 		background: #171b21;
 		color: #c3c9d2;
 		font-weight: 500;
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1;
 	}
 	.ghost:hover {
@@ -724,7 +724,7 @@
 		background: linear-gradient(#5ad1a0, #43b989);
 		color: #05271b;
 		font-weight: 600;
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1;
 	}
 	.primary:hover {

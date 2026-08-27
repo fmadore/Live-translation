@@ -35,6 +35,7 @@
 		type RecoverySnapshot
 	} from '$lib/document';
 	import { acknowledgeClose, endsLiveSession, prepareClose, resolveClose } from '$lib/quit';
+	import { followTextScale } from '$lib/textScale';
 	import type {
 		AudioDevice,
 		AudioLevel,
@@ -266,6 +267,10 @@
 		void api.setOverlayConfig({ fontSize: $overlayFontSize, locale: $locale });
 
 		const unlisteners: Array<Promise<() => void>> = [
+			// Windows' accessibility text size, which WebView2 does not pass on by itself.
+			// This window honours it; the overlay deliberately does not — see
+			// `docs/accessibility.md`.
+			followTextScale(),
 			on.caption((c) => pushCaption(c)),
 			on.level((l) => noteLevel(l)),
 			on.status((s) => applyStatus(s)),
@@ -1706,8 +1711,13 @@
 	.app {
 		height: 100vh;
 		display: grid;
-		grid-template-rows: 40px 2px minmax(0, 1fr);
+		/* The title bar sizes to its own text rather than to a slot: at 225% its label is
+		   28px tall and a fixed 40px row would crop it. */
+		grid-template-rows: auto 2px minmax(0, 1fr);
 		background: var(--surface-0);
+		/* The query container for the column rule below. Its `em` is the scaled root, which
+		   is what lets a text-size change move the breakpoint. */
+		container: window / inline-size;
 	}
 
 	/* ---- Header ------------------------------------------------------------- */
@@ -1716,7 +1726,8 @@
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		padding: 0 14px;
+		min-height: 40px;
+		padding: 4px 14px;
 		background: #12151a;
 		border-bottom: 1px solid var(--hairline);
 	}
@@ -1733,12 +1744,12 @@
 	/* The window's one h1: every other heading in either column sits under it. */
 	.app-name {
 		margin: 0;
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.context {
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1;
 		color: var(--muted-3);
 		white-space: nowrap;
@@ -1762,7 +1773,7 @@
 		border-radius: 50%;
 	}
 	.pill-label {
-		font-size: 11px;
+		font-size: var(--type-11);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.06em;
@@ -1770,7 +1781,7 @@
 	}
 	.pill-time {
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 		font-weight: 500;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
@@ -1838,10 +1849,17 @@
 
 	/* ---- Layout ------------------------------------------------------------- */
 
+	/* One column is the safe shape, so it is the default: the rail above the stage, the whole
+	   thing scrolling as a page. The two-column layout is an enhancement that only applies
+	   while the window can hold 23.75em of rail and 30em of stage — measured in `em`, so the
+	   threshold rises with the operator's text size instead of leaving a 225% rail squeezed
+	   into 380 physical pixels. At 100% that is 860px, comfortably inside the 980px minimum
+	   window, so nothing about the normal layout changes. */
 	.body {
 		display: grid;
-		grid-template-columns: 380px minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		min-height: 0;
+		overflow-y: auto;
 	}
 	.rail {
 		padding: 22px 22px 26px;
@@ -1849,14 +1867,34 @@
 		flex-direction: column;
 		gap: 20px;
 		background: var(--panel);
-		border-right: 1px solid var(--hairline);
-		overflow-y: auto;
+		border-bottom: 1px solid var(--hairline);
+	}
+	/* The same measure the rail has as a column, so a stacked rail keeps the proportions the
+	   cards were drawn at instead of stretching a two-line description across the window.
+	   Never binds in the two-column layout, where the rail is exactly this wide. */
+	.rail > * {
+		max-width: 23.75em;
 	}
 	.stage {
 		padding: 30px 38px 32px;
 		display: flex;
 		flex-direction: column;
-		overflow-y: auto;
+	}
+	@container window (min-width: 53.75em) {
+		.body {
+			grid-template-columns: 23.75em minmax(0, 1fr);
+			overflow-y: hidden;
+		}
+		/* Side by side, each column carries its own scrollbar again, so the pre-flight
+		   checklist and the transcript scroll independently. */
+		.rail {
+			border-bottom: 0;
+			border-right: 1px solid var(--hairline);
+			overflow-y: auto;
+		}
+		.stage {
+			overflow-y: auto;
+		}
 	}
 	.divider {
 		height: 1px;
@@ -1903,7 +1941,7 @@
 	}
 	.step-no {
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--accent);
@@ -1913,7 +1951,7 @@
 	   heading typography. */
 	.kicker {
 		margin: 0;
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.15em;
@@ -1922,7 +1960,7 @@
 	}
 	.hint {
 		margin: 0;
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.5;
 		color: var(--muted-2);
 	}
@@ -1934,7 +1972,7 @@
 	}
 	.key {
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-dim);
@@ -2006,7 +2044,7 @@
 		min-width: 0;
 	}
 	.card-title {
-		font-size: 13.5px;
+		font-size: var(--type-13-5);
 		font-weight: 600;
 		line-height: 1.2;
 		color: var(--text-soft);
@@ -2015,7 +2053,7 @@
 		color: var(--text);
 	}
 	.card-desc {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.45;
 		color: var(--muted-2);
 		text-wrap: pretty;
@@ -2043,7 +2081,7 @@
 		padding: 12px 6px 10px;
 		border-radius: 10px;
 		color: var(--muted);
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -2068,7 +2106,7 @@
 		border: 0;
 		background: transparent;
 		color: var(--text-soft);
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1;
 		padding: 0 20px 0 0;
 	}
@@ -2108,7 +2146,7 @@
 	}
 	.lang-code {
 		font-family: var(--font-mono);
-		font-size: 12px;
+		font-size: var(--type-12);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted-2);
@@ -2118,7 +2156,7 @@
 		font-weight: 600;
 	}
 	.lang-name {
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -2147,7 +2185,7 @@
 		min-width: 0;
 	}
 	.engine-name {
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -2158,7 +2196,7 @@
 	}
 	.engine-model {
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		line-height: 1.2;
 		color: var(--muted-3);
 		overflow-wrap: anywhere;
@@ -2169,7 +2207,7 @@
 	.engine-rate {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted);
@@ -2203,7 +2241,7 @@
 		min-width: 0;
 	}
 	.chip-label {
-		font-size: 9.5px;
+		font-size: var(--type-9-5);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.12em;
@@ -2211,14 +2249,14 @@
 		color: var(--muted-3);
 	}
 	.chip-value {
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		font-weight: 500;
 		line-height: 1.1;
 		color: #dfe3e9;
 	}
 	.rail-note {
 		margin: 0;
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.4;
 		color: var(--muted-3);
 	}
@@ -2244,7 +2282,7 @@
 	}
 	.figure-value {
 		font-family: var(--font-mono);
-		font-size: 21px;
+		font-size: var(--type-21);
 		font-weight: 500;
 		line-height: 1;
 		color: #dfe3e9;
@@ -2256,14 +2294,14 @@
 	.cost-tag {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted-3);
 	}
 	.cost-note {
 		margin: 0;
-		font-size: 11px;
+		font-size: var(--type-11);
 		line-height: 1.45;
 		color: var(--muted-3);
 		text-wrap: pretty;
@@ -2275,17 +2313,18 @@
 		gap: 10px;
 	}
 	.stepper-label {
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1;
 		color: var(--muted);
 		flex: 1;
 	}
 	.stepper-value {
 		font-family: var(--font-mono);
-		font-size: 13px;
+		font-size: var(--type-13);
 		font-weight: 500;
 		line-height: 1;
-		min-width: 26px;
+		/* Two mono digits, so the buttons either side stop moving as the number changes. */
+		min-width: 2ch;
 		text-align: center;
 		font-variant-numeric: tabular-nums;
 	}
@@ -2296,7 +2335,7 @@
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		color: var(--text-soft);
-		font-size: 14px;
+		font-size: var(--type-14);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -2319,7 +2358,7 @@
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		color: var(--text-soft);
-		font-size: 12px;
+		font-size: var(--type-12);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -2347,7 +2386,7 @@
 	}
 	.pref-title {
 		display: block;
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1.4;
 		color: var(--text-soft);
 		text-wrap: pretty;
@@ -2355,7 +2394,7 @@
 	.pref-note {
 		display: block;
 		margin-top: 3px;
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.5;
 		color: var(--muted-3);
 		text-wrap: pretty;
@@ -2382,7 +2421,7 @@
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
-		font-size: 14px;
+		font-size: var(--type-14);
 		font-weight: 600;
 		line-height: 1;
 	}
@@ -2399,25 +2438,25 @@
 		border-radius: 10px;
 		padding: 12px;
 		margin-bottom: 22px;
-		font-size: 13px;
+		font-size: var(--type-13);
 		line-height: 1.5;
 		color: var(--muted);
 	}
 	.banner code {
 		font-family: var(--font-mono);
-		font-size: 12px;
+		font-size: var(--type-12);
 		color: var(--text-dim);
 	}
 	.ready {
 		margin: 16px 0 0;
-		font-size: 27px;
+		font-size: var(--type-27);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.02em;
 	}
 	.intro {
 		margin: 8px 0 0;
-		font-size: 13.5px;
+		font-size: var(--type-13-5);
 		line-height: 1.55;
 		color: var(--muted);
 		max-width: 48ch;
@@ -2462,7 +2501,7 @@
 		background: rgba(255, 255, 255, 0.05);
 		color: var(--muted);
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -2473,12 +2512,12 @@
 		min-width: 0;
 	}
 	.check-title {
-		font-size: 13.5px;
+		font-size: var(--type-13-5);
 		font-weight: 500;
 		line-height: 1.2;
 	}
 	.check-desc {
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1.3;
 		color: var(--muted-2);
 	}
@@ -2487,14 +2526,14 @@
 	}
 	.check-rate {
 		font-family: var(--font-mono);
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
 		font-variant-numeric: tabular-nums;
 	}
 	.place {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--warn-soft);
@@ -2508,7 +2547,7 @@
 	}
 	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
 	.adjust {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -2544,7 +2583,7 @@
 		border-radius: 12px;
 		background: linear-gradient(#5ad1a0, #43b989);
 		color: var(--on-accent);
-		font-size: 15.5px;
+		font-size: var(--type-15-5);
 		font-weight: 600;
 		line-height: 1;
 		box-shadow: 0 12px 30px -12px rgba(90, 209, 160, 0.65);
@@ -2574,7 +2613,7 @@
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--text-soft);
-		font-size: 13px;
+		font-size: var(--type-13);
 		font-weight: 500;
 		line-height: 1;
 		white-space: nowrap;
@@ -2585,7 +2624,7 @@
 		color: var(--text);
 	}
 	.rehearse-hint {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.45;
 		color: var(--muted-3);
 		max-width: 38ch;
@@ -2593,7 +2632,7 @@
 	}
 
 	.privacy {
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1.5;
 		color: var(--muted-3);
 		max-width: 34ch;
@@ -2601,7 +2640,7 @@
 	}
 	.status-msg {
 		margin: 16px 0 0;
-		font-size: 13px;
+		font-size: var(--type-13);
 		line-height: 1.5;
 		color: var(--warn);
 	}
@@ -2617,13 +2656,13 @@
 		background: var(--hairline);
 	}
 	.stage-note {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1;
 		color: var(--muted-3);
 	}
 	.stage-hint {
 		margin-top: 24px;
-		font-size: 13.5px;
+		font-size: var(--type-13-5);
 	}
 	.turns {
 		display: flex;
@@ -2632,7 +2671,9 @@
 	}
 	.turn {
 		display: grid;
-		grid-template-columns: 96px minmax(0, 1fr);
+		/* 96px at 100%; in `em` so the origin chip and its timestamp keep their gutter
+		   instead of wrapping into the caption when the text grows. */
+		grid-template-columns: 6em minmax(0, 1fr);
 		gap: 20px;
 		padding: 24px 0;
 		border-bottom: 1px solid var(--hairline);
@@ -2645,7 +2686,7 @@
 	}
 	.origin-chip {
 		align-self: flex-start;
-		font-size: 10px;
+		font-size: var(--type-10);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.14em;
@@ -2663,7 +2704,7 @@
 	}
 	.origin-sub {
 		font-family: var(--font-mono);
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		line-height: 1;
 		color: var(--muted-3);
 	}
@@ -2675,14 +2716,14 @@
 	}
 	.turn-source {
 		margin: 0;
-		font-size: 13px;
+		font-size: var(--type-13);
 		line-height: 1.5;
 		color: var(--muted-2);
 		text-wrap: pretty;
 	}
 	.turn-caption {
 		margin: 0;
-		font-size: 29px;
+		font-size: var(--type-29);
 		font-weight: 600;
 		line-height: 1.3;
 		letter-spacing: -0.015em;
@@ -2715,7 +2756,7 @@
 		}
 		.ready {
 			margin-top: 10px;
-			font-size: 24px;
+			font-size: var(--type-24);
 		}
 		.checklist {
 			margin-top: 18px;

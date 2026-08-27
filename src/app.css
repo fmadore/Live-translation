@@ -68,6 +68,43 @@
 	/* Numbers, model ids, timers and paths. */
 	--font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
+	/* Windows' accessibility text size, 1 … 2.25. Overwritten on this element by
+	   `src/lib/textScale.ts`; 1 is what a browser preview and the overlay run at.
+	   Every size below is a multiple of it, so moving the slider moves the whole window. */
+	--text-scale: 1;
+
+	/* Type ramp. These are the only font sizes in the app: no component may declare a bare
+	   px size, because a px size is one the operator's Windows text setting cannot reach.
+	   `src/lib/typeScale.test.ts` fails if one appears.
+
+	   Named after the pixels they render at when the slider is at 100%, because that is what
+	   they are — the ramp was tuned against this window's density, and a role name would
+	   claim an abstraction the values do not have. `--fs` is something else entirely: the
+	   overlay's caption size, which the operator sets for the room. */
+	--type-9-5: calc(9.5px * var(--text-scale));
+	--type-10: calc(10px * var(--text-scale));
+	--type-10-5: calc(10.5px * var(--text-scale));
+	--type-11: calc(11px * var(--text-scale));
+	--type-11-5: calc(11.5px * var(--text-scale));
+	--type-12: calc(12px * var(--text-scale));
+	--type-12-5: calc(12.5px * var(--text-scale));
+	--type-13: calc(13px * var(--text-scale));
+	--type-13-5: calc(13.5px * var(--text-scale));
+	--type-14: calc(14px * var(--text-scale));
+	--type-15-5: calc(15.5px * var(--text-scale));
+	--type-17: calc(17px * var(--text-scale));
+	--type-21: calc(21px * var(--text-scale));
+	--type-24: calc(24px * var(--text-scale));
+	--type-27: calc(27px * var(--text-scale));
+	--type-29: calc(29px * var(--text-scale));
+
+	/* The root size does the other half of the job. It carries the scale into every `em` the
+	   layout is expressed in — the rail's width, the gutters that have to hold text, and the
+	   container query that stacks the two columns once they no longer fit — so the layout
+	   reflows with the type instead of clipping it. 16px is the browser default, so nothing
+	   moves at 100%. */
+	font-size: calc(16px * var(--text-scale));
+
 	font-family:
 		'Archivo',
 		system-ui,

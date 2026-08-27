@@ -19,6 +19,7 @@
     "allow-set-overlay-click-through",
     "allow-show-overlay",
     "allow-save-transcript",
+    "allow-text-scale-factor",
     "allow-write-recovery",
     "allow-read-recovery",
     "allow-clear-recovery",

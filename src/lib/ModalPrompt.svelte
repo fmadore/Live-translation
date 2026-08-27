@@ -86,7 +86,11 @@
 		background: rgba(8, 9, 11, 0.78);
 	}
 	.prompt {
-		width: min(460px, 100%);
+		/* 460px at 100%. In `em` because what makes this readable is its measure, and a
+		   fixed pixel box at 225% is two words a line. */
+		width: min(28.75em, 100%);
+		max-height: 100%;
+		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		gap: 14px;
@@ -98,7 +102,7 @@
 	}
 	h2 {
 		margin: 0;
-		font-size: 17px;
+		font-size: var(--type-17);
 		font-weight: 600;
 		line-height: 1.35;
 		color: var(--text-bright);
@@ -108,13 +112,13 @@
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
 	.prompt :global(p) {
 		margin: 0;
-		font-size: 13px;
+		font-size: var(--type-13);
 		line-height: 1.6;
 		color: var(--text-soft);
 		text-wrap: pretty;
 	}
 	.prompt :global(p.note) {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		color: var(--muted-3);
 	}
 	.prompt :global(p.error) {
@@ -123,12 +127,12 @@
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		word-break: break-word;
 	}
 	.prompt :global(code) {
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 		word-break: break-all;
 	}
 	.prompt :global(.actions) {
@@ -138,7 +142,7 @@
 		margin-top: 2px;
 	}
 	.prompt :global(.actions button) {
-		font-size: 13px;
+		font-size: var(--type-13);
 		font-weight: 500;
 		line-height: 1;
 		padding: 10px 15px;
