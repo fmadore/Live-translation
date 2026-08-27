@@ -16,6 +16,7 @@ use tokio_util::sync::CancellationToken;
 use crate::audio::AudioChunk;
 use crate::errors::AppError;
 use crate::realtime::{emit_caption, TurnAccumulator};
+use crate::timing::SessionClock;
 use crate::types::{events, AudioLevel, Origin, SessionState, StatusUpdate, TargetLanguage};
 
 pub struct OnDeviceConfig {
@@ -108,6 +109,7 @@ pub async fn run_session(
     config: OnDeviceConfig,
     _audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
+    clock: SessionClock,
 ) {
     let origin = config.origin;
     emit_status(&app, SessionState::Connecting, None, origin);
@@ -117,7 +119,7 @@ pub async fn run_session(
     }
     emit_status(&app, SessionState::Running, None, origin);
 
-    let mut acc = TurnAccumulator::default();
+    let mut acc = TurnAccumulator::new(clock);
     let mut pulse_index = 0usize;
 
     'session: loop {
@@ -131,7 +133,7 @@ pub async fn run_session(
             }
 
             acc.translated = line.partial.into();
-            emit_caption(&app, origin, &acc, false);
+            emit_caption(&app, origin, &mut acc, false);
 
             for _ in 0..7 {
                 if emit_pulse(&app, origin, pulse_index, &cancel).await {
@@ -141,7 +143,7 @@ pub async fn run_session(
             }
 
             acc.translated = line.final_text.into();
-            emit_caption(&app, origin, &acc, true);
+            emit_caption(&app, origin, &mut acc, true);
             acc.next_turn();
 
             if cancellable_delay(&cancel, Duration::from_millis(350)).await {

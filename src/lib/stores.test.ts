@@ -15,11 +15,53 @@ import { NOTHING_SAVED } from './document';
 import type { Caption, TranscriptLine } from './types';
 
 function caption(turnId: number, text: string, final = true): Caption {
-	return { turnId, text, sourceText: `src ${text}`, final, origin: 'microphone' };
+	return {
+		turnId,
+		text,
+		sourceText: `src ${text}`,
+		final,
+		origin: 'microphone',
+		// One cue per turn, a second long, starting a turn apart.
+		startMs: turnId * 1000,
+		endMs: turnId * 1000 + 900
+	};
 }
 
 beforeEach(() => {
 	clearTranscript();
+});
+
+describe('caption timing', () => {
+	// The core stamps the cue; the store's only job is not to lose it on the way to the log.
+	it('commits the cue the core stamped', () => {
+		pushCaption(caption(3, 'a finished turn'));
+
+		const [line] = get(transcript);
+		expect(line.startMs).toBe(3000);
+		expect(line.endMs).toBe(3900);
+	});
+
+	// An interim is replaced by the final of the same turn, and it is the final's interval
+	// that describes the whole cue — the interim's end was only where the provider had got to.
+	it('keeps the interval of the caption it actually committed', () => {
+		pushCaption({ ...caption(1, 'partial', false), endMs: 1200 });
+		pushCaption({ ...caption(1, 'partial then complete'), endMs: 1850 });
+
+		const lines = get(transcript);
+		expect(lines).toHaveLength(1);
+		expect(lines[0]).toMatchObject({ text: 'partial then complete', startMs: 1000, endMs: 1850 });
+	});
+
+	// Two sources, one clock. Interleaving them in one document is only meaningful if their
+	// offsets are comparable, which is why the session hands both the same `SessionClock`.
+	it('puts both origins on one timeline', () => {
+		pushCaption({ ...caption(1, 'from the room'), origin: 'microphone', startMs: 2000 });
+		pushCaption({ ...caption(1, 'from the call'), origin: 'system', startMs: 2400 });
+
+		const byOrigin = Object.fromEntries(get(transcript).map((l) => [l.origin, l.startMs]));
+		expect(byOrigin.microphone).toBe(2000);
+		expect(byOrigin.system).toBe(2400);
+	});
 });
 
 describe('transcript capacity', () => {

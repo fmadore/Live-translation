@@ -28,6 +28,15 @@ built-in demo ───────────── deterministic caption + le
 4. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
+Every caption also carries an interval — `startMs`/`endMs`, milliseconds since the session
+started — stamped in the core by `timing::SessionClock` and shared by every source in the
+session, so a document that interleaves the microphone and the system agrees with itself about
+what happened when. It is deliberately monotonic elapsed time rather than the audio timeline:
+this app drops buffered audio before reconnecting, so an audio clock would quietly compress
+every gap where the socket was down. `realtime::emit_caption` is the one place it is applied,
+which is why five protocol implementations and the demonstration all produce timed captions
+without any of them knowing about a clock.
+
 ## The transcript document
 
 The transcript is an explicit document with a saved state, not a scrolling side effect.
@@ -45,7 +54,10 @@ The transcript is an explicit document with a saved state, not a scrolling side 
   the document is unsaved. `recovery.rs` reads and writes that file as opaque UTF-8 and never
   interprets it; the format lives in `src/lib/document.ts` and carries caption fields only.
   It is deleted on save, clear, discard, disable, and once a startup recovery offer is
-  answered. A malformed or truncated spool is deleted rather than shown.
+  answered. A malformed or truncated spool is deleted rather than shown. A line's interval is
+  written when it has one and validated on the way back in; a spool from a build that predates
+  timing still restores, without it. Caption text is not held hostage to a metadata field the
+  operator cannot recover.
 
 ## Provider contracts
 

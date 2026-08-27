@@ -21,6 +21,7 @@ mod recovery;
 mod secrets;
 mod session;
 mod textscale;
+mod timing;
 mod tray;
 mod types;
 

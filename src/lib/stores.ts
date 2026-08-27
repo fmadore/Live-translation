@@ -141,7 +141,11 @@ function commit(c: Caption) {
 		id: nextLineId++,
 		text: c.text.trim(),
 		sourceText: c.sourceText.trim(),
-		origin: c.origin
+		origin: c.origin,
+		// The committed caption's own interval: the turn's start, and the moment this text
+		// was the last thing the provider had to say about it.
+		startMs: c.startMs,
+		endMs: c.endMs
 	};
 	transcript.update((list) => [line, ...list]);
 }

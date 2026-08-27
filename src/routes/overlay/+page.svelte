@@ -98,14 +98,18 @@
 				text: "que c'est un peu bizarre comment le texte apparaît.",
 				sourceText: '',
 				final: false,
-				origin: 'system'
+				origin: 'system',
+				startMs: 0,
+				endMs: 0
 			};
 			current.microphone = {
 				turnId: 1,
 				text: 'So the corpus is about forty thousand documents.',
 				sourceText: '',
 				final: true,
-				origin: 'microphone'
+				origin: 'microphone',
+				startMs: 0,
+				endMs: 0
 			};
 			return () => window.removeEventListener('resize', measure);
 		}

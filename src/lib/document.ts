@@ -53,7 +53,7 @@ export interface RecoverySnapshot {
 
 const ORIGINS: readonly Origin[] = ['microphone', 'system'];
 
-/** Serialize the log for the recovery file. Only the four caption fields are written. */
+/** Serialize the log for the recovery file. Only the caption's own fields are written. */
 export function encodeRecovery(newestFirst: TranscriptLine[], savedAt: Date): string {
 	const snapshot: RecoverySnapshot = {
 		version: RECOVERY_VERSION,
@@ -62,23 +62,69 @@ export function encodeRecovery(newestFirst: TranscriptLine[], savedAt: Date): st
 			id: line.id,
 			text: line.text,
 			sourceText: line.sourceText,
-			origin: line.origin
+			origin: line.origin,
+			// Spread rather than assign: a line with no timing must not gain two `undefined`
+			// keys, which `JSON.stringify` drops anyway but which would make a round-trip
+			// comparison in a test misleadingly pass.
+			...timingOf(line)
 		}))
 	};
 	return JSON.stringify(snapshot);
 }
 
-function isLine(value: unknown): value is TranscriptLine {
-	if (typeof value !== 'object' || value === null) return false;
+/**
+ * A line's interval, or nothing — the shape `encodeRecovery` spreads and `readLine` returns.
+ *
+ * A usable cue has both ends present, real, non-negative and in order. A cue that ends
+ * before it starts is not a rounding error, it is a corrupt file, and it would produce a
+ * subtitle track that no two players agree on how to show.
+ */
+function timingOf(line: {
+	startMs?: unknown;
+	endMs?: unknown;
+}): { startMs: number; endMs: number } | Record<string, never> {
+	const { startMs, endMs } = line;
+	if (
+		typeof startMs !== 'number' ||
+		typeof endMs !== 'number' ||
+		!Number.isFinite(startMs) ||
+		!Number.isFinite(endMs) ||
+		startMs < 0 ||
+		endMs < startMs
+	) {
+		return {};
+	}
+	return { startMs, endMs };
+}
+
+/**
+ * Read one line out of a snapshot, or null if it is not a caption at all.
+ *
+ * Timing is treated more leniently than the caption itself, and deliberately: a spool
+ * written before timing existed has none, and one that was truncated mid-write may have
+ * half an interval. Neither is a reason to throw away words the operator cannot get back —
+ * the line returns without timing, and only the timed export is poorer for it.
+ */
+function readLine(value: unknown): TranscriptLine | null {
+	if (typeof value !== 'object' || value === null) return null;
 	const line = value as Record<string, unknown>;
-	return (
-		typeof line.id === 'number' &&
-		Number.isFinite(line.id) &&
-		typeof line.text === 'string' &&
-		typeof line.sourceText === 'string' &&
-		typeof line.origin === 'string' &&
-		(ORIGINS as readonly string[]).includes(line.origin)
-	);
+	if (
+		typeof line.id !== 'number' ||
+		!Number.isFinite(line.id) ||
+		typeof line.text !== 'string' ||
+		typeof line.sourceText !== 'string' ||
+		typeof line.origin !== 'string' ||
+		!(ORIGINS as readonly string[]).includes(line.origin)
+	) {
+		return null;
+	}
+	return {
+		id: line.id,
+		text: line.text,
+		sourceText: line.sourceText,
+		origin: line.origin as Origin,
+		...timingOf(line)
+	};
 }
 
 /**
@@ -101,7 +147,7 @@ export function decodeRecovery(raw: string): RecoverySnapshot | null {
 		return null;
 	}
 	if (!Array.isArray(snapshot.lines)) return null;
-	const lines = snapshot.lines.filter(isLine);
+	const lines = snapshot.lines.map(readLine).filter((line) => line !== null);
 	if (!lines.length) return null;
 	return { version: RECOVERY_VERSION, savedAt: snapshot.savedAt, lines };
 }

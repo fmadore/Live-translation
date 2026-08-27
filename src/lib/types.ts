@@ -101,6 +101,13 @@ export interface Caption {
 	final: boolean;
 	/** Which source produced it, when running both streams. */
 	origin: Origin;
+	/** Milliseconds from the start of the session to this turn's first caption — the same
+	 *  value on every caption of the turn, so an interim and its final agree on where the
+	 *  cue begins. Stamped by the core; see `src-tauri/src/timing.rs`. */
+	startMs: number;
+	/** Milliseconds from the start of the session to *this* caption. On a final caption,
+	 *  the end of the cue. */
+	endMs: number;
 }
 
 /** RMS level for the meter, 0.0–1.0, per source. */
@@ -151,6 +158,12 @@ export interface TranscriptLine {
 	text: string;
 	sourceText: string;
 	origin: Origin;
+	/** The caption's interval, in ms since its session started. Optional because a recovery
+	 *  file written before timing existed has none, and a line restored from one is still a
+	 *  perfectly good caption — it just cannot be exported as a timed cue. Present or absent
+	 *  together; never one without the other. */
+	startMs?: number;
+	endMs?: number;
 }
 
 /** A recovery file as the Rust core hands it over: the raw JSON it read, plus where it sits
