@@ -61,6 +61,32 @@ describe('the message catalogs', () => {
 	});
 });
 
+// French punctuation takes a non-breaking space before `: ? ; !`, and this UI is dense enough
+// that the alternative — a line breaking between a word and its question mark — is not
+// hypothetical. Invisible in a diff, so checked here.
+describe('French typography', () => {
+	const strings = (value: unknown): string[] =>
+		typeof value === 'string'
+			? [value]
+			: typeof value === 'object' && value !== null
+				? Object.values(value).flatMap(strings)
+				: [];
+
+	it('uses a non-breaking space before its double punctuation', () => {
+		for (const message of strings(fr)) {
+			expect(message, `"${message}" has an ordinary space before its punctuation`).not.toMatch(
+				/ [:;?!]/
+			);
+		}
+	});
+
+	it('uses the typographic apostrophe', () => {
+		for (const message of strings(fr)) {
+			expect(message, `"${message}" uses a straight apostrophe`).not.toMatch(/\w'\w/);
+		}
+	});
+});
+
 describe('choosing a locale', () => {
 	const storage = new Map<string, string>();
 

@@ -67,9 +67,24 @@ existing overlay-config event rather than relying on a `storage` event crossing 
 5. Walk the operator window and the overlay at the minimum window size — a translation is
    routinely 20–30% longer than its English source, and this UI is dense.
 
-## Still to do for French (issue #23)
+## French, specifically
 
-- `fr.ts` carries the English wording. Translating it is the second half of the issue.
-- The French Store copy in `docs/store-listing.md` predates the translated UI and has to be
-  reviewed against it, with French screenshots.
-- A native French speaker reviews the app and the Store copy before publication.
+`fr.ts` is translated. Its wording follows the French Store copy in `docs/store-listing.md`,
+which was written first and is what a French-speaking operator will have read before
+installing — **surimpression**, **transcription**, **démonstration intégrée**, **zone de
+notification**, **Gestionnaire d'informations d'identification Windows**.
+
+Two things are not translated, on purpose:
+
+- **The product's own name.** The Store lists it in English; a French name would give the same
+  app a third one. The line under it is prose, so it is translated.
+- **The two Windows settings paths** an operator has to find on their own screen, and the
+  provider and model names.
+
+`i18n.test.ts` enforces the two typographic conventions that are invisible in a diff: a
+non-breaking space before `: ? ; !`, and the typographic apostrophe.
+
+Still open before publication:
+
+- French screenshots for `docs/store-listing.md`, captured from the translated UI on Windows.
+- A native French speaker reviews the app and the Store copy.
