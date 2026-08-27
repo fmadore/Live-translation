@@ -4,13 +4,15 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.0.5 is live in the Microsoft Store
+## Current status — 1.0.5 is live, 1.1.0 is in certification
 
 Version **1.0.5** passed certification and is published at
 [apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
-Updates are uploaded to Partner Center by hand, as described in
-[`docs/store-automation.md`](docs/store-automation.md) — the submission API authenticates as a
-Microsoft Entra application, which Partner Center offers only to Company accounts.
+**1.1.0** has been submitted and is waiting on review; until it is accepted, 1.0.5 is what the
+Store hands to anyone who installs the app. Updates are uploaded to Partner Center by hand, as
+described in [`docs/store-automation.md`](docs/store-automation.md) — the submission API
+authenticates as a Microsoft Entra application, which Partner Center offers only to Company
+accounts.
 
 It took several attempts. The 1.0.3 submission failed policy 10.1.2.10 because **Start
 Subtitles** did nothing on the review device, and neither credential-free Windows recognizer
@@ -39,18 +41,31 @@ machine nobody configured**, because that is the machine certification runs on.
 **Goal:** make the first update safer in a live event, accessible on Windows, bilingual at the
 interface level, and comfortable to leave running without an open operator window.
 
-Recommended implementation order:
+**Shipped in 1.1.0**, in the order they were built:
 
 1. **Correctness**
-   - [#20 — truthful audio preflight](https://github.com/fmadore/Live-translation/issues/20)
-   - [#21 — align the F2 promise with actual behavior](https://github.com/fmadore/Live-translation/issues/21)
-   - [#29 — prevent Tauri IPC calls in browser previews](https://github.com/fmadore/Live-translation/issues/29)
+   - [x] [#20 — truthful audio preflight](https://github.com/fmadore/Live-translation/issues/20)
+   - [x] [#21 — align the F2 promise with actual behavior](https://github.com/fmadore/Live-translation/issues/21)
+   - [x] [#29 — prevent Tauri IPC calls in browser previews](https://github.com/fmadore/Live-translation/issues/29)
 2. **Lifecycle and transcript safety**
-   - [#25 — protect long and unsaved transcripts](https://github.com/fmadore/Live-translation/issues/25)
-   - [#22 — system tray controls and safe close/quit](https://github.com/fmadore/Live-translation/issues/22)
+   - [x] [#25 — protect long and unsaved transcripts](https://github.com/fmadore/Live-translation/issues/25)
+   - [x] [#22 — system tray controls and safe close/quit](https://github.com/fmadore/Live-translation/issues/22) —
+     code complete; keyboard/Narrator operation of the tray menu and the packaged-build walk
+     are manual and stay open until they are run on Windows.
+
+Still open in the milestone, and therefore due in the next release rather than in 1.1.0:
+
 3. **Inclusive and bilingual UI**
-   - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24)
-   - [#23 — French app and Store localization](https://github.com/fmadore/Live-translation/issues/23)
+   - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24) —
+     contrast, focus, headings, live regions, `aria-busy`, contrast themes and the modal focus
+     trap have landed, with [`docs/accessibility.md`](docs/accessibility.md) carrying the
+     standard and the release walk. What is left is **225% text scaling**, which is not a CSS
+     problem: Windows' *Make text bigger* does not reach WebView2 content, so it needs
+     `UISettings.TextScaleFactor` plumbed through from Rust and a type scale that can respond.
+   - [#23 — French app and Store localization](https://github.com/fmadore/Live-translation/issues/23) —
+     the largest remaining piece of work, and the one that touches every string. It comes after
+     the accessibility pass on purpose: that pass added accessible names and announcements,
+     which are strings, and translating them once is cheaper than translating them twice.
 4. **Defense in depth**
    - [#31 — separate operator and overlay capabilities](https://github.com/fmadore/Live-translation/issues/31)
 
@@ -241,6 +256,27 @@ on the reviewer's hardware, language packs or privacy settings is not a keyless 
 
 macOS support was dropped as part of this; Windows is the only supported target and the Linux
 CI lane is a compile check only.
+
+## Phase 8 — The first update (1.1.0, August 2026)
+
+Submitted to the Store on 27 August 2026. Everything here is in the release; the milestone
+itself stays open for the three issues listed under *1.1* above.
+
+- [x] **Gemini 3.5 Transcribe Live as a second subtitle engine** beside Voxtral. Both detect
+  the spoken language themselves, and one Gemini key now covers subtitles and translation.
+- [x] **The transcript became a document** rather than a scrolling log: nothing is discarded
+  however long the session runs, unsaved changes are visible, Clear asks before discarding,
+  and an optional local recovery spool survives a crash or a power cut.
+- [x] **A system tray that keeps a live session reachable.** Off by default — closing the
+  window still quits — but with it on, closing hides the window and the session keeps
+  captioning. Quit drains the session and protects unsaved text, and a second launch
+  activates the existing window instead of opening a second capture process.
+- [x] **A truthful pre-flight audio check** that reports only what it has actually heard from
+  the selected source.
+- [x] **F2 stopped promising a mid-session direction flip** the backend cannot perform: the
+  target language is handed to the provider once, at session start.
+- [x] **Browser previews stopped invoking Tauri commands**, so `npm run dev` no longer shows
+  an IPC error the operator can neither act on nor dismiss.
 
 ## Earlier future ideas (superseded where linked above)
 
