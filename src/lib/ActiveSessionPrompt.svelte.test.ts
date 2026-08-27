@@ -49,14 +49,10 @@ describe('ActiveSessionPrompt', () => {
 	// When the X is what raised this, the operator has a way to get what they probably wanted
 	// — the window gone, the captions running.
 	it('points at the tray when the request came from the window', () => {
-		expect(mount({ fromTray: false }).getByRole('dialog')).toHaveTextContent(
-			'Minimize to tray'
-		);
+		expect(mount({ fromTray: false }).getByRole('dialog')).toHaveTextContent('Minimize to tray');
 	});
 
 	it('does not point back at the tray when the request came from it', () => {
-		expect(mount({ fromTray: true }).getByRole('dialog')).not.toHaveTextContent(
-			'Minimize to tray'
-		);
+		expect(mount({ fromTray: true }).getByRole('dialog')).not.toHaveTextContent('Minimize to tray');
 	});
 });

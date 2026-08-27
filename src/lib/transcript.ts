@@ -59,9 +59,7 @@ export function formatTranscript(
 
 	const stamp = createdAt.toLocaleString(labels.tag);
 	const header = `# ${labels.title}\n\n${stamp}\n`;
-	const body = paragraphs
-		.map((p) => `\n**${labels.origin[p.origin]}**\n\n${p.text}\n`)
-		.join('');
+	const body = paragraphs.map((p) => `\n**${labels.origin[p.origin]}**\n\n${p.text}\n`).join('');
 	return `${header}${body}`;
 }
 

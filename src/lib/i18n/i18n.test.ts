@@ -29,8 +29,10 @@ describe('the message catalogs', () => {
 		for (const path of paths(en)) {
 			const source = at(en, path);
 			const target = at(fr, path);
-			expect(typeof target, `${path} is a ${typeof target} in fr and a ${typeof source} in en`)
-				.toBe(typeof source);
+			expect(
+				typeof target,
+				`${path} is a ${typeof target} in fr and a ${typeof source} in en`
+			).toBe(typeof source);
 			if (typeof source === 'function' && typeof target === 'function') {
 				expect(target.length, `${path} takes a different number of arguments in fr`).toBe(
 					source.length

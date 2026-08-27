@@ -14,9 +14,7 @@ export default defineConfig({
 		port: 5173,
 		strictPort: true,
 		host: host || false,
-		hmr: host
-			? { protocol: 'ws', host, port: 5183 }
-			: undefined,
+		hmr: host ? { protocol: 'ws', host, port: 5183 } : undefined,
 		watch: {
 			// Don't watch the Rust side from Vite.
 			ignored: ['**/src-tauri/**']

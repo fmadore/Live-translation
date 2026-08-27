@@ -117,7 +117,9 @@
 		const id = setInterval(() => (clock = Date.now()), 1000);
 		return () => clearInterval(id);
 	});
-	const elapsedMs = $derived($sessionStartedAt === null ? 0 : Math.max(0, clock - $sessionStartedAt));
+	const elapsedMs = $derived(
+		$sessionStartedAt === null ? 0 : Math.max(0, clock - $sessionStartedAt)
+	);
 
 	function formatElapsed(ms: number): string {
 		const total = Math.floor(ms / 1000);
@@ -125,7 +127,9 @@
 		const seconds = total % 60;
 		const minutes = Math.floor(total / 60) % 60;
 		const hours = Math.floor(total / 3600);
-		return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+		return hours > 0
+			? `${hours}:${pad(minutes)}:${pad(seconds)}`
+			: `${pad(minutes)}:${pad(seconds)}`;
 	}
 
 	// ---- Pre-flight audio check -------------------------------------------------
@@ -666,9 +670,7 @@
 			...$options,
 			mode,
 			provider: mode === 'transcribe' ? 'ondevice' : 'gemini',
-			...(mode === 'transcribe'
-				? { source: 'microphone' as const, micDeviceName: null }
-				: {})
+			...(mode === 'transcribe' ? { source: 'microphone' as const, micDeviceName: null } : {})
 		};
 	}
 
@@ -808,7 +810,17 @@
 					<option value={code}>{LOCALE_NAMES[code]}</option>
 				{/each}
 			</select>
-			<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg>
+			<svg
+				class="chevron"
+				width="12"
+				height="12"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
+			>
 		</div>
 		<p class="hint">{$t.locale.note}</p>
 	</div>
@@ -817,7 +829,18 @@
 	<div class="rail-section">
 		<h2 class="kicker">{$t.window.heading}</h2>
 		<button class="tool wide" disabled={browserMode} onclick={hideWindow}>
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg>
+			<svg
+				width="13"
+				height="13"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.7"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+				><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg
+			>
 			{$t.window.minimizeToTray}
 		</button>
 		<label class="pref">
@@ -840,14 +863,26 @@
 <div class="app">
 	<header class="titlebar">
 		<span class="brand" aria-hidden="true">
-			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06261b" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg>
+			<svg
+				width="11"
+				height="11"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="#06261b"
+				stroke-width="2.4"
+				stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
+			>
 		</span>
 		<h1 class="app-name">{$t.app.name}</h1>
 		<span class="context">{$t.app.tagline}</span>
 		<span class="grow"></span>
 		<div class="pill {stateTone[$sessionState]}">
 			<span class="pill-dot" aria-hidden="true"></span>
-			<span class="pill-label">{$sessionState === 'running' && $options.provider === 'ondevice' ? $t.state.demo : stateLabel[$sessionState]}</span>
+			<span class="pill-label"
+				>{$sessionState === 'running' && $options.provider === 'ondevice'
+					? $t.state.demo
+					: stateLabel[$sessionState]}</span
+			>
 			{#if $isRunning && $sessionStartedAt !== null}
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
@@ -871,7 +906,18 @@
 				<!-- ---- Running: the setup sheet collapses to what it locked in ---- -->
 				<div class="rail-head">
 					<span class="rail-icon" aria-hidden="true">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+							stroke-linecap="round"
+							><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path
+								d="M8 10.5V8a4 4 0 0 1 8 0v2.5"
+							/></svg
+						>
 					</span>
 					<h2 class="kicker">{$t.rail.locked}</h2>
 				</div>
@@ -883,7 +929,13 @@
 					</div>
 					<div class="chip">
 						<span class="chip-label">{$t.rail.chip.source}</span>
-						<span class="chip-value">{$options.provider === 'ondevice' ? $t.source.demo : rehearsing ? $t.source.sample : sourceLabel[$options.source]}</span>
+						<span class="chip-value"
+							>{$options.provider === 'ondevice'
+								? $t.source.demo
+								: rehearsing
+									? $t.source.sample
+									: sourceLabel[$options.source]}</span
+						>
 					</div>
 					<div class="chip">
 						<span class="chip-label">{$t.rail.chip.roomReads}</span>
@@ -913,7 +965,9 @@
 					{#if usesMic}
 						<LevelMeter
 							level={$micLevel}
-							label={$options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin.microphone}
+							label={$options.provider === 'ondevice'
+								? $t.stage.origin.demo
+								: $t.stage.origin.microphone}
 							active
 						/>
 					{/if}
@@ -925,7 +979,9 @@
 				<div class="cost-card">
 					<div class="cost-figures">
 						<div class="figure">
-							<span class="chip-label">{$options.provider === 'ondevice' ? $t.cost.elapsed : $t.cost.streamed}</span>
+							<span class="chip-label"
+								>{$options.provider === 'ondevice' ? $t.cost.elapsed : $t.cost.streamed}</span
+							>
 							<span class="figure-value">{formatElapsed(elapsedMs)}</span>
 						</div>
 						{#if $options.provider !== 'ondevice'}
@@ -933,7 +989,11 @@
 								<span class="chip-label">{$t.cost.estimate}</span>
 								<span class="figure-value mint">
 									{formatUsd(
-										estimateSessionCost($options.provider, elapsedMs, $options.source === 'both' ? 2 : 1)
+										estimateSessionCost(
+											$options.provider,
+											elapsedMs,
+											$options.source === 'both' ? 2 : 1
+										)
 									)}
 								</span>
 							</div>
@@ -951,9 +1011,17 @@
 					<h2 class="kicker">{$t.overlayControls.heading}</h2>
 					<div class="stepper">
 						<span class="stepper-label">{$t.overlayControls.captionSize}</span>
-						<button class="step" onclick={() => setFont($overlayFontSize - 2)} aria-label={$t.overlayControls.smaller}>−</button>
+						<button
+							class="step"
+							onclick={() => setFont($overlayFontSize - 2)}
+							aria-label={$t.overlayControls.smaller}>−</button
+						>
 						<span class="stepper-value">{$overlayFontSize}</span>
-						<button class="step" onclick={() => setFont($overlayFontSize + 2)} aria-label={$t.overlayControls.larger}>+</button>
+						<button
+							class="step"
+							onclick={() => setFont($overlayFontSize + 2)}
+							aria-label={$t.overlayControls.larger}>+</button
+						>
 					</div>
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
@@ -964,19 +1032,45 @@
 							class="tool"
 							class:on={moveOverlay}
 							aria-pressed={moveOverlay}
-							aria-label={moveOverlay ? $t.overlayControls.moveDoneLabel : $t.overlayControls.moveLabel}
+							aria-label={moveOverlay
+								? $t.overlayControls.moveDoneLabel
+								: $t.overlayControls.moveLabel}
 							onclick={toggleMoveOverlay}
 						>
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3" /></svg>
+							<svg
+								width="13"
+								height="13"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.7"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+								><path
+									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
+								/></svg
+							>
 							{moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
 						</button>
 						<button
 							class="tool"
 							class:off={!overlayVisible}
-							aria-label={overlayVisible ? $t.overlayControls.hideLabel : $t.overlayControls.showLabel}
+							aria-label={overlayVisible
+								? $t.overlayControls.hideLabel
+								: $t.overlayControls.showLabel}
 							onclick={toggleOverlayVisible}
 						>
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+							<svg
+								width="13"
+								height="13"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.7"
+								stroke-linecap="round"
+								aria-hidden="true"
+							>
 								<rect x="2.5" y="4.5" width="19" height="13" rx="2" /><path d="M9 20.5h6" />
 								{#if overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
 							</svg>
@@ -990,7 +1084,9 @@
 				<span class="grow"></span>
 
 				<button class="stop" disabled={sessionBusy} aria-busy={sessionBusy} onclick={stop}>
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+						><rect x="6" y="6" width="12" height="12" rx="2" /></svg
+					>
 					{sessionBusy ? $t.rail.stopping : $t.rail.stop}
 				</button>
 			{:else}
@@ -1008,7 +1104,16 @@
 						onclick={() => setMode('translate')}
 					>
 						<span class="card-icon" aria-hidden="true">
-							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg>
+							<svg
+								width="17"
+								height="17"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.7"
+								stroke-linecap="round"
+								><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg
+							>
 						</span>
 						<span class="card-body">
 							<span class="card-title">{$t.rail.translate.title}</span>
@@ -1016,7 +1121,15 @@
 						</span>
 						{#if $options.mode === 'translate'}
 							<span class="card-check" aria-hidden="true">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg>
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.2"
+									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
+								>
 							</span>
 						{/if}
 					</button>
@@ -1028,7 +1141,15 @@
 						onclick={() => setMode('transcribe')}
 					>
 						<span class="card-icon" aria-hidden="true">
-							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg>
+							<svg
+								width="17"
+								height="17"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.7"
+								stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg
+							>
 						</span>
 						<span class="card-body">
 							<span class="card-title">{$t.rail.transcribe.title}</span>
@@ -1036,7 +1157,15 @@
 						</span>
 						{#if $options.mode === 'transcribe'}
 							<span class="card-check" aria-hidden="true">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg>
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.2"
+									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
+								>
 							</span>
 						{/if}
 					</button>
@@ -1057,8 +1186,21 @@
 							aria-pressed={$options.source === 'microphone'}
 							onclick={() => setSource('microphone')}
 						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" /><path d="M12 18v3.5" /></svg>
-							<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span>
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								aria-hidden="true"
+								><rect x="9" y="2.5" width="6" height="11" rx="3" /><path
+									d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
+								/><path d="M12 18v3.5" /></svg
+							>
+							<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span
+							>
 						</button>
 						<button
 							class="tile"
@@ -1067,7 +1209,20 @@
 							aria-pressed={$options.source === 'system'}
 							onclick={() => setSource('system')}
 						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6" /></svg>
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+								><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path
+									d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6"
+								/></svg
+							>
 							<span>{$t.source.system}</span>
 						</button>
 						<button
@@ -1077,7 +1232,16 @@
 							aria-pressed={$options.source === 'both'}
 							onclick={() => setSource('both')}
 						>
-							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg>
+							<svg
+								width="18"
+								height="18"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.6"
+								stroke-linecap="round"
+								aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg
+							>
 							<span>{$t.source.both}</span>
 						</button>
 					</div>
@@ -1103,7 +1267,17 @@
 									</option>
 								{/each}
 							</select>
-							<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg>
+							<svg
+								class="chevron"
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
+							>
 						</div>
 					{/if}
 
@@ -1217,20 +1391,23 @@
 							<article class="turn">
 								<div class="turn-who">
 									<span class="origin-chip {turn.origin}">
-										{$options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin[turn.origin]}
+										{$options.provider === 'ondevice'
+											? $t.stage.origin.demo
+											: $t.stage.origin[turn.origin]}
 									</span>
 									<span class="origin-sub">
-										{$options.provider === 'ondevice' ? $t.stage.originSub.demo : $t.stage.originSub[turn.origin]}
+										{$options.provider === 'ondevice'
+											? $t.stage.originSub.demo
+											: $t.stage.originSub[turn.origin]}
 									</span>
 								</div>
 								<div class="turn-text">
 									{#if turn.caption.sourceText}
 										<p class="turn-source">{turn.caption.sourceText}</p>
 									{/if}
-									<p
-										class="turn-caption"
-										class:live={!turn.caption.final}
-									>{turn.caption.text}{#if !turn.caption.final}<span class="caret"></span>{/if}</p>
+									<p class="turn-caption" class:live={!turn.caption.final}>
+										{turn.caption.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
+									</p>
 								</div>
 							</article>
 						{/each}
@@ -1266,7 +1443,16 @@
 						<div class="check-row">
 							{#if localReadiness?.ready}
 								<span class="mark ok" aria-hidden="true">
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+									<svg
+										width="12"
+										height="12"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2.6"
+										stroke-linecap="round"
+										aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
+									>
 								</span>
 							{:else}
 								<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
@@ -1293,7 +1479,16 @@
 					<div class="check-row">
 						{#if audioVerified}
 							<span class="mark ok" aria-hidden="true">
-								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+								<svg
+									width="12"
+									height="12"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.6"
+									stroke-linecap="round"
+									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
+								>
 							</span>
 						{:else}
 							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
@@ -1333,7 +1528,16 @@
 					<div class="check-row">
 						{#if $overlayPlaced}
 							<span class="mark ok" aria-hidden="true">
-								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+								<svg
+									width="12"
+									height="12"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.6"
+									stroke-linecap="round"
+									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
+								>
 							</span>
 						{:else}
 							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
@@ -1350,7 +1554,9 @@
 							<button
 								class="adjust"
 								aria-pressed={moveOverlay}
-								aria-label={moveOverlay ? $t.preflight.overlay.doneLabel : $t.preflight.overlay.adjustLabel}
+								aria-label={moveOverlay
+									? $t.preflight.overlay.doneLabel
+									: $t.preflight.overlay.adjustLabel}
 								onclick={toggleMoveOverlay}
 							>
 								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
@@ -1359,7 +1565,9 @@
 							<button
 								class="place"
 								aria-pressed={moveOverlay}
-								aria-label={moveOverlay ? $t.preflight.overlay.doneLabel : $t.preflight.overlay.placeLabel}
+								aria-label={moveOverlay
+									? $t.preflight.overlay.doneLabel
+									: $t.preflight.overlay.placeLabel}
 								onclick={toggleMoveOverlay}
 							>
 								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
@@ -1372,7 +1580,9 @@
 						<div class="check-body">
 							<span class="check-title">{$t.preflight.cost.title}</span>
 							<span class="check-desc">
-								{$options.provider === 'ondevice' ? $t.preflight.cost.free : $t.preflight.cost.billed}
+								{$options.provider === 'ondevice'
+									? $t.preflight.cost.free
+									: $t.preflight.cost.billed}
 							</span>
 						</div>
 						<span class="check-rate">{rateText(meta, $t)}</span>
@@ -1405,7 +1615,9 @@
 						aria-busy={sessionBusy}
 						onclick={start}
 					>
-						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg>
+						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+							><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+						>
 						{sessionBusy
 							? $t.preflight.start.starting
 							: $options.mode === 'translate'
@@ -1422,7 +1634,20 @@
 							disabled={!$hasKey || browserMode || sessionBusy || $options.provider === 'ondevice'}
 							onclick={rehearse}
 						>
-							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg>
+							<svg
+								width="13"
+								height="13"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.8"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+								><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path
+									d="M17 8.5l3.5 3.5-3.5 3.5"
+								/></svg
+							>
 							{sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 						</button>
 						<span class="rehearse-hint">

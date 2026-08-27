@@ -4,9 +4,7 @@
 	"printWidth": 100,
 	"trailingComma": "none",
 	"proseWrap": "preserve",
-	"plugins": [
-		"prettier-plugin-svelte"
-	],
+	"plugins": ["prettier-plugin-svelte"],
 	"overrides": [
 		{
 			"files": "*.svelte",

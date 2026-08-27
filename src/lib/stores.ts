@@ -118,9 +118,8 @@ export const savedLineId = writable<number>(NOTHING_SAVED);
 export const savedPath = writable<string>('');
 
 /** True while the log holds finalized text that has not reached disk. */
-export const transcriptDirty = derived(
-	[transcript, savedLineId],
-	([lines, saved]) => isDirty(lines, saved)
+export const transcriptDirty = derived([transcript, savedLineId], ([lines, saved]) =>
+	isDirty(lines, saved)
 );
 
 /** Record a successful write: everything logged up to now is on disk at `path`. */

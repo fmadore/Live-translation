@@ -97,12 +97,18 @@ describe('recovery snapshot', () => {
 		expect(decodeRecovery('not json at all')).toBeNull();
 		expect(decodeRecovery('null')).toBeNull();
 		expect(decodeRecovery('[]')).toBeNull();
-		expect(decodeRecovery(JSON.stringify({ version: 99, savedAt: '', lines: [line(1)] }))).toBeNull();
 		expect(
-			decodeRecovery(JSON.stringify({ version: RECOVERY_VERSION, savedAt: 'soon', lines: [line(1)] }))
+			decodeRecovery(JSON.stringify({ version: 99, savedAt: '', lines: [line(1)] }))
 		).toBeNull();
 		expect(
-			decodeRecovery(JSON.stringify({ version: RECOVERY_VERSION, savedAt: new Date().toISOString(), lines: [] }))
+			decodeRecovery(
+				JSON.stringify({ version: RECOVERY_VERSION, savedAt: 'soon', lines: [line(1)] })
+			)
+		).toBeNull();
+		expect(
+			decodeRecovery(
+				JSON.stringify({ version: RECOVERY_VERSION, savedAt: new Date().toISOString(), lines: [] })
+			)
 		).toBeNull();
 	});
 
