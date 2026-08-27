@@ -12,6 +12,12 @@
 	}
 
 	let { provider, locked = false, onAvailability, onError }: Props = $props();
+	// The key field's label is visually carried by the row title beside it; these tie the two
+	// together for a screen reader, which can land on the input without ever seeing the row.
+	// One `$props.id()` per component, suffixed — Svelte allows exactly one call.
+	const uid = $props.id();
+	const fieldId = `${uid}-key`;
+	const descId = `${uid}-desc`;
 	let apiKeyInput = $state('');
 	let saving = $state(false);
 	let editing = $state(false);
@@ -81,7 +87,7 @@
 
 <div class="row" class:pending={!available || editing}>
 	{#if available && !editing}
-		<span class="mark ok">
+		<span class="mark ok" aria-hidden="true">
 			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 		</span>
 		<div class="body">
@@ -93,26 +99,39 @@
 			<button class="ghost" disabled={locked} onclick={clearKey}>Remove</button>
 		</div>
 	{:else}
-		<span class="mark wait"><span class="dot"></span></span>
+		<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 		<div class="body">
-			<span class="title">{keyName} key</span>
-			<span class="desc">
+			<label class="title" for={fieldId}>{keyName} key</label>
+			<span class="desc" id={descId}>
 				Stored in Windows Credential Manager, used only from the Rust core. Needs access to
 				<code>{meta.modelId}</code>.
 				{#if meta.keyUrl}
-					<a href={meta.keyUrl} target="_blank" rel="noreferrer">Get a key</a>
+					<a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">
+						Get a key<span class="sr-only"> (opens in your browser)</span>
+					</a>
 				{/if}
 			</span>
 		</div>
 		<div class="actions">
 			<input
+				id={fieldId}
 				type="password"
 				placeholder="Paste your {keyName} API key"
+				aria-describedby={descId}
+				autocomplete="off"
+				autocapitalize="off"
+				autocorrect="off"
+				spellcheck="false"
 				bind:value={apiKeyInput}
 				disabled={locked}
 				onkeydown={(event) => event.key === 'Enter' && void saveKey()}
 			/>
-			<button class="save" disabled={locked || saving || !apiKeyInput.trim()} onclick={saveKey}>
+			<button
+				class="save"
+				disabled={locked || saving || !apiKeyInput.trim()}
+				aria-busy={saving}
+				onclick={saveKey}
+			>
 				{saving ? 'Saving…' : 'Save'}
 			</button>
 			{#if available}
@@ -229,8 +248,9 @@
 		padding: 7px 10px;
 		font-size: 12.5px;
 	}
+	/* The mint border says "this field is where you are typing"; the ring from app.css stays,
+	   because on a dark panel a border tint alone is not a focus indicator. */
 	input:focus {
-		outline: none;
 		border-color: var(--accent-border);
 	}
 	/* Matches the tightened checklist rhythm the stage adopts on a short window. */

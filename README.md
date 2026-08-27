@@ -170,6 +170,11 @@ start depending on the DOM by accident. Anything that renders a component opts i
 **jsdom** by being named `*.svelte.test.ts`; those get Testing Library, jest-dom matchers and
 automatic cleanup via `vitest-setup-client.ts`.
 
+UI work has one more standard to meet: [`docs/accessibility.md`](docs/accessibility.md) has
+the contrast, focus, heading, announcement and contrast-theme rules, which of them
+`npm test` enforces on its own, and the manual Narrator / contrast-theme / text-scaling walk
+that belongs to a release.
+
 Before opening a PR that touches the UI, run the **browser-preview smoke test**: `npm run dev`,
 load <http://localhost:5173>, and check the console is clean. The operator window degrades
 deliberately without a Tauri runtime, and this catches the class of bug where a component

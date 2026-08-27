@@ -15,11 +15,27 @@
 	// layout pass on every event.
 	const fill = $derived(Math.min(1, Math.sqrt(Math.max(0, level.rms))));
 	const peak = $derived(Math.min(1, Math.sqrt(Math.max(0, level.peak))));
+
+	const labelId = $props.id();
+	// What the meter reports to assistive technology: the same curve the bar draws, in steps
+	// of ten, so the attribute changes rarely enough to be worth reading.
+	const coarse = $derived(Math.round(fill * 10) * 10);
 </script>
 
 <div class="meter" class:active>
-	<span class="label">{label}</span>
-	<div class="track">
+	<span class="label" id={labelId}>{label}</span>
+	<!-- A meter, not a live region: assistive technology reads the level when asked instead of
+	     being told 20 times a second. `aria-valuenow` is rounded to a tenth for the same
+	     reason — the exact value is noise, "about half" is the information. -->
+	<div
+		class="track"
+		role="meter"
+		aria-labelledby={labelId}
+		aria-valuemin={0}
+		aria-valuemax={100}
+		aria-valuenow={coarse}
+		aria-valuetext="{coarse}%"
+	>
 		<div class="fill" style="transform: scaleX({fill.toFixed(4)})"></div>
 		{#if peak > 0}
 			<div class="peak" style="transform: translateX({(peak * 100).toFixed(2)}%)"></div>
@@ -94,6 +110,22 @@
 	@media (prefers-reduced-motion: reduce) {
 		.fill {
 			transition: none;
+		}
+	}
+
+	/* Under a contrast theme the gradient is not recoloured and the segment ticks are drawn in
+	   a surface colour that no longer matches the surface, so the bar reads as a solid block of
+	   the wrong colour. Paint it in the system highlight instead and drop the ticks. */
+	@media (forced-colors: active) {
+		.fill {
+			forced-color-adjust: none;
+			background: Highlight;
+		}
+		.hatch {
+			display: none;
+		}
+		.track {
+			border-color: CanvasText;
 		}
 	}
 </style>

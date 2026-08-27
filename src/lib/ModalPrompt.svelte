@@ -3,6 +3,7 @@
 	// quit, and a recovery spool found at launch. Both are modal because both are the last
 	// moment at which an event's record can still be kept.
 
+	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
 
 	interface Props {
@@ -17,10 +18,50 @@
 
 	const titleId = $props.id();
 
+	let prompt = $state<HTMLDivElement | null>(null);
+
+	// Answering the dialog puts focus back where it was taken from. Captured before the callers
+	// focus their own default button, which they do from their own `onMount`.
+	onMount(() => {
+		const opener = document.activeElement as HTMLElement | null;
+		return () => opener?.focus?.();
+	});
+
+	// `aria-modal` tells a screen reader to ignore what is behind the dialog, but nothing stops
+	// the Tab key from walking into it — a keyboard operator would be typing into a session
+	// they can no longer see. The cycle stays inside until the dialog answers.
+	function focusable(): HTMLElement[] {
+		if (!prompt) return [];
+		return Array.from(
+			prompt.querySelectorAll<HTMLElement>(
+				'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+			)
+		);
+	}
+
 	function onKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape' && onDismiss) {
 			event.preventDefault();
 			onDismiss();
+			return;
+		}
+		if (event.key !== 'Tab') return;
+		const stops = focusable();
+		if (!stops.length) return;
+		const first = stops[0];
+		const last = stops[stops.length - 1];
+		const active = document.activeElement as HTMLElement | null;
+		// Focus that has already escaped the dialog — or has not entered it yet — is pulled
+		// back to the end or the start of the cycle, whichever way Tab was going.
+		if (!prompt?.contains(active)) {
+			event.preventDefault();
+			(event.shiftKey ? last : first).focus();
+		} else if (event.shiftKey && active === first) {
+			event.preventDefault();
+			last.focus();
+		} else if (!event.shiftKey && active === last) {
+			event.preventDefault();
+			first.focus();
 		}
 	}
 </script>
@@ -28,7 +69,7 @@
 <svelte:window on:keydown={onKeydown} />
 
 <div class="scrim">
-	<div class="prompt" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+	<div class="prompt" bind:this={prompt} role="dialog" aria-modal="true" aria-labelledby={titleId}>
 		<h2 id={titleId}>{title}</h2>
 		{@render children()}
 	</div>

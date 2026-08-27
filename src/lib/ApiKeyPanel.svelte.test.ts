@@ -34,6 +34,19 @@ describe('ApiKeyPanel', () => {
 		expect(getByPlaceholderText('Paste your Gemini API key')).toBeInTheDocument();
 	});
 
+	// Issue #24: the field had a placeholder and nothing else, so a screen reader landing on it
+	// announced an unlabelled password box, and the placeholder vanishes as soon as typing
+	// starts. The row title is its label, and the description explains what the key is for.
+	it('gives the key field a real label and a description', () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(false);
+		const { getByLabelText } = mount('gemini');
+
+		const field = getByLabelText('Gemini key');
+		expect(field).toHaveAttribute('type', 'password');
+		expect(field).toHaveAccessibleDescription(/Windows Credential Manager/);
+	});
+
 	// Issue #29: a browser preview has no Credential Manager, and invoking anyway put an
 	// un-actionable Tauri IPC error on screen during `npm run dev`.
 	it('does not reach for the Tauri runtime in a browser preview', async () => {

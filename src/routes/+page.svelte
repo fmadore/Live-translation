@@ -722,6 +722,17 @@
 		error: 'bad'
 	};
 
+	// What a screen reader hears when the session changes state. Deliberately separate from the
+	// pill: the pill carries a clock that reprints every second, and a live region wrapped
+	// around a ticking clock announces the whole session state every second with it.
+	const stateAnnouncement: Record<SessionState, string> = {
+		idle: 'Session idle.',
+		connecting: 'Connecting to the caption engine.',
+		running: 'Captions are live.',
+		reconnecting: 'Connection lost — reconnecting.',
+		error: 'Session error.'
+	};
+
 	const MODE_LABEL: Record<OutputMode, string> = {
 		translate: 'Translation',
 		transcribe: 'Subtitles'
@@ -795,7 +806,7 @@
 	     and the reason to set the preference is strongest before one starts. -->
 	<div class="divider"></div>
 	<div class="rail-section">
-		<span class="kicker">Window</span>
+		<h2 class="kicker">Window</h2>
 		<button class="tool wide" disabled={browserMode} onclick={hideWindow}>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg>
 			Minimize to tray
@@ -827,17 +838,24 @@
 		<span class="brand" aria-hidden="true">
 			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06261b" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg>
 		</span>
-		<span class="app-name">Live Captions</span>
+		<h1 class="app-name">Live Captions</h1>
 		<span class="context">Realtime translation &amp; subtitles</span>
 		<span class="grow"></span>
-		<div class="pill {stateTone[$sessionState]}" aria-live="polite">
-			<span class="pill-dot"></span>
+		<div class="pill {stateTone[$sessionState]}">
+			<span class="pill-dot" aria-hidden="true"></span>
 			<span class="pill-label">{$sessionState === 'running' && $options.provider === 'ondevice' ? 'Demo' : stateLabel[$sessionState]}</span>
 			{#if $isRunning && $sessionStartedAt !== null}
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
 		</div>
 	</header>
+
+	<!-- The two regions that speak for the session. Neither holds anything that changes on a
+	     timer, so they announce on real changes only, and both are in the DOM from the first
+	     render — a live region inserted at the same moment as its text is often missed. The
+	     visible copies of this text below are `aria-hidden`, so nothing is announced twice. -->
+	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
+	<p class="sr-only" role="status">{$statusMessage}</p>
 
 	<div class="rule" class:live={$isRunning}>
 		{#if $isRunning}<span class="sweep"></span>{/if}
@@ -851,7 +869,7 @@
 					<span class="rail-icon" aria-hidden="true">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>
 					</span>
-					<span class="kicker">Session locked</span>
+					<h2 class="kicker">Session locked</h2>
 				</div>
 
 				<div class="chips">
@@ -887,7 +905,7 @@
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<span class="kicker">Audio arriving</span>
+					<h2 class="kicker">Audio arriving</h2>
 					{#if usesMic}
 						<LevelMeter level={$micLevel} label={$options.provider === 'ondevice' ? 'Demo' : 'Room'} active />
 					{/if}
@@ -922,7 +940,7 @@
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<span class="kicker">Overlay</span>
+					<h2 class="kicker">Overlay</h2>
 					<div class="stepper">
 						<span class="stepper-label">Caption size</span>
 						<button class="step" onclick={() => setFont($overlayFontSize - 2)} aria-label="Smaller captions">−</button>
@@ -930,11 +948,26 @@
 						<button class="step" onclick={() => setFont($overlayFontSize + 2)} aria-label="Larger captions">+</button>
 					</div>
 					<div class="overlay-actions">
-						<button class="tool" class:on={moveOverlay} aria-pressed={moveOverlay} onclick={toggleMoveOverlay}>
+						<!-- Both labels are a single verb on screen, which is all the space allows and
+						     all a sighted operator needs beside the "Overlay" heading. The accessible
+						     name says what is being moved or hidden, because a screen reader can arrive
+						     at the button without the heading. -->
+						<button
+							class="tool"
+							class:on={moveOverlay}
+							aria-pressed={moveOverlay}
+							aria-label={moveOverlay ? 'Finish moving the overlay' : 'Move the overlay'}
+							onclick={toggleMoveOverlay}
+						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3" /></svg>
 							{moveOverlay ? 'Done' : 'Move'}
 						</button>
-						<button class="tool" class:off={!overlayVisible} onclick={toggleOverlayVisible}>
+						<button
+							class="tool"
+							class:off={!overlayVisible}
+							aria-label={overlayVisible ? 'Hide the overlay' : 'Show the overlay'}
+							onclick={toggleOverlayVisible}
+						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
 								<rect x="2.5" y="4.5" width="19" height="13" rx="2" /><path d="M9 20.5h6" />
 								{#if overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
@@ -948,7 +981,7 @@
 
 				<span class="grow"></span>
 
-				<button class="stop" disabled={sessionBusy} onclick={stop}>
+				<button class="stop" disabled={sessionBusy} aria-busy={sessionBusy} onclick={stop}>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
 					{sessionBusy ? 'Stopping…' : 'Stop captions'}
 				</button>
@@ -957,7 +990,7 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">01</span>
-						<span class="kicker">What to show</span>
+						<h2 class="kicker">What to show</h2>
 					</div>
 					<button
 						class="card"
@@ -1006,7 +1039,7 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">02</span>
-						<span class="kicker">Where the audio comes from</span>
+						<h2 class="kicker">Where the audio comes from</h2>
 					</div>
 					<div class="tiles">
 						<button
@@ -1083,7 +1116,7 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">03</span>
-						<span class="kicker">{languageStepTitle}</span>
+						<h2 class="kicker">{languageStepTitle}</h2>
 					</div>
 					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 						<p class="hint">
@@ -1132,7 +1165,7 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">04</span>
-						<span class="kicker">Engine</span>
+						<h2 class="kicker">Engine</h2>
 					</div>
 					<div class="engines">
 						{#each modeProviders as id (id)}
@@ -1167,7 +1200,7 @@
 
 			{#if $isRunning}
 				<div class="stage-head">
-					<span class="kicker">On screen now</span>
+					<h2 class="kicker">On screen now</h2>
 					<span class="stretch"></span>
 					<span class="stage-note">
 						{liveTurns.length > 1 ? 'Two speakers · newest at the bottom' : 'Newest at the bottom'}
@@ -1205,7 +1238,7 @@
 				{/if}
 
 				{#if $statusMessage}
-					<p class="status-msg">{$statusMessage}</p>
+					<p class="status-msg" aria-hidden="true">{$statusMessage}</p>
 				{/if}
 
 				<span class="grow"></span>
@@ -1217,7 +1250,7 @@
 				/>
 			{:else}
 				<span class="kicker">Pre-flight</span>
-				<h1>Ready when you are</h1>
+				<h2 class="ready">Ready when you are</h2>
 				<p class="intro">
 					Four checks, then one button. Everything on the left locks while captions are running, so
 					nothing can be changed by accident mid-session.
@@ -1227,11 +1260,11 @@
 					{#if !needsKey}
 						<div class="check-row">
 							{#if localReadiness?.ready}
-								<span class="mark ok">
+								<span class="mark ok" aria-hidden="true">
 									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 								</span>
 							{:else}
-								<span class="mark wait"><span class="dot"></span></span>
+								<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 							{/if}
 							<div class="check-body">
 								<span class="check-title">Built-in demo · no key needed</span>
@@ -1254,11 +1287,11 @@
 
 					<div class="check-row">
 						{#if audioVerified}
-							<span class="mark ok">
+							<span class="mark ok" aria-hidden="true">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 							</span>
 						{:else}
-							<span class="mark wait"><span class="dot"></span></span>
+							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 						{/if}
 						<div class="check-body">
 							<span class="check-title">{audioTitle}</span>
@@ -1272,11 +1305,14 @@
 						{#if $options.provider === 'ondevice' || browserMode}
 							<span></span>
 						{:else if audioTesting}
-							<button class="adjust" disabled={audioTestBusy} onclick={stopAudioTest}>Stop test</button>
+							<button class="adjust" disabled={audioTestBusy} aria-busy={audioTestBusy} onclick={stopAudioTest}>
+							Stop test
+						</button>
 						{:else}
 							<button
 								class="place"
 								disabled={audioTestBusy || controlsLocked}
+								aria-busy={audioTestBusy}
 								onclick={startAudioTest}
 							>
 								{audioVerified ? 'Re-test' : 'Test audio'}
@@ -1286,11 +1322,11 @@
 
 					<div class="check-row">
 						{#if $overlayPlaced}
-							<span class="mark ok">
+							<span class="mark ok" aria-hidden="true">
 								<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 							</span>
 						{:else}
-							<span class="mark wait"><span class="dot"></span></span>
+							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 						{/if}
 						<div class="check-body">
 							<span class="check-title">Overlay placement</span>
@@ -1303,18 +1339,28 @@
 						<!-- Placement is never final: re-entering move mode is the way to adjust
 						     position and caption size, so the row keeps a button in both states. -->
 						{#if $overlayPlaced}
-							<button class="adjust" aria-pressed={moveOverlay} onclick={toggleMoveOverlay}>
+							<button
+								class="adjust"
+								aria-pressed={moveOverlay}
+								aria-label={moveOverlay ? 'Finish placing the overlay' : 'Adjust the overlay placement'}
+								onclick={toggleMoveOverlay}
+							>
 								{moveOverlay ? 'Done' : 'Adjust'}
 							</button>
 						{:else}
-							<button class="place" aria-pressed={moveOverlay} onclick={toggleMoveOverlay}>
+							<button
+								class="place"
+								aria-pressed={moveOverlay}
+								aria-label={moveOverlay ? 'Finish placing the overlay' : 'Place the overlay'}
+								onclick={toggleMoveOverlay}
+							>
 								{moveOverlay ? 'Done' : 'Place it'}
 							</button>
 						{/if}
 					</div>
 
 					<div class="check-row">
-						<span class="mark neutral">$</span>
+						<span class="mark neutral" aria-hidden="true">$</span>
 						<div class="check-body">
 							<span class="check-title">Running cost</span>
 							<span class="check-desc">
@@ -1343,11 +1389,16 @@
 				<span class="grow"></span>
 
 				{#if $statusMessage}
-					<p class="status-msg">{$statusMessage}</p>
+					<p class="status-msg" aria-hidden="true">{$statusMessage}</p>
 				{/if}
 
 				<div class="launch">
-					<button class="start" disabled={!$hasKey || browserMode || sessionBusy} onclick={start}>
+					<button
+						class="start"
+						disabled={!$hasKey || browserMode || sessionBusy}
+						aria-busy={sessionBusy}
+						onclick={start}
+					>
 						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg>
 						{sessionBusy
 							? 'Starting…'
@@ -1450,7 +1501,9 @@
 		justify-content: center;
 		flex: 0 0 auto;
 	}
+	/* The window's one h1: every other heading in either column sits under it. */
 	.app-name {
+		margin: 0;
 		font-size: 12.5px;
 		font-weight: 500;
 		line-height: 1;
@@ -1591,7 +1644,7 @@
 	.cost-card,
 	.stop,
 	.banner,
-	h1,
+	.ready,
 	.intro,
 	.checklist,
 	.status-msg,
@@ -1626,7 +1679,11 @@
 		line-height: 1;
 		color: var(--accent);
 	}
+	/* Section labels are real headings (h1/h2) wherever they name a region, so Narrator's
+	   heading navigation walks the window; the class only has to undo the browser's own
+	   heading typography. */
 	.kicker {
+		margin: 0;
 		font-size: 10.5px;
 		font-weight: 600;
 		line-height: 1;
@@ -1893,8 +1950,10 @@
 	.engine.selected .engine-rate {
 		color: var(--accent-soft);
 	}
+	/* One step brighter than the rest of the dim ramp: the rate sits on the selected engine's
+	   mint wash, which costs it enough contrast to drop "/hr" under 4.5:1 at --muted-3. */
 	.engine-rate .unit {
-		color: var(--muted-3);
+		color: var(--muted-2);
 	}
 
 	/* ---- Rail, running ------------------------------------------------------ */
@@ -2120,7 +2179,7 @@
 		font-size: 12px;
 		color: var(--text-dim);
 	}
-	h1 {
+	.ready {
 		margin: 16px 0 0;
 		font-size: 27px;
 		font-weight: 600;
@@ -2234,11 +2293,18 @@
 		color: var(--text);
 	}
 
+	/* Wraps rather than squeezes: at the minimum window width the three parts of this row do
+	   not fit side by side, and without a wrap the Rehearse button grew out of its slot and
+	   under the privacy note beside it. The privacy line is the part that drops. */
 	.launch {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
 		gap: 16px;
 		margin-top: 30px;
+	}
+	.rehearse-slot {
+		min-width: max-content;
 	}
 	.start {
 		display: flex;
@@ -2418,7 +2484,7 @@
 			padding-top: 22px;
 			padding-bottom: 22px;
 		}
-		h1 {
+		.ready {
 			margin-top: 10px;
 			font-size: 24px;
 		}
@@ -2438,6 +2504,34 @@
 		.pill-dot,
 		.caret {
 			animation: none;
+		}
+	}
+
+	/* Windows contrast themes. A contrast theme replaces every colour this window chose, so
+	   anything it says in colour alone has to be said again in a way the theme keeps.
+	   Everything else is deliberately left to the system palette. */
+	@media (forced-colors: active) {
+		/* Selection is a mint border and a mint wash, and both flatten to the same
+		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
+		.card.selected,
+		.tile.selected,
+		.lang.selected,
+		.engine.selected {
+			outline: 2px solid Highlight;
+			outline-offset: -2px;
+		}
+		/* Gradients are not recoloured by the forced palette, so the button would keep its
+		   mint fill under system-coloured text. Drop it and let the theme paint the button. */
+		.start {
+			background-image: none;
+		}
+		/* Live/idle/error is a dot colour plus a word; only the word survives, so the dot
+		   stops pretending to carry state and the pill keeps a visible edge. */
+		.pill {
+			border: 1px solid CanvasText;
+		}
+		.pill-dot {
+			display: none;
 		}
 	}
 </style>
