@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api, on, isTauri } from '$lib/tauri';
+	import { locale, t } from '$lib/i18n';
 	import type { Caption, Origin } from '$lib/types';
 	import { clampOverlayFont, loadOverlayFont, OVERLAY_PLACED_KEY } from '$lib/types';
 
@@ -14,7 +15,7 @@
 	const ORIGIN_ORDER: Origin[] = ['system', 'microphone'];
 
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
-	const ORIGIN_LABEL: Record<Origin, string> = { system: 'Remote', microphone: 'Room' };
+	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
 
 	// Initial size comes from the shared localStorage key (same origin as the operator),
 	// then the operator pushes live updates via the overlay-config event.
@@ -133,6 +134,8 @@
 		const unlistenConfig = on.overlayConfig((cfg) => {
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
+			// The operator owns the interface language; this window follows it.
+			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
 			if (typeof cfg.interactive === 'boolean') {
 				// Entering move mode: record the rect first, so Escape has something to restore.
 				if (cfg.interactive && !interactive) void snapshotGeometry();
@@ -323,7 +326,7 @@
 		<!-- Dropped in a short region: there the chrome fills the window and the placeholder
 		     would run under the toolbar, which reads worse than no placeholder at all. -->
 		{#if winH >= 340}
-			<p class="placeholder">Captions will sit here, two lines at {fontSize} px.</p>
+			<p class="placeholder">{$t.overlay.placeholder(fontSize)}</p>
 		{/if}
 
 		<div class="chrome">
@@ -336,29 +339,32 @@
 					<circle cx="9" cy="18" r="1.6" />
 					<circle cx="15" cy="18" r="1.6" />
 				</svg>
-				<span class="drag-label">Drag to place</span>
+				<span class="drag-label">{$t.overlay.dragToPlace}</span>
 				<span class="drag-size">{winW} × {winH}</span>
 			</div>
 
 			<div class="toolbar">
 				<div class="mode">
-					<span class="mode-title">Move mode</span>
-					<span class="mode-sub">Captions are paused on the overlay</span>
+					<span class="mode-title">{$t.overlay.moveMode}</span>
+					<span class="mode-sub">{$t.overlay.paused}</span>
 					<!-- The operator's own controls can be hidden under this window, so the way
 					     out has to be printed where the operator is already looking. -->
 					<span class="keys">
-						<kbd>Enter</kbd> locks · <kbd>Esc</kbd> cancels · <kbd>Arrows</kbd> nudge
+						<kbd>{$t.overlay.keyEnter}</kbd>
+						{$t.overlay.keysLocks} · <kbd>{$t.overlay.keyEscape}</kbd>
+						{$t.overlay.keysCancels} · <kbd>{$t.overlay.keyArrows}</kbd>
+						{$t.overlay.keysNudge}
 					</span>
 				</div>
 				<span class="divider"></span>
 				<div class="size">
-					<span class="size-label">Size</span>
-					<button class="step" onclick={() => bump(-2)} aria-label="Smaller captions">−</button>
+					<span class="size-label">{$t.overlay.size}</span>
+					<button class="step" onclick={() => bump(-2)} aria-label={$t.overlay.smaller}>−</button>
 					<span class="size-value">{fontSize}</span>
-					<button class="step" onclick={() => bump(2)} aria-label="Larger captions">+</button>
+					<button class="step" onclick={() => bump(2)} aria-label={$t.overlay.larger}>+</button>
 				</div>
 				<span class="divider"></span>
-				<button class="ghost" onclick={snapToBottom}>Snap to bottom</button>
+				<button class="ghost" onclick={snapToBottom}>{$t.overlay.snapToBottom}</button>
 				<button class="primary" onclick={lockIntoPlace}>
 					<svg
 						width="13"
@@ -373,7 +379,7 @@
 						<rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
 						<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
 					</svg>
-					Lock into place
+					{$t.overlay.lock}
 				</button>
 			</div>
 		</div>
@@ -383,7 +389,7 @@
 		<div class="captions">
 			{#each lines as line (line.origin)}
 				<div class="row">
-					{#if showLabels}<span class="origin">{ORIGIN_LABEL[line.origin]}</span>{/if}
+					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
 					<!-- One block per speaker: dimmed lead-in, then the live text, as running text.
 					     The separating space is explicit — Svelte trims literal whitespace here. -->
 					<!-- prettier-ignore -->

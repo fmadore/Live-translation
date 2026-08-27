@@ -15,6 +15,7 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
+use crate::errors::{id, AppError};
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
@@ -167,7 +168,15 @@ pub async fn run_session<P: RealtimeProtocol>(
             Ok(RunEnd::Stopped) => break,
             Ok(RunEnd::Fatal(message)) => {
                 tracing::error!(?origin, provider = P::NAME, %message, "provider stopped the session");
-                emit_status(&app, SessionState::Error, Some(message), origin);
+                // The provider's own wording, which is not ours to translate; the interface
+                // frames it and prints it verbatim.
+                let detail = format!("{} — {message}", P::NAME);
+                emit_status(
+                    &app,
+                    SessionState::Error,
+                    Some(AppError::with(id::PROVIDER_STOPPED, detail)),
+                    origin,
+                );
                 return;
             }
             Ok(RunEnd::Reconnect) => {
@@ -178,9 +187,9 @@ pub async fn run_session<P: RealtimeProtocol>(
                     emit_status(
                         &app,
                         SessionState::Error,
-                        Some(format!(
-                            "{} rejected the connection (HTTP {status}) — check the API key and model access",
-                            P::NAME
+                        Some(AppError::with(
+                            id::PROVIDER_REJECTED,
+                            format!("{} — HTTP {status}", P::NAME),
                         )),
                         origin,
                     );
@@ -190,7 +199,7 @@ pub async fn run_session<P: RealtimeProtocol>(
                 emit_status(
                     &app,
                     SessionState::Reconnecting,
-                    Some(error.to_string()),
+                    Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
                     origin,
                 );
             }
@@ -458,7 +467,7 @@ pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &TurnAccumulator, fina
     );
 }
 
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<String>, origin: Origin) {
+fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, origin: Origin) {
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {

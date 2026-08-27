@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { api, isTauri } from './tauri';
+	import { t } from './i18n';
+	import { asStatus, type AppError } from './errors';
 	import { PROVIDER_META } from './providers';
 	import { providerKeyName } from './types';
 	import type { Provider } from './types';
@@ -8,7 +10,7 @@
 		provider: Provider;
 		locked?: boolean;
 		onAvailability: (provider: Provider, available: boolean) => void;
-		onError: (message: string) => void;
+		onError: (message: string | AppError) => void;
 	}
 
 	let { provider, locked = false, onAvailability, onError }: Props = $props();
@@ -43,7 +45,7 @@
 			available = result;
 			onAvailability(activeProvider, result);
 		} catch (error) {
-			onError(String(error));
+			onError(asStatus(error));
 		}
 	}
 
@@ -67,7 +69,7 @@
 			editing = false;
 			onAvailability(provider, true);
 		} catch (error) {
-			onError(String(error));
+			onError(asStatus(error));
 		} finally {
 			saving = false;
 		}
@@ -80,7 +82,7 @@
 			available = false;
 			onAvailability(provider, false);
 		} catch (error) {
-			onError(String(error));
+			onError(asStatus(error));
 		}
 	}
 </script>
@@ -91,23 +93,25 @@
 			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
 		</span>
 		<div class="body">
-			<span class="title">{keyName} key</span>
-			<span class="desc">Saved in Windows Credential Manager · read only by the Rust core</span>
+			<span class="title">{$t.key.title(keyName)}</span>
+			<span class="desc">{$t.key.saved}</span>
 		</div>
 		<div class="actions">
-			<button class="ghost" disabled={locked} onclick={() => { editing = true; apiKeyInput = ''; }}>Replace</button>
-			<button class="ghost" disabled={locked} onclick={clearKey}>Remove</button>
+			<button class="ghost" disabled={locked} onclick={() => { editing = true; apiKeyInput = ''; }}>
+				{$t.key.replace}
+			</button>
+			<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
 		</div>
 	{:else}
 		<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 		<div class="body">
-			<label class="title" for={fieldId}>{keyName} key</label>
+			<label class="title" for={fieldId}>{$t.key.title(keyName)}</label>
 			<span class="desc" id={descId}>
-				Stored in Windows Credential Manager, used only from the Rust core. Needs access to
-				<code>{meta.modelId}</code>.
+				{$t.key.desc.before}
+				<code>{meta.modelId}</code>{$t.key.desc.after}
 				{#if meta.keyUrl}
 					<a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">
-						Get a key<span class="sr-only"> (opens in your browser)</span>
+						{$t.key.getKey}<span class="sr-only">{$t.key.opensInBrowser}</span>
 					</a>
 				{/if}
 			</span>
@@ -116,7 +120,7 @@
 			<input
 				id={fieldId}
 				type="password"
-				placeholder="Paste your {keyName} API key"
+				placeholder={$t.key.placeholder(keyName)}
 				aria-describedby={descId}
 				autocomplete="off"
 				autocapitalize="off"
@@ -132,10 +136,12 @@
 				aria-busy={saving}
 				onclick={saveKey}
 			>
-				{saving ? 'Saving…' : 'Save'}
+				{saving ? $t.key.saving : $t.key.save}
 			</button>
 			{#if available}
-				<button class="ghost" onclick={() => { editing = false; apiKeyInput = ''; }}>Cancel</button>
+				<button class="ghost" onclick={() => { editing = false; apiKeyInput = ''; }}>
+					{$t.key.cancel}
+				</button>
 			{/if}
 		</div>
 	{/if}

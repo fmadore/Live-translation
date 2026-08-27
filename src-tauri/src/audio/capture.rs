@@ -15,6 +15,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::resample::{downmix_to_mono, f32_to_pcm16_le, LinearResampler};
 use super::{chunk_samples, AudioChunk};
+use crate::errors::{id, AppError};
 use crate::types::{events, AudioDevice, AudioLevel, Origin, SessionState, StatusUpdate};
 
 /// Enumerate available input devices for the operator UI.
@@ -87,7 +88,7 @@ pub fn run_microphone(
             events::STATUS,
             StatusUpdate {
                 state: SessionState::Error,
-                message: Some(format!("Microphone stream error: {e}")),
+                message: Some(AppError::with(id::MIC_STREAM, e)),
                 origin: Some(Origin::Microphone),
             },
         );

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
 	import { api, on, isTauri } from '$lib/tauri';
+	import { asStatus, describeError } from '$lib/errors';
 	import {
 		sessionState,
 		isRunning,
@@ -54,7 +55,24 @@
 		providerDetectsLanguage,
 		providerRequiresKey
 	} from '$lib/types';
-	import { PROVIDER_META, estimateSessionCost, formatUsd } from '$lib/providers';
+	import {
+		PROVIDER_META,
+		estimateSessionCost,
+		formatUsd,
+		modelLabel,
+		rateParts,
+		rateText
+	} from '$lib/providers';
+	import {
+		formatDateTime,
+		localeTag,
+		LOCALE_NAMES,
+		LOCALES,
+		locale,
+		setLocale,
+		t,
+		type Locale
+	} from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
@@ -157,7 +175,7 @@
 		try {
 			await api.startAudioTest($options.source, $options.micDeviceName ?? null);
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		} finally {
 			audioTestBusy = false;
 		}
@@ -169,7 +187,7 @@
 		try {
 			await api.stopAudioTest();
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		} finally {
 			audioTestBusy = false;
 		}
@@ -210,34 +228,28 @@
 	// Live view for the duration of a test.
 	const audioHearing = $derived((!usesMic || micSignal) && (!usesSystem || systemSignal));
 
-	const audioTitle = $derived(
+	// Which of the four things is under test: the room mic, system loopback, both, or the
+	// bundled sample. One key, used for the row title and both tenses of the description.
+	const audioSubject = $derived<'microphone' | 'system' | 'both' | 'demo'>(
 		$options.provider === 'ondevice'
-			? 'Demo audio'
+			? 'demo'
 			: $options.source === 'system'
-				? 'System audio'
+				? 'system'
 				: $options.source === 'microphone'
-					? 'Room mic'
-					: 'Audio'
+					? 'microphone'
+					: 'both'
 	);
-	const audioHeardDesc = $derived(
-		$options.provider === 'ondevice'
-			? 'Bundled sample is ready — no microphone is opened'
-			: $options.source === 'system'
-				? 'WASAPI loopback was receiving sound'
-				: $options.source === 'microphone'
-					? 'The room mic was picking up sound'
-					: 'Both the room mic and WASAPI loopback were receiving sound'
-	);
+	const audioTitle = $derived($t.preflight.audio.title[audioSubject]);
 	const audioCheckDesc = $derived(
 		$options.provider === 'ondevice'
-			? audioHeardDesc
+			? $t.preflight.audio.heard.demo
 			: audioTesting
 				? audioHearing
-					? `${audioHeardDesc.replace(' was ', ' is ').replace(' were ', ' are ')} — stop the test when you are satisfied`
-					: 'Listening — say something into the mic or play some audio'
+					? $t.preflight.audio.hearing[audioSubject]
+					: $t.preflight.audio.listening
 				: audioVerified
-					? audioHeardDesc
-					: 'Not checked yet — audio is only monitored during a test or a running session'
+					? $t.preflight.audio.heard[audioSubject]
+					: $t.preflight.audio.unchecked
 	);
 
 	onMount(() => {
@@ -246,8 +258,8 @@
 		void refresh();
 		void refreshLocalReadiness();
 		void loadRecovery();
-		// Sync the overlay to the operator's current caption size on load.
-		void api.setOverlayConfig({ fontSize: $overlayFontSize });
+		// Sync the overlay to the operator's current caption size and language on load.
+		void api.setOverlayConfig({ fontSize: $overlayFontSize, locale: $locale });
 
 		const unlisteners: Array<Promise<() => void>> = [
 			on.caption((c) => pushCaption(c)),
@@ -261,15 +273,16 @@
 			on.closeRequested(() => void onCloseRequested()),
 			// Tray entries that need session or transcript state to carry out.
 			on.trayCommand((command) => void onTrayCommand(command)),
-			on.audioTest((t) => {
-				audioTesting = t.active;
-				if (!t.active) {
+			// Named `audioTest` rather than `t`, which is now the message catalog.
+			on.audioTest((audioTest) => {
+				audioTesting = audioTest.active;
+				if (!audioTest.active) {
 					// The live signal belonged to the capture that just ended.
 					micSignal = false;
 					systemSignal = false;
 					clearTimeout(micSignalTimer);
 					clearTimeout(systemSignalTimer);
-					if (t.message) statusMessage.set(t.message);
+					if (audioTest.message) statusMessage.set(audioTest.message);
 				}
 			}),
 			// The overlay can be locked, placed and resized from its own toolbar; mirror that
@@ -306,7 +319,7 @@
 				$options = { ...$options, micDeviceName: null };
 			}
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		}
 	}
 
@@ -391,7 +404,7 @@
 		try {
 			await api.hideToTray();
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		}
 	}
 
@@ -422,7 +435,7 @@
 			}
 			await finishQuit();
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		} finally {
 			answeringClose = false;
 		}
@@ -458,7 +471,7 @@
 		try {
 			await finishQuit();
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		} finally {
 			answeringClose = false;
 		}
@@ -494,7 +507,7 @@
 		} catch (e) {
 			// Stay open on a failed write: quitting here would lose exactly what the operator
 			// just asked to keep.
-			closeError = String(e);
+			closeError = describeError(e, $t);
 		} finally {
 			closeSaving = false;
 		}
@@ -524,7 +537,7 @@
 					// Said once. A spool that cannot be written must not bury the session's own
 					// status messages under the same failure every few seconds.
 					stopped = true;
-					statusMessage.set(`Recovery copy could not be written: ${error}`);
+					statusMessage.set($t.error.recoveryWrite(String(error)));
 				})
 				.finally(() => {
 					writing = false;
@@ -546,7 +559,7 @@
 			}
 			recovered = { snapshot, path: stored.path };
 		} catch (error) {
-			statusMessage.set(String(error));
+			statusMessage.set(asStatus(error));
 		}
 	}
 
@@ -560,7 +573,7 @@
 		try {
 			await api.clearRecovery();
 		} catch (error) {
-			statusMessage.set(String(error));
+			statusMessage.set(asStatus(error));
 		}
 	}
 
@@ -596,7 +609,7 @@
 		try {
 			await api.startSession(rehearsal === undefined ? $options : { ...$options, rehearsal });
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 			rehearsing = false;
 		} finally {
 			sessionBusy = false;
@@ -612,7 +625,7 @@
 		try {
 			await api.stopSession();
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		} finally {
 			sessionBusy = false;
 		}
@@ -690,7 +703,7 @@
 			await api.setOverlayClickThrough(!moveOverlay);
 			await api.setOverlayConfig({ fontSize: $overlayFontSize, interactive: moveOverlay });
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		}
 	}
 
@@ -700,20 +713,31 @@
 			await api.showOverlay(next);
 			overlayVisible = next;
 		} catch (e) {
-			statusMessage.set(String(e));
+			statusMessage.set(asStatus(e));
 		}
 	}
 
+	// The overlay is a separate webview, so the operator's language choice is pushed to it the
+	// same way the caption size is. Skipped in a browser preview, which has no second window.
+	$effect(() => {
+		const chosen = $locale;
+		if (browserMode) return;
+		void api.setOverlayConfig({ fontSize: get(overlayFontSize), locale: chosen });
+	});
+
+	// The status line: plain text as it stands, a core failure as the sentence for its id plus
+	// the technical detail. Derived rather than stored, so switching language re-words a
+	// message that is already on screen.
+	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
+
 	// ---- Display labels ---------------------------------------------------------
+	//
+	// Every word below comes from the catalog, so a change of interface language re-renders
+	// the rail and the stage without touching the session.
 
-	const stateLabel: Record<SessionState, string> = {
-		idle: 'Idle',
-		connecting: 'Connecting',
-		running: 'Live',
-		reconnecting: 'Reconnecting',
-		error: 'Error'
-	};
+	const stateLabel = $derived<Record<SessionState, string>>($t.state);
 
+	// Not from the catalog: these are CSS class names, not words.
 	const stateTone: Record<SessionState, string> = {
 		idle: 'neutral',
 		connecting: 'warn',
@@ -725,67 +749,31 @@
 	// What a screen reader hears when the session changes state. Deliberately separate from the
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.
-	const stateAnnouncement: Record<SessionState, string> = {
-		idle: 'Session idle.',
-		connecting: 'Connecting to the caption engine.',
-		running: 'Captions are live.',
-		reconnecting: 'Connection lost — reconnecting.',
-		error: 'Session error.'
-	};
+	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
 
-	const MODE_LABEL: Record<OutputMode, string> = {
-		translate: 'Translation',
-		transcribe: 'Subtitles'
-	};
-	const SOURCE_LABEL: Record<AudioSource, string> = {
-		microphone: 'Room mic',
-		system: 'System audio',
-		both: 'Both'
-	};
-	const LANGUAGE_LABEL: Record<TargetLanguage, string> = { en: 'English', fr: 'Français' };
-	const ENGINE_LABEL: Record<Provider, string> = {
-		gemini: 'Gemini',
-		openai: 'OpenAI',
-		mistral: 'Voxtral',
-		'gemini-transcribe': 'Gemini',
-		ondevice: 'Built-in demo'
-	};
-	const COST_NOTE: Record<Provider, string> = {
-		gemini:
-			'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
-		openai: 'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
-		mistral: 'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
-		'gemini-transcribe':
-			'Gemini: audio in is billed on wall clock, transcript text only while someone is speaking.',
-		ondevice: 'Bundled demonstration: no live audio is captured, no service is contacted, and nothing is billed.'
-	};
-	const ORIGIN_CHIP: Record<Origin, { label: string; sub: string }> = {
-		system: { label: 'Remote', sub: 'system' },
-		microphone: { label: 'Room', sub: 'mic' }
-	};
+	const modeLabel = $derived<Record<OutputMode, string>>($t.mode);
+	const sourceLabel = $derived<Record<AudioSource, string>>($t.source);
+	const languageLabel = $derived<Record<TargetLanguage, string>>($t.language);
+	const engineLabel = $derived<Record<Provider, string>>($t.engine);
+	const costNote = $derived<Record<Provider, string>>($t.provider.costNote);
+	const vendorLabel = $derived<Record<Provider, string>>($t.provider.vendor);
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
 	const roomReadsLabel = $derived(
 		providerDetectsLanguage($options.provider)
-			? 'Auto'
-			: LANGUAGE_LABEL[$options.targetLanguage]
+			? $t.language.auto
+			: languageLabel[$options.targetLanguage]
 	);
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself.
 	const languageStepTitle = $derived(
 		$options.mode === 'translate'
-			? 'The room reads'
+			? $t.rail.step.roomReads
 			: $options.provider === 'ondevice'
-				? 'Demo language'
-				: 'Spoken language'
+				? $t.rail.step.demoLanguage
+				: $t.rail.step.spokenLanguage
 	);
-
-	/** Split "$1.25–2.21/hr" so the unit can be dimmed; "Free" has no unit to split off. */
-	function splitRate(text: string): [string, string] {
-		const i = text.indexOf('/');
-		return i === -1 ? [text, ''] : [text.slice(0, i), text.slice(i)];
-	}
 
 	// The two speakers currently on screen, least-recently-updated first (newest at the bottom).
 	const liveTurns = $derived(
@@ -805,11 +793,32 @@
 	<!-- Rendered in both rail states: the reason to put the window away is strongest mid-session,
 	     and the reason to set the preference is strongest before one starts. -->
 	<div class="divider"></div>
+	<!-- The interface language, not the caption language. It sits here rather than in the
+	     numbered setup sheet because it belongs to the app, not to the session — and it stays
+	     usable mid-session, since nothing about it touches capture. -->
 	<div class="rail-section">
-		<h2 class="kicker">Window</h2>
+		<h2 class="kicker">{$t.locale.label}</h2>
+		<div class="select-row">
+			<select
+				aria-label={$t.locale.label}
+				value={$locale}
+				onchange={(e) => setLocale(e.currentTarget.value as Locale)}
+			>
+				{#each LOCALES as code (code)}
+					<option value={code}>{LOCALE_NAMES[code]}</option>
+				{/each}
+			</select>
+			<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg>
+		</div>
+		<p class="hint">{$t.locale.note}</p>
+	</div>
+
+	<div class="divider"></div>
+	<div class="rail-section">
+		<h2 class="kicker">{$t.window.heading}</h2>
 		<button class="tool wide" disabled={browserMode} onclick={hideWindow}>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg>
-			Minimize to tray
+			{$t.window.minimizeToTray}
 		</button>
 		<label class="pref">
 			<input
@@ -819,14 +828,9 @@
 				onchange={(e) => closeToTray.set(e.currentTarget.checked)}
 			/>
 			<span>
-				<span class="pref-title">Keep running in the tray when I close this window</span>
+				<span class="pref-title">{$t.window.keepRunning}</span>
 				<span class="pref-note">
-					{#if browserMode}
-						Needs the desktop app — a browser preview has no tray.
-					{:else}
-						Off by default, so the close button quits as usual. With it on, closing leaves
-						the session captioning and the tray icon is how you get back.
-					{/if}
+					{browserMode ? $t.window.needsDesktop : $t.window.keepRunningNote}
 				</span>
 			</span>
 		</label>
@@ -838,12 +842,12 @@
 		<span class="brand" aria-hidden="true">
 			<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#06261b" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg>
 		</span>
-		<h1 class="app-name">Live Captions</h1>
-		<span class="context">Realtime translation &amp; subtitles</span>
+		<h1 class="app-name">{$t.app.name}</h1>
+		<span class="context">{$t.app.tagline}</span>
 		<span class="grow"></span>
 		<div class="pill {stateTone[$sessionState]}">
 			<span class="pill-dot" aria-hidden="true"></span>
-			<span class="pill-label">{$sessionState === 'running' && $options.provider === 'ondevice' ? 'Demo' : stateLabel[$sessionState]}</span>
+			<span class="pill-label">{$sessionState === 'running' && $options.provider === 'ondevice' ? $t.state.demo : stateLabel[$sessionState]}</span>
 			{#if $isRunning && $sessionStartedAt !== null}
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
@@ -855,7 +859,7 @@
 	     render — a live region inserted at the same moment as its text is often missed. The
 	     visible copies of this text below are `aria-hidden`, so nothing is announced twice. -->
 	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
-	<p class="sr-only" role="status">{$statusMessage}</p>
+	<p class="sr-only" role="status">{statusText}</p>
 
 	<div class="rule" class:live={$isRunning}>
 		{#if $isRunning}<span class="sweep"></span>{/if}
@@ -869,25 +873,25 @@
 					<span class="rail-icon" aria-hidden="true">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" /></svg>
 					</span>
-					<h2 class="kicker">Session locked</h2>
+					<h2 class="kicker">{$t.rail.locked}</h2>
 				</div>
 
 				<div class="chips">
 					<div class="chip">
-						<span class="chip-label">Mode</span>
-						<span class="chip-value">{MODE_LABEL[$options.mode]}</span>
+						<span class="chip-label">{$t.rail.chip.mode}</span>
+						<span class="chip-value">{modeLabel[$options.mode]}</span>
 					</div>
 					<div class="chip">
-						<span class="chip-label">Source</span>
-						<span class="chip-value">{$options.provider === 'ondevice' ? 'Demo audio' : rehearsing ? 'Sample' : SOURCE_LABEL[$options.source]}</span>
+						<span class="chip-label">{$t.rail.chip.source}</span>
+						<span class="chip-value">{$options.provider === 'ondevice' ? $t.source.demo : rehearsing ? $t.source.sample : sourceLabel[$options.source]}</span>
 					</div>
 					<div class="chip">
-						<span class="chip-label">Room reads</span>
+						<span class="chip-label">{$t.rail.chip.roomReads}</span>
 						<span class="chip-value">{roomReadsLabel}</span>
 					</div>
 					<div class="chip">
-						<span class="chip-label">Engine</span>
-						<span class="chip-value">{ENGINE_LABEL[$options.provider]}</span>
+						<span class="chip-label">{$t.rail.chip.engine}</span>
+						<span class="chip-value">{engineLabel[$options.provider]}</span>
 					</div>
 				</div>
 
@@ -895,34 +899,38 @@
 					<!-- The target language is fixed at session start (the backend takes it once),
 					     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
 					{#if $options.provider === 'ondevice'}
-						<span>A bundled demonstration is playing — no microphone or system audio is captured.</span>
+						<span>{$t.rail.demoNote}</span>
 					{:else if rehearsing}
-						<span>A sample recording is playing — nothing in the room is being captured.</span>
+						<span>{$t.rail.rehearsalNote}</span>
 					{/if}
-					<span>Stop the session to change any of these.</span>
+					<span>{$t.rail.lockedNote}</span>
 				</p>
 
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<h2 class="kicker">Audio arriving</h2>
+					<h2 class="kicker">{$t.rail.arriving}</h2>
 					{#if usesMic}
-						<LevelMeter level={$micLevel} label={$options.provider === 'ondevice' ? 'Demo' : 'Room'} active />
+						<LevelMeter
+							level={$micLevel}
+							label={$options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin.microphone}
+							active
+						/>
 					{/if}
 					{#if usesSystem}
-						<LevelMeter level={$systemLevel} label="System" active />
+						<LevelMeter level={$systemLevel} label={$t.stage.origin.system} active />
 					{/if}
 				</div>
 
 				<div class="cost-card">
 					<div class="cost-figures">
 						<div class="figure">
-							<span class="chip-label">{$options.provider === 'ondevice' ? 'Elapsed' : 'Streamed'}</span>
+							<span class="chip-label">{$options.provider === 'ondevice' ? $t.cost.elapsed : $t.cost.streamed}</span>
 							<span class="figure-value">{formatElapsed(elapsedMs)}</span>
 						</div>
 						{#if $options.provider !== 'ondevice'}
 							<div class="figure">
-								<span class="chip-label">Est. cost</span>
+								<span class="chip-label">{$t.cost.estimate}</span>
 								<span class="figure-value mint">
 									{formatUsd(
 										estimateSessionCost($options.provider, elapsedMs, $options.source === 'both' ? 2 : 1)
@@ -930,22 +938,22 @@
 								</span>
 							</div>
 							{#if $options.source === 'both'}
-								<span class="cost-tag">×2 sources</span>
+								<span class="cost-tag">{$t.cost.twoSources}</span>
 							{/if}
 						{/if}
 					</div>
-					<p class="cost-note">{COST_NOTE[$options.provider]}</p>
+					<p class="cost-note">{costNote[$options.provider]}</p>
 				</div>
 
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<h2 class="kicker">Overlay</h2>
+					<h2 class="kicker">{$t.overlayControls.heading}</h2>
 					<div class="stepper">
-						<span class="stepper-label">Caption size</span>
-						<button class="step" onclick={() => setFont($overlayFontSize - 2)} aria-label="Smaller captions">−</button>
+						<span class="stepper-label">{$t.overlayControls.captionSize}</span>
+						<button class="step" onclick={() => setFont($overlayFontSize - 2)} aria-label={$t.overlayControls.smaller}>−</button>
 						<span class="stepper-value">{$overlayFontSize}</span>
-						<button class="step" onclick={() => setFont($overlayFontSize + 2)} aria-label="Larger captions">+</button>
+						<button class="step" onclick={() => setFont($overlayFontSize + 2)} aria-label={$t.overlayControls.larger}>+</button>
 					</div>
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
@@ -956,23 +964,23 @@
 							class="tool"
 							class:on={moveOverlay}
 							aria-pressed={moveOverlay}
-							aria-label={moveOverlay ? 'Finish moving the overlay' : 'Move the overlay'}
+							aria-label={moveOverlay ? $t.overlayControls.moveDoneLabel : $t.overlayControls.moveLabel}
 							onclick={toggleMoveOverlay}
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3" /></svg>
-							{moveOverlay ? 'Done' : 'Move'}
+							{moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
 						</button>
 						<button
 							class="tool"
 							class:off={!overlayVisible}
-							aria-label={overlayVisible ? 'Hide the overlay' : 'Show the overlay'}
+							aria-label={overlayVisible ? $t.overlayControls.hideLabel : $t.overlayControls.showLabel}
 							onclick={toggleOverlayVisible}
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
 								<rect x="2.5" y="4.5" width="19" height="13" rx="2" /><path d="M9 20.5h6" />
 								{#if overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
 							</svg>
-							{overlayVisible ? 'Hide' : 'Show'}
+							{overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
 						</button>
 					</div>
 				</div>
@@ -983,14 +991,14 @@
 
 				<button class="stop" disabled={sessionBusy} aria-busy={sessionBusy} onclick={stop}>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
-					{sessionBusy ? 'Stopping…' : 'Stop captions'}
+					{sessionBusy ? $t.rail.stopping : $t.rail.stop}
 				</button>
 			{:else}
 				<!-- ---- Idle: the numbered setup sheet ---- -->
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">01</span>
-						<h2 class="kicker">What to show</h2>
+						<h2 class="kicker">{$t.rail.step.whatToShow}</h2>
 					</div>
 					<button
 						class="card"
@@ -1003,8 +1011,8 @@
 							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg>
 						</span>
 						<span class="card-body">
-							<span class="card-title">Live translation</span>
-							<span class="card-desc">Speech is detected and translated into the language the room reads.</span>
+							<span class="card-title">{$t.rail.translate.title}</span>
+							<span class="card-desc">{$t.rail.translate.desc}</span>
 						</span>
 						{#if $options.mode === 'translate'}
 							<span class="card-check" aria-hidden="true">
@@ -1023,8 +1031,8 @@
 							<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg>
 						</span>
 						<span class="card-body">
-							<span class="card-title">Subtitles</span>
-							<span class="card-desc">Built-in demonstration or live speech with Voxtral or Gemini. Saveable as text or Markdown.</span>
+							<span class="card-title">{$t.rail.transcribe.title}</span>
+							<span class="card-desc">{$t.rail.transcribe.desc}</span>
 						</span>
 						{#if $options.mode === 'transcribe'}
 							<span class="card-check" aria-hidden="true">
@@ -1039,7 +1047,7 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">02</span>
-						<h2 class="kicker">Where the audio comes from</h2>
+						<h2 class="kicker">{$t.rail.step.whereFrom}</h2>
 					</div>
 					<div class="tiles">
 						<button
@@ -1050,7 +1058,7 @@
 							onclick={() => setSource('microphone')}
 						>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11" rx="3" /><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" /><path d="M12 18v3.5" /></svg>
-							<span>{$options.provider === 'ondevice' ? 'Demo audio' : 'Room mic'}</span>
+							<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span>
 						</button>
 						<button
 							class="tile"
@@ -1060,7 +1068,7 @@
 							onclick={() => setSource('system')}
 						>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6" /></svg>
-							<span>System audio</span>
+							<span>{$t.source.system}</span>
 						</button>
 						<button
 							class="tile"
@@ -1070,21 +1078,17 @@
 							onclick={() => setSource('both')}
 						>
 							<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg>
-							<span>Both</span>
+							<span>{$t.source.both}</span>
 						</button>
 					</div>
 					<p class="hint">
-					{#if $options.provider === 'ondevice'}
-							Uses a bundled deterministic sample. Choose Voxtral or Gemini for live microphone or system-audio subtitles.
-						{:else}
-							System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a media player.
-						{/if}
+						{$options.provider === 'ondevice' ? $t.rail.demoSourceHint : $t.rail.sourceHint}
 					</p>
 
 					{#if usesMic && $options.provider !== 'ondevice'}
 						<div class="select-row">
 							<select
-								aria-label="Microphone device"
+								aria-label={$t.rail.micDevice}
 								disabled={controlsLocked}
 								value={$options.micDeviceName ?? ''}
 								onchange={(e) => {
@@ -1092,9 +1096,11 @@
 									$options = { ...$options, micDeviceName: e.currentTarget.value || null };
 								}}
 							>
-								<option value="">System default</option>
+								<option value="">{$t.rail.systemDefault}</option>
 								{#each microphones as dev (dev.name)}
-									<option value={dev.name}>{dev.name}{dev.isDefault ? ' (default)' : ''}</option>
+									<option value={dev.name}>
+										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
+									</option>
 								{/each}
 							</select>
 							<svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg>
@@ -1103,10 +1109,13 @@
 
 					<div class="meters">
 						{#if usesMic}
-							<LevelMeter level={$micLevel} label={$options.provider === 'ondevice' ? 'Demo audio' : 'Room mic'} />
+							<LevelMeter
+								level={$micLevel}
+								label={$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}
+							/>
 						{/if}
 						{#if usesSystem}
-							<LevelMeter level={$systemLevel} label="System" />
+							<LevelMeter level={$systemLevel} label={$t.stage.origin.system} />
 						{/if}
 					</div>
 				</section>
@@ -1119,10 +1128,7 @@
 						<h2 class="kicker">{languageStepTitle}</h2>
 					</div>
 					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
-						<p class="hint">
-							{ENGINE_LABEL[$options.provider]} auto-detects the spoken language and writes
-							same-language subtitles. No translation target is needed.
-						</p>
+						<p class="hint">{$t.rail.autoDetectHint(engineLabel[$options.provider])}</p>
 					{:else}
 						<div class="lang-cards">
 							<button
@@ -1133,7 +1139,7 @@
 								onclick={() => setTarget('en')}
 							>
 								<span class="lang-code">EN</span>
-								<span class="lang-name">English</span>
+								<span class="lang-name">{$t.language.en}</span>
 							</button>
 							<button
 								class="lang"
@@ -1143,19 +1149,16 @@
 								onclick={() => setTarget('fr')}
 							>
 								<span class="lang-code">FR</span>
-								<span class="lang-name">Français</span>
+								<span class="lang-name">{$t.language.fr}</span>
 							</button>
 						</div>
 						{#if $options.mode === 'translate'}
 							<p class="hint inline-hint">
-								<span>Speakers alternating? Swap it before you start with</span>
-								<span class="key">F2</span>
+								<span>{$t.rail.flipHint}</span>
+								<span class="key">{$t.rail.flipKey}</span>
 							</p>
 						{:else}
-							<p class="hint">
-								Choose the bundled demonstration language. This mode demonstrates the overlay and export;
-								it does not listen to the room.
-							</p>
+							<p class="hint">{$t.rail.demoLanguageHint}</p>
 						{/if}
 					{/if}
 				</section>
@@ -1165,12 +1168,12 @@
 				<section class="rail-section">
 					<div class="step-head">
 						<span class="step-no">04</span>
-						<h2 class="kicker">Engine</h2>
+						<h2 class="kicker">{$t.rail.step.engine}</h2>
 					</div>
 					<div class="engines">
 						{#each modeProviders as id (id)}
 							{@const p = PROVIDER_META[id]}
-							{@const rate = splitRate(p.hourlyText)}
+							{@const rate = rateParts(p, $t)}
 							<button
 								class="engine"
 								class:selected={$options.provider === id}
@@ -1179,8 +1182,8 @@
 								onclick={() => setProvider(id)}
 							>
 								<span class="engine-body">
-									<span class="engine-name">{p.vendor}</span>
-									<span class="engine-model">{p.modelId}</span>
+									<span class="engine-name">{vendorLabel[id]}</span>
+									<span class="engine-model">{modelLabel(p, $t)}</span>
 								</span>
 								<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>
 							</button>
@@ -1193,17 +1196,18 @@
 		<main class="stage">
 			{#if browserMode}
 				<div class="banner">
-					Running in a browser without the Tauri runtime — controls are disabled. Launch with
-					<code>npm run tauri dev</code> for audio capture, translation, and subtitles.
+					{$t.stage.browserBanner.before}
+					<code>{$t.stage.browserBanner.command}</code>
+					{$t.stage.browserBanner.after}
 				</div>
 			{/if}
 
 			{#if $isRunning}
 				<div class="stage-head">
-					<h2 class="kicker">On screen now</h2>
+					<h2 class="kicker">{$t.stage.onScreen}</h2>
 					<span class="stretch"></span>
 					<span class="stage-note">
-						{liveTurns.length > 1 ? 'Two speakers · newest at the bottom' : 'Newest at the bottom'}
+						{liveTurns.length > 1 ? $t.stage.twoSpeakers : $t.stage.newestLast}
 					</span>
 				</div>
 
@@ -1212,8 +1216,12 @@
 						{#each liveTurns as turn (turn.origin)}
 							<article class="turn">
 								<div class="turn-who">
-									<span class="origin-chip {turn.origin}">{$options.provider === 'ondevice' ? 'Demo' : ORIGIN_CHIP[turn.origin].label}</span>
-									<span class="origin-sub">{$options.provider === 'ondevice' ? 'sample' : ORIGIN_CHIP[turn.origin].sub}</span>
+									<span class="origin-chip {turn.origin}">
+										{$options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin[turn.origin]}
+									</span>
+									<span class="origin-sub">
+										{$options.provider === 'ondevice' ? $t.stage.originSub.demo : $t.stage.originSub[turn.origin]}
+									</span>
 								</div>
 								<div class="turn-text">
 									{#if turn.caption.sourceText}
@@ -1230,15 +1238,15 @@
 				{:else}
 					<p class="hint stage-hint">
 						{$options.mode === 'translate'
-							? 'Translated captions will appear here and on the overlay.'
+							? $t.stage.waitingTranslation
 							: $options.provider === 'ondevice'
-								? 'Demonstration subtitles will appear here and on the overlay.'
-								: 'Live subtitles will appear here and on the overlay.'}
+								? $t.stage.waitingDemo
+								: $t.stage.waitingSubtitles}
 					</p>
 				{/if}
 
 				{#if $statusMessage}
-					<p class="status-msg" aria-hidden="true">{$statusMessage}</p>
+					<p class="status-msg" aria-hidden="true">{statusText}</p>
 				{/if}
 
 				<span class="grow"></span>
@@ -1249,12 +1257,9 @@
 					onError={(message) => statusMessage.set(message)}
 				/>
 			{:else}
-				<span class="kicker">Pre-flight</span>
-				<h2 class="ready">Ready when you are</h2>
-				<p class="intro">
-					Four checks, then one button. Everything on the left locks while captions are running, so
-					nothing can be changed by accident mid-session.
-				</p>
+				<span class="kicker">{$t.preflight.kicker}</span>
+				<h2 class="ready">{$t.preflight.heading}</h2>
+				<p class="intro">{$t.preflight.intro}</p>
 
 				<div class="checklist">
 					{#if !needsKey}
@@ -1267,9 +1272,9 @@
 								<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 							{/if}
 							<div class="check-body">
-								<span class="check-title">Built-in demo · no key needed</span>
+								<span class="check-title">{$t.preflight.demoRow.title}</span>
 								<span class="check-desc" class:warn={!localReadiness?.ready}>
-									{localReadiness?.detail ?? 'Checking the bundled demonstration…'}
+									{localReadiness?.detail ?? $t.preflight.demoRow.checking}
 								</span>
 							</div>
 							<span></span>
@@ -1305,9 +1310,14 @@
 						{#if $options.provider === 'ondevice' || browserMode}
 							<span></span>
 						{:else if audioTesting}
-							<button class="adjust" disabled={audioTestBusy} aria-busy={audioTestBusy} onclick={stopAudioTest}>
-							Stop test
-						</button>
+							<button
+								class="adjust"
+								disabled={audioTestBusy}
+								aria-busy={audioTestBusy}
+								onclick={stopAudioTest}
+							>
+								{$t.preflight.audio.stopTest}
+							</button>
 						{:else}
 							<button
 								class="place"
@@ -1315,7 +1325,7 @@
 								aria-busy={audioTestBusy}
 								onclick={startAudioTest}
 							>
-								{audioVerified ? 'Re-test' : 'Test audio'}
+								{audioVerified ? $t.preflight.audio.retest : $t.preflight.audio.test}
 							</button>
 						{/if}
 					</div>
@@ -1329,11 +1339,9 @@
 							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
 						{/if}
 						<div class="check-body">
-							<span class="check-title">Overlay placement</span>
+							<span class="check-title">{$t.preflight.overlay.title}</span>
 							<span class="check-desc" class:warn={!$overlayPlaced}>
-								{$overlayPlaced
-									? 'Placed — captions will appear where you locked them'
-									: 'Not placed yet — captions will sit bottom-centre on this display'}
+								{$overlayPlaced ? $t.preflight.overlay.placed : $t.preflight.overlay.unplaced}
 							</span>
 						</div>
 						<!-- Placement is never final: re-entering move mode is the way to adjust
@@ -1342,19 +1350,19 @@
 							<button
 								class="adjust"
 								aria-pressed={moveOverlay}
-								aria-label={moveOverlay ? 'Finish placing the overlay' : 'Adjust the overlay placement'}
+								aria-label={moveOverlay ? $t.preflight.overlay.doneLabel : $t.preflight.overlay.adjustLabel}
 								onclick={toggleMoveOverlay}
 							>
-								{moveOverlay ? 'Done' : 'Adjust'}
+								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
 							</button>
 						{:else}
 							<button
 								class="place"
 								aria-pressed={moveOverlay}
-								aria-label={moveOverlay ? 'Finish placing the overlay' : 'Place the overlay'}
+								aria-label={moveOverlay ? $t.preflight.overlay.doneLabel : $t.preflight.overlay.placeLabel}
 								onclick={toggleMoveOverlay}
 							>
-								{moveOverlay ? 'Done' : 'Place it'}
+								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
 							</button>
 						{/if}
 					</div>
@@ -1362,14 +1370,12 @@
 					<div class="check-row">
 						<span class="mark neutral" aria-hidden="true">$</span>
 						<div class="check-body">
-							<span class="check-title">Running cost</span>
+							<span class="check-title">{$t.preflight.cost.title}</span>
 							<span class="check-desc">
-								{$options.provider === 'ondevice'
-									? 'Built into the app — nothing is billed'
-									: 'Billed per minute of streamed audio, for as long as the session is open'}
+								{$options.provider === 'ondevice' ? $t.preflight.cost.free : $t.preflight.cost.billed}
 							</span>
 						</div>
-						<span class="check-rate">{meta.hourlyText}</span>
+						<span class="check-rate">{rateText(meta, $t)}</span>
 					</div>
 				</div>
 
@@ -1389,7 +1395,7 @@
 				<span class="grow"></span>
 
 				{#if $statusMessage}
-					<p class="status-msg" aria-hidden="true">{$statusMessage}</p>
+					<p class="status-msg" aria-hidden="true">{statusText}</p>
 				{/if}
 
 				<div class="launch">
@@ -1401,12 +1407,12 @@
 					>
 						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg>
 						{sessionBusy
-							? 'Starting…'
+							? $t.preflight.start.starting
 							: $options.mode === 'translate'
-								? 'Start translating'
+								? $t.preflight.start.translate
 								: $options.provider === 'ondevice'
-									? 'Start demo subtitles'
-									: 'Start subtitles'}
+									? $t.preflight.start.demo
+									: $t.preflight.start.subtitles}
 					</button>
 					<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
 					     key and the same desktop runtime. -->
@@ -1417,21 +1423,19 @@
 							onclick={rehearse}
 						>
 							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg>
-							{sessionBusy ? 'Starting…' : 'Rehearse'}
+							{sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 						</button>
 						<span class="rehearse-hint">
 							{$options.provider === 'ondevice'
-								? 'Start demo subtitles already runs the bundled demonstration.'
-								: 'Plays a bundled sample recording through the live pipeline — no microphone needed.'}
+								? $t.preflight.rehearse.demoHint
+								: $t.preflight.rehearse.hint}
 						</span>
 					</div>
 					<span class="privacy">
-						{$recoveryEnabled
-							? 'Transcript is held in memory and spooled locally until you save it.'
-							: 'Transcript is held in memory until you save it.'}
+						{$recoveryEnabled ? $t.preflight.privacy.spooled : $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
-							? 'The bundled demo stays entirely inside the app.'
-							: `Nothing leaves the machine except audio to ${meta.vendor}.`}
+							? $t.preflight.privacy.demo
+							: $t.preflight.privacy.cloud(vendorLabel[$options.provider])}
 					</span>
 				</div>
 			{/if}
@@ -1444,7 +1448,7 @@
 {#if recovered}
 	<RecoveryPrompt
 		lines={recovered.snapshot.lines.length}
-		savedAt={new Date(recovered.snapshot.savedAt).toLocaleString()}
+		savedAt={formatDateTime(recovered.snapshot.savedAt, $localeTag)}
 		path={recovered.path}
 		onRestore={() => void answerRecovery(true)}
 		onDelete={() => void answerRecovery(false)}

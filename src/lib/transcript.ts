@@ -10,10 +10,21 @@ export interface TranscriptParagraph {
 	text: string;
 }
 
-/** Human label for an audio source; replaces per-line timestamps in the transcript. */
-export const ORIGIN_LABEL: Record<Origin, string> = {
-	microphone: 'Microphone',
-	system: 'System'
+/** What the saved file calls each audio source, and what it calls itself. Passed in rather
+ *  than hard-coded so the formatter stays free of Svelte, Tauri and the catalog while the
+ *  document it writes still follows the interface language. */
+export interface TranscriptLabels {
+	title: string;
+	origin: Record<Origin, string>;
+	/** BCP 47 tag for the header's timestamp. */
+	tag: string;
+}
+
+/** English, for tests and for any caller with nothing better to pass. */
+export const DEFAULT_LABELS: TranscriptLabels = {
+	title: 'Live captions transcript',
+	origin: { microphone: 'Microphone', system: 'System' },
+	tag: 'en-GB'
 };
 
 /**
@@ -37,19 +48,19 @@ export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagr
 export function formatTranscript(
 	newestFirst: TranscriptLine[],
 	format: TranscriptFormat,
-	createdAt = new Date()
+	createdAt = new Date(),
+	labels: TranscriptLabels = DEFAULT_LABELS
 ): string {
 	const paragraphs = groupTranscript(newestFirst);
 
 	if (format === 'text') {
-		return paragraphs
-			.map((p) => `${ORIGIN_LABEL[p.origin]}\n${p.text}\n`)
-			.join('\n');
+		return paragraphs.map((p) => `${labels.origin[p.origin]}\n${p.text}\n`).join('\n');
 	}
 
-	const header = `# Live captions transcript\n\n${createdAt.toLocaleString()}\n`;
+	const stamp = createdAt.toLocaleString(labels.tag);
+	const header = `# ${labels.title}\n\n${stamp}\n`;
 	const body = paragraphs
-		.map((p) => `\n**${ORIGIN_LABEL[p.origin]}**\n\n${p.text}\n`)
+		.map((p) => `\n**${labels.origin[p.origin]}**\n\n${p.text}\n`)
 		.join('');
 	return `${header}${body}`;
 }

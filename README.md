@@ -170,6 +170,11 @@ start depending on the DOM by accident. Anything that renders a component opts i
 **jsdom** by being named `*.svelte.test.ts`; those get Testing Library, jest-dom matchers and
 automatic cleanup via `vitest-setup-client.ts`.
 
+User-facing text belongs in the message catalogs, not in a component:
+[`docs/localization.md`](docs/localization.md) has the contract — the interface language is
+independent of the caption language, the Rust core names failures and the catalog words them,
+and `npm run check` plus `npm test` fail on anything missing.
+
 UI work has one more standard to meet: [`docs/accessibility.md`](docs/accessibility.md) has
 the contrast, focus, heading, announcement and contrast-theme rules, which of them
 `npm test` enforces on its own, and the manual Narrator / contrast-theme / text-scaling walk

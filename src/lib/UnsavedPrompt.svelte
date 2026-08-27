@@ -3,6 +3,7 @@
 	// operator closes the window with finalized captions that never reached disk (issue #25).
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import { t } from './i18n';
 	import type { CloseChoice } from './document';
 
 	interface Props {
@@ -29,26 +30,24 @@
 	});
 </script>
 
-<ModalPrompt title="Save this transcript before closing?" onDismiss={() => onChoice('cancel')}>
+<ModalPrompt title={$t.prompt.unsaved.title} onDismiss={() => onChoice('cancel')}>
 	<p>
-		{#if endedSession}The session has been stopped and the last captions collected.{/if}
-		{lines === 1 ? '1 line' : `${lines} lines`}
-		{lines === 1 ? 'has' : 'have'} not been saved. Closing without saving discards
-		{lines === 1 ? 'it' : 'them'}.
+		{#if endedSession}{$t.prompt.unsaved.sessionEnded}{/if}
+		{$t.prompt.unsaved.body(lines)}
 	</p>
 
 	{#if error}
-		<p class="error" role="alert">Could not save: {error}</p>
+		<p class="error" role="alert">{$t.prompt.unsaved.failed(error)}</p>
 	{/if}
 
 	<div class="actions">
 		<button class="primary" bind:this={saveEl} disabled={saving} onclick={() => onChoice('save')}>
-			{saving ? 'Saving…' : 'Save and close'}
+			{saving ? $t.prompt.unsaved.saving : $t.prompt.unsaved.save}
 		</button>
 		<button class="danger" disabled={saving} onclick={() => onChoice('discard')}>
-			Discard and close
+			{$t.prompt.unsaved.discard}
 		</button>
-		<button disabled={saving} onclick={() => onChoice('cancel')}>Cancel</button>
+		<button disabled={saving} onclick={() => onChoice('cancel')}>{$t.prompt.unsaved.cancel}</button>
 	</div>
-	<p class="note">Saves Markdown to your Documents folder. Cancel keeps the app open.</p>
+	<p class="note">{$t.prompt.unsaved.note}</p>
 </ModalPrompt>

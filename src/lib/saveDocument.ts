@@ -4,6 +4,7 @@
 
 import { get } from 'svelte/store';
 
+import { t } from './i18n';
 import { markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
 import { formatTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
@@ -22,8 +23,13 @@ export async function saveTranscriptDocument(
 ): Promise<string> {
 	const lines = get(transcript);
 	if (!lines.length) return '';
+	const messages = get(t);
 	const path = await api.saveTranscript(
-		formatTranscript(lines, format, now),
+		formatTranscript(lines, format, now, {
+			title: messages.export.title,
+			origin: messages.export.origin,
+			tag: messages.locale.tag
+		}),
 		transcriptFilename(now, format)
 	);
 	markTranscriptSaved(lines, path);

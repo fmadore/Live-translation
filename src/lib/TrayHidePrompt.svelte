@@ -8,6 +8,7 @@
 	// message that has to land.
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import { t } from './i18n';
 
 	interface Props {
 		/** True when a session is still running, which is what makes this worth saying. */
@@ -24,27 +25,22 @@
 	});
 </script>
 
-<ModalPrompt title="Live Translation will keep running" onDismiss={() => onChoice('quit')}>
+<ModalPrompt title={$t.prompt.trayHide.title} onDismiss={() => onChoice('quit')}>
 	<p>
-		You asked for closing this window to leave the app running in the tray, so it will
-		disappear from the taskbar
-		{#if running}
-			and keep captioning.
-		{:else}
-			but stay ready.
-		{/if}
-		Its icon stays in the notification area, next to the clock — open it, show or hide the
-		overlay, stop the session, or quit from there.
+		{$t.prompt.trayHide.bodyBefore}
+		{running ? $t.prompt.trayHide.bodyRunning : $t.prompt.trayHide.bodyIdle}
+		{$t.prompt.trayHide.bodyAfter}
 	</p>
 	<p class="note">
-		Said once. Turn it off again with <em>Keep running in the tray when I close this window</em>.
+		{$t.prompt.trayHide.noteBefore}
+		<em>{$t.prompt.trayHide.noteEmphasis}</em>{$t.prompt.trayHide.noteAfter}
 	</p>
 
 	<div class="actions">
 		<button class="primary" bind:this={hideEl} onclick={() => onChoice('hide')}>
-			Got it — hide to the tray
+			{$t.prompt.trayHide.hide}
 		</button>
-		<button onclick={() => onChoice('quit')}>Quit instead</button>
+		<button onclick={() => onChoice('quit')}>{$t.prompt.trayHide.quit}</button>
 	</div>
 </ModalPrompt>
 

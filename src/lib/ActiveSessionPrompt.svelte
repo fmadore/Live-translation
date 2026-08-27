@@ -7,6 +7,7 @@
 	// nothing.
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import { t } from './i18n';
 
 	interface Props {
 		/** Elapsed session time, already formatted, so the operator can see what they would
@@ -28,23 +29,20 @@
 	});
 </script>
 
-<ModalPrompt title="A caption session is running" onDismiss={() => onChoice(false)}>
-	<p>
-		Captions have been live for {elapsed}. Closing stops the session, waits for the last
-		captions to arrive, and then quits.
-	</p>
+<ModalPrompt title={$t.prompt.activeSession.title} onDismiss={() => onChoice(false)}>
+	<p>{$t.prompt.activeSession.body(elapsed)}</p>
 	{#if !fromTray}
 		<p class="note">
-			To put the window away without stopping anything, use Minimize to tray — or turn on
-			<em>Keep running in the tray when I close this window</em>.
+			{$t.prompt.activeSession.noteBefore}
+			<em>{$t.prompt.activeSession.noteEmphasis}</em>{$t.prompt.activeSession.noteAfter}
 		</p>
 	{/if}
 
 	<div class="actions">
 		<button class="primary" bind:this={keepEl} onclick={() => onChoice(false)}>
-			Keep captioning
+			{$t.prompt.activeSession.keep}
 		</button>
-		<button class="danger" onclick={() => onChoice(true)}>Stop and close</button>
+		<button class="danger" onclick={() => onChoice(true)}>{$t.prompt.activeSession.stop}</button>
 	</div>
 </ModalPrompt>
 

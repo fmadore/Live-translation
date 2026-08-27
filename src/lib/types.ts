@@ -2,6 +2,8 @@
 // These mirror the serde structs in `src-tauri/src/types.rs` — keep them in sync.
 
 /** Which audio input(s) to translate or transcribe. */
+import type { AppError } from './errors';
+
 export type AudioSource = 'microphone' | 'system' | 'both';
 
 /** A single capture source — the `origin` on captions, levels, and status updates. */
@@ -136,6 +138,10 @@ export interface OverlayConfig {
 	fontSize: number;
 	/** Move mode: click-through is off and the overlay shows a drag region. */
 	interactive?: boolean;
+	/** Interface language. Pushed rather than read from storage: the two windows are separate
+	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
+	 *  language — that is `targetLanguage`, and the two are deliberately independent. */
+	locale?: 'en' | 'fr';
 }
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */

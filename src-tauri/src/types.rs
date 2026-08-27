@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::errors::AppError;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AudioSource {
@@ -154,8 +156,10 @@ pub enum SessionState {
 #[serde(rename_all = "camelCase")]
 pub struct StatusUpdate {
     pub state: SessionState,
+    /// Why, when there is a why: an id the interface translates, plus the untranslated
+    /// technical detail underneath it. See `errors::AppError`.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
+    pub message: Option<AppError>,
     /// Which source this update is about; `None` means the whole session (e.g. stop).
     /// The operator UI aggregates per-origin states so concurrent sources don't clobber
     /// each other.
@@ -173,7 +177,7 @@ pub struct AudioTestUpdate {
     pub active: bool,
     /// Present when the test stopped because a device failed, not because it was stopped.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub message: Option<String>,
+    pub message: Option<AppError>,
 }
 
 #[derive(Debug, Clone, Serialize)]
