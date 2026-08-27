@@ -8,8 +8,9 @@ why earlier architectural decisions were made.
 
 Version **1.0.5** passed certification and is published at
 [apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
-Updates ship through the manual, draft-by-default Store submission workflow described in
-[`docs/store-automation.md`](docs/store-automation.md).
+Updates are uploaded to Partner Center by hand, as described in
+[`docs/store-automation.md`](docs/store-automation.md) — the submission API authenticates as a
+Microsoft Entra application, which Partner Center offers only to Company accounts.
 
 It took several attempts. The 1.0.3 submission failed policy 10.1.2.10 because **Start
 Subtitles** did nothing on the review device, and neither credential-free Windows recognizer

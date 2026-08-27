@@ -221,8 +221,9 @@ Clippy and tests on Linux and Windows, RustSec, and actionlint. Dependabot check
 and GitHub Actions weekly.
 
 Pushing a `v*` tag builds the installers, both architectures' MSIX, and the multi-architecture
-`.msixbundle` the Store submission uses. Submitting that bundle is a separate manual workflow
-that drafts by default — see [`docs/store-automation.md`](docs/store-automation.md).
+`.msixbundle` the Store submission uses. That bundle is then uploaded to Partner Center by
+hand: the submission API is a Company-account feature, and this is an Individual account —
+see [`docs/store-automation.md`](docs/store-automation.md).
 
 ## License
 

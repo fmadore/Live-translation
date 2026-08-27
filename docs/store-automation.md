@@ -1,4 +1,24 @@
-# Automating Microsoft Store updates
+# Microsoft Store updates
+
+> [!IMPORTANT]
+> **This does not work on our account, and cannot be made to.** Verified 27 August 2026 while
+> setting 1.1.0 up. Everything below is accurate and unreachable; keep it for the day the
+> constraint lifts, and submit by hand until then — see [Submitting by hand](#submitting-by-hand).
+>
+> The submission API authenticates as a Microsoft Entra application, which has to live in a
+> tenant associated with the Partner Center account. Tenant association, user management and
+> Entra applications are **Company-account features**. Ours is an Individual account, and
+> Microsoft is explicit that
+> [Entra ID sign-up "is currently supported only for Company accounts"](https://learn.microsoft.com/en-us/windows/apps/publish/partner-center/open-a-developer-account?tabs=individual).
+> In the dashboard this shows up as `account-settings/organization/tenant-management`
+> rendering a blank page. Nothing is misconfigured; the feature is not there.
+>
+> Converting is not a way out. Partner Center does not support changing an account from
+> Individual to Company — it needs a *new* account, which means a new publisher identity, which
+> means a new Store listing at a new URL. The current identity
+> (`49346FMadore.LiveTranslationSubtitles`) is baked into every package we have shipped, so
+> switching would abandon the published listing and its installs. Not a trade worth making for
+> this app.
 
 Shipping an update by hand means building the packages, opening Partner Center, creating a
 submission, replacing every package, and pressing Submit. The
@@ -8,7 +28,33 @@ build-and-upload half from a GitHub release, and stops before the part that reac
 **What it does not do:** change the listing text, screenshots, pricing, age rating, or
 availability. Those still go through Partner Center. This workflow only replaces the package.
 
+## Submitting by hand
+
+The route that works. About five minutes, and it is what shipped every version so far.
+
+1. **Build the packages** — steps 1 and 2 of [The shape of an update](#the-shape-of-an-update)
+   still apply: bump the three version files, tag, let `Release installers` build. Download
+   `Live.Translation_<version>.msixbundle` from the release.
+2. **Sideload-test first.** Install the bare per-architecture `.msix` with
+   [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1), *not* the bundle:
+   signing a bundle does not sign the packages inside it.
+3. Partner Center → **Apps and games** → *Live Translation & Subtitles* → **Create new
+   submission**. In French: **Applications et jeux**, **Créer une soumission**.
+4. Under **Packages**, **delete every package already listed**, then upload the single
+   `.msixbundle`. Deleting matters: 1.0.5 went up as two separate per-architecture packages,
+   and leaving one behind ships a stale architecture silently. One bundle in, nothing else.
+5. If the listing text changed, paste it in the same submission — the paste-ready English and
+   French copy is in [`store-listing.md`](store-listing.md). Editing that file changes nothing
+   on its own; the Store only knows what is typed into Partner Center.
+6. Set a **gradual rollout** percentage for anything touching audio capture or the session
+   lifecycle. Start at 10% and raise it once the crash and review data look clean.
+7. **Submit to the Store**, then watch certification. A clean submission is not a pass — 1.0.3
+   uploaded perfectly and then failed policy 10.1.2.10.
+
 ## The shape of an update
+
+Steps 1–3 are the build, and are what actually gets used. Steps 4–5 are the automated tail
+that this account cannot reach — do [Submitting by hand](#submitting-by-hand) instead.
 
 1. Bump the version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`.
    All three must match, and all three must be **higher than the version already in the
@@ -21,8 +67,8 @@ availability. Those still go through Partner Center. This workflow only replaces
 3. Sideload-test the build before submitting it. Signing a bundle does not sign the packages
    inside it, so install the bare per-architecture `.msix` with
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1), not the bundle.
-4. Actions → **Microsoft Store submission** → **Run workflow**. Give it the tag. Leave
-   **commit** unticked.
+4. *(Unavailable — Individual account.)* Actions → **Microsoft Store submission** → **Run
+   workflow**. Give it the tag. Leave **commit** unticked.
 5. Open Partner Center, read the draft submission, and press Submit.
 
 Ticking **commit** collapses steps 4 and 5 into one run. Do that only for an update you have
@@ -50,6 +96,10 @@ One bundle in, one bundle out, no ambiguity.
 > submitting. Later updates replace cleanly.
 
 ## One-time setup
+
+**Blocked on an Individual account — see the note at the top of this file.** Steps 1–3 need
+Partner Center screens that only Company accounts have, so step 4 has no values to fill in.
+Kept because it is correct, and because the constraint is Microsoft's rather than ours.
 
 Everything here is done once, and all of it is on the account side — none of it is in this
 repository.
