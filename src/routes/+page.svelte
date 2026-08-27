@@ -51,6 +51,7 @@
 		canFlipDirection,
 		clampOverlayFont,
 		providerCanTranslate,
+		providerDetectsLanguage,
 		providerRequiresKey
 	} from '$lib/types';
 	import { PROVIDER_META, estimateSessionCost, formatUsd } from '$lib/providers';
@@ -84,7 +85,9 @@
 	const meta = $derived(PROVIDER_META[$options.provider]);
 	// Each mode is served by exactly two backends; step 04 lists the pair for the current one.
 	const modeProviders = $derived<Provider[]>(
-		$options.mode === 'translate' ? ['gemini', 'openai'] : ['mistral', 'ondevice']
+		$options.mode === 'translate'
+			? ['gemini', 'openai']
+			: ['mistral', 'gemini-transcribe', 'ondevice']
 	);
 
 	// ---- Session clock ---------------------------------------------------------
@@ -571,7 +574,7 @@
 
 	/** Which language the sample recording should be spoken in. Translation rehearses on the
 	 *  language the room is *not* reading, so the operator sees real translation rather than a
-	 *  passthrough; Voxtral auto-detects and rehearses with the English fixture. The built-in
+	 *  passthrough; the subtitle engines auto-detect and rehearse with the English fixture. The built-in
 	 *  demonstration already owns a sample timeline, so its separate rehearsal control is disabled. */
 	const fixtureLanguage = $derived<TargetLanguage>(
 		$options.mode === 'translate'
@@ -625,7 +628,7 @@
 	function setTarget(t: TargetLanguage) {
 		if (controlsLocked) return;
 		// Translation picks the language the room reads; the built-in demo picks its script.
-		// Voxtral auto-detects, so it has nothing to set.
+		// The subtitle engines auto-detect, so they have nothing to set.
 		if ($options.mode !== 'translate' && $options.provider !== 'ondevice') return;
 		$options = { ...$options, targetLanguage: t };
 	}
@@ -733,6 +736,7 @@
 		gemini: 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
+		'gemini-transcribe': 'Gemini',
 		ondevice: 'Built-in demo'
 	};
 	const COST_NOTE: Record<Provider, string> = {
@@ -740,6 +744,8 @@
 			'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
 		openai: 'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
 		mistral: 'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
+		'gemini-transcribe':
+			'Gemini: audio in is billed on wall clock, transcript text only while someone is speaking.',
 		ondevice: 'Bundled demonstration: no live audio is captured, no service is contacted, and nothing is billed.'
 	};
 	const ORIGIN_CHIP: Record<Origin, { label: string; sub: string }> = {
@@ -747,9 +753,11 @@
 		microphone: { label: 'Room', sub: 'mic' }
 	};
 
-	// Voxtral detects the spoken language itself, so there is no chosen language to lock.
+	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
 	const roomReadsLabel = $derived(
-		$options.provider === 'mistral' ? 'Auto' : LANGUAGE_LABEL[$options.targetLanguage]
+		providerDetectsLanguage($options.provider)
+			? 'Auto'
+			: LANGUAGE_LABEL[$options.targetLanguage]
 	);
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
@@ -983,7 +991,7 @@
 						</span>
 						<span class="card-body">
 							<span class="card-title">Subtitles</span>
-							<span class="card-desc">Built-in demonstration or live speech with Mistral. Saveable as text or Markdown.</span>
+							<span class="card-desc">Built-in demonstration or live speech with Voxtral or Gemini. Saveable as text or Markdown.</span>
 						</span>
 						{#if $options.mode === 'transcribe'}
 							<span class="card-check" aria-hidden="true">
@@ -1034,7 +1042,7 @@
 					</div>
 					<p class="hint">
 					{#if $options.provider === 'ondevice'}
-							Uses a bundled deterministic sample. Choose Mistral for live microphone or system-audio subtitles.
+							Uses a bundled deterministic sample. Choose Voxtral or Gemini for live microphone or system-audio subtitles.
 						{:else}
 							System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a media player.
 						{/if}
@@ -1077,10 +1085,10 @@
 						<span class="step-no">03</span>
 						<span class="kicker">{languageStepTitle}</span>
 					</div>
-					{#if $options.mode === 'transcribe' && $options.provider === 'mistral'}
+					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 						<p class="hint">
-							Voxtral auto-detects the spoken language and writes same-language subtitles. No
-							translation target is needed.
+							{ENGINE_LABEL[$options.provider]} auto-detects the spoken language and writes
+							same-language subtitles. No translation target is needed.
 						</p>
 					{:else}
 						<div class="lang-cards">

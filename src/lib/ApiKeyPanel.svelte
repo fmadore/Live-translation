@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { api, isTauri } from './tauri';
 	import { PROVIDER_META } from './providers';
+	import { providerKeyName } from './types';
 	import type { Provider } from './types';
 
 	interface Props {
@@ -19,10 +20,9 @@
 
 	const meta = $derived(PROVIDER_META[provider]);
 
-	// The row title wants the credential's short name, not the full product name.
-	const keyName = $derived(
-		provider === 'openai' ? 'OpenAI' : provider === 'mistral' ? 'Mistral' : 'Gemini'
-	);
+	// The row title wants the credential's short name, not the full product name. Both Gemini
+	// backends read the same stored key, so switching mode never re-prompts for it.
+	const keyName = $derived(providerKeyName(provider));
 
 	async function checkKey(activeProvider: Provider) {
 		// Second line of defence behind the caller's `browserMode` check: a browser preview has

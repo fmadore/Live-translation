@@ -51,6 +51,11 @@ impl TargetLanguage {
 pub enum Provider {
     #[default]
     Gemini,
+    /// Gemini 3.5 Transcribe Live — subtitles, not translation. Shares Gemini's endpoint
+    /// and API key; a separate variant because the wire format, the rate and the mode it
+    /// serves are all different.
+    #[serde(rename = "gemini-transcribe")]
+    GeminiTranscribe,
     OpenAi,
     Mistral,
     /// Bundled deterministic demonstration. Keyless, offline, same-language only.
@@ -62,6 +67,7 @@ impl Provider {
     pub fn input_sample_rate(self) -> u32 {
         match self {
             Provider::Gemini => 16_000,
+            Provider::GeminiTranscribe => 16_000,
             Provider::OpenAi => 24_000,
             Provider::Mistral => 16_000,
             Provider::OnDevice => 16_000,
@@ -82,8 +88,8 @@ impl Provider {
     }
 }
 
-/// What the audience should see. Mistral currently powers transcription-only subtitles;
-/// Gemini and OpenAI power translated captions.
+/// What the audience should see. Mistral Voxtral and Gemini Transcribe power same-language
+/// subtitles; Gemini Live Translate and OpenAI power translated captions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputMode {

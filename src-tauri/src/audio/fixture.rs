@@ -60,7 +60,7 @@ fn fixture_path(app: &AppHandle, language: TargetLanguage) -> Result<PathBuf> {
 
 /// Read and validate one fixture. Every error names the path: when this fails, what the
 /// operator needs to know is which file the build is missing or mangled.
-fn load_fixture(path: &Path) -> Result<Vec<f32>> {
+pub(crate) fn load_fixture(path: &Path) -> Result<Vec<f32>> {
     let bytes = std::fs::read(path).map_err(|error| {
         anyhow!(
             "could not read the rehearsal fixture {}: {error}",

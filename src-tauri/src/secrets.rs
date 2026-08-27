@@ -13,7 +13,9 @@ const SERVICE: &str = "org.stias.live-translation";
 /// no credential.
 fn account(provider: Provider) -> Option<&'static str> {
     match provider {
-        Provider::Gemini => Some("gemini-api-key"),
+        // Both Gemini backends read the same credential on purpose: one key from AI Studio
+        // covers translation and subtitles, so switching mode never asks for it again.
+        Provider::Gemini | Provider::GeminiTranscribe => Some("gemini-api-key"),
         Provider::OpenAi => Some("openai-api-key"),
         Provider::Mistral => Some("mistral-api-key"),
         Provider::OnDevice => None,
@@ -23,7 +25,7 @@ fn account(provider: Provider) -> Option<&'static str> {
 /// Environment-variable fallback name.
 fn env_var(provider: Provider) -> Option<&'static str> {
     match provider {
-        Provider::Gemini => Some("GEMINI_API_KEY"),
+        Provider::Gemini | Provider::GeminiTranscribe => Some("GEMINI_API_KEY"),
         Provider::OpenAi => Some("OPENAI_API_KEY"),
         Provider::Mistral => Some("MISTRAL_API_KEY"),
         Provider::OnDevice => None,
@@ -32,7 +34,7 @@ fn env_var(provider: Provider) -> Option<&'static str> {
 
 fn label(provider: Provider) -> &'static str {
     match provider {
-        Provider::Gemini => "Gemini",
+        Provider::Gemini | Provider::GeminiTranscribe => "Gemini",
         Provider::OpenAi => "OpenAI",
         Provider::Mistral => "Mistral",
         Provider::OnDevice => "Built-in demo",

@@ -15,7 +15,10 @@ use crate::audio::capture::run_microphone;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
-use crate::gemini::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
+use crate::gemini::{
+    GeminiConfig, GeminiTranscribeConfig, DEFAULT_HOST, DEFAULT_TRANSCRIBE_MODEL,
+    DEFAULT_TRANSLATE_MODEL,
+};
 use crate::mistral::{
     MistralConfig, DEFAULT_MISTRAL_HOST, DEFAULT_MISTRAL_MODEL, DEFAULT_TARGET_STREAMING_DELAY_MS,
 };
@@ -132,7 +135,9 @@ impl SessionManager {
             // Guarded on the capability rather than a provider list, so adding another
             // translating backend cannot silently become a valid subtitle engine.
             (OutputMode::Transcribe, provider) if provider.can_translate() => {
-                anyhow::bail!("Live subtitles use Mistral or the built-in demonstration")
+                anyhow::bail!(
+                    "Live subtitles use Mistral, Gemini Transcribe, or the built-in demonstration"
+                )
             }
             _ => {}
         }
@@ -157,6 +162,8 @@ impl SessionManager {
             std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
         let gemini_model = std::env::var("GEMINI_TRANSLATE_MODEL")
             .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string());
+        let gemini_transcribe_model = std::env::var("GEMINI_TRANSCRIBE_MODEL")
+            .unwrap_or_else(|_| DEFAULT_TRANSCRIBE_MODEL.to_string());
         let openai_host =
             std::env::var("OPENAI_WS_HOST").unwrap_or_else(|_| DEFAULT_OPENAI_HOST.to_string());
         let openai_model = std::env::var("OPENAI_TRANSLATE_MODEL")
@@ -272,6 +279,20 @@ impl SessionManager {
                         model: gemini_model.clone(),
                         host: gemini_host.clone(),
                         target_language_code: target_code.clone(),
+                        origin,
+                    };
+                    client_tasks.push(tauri::async_runtime::spawn(run_session(
+                        client_app,
+                        config,
+                        audio_rx,
+                        source_cancel,
+                    )));
+                }
+                Provider::GeminiTranscribe => {
+                    let config = GeminiTranscribeConfig {
+                        api_key: api_key.clone(),
+                        model: gemini_transcribe_model.clone(),
+                        host: gemini_host.clone(),
                         origin,
                     };
                     client_tasks.push(tauri::async_runtime::spawn(run_session(

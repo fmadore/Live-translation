@@ -11,8 +11,13 @@ export type Origin = 'microphone' | 'system';
 export type TargetLanguage = 'en' | 'fr';
 
 /** Caption backend. The commercial providers each have their own API key; `ondevice`
- *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs. */
-export type Provider = 'gemini' | 'openai' | 'mistral' | 'ondevice';
+ *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs.
+ *
+ *  `gemini` and `gemini-transcribe` are two different Google models sharing one endpoint and
+ *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
+ *  different modes at different rates, and `providerCanTranslate` has to stay a plain
+ *  function of the provider. */
+export type Provider = 'gemini' | 'gemini-transcribe' | 'openai' | 'mistral' | 'ondevice';
 
 export interface OnDeviceReadiness {
 	ready: boolean;
@@ -32,6 +37,21 @@ export function providerCanTranslate(provider: Provider): boolean {
  *  app's primary functionality — see `docs/microsoft-store.md`. */
 export function providerRequiresKey(provider: Provider): boolean {
 	return provider !== 'ondevice';
+}
+
+/** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
+ *  it once covers translation and subtitles. Mirrors `account()` in `src-tauri/src/secrets.rs`. */
+export function providerKeyName(provider: Provider): string {
+	if (provider === 'openai') return 'OpenAI';
+	if (provider === 'mistral') return 'Mistral';
+	return 'Gemini';
+}
+
+/** Whether the backend identifies the spoken language itself, so there is no language for
+ *  the operator to choose. True for both subtitle engines; the built-in demo instead picks
+ *  which bundled script to play. */
+export function providerDetectsLanguage(provider: Provider): boolean {
+	return provider === 'mistral' || provider === 'gemini-transcribe';
 }
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
@@ -242,7 +262,13 @@ export const SESSION_OPTIONS_KEY = 'session.options';
 const AUDIO_SOURCES: readonly AudioSource[] = ['microphone', 'system', 'both'];
 const OUTPUT_MODES: readonly OutputMode[] = ['translate', 'transcribe'];
 const TARGET_LANGUAGES: readonly TargetLanguage[] = ['en', 'fr'];
-const PROVIDERS: readonly Provider[] = ['gemini', 'openai', 'mistral', 'ondevice'];
+const PROVIDERS: readonly Provider[] = [
+	'gemini',
+	'gemini-transcribe',
+	'openai',
+	'mistral',
+	'ondevice'
+];
 
 function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
 	return typeof value === 'string' && (allowed as readonly string[]).includes(value)
