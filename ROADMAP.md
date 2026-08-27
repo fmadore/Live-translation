@@ -53,21 +53,29 @@ interface level, and comfortable to leave running without an open operator windo
      code complete; keyboard/Narrator operation of the tray menu and the packaged-build walk
      are manual and stay open until they are run on Windows.
 
-Still open in the milestone, and therefore due in the next release rather than in 1.1.0:
+**Built after 1.1.0 was submitted**, and therefore due in the next release:
 
 3. **Inclusive and bilingual UI**
    - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24) —
      contrast, focus, headings, live regions, `aria-busy`, contrast themes and the modal focus
      trap have landed, with [`docs/accessibility.md`](docs/accessibility.md) carrying the
-     standard and the release walk. What is left is **225% text scaling**, which is not a CSS
-     problem: Windows' *Make text bigger* does not reach WebView2 content, so it needs
-     `UISettings.TextScaleFactor` plumbed through from Rust and a type scale that can respond.
+     standard and the release walk. **One criterion is still open: 225% text scaling**, and it
+     is not a CSS problem. Windows' *Make text bigger* does not reach WebView2 content
+     ([WebView2Feedback#1662](https://github.com/MicrosoftEdge/WebView2Feedback/issues/1662)),
+     so it needs `UISettings.TextScaleFactor` plumbed through from Rust and a type scale that
+     can respond — both windows are on fixed pixel sizes today.
    - [#23 — French app and Store localization](https://github.com/fmadore/Live-translation/issues/23) —
-     the largest remaining piece of work, and the one that touches every string. It comes after
-     the accessibility pass on purpose: that pass added accessible names and announcements,
-     which are strings, and translating them once is cheaper than translating them twice.
+     landed. Typed catalogs, a language selector independent of the caption language, and
+     `AppError { id, detail }` in place of every user-facing string the Rust core used to
+     format: **the core names failures, the interface words them**. It came after the
+     accessibility pass on purpose — that pass added accessible names and announcements, which
+     are strings. [`docs/localization.md`](docs/localization.md) is the contract. What is left
+     is not code: French screenshots for the Store listing, and a native speaker's review.
 4. **Defense in depth**
-   - [#31 — separate operator and overlay capabilities](https://github.com/fmadore/Live-translation/issues/31)
+   - [#31 — separate operator and overlay capabilities](https://github.com/fmadore/Live-translation/issues/31) —
+     landed. The overlay could invoke every command in the app; it now has one. Splitting the
+     capability file alone would have been documentary, so `build.rs` declares an app ACL
+     manifest, which is what makes Tauri enforce the split at runtime.
 
 Tray behavior is deliberately explicit: normal minimize keeps Windows taskbar semantics; an
 operator can choose **Minimize to tray** or enable **Keep running in the tray when I close the
@@ -81,6 +89,11 @@ Definition of done for 1.1:
 - English and French layouts are visually checked at the minimum window size and on the overlay.
 - Tray, graceful quit, Credential Manager, microphone, and loopback behavior pass in the Store
   MSIX on Windows 11.
+
+What that leaves is a **Windows session**, not more code: the Narrator and contrast-theme walk
+in [`docs/accessibility.md`](docs/accessibility.md), the tray's keyboard operation from #22,
+French screenshots for the Store listing, and a native French speaker's review. Text scaling is
+the one code item, and it is scoped above.
 
 ## 1.2 — Windows integration
 
