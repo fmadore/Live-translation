@@ -59,11 +59,17 @@ interface level, and comfortable to leave running without an open operator windo
    - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24) —
      contrast, focus, headings, live regions, `aria-busy`, contrast themes and the modal focus
      trap have landed, with [`docs/accessibility.md`](docs/accessibility.md) carrying the
-     standard and the release walk. **One criterion is still open: 225% text scaling**, and it
-     is not a CSS problem. Windows' *Make text bigger* does not reach WebView2 content
+     standard and the release walk. **Text scaling has now landed too**, which was the last
+     criterion open. Windows' *Make text bigger* does not reach WebView2 content
      ([WebView2Feedback#1662](https://github.com/MicrosoftEdge/WebView2Feedback/issues/1662)),
-     so it needs `UISettings.TextScaleFactor` plumbed through from Rust and a type scale that
-     can respond — both windows are on fixed pixel sizes today.
+     so `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor`, follows its change
+     event, and the operator window multiplies one type ramp by it. The half that is easy to
+     miss is that honouring a text setting is not only a question of type: a 225% caption in a
+     380px rail is clipped, not accessible. So every gutter and width that carries text is
+     measured in `em` and the two-column layout is a container query in `em`, which stacks the
+     columns into one scrolling column at the point they would start clipping and restores
+     them when the window is widened. The overlay opts out, like it does for contrast themes —
+     its captions are projected content the operator sizes for the room.
    - [#23 — French app and Store localization](https://github.com/fmadore/Live-translation/issues/23) —
      landed. Typed catalogs, a language selector independent of the caption language, and
      `AppError { id, detail }` in place of every user-facing string the Rust core used to
@@ -90,10 +96,12 @@ Definition of done for 1.1:
 - Tray, graceful quit, Credential Manager, microphone, and loopback behavior pass in the Store
   MSIX on Windows 11.
 
-What that leaves is a **Windows session**, not more code: the Narrator and contrast-theme walk
-in [`docs/accessibility.md`](docs/accessibility.md), the tray's keyboard operation from #22,
-French screenshots for the Store listing, and a native French speaker's review. Text scaling is
-the one code item, and it is scoped above.
+What that leaves is a **Windows session**, not more code: the Narrator, contrast-theme and
+text-scaling walks in [`docs/accessibility.md`](docs/accessibility.md), the tray's keyboard
+operation from #22, French screenshots for the Store listing, and a native French speaker's
+review. The text-scaling layout is verified at the window's 980 × 660 minimum at every step of
+the slider — no clipping, no overflow, no overlap — but verified in a browser preview at a
+forced factor, which is not the same as a real slider on a real Windows machine.
 
 ## 1.2 — Windows integration
 

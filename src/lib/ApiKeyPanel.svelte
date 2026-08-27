@@ -215,18 +215,18 @@
 		min-width: 0;
 	}
 	.title {
-		font-size: 13.5px;
+		font-size: var(--type-13-5);
 		font-weight: 500;
 		line-height: 1.2;
 	}
 	.desc {
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1.35;
 		color: var(--muted-2);
 	}
 	code {
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 		color: var(--text-dim);
 	}
 	a {
@@ -242,7 +242,7 @@
 		gap: 8px;
 	}
 	button {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 		padding: 7px 11px;
@@ -268,13 +268,16 @@
 		filter: brightness(1.06);
 	}
 	input {
-		width: 220px;
+		/* 220px at 100%. A key is a long opaque string, so the field is sized in the text
+		   it holds rather than in pixels that stop matching it. */
+		width: 13.75em;
+		max-width: 100%;
 		background: var(--panel-2);
 		border: 1px solid var(--border);
 		color: var(--text);
 		border-radius: 7px;
 		padding: 7px 10px;
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 	}
 	/* The mint border says "this field is where you are typing"; the ring from app.css stays,
 	   because on a dark panel a border tint alone is not a focus indicator. */

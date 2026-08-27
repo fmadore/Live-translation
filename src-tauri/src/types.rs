@@ -201,4 +201,7 @@ pub mod events {
     /// A tray menu entry the front-end has to carry out, because it needs the session or
     /// transcript state the renderer owns. Payload is `tray::TrayCommand`.
     pub const TRAY_COMMAND: &str = "tray-command";
+    /// The operator moved Windows' accessibility text-size slider. Payload is the clamped
+    /// factor as a float; see `textscale`.
+    pub const TEXT_SCALE: &str = "text-scale";
 }

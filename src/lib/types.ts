@@ -189,7 +189,8 @@ export const EVT = {
 	closeRequested: 'close-requested',
 	trayCommand: 'tray-command',
 	overlayConfig: 'overlay-config',
-	overlayState: 'overlay-state'
+	overlayState: 'overlay-state',
+	textScale: 'text-scale'
 } as const;
 
 /** localStorage key shared by both windows (same origin) for the overlay font size. */

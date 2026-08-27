@@ -197,7 +197,7 @@
 	}
 	.kicker {
 		margin: 0;
-		font-size: 10.5px;
+		font-size: var(--type-10-5);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.15em;
@@ -206,7 +206,7 @@
 	}
 	.count {
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 		line-height: 1;
 		color: var(--muted-3);
 		font-variant-numeric: tabular-nums;
@@ -215,7 +215,7 @@
 		flex: 1;
 	}
 	button.ghost {
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -237,7 +237,7 @@
 		color: var(--text);
 	}
 	.state {
-		font-size: 9.5px;
+		font-size: var(--type-9-5);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.1em;
@@ -257,7 +257,7 @@
 	}
 	.saved {
 		margin: 0;
-		font-size: 12px;
+		font-size: var(--type-12);
 		color: var(--accent-soft);
 		word-break: break-all;
 	}
@@ -265,11 +265,11 @@
 	.saved code,
 	.hint code {
 		font-family: var(--font-mono);
-		font-size: 11px;
+		font-size: var(--type-11);
 	}
 	.hint {
 		margin: 0;
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1.55;
 		color: var(--muted-3);
 		word-break: break-word;
@@ -281,7 +281,7 @@
 		border: 1px solid var(--warn-border);
 		background: var(--warn-bg);
 		color: var(--warn-soft);
-		font-size: 12px;
+		font-size: var(--type-12);
 		line-height: 1.55;
 		text-wrap: pretty;
 	}
@@ -298,13 +298,13 @@
 	}
 	.recovery-title {
 		display: block;
-		font-size: 12px;
+		font-size: var(--type-12);
 		color: var(--text-soft);
 	}
 	.recovery-note {
 		display: block;
 		margin-top: 3px;
-		font-size: 11.5px;
+		font-size: var(--type-11-5);
 		line-height: 1.5;
 		color: var(--muted-3);
 		text-wrap: pretty;
@@ -316,16 +316,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		max-height: 180px;
+		/* 180px at 100% — about six rows, in `em` so it stays about six rows. */
+		max-height: 11.25em;
 		overflow-y: auto;
 	}
 	.log li {
 		display: grid;
-		grid-template-columns: 68px 1fr;
+		grid-template-columns: 4.25em 1fr;
 		gap: 14px;
 	}
 	.side {
-		font-size: 9.5px;
+		font-size: var(--type-9-5);
 		font-weight: 500;
 		line-height: 1.6;
 		letter-spacing: 0.12em;
@@ -339,7 +340,7 @@
 		color: #6b8fd6;
 	}
 	.text {
-		font-size: 12.5px;
+		font-size: var(--type-12-5);
 		line-height: 1.55;
 		color: var(--muted);
 		text-wrap: pretty;

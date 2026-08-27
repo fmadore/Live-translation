@@ -20,6 +20,7 @@ mod realtime;
 mod recovery;
 mod secrets;
 mod session;
+mod textscale;
 mod tray;
 mod types;
 
@@ -113,6 +114,7 @@ pub fn run() {
             commands::set_overlay_click_through,
             commands::show_overlay,
             commands::save_transcript,
+            commands::text_scale_factor,
             recovery::write_recovery,
             recovery::read_recovery,
             recovery::clear_recovery,
@@ -183,6 +185,10 @@ pub fn run() {
             // Other topmost windows (Zoom, Teams, a slideshow) jump above the overlay when
             // they are activated, so keep re-raising it for as long as the app runs.
             overlay::spawn_topmost_keeper(app.handle());
+
+            // Windows' accessibility text size does not reach WebView2 content on its own,
+            // so the core reads it and the operator window applies it. See `textscale`.
+            textscale::watch(app.handle());
             Ok(())
         })
         .run(tauri::generate_context!())

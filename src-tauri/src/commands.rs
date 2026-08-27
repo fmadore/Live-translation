@@ -13,6 +13,7 @@ use crate::ondevice::{self, OnDeviceReadiness};
 use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
+use crate::textscale;
 use crate::types::{AudioDevice, AudioSource, Provider, StartOptions};
 
 #[tauri::command]
@@ -133,6 +134,16 @@ pub async fn show_overlay(app: AppHandle, visible: bool) -> Result<(), AppError>
         }
     }
     Ok(())
+}
+
+/// The operator's Windows text-scale factor, asked for once as the window boots.
+///
+/// A command rather than only an event because the window has to lay itself out before it
+/// could possibly have subscribed to anything, and an operator who needs 225% text should
+/// never see one frame of 9.5px type. Changes after boot arrive on `events::TEXT_SCALE`.
+#[tauri::command]
+pub async fn text_scale_factor() -> f64 {
+    textscale::current()
 }
 
 /// Write the transcript to a `Live-translation` folder under the user's Documents directory

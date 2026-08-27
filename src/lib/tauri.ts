@@ -78,6 +78,10 @@ export const api = {
 	saveTranscript: (content: string, filename: string) =>
 		invoke<string>('save_transcript', { content, filename }),
 
+	/** Windows' accessibility text-size factor, asked for as the operator window boots.
+	 *  Later changes arrive on `on.textScale`. See `textScale.ts`. */
+	textScaleFactor: () => invoke<number>('text_scale_factor'),
+
 	/** Overwrite the crash-recovery spool; returns its path. Opt-in — see `recoveryEnabled`. */
 	writeRecovery: (contents: string) => invoke<string>('write_recovery', { contents }),
 
@@ -129,5 +133,7 @@ export const on = {
 	/** A tray menu entry that needs session or transcript state to carry out. */
 	trayCommand: (h: (c: TrayCommand) => void) => listen<TrayCommand>(EVT.trayCommand, h),
 	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
-	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h)
+	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h),
+	/** The operator moved Windows' text-size slider while the app was running. */
+	textScale: (h: (factor: number) => void) => listen<number>(EVT.textScale, h)
 };
