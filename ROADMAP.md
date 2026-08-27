@@ -4,15 +4,17 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.0.5 is live, 1.1.0 is in certification
+## Current status — 1.1.0 is live
 
 Version **1.0.5** passed certification and is published at
 [apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
-**1.1.0** has been submitted and is waiting on review; until it is accepted, 1.0.5 is what the
-Store hands to anyone who installs the app. Updates are uploaded to Partner Center by hand, as
+Version **1.1.0** passed certification on 27 August 2026 and is what the Store now hands to
+anyone who installs or updates the app. Updates are uploaded to Partner Center by hand, as
 described in [`docs/store-automation.md`](docs/store-automation.md) — the submission API
 authenticates as a Microsoft Entra application, which Partner Center offers only to Company
 accounts.
+
+Version **1.0.5** was the release before it, and the one that first got through.
 
 It took several attempts. The 1.0.3 submission failed policy 10.1.2.10 because **Start
 Subtitles** did nothing on the review device, and neither credential-free Windows recognizer
@@ -53,7 +55,8 @@ interface level, and comfortable to leave running without an open operator windo
      code complete; keyboard/Narrator operation of the tray menu and the packaged-build walk
      are manual and stay open until they are run on Windows.
 
-**Built after 1.1.0 was submitted**, and therefore due in the next release:
+**Built after the 1.1.0 package was cut**, and therefore due in the next release. Everything
+below is on `main` and in none of the bytes the Store is serving:
 
 3. **Inclusive and bilingual UI**
    - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24) —
@@ -299,8 +302,9 @@ CI lane is a compile check only.
 
 ## Phase 8 — The first update (1.1.0, August 2026)
 
-Submitted to the Store on 27 August 2026. Everything here is in the release; the milestone
-itself stays open for the three issues listed under *1.1* above.
+Submitted and accepted on 27 August 2026, and live in the Store. Everything here is in that
+package; the milestone itself stays open for the three issues listed under *1.1* above, none of
+which are in it.
 
 - [x] **Gemini 3.5 Transcribe Live as a second subtitle engine** beside Voxtral. Both detect
   the spoken language themselves, and one Gemini key now covers subtitles and translation.
