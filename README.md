@@ -2,10 +2,11 @@
 
 Real-time captions for hybrid rooms and events. The desktop app captures a presenter’s
 microphone, Windows system audio (whatever is playing — Zoom, Teams, a browser tab, a media
-player), or both and renders captions in a transparent, always-on-top overlay. Built for —
-and first deployed at — the **Digital Humanities and Artificial Intelligence in African
-Studies** / **Humanités numériques et intelligence artificielle en études africaines**
-workshop (STIAS, Stellenbosch, 21–24 September 2026).
+player), or both and renders captions in a transparent, always-on-top overlay. Built for the
+[**Digital Humanities and Artificial Intelligence in African Studies** / **Humanités
+numériques et intelligence artificielle en études
+africaines**](https://fmadore.github.io/stias-dh-ai-workshop-2026/) workshop (STIAS,
+Stellenbosch, 21–24 September 2026).
 
 It has two deliberately separate modes:
 
@@ -16,14 +17,16 @@ It has two deliberately separate modes:
   so mixed-language meetings do not go blank during same-language passages.
 - **Subtitles** — a built-in English/French product demonstration requires no setup, while
   real-time same-language speech recognition uses Mistral Voxtral Mini Transcribe Realtime
-  (`voxtral-mini-transcribe-realtime-2602`). The transcript can be saved as plain `.txt` or
-  Markdown.
+  (`voxtral-mini-transcribe-realtime-2602`) or Google Gemini
+  (`gemini-3.5-transcribe-live`). Both detect the spoken language themselves; Gemini covers
+  over 70 languages and cleans fillers and false starts out of the subtitle, Voxtral is flat-rate
+  and has no session length limit. The transcript can be saved as plain `.txt` or Markdown.
 
 The app opens on a deterministic **Built-in demo**: no publisher key, account, microphone,
 language pack, network, or per-minute charge. It drives the real caption UI, overlay, elapsed
 timer, level meter, transcript and export path using clearly labelled bundled scripted
-content; it does not recognize live speech. Live microphone and system subtitles use Mistral,
-and live translation uses Gemini or OpenAI with your own provider key.
+content; it does not recognize live speech. Live microphone and system subtitles use Mistral
+or Gemini, and live translation uses Gemini or OpenAI with your own provider key.
 [`docs/microsoft-store.md`](docs/microsoft-store.md) explains why that split is what made
 Microsoft Store distribution possible.
 
@@ -87,14 +90,15 @@ non-`cfg(windows)` code, not a supported target.
 - Stable Rust
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
 - No key is needed for the built-in demonstration. Live modes need the corresponding provider key:
-  - [Google AI Studio](https://aistudio.google.com/apikey) for Gemini translation
+  - [Google AI Studio](https://aistudio.google.com/api-keys) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
   - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
+  - Gemini subtitles reuse the same AI Studio key as Gemini translation — save it once
 
 ## Running costs
 
 Every provider bills per minute of streamed audio, so the meter runs for as long as a session
-is open. Rates verified 10 August 2026 against
+is open. Rates verified 27 August 2026 against
 [Gemini](https://ai.google.dev/gemini-api/docs/pricing),
 [OpenAI](https://developers.openai.com/api/docs/pricing) and
 [Mistral](https://mistral.ai/pricing/api) pricing.
@@ -106,14 +110,26 @@ is open. Rates verified 10 August 2026 against
 | ↳ source monitor | `gpt-realtime-whisper` | $0.017/min | $1.02 |
 | Translation | OpenAI total | | **$3.06** |
 | Subtitles | `voxtral-mini-transcribe-realtime-2602` | $0.006/min | **$0.36** |
+| Subtitles | `gemini-3.5-transcribe-live` | $0.005/min audio in + $0.004/min text out | **$0.30–0.54** |
 | Built-in caption demonstration | bundled scripted content | free | **$0.00** |
 
-Gemini's input leg is billed on the full wall clock because silence stays in the stream, but
-its expensive output leg accrues only while the model generates translated speech — pauses,
-slide changes and Q&A gaps lower the bill, hence the range. That output audio is charged even
-though the app discards it. OpenAI is duration-billed and therefore flat: silence costs the
-same as speech, and the `gpt-realtime-whisper` source transcription that feeds the operator
-monitor is a separate charge on top.
+Both Gemini rows work the same way: the input leg is billed on the full wall clock because
+silence stays in the stream, while the output leg accrues only while the model is producing
+something — pauses, slide changes and Q&A gaps lower the bill, hence the ranges. For
+translation that output is audio, charged even though the app discards it; for subtitles it is
+the transcript text, which is far cheaper. OpenAI is duration-billed and therefore flat:
+silence costs the same as speech, and the `gpt-realtime-whisper` source transcription that
+feeds the operator monitor is a separate charge on top. Voxtral is likewise flat.
+
+The two subtitle engines cost about the same, so choose on behaviour rather than price.
+Gemini covers over 70 languages, detects the spoken one per utterance, and applies Google's
+smart transcription — fillers, false starts and spoken self-corrections are cleaned out, and
+punctuation and casing are applied. Against that, its live sessions cap at ten minutes, so a
+long room session reconnects several times an hour with a one- to two-second caption gap each
+time; and it decides its own segment boundaries, which for a speaker who rarely pauses can
+mean a caption that grows to a paragraph before it settles. Voxtral has no session cap and
+finalizes on short pauses, so it produces shorter, more even lines. Both behaviours are
+measured rather than assumed — see [`docs/gemini-live-api.md`](docs/gemini-live-api.md).
 
 Selecting **Both** as the source doubles every figure — the pipeline opens one capture and
 one WebSocket session per origin.

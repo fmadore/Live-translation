@@ -33,6 +33,17 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 		blurb:
 			'Translated captions come from the output transcription; the generated audio is discarded.'
 	},
+	'gemini-transcribe': {
+		id: 'gemini-transcribe',
+		vendor: 'Google Gemini',
+		modelId: 'gemini-3.5-transcribe-live',
+		hourlyText: '$0.30–0.54/hr',
+		hourlyEstimate: 0.42,
+		perStream: true,
+		keyUrl: 'https://aistudio.google.com/apikey',
+		blurb:
+			'Over 70 languages, detected per utterance, with fillers and false starts cleaned out of the subtitle.'
+	},
 	openai: {
 		id: 'openai',
 		vendor: 'OpenAI',

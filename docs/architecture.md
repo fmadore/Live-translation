@@ -15,9 +15,10 @@ built-in demo ───────────── deterministic caption + le
 1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
    low-pass filters when downsampling, resamples to the provider rate, converts to mono PCM16,
    and forms roughly 100 ms chunks. Realtime callbacks write only to bounded channels.
-2. **Provider sessions.** Gemini and OpenAI produce translated captions; Mistral produces
-   same-language captions. One async client runs per selected source and owns setup, timeouts,
-   backoff, reconnect classification, audio pumping, turn finalization, and graceful shutdown.
+2. **Provider sessions.** Gemini Live Translate and OpenAI produce translated captions;
+   Mistral Voxtral and Gemini Transcribe Live produce same-language captions. One async client
+   runs per selected source and owns setup, timeouts, backoff, reconnect classification, audio
+   pumping, turn finalization, and graceful shutdown.
 3. **Built-in demonstration.** The compatibility provider id `ondevice` starts
    `ondevice::run_session`, which opens no device and contacts no service. A deterministic
    English or French timeline emits the same session-status, audio-level, partial-caption, and
@@ -50,13 +51,21 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 
 | Provider | Mode | Input | Caption source | Graceful stop |
 |---|---|---|---|---|
-| Google Gemini Live | Translate | 16 kHz PCM16 | output transcription | WebSocket close |
+| Google Gemini Live Translate | Translate | 16 kHz PCM16 | output transcription | WebSocket close |
 | OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
 | Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
+| Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
-Mistral and the built-in demo are unavailable in translation mode. `session.rs` enforces the
-mode/provider relationship through `Provider::can_translate`.
+The two Gemini rows are separate `Provider` variants sharing one endpoint and one stored API
+key, because the wire format, the rate and the mode each serves all differ — and because
+`Provider::can_translate` has to stay a plain function of the provider. Their caption sources
+differ in kind, not just in name: Live Translate appends transcription deltas, while Transcribe
+Live sends a revised hypothesis and then an authoritative final for the same segment, each
+replacing the last. See [`gemini-live-api.md`](gemini-live-api.md).
+
+The subtitle backends and the built-in demo are unavailable in translation mode. `session.rs`
+enforces the mode/provider relationship through `Provider::can_translate`.
 
 ## Concurrency and shutdown
 
