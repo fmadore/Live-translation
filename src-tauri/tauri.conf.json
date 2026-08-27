@@ -46,6 +46,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Frédérick Madore",
+    "copyright": "© 2026 Frédérick Madore. MIT licensed.",
     "resources": {
       "resources/fixtures/*": "fixtures/"
     },
