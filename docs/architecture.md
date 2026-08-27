@@ -130,6 +130,41 @@ devices.
 - The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
 - The webview content-security policy blocks direct renderer connections.
 
+## The two windows are not equally trusted
+
+The operator window and the overlay are separate webviews, and the overlay is the one an
+audience looks at. It needs to move itself, resize itself and restore its own click-through
+while the operator is placing it — and nothing else. Until issue #31 it could invoke every
+command in the app, including the ones that read a provider key's presence, start a billable
+session, write the transcript or quit the app, because both windows shared one capability.
+
+Two things make the split real rather than documentary:
+
+- `build.rs` declares an **app ACL manifest** (`AppManifest::commands`, fed from
+  `src/command_names.rs`), which generates an `allow-<command>` permission per command. Once an
+  app has such a manifest, Tauri checks every one of its own commands against the calling
+  window's capability and rejects anything not granted — without it, app commands are only
+  checked for remote origins.
+- `capabilities/operator.json` grants all of them to `operator`;
+  `capabilities/overlay.json` grants `overlay` exactly one — `set_overlay_click_through` —
+  plus the core event permissions and the three window mutations it uses
+  (`set_position`, `set_size`, `start_dragging`) on top of the read-only `core:window:default`.
+
+The tests in `src/command_names.rs` hold the three pieces together: they fail if a command is
+registered without a permission (which would be rejected at runtime the first time an operator
+used it), if a capability grants something that no longer exists, or if the overlay is handed
+anything beyond placing itself.
+
+To see the boundary work, open the overlay's dev tools in `npm run tauri dev` and invoke a
+command it does not have:
+
+```js
+await window.__TAURI_INTERNALS__.invoke('stop_session')
+// stop_session not allowed on window "overlay", webview "overlay", URL: local
+// allowed on: [windows: "operator", URL: local]
+// referenced by: capability: operator, permission: allow-stop-session
+```
+
 ## Operational limits
 
 - Windows is the supported release target; native x64 and ARM64 packages are built.

@@ -1,0 +1,33 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "operator",
+  "description": "The operator window: everything the app can do. Keys, sessions, capture, the transcript and the close/quit path are reachable only from here.",
+  "windows": ["operator"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "allow-list-microphones",
+    "allow-has-api-key",
+    "allow-set-api-key",
+    "allow-clear-api-key",
+    "allow-ondevice-readiness",
+    "allow-prepare-ondevice-model",
+    "allow-start-session",
+    "allow-stop-session",
+    "allow-start-audio-test",
+    "allow-stop-audio-test",
+    "allow-set-overlay-click-through",
+    "allow-show-overlay",
+    "allow-save-transcript",
+    "allow-write-recovery",
+    "allow-read-recovery",
+    "allow-clear-recovery",
+    "allow-ack-close",
+    "allow-set-close-guard",
+    "allow-set-close-to-tray",
+    "allow-hide-to-tray",
+    "allow-show-operator",
+    "allow-confirm-close",
+    "allow-set-tray-state"
+  ]
+}
