@@ -15,6 +15,7 @@ use crate::audio::capture::run_microphone;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
+use crate::errors::{id, AppError};
 use crate::gemini::{
     GeminiConfig, GeminiTranscribeConfig, DEFAULT_HOST, DEFAULT_TRANSCRIBE_MODEL,
     DEFAULT_TRANSLATE_MODEL,
@@ -76,21 +77,19 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// Operator-facing wording for a capture failure on one source.
+/// Which failure this is, for a capture failure on one source.
 ///
-/// The microphone gets its own text on purpose. Under package identity Windows gates the
+/// The microphone gets its own id on purpose. Under package identity Windows gates the
 /// microphone per app, so a blocked install fails at device open with an ordinary cpal error
-/// and nothing pointing at the toggle — see gate 6 in `docs/microsoft-store.md`. The message
-/// covers a denied device and an absent one alike, because cpal reports both the same way,
-/// and it keeps the underlying error so the real cause is still visible.
-fn source_failure_message(origin: Origin, error: &anyhow::Error) -> String {
+/// and nothing pointing at the toggle — see gate 6 in `docs/microsoft-store.md`. The
+/// interface's wording for `MIC_CAPTURE` therefore names the privacy setting; the id covers a
+/// denied device and an absent one alike, because cpal reports both the same way. The
+/// underlying error rides along as the detail, so the real cause is still visible.
+fn source_failure(origin: Origin, error: &anyhow::Error) -> AppError {
+    let detail = format!("{error:#}");
     match origin {
-        Origin::Microphone => format!(
-            "Microphone capture failed ({error:#}). If access is blocked, enable it under \
-                 Windows Settings > Privacy & security > Microphone \
-                 (ms-settings:privacy-microphone), then start again."
-        ),
-        Origin::System => format!("{origin:?} capture: {error}"),
+        Origin::Microphone => AppError::with(id::MIC_CAPTURE, detail),
+        Origin::System => AppError::with(id::SYSTEM_CAPTURE, detail),
     }
 }
 
@@ -103,7 +102,7 @@ fn report_source_failure(
     cancel: &CancellationToken,
 ) {
     tracing::error!(?origin, "capture failed: {error:#}");
-    let message = source_failure_message(origin, error);
+    let message = source_failure(origin, error);
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {
@@ -444,7 +443,7 @@ impl SessionManager {
                             events::AUDIO_TEST,
                             AudioTestUpdate {
                                 active: false,
-                                message: Some(source_failure_message(origin, &error)),
+                                message: Some(source_failure(origin, &error)),
                             },
                         );
                         error_cancel.cancel();

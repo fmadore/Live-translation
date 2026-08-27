@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { api, isTauri } from './tauri';
+	import { t } from './i18n';
+	import { asStatus, type AppError } from './errors';
 	import {
 		clearTranscript as clearTranscriptStore,
 		recoveryEnabled,
@@ -14,7 +16,7 @@
 	interface Props {
 		mode: OutputMode;
 		transcript: TranscriptLine[];
-		onError: (message: string) => void;
+		onError: (message: string | AppError) => void;
 	}
 
 	let { mode, transcript, onError }: Props = $props();
@@ -26,9 +28,9 @@
 	// the first click.
 	let confirmingClear = $state(false);
 
-	// The log names the two sides of the room, not the devices — the device names
-	// (`ORIGIN_LABEL`) are what the saved file uses.
-	const SIDE_LABEL: Record<Origin, string> = { microphone: 'Room', system: 'Remote' };
+	// The log names the two sides of the room; the saved file names the devices
+	// (`export.origin`). Both follow the interface language.
+	const sideLabel = $derived<Record<Origin, string>>($t.transcript.side);
 
 	// Show the log exactly as it will be saved: chronological, grouped into a paragraph per
 	// audio source, newest at the bottom.
@@ -37,7 +39,7 @@
 	// What a screen reader hears after a save. Empty while there is nothing new to report, so
 	// the region stays silent between saves.
 	const saveAnnouncement = $derived(
-		$savedPath && !$transcriptDirty ? `Transcript saved to ${$savedPath}` : ''
+		$savedPath && !$transcriptDirty ? $t.transcript.savedAnnouncement($savedPath) : ''
 	);
 
 	// Nothing is ever dropped (issue #25), but a log this long is a session worth putting on
@@ -65,7 +67,7 @@
 		try {
 			await saveTranscriptDocument(format);
 		} catch (error) {
-			onError(String(error));
+			onError(asStatus(error));
 		} finally {
 			saving = false;
 		}
@@ -87,19 +89,19 @@
 		recoveryEnabled.set(enabled);
 		// Switching it off has to remove what it already wrote, or "disabled" would still
 		// leave captions sitting on disk.
-		if (!enabled) void api.clearRecovery().catch((error) => onError(String(error)));
+		if (!enabled) void api.clearRecovery().catch((error) => onError(asStatus(error)));
 	}
 </script>
 
 <section class="monitor">
 	<div class="head">
-		<h2 class="kicker">Transcript</h2>
-		<span class="count">{transcript.length} {transcript.length === 1 ? 'line' : 'lines'}</span>
+		<h2 class="kicker">{$t.transcript.heading}</h2>
+		<span class="count">{$t.transcript.lines(transcript.length)}</span>
 		<!-- The whole point of the badge: on screen, a transcript that exists only in memory
 		     looks exactly like one that is on disk. -->
 		{#if transcript.length}
 			<span class="state" class:unsaved={$transcriptDirty} data-testid="save-state">
-				{$transcriptDirty ? 'Unsaved' : 'Saved'}
+				{$transcriptDirty ? $t.transcript.unsaved : $t.transcript.saved}
 			</span>
 		{/if}
 		<div class="spacer"></div>
@@ -109,7 +111,7 @@
 			aria-busy={saving}
 			onclick={() => save('text')}
 		>
-			Save text
+			{$t.transcript.saveText}
 		</button>
 		<button
 			class="ghost"
@@ -117,7 +119,7 @@
 			aria-busy={saving}
 			onclick={() => save('markdown')}
 		>
-			Save Markdown
+			{$t.transcript.saveMarkdown}
 		</button>
 		<button
 			class="ghost quiet"
@@ -125,7 +127,7 @@
 			disabled={!transcript.length || saving}
 			onclick={clear}
 		>
-			{confirmingClear ? 'Discard unsaved lines?' : 'Clear'}
+			{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
 		</button>
 	</div>
 
@@ -134,34 +136,29 @@
 	     the layout nothing between saves. The visible lines below repeat it for the eye. -->
 	<p class="sr-only" role="status">{saveAnnouncement}</p>
 	{#if $savedPath && !$transcriptDirty}
-		<p class="saved" aria-hidden="true">Saved to <code>{$savedPath}</code></p>
+		<p class="saved" aria-hidden="true">{$t.transcript.savedTo} <code>{$savedPath}</code></p>
 	{:else if $savedPath}
 		<p class="hint" aria-hidden="true">
-			Lines added since the save to <code>{$savedPath}</code> are not on disk yet.
+			{$t.transcript.staleBefore} <code>{$savedPath}</code> {$t.transcript.staleAfter}
 		</p>
 	{/if}
 
 	{#if veryLong && $transcriptDirty}
-		<p class="warn" role="status">
-			This is a long session and none of it has been saved since it grew past {TRANSCRIPT_WARN_LINES}
-			lines. Nothing is being dropped, but save it now so a crash cannot take it.
-		</p>
+		<p class="warn" role="status">{$t.transcript.longSession(TRANSCRIPT_WARN_LINES)}</p>
 	{/if}
 
 	{#if paragraphs.length}
 		<ul class="log" bind:this={logEl}>
 			{#each paragraphs as paragraph (paragraph.id)}
 				<li class="origin-{paragraph.origin}">
-					<span class="side">{SIDE_LABEL[paragraph.origin]}</span>
+					<span class="side">{sideLabel[paragraph.origin]}</span>
 					<span class="text">{paragraph.text}</span>
 				</li>
 			{/each}
 		</ul>
 	{:else}
 		<p class="hint">
-			{mode === 'translate'
-				? 'Finalized translations collect here, ready to save as text or Markdown.'
-				: 'Finalized subtitles collect here, ready to save as text or Markdown.'}
+			{mode === 'translate' ? $t.transcript.emptyTranslate : $t.transcript.emptySubtitles}
 		</p>
 	{/if}
 
@@ -173,15 +170,9 @@
 			onchange={(e) => toggleRecovery(e.currentTarget.checked)}
 		/>
 		<span>
-			<span class="recovery-title">Keep a local recovery copy while captioning</span>
+			<span class="recovery-title">{$t.transcript.recovery.title}</span>
 			<span class="recovery-note">
-				{#if desktop}
-					Writes the finalized lines to this PC every few seconds so a crash or a power cut
-					cannot take the session. Never leaves the machine, holds no audio and no API key,
-					and is deleted as soon as you save, clear, or switch this off.
-				{:else}
-					Needs the desktop app — a browser preview has nowhere to write it.
-				{/if}
+				{desktop ? $t.transcript.recovery.note : $t.transcript.recovery.needsDesktop}
 			</span>
 		</span>
 	</label>

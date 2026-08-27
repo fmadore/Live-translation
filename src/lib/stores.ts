@@ -1,6 +1,7 @@
 // Svelte stores shared across the operator window. The overlay window keeps its own
 // minimal state (see routes/overlay/+page.svelte) so it stays lightweight.
 
+import type { AppError } from './errors';
 import { writable, derived } from 'svelte/store';
 import type {
 	AudioLevel,
@@ -45,7 +46,10 @@ export const isRunning = derived(originStates, (m) =>
 	Object.values(m).some((s) => s === 'running' || s === 'reconnecting' || s === 'connecting')
 );
 
-export const statusMessage = writable<string>('');
+// Either plain text or the core's structured error. Structured, because the sentence for an
+// id belongs to the interface language and is chosen where it is rendered — see
+// `describeError`.
+export const statusMessage = writable<string | AppError>('');
 
 /** Wall-clock start of the current run, or null when idle. Drives the elapsed timer and the
  *  running cost estimate. */

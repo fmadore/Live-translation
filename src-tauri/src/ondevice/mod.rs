@@ -14,6 +14,7 @@ use tokio::time::{sleep, Duration};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
+use crate::errors::AppError;
 use crate::realtime::{emit_caption, TurnAccumulator};
 use crate::types::{events, AudioLevel, Origin, SessionState, StatusUpdate, TargetLanguage};
 
@@ -190,7 +191,7 @@ async fn cancellable_delay(cancel: &CancellationToken, duration: Duration) -> bo
     }
 }
 
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<String>, origin: Origin) {
+fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, origin: Origin) {
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {
