@@ -78,4 +78,38 @@ describe('UnsavedPrompt', () => {
 		expect(getByRole('alert')).toHaveTextContent('could not create');
 		expect(getByRole('button', { name: 'Save and close' })).toBeEnabled();
 	});
+
+	// Issue #24. `aria-modal` hides what is behind the dialog from a screen reader, but only a
+	// trap keeps the Tab key from walking into a window the operator can no longer see.
+	describe('the keyboard cannot leave it', () => {
+		it('wraps forward from the last answer to the first', async () => {
+			const { getByRole } = mount();
+			getByRole('button', { name: 'Cancel' }).focus();
+
+			await fireEvent.keyDown(window, { key: 'Tab' });
+
+			expect(getByRole('button', { name: 'Save and close' })).toHaveFocus();
+		});
+
+		it('wraps backward from the first answer to the last', async () => {
+			const { getByRole } = mount();
+			getByRole('button', { name: 'Save and close' }).focus();
+
+			await fireEvent.keyDown(window, { key: 'Tab', shiftKey: true });
+
+			expect(getByRole('button', { name: 'Cancel' })).toHaveFocus();
+		});
+
+		it('pulls focus back in when it is somewhere else entirely', async () => {
+			const outside = document.createElement('button');
+			document.body.append(outside);
+			const { getByRole } = mount();
+			outside.focus();
+
+			await fireEvent.keyDown(window, { key: 'Tab' });
+
+			expect(getByRole('button', { name: 'Save and close' })).toHaveFocus();
+			outside.remove();
+		});
+	});
 });

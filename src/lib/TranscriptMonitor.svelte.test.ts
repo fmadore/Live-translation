@@ -127,25 +127,50 @@ describe('discarding', () => {
 });
 
 describe('long sessions', () => {
+	// The warning is one of several `role="status"` regions in the component now, so these
+	// address it by its text and assert separately that it is a region at all.
+	const WARNING = /Nothing is being dropped/;
+
 	it('keeps a log well past the old 1,000-line cap and says it should be saved', () => {
 		const lines = seed(TRANSCRIPT_WARN_LINES);
-		const { getByRole } = mount(lines);
+		const { getByText } = mount(lines);
 
 		expect(get(transcript)).toHaveLength(TRANSCRIPT_WARN_LINES);
-		expect(getByRole('status')).toHaveTextContent('Nothing is being dropped');
+		expect(getByText(WARNING)).toHaveAttribute('role', 'status');
 	});
 
 	it('does not nag about a long session that is already on disk', async () => {
-		const { getByText, queryByRole } = mount(seed(TRANSCRIPT_WARN_LINES));
+		const { getByText, queryByText } = mount(seed(TRANSCRIPT_WARN_LINES));
 
 		await fireEvent.click(getByText('Save Markdown'));
 
-		await waitFor(() => expect(queryByRole('status')).toBeNull());
+		await waitFor(() => expect(queryByText(WARNING)).toBeNull());
 	});
 
 	it('stays quiet below the threshold', () => {
-		const { queryByRole } = mount(seed(TRANSCRIPT_WARN_LINES - 1));
-		expect(queryByRole('status')).toBeNull();
+		const { queryByText } = mount(seed(TRANSCRIPT_WARN_LINES - 1));
+		expect(queryByText(WARNING)).toBeNull();
+	});
+});
+
+// Issue #24: a save that only turns a badge from "Unsaved" to "Saved" is invisible to a
+// screen reader, and the operator saving a transcript is exactly the moment that needs a
+// confirmation they can hear.
+describe('announcing a save', () => {
+	it('reports the path a screen reader would otherwise never hear', async () => {
+		const { getByText, container } = mount(seed(3));
+
+		await fireEvent.click(getByText('Save text'));
+
+		await waitFor(() => {
+			const region = container.querySelector('p.sr-only[role="status"]');
+			expect(region).toHaveTextContent(/Transcript saved to .*transcript\.md/);
+		});
+	});
+
+	it('is silent until something has been saved', () => {
+		const { container } = mount(seed(3));
+		expect(container.querySelector('p.sr-only[role="status"]')).toHaveTextContent('');
 	});
 });
 

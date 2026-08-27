@@ -604,7 +604,9 @@
 		padding: 12px 14px;
 		border: 1px solid #2f3540;
 		border-radius: 14px;
-		background: rgba(14, 17, 20, 0.92);
+		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
+		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. */
+		background: rgba(14, 17, 20, 0.96);
 		box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
 		color: #e9ebef;
 		/* Clickable while the rest of the stage drags the window. */
@@ -635,7 +637,9 @@
 		font-family: var(--font-mono);
 		font-size: 10.5px;
 		line-height: 1.7;
-		color: #7f8794;
+		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
+		   paints over an unknown desktop and does not inherit the operator's surfaces. */
+		color: #848c99;
 		white-space: nowrap;
 	}
 	.keys kbd {
@@ -721,5 +725,23 @@
 	}
 	.primary:hover {
 		filter: brightness(1.06);
+	}
+
+	/* Windows contrast themes. The audience view opts out entirely: these captions are the
+	   content being projected into a room, not application chrome, and repainting them in the
+	   operator's system palette would put system-coloured text over a scrim built for white.
+	   The move-mode chrome, which is chrome, keeps the system palette — it only has to drop the
+	   gradient the forced palette would not have recoloured. */
+	@media (forced-colors: active) {
+		.captions,
+		.placeholder,
+		.region,
+		.handle,
+		.edge {
+			forced-color-adjust: none;
+		}
+		.primary {
+			background-image: none;
+		}
 	}
 </style>

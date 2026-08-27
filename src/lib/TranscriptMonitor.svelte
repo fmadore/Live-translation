@@ -34,6 +34,12 @@
 	// audio source, newest at the bottom.
 	const paragraphs = $derived(groupTranscript(transcript));
 
+	// What a screen reader hears after a save. Empty while there is nothing new to report, so
+	// the region stays silent between saves.
+	const saveAnnouncement = $derived(
+		$savedPath && !$transcriptDirty ? `Transcript saved to ${$savedPath}` : ''
+	);
+
 	// Nothing is ever dropped (issue #25), but a log this long is a session worth putting on
 	// disk before something else decides for the operator.
 	const veryLong = $derived(transcript.length >= TRANSCRIPT_WARN_LINES);
@@ -87,7 +93,7 @@
 
 <section class="monitor">
 	<div class="head">
-		<span class="kicker">Transcript</span>
+		<h2 class="kicker">Transcript</h2>
 		<span class="count">{transcript.length} {transcript.length === 1 ? 'line' : 'lines'}</span>
 		<!-- The whole point of the badge: on screen, a transcript that exists only in memory
 		     looks exactly like one that is on disk. -->
@@ -97,10 +103,20 @@
 			</span>
 		{/if}
 		<div class="spacer"></div>
-		<button class="ghost" disabled={!transcript.length || saving} onclick={() => save('text')}>
+		<button
+			class="ghost"
+			disabled={!transcript.length || saving}
+			aria-busy={saving}
+			onclick={() => save('text')}
+		>
 			Save text
 		</button>
-		<button class="ghost" disabled={!transcript.length || saving} onclick={() => save('markdown')}>
+		<button
+			class="ghost"
+			disabled={!transcript.length || saving}
+			aria-busy={saving}
+			onclick={() => save('markdown')}
+		>
 			Save Markdown
 		</button>
 		<button
@@ -113,10 +129,16 @@
 		</button>
 	</div>
 
+	<!-- The announcement lives in its own always-present region — a live region created at the
+	     same moment as its text is routinely missed, and this one is out of flow, so it costs
+	     the layout nothing between saves. The visible lines below repeat it for the eye. -->
+	<p class="sr-only" role="status">{saveAnnouncement}</p>
 	{#if $savedPath && !$transcriptDirty}
-		<p class="saved">Saved to <code>{$savedPath}</code></p>
+		<p class="saved" aria-hidden="true">Saved to <code>{$savedPath}</code></p>
 	{:else if $savedPath}
-		<p class="hint">Lines added since the save to <code>{$savedPath}</code> are not on disk yet.</p>
+		<p class="hint" aria-hidden="true">
+			Lines added since the save to <code>{$savedPath}</code> are not on disk yet.
+		</p>
 	{/if}
 
 	{#if veryLong && $transcriptDirty}
@@ -182,6 +204,7 @@
 		gap: 12px;
 	}
 	.kicker {
+		margin: 0;
 		font-size: 10.5px;
 		font-weight: 600;
 		line-height: 1;
@@ -246,6 +269,7 @@
 		color: var(--accent-soft);
 		word-break: break-all;
 	}
+
 	.saved code,
 	.hint code {
 		font-family: var(--font-mono);
@@ -316,7 +340,7 @@
 		text-transform: uppercase;
 	}
 	.origin-microphone .side {
-		color: var(--faint);
+		color: var(--muted-3);
 	}
 	/* Dimmer than --room-soft: in the log the label is a marker, not a heading. */
 	.origin-system .side {
