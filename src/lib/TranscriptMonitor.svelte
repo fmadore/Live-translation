@@ -139,7 +139,8 @@
 		<p class="saved" aria-hidden="true">{$t.transcript.savedTo} <code>{$savedPath}</code></p>
 	{:else if $savedPath}
 		<p class="hint" aria-hidden="true">
-			{$t.transcript.staleBefore} <code>{$savedPath}</code> {$t.transcript.staleAfter}
+			{$t.transcript.staleBefore} <code>{$savedPath}</code>
+			{$t.transcript.staleAfter}
 		</p>
 	{/if}
 

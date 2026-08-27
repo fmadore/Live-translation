@@ -9,7 +9,7 @@ updates:
     # independently: mismatched Node types can expose unavailable APIs, and
     # TypeScript majors require SvelteKit/svelte-check peer support.
     ignore:
-      - dependency-name: '@types/node'
+      - dependency-name: "@types/node"
         update-types:
           - version-update:semver-major
       - dependency-name: typescript

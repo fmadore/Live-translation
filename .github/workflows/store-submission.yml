@@ -16,16 +16,16 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag holding the .msixbundle to submit (e.g. v1.1.0)'
+        description: "Release tag holding the .msixbundle to submit (e.g. v1.1.0)"
         required: true
       commit:
-        description: 'Send to certification now. Leave unticked to review the draft in Partner Center first.'
+        description: "Send to certification now. Leave unticked to review the draft in Partner Center first."
         type: boolean
         default: false
       rollout:
-        description: 'Optional gradual rollout percentage (1-100). Blank ships to everyone at once.'
+        description: "Optional gradual rollout percentage (1-100). Blank ships to everyone at once."
         required: false
-        default: ''
+        default: ""
 
 permissions:
   contents: read

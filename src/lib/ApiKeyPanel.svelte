@@ -90,14 +90,30 @@
 <div class="row" class:pending={!available || editing}>
 	{#if available && !editing}
 		<span class="mark ok" aria-hidden="true">
-			<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg>
+			<svg
+				width="12"
+				height="12"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2.6"
+				stroke-linecap="round"
+				aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
+			>
 		</span>
 		<div class="body">
 			<span class="title">{$t.key.title(keyName)}</span>
 			<span class="desc">{$t.key.saved}</span>
 		</div>
 		<div class="actions">
-			<button class="ghost" disabled={locked} onclick={() => { editing = true; apiKeyInput = ''; }}>
+			<button
+				class="ghost"
+				disabled={locked}
+				onclick={() => {
+					editing = true;
+					apiKeyInput = '';
+				}}
+			>
 				{$t.key.replace}
 			</button>
 			<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
@@ -139,7 +155,13 @@
 				{saving ? $t.key.saving : $t.key.save}
 			</button>
 			{#if available}
-				<button class="ghost" onclick={() => { editing = false; apiKeyInput = ''; }}>
+				<button
+					class="ghost"
+					onclick={() => {
+						editing = false;
+						apiKeyInput = '';
+					}}
+				>
 					{$t.key.cancel}
 				</button>
 			{/if}

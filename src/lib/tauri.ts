@@ -50,8 +50,7 @@ export const api = {
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 
 	hasApiKey: (provider: Provider) => invoke<boolean>('has_api_key', { provider }),
-	setApiKey: (provider: Provider, key: string) =>
-		invoke<void>('set_api_key', { provider, key }),
+	setApiKey: (provider: Provider, key: string) => invoke<void>('set_api_key', { provider, key }),
 	clearApiKey: (provider: Provider) => invoke<void>('clear_api_key', { provider }),
 	onDeviceReadiness: () => invoke<OnDeviceReadiness>('ondevice_readiness'),
 	prepareOnDeviceModel: () => invoke<OnDeviceReadiness>('prepare_ondevice_model'),

@@ -57,8 +57,8 @@ describe('describing a failure', () => {
 describe('the catalog and the core', () => {
 	const RUST = readFileSync(new URL('../../src-tauri/src/errors.rs', import.meta.url), 'utf8');
 
-	const ids = [...RUST.matchAll(/pub const [A-Z_]+: &str = "(error\.[A-Za-z]+)";/g)].map(
-		(match) => match[1].slice('error.'.length)
+	const ids = [...RUST.matchAll(/pub const [A-Z_]+: &str = "(error\.[A-Za-z]+)";/g)].map((match) =>
+		match[1].slice('error.'.length)
 	);
 
 	it('finds the ids the core can emit', () => {

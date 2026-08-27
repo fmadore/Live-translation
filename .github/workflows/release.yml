@@ -20,11 +20,11 @@ name: Release installers
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing tag to build installers for (e.g. v0.1.1)'
+        description: "Existing tag to build installers for (e.g. v0.1.1)"
         required: true
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: windows-latest      # x64 Windows
+          - platform: windows-latest # x64 Windows
             target: x86_64-pc-windows-msvc
 
     runs-on: ${{ matrix.platform }}

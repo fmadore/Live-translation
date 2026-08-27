@@ -106,8 +106,7 @@ export const fr: Messages = {
 				'Gemini : l’audio entrant est facturé au temps réel, le texte de la transcription uniquement lorsque quelqu’un parle.',
 			openai:
 				'OpenAI : l’audio entrant et le texte sortant sont facturés à la minute tant que le flux reste ouvert.',
-			mistral:
-				'Voxtral : facturé à la minute d’audio transmis, tant que la session reste ouverte.',
+			mistral: 'Voxtral : facturé à la minute d’audio transmis, tant que la session reste ouverte.',
 			ondevice:
 				'Démonstration intégrée : aucun audio en direct n’est capté, aucun service n’est contacté et rien n’est facturé.'
 		}
@@ -222,11 +221,9 @@ export const fr: Messages = {
 			system: 'système',
 			demo: 'échantillon'
 		},
-		waitingTranslation:
-			'Les sous-titres traduits apparaîtront ici et dans la surimpression.',
+		waitingTranslation: 'Les sous-titres traduits apparaîtront ici et dans la surimpression.',
 		waitingSubtitles: 'Les sous-titres en direct apparaîtront ici et dans la surimpression.',
-		waitingDemo:
-			'Les sous-titres de démonstration apparaîtront ici et dans la surimpression.'
+		waitingDemo: 'Les sous-titres de démonstration apparaîtront ici et dans la surimpression.'
 	},
 
 	preflight: {
@@ -259,10 +256,8 @@ export const fr: Messages = {
 			 *  used to reach this by replacing "was" with "is"; that does not survive
 			 *  translation, so both tenses are written out. */
 			hearing: {
-				microphone:
-					'Le micro de la salle capte du son — arrêtez le test quand vous êtes satisfait',
-				system:
-					'Le rebouclage WASAPI reçoit du son — arrêtez le test quand vous êtes satisfait',
+				microphone: 'Le micro de la salle capte du son — arrêtez le test quand vous êtes satisfait',
+				system: 'Le rebouclage WASAPI reçoit du son — arrêtez le test quand vous êtes satisfait',
 				both: 'Le micro de la salle et le rebouclage WASAPI reçoivent tous les deux du son — arrêtez le test quand vous êtes satisfait',
 				demo: 'L’échantillon fourni est prêt — aucun microphone n’est ouvert'
 			},
@@ -277,8 +272,7 @@ export const fr: Messages = {
 		overlay: {
 			title: 'Placement de la surimpression',
 			placed: 'Placée — les sous-titres apparaîtront là où vous les avez verrouillés',
-			unplaced:
-				'Pas encore placée — les sous-titres se placeront en bas au centre de cet écran',
+			unplaced: 'Pas encore placée — les sous-titres se placeront en bas au centre de cet écran',
 			place: 'Placer',
 			adjust: 'Ajuster',
 			done: 'Terminé',
@@ -309,8 +303,7 @@ export const fr: Messages = {
 			spooled:
 				'La transcription reste en mémoire et est copiée localement jusqu’à ce que vous l’enregistriez.',
 			demo: 'La démo intégrée reste entièrement à l’intérieur de l’application.',
-			cloud: (vendor: string) =>
-				`Rien ne quitte la machine, hormis l’audio envoyé à ${vendor}.`
+			cloud: (vendor: string) => `Rien ne quitte la machine, hormis l’audio envoyé à ${vendor}.`
 		}
 	},
 
@@ -475,7 +468,6 @@ export const fr: Messages = {
 		providerStopped: 'Le fournisseur a mis fin à la session',
 		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours',
 		/** Front-end only: the recovery spool is written from the operator window. */
-		recoveryWrite: (detail: string) =>
-			`La copie de récupération n’a pas pu être écrite : ${detail}`
+		recoveryWrite: (detail: string) => `La copie de récupération n’a pas pu être écrite : ${detail}`
 	}
 };

@@ -86,7 +86,9 @@ describe('saved / unsaved state', () => {
 
 		await fireEvent.click(getByText('Save Markdown'));
 
-		await waitFor(() => expect(onError).toHaveBeenCalledWith(expect.stringContaining('could not create')));
+		await waitFor(() =>
+			expect(onError).toHaveBeenCalledWith(expect.stringContaining('could not create'))
+		);
 		expect(getByTestId('save-state')).toHaveTextContent('Unsaved');
 	});
 });

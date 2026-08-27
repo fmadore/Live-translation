@@ -195,9 +195,8 @@
 	async function snapToBottom() {
 		if (!isTauri()) return;
 		try {
-			const { getCurrentWindow, currentMonitor, LogicalSize, LogicalPosition } = await import(
-				'@tauri-apps/api/window'
-			);
+			const { getCurrentWindow, currentMonitor, LogicalSize, LogicalPosition } =
+				await import('@tauri-apps/api/window');
 			const win = getCurrentWindow();
 			const monitor = await currentMonitor();
 			if (!monitor) return;
@@ -237,9 +236,8 @@
 		const geo = entryGeometry;
 		if (geo && isTauri()) {
 			try {
-				const { getCurrentWindow, PhysicalPosition, PhysicalSize } = await import(
-					'@tauri-apps/api/window'
-				);
+				const { getCurrentWindow, PhysicalPosition, PhysicalSize } =
+					await import('@tauri-apps/api/window');
 				const win = getCurrentWindow();
 				await win.setSize(new PhysicalSize(geo.width, geo.height));
 				await win.setPosition(new PhysicalPosition(geo.x, geo.y));

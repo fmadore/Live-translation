@@ -379,7 +379,8 @@ export const en = {
 			title: 'A caption session is running',
 			body: (elapsed: string) =>
 				`Captions have been live for ${elapsed}. Closing stops the session, waits for the last captions to arrive, and then quits.`,
-			noteBefore: 'To put the window away without stopping anything, use Minimize to tray — or turn on',
+			noteBefore:
+				'To put the window away without stopping anything, use Minimize to tray — or turn on',
 			noteEmphasis: 'Keep running in the tray when I close this window',
 			noteAfter: '.',
 			keep: 'Keep captioning',
@@ -441,8 +442,7 @@ export const en = {
 		micCapture:
 			'Microphone capture failed. If access is blocked, enable it under Windows Settings > Privacy & security > Microphone (ms-settings:privacy-microphone), then start again',
 		systemCapture: 'System audio capture failed',
-		providerRejected:
-			'The provider rejected the connection — check the API key and model access',
+		providerRejected: 'The provider rejected the connection — check the API key and model access',
 		providerStopped: 'The provider ended the session',
 		providerReconnecting: 'The connection dropped; reconnecting',
 		/** Front-end only: the recovery spool is written from the operator window. */
