@@ -47,6 +47,23 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
+### What's new in this version — 1.1.0
+
+Paste this into **What's new in this version**. Unlike every other field here, this one
+describes a single release and has to be rewritten for the next one; the heading carries the
+version it was written for so a stale block is obvious. Write it for someone deciding whether
+to update, not for someone reading a changelog — no version numbers, no internal names.
+
+```text
+Live subtitles can now use Google Gemini in addition to Mistral. Both engines detect the spoken language themselves. Gemini covers over 70 languages and removes filler words, false starts, and spoken self-corrections, applying punctuation and capitalisation as it writes. A single Gemini API key covers both subtitles and translation.
+
+The transcript is now a document rather than a scrolling log. Nothing is discarded however long the session runs, the window shows when a transcript has unsaved changes, Clear asks before discarding them, and an optional recovery file can restore the log if the app closes unexpectedly.
+
+The app can now keep running in the notification area when its window is closed, so a live session stays reachable and cannot be ended by accident. This is off by default: closing the window still exits the app unless you turn it on.
+
+The pre-flight audio check now reports only what it has actually heard from the selected source, instead of assuming a device is working.
+```
+
 ## Français (France)
 
 ### Description — texte complet
@@ -89,6 +106,21 @@ Collez ce texte dans **Description courte** :
 
 ```text
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
+```
+
+### Nouveautés de cette version — 1.1.0
+
+Collez ce texte dans **Nouveautés de cette version**. À réécrire à chaque version : voir la
+note sous la version anglaise.
+
+```text
+Les sous-titres en direct peuvent désormais utiliser Google Gemini en plus de Mistral. Les deux moteurs détectent eux-mêmes la langue parlée. Gemini prend en charge plus de 70 langues et supprime les hésitations, les faux départs et les autocorrections orales, en appliquant la ponctuation et les majuscules au fil de la transcription. Une seule clé API Gemini couvre à la fois les sous-titres et la traduction.
+
+La transcription est désormais un document et non un simple journal défilant. Rien n’est supprimé, quelle que soit la durée de la session ; la fenêtre signale qu’une transcription comporte des modifications non enregistrées, Effacer demande confirmation avant de les supprimer, et un fichier de récupération facultatif permet de restaurer le journal si l’application se ferme de façon inattendue.
+
+L’application peut désormais rester active dans la zone de notification lorsque sa fenêtre est fermée, afin qu’une session en cours reste accessible et ne puisse pas être interrompue par accident. Cette option est désactivée par défaut : fermer la fenêtre quitte toujours l’application, sauf si vous l’activez.
+
+La vérification audio préalable ne signale désormais que ce qu’elle a réellement entendu depuis la source sélectionnée, au lieu de supposer qu’un périphérique fonctionne.
 ```
 
 ## Notes for certification — separate Partner Center field
