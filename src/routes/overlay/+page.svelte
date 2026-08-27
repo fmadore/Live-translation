@@ -3,7 +3,14 @@
 	import { api, on, isTauri } from '$lib/tauri';
 	import { locale, t } from '$lib/i18n';
 	import type { Caption, Origin } from '$lib/types';
-	import { clampOverlayFont, loadOverlayFont, OVERLAY_PLACED_KEY } from '$lib/types';
+	import {
+		captionBudget,
+		clampOverlayFont,
+		clampOverlayWidth,
+		loadOverlayFont,
+		loadOverlayWidth,
+		OVERLAY_PLACED_KEY
+	} from '$lib/types';
 
 	// The overlay keeps only what it needs to render: one current turn per origin (mic and
 	// system turns have independent ids, so they must never share a slot) plus that origin's
@@ -20,6 +27,7 @@
 	// Initial size comes from the shared localStorage key (same origin as the operator),
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
+	let captionWidth = $state(loadOverlayWidth());
 
 	// Move mode (operator-driven): click-through is off and the whole stage becomes a
 	// Tauri drag region so the window can be dragged/resized into place.
@@ -45,7 +53,9 @@
 	// Keep captions subtitle-sized. A turn streams until it completes, which during
 	// continuous speech can run for many sentences, so render only the most recent slice of
 	// the (still-growing) turn instead of the whole thing — otherwise it fills the screen.
-	const MAX_CHARS = 220;
+	// The budget follows the measure, so the block stays the same number of lines however
+	// wide the operator sets the caption; see `captionBudget`.
+	const maxChars = $derived(captionBudget(captionWidth));
 
 	/** Keep the last `limit` characters, cutting on a word boundary. */
 	function tail(text: string, limit: number): string {
@@ -64,14 +74,17 @@
 	// grows past a caption's worth — as the new turn streams in, the old text is pushed out.
 	// Only the space left over by the current turn is spent on the lead-in, and once the
 	// current turn fills the budget the previous one is gone entirely.
+	// Fixed, unlike the budget above: this asks "is the leftover room worth anything to a
+	// reader", and a readable fragment of a previous sentence is the same amount of text in a
+	// narrow region as in a wide one.
 	const MIN_LEAD_CHARS = 40;
 
 	const lines = $derived(
 		ORIGIN_ORDER.flatMap((origin) => {
 			const caption = current[origin];
 			if (!caption) return [];
-			const text = tail(caption.text, MAX_CHARS);
-			const room = MAX_CHARS - text.length;
+			const text = tail(caption.text, maxChars);
+			const room = maxChars - text.length;
 			const lead = room >= MIN_LEAD_CHARS ? tail(previous[origin] ?? '', room) : '';
 			return [{ origin, lead, text, interim: !caption.final }];
 		})
@@ -138,6 +151,8 @@
 		const unlistenConfig = on.overlayConfig((cfg) => {
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
+			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
+				captionWidth = clampOverlayWidth(cfg.captionWidth as number);
 			// The operator owns the interface language; this window follows it.
 			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
 			if (typeof cfg.interactive === 'boolean') {
@@ -310,7 +325,7 @@
 	class="stage"
 	class:interactive
 	data-tauri-drag-region={interactive || undefined}
-	style="--fs: {fontSize}px"
+	style="--fs: {fontSize}px; --measure: {captionWidth}ch"
 >
 	{#if interactive}
 		<!-- The overlay window *is* the caption region, so the placement chrome hugs the
@@ -465,7 +480,10 @@
 	}
 	.line {
 		margin: 0;
-		max-width: 30ch;
+		/* Operator-chosen, in `ch` so a measure survives a font-size change. It is a cap, not
+		   a width: a region narrower than the measure simply wraps sooner, which is why no
+		   setting here can push text outside the caption region. */
+		max-width: var(--measure);
 		font-weight: 600;
 		font-size: var(--fs);
 		line-height: 1.34;

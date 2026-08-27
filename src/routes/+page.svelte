@@ -19,6 +19,7 @@
 		trayHideExplained,
 		micLevel,
 		systemLevel,
+		overlayCaptionWidth,
 		overlayFontSize,
 		overlayPlaced,
 		sessionStartedAt,
@@ -44,6 +45,7 @@
 		Origin,
 		OutputMode,
 		OnDeviceReadiness,
+		OverlayConfig,
 		Provider,
 		SessionState,
 		TargetLanguage,
@@ -52,6 +54,7 @@
 	import {
 		canFlipDirection,
 		clampOverlayFont,
+		clampOverlayWidth,
 		providerCanTranslate,
 		providerDetectsLanguage,
 		providerRequiresKey
@@ -264,7 +267,7 @@
 		void refreshLocalReadiness();
 		void loadRecovery();
 		// Sync the overlay to the operator's current caption size and language on load.
-		void api.setOverlayConfig({ fontSize: $overlayFontSize, locale: $locale });
+		pushOverlayConfig({ locale: $locale });
 
 		const unlisteners: Array<Promise<() => void>> = [
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
@@ -685,11 +688,28 @@
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
+	// Every push carries the whole appearance, not the field that changed: the overlay is a
+	// separate webview that can be reloaded independently, and a partial config would leave
+	// it showing whatever it had before. One helper so no call site can forget a field.
+	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
+		void api.setOverlayConfig({
+			fontSize: get(overlayFontSize),
+			captionWidth: get(overlayCaptionWidth),
+			...extra
+		});
+	}
+
 	// Caption size: update the store (persists) and push it live to the overlay.
 	function setFont(size: number) {
-		const clamped = clampOverlayFont(size);
-		overlayFontSize.set(clamped);
-		void api.setOverlayConfig({ fontSize: clamped, interactive: moveOverlay });
+		overlayFontSize.set(clampOverlayFont(size));
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	// Caption measure: how long a line is allowed to run before it wraps. Same shape as the
+	// size control, and the same live push.
+	function setCaptionWidth(width: number) {
+		overlayCaptionWidth.set(clampOverlayWidth(width));
+		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
 	// Move mode: the overlay is click-through while captioning; this flips it into an
@@ -708,7 +728,7 @@
 			await api.showOverlay(true);
 			overlayVisible = true;
 			await api.setOverlayClickThrough(!moveOverlay);
-			await api.setOverlayConfig({ fontSize: $overlayFontSize, interactive: moveOverlay });
+			pushOverlayConfig({ interactive: moveOverlay });
 		} catch (e) {
 			statusMessage.set(asStatus(e));
 		}
@@ -729,7 +749,7 @@
 	$effect(() => {
 		const chosen = $locale;
 		if (browserMode) return;
-		void api.setOverlayConfig({ fontSize: get(overlayFontSize), locale: chosen });
+		pushOverlayConfig({ locale: chosen });
 	});
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
@@ -1026,6 +1046,20 @@
 							class="step"
 							onclick={() => setFont($overlayFontSize + 2)}
 							aria-label={$t.overlayControls.larger}>+</button
+						>
+					</div>
+					<div class="stepper">
+						<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
+						<button
+							class="step"
+							onclick={() => setCaptionWidth($overlayCaptionWidth - 2)}
+							aria-label={$t.overlayControls.narrower}>−</button
+						>
+						<span class="stepper-value">{$overlayCaptionWidth}</span>
+						<button
+							class="step"
+							onclick={() => setCaptionWidth($overlayCaptionWidth + 2)}
+							aria-label={$t.overlayControls.wider}>+</button
 						>
 					</div>
 					<div class="overlay-actions">
