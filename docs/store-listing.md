@@ -16,7 +16,7 @@ Live Translation & Subtitles is a Windows presentation tool for meetings, lectur
 
 A built-in English and French demonstration works without an account, API key, microphone, language pack, internet connection, or payment. It uses bundled scripted captions to demonstrate the overlay, timer, audio-level display, transcript, and export workflow. It does not recognize live speech.
 
-For real-time use, select Gemini or OpenAI for English–French translation, or Mistral for same-language subtitles. Live providers can capture a selected room microphone, Windows system audio, or both.
+For real-time use, select Gemini or OpenAI for English–French translation, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both.
 
 The app does not sell subscriptions, credits, or API access. Provider keys are stored in Windows Credential Manager and sent only to the selected provider. The developer operates no server and receives no audio, keys, transcripts, analytics, or telemetry.
 
@@ -31,7 +31,7 @@ description:
 ```text
 Built-in English and French caption demonstration with no account, API key, microphone, or network
 Live English–French translation with your own Google Gemini or OpenAI API key
-Live same-language subtitles with your own Mistral API key
+Live same-language subtitles with your own Mistral or Google Gemini API key
 Capture a selected microphone, Windows system audio, or both in live modes
 Transparent, always-on-top caption overlay that remains click-through
 Move, resize, show, or hide the overlay during a session
@@ -60,7 +60,7 @@ Live Translation & Subtitles est un outil de présentation Windows destiné aux 
 
 Une démonstration intégrée en anglais et en français fonctionne sans compte, clé API, microphone, module linguistique, connexion Internet ni paiement. Elle utilise des sous-titres scénarisés fournis avec l’application pour montrer la surimpression, le chronomètre, l’indicateur de niveau, la transcription et l’export. Elle ne reconnaît pas la parole en direct.
 
-Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Mistral pour les sous-titres dans la langue parlée. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux.
+Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux.
 
 L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
 
@@ -75,7 +75,7 @@ la description complète :
 ```text
 Démonstration intégrée en anglais et en français, sans compte, clé API, microphone ni réseau
 Traduction français–anglais en direct avec votre propre clé API Google Gemini ou OpenAI
-Sous-titres en direct dans la langue parlée avec votre propre clé API Mistral
+Sous-titres en direct dans la langue parlée avec votre propre clé API Mistral ou Google Gemini
 Capture d’un microphone sélectionné, de l’audio système Windows ou des deux en mode direct
 Surimpression de sous-titres transparente, toujours visible et transparente aux clics
 Déplacement, redimensionnement, affichage ou masquage de la surimpression pendant une session
@@ -113,7 +113,7 @@ No account, API key, microphone, language pack, or network connection is require
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
-Live microphone and system-audio recognition are optional provider-dependent modes. Mistral provides live same-language subtitles. Gemini and OpenAI provide live English–French translation. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
+Live microphone and system-audio recognition are optional provider-dependent modes. Mistral and Gemini provide live same-language subtitles. Gemini and OpenAI provide live English–French translation. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
 
 The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
 ```
