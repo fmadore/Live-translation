@@ -30,6 +30,7 @@ use crate::openai::{
 };
 use crate::realtime::run_session;
 use crate::secrets;
+use crate::timing::SessionClock;
 use crate::types::{
     events, AudioLevel, AudioSource, AudioTestUpdate, Origin, OutputMode, Provider, SessionState,
     StartOptions, StatusUpdate,
@@ -180,6 +181,10 @@ impl SessionManager {
             .context("MISTRAL_TARGET_STREAMING_DELAY_MS must be an integer")?
             .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS);
 
+        // One clock for the session, copied into every source, so the microphone and system
+        // timelines agree in a transcript that interleaves them. See `timing::SessionClock`.
+        let clock = SessionClock::start();
+
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
         let mut capture_threads = Vec::new();
@@ -285,6 +290,7 @@ impl SessionManager {
                         config,
                         audio_rx,
                         source_cancel,
+                        clock,
                     )));
                 }
                 Provider::GeminiTranscribe => {
@@ -299,6 +305,7 @@ impl SessionManager {
                         config,
                         audio_rx,
                         source_cancel,
+                        clock,
                     )));
                 }
                 Provider::OpenAi => {
@@ -315,6 +322,7 @@ impl SessionManager {
                         config,
                         audio_rx,
                         source_cancel,
+                        clock,
                     )));
                 }
                 Provider::Mistral => {
@@ -331,6 +339,7 @@ impl SessionManager {
                         config,
                         audio_rx,
                         source_cancel,
+                        clock,
                     )));
                 }
                 Provider::OnDevice => {
@@ -343,6 +352,7 @@ impl SessionManager {
                         config,
                         audio_rx,
                         source_cancel,
+                        clock,
                     )));
                 }
             }

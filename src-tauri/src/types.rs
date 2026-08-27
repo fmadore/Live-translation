@@ -132,6 +132,12 @@ pub struct Caption {
     #[serde(rename = "final")]
     pub final_: bool,
     pub origin: Origin,
+    /// When this turn first had text, in ms since the session started. Constant for every
+    /// caption of a turn, so an interim and its final agree on where the cue begins.
+    pub start_ms: u64,
+    /// When *this* caption was emitted, same scale. On a final caption it is the end of the
+    /// cue. See `timing::SessionClock` for why the core stamps these and the window does not.
+    pub end_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -114,6 +114,12 @@ the app.
 1. [#28 — audio hot-plug and loopback-output selection](https://github.com/fmadore/Live-translation/issues/28)
 2. [#27 — per-application WASAPI loopback capture](https://github.com/fmadore/Live-translation/issues/27)
 3. [#26 — native Save As plus SRT/VTT export](https://github.com/fmadore/Live-translation/issues/26)
+   — its timing prerequisite has landed. The issue asks for cues built on "explicit monotonic
+   caption timing rather than display timestamps", and there was no caption timing anywhere in
+   the app: neither `Caption` nor `TranscriptLine` carried a clock, and the only one in reach
+   was the renderer's arrival time, which is the thing the issue rules out. Captions now carry
+   an interval stamped in the core (`src-tauri/src/timing.rs`), so what is left of #26 is the
+   picker and the formatters.
 
 Device lifecycle work comes first because both all-system and per-process capture need a shared,
 recoverable device model. The process-capture implementation must retain all-system loopback as
@@ -143,11 +149,13 @@ Definition of done for 1.2:
 - Persist overlay position/size and add multi-monitor overlay presets.
 - Overlay caption presentation, which is a set of constants in
   `src/routes/overlay/+page.svelte` today:
-  [#54 — configurable caption width](https://github.com/fmadore/Live-translation/issues/54) and
+  [#54 — configurable caption width](https://github.com/fmadore/Live-translation/issues/54) —
+  **landed**; the measure is an operator control now, and the tail budget that decides how much
+  of a long streaming turn is shown moves with it, so widening a caption no longer quietly
+  changes how much of the slide it covers — and
   [#55 — operator-chosen typeface, size and colours](https://github.com/fmadore/Live-translation/issues/55).
-  A caption line is capped at `30ch` and centred, so a region snapped across a presentation
-  display spends most of its width on scrim, and every colour is a literal — the font size is
-  the only thing an operator can change. Both are small and both serve the room this app was
+  Every colour in the overlay is still a literal, so size and width are the only things an
+  operator can change. Both are small and both serve the room this app was
   built for, but neither belongs to 1.2's goal, so they wait here for a presentation milestone.
   #55 is the one with a trap: the audience view opts out of contrast themes on purpose, its
   dimmed steps are alphas of white, and the scrim is semi-transparent over a slide nobody
@@ -161,7 +169,9 @@ Definition of done for 1.2:
   for. The interface stays English and French:
   [`docs/localization.md`](docs/localization.md) keeps the caption language and the UI language
   independent, and a German caption target does not imply a German UI.
-- Measure audio-to-first-caption latency and make rate-card verification dates visible.
+- Measure audio-to-first-caption latency and make rate-card verification dates visible. The
+  clock this needs now exists: `timing::SessionClock` stamps every caption, so the missing
+  half is a mark on the audio side to measure against.
 
 ## Completed delivery history
 

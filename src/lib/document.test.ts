@@ -15,6 +15,11 @@ function line(id: number, text = `line ${id}`): TranscriptLine {
 	return { id, text, sourceText: `source ${id}`, origin: id % 2 ? 'microphone' : 'system' };
 }
 
+/** A line as the store now commits it: with the cue the core stamped. */
+function timed(id: number): TranscriptLine {
+	return { ...line(id), startMs: id * 1000, endMs: id * 1000 + 900 };
+}
+
 /** The store keeps the log newest-first; every helper here reads it that way. */
 function log(count: number): TranscriptLine[] {
 	return Array.from({ length: count }, (_, i) => line(count - i));
@@ -86,6 +91,70 @@ describe('recovery snapshot', () => {
 			'sourceText',
 			'text'
 		]);
+	});
+
+	it('writes the cue when a line has one, and no key at all when it does not', () => {
+		const raw = encodeRecovery([timed(1), line(2)], new Date('2026-08-26T09:30:00.000Z'));
+		const [withCue, without] = JSON.parse(raw).lines;
+
+		expect(Object.keys(withCue).sort()).toEqual([
+			'endMs',
+			'id',
+			'origin',
+			'sourceText',
+			'startMs',
+			'text'
+		]);
+		expect(withCue).toMatchObject({ startMs: 1000, endMs: 1900 });
+		expect('startMs' in without).toBe(false);
+		expect('endMs' in without).toBe(false);
+	});
+
+	it('round-trips a cue', () => {
+		const lines = [timed(2), timed(1)];
+		const snapshot = decodeRecovery(encodeRecovery(lines, new Date()));
+		expect(snapshot?.lines).toEqual(lines);
+	});
+
+	// A spool written by a build from before captions were timed. Discarding it would be
+	// throwing away words the operator cannot get back over a field they never had.
+	it('restores a spool written before captions carried a cue', () => {
+		const snapshot = decodeRecovery(
+			JSON.stringify({
+				version: RECOVERY_VERSION,
+				savedAt: new Date('2026-08-26T09:30:00.000Z').toISOString(),
+				lines: [line(2), line(1)]
+			})
+		);
+		expect(snapshot?.lines).toEqual([line(2), line(1)]);
+	});
+
+	it('keeps the caption but drops a cue it cannot trust', () => {
+		const cases: Array<[string, unknown, unknown]> = [
+			['ends before it starts', 900, 100],
+			['starts before the session did', -5, 100],
+			['is not a number', '1000', 1900],
+			['is not finite', 1000, Number.POSITIVE_INFINITY],
+			['has only one end', 1000, undefined]
+		];
+		for (const [why, startMs, endMs] of cases) {
+			const snapshot = decodeRecovery(
+				JSON.stringify({
+					version: RECOVERY_VERSION,
+					savedAt: new Date('2026-08-26T09:30:00.000Z').toISOString(),
+					lines: [{ ...line(1), startMs, endMs }]
+				})
+			);
+			expect(snapshot?.lines, why).toEqual([line(1)]);
+		}
+	});
+
+	// The one interval that looks wrong and is not: a turn that arrived complete in a single
+	// message genuinely began and ended at the same moment.
+	it('keeps a zero-length cue', () => {
+		const instant: TranscriptLine = { ...line(1), startMs: 4200, endMs: 4200 };
+		const snapshot = decodeRecovery(encodeRecovery([instant], new Date()));
+		expect(snapshot?.lines).toEqual([instant]);
 	});
 
 	it('refuses a spool that was truncated mid-write', () => {

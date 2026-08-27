@@ -16,11 +16,13 @@ import {
 	CLOSE_TO_TRAY_KEY,
 	loadCloseToTray,
 	loadOverlayFont,
+	loadOverlayWidth,
 	loadOverlayPlaced,
 	loadRecoveryEnabled,
 	loadStartOptions,
 	loadTrayHideExplained,
 	OVERLAY_FONT_KEY,
+	OVERLAY_WIDTH_KEY,
 	OVERLAY_PLACED_KEY,
 	RECOVERY_ENABLED_KEY,
 	SESSION_OPTIONS_KEY,
@@ -141,7 +143,11 @@ function commit(c: Caption) {
 		id: nextLineId++,
 		text: c.text.trim(),
 		sourceText: c.sourceText.trim(),
-		origin: c.origin
+		origin: c.origin,
+		// The committed caption's own interval: the turn's start, and the moment this text
+		// was the last thing the provider had to say about it.
+		startMs: c.startMs,
+		endMs: c.endMs
 	};
 	transcript.update((list) => [line, ...list]);
 }
@@ -213,6 +219,14 @@ export function restoreTranscript(lines: TranscriptLine[]) {
 // Persisted to localStorage so both windows share the same default.
 
 export const overlayFontSize = writable<number>(loadOverlayFont());
+
+/** How wide a caption line may run, in `ch`. Persisted like the font size, and shared with
+ *  the overlay window through the same localStorage origin. */
+export const overlayCaptionWidth = writable<number>(loadOverlayWidth());
+
+overlayCaptionWidth.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_WIDTH_KEY, String(v));
+});
 
 overlayFontSize.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_FONT_KEY, String(v));

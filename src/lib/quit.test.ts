@@ -24,7 +24,16 @@ const { applyStatus, clearTranscript, pushCaption, savedPath, transcript, transc
 import type { Caption } from './types';
 
 function caption(turnId: number, text: string, final = true): Caption {
-	return { turnId, text, sourceText: `src ${text}`, final, origin: 'microphone' };
+	return {
+		turnId,
+		text,
+		sourceText: `src ${text}`,
+		final,
+		origin: 'microphone',
+		// One cue per turn, a second long, starting a turn apart.
+		startMs: turnId * 1000,
+		endMs: turnId * 1000 + 900
+	};
 }
 
 /** Put the session into the state the operator sees while captions are streaming. */

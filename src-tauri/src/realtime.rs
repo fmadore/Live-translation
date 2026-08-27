@@ -16,6 +16,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
 use crate::errors::{id, AppError};
+use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
@@ -30,18 +31,34 @@ const STALE_AUDIO_BACKLOG: usize = 4;
 
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
-#[derive(Default)]
 pub struct TurnAccumulator {
     pub id: u64,
     pub source: String,
     pub translated: String,
+    /// Shared with every other source in this session, so their captions land on one
+    /// timeline. Lives here because the accumulator is the thing that outlives a reconnect.
+    clock: SessionClock,
+    /// When this turn first had any text, in ms since the session started. `None` until the
+    /// first caption is emitted for it — see `emit_caption`.
+    started_ms: Option<u64>,
 }
 
 impl TurnAccumulator {
+    pub fn new(clock: SessionClock) -> Self {
+        Self {
+            id: 0,
+            source: String::new(),
+            translated: String::new(),
+            clock,
+            started_ms: None,
+        }
+    }
+
     pub fn next_turn(&mut self) {
         self.id += 1;
         self.source.clear();
         self.translated.clear();
+        self.started_ms = None;
     }
 
     pub fn is_empty(&self) -> bool {
@@ -133,11 +150,13 @@ pub async fn run_session<P: RealtimeProtocol>(
     mut proto: P,
     mut audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
+    clock: SessionClock,
 ) {
     let origin = proto.origin();
     let mut backoff = INITIAL_BACKOFF;
     let mut first = true;
-    let mut acc = TurnAccumulator::default();
+    // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
+    let mut acc = TurnAccumulator::new(clock);
 
     while !cancel.is_cancelled() {
         emit_status(
@@ -454,7 +473,16 @@ fn fatal_handshake_rejection(error: &anyhow::Error) -> Option<u16> {
     })
 }
 
-pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &TurnAccumulator, final_: bool) {
+/// Emit a caption, timed against the session clock.
+///
+/// A turn starts at its *first* caption, not when the previous turn ended: the silence
+/// between two people speaking belongs to neither subtitle. A turn that arrives complete in
+/// one message therefore has `start_ms == end_ms`, which is the truth about that caption —
+/// giving a cue a minimum on-screen duration is a decision for whatever renders it, not
+/// something to bury in the timestamp.
+pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator, final_: bool) {
+    let end_ms = acc.clock.elapsed_ms();
+    let start_ms = *acc.started_ms.get_or_insert(end_ms);
     let _ = app.emit(
         events::CAPTION,
         Caption {
@@ -463,6 +491,8 @@ pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &TurnAccumulator, fina
             source_text: acc.source.clone(),
             final_,
             origin,
+            start_ms,
+            end_ms,
         },
     );
 }
@@ -482,15 +512,42 @@ fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, 
 mod tests {
     use super::*;
 
+    fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
+        TurnAccumulator::new(SessionClock::at(elapsed_ms))
+    }
+
     #[test]
     fn accumulator_advances_without_reusing_text() {
-        let mut acc = TurnAccumulator {
-            id: 7,
-            source: "hello".into(),
-            translated: "bonjour".into(),
-        };
+        let mut acc = accumulator_at(0);
+        acc.id = 7;
+        acc.source = "hello".into();
+        acc.translated = "bonjour".into();
         acc.next_turn();
         assert_eq!(acc.id, 8);
         assert!(acc.is_empty());
+    }
+
+    /// The whole point of `started_ms`: an interim caption and the final that replaces it are
+    /// one cue, so they have to agree on where that cue begins. Emitting is what stamps it,
+    /// because that is the first moment the turn is known to have any text.
+    #[test]
+    fn a_turn_keeps_the_start_time_of_its_first_caption() {
+        let mut acc = accumulator_at(4_000);
+        let first = *acc.started_ms.get_or_insert(acc.clock.elapsed_ms());
+        assert!((4_000..5_000).contains(&first), "got {first}ms");
+
+        // A later caption in the same turn must not move the start.
+        let again = *acc.started_ms.get_or_insert(9_999);
+        assert_eq!(again, first);
+    }
+
+    /// …and the next turn must not inherit it, or every cue after the first would claim to
+    /// have started when the session did.
+    #[test]
+    fn the_next_turn_starts_its_own_clock() {
+        let mut acc = accumulator_at(4_000);
+        acc.started_ms = Some(4_000);
+        acc.next_turn();
+        assert_eq!(acc.started_ms, None);
     }
 }
