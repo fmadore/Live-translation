@@ -1,68 +1,74 @@
 // The French catalog.
 //
-// **Not translated yet.** This file carries the English wording so that the machinery, the
-// selector and the completeness checks can land and be reviewed on their own; the second half
-// of issue #23 replaces the values here, and only the values — the keys, the order and the
-// function signatures are `Messages`, and TypeScript will say so if one of them moves.
+// The wording follows the French Store copy in `docs/store-listing.md`, which was written
+// first and is what a French-speaking operator will have read before installing:
+// **surimpression** for the overlay, **transcription** for the transcript, **démonstration
+// intégrée** for the built-in demo, **zone de notification** for the tray, **Gestionnaire
+// d'informations d'identification Windows** for Credential Manager.
 //
-// Two rules for whoever translates it, including a later me:
+// Two typographic conventions, both invisible in a diff and both enforced by `i18n.test.ts`
+// rather than left to good intentions:
 //
-// - `locale.name` is the language's name in its own language, and `locale.tag` drives every
-//   date, time and number the app formats. They are the two entries that are not prose.
-// - Proper nouns are a judgement call, not a rule: Gemini and OpenAI keep their names,
-//   "Room mic" does not.
+// - The space before a colon, question mark, semicolon or exclamation mark is a
+//   **non-breaking space** (U+00A0), as French requires. Without it a line break can strand
+//   the punctuation on its own line — and in a rail this dense, that is where lines break.
+// - The apostrophe is the typographic one (U+2019), not the straight quote, matching the
+//   Store copy.
+//
+// Product names are not translated (Gemini, OpenAI, Voxtral, WASAPI, Zoom, Teams, Markdown),
+// and neither are the two Windows setting paths an operator has to find on their own screen.
 
 import type { Messages } from './en';
 
 export const fr: Messages = {
-	// The two entries that are already French: without them the selector would offer
-	// "English" twice and a French session would format its dates in en-GB.
 	locale: {
 		/** Name of this language, written in this language, for the language selector. */
 		name: 'Français',
 		/** BCP 47 tag used for dates, times and number formatting. */
 		tag: 'fr-FR',
-		label: 'Interface language',
-		note: 'Changes the app, not the captions.'
+		label: 'Langue de l’interface',
+		note: 'Change l’application, pas les sous-titres.'
 	},
 
+	// The product's own name is not translated — the Store lists it in English, and inventing a
+	// French one would give the same app a third name. The line under it is prose, so it is.
 	app: {
 		name: 'Live Captions',
-		tagline: 'Realtime translation & subtitles'
+		tagline: 'Traduction et sous-titrage en temps réel'
 	},
 
 	state: {
-		idle: 'Idle',
-		connecting: 'Connecting',
-		running: 'Live',
-		reconnecting: 'Reconnecting',
-		error: 'Error',
+		idle: 'Inactif',
+		connecting: 'Connexion',
+		running: 'En direct',
+		reconnecting: 'Reconnexion',
+		error: 'Erreur',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
-		demo: 'Demo'
+		demo: 'Démo'
 	},
 
 	/** Spoken by the status region on a state change. Never drawn. */
 	announce: {
-		idle: 'Session idle.',
-		connecting: 'Connecting to the caption engine.',
-		running: 'Captions are live.',
-		reconnecting: 'Connection lost — reconnecting.',
-		error: 'Session error.'
+		idle: 'Session inactive.',
+		connecting: 'Connexion au moteur de sous-titrage.',
+		running: 'Les sous-titres sont en direct.',
+		reconnecting: 'Connexion perdue — reconnexion en cours.',
+		error: 'Erreur de session.'
 	},
 
 	mode: {
-		translate: 'Translation',
-		transcribe: 'Subtitles'
+		translate: 'Traduction',
+		transcribe: 'Sous-titres'
 	},
 
 	source: {
-		microphone: 'Room mic',
-		system: 'System audio',
-		both: 'Both',
+		microphone: 'Micro de la salle',
+		system: 'Audio système',
+		both: 'Les deux',
 		/** The microphone tile and meter while the built-in demonstration is selected. */
-		demo: 'Demo audio',
+		demo: 'Audio de démo',
 		/** The source chip during a rehearsal, which plays a bundled recording. */
-		sample: 'Sample'
+		sample: 'Échantillon'
 	},
 
 	engine: {
@@ -70,11 +76,11 @@ export const fr: Messages = {
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
-		ondevice: 'Built-in demo'
+		ondevice: 'Démo intégrée'
 	},
 
 	language: {
-		en: 'English',
+		en: 'Anglais',
 		fr: 'Français',
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
@@ -86,257 +92,275 @@ export const fr: Messages = {
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
 			mistral: 'Mistral Voxtral',
-			ondevice: 'Built-in demo'
+			ondevice: 'Démo intégrée'
 		},
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
-			ondevice: 'Bundled sample · deterministic'
+			ondevice: 'Échantillon fourni · déterministe'
 		},
 		costNote: {
 			gemini:
-				'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
+				'Gemini : l’entrée est facturée au temps réel, la sortie uniquement pendant la traduction — les pauses et les changements de diapositive font baisser ce montant.',
 			'gemini-transcribe':
-				'Gemini: audio in is billed on wall clock, transcript text only while someone is speaking.',
+				'Gemini : l’audio entrant est facturé au temps réel, le texte de la transcription uniquement lorsque quelqu’un parle.',
 			openai:
-				'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
+				'OpenAI : l’audio entrant et le texte sortant sont facturés à la minute tant que le flux reste ouvert.',
 			mistral:
-				'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
+				'Voxtral : facturé à la minute d’audio transmis, tant que la session reste ouverte.',
 			ondevice:
-				'Bundled demonstration: no live audio is captured, no service is contacted, and nothing is billed.'
+				'Démonstration intégrée : aucun audio en direct n’est capté, aucun service n’est contacté et rien n’est facturé.'
 		}
 	},
 
 	cost: {
 		/** Appended to a published rate: "$3.06" + "/hr". */
-		perHour: '/hr',
-		free: 'Free',
-		elapsed: 'Elapsed',
-		streamed: 'Streamed',
-		estimate: 'Est. cost',
+		perHour: '/h',
+		free: 'Gratuit',
+		elapsed: 'Écoulé',
+		streamed: 'Transmis',
+		estimate: 'Coût est.',
 		twoSources: '×2 sources'
 	},
 
 	rail: {
-		locked: 'Session locked',
-		lockedNote: 'Stop the session to change any of these.',
-		demoNote: 'A bundled demonstration is playing — no microphone or system audio is captured.',
-		rehearsalNote: 'A sample recording is playing — nothing in the room is being captured.',
+		locked: 'Session verrouillée',
+		lockedNote: 'Arrêtez la session pour modifier l’un de ces réglages.',
+		demoNote:
+			'Une démonstration intégrée est en cours — ni le microphone ni l’audio système ne sont captés.',
+		rehearsalNote:
+			'Un enregistrement d’échantillon est en cours — rien de ce qui se dit dans la salle n’est capté.',
 		chip: {
 			mode: 'Mode',
 			source: 'Source',
-			roomReads: 'Room reads',
-			engine: 'Engine'
+			roomReads: 'La salle lit',
+			engine: 'Moteur'
 		},
-		arriving: 'Audio arriving',
-		stop: 'Stop captions',
-		stopping: 'Stopping…',
+		arriving: 'Audio entrant',
+		stop: 'Arrêter les sous-titres',
+		stopping: 'Arrêt…',
 
 		step: {
-			whatToShow: 'What to show',
-			whereFrom: 'Where the audio comes from',
-			engine: 'Engine',
+			whatToShow: 'Ce qu’il faut afficher',
+			whereFrom: 'D’où vient l’audio',
+			engine: 'Moteur',
 			/** Step 03's heading, which asks a different question per mode. */
-			roomReads: 'The room reads',
-			demoLanguage: 'Demo language',
-			spokenLanguage: 'Spoken language'
+			roomReads: 'La salle lit',
+			demoLanguage: 'Langue de la démo',
+			spokenLanguage: 'Langue parlée'
 		},
 
 		translate: {
-			title: 'Live translation',
-			desc: 'Speech is detected and translated into the language the room reads.'
+			title: 'Traduction en direct',
+			desc: 'La parole est détectée puis traduite dans la langue que lit la salle.'
 		},
 		transcribe: {
-			title: 'Subtitles',
-			desc: 'Built-in demonstration or live speech with Voxtral or Gemini. Saveable as text or Markdown.'
+			title: 'Sous-titres',
+			desc: 'Démonstration intégrée ou parole en direct avec Voxtral ou Gemini. Enregistrables en texte ou en Markdown.'
 		},
 
 		sourceHint:
-			'System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a media player.',
+			'L’audio système capte tout ce qui est joué sur cette machine — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
 		demoSourceHint:
-			'Uses a bundled deterministic sample. Choose Voxtral or Gemini for live microphone or system-audio subtitles.',
-		micDevice: 'Microphone device',
-		systemDefault: 'System default',
+			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
+		micDevice: 'Périphérique microphone',
+		systemDefault: 'Périphérique par défaut',
 		/** Appended to the name of the device Windows would pick on its own. */
-		isDefault: (name: string) => `${name} (default)`,
+		isDefault: (name: string) => `${name} (par défaut)`,
 
 		autoDetectHint: (engine: string) =>
-			`${engine} auto-detects the spoken language and writes same-language subtitles. No translation target is needed.`,
-		flipHint: 'Speakers alternating? Swap it before you start with',
+			`${engine} détecte lui-même la langue parlée et écrit les sous-titres dans cette même langue. Aucune langue cible n’est nécessaire.`,
+		flipHint: 'Des intervenants qui alternent ? Changez avant de démarrer avec',
 		flipKey: 'F2',
 		demoLanguageHint:
-			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.'
+			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.'
 	},
 
 	overlayControls: {
-		heading: 'Overlay',
-		captionSize: 'Caption size',
-		smaller: 'Smaller captions',
-		larger: 'Larger captions',
-		move: 'Move',
-		done: 'Done',
-		moveLabel: 'Move the overlay',
-		moveDoneLabel: 'Finish moving the overlay',
-		show: 'Show',
-		hide: 'Hide',
-		showLabel: 'Show the overlay',
-		hideLabel: 'Hide the overlay'
+		heading: 'Surimpression',
+		captionSize: 'Taille des sous-titres',
+		smaller: 'Réduire les sous-titres',
+		larger: 'Agrandir les sous-titres',
+		move: 'Déplacer',
+		done: 'Terminé',
+		moveLabel: 'Déplacer la surimpression',
+		moveDoneLabel: 'Terminer le déplacement de la surimpression',
+		show: 'Afficher',
+		hide: 'Masquer',
+		showLabel: 'Afficher la surimpression',
+		hideLabel: 'Masquer la surimpression'
 	},
 
 	window: {
-		heading: 'Window',
-		minimizeToTray: 'Minimize to tray',
-		keepRunning: 'Keep running in the tray when I close this window',
+		heading: 'Fenêtre',
+		minimizeToTray: 'Réduire dans la zone de notification',
+		keepRunning:
+			'Garder l’application active dans la zone de notification quand je ferme cette fenêtre',
 		keepRunningNote:
-			'Off by default, so the close button quits as usual. With it on, closing leaves the session captioning and the tray icon is how you get back.',
-		needsDesktop: 'Needs the desktop app — a browser preview has no tray.'
+			'Désactivé par défaut : le bouton de fermeture quitte l’application comme d’habitude. Activé, fermer la fenêtre laisse la session sous-titrer, et l’icône de la zone de notification est le moyen d’y revenir.',
+		needsDesktop:
+			'Nécessite l’application de bureau — un aperçu dans un navigateur n’a pas de zone de notification.'
 	},
 
 	stage: {
 		browserBanner: {
-			before: 'Running in a browser without the Tauri runtime — controls are disabled. Launch with',
+			before:
+				'Exécution dans un navigateur sans le runtime Tauri — les commandes sont désactivées. Lancez',
 			command: 'npm run tauri dev',
-			after: 'for audio capture, translation, and subtitles.'
+			after: 'pour la capture audio, la traduction et les sous-titres.'
 		},
-		onScreen: 'On screen now',
-		newestLast: 'Newest at the bottom',
-		twoSpeakers: 'Two speakers · newest at the bottom',
+		onScreen: 'À l’écran maintenant',
+		newestLast: 'Le plus récent en bas',
+		twoSpeakers: 'Deux intervenants · le plus récent en bas',
 		origin: {
-			microphone: 'Room',
-			system: 'Remote',
-			demo: 'Demo'
+			microphone: 'Salle',
+			system: 'Distant',
+			demo: 'Démo'
 		},
 		originSub: {
-			microphone: 'mic',
-			system: 'system',
-			demo: 'sample'
+			microphone: 'micro',
+			system: 'système',
+			demo: 'échantillon'
 		},
-		waitingTranslation: 'Translated captions will appear here and on the overlay.',
-		waitingSubtitles: 'Live subtitles will appear here and on the overlay.',
-		waitingDemo: 'Demonstration subtitles will appear here and on the overlay.'
+		waitingTranslation:
+			'Les sous-titres traduits apparaîtront ici et dans la surimpression.',
+		waitingSubtitles: 'Les sous-titres en direct apparaîtront ici et dans la surimpression.',
+		waitingDemo:
+			'Les sous-titres de démonstration apparaîtront ici et dans la surimpression.'
 	},
 
 	preflight: {
-		kicker: 'Pre-flight',
-		heading: 'Ready when you are',
+		kicker: 'Avant de démarrer',
+		heading: 'Prêt quand vous l’êtes',
 		intro:
-			'Four checks, then one button. Everything on the left locks while captions are running, so nothing can be changed by accident mid-session.',
+			'Quatre vérifications, puis un seul bouton. Tout ce qui se trouve à gauche se verrouille pendant le sous-titrage : rien ne peut être modifié par accident en pleine session.',
 
 		demoRow: {
-			title: 'Built-in demo · no key needed',
-			checking: 'Checking the bundled demonstration…'
+			title: 'Démo intégrée · aucune clé nécessaire',
+			checking: 'Vérification de la démonstration intégrée…'
 		},
 
 		audio: {
 			/** Row title: names whatever is being checked. */
 			title: {
-				microphone: 'Room mic',
-				system: 'System audio',
+				microphone: 'Micro de la salle',
+				system: 'Audio système',
 				both: 'Audio',
-				demo: 'Demo audio'
+				demo: 'Audio de démo'
 			},
 			/** What was heard, in the past tense, once a test has confirmed it. */
 			heard: {
-				microphone: 'The room mic was picking up sound',
-				system: 'WASAPI loopback was receiving sound',
-				both: 'Both the room mic and WASAPI loopback were receiving sound',
-				demo: 'Bundled sample is ready — no microphone is opened'
+				microphone: 'Le micro de la salle captait du son',
+				system: 'Le rebouclage WASAPI recevait du son',
+				both: 'Le micro de la salle et le rebouclage WASAPI recevaient tous les deux du son',
+				demo: 'L’échantillon fourni est prêt — aucun microphone n’est ouvert'
 			},
 			/** The same fact in the present tense, while the test is still running. English
 			 *  used to reach this by replacing "was" with "is"; that does not survive
 			 *  translation, so both tenses are written out. */
 			hearing: {
-				microphone: 'The room mic is picking up sound — stop the test when you are satisfied',
-				system: 'WASAPI loopback is receiving sound — stop the test when you are satisfied',
-				both: 'Both the room mic and WASAPI loopback are receiving sound — stop the test when you are satisfied',
-				demo: 'Bundled sample is ready — no microphone is opened'
+				microphone:
+					'Le micro de la salle capte du son — arrêtez le test quand vous êtes satisfait',
+				system:
+					'Le rebouclage WASAPI reçoit du son — arrêtez le test quand vous êtes satisfait',
+				both: 'Le micro de la salle et le rebouclage WASAPI reçoivent tous les deux du son — arrêtez le test quand vous êtes satisfait',
+				demo: 'L’échantillon fourni est prêt — aucun microphone n’est ouvert'
 			},
-			listening: 'Listening — say something into the mic or play some audio',
-			unchecked: 'Not checked yet — audio is only monitored during a test or a running session',
-			test: 'Test audio',
-			retest: 'Re-test',
-			stopTest: 'Stop test'
+			listening: 'Écoute en cours — parlez dans le micro ou lancez un son',
+			unchecked:
+				'Pas encore vérifié — l’audio n’est surveillé que pendant un test ou une session en cours',
+			test: 'Tester l’audio',
+			retest: 'Retester',
+			stopTest: 'Arrêter le test'
 		},
 
 		overlay: {
-			title: 'Overlay placement',
-			placed: 'Placed — captions will appear where you locked them',
-			unplaced: 'Not placed yet — captions will sit bottom-centre on this display',
-			place: 'Place it',
-			adjust: 'Adjust',
-			done: 'Done',
-			placeLabel: 'Place the overlay',
-			adjustLabel: 'Adjust the overlay placement',
-			doneLabel: 'Finish placing the overlay'
+			title: 'Placement de la surimpression',
+			placed: 'Placée — les sous-titres apparaîtront là où vous les avez verrouillés',
+			unplaced:
+				'Pas encore placée — les sous-titres se placeront en bas au centre de cet écran',
+			place: 'Placer',
+			adjust: 'Ajuster',
+			done: 'Terminé',
+			placeLabel: 'Placer la surimpression',
+			adjustLabel: 'Ajuster le placement de la surimpression',
+			doneLabel: 'Terminer le placement de la surimpression'
 		},
 
 		cost: {
-			title: 'Running cost',
-			billed: 'Billed per minute of streamed audio, for as long as the session is open',
-			free: 'Built into the app — nothing is billed'
+			title: 'Coût en cours',
+			billed: 'Facturé à la minute d’audio transmis, tant que la session reste ouverte',
+			free: 'Intégré à l’application — rien n’est facturé'
 		},
 
 		start: {
-			translate: 'Start translating',
-			subtitles: 'Start subtitles',
-			demo: 'Start demo subtitles',
-			starting: 'Starting…'
+			translate: 'Démarrer la traduction',
+			subtitles: 'Démarrer les sous-titres',
+			demo: 'Démarrer la démo',
+			starting: 'Démarrage…'
 		},
 		rehearse: {
-			action: 'Rehearse',
-			hint: 'Plays a bundled sample recording through the live pipeline — no microphone needed.',
-			demoHint: 'Start demo subtitles already runs the bundled demonstration.'
+			action: 'Répéter',
+			hint: 'Fait passer un enregistrement fourni dans la chaîne en direct — aucun microphone nécessaire.',
+			demoHint: 'Démarrer la démo lance déjà la démonstration intégrée.'
 		},
 		privacy: {
-			memoryOnly: 'Transcript is held in memory until you save it.',
-			spooled: 'Transcript is held in memory and spooled locally until you save it.',
-			demo: 'The bundled demo stays entirely inside the app.',
-			cloud: (vendor: string) => `Nothing leaves the machine except audio to ${vendor}.`
+			memoryOnly: 'La transcription reste en mémoire jusqu’à ce que vous l’enregistriez.',
+			spooled:
+				'La transcription reste en mémoire et est copiée localement jusqu’à ce que vous l’enregistriez.',
+			demo: 'La démo intégrée reste entièrement à l’intérieur de l’application.',
+			cloud: (vendor: string) =>
+				`Rien ne quitte la machine, hormis l’audio envoyé à ${vendor}.`
 		}
 	},
 
 	key: {
-		title: (name: string) => `${name} key`,
-		saved: 'Saved in Windows Credential Manager · read only by the Rust core',
+		title: (name: string) => `Clé ${name}`,
+		saved:
+			'Enregistrée dans le Gestionnaire d’informations d’identification Windows · lue uniquement par le cœur Rust',
 		desc: {
-			before: 'Stored in Windows Credential Manager, used only from the Rust core. Needs access to',
+			before:
+				'Enregistrée dans le Gestionnaire d’informations d’identification Windows, utilisée uniquement depuis le cœur Rust. Nécessite l’accès à',
 			after: '.'
 		},
-		getKey: 'Get a key',
-		opensInBrowser: ' (opens in your browser)',
-		placeholder: (name: string) => `Paste your ${name} API key`,
-		save: 'Save',
-		saving: 'Saving…',
-		replace: 'Replace',
-		remove: 'Remove',
-		cancel: 'Cancel'
+		getKey: 'Obtenir une clé',
+		opensInBrowser: ' (s’ouvre dans votre navigateur)',
+		placeholder: (name: string) => `Collez votre clé API ${name}`,
+		save: 'Enregistrer',
+		saving: 'Enregistrement…',
+		replace: 'Remplacer',
+		remove: 'Supprimer',
+		cancel: 'Annuler'
 	},
 
 	transcript: {
-		heading: 'Transcript',
-		lines: (n: number) => (n === 1 ? '1 line' : `${n} lines`),
-		unsaved: 'Unsaved',
-		saved: 'Saved',
-		saveText: 'Save text',
-		saveMarkdown: 'Save Markdown',
-		clear: 'Clear',
-		confirmClear: 'Discard unsaved lines?',
-		savedTo: 'Saved to',
-		savedAnnouncement: (path: string) => `Transcript saved to ${path}`,
-		staleBefore: 'Lines added since the save to',
-		staleAfter: 'are not on disk yet.',
+		heading: 'Transcription',
+		lines: (n: number) => (n === 1 ? '1 ligne' : `${n} lignes`),
+		unsaved: 'Non enregistrée',
+		saved: 'Enregistrée',
+		saveText: 'Enregistrer en texte',
+		saveMarkdown: 'Enregistrer en Markdown',
+		clear: 'Effacer',
+		confirmClear: 'Supprimer les lignes non enregistrées ?',
+		savedTo: 'Enregistrée dans',
+		savedAnnouncement: (path: string) => `Transcription enregistrée dans ${path}`,
+		staleBefore: 'Les lignes ajoutées depuis l’enregistrement dans',
+		staleAfter: 'ne sont pas encore sur le disque.',
 		longSession: (threshold: number) =>
-			`This is a long session and none of it has been saved since it grew past ${threshold} lines. Nothing is being dropped, but save it now so a crash cannot take it.`,
-		emptyTranslate: 'Finalized translations collect here, ready to save as text or Markdown.',
-		emptySubtitles: 'Finalized subtitles collect here, ready to save as text or Markdown.',
+			`Cette session est longue et rien n’en a été enregistré depuis qu’elle a dépassé ${threshold} lignes. Rien n’est supprimé, mais enregistrez-la maintenant pour qu’un plantage ne l’emporte pas.`,
+		emptyTranslate:
+			'Les traductions finalisées s’accumulent ici, prêtes à être enregistrées en texte ou en Markdown.',
+		emptySubtitles:
+			'Les sous-titres finalisés s’accumulent ici, prêts à être enregistrés en texte ou en Markdown.',
 		side: {
-			microphone: 'Room',
-			system: 'Remote'
+			microphone: 'Salle',
+			system: 'Distant'
 		},
 		recovery: {
-			title: 'Keep a local recovery copy while captioning',
-			note: 'Writes the finalized lines to this PC every few seconds so a crash or a power cut cannot take the session. Never leaves the machine, holds no audio and no API key, and is deleted as soon as you save, clear, or switch this off.',
-			needsDesktop: 'Needs the desktop app — a browser preview has nowhere to write it.'
+			title: 'Conserver une copie de récupération locale pendant le sous-titrage',
+			note: 'Écrit les lignes finalisées sur ce PC toutes les quelques secondes, afin qu’un plantage ou une coupure de courant n’emporte pas la session. Ne quitte jamais la machine, ne contient ni audio ni clé API, et est supprimée dès que vous enregistrez, effacez ou désactivez cette option.',
+			needsDesktop:
+				'Nécessite l’application de bureau — un aperçu dans un navigateur n’a nulle part où l’écrire.'
 		}
 	},
 
@@ -344,83 +368,87 @@ export const fr: Messages = {
 	// language: an operator working in French is writing a French document, and the file is
 	// the part of this app that leaves the machine.
 	export: {
-		title: 'Live captions transcript',
+		title: 'Transcription des sous-titres en direct',
 		origin: {
 			microphone: 'Microphone',
-			system: 'System'
+			system: 'Système'
 		}
 	},
 
 	prompt: {
 		unsaved: {
-			title: 'Save this transcript before closing?',
-			sessionEnded: 'The session has been stopped and the last captions collected.',
+			title: 'Enregistrer cette transcription avant de fermer ?',
+			sessionEnded: 'La session a été arrêtée et les derniers sous-titres ont été récupérés.',
 			body: (lines: number) =>
 				lines === 1
-					? '1 line has not been saved. Closing without saving discards it.'
-					: `${lines} lines have not been saved. Closing without saving discards them.`,
-			failed: (error: string) => `Could not save: ${error}`,
-			save: 'Save and close',
-			saving: 'Saving…',
-			discard: 'Discard and close',
-			cancel: 'Cancel',
-			note: 'Saves Markdown to your Documents folder. Cancel keeps the app open.'
+					? '1 ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.'
+					: `${lines} lignes n’ont pas été enregistrées. Fermer sans enregistrer les supprime.`,
+			failed: (error: string) => `Enregistrement impossible : ${error}`,
+			save: 'Enregistrer et fermer',
+			saving: 'Enregistrement…',
+			discard: 'Supprimer et fermer',
+			cancel: 'Annuler',
+			note: 'Enregistre un fichier Markdown dans votre dossier Documents. Annuler laisse l’application ouverte.'
 		},
 		recovery: {
-			title: 'Recover the transcript from your last session?',
+			title: 'Récupérer la transcription de votre dernière session ?',
 			body: (lines: number, savedAt: string) =>
-				`The app closed with ${lines === 1 ? '1 unsaved line' : `${lines} unsaved lines`} still in the log. They were spooled locally at ${savedAt} and have not left this PC.`,
-			restore: 'Restore the transcript',
-			delete: 'Delete it',
-			noteBefore: 'Either answer removes the spool file at',
+				`L’application s’est fermée alors que ${lines === 1 ? '1 ligne non enregistrée était encore' : `${lines} lignes non enregistrées étaient encore`} dans le journal. Elles ont été copiées localement à ${savedAt} et n’ont pas quitté ce PC.`,
+			restore: 'Restaurer la transcription',
+			delete: 'La supprimer',
+			noteBefore: 'Les deux réponses suppriment le fichier de récupération situé à',
 			noteAfter:
-				'. Restoring loads the lines back into the log, still unsaved, so you can save them where you want them.'
+				'. Restaurer recharge les lignes dans le journal, toujours non enregistrées, pour que vous puissiez les enregistrer où vous le souhaitez.'
 		},
 		activeSession: {
-			title: 'A caption session is running',
+			title: 'Une session de sous-titrage est en cours',
 			body: (elapsed: string) =>
-				`Captions have been live for ${elapsed}. Closing stops the session, waits for the last captions to arrive, and then quits.`,
-			noteBefore: 'To put the window away without stopping anything, use Minimize to tray — or turn on',
-			noteEmphasis: 'Keep running in the tray when I close this window',
+				`Les sous-titres sont en direct depuis ${elapsed}. Fermer arrête la session, attend les derniers sous-titres, puis quitte l’application.`,
+			noteBefore:
+				'Pour ranger la fenêtre sans rien arrêter, utilisez Réduire dans la zone de notification — ou activez',
+			noteEmphasis:
+				'Garder l’application active dans la zone de notification quand je ferme cette fenêtre',
 			noteAfter: '.',
-			keep: 'Keep captioning',
-			stop: 'Stop and close'
+			keep: 'Continuer le sous-titrage',
+			stop: 'Arrêter et fermer'
 		},
 		trayHide: {
-			title: 'Live Translation will keep running',
+			title: 'Live Translation va rester actif',
 			bodyBefore:
-				'You asked for closing this window to leave the app running in the tray, so it will disappear from the taskbar',
-			bodyRunning: 'and keep captioning.',
-			bodyIdle: 'but stay ready.',
+				'Vous avez demandé que la fermeture de cette fenêtre laisse l’application active dans la zone de notification : elle va donc disparaître de la barre des tâches',
+			bodyRunning: 'et continuer à sous-titrer.',
+			bodyIdle: 'mais rester prête.',
 			bodyAfter:
-				'Its icon stays in the notification area, next to the clock — open it, show or hide the overlay, stop the session, or quit from there.',
-			noteBefore: 'Said once. Turn it off again with',
-			noteEmphasis: 'Keep running in the tray when I close this window',
+				'Son icône reste dans la zone de notification, à côté de l’horloge — vous pouvez y ouvrir l’application, afficher ou masquer la surimpression, arrêter la session ou quitter.',
+			noteBefore: 'Dit une seule fois. Désactivez-le de nouveau avec',
+			noteEmphasis:
+				'Garder l’application active dans la zone de notification quand je ferme cette fenêtre',
 			noteAfter: '.',
-			hide: 'Got it — hide to the tray',
-			quit: 'Quit instead'
+			hide: 'Compris — réduire dans la zone de notification',
+			quit: 'Quitter plutôt'
 		}
 	},
 
 	overlay: {
-		placeholder: (size: number) => `Captions will sit here, two lines at ${size} px.`,
-		dragToPlace: 'Drag to place',
-		moveMode: 'Move mode',
-		paused: 'Captions are paused on the overlay',
-		keysLocks: 'locks',
-		keysCancels: 'cancels',
-		keysNudge: 'nudge',
-		keyEnter: 'Enter',
-		keyEscape: 'Esc',
-		keyArrows: 'Arrows',
-		size: 'Size',
-		smaller: 'Smaller captions',
-		larger: 'Larger captions',
-		snapToBottom: 'Snap to bottom',
-		lock: 'Lock into place',
+		placeholder: (size: number) =>
+			`Les sous-titres se placeront ici, sur deux lignes en ${size} px.`,
+		dragToPlace: 'Glisser pour placer',
+		moveMode: 'Mode déplacement',
+		paused: 'Les sous-titres sont en pause sur la surimpression',
+		keysLocks: 'verrouille',
+		keysCancels: 'annule',
+		keysNudge: 'déplacent',
+		keyEnter: 'Entrée',
+		keyEscape: 'Échap',
+		keyArrows: 'Flèches',
+		size: 'Taille',
+		smaller: 'Réduire les sous-titres',
+		larger: 'Agrandir les sous-titres',
+		snapToBottom: 'Aligner en bas',
+		lock: 'Verrouiller en place',
 		origin: {
-			microphone: 'Room',
-			system: 'Remote'
+			microphone: 'Salle',
+			system: 'Distant'
 		}
 	},
 
@@ -429,24 +457,25 @@ export const fr: Messages = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
-		deviceEnumeration: 'Windows would not list the microphones',
-		keychain: 'Windows Credential Manager refused the request',
-		demoUnavailable: 'The built-in demonstration could not be prepared',
-		sessionStart: 'The session could not be started',
-		audioTestStart: 'The audio test could not open that source',
-		overlayWindow: 'The overlay window did not respond',
-		transcriptDir: 'The transcript folder could not be created',
-		transcriptWrite: 'The transcript could not be written',
-		taskFailed: 'A background task stopped unexpectedly',
-		micStream: 'The microphone stopped sending audio',
+		deviceEnumeration: 'Windows n’a pas voulu énumérer les microphones',
+		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
+		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
+		sessionStart: 'La session n’a pas pu démarrer',
+		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
+		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
+		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',
+		transcriptWrite: 'La transcription n’a pas pu être écrite',
+		taskFailed: 'Une tâche en arrière-plan s’est arrêtée de façon inattendue',
+		micStream: 'Le microphone a cessé d’envoyer de l’audio',
 		micCapture:
-			'Microphone capture failed. If access is blocked, enable it under Windows Settings > Privacy & security > Microphone (ms-settings:privacy-microphone), then start again',
-		systemCapture: 'System audio capture failed',
+			'La capture du microphone a échoué. Si l’accès est bloqué, activez-le dans Paramètres Windows > Confidentialité et sécurité > Microphone (ms-settings:privacy-microphone), puis redémarrez',
+		systemCapture: 'La capture de l’audio système a échoué',
 		providerRejected:
-			'The provider rejected the connection — check the API key and model access',
-		providerStopped: 'The provider ended the session',
-		providerReconnecting: 'The connection dropped; reconnecting',
+			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
+		providerStopped: 'Le fournisseur a mis fin à la session',
+		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours',
 		/** Front-end only: the recovery spool is written from the operator window. */
-		recoveryWrite: (detail: string) => `Recovery copy could not be written: ${detail}`
+		recoveryWrite: (detail: string) =>
+			`La copie de récupération n’a pas pu être écrite : ${detail}`
 	}
 };
