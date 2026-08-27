@@ -136,6 +136,8 @@ export interface AudioDevice {
 /** Live overlay appearance/behaviour, pushed from the operator window to the overlay. */
 export interface OverlayConfig {
 	fontSize: number;
+	/** How wide a caption line may run, as a typographic measure in `ch`. */
+	captionWidth?: number;
 	/** Move mode: click-through is off and the overlay shows a drag region. */
 	interactive?: boolean;
 	/** Interface language. Pushed rather than read from storage: the two windows are separate
@@ -209,6 +211,50 @@ export function loadOverlayFont(): number {
 	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
 	const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
+}
+
+/**
+ * How wide a caption line may run, in `ch`.
+ *
+ * A typographic measure, not a percentage of the window, and deliberately: `ch` is defined
+ * against the font, so a width chosen at 38px still means the same reading length at 72px.
+ * A percentage would silently become a different number of words per line every time the
+ * operator touched the size control.
+ *
+ * The range is the useful span between two real rooms. 20ch is a caption beside a video
+ * tile, about four words a line and near the floor of what is readable at a glance; 60ch is
+ * a wide stage under a 16:9 slide. `ch` is the width of a zero, which is wider than the
+ * average lowercase glyph, so the 30ch default holds roughly the 40 characters broadcast
+ * subtitling settled on.
+ */
+export const OVERLAY_WIDTH_KEY = 'overlay.captionWidth';
+export const DEFAULT_OVERLAY_WIDTH = 30;
+export const OVERLAY_WIDTH_MIN = 20;
+export const OVERLAY_WIDTH_MAX = 60;
+
+export function clampOverlayWidth(width: number): number {
+	return Math.max(OVERLAY_WIDTH_MIN, Math.min(OVERLAY_WIDTH_MAX, Math.round(width)));
+}
+
+export function loadOverlayWidth(): number {
+	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_WIDTH;
+	const v = Number(localStorage.getItem(OVERLAY_WIDTH_KEY));
+	return Number.isFinite(v) && v > 0 ? clampOverlayWidth(v) : DEFAULT_OVERLAY_WIDTH;
+}
+
+/**
+ * The tail budget for a still-streaming turn, in characters, at a given measure.
+ *
+ * `MAX_CHARS` in the overlay was a vertical limit wearing a horizontal disguise: it exists
+ * so a long turn does not fill the screen, and what fills a screen is *lines*, not
+ * characters. Holding it at 220 while the measure moved would have made a wide caption cover
+ * less of the slide and a narrow one cover more — the setting quietly changing something
+ * nobody asked it to change. Scaling it keeps the block the same number of lines at every
+ * width, which is what the constant was protecting. 220 characters over the 30ch default is
+ * the ratio being preserved.
+ */
+export function captionBudget(width: number): number {
+	return Math.round((220 / DEFAULT_OVERLAY_WIDTH) * clampOverlayWidth(width));
 }
 
 /** Whether the caption region has ever been placed, so the pre-flight check survives a

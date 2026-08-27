@@ -143,11 +143,13 @@ Definition of done for 1.2:
 - Persist overlay position/size and add multi-monitor overlay presets.
 - Overlay caption presentation, which is a set of constants in
   `src/routes/overlay/+page.svelte` today:
-  [#54 — configurable caption width](https://github.com/fmadore/Live-translation/issues/54) and
+  [#54 — configurable caption width](https://github.com/fmadore/Live-translation/issues/54) —
+  **landed**; the measure is an operator control now, and the tail budget that decides how much
+  of a long streaming turn is shown moves with it, so widening a caption no longer quietly
+  changes how much of the slide it covers — and
   [#55 — operator-chosen typeface, size and colours](https://github.com/fmadore/Live-translation/issues/55).
-  A caption line is capped at `30ch` and centred, so a region snapped across a presentation
-  display spends most of its width on scrim, and every colour is a literal — the font size is
-  the only thing an operator can change. Both are small and both serve the room this app was
+  Every colour in the overlay is still a literal, so size and width are the only things an
+  operator can change. Both are small and both serve the room this app was
   built for, but neither belongs to 1.2's goal, so they wait here for a presentation milestone.
   #55 is the one with a trap: the audience view opts out of contrast themes on purpose, its
   dimmed steps are alphas of white, and the scrim is semi-transparent over a slide nobody
