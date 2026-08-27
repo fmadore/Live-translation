@@ -5,6 +5,9 @@
 //! transparent, always-on-top overlay window.
 
 mod audio;
+// Compiled in for the tests that keep the handler, the generated permissions and the two
+// capability files in step; `build.rs` reads the same file to generate the permissions.
+pub mod command_names;
 mod commands;
 mod gemini;
 mod lifecycle;
