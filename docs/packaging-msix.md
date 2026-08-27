@@ -27,7 +27,7 @@ hands it to the Windows SDK's `MakeAppx`.
 `src-tauri/gen/` is otherwise generated and ignored; `.gitignore` carries an exception for
 `gen/windows/`.
 
-Two things in there are not what they look like:
+Three things in there are not what they look like:
 
 - **`"displayName": "live-translation"` in `bundle.config.json` is a filename, not a label.**
   The bundler derives the packaged executable's name from it (whitespace stripped, plus
@@ -40,6 +40,12 @@ Two things in there are not what they look like:
   reserved name also carries an ampersand, which has to be `&amp;` in XML. Ingestion fails if
   any of these differ by a character, so they are written out in the template and checked
   against *Store identity (assigned)* in `microsoft-store.md`.
+- **`"publisher"` in `tauri.conf.json` is load-bearing.** Tauri defaults the Windows publisher
+  to the second element of `identifier`, so `org.stias.live-translation` used to name the
+  workshop venue as the author: *stias* in the packaged executable's `CompanyName` and in the
+  NSIS/MSI installers attached to a GitHub release. `"publisher": "Frédérick Madore"` sets it
+  explicitly. The Store identity is unaffected either way — that comes from
+  `bundle.config.json` — so the identifier itself must not be touched.
 
 The manifest the bundler produces carries the matching `x64` or `arm64` architecture:
 
