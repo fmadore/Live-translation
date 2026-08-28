@@ -172,6 +172,16 @@ Definition of done for 1.2:
   as far as the design asks or as far as the bar allows, whichever is less dim. The defaults are
   unchanged to the digit, which a test asserts against the literals the stylesheet used to
   carry.
+
+  What both halves were missing was a way to reach them. They rendered only inside a running
+  session, so choosing a typeface meant starting one — and the first operator to look for them
+  reasonably concluded the build was stale. The controls are a single snippet rendered in two
+  places now: the running rail, where the size is what gets nudged mid-session, and a settings
+  panel reached from a gear in the title bar, which is the one control whose position does not
+  depend on what the session is doing. The panel also collects the interface language and the
+  tray preference, which were being rendered into both the rail and the pre-flight sheet. It
+  points at placement mode as its preview, because the stand-in caption the overlay already
+  shows while being positioned is set in whatever the panel is choosing.
 - [#56 — German as a caption output language](https://github.com/fmadore/Live-translation/issues/56)
   now carries the standing note about expanding beyond English and French. The enum is still
   trivially extensible and both Rust matches on it are exhaustive, so the compiler names most of

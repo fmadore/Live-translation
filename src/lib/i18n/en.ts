@@ -167,6 +167,18 @@ export const en = {
 			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.'
 	},
 
+	settings: {
+		heading: 'Settings',
+		openLabel: 'Open settings',
+		close: 'Close',
+		closeLabel: 'Close settings',
+		appearance: 'Caption appearance',
+		/** Says where to look while choosing. The stand-in caption the overlay shows in
+		 *  placement mode is set in whatever is chosen here, so placement is the preview. */
+		appearanceNote:
+			'Place the overlay to judge these on the projector — the stand-in caption is set in what you choose here.'
+	},
+
 	overlayControls: {
 		heading: 'Overlay',
 		captionSize: 'Caption size',

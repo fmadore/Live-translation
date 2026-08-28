@@ -1,7 +1,11 @@
 <script lang="ts">
-	// Shared chrome for the two decisions the operator must not miss: an unsaved transcript at
-	// quit, and a recovery spool found at launch. Both are modal because both are the last
-	// moment at which an event's record can still be kept.
+	// Shared modal chrome: the focus cycle, the Escape key and the return of focus to whatever
+	// opened it are written once here, because those are the parts an accessible dialog is
+	// judged on and three separate implementations would drift.
+	//
+	// It carries the two decisions the operator must not miss — an unsaved transcript at quit,
+	// and a recovery spool found at launch — and the settings panel, which is not a decision at
+	// all but needs the same chrome and a wider box.
 
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
@@ -11,10 +15,13 @@
 		title: string;
 		/** Escape, so a dialog is never a trap. Omit for one that has no safe dismissal. */
 		onDismiss?: () => void;
+		/** A roomier box, for a panel of controls rather than a paragraph and three buttons.
+		 *  The narrow default is a measure chosen for reading; controls are not read. */
+		wide?: boolean;
 		children: Snippet;
 	}
 
-	let { title, onDismiss, children }: Props = $props();
+	let { title, onDismiss, wide = false, children }: Props = $props();
 
 	const titleId = $props.id();
 
@@ -69,7 +76,14 @@
 <svelte:window on:keydown={onKeydown} />
 
 <div class="scrim">
-	<div class="prompt" bind:this={prompt} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+	<div
+		class="prompt"
+		class:wide
+		bind:this={prompt}
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby={titleId}
+	>
 		<h2 id={titleId}>{title}</h2>
 		{@render children()}
 	</div>
@@ -99,6 +113,11 @@
 		border: 1px solid var(--border);
 		background: var(--panel);
 		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+	}
+	/* 640px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
+	   fixed pixel width turns a two-column row of controls into a column of clipped ones. */
+	.prompt.wide {
+		width: min(40em, 100%);
 	}
 	h2 {
 		margin: 0;
