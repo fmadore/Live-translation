@@ -2,7 +2,7 @@
 
 **Published:** 1.1.0, native x64 and ARM64, at
 <https://apps.microsoft.com/detail/9PFB8LR3RR9X>. Accepted 27 August 2026; 1.0.5 was the
-release before it. Updates go through [`store-automation.md`](store-automation.md).
+release before it. Updates go through [`store-updates.md`](store-updates.md).
 
 The package the Store is serving was cut from the `v1.1.0` tag. Work merged to `main` after
 that tag — the accessibility pass, the capability split, the French interface, Windows text

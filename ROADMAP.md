@@ -10,7 +10,7 @@ Version **1.0.5** passed certification and is published at
 [apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
 Version **1.1.0** passed certification on 27 August 2026 and is what the Store now hands to
 anyone who installs or updates the app. Updates are uploaded to Partner Center by hand, as
-described in [`docs/store-automation.md`](docs/store-automation.md) — the submission API
+described in [`docs/store-updates.md`](docs/store-updates.md) — the submission API
 authenticates as a Microsoft Entra application, which Partner Center offers only to Company
 accounts.
 
@@ -291,7 +291,7 @@ and the certification notes all landed, and 1.0.5 is published. The Store re-sig
 package with a Microsoft certificate at no cost, which is what removes the SmartScreen
 "unknown publisher" wall the unsigned NSIS installer still meets.
 [`docs/microsoft-store.md`](docs/microsoft-store.md) has the Store identity and the
-certification history; [`docs/store-automation.md`](docs/store-automation.md) has the update
+certification history; [`docs/store-updates.md`](docs/store-updates.md) has the update
 path.
 
 The critical path was never packaging but a **keyless default path**. Store policy 10.8.3
