@@ -74,8 +74,7 @@
 		LOCALES,
 		locale,
 		setLocale,
-		t,
-		type Locale
+		t
 	} from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
@@ -744,6 +743,10 @@
 		}
 	}
 
+	// Names the interface-language group for a screen reader; the heading is the only thing
+	// that says what those two buttons are choosing between.
+	const localeHeadingId = $props.id();
+
 	// The overlay is a separate webview, so the operator's language choice is pushed to it the
 	// same way the caption size is. Skipped in a browser preview, which has no second window.
 	$effect(() => {
@@ -824,28 +827,23 @@
 	     numbered setup sheet because it belongs to the app, not to the session — and it stays
 	     usable mid-session, since nothing about it touches capture. -->
 	<div class="rail-section">
-		<h2 class="kicker">{$t.locale.label}</h2>
-		<div class="select-row">
-			<select
-				aria-label={$t.locale.label}
-				value={$locale}
-				onchange={(e) => setLocale(e.currentTarget.value as Locale)}
-			>
-				{#each LOCALES as code (code)}
-					<option value={code}>{LOCALE_NAMES[code]}</option>
-				{/each}
-			</select>
-			<svg
-				class="chevron"
-				width="12"
-				height="12"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-			>
+		<h2 class="kicker" id={localeHeadingId}>{$t.locale.label}</h2>
+		<!-- Buttons rather than a select: with a handful of interface languages, both choices
+		     fit on screen and the switch costs one click instead of two. Built from LOCALES so
+		     a third language needs no markup, and grouped under the heading because two
+		     `aria-pressed` buttons on their own do not say what they are two of. -->
+		<div class="locale-cards" role="group" aria-labelledby={localeHeadingId}>
+			{#each LOCALES as code (code)}
+				<button
+					class="lang"
+					class:selected={$locale === code}
+					aria-pressed={$locale === code}
+					onclick={() => setLocale(code)}
+				>
+					<span class="lang-code">{code.toUpperCase()}</span>
+					<span class="lang-name">{LOCALE_NAMES[code]}</span>
+				</button>
+			{/each}
 		</div>
 		<p class="hint">{$t.locale.note}</p>
 	</div>
@@ -2171,6 +2169,14 @@
 	.lang-cards {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
+		gap: 0.5rem;
+	}
+	/* Same cards, but sized from however many interface languages there are rather than from
+	   the two the caption step happens to offer. */
+	.locale-cards {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
 		gap: 0.5rem;
 	}
 	.lang {
