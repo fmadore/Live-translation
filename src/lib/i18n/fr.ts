@@ -185,6 +185,23 @@ export const fr: Messages = {
 		wider: 'Allonger les lignes de sous-titres',
 		captionFace: 'Police des sous-titres',
 		faceDefault: (label: string) => `${label} (par défaut)`,
+		captionColour: 'Couleur des sous-titres',
+		scrimColour: 'Couleur du fond',
+		scrimOpacity: 'Intensité du fond',
+		weakerScrim: 'Fond plus discret derrière les sous-titres',
+		strongerScrim: 'Fond plus marqué derrière les sous-titres',
+		contrast: (ratio: string) => `Contraste ${ratio}:1`,
+		contrastOk: 'Lisible sur une diapositive claire comme sur une sombre.',
+		contrastLow: (step: string, target: string) =>
+			`${step} descend sous ${target}:1 sur une diapositive claire ou sombre.`,
+		contrastStep: {
+			live: 'Le sous-titre en cours',
+			final: 'Une ligne terminée',
+			label: 'L’étiquette du locuteur',
+			lead: 'La ligne précédente en rappel'
+		},
+		reset: 'Rétablir',
+		resetLabel: 'Rétablir l’apparence par défaut de la surimpression',
 		move: 'Déplacer',
 		done: 'Terminé',
 		moveLabel: 'Déplacer la surimpression',

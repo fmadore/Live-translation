@@ -164,6 +164,13 @@ export interface OverlayConfig {
 	fontSize: number;
 	/** How wide a caption line may run, as a typographic measure in `ch`. */
 	captionWidth?: number;
+	/** The caption ink and the scrim behind it. Sent as three plain values rather than as a
+	 *  computed stylesheet: the overlay derives its own steps and its own gradient from them,
+	 *  so the contrast readout in the operator window and the pixels on the projector are
+	 *  always describing the same arithmetic. See `captionColour.ts`. */
+	captionColour?: string;
+	scrimColour?: string;
+	scrimOpacity?: number;
 	/** The typeface the captions are set in. An id rather than a CSS stack: the overlay owns
 	 *  the mapping, so a stored value from an older build can never push an arbitrary
 	 *  `font-family` into the window an audience is looking at. See `captionFont.ts`. */

@@ -3,6 +3,14 @@
 	import { api, on, isTauri } from '$lib/tauri';
 	import { locale, t } from '$lib/i18n';
 	import type { Caption, Origin, TargetLanguage } from '$lib/types';
+	import {
+		captionCssVars,
+		clampHex,
+		clampScrimOpacity,
+		DEFAULT_CAPTION_PALETTE,
+		loadCaptionPalette
+	} from '$lib/captionColour';
+	import type { CaptionPalette } from '$lib/captionColour';
 	import { captionFaceStack, isCaptionFace, loadCaptionFace } from '$lib/captionFont';
 	import type { CaptionFaceId } from '$lib/captionFont';
 	import {
@@ -31,6 +39,16 @@
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
 	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
+
+	// The ink and the scrim behind it. The overlay keeps the operator's three plain values and
+	// derives its own steps from them, rather than being handed a finished stylesheet — so the
+	// contrast readout on the control panel and the pixels here come out of one function.
+	let palette = $state<CaptionPalette>(loadCaptionPalette());
+	const paletteVars = $derived(
+		Object.entries(captionCssVars(palette))
+			.map(([name, value]) => `${name}: ${value}`)
+			.join('; ')
+	);
 
 	// The language of the caption text, which is not this window's interface language: the
 	// move-mode chrome and the origin labels follow the operator's locale, the captions do
@@ -166,6 +184,14 @@
 			// build knows, so nothing here can put an arbitrary `font-family` on the screen an
 			// audience is reading.
 			if (isCaptionFace(cfg.captionFace)) captionFace = cfg.captionFace;
+			// Validated here as well as at the source. Every value is clamped to something
+			// paintable, each independently, so one bad field cannot take the palette down —
+			// a caption in an unparsed colour is a caption in no colour at all.
+			palette = {
+				text: clampHex(cfg.captionColour ?? palette.text, DEFAULT_CAPTION_PALETTE.text),
+				scrim: clampHex(cfg.scrimColour ?? palette.scrim, DEFAULT_CAPTION_PALETTE.scrim),
+				scrimOpacity: clampScrimOpacity(cfg.scrimOpacity ?? palette.scrimOpacity)
+			};
 			// The operator owns the interface language; this window follows it.
 			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
 			// Unconditional, unlike the rest: an absent caption language is a real answer
@@ -346,7 +372,7 @@
 	data-tauri-drag-region={interactive || undefined}
 	style="--fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
 		captionFace
-	)}"
+	)}; {paletteVars}"
 >
 	{#if interactive}
 		<!-- The overlay window *is* the caption region, so the placement chrome hugs the
@@ -484,11 +510,14 @@
 		/* The audience view only. Move-mode chrome stays on the app's own face: it is this
 		   operator's interface, not the thing being projected. */
 		font-family: var(--caption-face);
+		/* Operator-chosen, and the shape is the point: strongest at the bottom edge, thinner
+		   where the text sits, gone at the top. Moving the opacity scales all three stops
+		   together, so the veil never becomes a band with an edge. */
 		background: linear-gradient(
 			to top,
-			rgba(6, 8, 10, 0.72) 0%,
-			rgba(6, 8, 10, 0.42) 55%,
-			rgba(6, 8, 10, 0) 100%
+			var(--caption-scrim-strong) 0%,
+			var(--caption-scrim-mid) 55%,
+			var(--caption-scrim-none) 100%
 		);
 	}
 	/* Centred like cinema subtitles; with labels on, the label+text pair centres as a unit. */
@@ -506,7 +535,7 @@
 		line-height: 1;
 		letter-spacing: 0.16em;
 		text-transform: uppercase;
-		color: rgba(255, 255, 255, 0.62);
+		color: var(--caption-ink-label);
 	}
 	.line {
 		margin: 0;
@@ -519,23 +548,25 @@
 		line-height: 1.34;
 		letter-spacing: -0.005em;
 		text-align: center;
-		color: #ffffff;
-		/* A tight dark edge plus a soft halo: keeps white text readable over a bright
-		   slide even where the fade above has thinned to nothing. */
+		color: var(--caption-ink);
+		/* A tight edge plus a soft halo: keeps the text readable over a bright slide even
+		   where the fade above has thinned to nothing. Black behind a light caption, white
+		   behind a dark one — a fixed black ring would be the thing swallowing dark ink
+		   rather than the thing rescuing it. See `haloColour`. */
 		text-shadow:
-			0 1px 3px rgba(0, 0, 0, 0.9),
-			0 2px 14px rgba(0, 0, 0, 0.8);
+			0 1px 3px var(--caption-halo-tight),
+			0 2px 14px var(--caption-halo-soft);
 		text-wrap: pretty;
 	}
 	/* A finished line loses a little weight of colour, never size or slant: both cost
 	   legibility at the back of a room. */
 	.line.final {
-		color: rgba(255, 255, 255, 0.9);
+		color: var(--caption-ink-final);
 	}
 	/* The lead-in is the same size and sits in the same block as the live text — only its
 	   contrast drops, so a sentence spanning two turns still reads as one line. */
 	.lead {
-		color: rgba(255, 255, 255, 0.52);
+		color: var(--caption-ink-lead);
 	}
 	/* Marks the live turn. `blink` is a global keyframe (app.css). */
 	.caret {

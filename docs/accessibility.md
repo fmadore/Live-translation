@@ -20,6 +20,7 @@ contrast themes (see *Contrast themes* below).
 | Text size | `src/app.css` — one type ramp, every step of which is a multiple of `--text-scale`. No component declares its own pixel size. |
 | Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
+| Caption colours | `src/lib/captionColour.ts` — the operator picks the ink and the scrim, and every ratio is computed on the **composite**: the scrim as it is thinned under the text, over both a white and a black slide, with the halo that rings the glyph. One function settles how dim each step is painted *and* what the readout says, so the two cannot disagree. A single control puts the whole overlay appearance back to what it ships with, because a way into an unreadable palette needs a way out of it. |
 | Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesized bold at projector size is a legibility failure, not a cosmetic one. |
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. |
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
@@ -37,6 +38,11 @@ contrast themes (see *Contrast themes* below).
   text token drops below 4.5:1 on any surface, or any non-text mark below 3:1. This is the
   regression guard: the contrast failures that prompted issue #24 arrived one shade at a time,
   and nothing could see them.
+- `npm test` → `src/lib/captionColour.test.ts` is the same guard for the overlay, which
+  `palette.test.ts` cannot reach because its colours are no longer in the stylesheet. It fails
+  if the shipped default drops below 4.5:1 at any step over either slide, if the default stops
+  reproducing the literals the overlay used to hard-code, or if a colour is written back into
+  the overlay's stylesheet where the check cannot see it.
 - `npm test` → `src/lib/typeScale.test.ts` reads the same stylesheets and fails if any
   component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach.
   It is the same kind of guard for the same reason: the failure is invisible on a machine
@@ -73,18 +79,23 @@ treats the window.
    selected mode, source, language and engine stay distinguishable; the Start button is
    readable; the level meter is visible; the status pill keeps an edge. The overlay's audience
    view keeps its own colours — that is deliberate.
-4. **Text scaling.** Settings → Accessibility → Text size. Walk 100%, 150% and 225% with the
+4. **Caption colours over real slides.** With the overlay placed, put a **bright** deck
+   behind it and then a **dark** one, and read the captions from the back of the room in both.
+   Include a finished line and a trailing previous line, which are the dimmest text on screen
+   and the steps the check is decided by. The reading beside the control is computed against
+   exactly these two extremes; this is the step that confirms the model matches the room.
+5. **Text scaling.** Settings → Accessibility → Text size. Walk 100%, 150% and 225% with the
    window at its 980 × 660 minimum and again maximized. The window follows the slider without
    a restart. Nothing is clipped or overlapping; the rail's cards keep their proportions; the
    two columns stack into one scrolling column when they no longer fit, and come back when the
    window is widened. The overlay does not change — see below.
-5. **Display scaling.** 150% and 200%, and a mixed-DPI two-monitor setup with the overlay on
+6. **Display scaling.** 150% and 200%, and a mixed-DPI two-monitor setup with the overlay on
    the second display.
-6. **Reduced motion.** Settings → Accessibility → Visual effects → Animation effects off. No
+7. **Reduced motion.** Settings → Accessibility → Visual effects → Animation effects off. No
    sweep, no breathing dot, no blinking caret.
-7. **Accessibility Insights for Windows** on the operator window, and **Accessibility Insights
+8. **Accessibility Insights for Windows** on the operator window, and **Accessibility Insights
    for Web** (or `axe` DevTools) against `npm run dev` for the DOM-level rules.
-8. **Minimum window size.** Resize to 980 × 660. Nothing overlaps and nothing is clipped; both
+9. **Minimum window size.** Resize to 980 × 660. Nothing overlaps and nothing is clipped; both
    columns scroll rather than compress.
 
 ## Windows text scaling

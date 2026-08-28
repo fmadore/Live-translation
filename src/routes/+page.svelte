@@ -21,6 +21,8 @@
 		systemLevel,
 		overlayCaptionFace,
 		overlayCaptionWidth,
+		overlayContrast,
+		overlayPalette,
 		overlayFontSize,
 		overlayPlaced,
 		sessionStartedAt,
@@ -53,6 +55,15 @@
 		TrayCommand
 	} from '$lib/types';
 	import {
+		CAPTION_CONTRAST_TARGET,
+		clampHex,
+		clampScrimOpacity,
+		DEFAULT_CAPTION_PALETTE,
+		SCRIM_OPACITY_MAX,
+		SCRIM_OPACITY_MIN
+	} from '$lib/captionColour';
+	import type { CaptionPalette } from '$lib/captionColour';
+	import {
 		availableCaptionFaces,
 		captionFaceStack,
 		CAPTION_FACES,
@@ -65,6 +76,8 @@
 		captionLanguageOf,
 		clampOverlayFont,
 		clampOverlayWidth,
+		DEFAULT_OVERLAY_FONT,
+		DEFAULT_OVERLAY_WIDTH,
 		providerCanTranslate,
 		providerDetectsLanguage,
 		providerRequiresKey
@@ -724,6 +737,9 @@
 			fontSize: get(overlayFontSize),
 			captionWidth: get(overlayCaptionWidth),
 			captionFace: get(overlayCaptionFace),
+			captionColour: get(overlayPalette).text,
+			scrimColour: get(overlayPalette).scrim,
+			scrimOpacity: get(overlayPalette).scrimOpacity,
 			captionLanguage,
 			...extra
 		});
@@ -747,6 +763,49 @@
 	// size control, and the same live push.
 	function setCaptionWidth(width: number) {
 		overlayCaptionWidth.set(clampOverlayWidth(width));
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	/** Change part of the palette. Clamped here as well as on the way in to the overlay: the
+	 *  operator window is where the contrast readout is computed, and a readout describing a
+	 *  colour the overlay would refuse to paint would be worse than no readout. */
+	function setPalette(patch: Partial<CaptionPalette>) {
+		overlayPalette.update((current) => {
+			const next = { ...current, ...patch };
+			return {
+				text: clampHex(next.text, DEFAULT_CAPTION_PALETTE.text),
+				scrim: clampHex(next.scrim, DEFAULT_CAPTION_PALETTE.scrim),
+				scrimOpacity: clampScrimOpacity(next.scrimOpacity)
+			};
+		});
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	/** Whether anything in the overlay's appearance has been changed from what it ships with.
+	 *  Drives the reset button's disabled state, so the control also answers the question
+	 *  "have I changed anything?" — which is the one an operator has after an hour of
+	 *  adjusting and no memory of where they started. */
+	const overlayAtDefaults = $derived(
+		$overlayFontSize === DEFAULT_OVERLAY_FONT &&
+			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
+			$overlayCaptionFace === DEFAULT_CAPTION_FACE &&
+			$overlayPalette.text === DEFAULT_CAPTION_PALETTE.text &&
+			$overlayPalette.scrim === DEFAULT_CAPTION_PALETTE.scrim &&
+			$overlayPalette.scrimOpacity === DEFAULT_CAPTION_PALETTE.scrimOpacity
+	);
+
+	/** Put the overlay's whole appearance back to what it ships with.
+	 *
+	 *  Everything in this section, not just the colours: a palette that has gone wrong has
+	 *  usually gone wrong alongside a size and a measure that were moved trying to fix it, and
+	 *  a reset that left those behind would not be the way out it is reached for. Placement is
+	 *  deliberately untouched — that is where the window sits on the projector, it took a walk
+	 *  across the room to get right, and nothing here is a reason to lose it. */
+	function resetOverlayAppearance() {
+		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
+		overlayCaptionWidth.set(DEFAULT_OVERLAY_WIDTH);
+		overlayCaptionFace.set(DEFAULT_CAPTION_FACE);
+		overlayPalette.set({ ...DEFAULT_CAPTION_PALETTE });
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
@@ -792,7 +851,26 @@
 
 	// Names the interface-language group for a screen reader; the heading is the only thing
 	// that says what those two buttons are choosing between.
-	const localeHeadingId = $props.id();
+	// One `$props.id()` per component is all Svelte allows, so the second id is a suffix of
+	// the first. Both are unique to this instance, which is all either needs to be.
+	const idBase = $props.id();
+	const localeHeadingId = `${idBase}-locale`;
+	const contrastId = `${idBase}-contrast`;
+
+	/** The achieved ratio, written the way the interface language writes numbers — 5.7 in
+	 *  English, 5,7 in French. */
+	const contrastReading = $derived(
+		$overlayContrast.worst.toLocaleString($localeTag, {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1
+		})
+	);
+	const contrastTarget = $derived(
+		CAPTION_CONTRAST_TARGET.toLocaleString($localeTag, {
+			minimumFractionDigits: 1,
+			maximumFractionDigits: 1
+		})
+	);
 
 	// The overlay is a separate webview, so the operator's language choice is pushed to it the
 	// same way the caption size is. Skipped in a browser preview, which has no second window.
@@ -1134,6 +1212,65 @@
 							aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
 						>
 					</div>
+					<div class="colour-row">
+						<label class="swatch">
+							<span class="swatch-label">{$t.overlayControls.captionColour}</span>
+							<input
+								type="color"
+								value={$overlayPalette.text}
+								aria-describedby={contrastId}
+								oninput={(e) => setPalette({ text: e.currentTarget.value })}
+							/>
+						</label>
+						<label class="swatch">
+							<span class="swatch-label">{$t.overlayControls.scrimColour}</span>
+							<input
+								type="color"
+								value={$overlayPalette.scrim}
+								aria-describedby={contrastId}
+								oninput={(e) => setPalette({ scrim: e.currentTarget.value })}
+							/>
+						</label>
+					</div>
+					<div class="stepper">
+						<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
+						<button
+							class="step"
+							disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
+							onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
+							aria-label={$t.overlayControls.weakerScrim}>−</button
+						>
+						<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
+						<button
+							class="step"
+							disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
+							onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
+							aria-label={$t.overlayControls.strongerScrim}>+</button
+						>
+					</div>
+					<!-- Not a live region on purpose: this changes on every step of a colour drag, and
+					     `docs/accessibility.md` keeps announcements for things worth interrupting a
+					     reader for. It is the description of the controls instead, so it is read on
+					     arrival at the one moment it is worth hearing. -->
+					<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
+						<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
+						<span class="contrast-note">
+							{$overlayContrast.passes
+								? $t.overlayControls.contrastOk
+								: $t.overlayControls.contrastLow(
+										$t.overlayControls.contrastStep[$overlayContrast.worstStep],
+										contrastTarget
+									)}
+						</span>
+					</p>
+					<button
+						class="reset"
+						disabled={overlayAtDefaults}
+						onclick={resetOverlayAppearance}
+						aria-label={$t.overlayControls.resetLabel}
+					>
+						{$t.overlayControls.reset}
+					</button>
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
 						     all a sighted operator needs beside the "Overlay" heading. The accessible
@@ -2459,6 +2596,104 @@
 		border-color: var(--border-hover);
 	}
 
+	/* ---- Caption colours ---------------------------------------------- */
+
+	.colour-row {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
+		gap: 0.5rem;
+	}
+	.swatch {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.5rem 0.625rem;
+		border-radius: 9px;
+		border: 1px solid var(--border);
+		background: var(--panel-2);
+		cursor: pointer;
+	}
+	.swatch:hover {
+		border-color: var(--border-hover);
+	}
+	.swatch-label {
+		font-size: var(--type-12);
+		line-height: 1.2;
+		color: var(--muted);
+	}
+	/* The native control is a button-with-a-swatch; only the swatch is wanted. */
+	.swatch input[type='color'] {
+		flex: 0 0 auto;
+		width: 26px;
+		height: 20px;
+		padding: 0;
+		border: 1px solid var(--border-hover);
+		border-radius: 5px;
+		background: none;
+		cursor: pointer;
+	}
+	.swatch input[type='color']::-webkit-color-swatch-wrapper {
+		padding: 0;
+	}
+	.swatch input[type='color']::-webkit-color-swatch {
+		border: none;
+		border-radius: 4px;
+	}
+
+	.contrast {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.375rem;
+		margin: 0;
+	}
+	.contrast-ratio {
+		font-family: var(--font-mono);
+		font-size: var(--type-12);
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-dim);
+	}
+	.contrast-note {
+		font-size: var(--type-11);
+		line-height: 1.45;
+		color: var(--muted-2);
+	}
+	/* Amber, not red: the captions are still painted and still legible enough to run a room
+	   with. What this says is that the dimmest step has stopped clearing the bar the rest of
+	   the app holds — a thing to fix before the doors open, not an error. */
+	.contrast.warn .contrast-ratio {
+		color: var(--warn);
+	}
+	.contrast.warn .contrast-note {
+		color: var(--warn-soft);
+	}
+
+	/* Quieter than the Move/Show pair below it: it is the way back, not a thing to reach for
+	   in the ordinary run of setting the overlay up. Disabled — and so visibly inert — while
+	   there is nothing to undo. */
+	.reset {
+		align-self: flex-start;
+		padding: 0.375rem 0.625rem;
+		border-radius: 8px;
+		border: 1px solid var(--border);
+		background: transparent;
+		color: var(--muted);
+		font-size: var(--type-11);
+		font-weight: 500;
+		line-height: 1;
+	}
+	.reset:hover:not(:disabled) {
+		border-color: var(--border-hover);
+		color: var(--text-soft);
+	}
+	.reset:disabled {
+		opacity: 0.45;
+		cursor: default;
+	}
+
 	.overlay-actions {
 		display: flex;
 		gap: 8px;
@@ -2897,6 +3132,13 @@
 	   anything it says in colour alone has to be said again in a way the theme keeps.
 	   Everything else is deliberately left to the system palette. */
 	@media (forced-colors: active) {
+		/* The one place in this window that must keep its own colours: the swatch *is* the
+		   value. A contrast theme repainting it would leave the operator choosing a caption
+		   colour they cannot see. The label and the reading beside it are repainted as
+		   normal, which is what a contrast theme is for. */
+		.swatch input[type='color'] {
+			forced-color-adjust: none;
+		}
 		/* Selection is a mint border and a mint wash, and both flatten to the same
 		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
 		.card.selected,
