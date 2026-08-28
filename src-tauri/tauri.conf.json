@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Live Translation",
-  "version": "1.1.0",
-  "identifier": "org.stias.live-translation",
+  "version": "1.2.0",
+  "identifier": "io.github.fmadore.live-translation",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:5173",

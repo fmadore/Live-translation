@@ -7,7 +7,13 @@ use anyhow::{Context, Result};
 
 use crate::types::Provider;
 
-const SERVICE: &str = "org.stias.live-translation";
+const SERVICE: &str = "io.github.fmadore.live-translation";
+
+/// The service name up to 1.1.0, when the bundle identifier still named the workshop venue
+/// rather than the author. Read once per provider so the rename does not cost an operator the
+/// key they saved, then deleted — a credential this app no longer writes should not sit in
+/// Credential Manager under a name that misstates who put it there.
+const LEGACY_SERVICE: &str = "org.stias.live-translation";
 
 /// Credential-store account name (one entry per provider). `None` for backends that need
 /// no credential.
@@ -41,10 +47,34 @@ fn label(provider: Provider) -> &'static str {
     }
 }
 
-fn entry(provider: Provider) -> Result<keyring::Entry> {
+fn entry_in(service: &str, provider: Provider) -> Result<keyring::Entry> {
     let account =
         account(provider).with_context(|| format!("{} needs no API key", label(provider)))?;
-    keyring::Entry::new(SERVICE, account).context("failed to open OS keychain entry")
+    keyring::Entry::new(service, account).context("failed to open OS keychain entry")
+}
+
+fn entry(provider: Provider) -> Result<keyring::Entry> {
+    entry_in(SERVICE, provider)
+}
+
+/// Move a key saved under the pre-1.2.0 service name across, and hand it back.
+///
+/// Only reached when the current name holds nothing, so a migrated key is written once and
+/// never looked for again. An update must not cost the operator their provider key: finding
+/// out it is gone happens at the moment they press Start, which is five minutes before an
+/// event rather than five days.
+fn take_legacy_key(provider: Provider) -> Option<String> {
+    let legacy = entry_in(LEGACY_SERVICE, provider).ok()?;
+    let key = legacy.get_password().ok()?;
+    if key.trim().is_empty() {
+        return None;
+    }
+    // A write that fails leaves the old entry untouched, so the next launch tries again. A
+    // delete that fails is not worth surfacing: the key has already moved, and the worst case
+    // is a stale duplicate rather than a lost credential.
+    entry(provider).ok()?.set_password(&key).ok()?;
+    let _ = legacy.delete_credential();
+    Some(key)
 }
 
 /// Store the provider's key in the OS keychain.
@@ -61,6 +91,11 @@ pub fn set_api_key(provider: Provider, key: &str) -> Result<()> {
 
 /// Remove the provider's key from the keychain (no-op if absent).
 pub fn clear_api_key(provider: Provider) -> Result<()> {
+    // The legacy entry too, and first: a Remove that left it behind would be undone by the
+    // migration on the next launch, which reads as the app refusing to forget a key.
+    if let Ok(legacy) = entry_in(LEGACY_SERVICE, provider) {
+        let _ = legacy.delete_credential();
+    }
     match entry(provider)?.delete_credential() {
         Ok(()) => Ok(()),
         Err(keyring::Error::NoEntry) => Ok(()),
@@ -77,6 +112,9 @@ pub fn resolve_api_key(provider: Provider) -> Result<String> {
         if !pw.trim().is_empty() {
             return Ok(pw);
         }
+    }
+    if let Some(migrated) = take_legacy_key(provider) {
+        return Ok(migrated);
     }
     if let Ok(env_key) = std::env::var(env_var) {
         if !env_key.trim().is_empty() {

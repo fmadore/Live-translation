@@ -154,14 +154,69 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 
 The listing is per-language and so are its screenshots. Both sets are kept in the repository
 and uploaded from there — `docs/store-screenshots/en/` and `docs/store-screenshots/fr/`, in
-the order their filenames give:
+the order their filenames give.
+
+Each screenshot has an optional **Description** field in Partner Center, on the same screen as
+the upload. Fill it: it is the alt text a screen reader announces, so an empty one makes the
+listing say nothing to the people most likely to need this app. Store descriptions cap at 200
+characters; these are well inside it.
+
+Captions describe what the picture shows rather than restating the product description — a
+visitor is scrolling images, and repeating the paragraph above them tells them nothing new.
+
+### English captions
 
 1. `1-idle.png` — idle screen showing Built-in demo, Demo audio, Free, and Start demo subtitles.
+
+```text
+The app opens on a built-in demonstration. No key, no account, no microphone and no per-minute charge — it drives the real caption interface using bundled scripted content.
+```
+
 2. `2-running-english.png` — running English demo showing Demo status, moving meter, elapsed
    time, and overlay caption.
+
+```text
+A running session shows the audio level, elapsed time and running cost. Captions appear on a transparent overlay that sits above whatever is being projected.
+```
+
 3. `3-running-french.png` — running French demo showing a French caption.
+
+```text
+Captions in French, with the interface in French. The two are independent: the language you work in does not decide the language the room reads.
+```
+
 4. `4-provider.png` — optional live-provider configuration showing its key requirement and
    estimated cost.
+
+```text
+Live translation and live subtitles use your own Gemini, OpenAI or Mistral key, stored in Windows Credential Manager. The hourly rate is shown before a session starts.
+```
+
+### Légendes françaises
+
+1. `1-idle.png`
+
+```text
+L’application s’ouvre sur une démonstration intégrée. Aucune clé, aucun compte, aucun microphone et aucun coût à la minute : elle pilote la vraie interface de sous-titrage avec un contenu fourni.
+```
+
+2. `2-running-english.png`
+
+```text
+Une session en cours affiche le niveau audio, le temps écoulé et le coût courant. Les sous-titres apparaissent sur une surimpression transparente, au-dessus de ce qui est projeté.
+```
+
+3. `3-running-french.png`
+
+```text
+Des sous-titres en français, avec l’interface en français. Les deux sont indépendants : la langue dans laquelle vous travaillez ne décide pas de celle que lit la salle.
+```
+
+4. `4-provider.png`
+
+```text
+La traduction et les sous-titres en direct utilisent votre propre clé Gemini, OpenAI ou Mistral, conservée dans le Gestionnaire d’identification Windows. Le tarif horaire s’affiche avant de démarrer.
+```
 
 Capture rules, and when to re-capture, are in
 [`store-updates.md`](store-updates.md#screenshots). Do not upload screenshots from the removed

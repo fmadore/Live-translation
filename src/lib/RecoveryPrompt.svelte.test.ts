@@ -9,7 +9,7 @@ function mount(overrides: Record<string, unknown> = {}) {
 		props: {
 			lines: 42,
 			savedAt: '26/08/2026, 09:30:00',
-			path: 'C:\\Users\\op\\AppData\\Local\\org.stias.live-translation\\recovery\\transcript.json',
+			path: 'C:\\Users\\op\\AppData\\Local\\io.github.fmadore.live-translation\\recovery\\transcript.json',
 			onRestore,
 			onDelete,
 			...overrides
