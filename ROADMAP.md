@@ -161,10 +161,17 @@ Definition of done for 1.2:
   width probe that needs no permission, so a font this machine lacks never reaches the control.
   See `src/lib/captionFont.ts`.
 
-  The colour half is still open, and it is the one with a trap: the audience view opts out of
-  contrast themes on purpose, its dimmed steps are alphas of white, and the scrim is
-  semi-transparent over a slide nobody controls — so operator-chosen colours need a composite
-  contrast check, not a colour wheel.
+  The **colour half has landed too**, and the trap it carried turned out to be the useful part.
+  A ratio measured against the scrim's own swatch is worthless, because the slide shows through
+  it — so `src/lib/captionColour.ts` composites the scrim as it is *thinned under the text*
+  over both a white and a black slide, then the halo that rings the glyph, then the ink. Two
+  things fell out of writing the check that no colour wheel would have surfaced: a fixed black
+  halo is the thing that swallows dark ink rather than the thing that rescues it, so the halo
+  follows the ink; and sRGB alpha is not perceptually uniform, so the 0.52 that buys the
+  lead-in 5.7:1 as white ink buys it only 4.2:1 as black ink — the steps are floors now, dimming
+  as far as the design asks or as far as the bar allows, whichever is less dim. The defaults are
+  unchanged to the digit, which a test asserts against the literals the stylesheet used to
+  carry.
 - [#56 — German as a caption output language](https://github.com/fmadore/Live-translation/issues/56)
   now carries the standing note about expanding beyond English and French. The enum is still
   trivially extensible and both Rust matches on it are exhaustive, so the compiler names most of

@@ -28,6 +28,14 @@ import {
 	SESSION_OPTIONS_KEY,
 	TRAY_HIDE_EXPLAINED_KEY
 } from './types';
+import {
+	CAPTION_SCRIM_KEY,
+	CAPTION_SCRIM_OPACITY_KEY,
+	CAPTION_TEXT_KEY,
+	captionContrast,
+	loadCaptionPalette
+} from './captionColour';
+import type { CaptionPalette } from './captionColour';
 import { CAPTION_FACE_KEY, loadCaptionFace } from './captionFont';
 import type { CaptionFaceId } from './captionFont';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
@@ -241,6 +249,21 @@ export const overlayCaptionFace = writable<CaptionFaceId>(loadCaptionFace());
 overlayCaptionFace.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(CAPTION_FACE_KEY, v);
 });
+
+/** The caption ink and the scrim behind it, as one store: they are chosen together and judged
+ *  together, and a contrast reading of half a palette would mean nothing. */
+export const overlayPalette = writable<CaptionPalette>(loadCaptionPalette());
+
+overlayPalette.subscribe((p) => {
+	if (typeof localStorage === 'undefined') return;
+	localStorage.setItem(CAPTION_TEXT_KEY, p.text);
+	localStorage.setItem(CAPTION_SCRIM_KEY, p.scrim);
+	localStorage.setItem(CAPTION_SCRIM_OPACITY_KEY, String(p.scrimOpacity));
+});
+
+/** What the palette actually achieves on a projector, recomputed as it changes. Derived
+ *  rather than stored: it is a fact about the palette, and a cached one could disagree. */
+export const overlayContrast = derived(overlayPalette, ($p) => captionContrast($p));
 
 // Whether the caption region has been positioned on the presentation display; persisted so
 // the pre-flight check survives a restart.

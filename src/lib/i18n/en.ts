@@ -177,6 +177,23 @@ export const en = {
 		wider: 'Longer caption lines',
 		captionFace: 'Caption typeface',
 		faceDefault: (label: string) => `${label} (default)`,
+		captionColour: 'Caption colour',
+		scrimColour: 'Backing colour',
+		scrimOpacity: 'Backing strength',
+		weakerScrim: 'Weaker backing behind the captions',
+		strongerScrim: 'Stronger backing behind the captions',
+		contrast: (ratio: string) => `Contrast ${ratio}:1`,
+		contrastOk: 'Readable over a bright slide and a dark one.',
+		contrastLow: (step: string, target: string) =>
+			`${step} falls below ${target}:1 over a bright or a dark slide.`,
+		contrastStep: {
+			live: 'The live caption',
+			final: 'A finished line',
+			label: 'The speaker label',
+			lead: 'The previous line trailing in'
+		},
+		reset: 'Reset',
+		resetLabel: 'Reset the overlay to how it looks by default',
 		move: 'Move',
 		done: 'Done',
 		moveLabel: 'Move the overlay',
