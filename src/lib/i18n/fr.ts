@@ -175,6 +175,18 @@ export const fr: Messages = {
 			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.'
 	},
 
+	settings: {
+		heading: 'Paramètres',
+		openLabel: 'Ouvrir les paramètres',
+		close: 'Fermer',
+		closeLabel: 'Fermer les paramètres',
+		appearance: 'Apparence des sous-titres',
+		/** Says where to look while choosing. The stand-in caption the overlay shows in
+		 *  placement mode is set in whatever is chosen here, so placement is the preview. */
+		appearanceNote:
+			'Placez la surimpression pour juger ces réglages sur le projecteur — le sous-titre témoin adopte ce qui est choisi ici.'
+	},
+
 	overlayControls: {
 		heading: 'Surimpression',
 		captionSize: 'Taille des sous-titres',

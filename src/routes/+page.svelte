@@ -106,6 +106,7 @@
 	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
 	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
 	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
+	import ModalPrompt from '$lib/ModalPrompt.svelte';
 
 	let microphones = $state<AudioDevice[]>([]);
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
@@ -817,6 +818,10 @@
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
+	/** The settings panel. Everything in it is persisted and applies live, so there is no
+	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
+	let settingsOpen = $state(false);
+
 	// Move mode: the overlay is click-through while captioning; this flips it into an
 	// interactive drag region so it can be dragged/resized into place, then flipped back.
 	// The overlay can also leave move mode on its own (its Enter/Escape keys), which arrives
@@ -944,13 +949,12 @@
 	}}
 />
 
-{#snippet windowSection()}
-	<!-- Rendered in both rail states: the reason to put the window away is strongest mid-session,
-	     and the reason to set the preference is strongest before one starts. -->
+{#snippet appPreferences()}
+	<!-- What belongs to the app rather than to a session: neither of these touches capture, so
+	     both stay usable mid-session. They used to be rendered into the rail and the pre-flight
+	     sheet; they live in the settings panel now, which is the point of having one. -->
 	<div class="divider"></div>
-	<!-- The interface language, not the caption language. It sits here rather than in the
-	     numbered setup sheet because it belongs to the app, not to the session — and it stays
-	     usable mid-session, since nothing about it touches capture. -->
+	<!-- The interface language, not the caption language. -->
 	<div class="rail-section">
 		<h2 class="kicker" id={localeHeadingId}>{$t.locale.label}</h2>
 		<!-- Buttons rather than a select: with a handful of interface languages, both choices
@@ -1008,6 +1012,133 @@
 	</div>
 {/snippet}
 
+{#snippet captionAppearance(heading: string)}
+	<!-- Rendered in two places on purpose. In the running rail, because the size is what gets
+	     nudged mid-session when someone at the back cannot read; and in the settings panel,
+	     because the whole look is chosen before a room fills, and an operator should not have
+	     to start a session — or pay for one — to choose a typeface. One snippet over one set
+	     of stores, so the two views cannot disagree about what the overlay is wearing.
+
+	     The heading is a parameter rather than fixed: in the rail this sits under "Overlay"
+	     among the live controls, while in the panel it names itself against the other
+	     preferences. -->
+	<h2 class="kicker">{heading}</h2>
+	<div class="stepper">
+		<span class="stepper-label">{$t.overlayControls.captionSize}</span>
+		<button
+			class="step"
+			onclick={() => setFont($overlayFontSize - 2)}
+			aria-label={$t.overlayControls.smaller}>−</button
+		>
+		<span class="stepper-value">{$overlayFontSize}</span>
+		<button
+			class="step"
+			onclick={() => setFont($overlayFontSize + 2)}
+			aria-label={$t.overlayControls.larger}>+</button
+		>
+	</div>
+	<div class="stepper">
+		<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
+		<button
+			class="step"
+			onclick={() => setCaptionWidth($overlayCaptionWidth - 2)}
+			aria-label={$t.overlayControls.narrower}>−</button
+		>
+		<span class="stepper-value">{$overlayCaptionWidth}</span>
+		<button
+			class="step"
+			onclick={() => setCaptionWidth($overlayCaptionWidth + 2)}
+			aria-label={$t.overlayControls.wider}>+</button
+		>
+	</div>
+	<div class="select-row">
+		<select
+			aria-label={$t.overlayControls.captionFace}
+			value={$overlayCaptionFace}
+			onchange={(e) => setCaptionFace(e.currentTarget.value as CaptionFaceId)}
+		>
+			<!-- Each option is set in the face it names, so the list is its own preview.
+			     The names are proper nouns and stay untranslated; only the note on the
+			     bundled default says anything, and it is the one thing that needs to. -->
+			{#each captionFaces as face (face.id)}
+				<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
+					{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
+				</option>
+			{/each}
+		</select>
+		<svg
+			class="chevron"
+			width="12"
+			height="12"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
+		>
+	</div>
+	<div class="colour-row">
+		<label class="swatch">
+			<span class="swatch-label">{$t.overlayControls.captionColour}</span>
+			<input
+				type="color"
+				value={$overlayPalette.text}
+				aria-describedby={contrastId}
+				oninput={(e) => setPalette({ text: e.currentTarget.value })}
+			/>
+		</label>
+		<label class="swatch">
+			<span class="swatch-label">{$t.overlayControls.scrimColour}</span>
+			<input
+				type="color"
+				value={$overlayPalette.scrim}
+				aria-describedby={contrastId}
+				oninput={(e) => setPalette({ scrim: e.currentTarget.value })}
+			/>
+		</label>
+	</div>
+	<div class="stepper">
+		<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
+		<button
+			class="step"
+			disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
+			onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
+			aria-label={$t.overlayControls.weakerScrim}>−</button
+		>
+		<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
+		<button
+			class="step"
+			disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
+			onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
+			aria-label={$t.overlayControls.strongerScrim}>+</button
+		>
+	</div>
+	<!-- Not a live region on purpose: this changes on every step of a colour drag, and
+	     `docs/accessibility.md` keeps announcements for things worth interrupting a
+	     reader for. It is the description of the controls instead, so it is read on
+	     arrival at the one moment it is worth hearing. -->
+	<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
+		<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
+		<span class="contrast-note">
+			{$overlayContrast.passes
+				? $t.overlayControls.contrastOk
+				: $t.overlayControls.contrastLow(
+						$t.overlayControls.contrastStep[$overlayContrast.worstStep],
+						contrastTarget
+					)}
+		</span>
+	</p>
+	<button
+		class="reset"
+		disabled={overlayAtDefaults}
+		onclick={resetOverlayAppearance}
+		aria-label={$t.overlayControls.resetLabel}
+	>
+		{$t.overlayControls.reset}
+	</button>
+{/snippet}
+
 <div class="app">
 	<header class="titlebar">
 		<span class="brand" aria-hidden="true">
@@ -1035,6 +1166,33 @@
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
 		</div>
+		<!-- The one control that is in the same place in every state. What it opens is reachable
+		     from nowhere else, so it cannot be a control that appears only once a session does —
+		     which is exactly how the caption appearance came to be undiscoverable. -->
+		<button
+			class="gear"
+			aria-haspopup="dialog"
+			aria-expanded={settingsOpen}
+			aria-label={$t.settings.openLabel}
+			onclick={() => (settingsOpen = true)}
+		>
+			<svg
+				width="15"
+				height="15"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.7"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="3.25" />
+				<path
+					d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9L5.3 5.3"
+				/>
+			</svg>
+		</button>
 	</header>
 
 	<!-- The two regions that speak for the session. Neither holds anything that changes on a
@@ -1156,121 +1314,7 @@
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<h2 class="kicker">{$t.overlayControls.heading}</h2>
-					<div class="stepper">
-						<span class="stepper-label">{$t.overlayControls.captionSize}</span>
-						<button
-							class="step"
-							onclick={() => setFont($overlayFontSize - 2)}
-							aria-label={$t.overlayControls.smaller}>−</button
-						>
-						<span class="stepper-value">{$overlayFontSize}</span>
-						<button
-							class="step"
-							onclick={() => setFont($overlayFontSize + 2)}
-							aria-label={$t.overlayControls.larger}>+</button
-						>
-					</div>
-					<div class="stepper">
-						<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
-						<button
-							class="step"
-							onclick={() => setCaptionWidth($overlayCaptionWidth - 2)}
-							aria-label={$t.overlayControls.narrower}>−</button
-						>
-						<span class="stepper-value">{$overlayCaptionWidth}</span>
-						<button
-							class="step"
-							onclick={() => setCaptionWidth($overlayCaptionWidth + 2)}
-							aria-label={$t.overlayControls.wider}>+</button
-						>
-					</div>
-					<div class="select-row">
-						<select
-							aria-label={$t.overlayControls.captionFace}
-							value={$overlayCaptionFace}
-							onchange={(e) => setCaptionFace(e.currentTarget.value as CaptionFaceId)}
-						>
-							<!-- Each option is set in the face it names, so the list is its own preview.
-							     The names are proper nouns and stay untranslated; only the note on the
-							     bundled default says anything, and it is the one thing that needs to. -->
-							{#each captionFaces as face (face.id)}
-								<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
-									{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
-								</option>
-							{/each}
-						</select>
-						<svg
-							class="chevron"
-							width="12"
-							height="12"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-							stroke-linecap="round"
-							aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-						>
-					</div>
-					<div class="colour-row">
-						<label class="swatch">
-							<span class="swatch-label">{$t.overlayControls.captionColour}</span>
-							<input
-								type="color"
-								value={$overlayPalette.text}
-								aria-describedby={contrastId}
-								oninput={(e) => setPalette({ text: e.currentTarget.value })}
-							/>
-						</label>
-						<label class="swatch">
-							<span class="swatch-label">{$t.overlayControls.scrimColour}</span>
-							<input
-								type="color"
-								value={$overlayPalette.scrim}
-								aria-describedby={contrastId}
-								oninput={(e) => setPalette({ scrim: e.currentTarget.value })}
-							/>
-						</label>
-					</div>
-					<div class="stepper">
-						<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
-						<button
-							class="step"
-							disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
-							onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
-							aria-label={$t.overlayControls.weakerScrim}>−</button
-						>
-						<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
-						<button
-							class="step"
-							disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
-							onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
-							aria-label={$t.overlayControls.strongerScrim}>+</button
-						>
-					</div>
-					<!-- Not a live region on purpose: this changes on every step of a colour drag, and
-					     `docs/accessibility.md` keeps announcements for things worth interrupting a
-					     reader for. It is the description of the controls instead, so it is read on
-					     arrival at the one moment it is worth hearing. -->
-					<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
-						<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
-						<span class="contrast-note">
-							{$overlayContrast.passes
-								? $t.overlayControls.contrastOk
-								: $t.overlayControls.contrastLow(
-										$t.overlayControls.contrastStep[$overlayContrast.worstStep],
-										contrastTarget
-									)}
-						</span>
-					</p>
-					<button
-						class="reset"
-						disabled={overlayAtDefaults}
-						onclick={resetOverlayAppearance}
-						aria-label={$t.overlayControls.resetLabel}
-					>
-						{$t.overlayControls.reset}
-					</button>
+					{@render captionAppearance($t.overlayControls.heading)}
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
 						     all a sighted operator needs beside the "Overlay" heading. The accessible
@@ -1326,8 +1370,6 @@
 						</button>
 					</div>
 				</div>
-
-				{@render windowSection()}
 
 				<span class="grow"></span>
 
@@ -1848,8 +1890,6 @@
 					/>
 				{/if}
 
-				{@render windowSection()}
-
 				<span class="grow"></span>
 
 				{#if $statusMessage}
@@ -1916,6 +1956,68 @@
 	</div>
 </div>
 
+<!-- Settings. Modal for the focus handling rather than because it demands an answer, so
+     Escape and Close are the same harmless exit. It is deliberately reachable while a session
+     runs: the appearance controls in the rail and the ones in here are the same controls over
+     the same stores, and an operator who opens this mid-session to raise the caption size
+     should get exactly that. -->
+{#if settingsOpen}
+	<ModalPrompt wide title={$t.settings.heading} onDismiss={() => (settingsOpen = false)}>
+		<div class="settings">
+			<div class="rail-section">
+				{@render captionAppearance($t.settings.appearance)}
+				<p class="hint">{$t.settings.appearanceNote}</p>
+				<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
+				     whatever is chosen above. Same button and same labels as the pre-flight check,
+				     because it is the same thing being done. -->
+				<button
+					class="tool wide"
+					aria-pressed={moveOverlay}
+					disabled={browserMode}
+					aria-label={moveOverlay
+						? $t.preflight.overlay.doneLabel
+						: $overlayPlaced
+							? $t.preflight.overlay.adjustLabel
+							: $t.preflight.overlay.placeLabel}
+					onclick={toggleMoveOverlay}
+				>
+					<svg
+						width="13"
+						height="13"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.7"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+						><path
+							d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
+						/></svg
+					>
+					{moveOverlay
+						? $t.preflight.overlay.done
+						: $overlayPlaced
+							? $t.preflight.overlay.adjust
+							: $t.preflight.overlay.place}
+				</button>
+			</div>
+
+			{@render appPreferences()}
+		</div>
+
+		<div class="actions">
+			<button
+				class="primary"
+				aria-label={$t.settings.closeLabel}
+				onclick={() => (settingsOpen = false)}
+			>
+				{$t.settings.close}
+			</button>
+		</div>
+	</ModalPrompt>
+{/if}
+
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still
      be kept, and each has to be answered before the log underneath it changes again. -->
 {#if recovered}
@@ -1973,6 +2075,37 @@
 		padding: 4px 14px;
 		background: #12151a;
 		border-bottom: 1px solid var(--hairline);
+	}
+	/* The only control in the titlebar, and the only one whose position never depends on what
+	   the session is doing. Icon-only, so its accessible name carries the whole label; the box
+	   is padded out to a real target rather than left the size of the glyph. */
+	.gear {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 0 0 auto;
+		width: 28px;
+		height: 28px;
+		border-radius: 8px;
+		border: 1px solid transparent;
+		background: transparent;
+		color: var(--muted-2);
+	}
+	.gear:hover {
+		border-color: var(--border-hover);
+		color: var(--text);
+	}
+
+	/* The panel is a column of the same `.rail-section` blocks the rail is built from, so all
+	   it contributes is the rhythm between them. */
+	.settings {
+		display: flex;
+		flex-direction: column;
+		gap: 0.875rem;
+	}
+	.settings .tool:disabled {
+		opacity: 0.45;
+		cursor: default;
 	}
 	.brand {
 		width: 18px;
