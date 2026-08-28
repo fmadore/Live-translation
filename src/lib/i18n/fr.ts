@@ -183,6 +183,8 @@ export const fr: Messages = {
 		captionWidth: 'Largeur des lignes',
 		narrower: 'Raccourcir les lignes de sous-titres',
 		wider: 'Allonger les lignes de sous-titres',
+		captionFace: 'Police des sous-titres',
+		faceDefault: (label: string) => `${label} (par défaut)`,
 		move: 'Déplacer',
 		done: 'Terminé',
 		moveLabel: 'Déplacer la surimpression',

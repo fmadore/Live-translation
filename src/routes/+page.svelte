@@ -19,6 +19,7 @@
 		trayHideExplained,
 		micLevel,
 		systemLevel,
+		overlayCaptionFace,
 		overlayCaptionWidth,
 		overlayFontSize,
 		overlayPlaced,
@@ -52,7 +53,16 @@
 		TrayCommand
 	} from '$lib/types';
 	import {
+		availableCaptionFaces,
+		captionFaceStack,
+		CAPTION_FACES,
+		DEFAULT_CAPTION_FACE,
+		measureWithCanvas
+	} from '$lib/captionFont';
+	import type { CaptionFace, CaptionFaceId } from '$lib/captionFont';
+	import {
 		canFlipDirection,
+		captionLanguageOf,
 		clampOverlayFont,
 		clampOverlayWidth,
 		providerCanTranslate,
@@ -265,6 +275,15 @@
 		void refresh();
 		void refreshLocalReadiness();
 		void loadRecovery();
+		// Which faces this machine has. Measured here rather than at module load so the
+		// bundled webfont has had a chance to arrive first — see `availableCaptionFaces`.
+		captionFaces = availableCaptionFaces(measureWithCanvas());
+		// The choice persists, the font does not: a face uninstalled since it was chosen would
+		// leave the control showing one thing and the overlay painting its fallback. Settle it
+		// back to the bundled default instead of letting the two disagree.
+		if (!captionFaces.some((f) => f.id === get(overlayCaptionFace)))
+			setCaptionFace(DEFAULT_CAPTION_FACE);
+
 		// Sync the overlay to the operator's current caption size and language on load.
 		pushOverlayConfig({ locale: $locale });
 
@@ -687,6 +706,16 @@
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
+	/** The faces this machine can actually render. Starts as the whole list and narrows on
+	 *  mount, once there is a canvas to measure with — offering a face and finding out later
+	 *  that it silently fell back is the failure this avoids. */
+	let captionFaces = $state<readonly CaptionFace[]>(CAPTION_FACES);
+
+	/** The language the audience is reading, or undefined while a subtitle engine detects it.
+	 *  `$derived`, so it changes only when the answer does — which is what keeps the effect
+	 *  below from re-pushing every time an unrelated option moves. */
+	const captionLanguage = $derived(captionLanguageOf($options));
+
 	// Every push carries the whole appearance, not the field that changed: the overlay is a
 	// separate webview that can be reloaded independently, and a partial config would leave
 	// it showing whatever it had before. One helper so no call site can forget a field.
@@ -694,9 +723,19 @@
 		void api.setOverlayConfig({
 			fontSize: get(overlayFontSize),
 			captionWidth: get(overlayCaptionWidth),
+			captionFace: get(overlayCaptionFace),
+			captionLanguage,
 			...extra
 		});
 	}
+
+	// The overlay has to be told which language its captions are in: it is the window an
+	// audience reads, and it cannot work the answer out itself — mode, provider and target
+	// all live here. Flipping direction or switching mode changes it between sessions.
+	$effect(() => {
+		if (browserMode) return;
+		pushOverlayConfig({ captionLanguage });
+	});
 
 	// Caption size: update the store (persists) and push it live to the overlay.
 	function setFont(size: number) {
@@ -708,6 +747,14 @@
 	// size control, and the same live push.
 	function setCaptionWidth(width: number) {
 		overlayCaptionWidth.set(clampOverlayWidth(width));
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	function setCaptionFace(id: CaptionFaceId) {
+		overlayCaptionFace.set(id);
+		// Carrying move mode through, like the size and the measure: the operator is usually
+		// looking at the overlay while choosing, and a push that dropped it would snap the
+		// window back to click-through mid-adjustment.
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
@@ -1058,6 +1105,33 @@
 							class="step"
 							onclick={() => setCaptionWidth($overlayCaptionWidth + 2)}
 							aria-label={$t.overlayControls.wider}>+</button
+						>
+					</div>
+					<div class="select-row">
+						<select
+							aria-label={$t.overlayControls.captionFace}
+							value={$overlayCaptionFace}
+							onchange={(e) => setCaptionFace(e.currentTarget.value as CaptionFaceId)}
+						>
+							<!-- Each option is set in the face it names, so the list is its own preview.
+							     The names are proper nouns and stay untranslated; only the note on the
+							     bundled default says anything, and it is the one thing that needs to. -->
+							{#each captionFaces as face (face.id)}
+								<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
+									{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
+								</option>
+							{/each}
+						</select>
+						<svg
+							class="chevron"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
 						>
 					</div>
 					<div class="overlay-actions">

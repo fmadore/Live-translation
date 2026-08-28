@@ -175,6 +175,8 @@ export const en = {
 		captionWidth: 'Line width',
 		narrower: 'Shorter caption lines',
 		wider: 'Longer caption lines',
+		captionFace: 'Caption typeface',
+		faceDefault: (label: string) => `${label} (default)`,
 		move: 'Move',
 		done: 'Done',
 		moveLabel: 'Move the overlay',
