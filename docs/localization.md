@@ -86,5 +86,6 @@ non-breaking space before `: ? ; !`, and the typographic apostrophe.
 
 Still open before publication:
 
-- French screenshots for `docs/store-listing.md`, captured from the translated UI on Windows.
+- French screenshots, captured from the translated UI on Windows and committed to
+  `docs/store-screenshots/fr/` — see that folder's README for the set and the capture rules.
 - A native French speaker reviews the app and the Store copy.

@@ -3,7 +3,7 @@ name: Release installers
 # Builds the x64 one-click installers and attaches them to the GitHub release, then packages
 # native x64 and ARM64 MSIX packages and combines them into one unsigned multi-architecture
 # .msixbundle for the Microsoft Store (see docs/microsoft-store.md, docs/packaging-msix.md
-# and docs/store-automation.md).
+# and docs/store-updates.md).
 #
 # The ordinary installer remains x64. Store packages are x64 + native ARM64 because every
 # cloud-provider path is architecture-native.
@@ -15,7 +15,9 @@ name: Release installers
 # Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
 # an existing tag (e.g. v0.1.1) to add the other platforms' installers to it.
 #
-# Submitting the bundle to the Store is a separate, manual workflow: store-submission.yml.
+# Submitting the bundle to the Store is done by hand in Partner Center — the submission API is
+# a Company-account feature and this is an Individual account. docs/store-updates.md has the
+# route and the reason.
 
 on:
   push:
@@ -176,7 +178,7 @@ jobs:
   # artifact, and it has to be a single file: `msstore publish` uploads one package and marks
   # only the first existing package with a matching extension for deletion, so two separate
   # single-architecture bundles would leave a stale one behind on every update
-  # (docs/store-automation.md).
+  # (docs/store-updates.md).
   bundle:
     name: Store bundle (x64 + ARM64)
     needs: msix
