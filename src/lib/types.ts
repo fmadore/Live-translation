@@ -69,6 +69,24 @@ export function canFlipDirection(mode: OutputMode, locked: boolean): boolean {
 	return mode === 'translate' && !locked;
 }
 
+/** The language the audience is actually reading, when the app knows it.
+ *
+ *  Translation writes captions in the target language, and the built-in demonstration plays a
+ *  bundled script in it — both known. The subtitle engines detect the spoken language
+ *  themselves and never report what they found, so there the caption language is genuinely
+ *  unknown. That is the same condition under which `setTarget` refuses to act: the app can
+ *  name the caption language exactly when the operator is allowed to choose it.
+ *
+ *  `undefined` means unknown and callers must not substitute a guess — marking French
+ *  captions up as English is worse for a screen reader than marking them up as nothing. */
+export function captionLanguageOf(
+	options: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage'>
+): TargetLanguage | undefined {
+	if (options.mode === 'translate' || options.provider === 'ondevice')
+		return options.targetLanguage;
+	return undefined;
+}
+
 export interface StartOptions {
 	source: AudioSource;
 	mode: OutputMode;
@@ -147,10 +165,16 @@ export interface OverlayConfig {
 	captionWidth?: number;
 	/** Move mode: click-through is off and the overlay shows a drag region. */
 	interactive?: boolean;
-	/** Interface language. Pushed rather than read from storage: the two windows are separate
+	/** Interface language — the overlay's own chrome, which is the move-mode toolbar and the
+	 *  origin labels. Pushed rather than read from storage: the two windows are separate
 	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
-	 *  language — that is `targetLanguage`, and the two are deliberately independent. */
+	 *  language: that is `captionLanguage`, and the two are deliberately independent. */
 	locale?: 'en' | 'fr';
+	/** The language of the caption text itself, so the overlay can mark it up and a screen
+	 *  reader on the projected view pronounces it rather than reading French with English
+	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
+	 *  `captionLanguageOf`, which is where the answer is worked out. */
+	captionLanguage?: TargetLanguage;
 }
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */

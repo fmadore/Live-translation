@@ -53,6 +53,7 @@
 	} from '$lib/types';
 	import {
 		canFlipDirection,
+		captionLanguageOf,
 		clampOverlayFont,
 		clampOverlayWidth,
 		providerCanTranslate,
@@ -687,6 +688,11 @@
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
+	/** The language the audience is reading, or undefined while a subtitle engine detects it.
+	 *  `$derived`, so it changes only when the answer does — which is what keeps the effect
+	 *  below from re-pushing every time an unrelated option moves. */
+	const captionLanguage = $derived(captionLanguageOf($options));
+
 	// Every push carries the whole appearance, not the field that changed: the overlay is a
 	// separate webview that can be reloaded independently, and a partial config would leave
 	// it showing whatever it had before. One helper so no call site can forget a field.
@@ -694,9 +700,18 @@
 		void api.setOverlayConfig({
 			fontSize: get(overlayFontSize),
 			captionWidth: get(overlayCaptionWidth),
+			captionLanguage,
 			...extra
 		});
 	}
+
+	// The overlay has to be told which language its captions are in: it is the window an
+	// audience reads, and it cannot work the answer out itself — mode, provider and target
+	// all live here. Flipping direction or switching mode changes it between sessions.
+	$effect(() => {
+		if (browserMode) return;
+		pushOverlayConfig({ captionLanguage });
+	});
 
 	// Caption size: update the store (persists) and push it live to the overlay.
 	function setFont(size: number) {

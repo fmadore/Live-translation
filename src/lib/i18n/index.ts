@@ -68,9 +68,9 @@ export function setLocale(next: Locale): void {
  * English phonemes. WCAG 3.1.1. Subscribing here rather than in a component means both
  * windows get it, and they get it from the one place that knows the language.
  *
- * The overlay's captions are a separate question: they are in the *caption* language, which
- * this deliberately knows nothing about, and marking them up would mean plumbing the target
- * language into `OverlayConfig` first.
+ * This is the *interface* language, and it is the right value for both windows' chrome. The
+ * overlay's captions are in the caption language, which this deliberately knows nothing
+ * about; they carry their own `lang`, pushed over `OverlayConfig.captionLanguage`.
  */
 locale.subscribe(($locale) => {
 	if (typeof document === 'undefined') return;

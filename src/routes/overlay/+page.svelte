@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api, on, isTauri } from '$lib/tauri';
 	import { locale, t } from '$lib/i18n';
-	import type { Caption, Origin } from '$lib/types';
+	import type { Caption, Origin, TargetLanguage } from '$lib/types';
 	import {
 		captionBudget,
 		clampOverlayFont,
@@ -28,6 +28,12 @@
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
+
+	// The language of the caption text, which is not this window's interface language: the
+	// move-mode chrome and the origin labels follow the operator's locale, the captions do
+	// not. Only the operator window can work it out, so it is pushed. Undefined means unknown
+	// — before the first push, and while a subtitle engine is detecting the spoken language.
+	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
 
 	// Move mode (operator-driven): click-through is off and the whole stage becomes a
 	// Tauri drag region so the window can be dragged/resized into place.
@@ -155,6 +161,12 @@
 				captionWidth = clampOverlayWidth(cfg.captionWidth as number);
 			// The operator owns the interface language; this window follows it.
 			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
+			// Unconditional, unlike the rest: an absent caption language is a real answer
+			// ("nobody knows"), so it has to be able to clear one that was set before.
+			captionLanguage =
+				cfg.captionLanguage === 'en' || cfg.captionLanguage === 'fr'
+					? cfg.captionLanguage
+					: undefined;
 			if (typeof cfg.interactive === 'boolean') {
 				// Entering move mode: record the rect first, so Escape has something to restore.
 				if (cfg.interactive && !interactive) void snapshotGeometry();
@@ -406,11 +418,17 @@
 		<div class="captions">
 			{#each lines as line (line.origin)}
 				<div class="row">
+					<!-- The label is interface-language text sitting beside caption-language text, and
+					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
 					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
 					<!-- One block per speaker: dimmed lead-in, then the live text, as running text.
 					     The separating space is explicit — Svelte trims literal whitespace here. -->
+					<!-- `lang=""` is not a fallback: HTML spells "unknown language" that way, and it
+					     is the honest markup while a subtitle engine detects. Inheriting the
+					     interface language instead would assert something nobody checked, which is
+					     how a screen reader ends up reading French with English phonemes. -->
 					<!-- prettier-ignore -->
-					<p class="line" class:final={!line.interim}>
+					<p class="line" lang={captionLanguage ?? ''} class:final={!line.interim}>
 						{#if line.lead}<span class="lead">{line.lead}</span>{' '}{/if}{line.text}{#if line.interim}<span class="caret"></span>{/if}
 					</p>
 				</div>
