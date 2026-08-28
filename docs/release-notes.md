@@ -51,6 +51,7 @@ The operator window has had a pass against WCAG 2.2 AA and the Windows accessibi
 - Caption lines have a configurable measure, and the amount of a long streaming turn that is shown moves with it — widening a caption no longer quietly changes how much of the slide it covers.
 - Every caption is stamped with the time it happened at.
 - The overlay window is no longer trusted with the whole application's command surface.
+- The bundle identifier is `io.github.fmadore.live-translation`. It used to be `org.stias.live-translation`, which named the venue of the workshop the app was first built for as though it were the developer — it never was. Nothing is asked of you: a saved provider key is moved to the new name on first use and the old credential removed, and a crash-recovery file left by a previous version is still found and still offered.
 
 **Windows 11 with the Microsoft Edge WebView2 Runtime.** [Get it from the Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) for a signed build that updates itself. The installers below are unsigned and meet a SmartScreen warning on first launch — choose More info, then Run anyway.
 ```

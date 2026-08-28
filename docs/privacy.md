@@ -40,7 +40,7 @@ Recovery is **off by default**. When the user switches on *Keep a local recovery
 captioning*, the app periodically writes the finalized caption lines of the current session to a
 single file in its own local application-data folder on the same PC:
 
-`%LOCALAPPDATA%\org.stias.live-translation\recovery\transcript.json`
+`%LOCALAPPDATA%\io.github.fmadore.live-translation\recovery\transcript.json`
 ecovery	ranscript.json`
 
 - It contains finalized caption text only — no audio, no API key, no provider identity, and no
