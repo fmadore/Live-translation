@@ -59,6 +59,24 @@ export function setLocale(next: Locale): void {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(LOCALE_KEY, next);
 }
 
+/**
+ * Keep `<html lang>` on the interface language.
+ *
+ * `app.html` ships `lang="en"` and nothing moved it, so a French interface was being handed
+ * to Narrator as English — which is not a cosmetic detail: a screen reader picks its voice
+ * and its pronunciation rules from this attribute, so every French label was being read with
+ * English phonemes. WCAG 3.1.1. Subscribing here rather than in a component means both
+ * windows get it, and they get it from the one place that knows the language.
+ *
+ * The overlay's captions are a separate question: they are in the *caption* language, which
+ * this deliberately knows nothing about, and marking them up would mean plumbing the target
+ * language into `OverlayConfig` first.
+ */
+locale.subscribe(($locale) => {
+	if (typeof document === 'undefined') return;
+	document.documentElement.lang = CATALOGS[$locale].locale.tag;
+});
+
 /** The catalog for the active locale. Components read `$t.…`. */
 export const t = derived(locale, ($locale) => CATALOGS[$locale]);
 

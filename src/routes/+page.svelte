@@ -74,8 +74,7 @@
 		LOCALES,
 		locale,
 		setLocale,
-		t,
-		type Locale
+		t
 	} from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
@@ -744,6 +743,10 @@
 		}
 	}
 
+	// Names the interface-language group for a screen reader; the heading is the only thing
+	// that says what those two buttons are choosing between.
+	const localeHeadingId = $props.id();
+
 	// The overlay is a separate webview, so the operator's language choice is pushed to it the
 	// same way the caption size is. Skipped in a browser preview, which has no second window.
 	$effect(() => {
@@ -824,28 +827,23 @@
 	     numbered setup sheet because it belongs to the app, not to the session — and it stays
 	     usable mid-session, since nothing about it touches capture. -->
 	<div class="rail-section">
-		<h2 class="kicker">{$t.locale.label}</h2>
-		<div class="select-row">
-			<select
-				aria-label={$t.locale.label}
-				value={$locale}
-				onchange={(e) => setLocale(e.currentTarget.value as Locale)}
-			>
-				{#each LOCALES as code (code)}
-					<option value={code}>{LOCALE_NAMES[code]}</option>
-				{/each}
-			</select>
-			<svg
-				class="chevron"
-				width="12"
-				height="12"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-			>
+		<h2 class="kicker" id={localeHeadingId}>{$t.locale.label}</h2>
+		<!-- Buttons rather than a select: with a handful of interface languages, both choices
+		     fit on screen and the switch costs one click instead of two. Built from LOCALES so
+		     a third language needs no markup, and grouped under the heading because two
+		     `aria-pressed` buttons on their own do not say what they are two of. -->
+		<div class="locale-cards" role="group" aria-labelledby={localeHeadingId}>
+			{#each LOCALES as code (code)}
+				<button
+					class="lang"
+					class:selected={$locale === code}
+					aria-pressed={$locale === code}
+					onclick={() => setLocale(code)}
+				>
+					<span class="lang-code">{code.toUpperCase()}</span>
+					<span class="lang-name">{LOCALE_NAMES[code]}</span>
+				</button>
+			{/each}
 		</div>
 		<p class="hint">{$t.locale.note}</p>
 	</div>
@@ -1896,10 +1894,12 @@
 		overflow-y: auto;
 	}
 	.rail {
-		padding: 22px 22px 26px;
+		/* rem, not px: at 225% the type doubles, and a fixed 20px gap leaves a section
+		   heading touching the paragraph above it. Same numbers at 100%. */
+		padding: 1.375rem 1.375rem 1.625rem;
 		display: flex;
 		flex-direction: column;
-		gap: 20px;
+		gap: 1.25rem;
 		background: var(--panel);
 		border-bottom: 1px solid var(--hairline);
 	}
@@ -1910,7 +1910,7 @@
 		max-width: 23.75em;
 	}
 	.stage {
-		padding: 30px 38px 32px;
+		padding: 1.875rem 2.375rem 2rem;
 		display: flex;
 		flex-direction: column;
 	}
@@ -1961,13 +1961,13 @@
 	.rail-section {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 0.625rem;
 	}
 	.step-head,
 	.rail-head {
 		display: flex;
 		align-items: center;
-		gap: 9px;
+		gap: 0.5625rem;
 	}
 	.rail-icon {
 		color: var(--muted-3);
@@ -2051,8 +2051,8 @@
 	.card {
 		display: flex;
 		align-items: flex-start;
-		gap: 11px;
-		padding: 12px 13px;
+		gap: 0.6875rem;
+		padding: 0.75rem 0.8125rem;
 		border-radius: 11px;
 		width: 100%;
 	}
@@ -2128,7 +2128,7 @@
 		position: relative;
 		display: flex;
 		align-items: center;
-		padding: 10px 12px;
+		padding: 0.625rem 0.75rem;
 		border-radius: 9px;
 		border: 1px solid var(--border);
 		background: var(--panel-2);
@@ -2169,13 +2169,21 @@
 	.lang-cards {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 8px;
+		gap: 0.5rem;
+	}
+	/* Same cards, but sized from however many interface languages there are rather than from
+	   the two the caption step happens to offer. */
+	.locale-cards {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: 1fr;
+		gap: 0.5rem;
 	}
 	.lang {
 		display: flex;
 		align-items: center;
-		gap: 9px;
-		padding: 11px 12px;
+		gap: 0.5625rem;
+		padding: 0.6875rem 0.75rem;
 		border-radius: 10px;
 	}
 	.lang-code {
@@ -2386,8 +2394,8 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 7px;
-		padding: 10px;
+		gap: 0.4375rem;
+		padding: 0.625rem;
 		border-radius: 9px;
 		border: 1px solid var(--border);
 		background: var(--panel-2);
@@ -2407,7 +2415,7 @@
 	.pref {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 9px;
+		gap: 0.5625rem;
 		align-items: start;
 		cursor: pointer;
 	}
@@ -2781,12 +2789,12 @@
 	   and the Start button still land above the fold. */
 	@media (max-height: 740px) {
 		.rail {
-			padding: 18px 22px 20px;
-			gap: 16px;
+			padding: 1.125rem 1.375rem 1.25rem;
+			gap: 1rem;
 		}
 		.stage {
-			padding-top: 22px;
-			padding-bottom: 22px;
+			padding-top: 1.375rem;
+			padding-bottom: 1.375rem;
 		}
 		.ready {
 			margin-top: 10px;

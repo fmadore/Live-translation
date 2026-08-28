@@ -2,7 +2,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { en } from './en';
 import { fr } from './fr';
 import { get } from 'svelte/store';
-import { detectLocale, locale, t, localeTag, LOCALE_KEY, LOCALES, formatDateTime } from './index';
+import {
+	detectLocale,
+	locale,
+	t,
+	localeTag,
+	LOCALE_KEY,
+	LOCALES,
+	formatDateTime,
+	setLocale
+} from './index';
 
 /** Every leaf in a catalog, as `a.b.c` paths, so two catalogs can be compared as sets. */
 function paths(value: unknown, prefix = ''): string[] {
@@ -16,6 +25,42 @@ function paths(value: unknown, prefix = ''): string[] {
 function at(catalog: unknown, path: string): unknown {
 	return path.split('.').reduce<unknown>((node, key) => (node as never)[key], catalog);
 }
+
+describe('the document language', () => {
+	// This project runs in node, so `document` is a stand-in — the same way the persisted-setup
+	// tests stand in for `localStorage`.
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'document');
+	});
+
+	function documentStub(): { documentElement: { lang: string } } {
+		const stub = { documentElement: { lang: 'en' } };
+		Object.defineProperty(globalThis, 'document', { configurable: true, value: stub });
+		return stub;
+	}
+
+	// `app.html` ships lang="en" and nothing used to move it, so a French interface was handed
+	// to Narrator as English — which decides the voice and the pronunciation rules, not just a
+	// label in the DOM. WCAG 3.1.1.
+	it('follows the interface language, as a real BCP 47 tag', () => {
+		// Settle on a known language *before* the stub exists: a svelte writable only notifies
+		// on a real change, so setting the language it is already on would write nothing and
+		// the assertion would pass or fail on whatever an earlier test happened to leave.
+		setLocale('en');
+		const doc = documentStub();
+
+		setLocale('fr');
+		expect(doc.documentElement.lang).toBe('fr-FR');
+		setLocale('en');
+		expect(doc.documentElement.lang).toBe('en-GB');
+	});
+
+	// The subscription runs at import time, before any window exists in a packaged build.
+	it('does not reach for a document that is not there', () => {
+		expect(() => setLocale('fr')).not.toThrow();
+		setLocale('en');
+	});
+});
 
 describe('the message catalogs', () => {
 	// TypeScript already fails a catalog with a missing or extra key — `fr` is typed as
