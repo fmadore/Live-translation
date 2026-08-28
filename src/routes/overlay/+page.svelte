@@ -3,6 +3,8 @@
 	import { api, on, isTauri } from '$lib/tauri';
 	import { locale, t } from '$lib/i18n';
 	import type { Caption, Origin, TargetLanguage } from '$lib/types';
+	import { captionFaceStack, isCaptionFace, loadCaptionFace } from '$lib/captionFont';
+	import type { CaptionFaceId } from '$lib/captionFont';
 	import {
 		captionBudget,
 		clampOverlayFont,
@@ -28,6 +30,7 @@
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
+	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
 
 	// The language of the caption text, which is not this window's interface language: the
 	// move-mode chrome and the origin labels follow the operator's locale, the captions do
@@ -159,6 +162,10 @@
 				fontSize = clampOverlayFont(cfg.fontSize);
 			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
 				captionWidth = clampOverlayWidth(cfg.captionWidth as number);
+			// An id, not a stack: what arrives over the event is checked against the faces this
+			// build knows, so nothing here can put an arbitrary `font-family` on the screen an
+			// audience is reading.
+			if (isCaptionFace(cfg.captionFace)) captionFace = cfg.captionFace;
 			// The operator owns the interface language; this window follows it.
 			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
 			// Unconditional, unlike the rest: an absent caption language is a real answer
@@ -337,7 +344,9 @@
 	class="stage"
 	class:interactive
 	data-tauri-drag-region={interactive || undefined}
-	style="--fs: {fontSize}px; --measure: {captionWidth}ch"
+	style="--fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
+		captionFace
+	)}"
 >
 	{#if interactive}
 		<!-- The overlay window *is* the caption region, so the placement chrome hugs the
@@ -472,6 +481,9 @@
 		gap: 18px;
 		padding: 9vh 6.5vw 6vh;
 		pointer-events: none;
+		/* The audience view only. Move-mode chrome stays on the app's own face: it is this
+		   operator's interface, not the thing being projected. */
+		font-family: var(--caption-face);
 		background: linear-gradient(
 			to top,
 			rgba(6, 8, 10, 0.72) 0%,
@@ -584,9 +596,12 @@
 	.edge.bottom {
 		bottom: 3px;
 	}
+	/* Stands in for a caption while the region is being placed, so it previews the chosen
+	   face and size together — which is the moment an operator can still act on either. */
 	.placeholder {
 		position: absolute;
 		inset: 0;
+		font-family: var(--caption-face);
 		display: grid;
 		place-items: center;
 		margin: 0;

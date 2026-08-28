@@ -28,6 +28,8 @@ import {
 	SESSION_OPTIONS_KEY,
 	TRAY_HIDE_EXPLAINED_KEY
 } from './types';
+import { CAPTION_FACE_KEY, loadCaptionFace } from './captionFont';
+import type { CaptionFaceId } from './captionFont';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 
 // ---- Session status --------------------------------------------------------
@@ -230,6 +232,14 @@ overlayCaptionWidth.subscribe((v) => {
 
 overlayFontSize.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_FONT_KEY, String(v));
+});
+
+/** The caption typeface. Persisted and shared the same way; the id is validated on read, so
+ *  a hand-edited or stale value falls back to the bundled default rather than to nothing. */
+export const overlayCaptionFace = writable<CaptionFaceId>(loadCaptionFace());
+
+overlayCaptionFace.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(CAPTION_FACE_KEY, v);
 });
 
 // Whether the caption region has been positioned on the presentation display; persisted so

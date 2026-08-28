@@ -3,6 +3,7 @@
 
 /** Which audio input(s) to translate or transcribe. */
 import type { AppError } from './errors';
+import type { CaptionFaceId } from './captionFont';
 
 export type AudioSource = 'microphone' | 'system' | 'both';
 
@@ -163,6 +164,10 @@ export interface OverlayConfig {
 	fontSize: number;
 	/** How wide a caption line may run, as a typographic measure in `ch`. */
 	captionWidth?: number;
+	/** The typeface the captions are set in. An id rather than a CSS stack: the overlay owns
+	 *  the mapping, so a stored value from an older build can never push an arbitrary
+	 *  `font-family` into the window an audience is looking at. See `captionFont.ts`. */
+	captionFace?: CaptionFaceId;
 	/** Move mode: click-through is off and the overlay shows a drag region. */
 	interactive?: boolean;
 	/** Interface language — the overlay's own chrome, which is the move-mode toolbar and the

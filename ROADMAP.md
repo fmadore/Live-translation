@@ -153,13 +153,18 @@ Definition of done for 1.2:
   **landed**; the measure is an operator control now, and the tail budget that decides how much
   of a long streaming turn is shown moves with it, so widening a caption no longer quietly
   changes how much of the slide it covers — and
-  [#55 — operator-chosen typeface, size and colours](https://github.com/fmadore/Live-translation/issues/55).
-  Every colour in the overlay is still a literal, so size and width are the only things an
-  operator can change. Both are small and both serve the room this app was
-  built for, but neither belongs to 1.2's goal, so they wait here for a presentation milestone.
-  #55 is the one with a trap: the audience view opts out of contrast themes on purpose, its
-  dimmed steps are alphas of white, and the scrim is semi-transparent over a slide nobody
-  controls — so operator-chosen colours need a composite contrast check, not a colour wheel.
+  [#55 — operator-chosen typeface, size and colours](https://github.com/fmadore/Live-translation/issues/55),
+  whose **typeface half has landed**. The issue left the route open — bundle more `@fontsource`
+  families, or offer faces Windows already ships — and it is the system faces, because the two
+  objections to them both turned out to be answerable: weight 600 resolves to a real Bold in
+  every face offered (measured, not assumed), and a face's presence is checkable with a canvas
+  width probe that needs no permission, so a font this machine lacks never reaches the control.
+  See `src/lib/captionFont.ts`.
+
+  The colour half is still open, and it is the one with a trap: the audience view opts out of
+  contrast themes on purpose, its dimmed steps are alphas of white, and the scrim is
+  semi-transparent over a slide nobody controls — so operator-chosen colours need a composite
+  contrast check, not a colour wheel.
 - [#56 — German as a caption output language](https://github.com/fmadore/Live-translation/issues/56)
   now carries the standing note about expanding beyond English and French. The enum is still
   trivially extensible and both Rust matches on it are exhaustive, so the compiler names most of
