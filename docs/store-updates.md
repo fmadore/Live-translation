@@ -21,29 +21,33 @@ packages are built.
    both architectures' `.msix`, and one multi-architecture
    `Live.Translation_<version>.msixbundle`, and attaches them to the GitHub release. Download
    the bundle from there.
-3. **Sideload-test before submitting.** Install the bare per-architecture `.msix` with
+3. **Paste the release body.** The workflow creates the release with an empty one; the
+   paste-ready text is in [`release-notes.md`](release-notes.md). This is a different audience
+   from the Store listing — people who already have the app — so it is written separately
+   rather than reused.
+4. **Sideload-test before submitting.** Install the bare per-architecture `.msix` with
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1), *not* the bundle —
    signing a bundle does not sign the packages inside it. Walk the manual release checklist in
    [`accessibility.md`](accessibility.md#release-checklist-manual-on-windows) against this
    install, because package identity changes how Windows treats the window.
-4. **Re-capture the screenshots** if anything they show has changed — see
+5. **Re-capture the screenshots** if anything they show has changed — see
    [Screenshots](#screenshots). Both languages.
-5. Partner Center → **Apps and games** → *Live Translation & Subtitles* → **Create new
+6. Partner Center → **Apps and games** → *Live Translation & Subtitles* → **Create new
    submission**. In French: **Applications et jeux**, **Créer une soumission**.
-6. Under **Packages**, **delete every package already listed**, then upload the single
+7. Under **Packages**, **delete every package already listed**, then upload the single
    `.msixbundle`. Deleting matters: 1.0.5 went up as two separate per-architecture packages,
    and leaving one behind ships a stale architecture silently. One bundle in, nothing else.
-7. **Paste the listing text** for both languages if it changed. The paste-ready English and
+8. **Paste the listing text** for both languages if it changed. The paste-ready English and
    French copy is in [`store-listing.md`](store-listing.md), and **What's new in this version**
    has to be rewritten for every release. Editing that file changes nothing on its own; the
    Store only knows what is typed into Partner Center.
-8. Set a **gradual rollout** percentage for anything touching audio capture or the session
+9. Set a **gradual rollout** percentage for anything touching audio capture or the session
    lifecycle. Start at 10% and raise it once the crash and review data look clean.
-9. **Submit to the Store**, then watch certification. A clean submission is not a pass — 1.0.3
+10. **Submit to the Store**, then watch certification. A clean submission is not a pass — 1.0.3
    uploaded perfectly and then failed policy 10.1.2.10.
 
 [`partner-center-walkthrough.md`](partner-center-walkthrough.md) has the screen-by-screen
-version of steps 5–9, including the French labels.
+version of steps 6–10, including the French labels.
 
 ## Screenshots
 
