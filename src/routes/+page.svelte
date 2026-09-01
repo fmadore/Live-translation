@@ -1187,9 +1187,9 @@
 				stroke-linejoin="round"
 				aria-hidden="true"
 			>
-				<circle cx="12" cy="12" r="3.25" />
+				<circle cx="12" cy="12" r="3" />
 				<path
-					d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9L5.3 5.3"
+					d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
 				/>
 			</svg>
 		</button>
@@ -1962,7 +1962,12 @@
      the same stores, and an operator who opens this mid-session to raise the caption size
      should get exactly that. -->
 {#if settingsOpen}
-	<ModalPrompt wide title={$t.settings.heading} onDismiss={() => (settingsOpen = false)}>
+	<ModalPrompt
+		wide
+		title={$t.settings.heading}
+		dismissLabel={$t.settings.closeLabel}
+		onDismiss={() => (settingsOpen = false)}
+	>
 		<div class="settings">
 			<div class="rail-section">
 				{@render captionAppearance($t.settings.appearance)}
