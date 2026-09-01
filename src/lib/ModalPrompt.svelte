@@ -15,13 +15,17 @@
 		title: string;
 		/** Escape, so a dialog is never a trap. Omit for one that has no safe dismissal. */
 		onDismiss?: () => void;
+		/** Names an × in the top corner that calls `onDismiss`. Only for a panel whose exit is
+		 *  harmless (settings); the decision prompts keep their explicit verbs and stay bare,
+		 *  so an anonymous × can never stand in for an answer. */
+		dismissLabel?: string;
 		/** A roomier box, for a panel of controls rather than a paragraph and three buttons.
 		 *  The narrow default is a measure chosen for reading; controls are not read. */
 		wide?: boolean;
 		children: Snippet;
 	}
 
-	let { title, onDismiss, wide = false, children }: Props = $props();
+	let { title, onDismiss, dismissLabel, wide = false, children }: Props = $props();
 
 	const titleId = $props.id();
 
@@ -84,7 +88,25 @@
 		aria-modal="true"
 		aria-labelledby={titleId}
 	>
-		<h2 id={titleId}>{title}</h2>
+		<div class="header">
+			<h2 id={titleId}>{title}</h2>
+			{#if onDismiss && dismissLabel}
+				<button class="dismiss" aria-label={dismissLabel} onclick={onDismiss}>
+					<svg
+						width="13"
+						height="13"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.9"
+						stroke-linecap="round"
+						aria-hidden="true"
+					>
+						<path d="M5.5 5.5l13 13M18.5 5.5l-13 13" />
+					</svg>
+				</button>
+			{/if}
+		</div>
 		{@render children()}
 	</div>
 </div>
@@ -119,13 +141,41 @@
 	.prompt.wide {
 		width: min(40em, 100%);
 	}
+	.header {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+	}
 	h2 {
+		flex: 1;
 		margin: 0;
 		font-size: var(--type-17);
 		font-weight: 600;
 		line-height: 1.35;
 		color: var(--text-bright);
 		text-wrap: balance;
+	}
+	.dismiss {
+		flex: none;
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		/* Pull it into the corner without inflating the header row. */
+		margin: -4px -6px 0 0;
+		padding: 0;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: var(--muted-3);
+	}
+	.dismiss:hover {
+		background: var(--surface-3);
+		color: var(--text-bright);
+	}
+	.dismiss:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
 	}
 
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
