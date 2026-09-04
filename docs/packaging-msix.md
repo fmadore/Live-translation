@@ -16,7 +16,7 @@ a devDependency. It drives `tauri build --no-bundle`, assembles the package payl
 hands it to the Windows SDK's `MakeAppx`.
 
 | Path | What it is |
-| --- | --- |
+| — | — |
 | `src-tauri/gen/windows/bundle.config.json` | Publisher, capabilities, signing. Read at build time. |
 | `src-tauri/gen/windows/AppxManifest.xml.template` | The manifest, with `{{PLACEHOLDER}}`s the bundler fills in per architecture. |
 | `src-tauri/gen/windows/Assets/*.png` | Store logo and tiles, copied into the package verbatim. |
@@ -55,7 +55,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.0.5.0"
+  Version="1.2.0.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -63,6 +63,10 @@ with `runFullTrust` and `microphone`. The built-in demonstration uses neither ca
 network access. The package carries no speech model, Windows AI runtime, WinRT recognizer, or
 `systemAIModels` declaration. Optional live capture uses microphone/WASAPI through the
 full-trust desktop process.
+
+`Version` is the field here that moves: the bundler stamps it from `tauri.conf.json`, with a
+fourth component appended. It reads `1.2.0.0` at the time of writing and whatever that file
+says at the time of reading.
 
 ## Prerequisites
 
@@ -85,14 +89,18 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.0.5.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.0.5.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.2.0.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.2.0.0.msixbundle
 ```
 
 The names come from the manifest's `DisplayName`; CI renames the bundle to
 `Live.Translation_<version>_arm64.msixbundle` before attaching it to the release. CI builds
 and publishes the corresponding x64 pair in parallel. Upload both `.msixbundle` files to the
 submission. For local verification the plain `.msix` is easier to sign and install.
+
+Substitute the current `tauri.conf.json` version for `1.2.0` throughout this file. Every
+release built on this machine is still in `target/msix/` beside the newest one, which is why
+the commands below derive the name instead of spelling it out.
 
 Sanity checks worth a glance on the staged payload:
 
@@ -112,11 +120,20 @@ committed `Wide310x150Logo.png` is the corrected one.
 For this repository's local certificate files, the shortest safe path is the checked-in helper.
 Open Windows PowerShell **as Administrator** from the repository root; it prompts securely for
 the PFX password, trusts the matching public certificate in Local Machine → Trusted People,
-signs, verifies, installs, and verifies version 1.0.5:
+checks for the two conflicts below before asking for anything, signs, verifies, installs,
+and confirms the installed version:
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-local-msix.ps1 -Architecture arm64
 ```
+
+Run it from the repository root: `-File` resolves relative to your current directory, so a
+prompt sitting anywhere else reports that the script does not exist.
+
+It reads the version from `tauri.conf.json`, the same file the bundler stamps into the
+filename, so the package it signs is always the one you just built rather than a previous
+release still sitting in `target/msix/`. Pass `-Version 1.1.0` to reach for one of those on
+purpose.
 
 Use `-Architecture x64` on an x64 test machine. The manual equivalent follows.
 
@@ -174,8 +191,9 @@ fails with a publisher mismatch.
    $password = Read-Host -AsSecureString "Password for the dev PFX"
    $cert = Import-PfxCertificate -FilePath .\live-translation-dev.pfx `
      -CertStoreLocation Cert:\CurrentUser\My -Password $password
-   & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint `
-     ".\src-tauri\target\msix\Live Translation & Subtitles_1.0.5.0_arm64.msix"
+   $version = (Get-Content .\src-tauri\tauri.conf.json -Raw | ConvertFrom-Json).version
+   $package = ".\src-tauri\target\msix\Live Translation & Subtitles_$version.0_arm64.msix"
+   & $signtool sign /fd SHA256 /sha1 $cert.Thumbprint $package
    ```
 
    No timestamp URL: the certificate is valid for a year and the package is disposable.
@@ -183,7 +201,7 @@ fails with a publisher mismatch.
 5. Install it:
 
    ```powershell
-   Add-AppxPackage -Path ".\src-tauri\target\msix\Live Translation & Subtitles_1.0.5.0_arm64.msix"
+   Add-AppxPackage -Path $package
    ```
 
    Installing a *rebuilt* package with the same version fails with `0x80073CFB` ("same
@@ -192,8 +210,24 @@ fails with a publisher mismatch.
    preferences reset:
 
    ```powershell
-   Remove-AppxPackage 49346FMadore.LiveTranslationSubtitles_1.0.0.0_x64__6yxybgjxsxtpc
+   Get-AppxPackage 49346FMadore.LiveTranslationSubtitles | Remove-AppxPackage
    ```
+
+   A **Store-signed copy installed from the listing** is the other thing that blocks this, and
+   it fails differently: `0x80073CF3`, "package updates, dependency or conflict validation
+   failed". Windows will not let a developer-signed package replace a Store-signed one of the
+   same identity, whatever the version numbers say. `Get-AppxPackage` names the culprit — a
+   `SignatureKind` of `Store` rather than `Developer`:
+
+   ```powershell
+   Get-AppxPackage 49346FMadore.LiveTranslationSubtitles |
+     Select-Object Version, SignatureKind, PackageFullName
+   ```
+
+   Remove it with the same command as above, install the local package, and reinstall from the
+   Store when the verification round is done. This is worth expecting rather than debugging:
+   the app is published, so any machine that has it from the Store hits this on the first
+   sideload.
 
 6. Confirm the identity is the one Partner Center assigned — the family name's hash suffix is
    derived from `Name` plus `Publisher`, so this is a byte-for-byte check of both:
@@ -214,7 +248,7 @@ nothing). Then work through the list; the first three are the open gates in
 `microsoft-store.md`.
 
 | Check | What "pass" looks like |
-| --- | --- |
+| — | — |
 | **Built-in demo (certification default)** | Without changing Windows settings or attaching audio hardware, click *Start demo subtitles*. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop, and export all work. Repeat in English and French. |
 | **Microphone (optional live mode)** | With Mistral/Gemini/OpenAI configured, the app appears under Settings → Privacy & security → Microphone and captures with access on. With access blocked, it reports the exact Settings path. |
 | **WASAPI loopback (gate 7)** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
