@@ -159,37 +159,45 @@ the order their filenames give.
 Each screenshot has an optional **Description** field in Partner Center, on the same screen as
 the upload. Fill it: it is the alt text a screen reader announces, so an empty one makes the
 listing say nothing to the people most likely to need this app. Store descriptions cap at 200
-characters; these are well inside it.
+characters, and the French ones run to 199 — check the count after any edit rather than
+assuming there is room.
 
 Captions describe what the picture shows rather than restating the product description — a
 visitor is scrolling images, and repeating the paragraph above them tells them nothing new.
 
 ### English captions
 
-1. `1-idle.png` — idle screen showing Built-in demo, Demo audio, Free, and Start demo subtitles.
+1. `1-idle.png` — the pre-flight screen: provider key, microphone, overlay placement and the
+   hourly cost, with the session idle.
 
 ```text
-The app opens on a built-in demonstration. No key, no account, no microphone and no per-minute charge — it drives the real caption interface using bundled scripted content.
+Four checks before anything starts: the provider key, the microphone, where the captions will land, and what the hour will cost. All four lock once the session is running.
 ```
 
-2. `2-running-english.png` — running English demo showing Demo status, moving meter, elapsed
-   time, and overlay caption.
+2. `2-running.png` — running demo showing Demo status, moving meter, elapsed time, and a
+   caption.
 
 ```text
-A running session shows the audio level, elapsed time and running cost. Captions appear on a transparent overlay that sits above whatever is being projected.
+A running session shows the audio level, elapsed time and running cost. The caption language is set separately from the interface, so the room can read one language while you work in another.
 ```
 
-3. `3-running-french.png` — running French demo showing a French caption.
+3. `3-overlay.png` — the overlay in placement mode, sized and positioned before a session.
 
 ```text
-Captions in French, with the interface in French. The two are independent: the language you work in does not decide the language the room reads.
+The overlay is placed before the room fills: dragged to where the audience will read it, sized against the projector, then locked so nothing shifts mid-talk.
 ```
 
-4. `4-provider.png` — optional live-provider configuration showing its key requirement and
-   estimated cost.
+4. `4-appearance.png` — caption appearance showing size, line width, typeface, caption colour,
+   backing colour and backing strength.
 
 ```text
-Live translation and live subtitles use your own Gemini, OpenAI or Mistral key, stored in Windows Credential Manager. The hourly rate is shown before a session starts.
+Caption size, line width, typeface, colour and the strength of the backing behind them. Set them against the projector before the room fills, not during the talk.
+```
+
+5. `5-contrast.png` — the contrast readout naming a step that falls below its target.
+
+```text
+Every colour choice is measured against a bright slide and a dark one, and the app names the line that falls short rather than leaving you to find out from the back row.
 ```
 
 ### Légendes françaises
@@ -197,25 +205,31 @@ Live translation and live subtitles use your own Gemini, OpenAI or Mistral key, 
 1. `1-idle.png`
 
 ```text
-L’application s’ouvre sur une démonstration intégrée. Aucune clé, aucun compte, aucun microphone et aucun coût à la minute : elle pilote la vraie interface de sous-titrage avec un contenu fourni.
+Quatre vérifications avant de commencer : la clé du fournisseur, le microphone, l’endroit où tomberont les sous-titres et ce que coûtera l’heure. Tout se verrouille une fois la session lancée.
 ```
 
-2. `2-running-english.png`
+2. `2-running.png`
 
 ```text
-Une session en cours affiche le niveau audio, le temps écoulé et le coût courant. Les sous-titres apparaissent sur une surimpression transparente, au-dessus de ce qui est projeté.
+Une session affiche le niveau audio, le temps écoulé et le coût courant. La langue des sous-titres se règle à part de l’interface : la salle lit une langue pendant que vous travaillez dans une autre.
 ```
 
-3. `3-running-french.png`
+3. `3-overlay.png`
 
 ```text
-Des sous-titres en français, avec l’interface en français. Les deux sont indépendants : la langue dans laquelle vous travaillez ne décide pas de celle que lit la salle.
+La surimpression se place avant l’arrivée du public : on la fait glisser là où la salle lira, on la dimensionne sur le projecteur, puis on la verrouille pour que rien ne bouge en pleine conférence.
 ```
 
-4. `4-provider.png`
+4. `4-appearance.png`
 
 ```text
-La traduction et les sous-titres en direct utilisent votre propre clé Gemini, OpenAI ou Mistral, conservée dans le Gestionnaire d’identification Windows. Le tarif horaire s’affiche avant de démarrer.
+Taille, largeur des lignes, police, couleur des sous-titres et intensité du fond. Réglez-les sur le projecteur avant que la salle se remplisse, pas pendant la conférence.
+```
+
+5. `5-contrast.png`
+
+```text
+Chaque couleur est mesurée sur une diapositive claire et sur une sombre, et l’application nomme la ligne qui descend sous le seuil au lieu de vous le laisser découvrir du fond de la salle.
 ```
 
 Capture rules, and when to re-capture, are in

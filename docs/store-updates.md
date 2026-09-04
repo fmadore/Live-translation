@@ -59,15 +59,21 @@ docs/store-screenshots/en/    English listing
 docs/store-screenshots/fr/    French listing
 ```
 
-Four per language, named for the order they are uploaded in — the order is what a visitor
+Five per language, named for the order they are uploaded in — the order is what a visitor
 scrolls through, so it is part of the listing rather than an implementation detail:
 
 | File | What it shows |
 | --- | --- |
-| `1-idle.png` | The idle screen: Built-in demo, Demo audio, Free, and the Start demo button. |
-| `2-running-english.png` | A running English demo: Demo status, a moving meter, elapsed time, and an overlay caption. |
-| `3-running-french.png` | A running French demo, showing a French caption. |
-| `4-provider.png` | Optional. A live provider's configuration, showing its key requirement and estimated cost. |
+| `1-idle.png` | The pre-flight screen while idle: provider key, microphone, overlay placement, hourly cost. |
+| `2-running.png` | A running demo: Demo status, a moving meter, elapsed time, and a caption. |
+| `3-overlay.png` | The overlay in placement mode: drag handles, size readout, and the stand-in caption. |
+| `4-appearance.png` | Caption appearance: size, line width, typeface, caption colour, backing colour and backing strength. |
+| `5-contrast.png` | The contrast readout, naming a step that falls below its target. |
+
+Three of those five are there to make an argument rather than to describe a screen. The
+appearance panel and its contrast readout have no equivalent in this category, and a listing
+that stops at the demo never mentions them; the overlay shot is the captions where the room
+reads them, rather than the window that produces them.
 
 **One current set, overwritten in place.** They are re-captured rather than accumulated, so the
 history holds the changes and the working tree always holds what is on the listing right now.
@@ -76,7 +82,15 @@ to preserve something nobody reads twice.
 
 Captured on Windows at the display scaling the app is actually used at, from a **sideloaded
 MSIX** rather than a dev build, for the same reason the accessibility walk uses one: package
-identity changes how the window is drawn. Store screenshots must be at least 1366×768.
+identity changes how the window is drawn. Store screenshots must be `.png`, at least 1366×768
+and under 50 MB.
+
+Two Store rules shape the framing rather than just the acceptance. Anything that matters
+belongs in the **top two-thirds**, because the Store draws its own text overlays across the
+bottom third. And no logo, wordmark or marketing line may be burned into the image — the
+per-screenshot Description field in Partner Center carries that instead, in 200 characters,
+doubling as the alt text a screen reader announces. Ten desktop screenshots are the ceiling
+and Microsoft recommends five to eight.
 
 Re-capture when the UI in them changes — that is a checklist item in
 [`microsoft-store.md`](microsoft-store.md). Never upload screenshots from the removed Windows

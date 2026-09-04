@@ -124,9 +124,14 @@ For `runFullTrust`, use this concise justification:
 Before clicking **Submit to the Store**, confirm:
 
 - every section says Complete;
-- the uploaded packages show 1.0.5.0 and the intended architectures;
+- the uploaded packages show the version in `src-tauri/tauri.conf.json` and the intended
+  architectures;
 - the first sentence of both descriptions discloses the live-provider dependency;
-- the first screenshot shows Built-in demo / Demo audio / Start demo subtitles;
+- a screenshot shows Built-in demo / Demo audio / Free / Start demo subtitles. This used to
+  name the *first* screenshot, and the guarantee is what matters rather than the position:
+  something in the set has to show that the default action needs no key and costs nothing, or
+  10.1.2 has nothing to look at. Shot 1 now opens on the provider pre-flight, so shot 3 is
+  where a reviewer finds it;
 - certification notes contain the deterministic six-step test;
 - no field or screenshot claims the built-in path recognizes speech.
 
