@@ -257,7 +257,12 @@ export const en = {
 
 		demoRow: {
 			title: 'Built-in demo · no key needed',
-			checking: 'Checking the bundled demonstration…'
+			checking: 'Checking the bundled demonstration…',
+			/** The core names the readiness state; these word it. Kept here rather than in
+			 *  `ondevice/mod.rs` so the French interface does not read them in English. */
+			ready:
+				'Ready — bundled sample captions can demonstrate the overlay without a microphone, account, key, language pack, or network.',
+			checkFailed: 'The bundled demonstration could not be checked.'
 		},
 
 		audio: {

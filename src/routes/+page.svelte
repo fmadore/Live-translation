@@ -78,6 +78,7 @@
 		clampOverlayWidth,
 		DEFAULT_OVERLAY_FONT,
 		DEFAULT_OVERLAY_WIDTH,
+		describeReadiness,
 		providerCanTranslate,
 		providerDetectsLanguage,
 		providerRequiresKey
@@ -376,7 +377,7 @@
 				engine: 'none',
 				state: 'check-failed',
 				canPrepare: false,
-				detail: String(e)
+				detail: describeError(e, get(t))
 			};
 		}
 	}
@@ -889,6 +890,11 @@
 	// the technical detail. Derived rather than stored, so switching language re-words a
 	// message that is already on screen.
 	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
+
+	// The demo row's sentence. The core names the readiness state and the catalog words it, so
+	// this re-words itself when the interface language changes rather than freezing whatever
+	// was true at check time.
+	const demoRowText = $derived(describeReadiness(localReadiness, $t));
 
 	// ---- Display labels ---------------------------------------------------------
 	//
@@ -1750,7 +1756,7 @@
 							<div class="check-body">
 								<span class="check-title">{$t.preflight.demoRow.title}</span>
 								<span class="check-desc" class:warn={!localReadiness?.ready}>
-									{localReadiness?.detail ?? $t.preflight.demoRow.checking}
+									{demoRowText}
 								</span>
 							</div>
 							<span></span>

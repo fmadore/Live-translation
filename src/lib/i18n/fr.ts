@@ -268,7 +268,10 @@ export const fr: Messages = {
 
 		demoRow: {
 			title: 'Démo intégrée · aucune clé nécessaire',
-			checking: 'Vérification de la démonstration intégrée…'
+			checking: 'Vérification de la démonstration intégrée…',
+			ready:
+				'Prête — les sous-titres de l’échantillon fourni illustrent la surimpression sans microphone, sans compte, sans clé, sans pack de langue et sans réseau.',
+			checkFailed: 'La démonstration intégrée n’a pas pu être vérifiée.'
 		},
 
 		audio: {
