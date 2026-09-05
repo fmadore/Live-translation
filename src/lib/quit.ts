@@ -15,6 +15,7 @@ import type { CloseChoice } from './document';
 import { flushTranscript, isRunning, transcriptDirty } from './stores';
 import { saveTranscriptDocument } from './saveDocument';
 import { api } from './tauri';
+import { recovery } from './recovery';
 
 /** A provider that never finishes flushing must not hold the window hostage. `stop_session`
  *  bounds its own drain at five seconds; this bounds the wait on the whole call. */
@@ -102,7 +103,7 @@ export async function resolveClose(choice: Exclude<CloseChoice, 'cancel'>): Prom
 		await saveTranscriptDocument('markdown');
 	} else {
 		// The spool only ever held the text now being thrown away.
-		await api.clearRecovery().catch(() => {});
+		await recovery.clear().catch(() => {});
 	}
 	await api.confirmClose();
 }

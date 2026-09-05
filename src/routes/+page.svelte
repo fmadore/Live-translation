@@ -26,19 +26,18 @@
 		overlayFontSize,
 		overlayPlaced,
 		sessionStartedAt,
-		pushCaption,
-		beginSession
+		pushCaption
 	} from '$lib/stores';
 	import {
 		closeAction,
 		decodeRecovery,
-		encodeRecovery,
-		newestLineId,
 		shouldGuardClose,
 		type CloseChoice,
 		type RecoverySnapshot
 	} from '$lib/document';
 	import { acknowledgeClose, endsLiveSession, prepareClose, resolveClose } from '$lib/quit';
+	import { recovery, startRecoverySpool } from '$lib/recovery';
+	import { createSessionController } from '$lib/sessionController';
 	import { followTextScale } from '$lib/textScale';
 	import type {
 		AudioDevice,
@@ -115,9 +114,10 @@
 	// available on the very first render — which is what keeps a child like ApiKeyPanel from
 	// mounting and firing a Tauri-only command during `npm run dev`.
 	let browserMode = $state(!isTauri());
-	let sessionBusy = $state(false);
+	const session = createSessionController();
+	const sessionBusy = session.busy;
 	let localReadiness = $state<OnDeviceReadiness | null>(null);
-	const controlsLocked = $derived($isRunning || sessionBusy);
+	const controlsLocked = $derived($isRunning || $sessionBusy);
 
 	// The keyless demonstration is always bundled and ready. A commercial
 	// provider starts NOT ready: clearing the flag on the switch itself closes the
@@ -389,7 +389,6 @@
 
 	/** How often the opt-in spool is refreshed while captions are arriving. Long enough that a
 	 *  busy session is not writing constantly, short enough that a crash costs a sentence. */
-	const RECOVERY_INTERVAL_MS = 8000;
 
 	let closePrompt = $state(false);
 	let closeEndedSession = $state(false);
@@ -562,44 +561,21 @@
 
 	$effect(() => {
 		if (browserMode || !$recoveryEnabled) return;
-		// Tracked inside the effect so switching recovery off and on again starts clean.
-		let spooledId = -1;
-		let writing = false;
-		let stopped = false;
-		const id = setInterval(() => {
-			if (writing || stopped) return;
-			const lines = get(transcript);
-			const newest = newestLineId(lines);
-			// Nothing new since the last spool, or nothing unsaved to protect.
-			if (newest === spooledId || !get(transcriptDirty)) return;
-			writing = true;
-			void api
-				.writeRecovery(encodeRecovery(lines, new Date()))
-				.then(() => {
-					spooledId = newest;
-				})
-				.catch((error) => {
-					// Said once. A spool that cannot be written must not bury the session's own
-					// status messages under the same failure every few seconds.
-					stopped = true;
-					statusMessage.set($t.error.recoveryWrite(String(error)));
-				})
-				.finally(() => {
-					writing = false;
-				});
-		}, RECOVERY_INTERVAL_MS);
-		return () => clearInterval(id);
+		return startRecoverySpool(
+			() => (get(transcriptDirty) ? get(transcript) : null),
+			(error) => statusMessage.set(get(t).error.recoveryWrite(String(error)))
+		);
 	});
 
 	async function loadRecovery() {
 		try {
-			const stored = await api.readRecovery();
+			const stored = await recovery.read();
 			if (!stored) return;
 			const snapshot = decodeRecovery(stored.contents);
 			if (!snapshot) {
 				// Truncated mid-write, or hand-edited. There is nothing to offer, and leaving it
 				// would strand caption text on disk that no prompt will ever clear.
-				await api.clearRecovery();
+				await recovery.clear();
 				return;
 			}
 			recovered = { snapshot, path: stored.path };
@@ -616,7 +592,7 @@
 		if (!found) return;
 		if (restore) restoreTranscript(found.snapshot.lines);
 		try {
-			await api.clearRecovery();
+			await recovery.clear();
 		} catch (error) {
 			statusMessage.set(asStatus(error));
 		}
@@ -646,35 +622,18 @@
 
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
 	async function launch(rehearsal?: TargetLanguage) {
-		if (sessionBusy || $isRunning) return;
-		sessionBusy = true;
-		statusMessage.set('');
-		beginSession();
+		if ($sessionBusy || $isRunning) return;
 		rehearsing = rehearsal !== undefined;
-		try {
-			await api.startSession(rehearsal === undefined ? $options : { ...$options, rehearsal });
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-			rehearsing = false;
-		} finally {
-			sessionBusy = false;
-		}
+		const started = await session.start(
+			rehearsal === undefined ? $options : { ...$options, rehearsal }
+		);
+		if (!started) rehearsing = false;
 	}
 
 	const start = () => launch();
 	const rehearse = () => launch(fixtureLanguage);
 
-	async function stop() {
-		if (sessionBusy) return;
-		sessionBusy = true;
-		try {
-			await api.stopSession();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			sessionBusy = false;
-		}
-	}
+	const stop = () => session.stop();
 
 	function setSource(s: AudioSource) {
 		if (controlsLocked) return;
@@ -1379,11 +1338,11 @@
 
 				<span class="grow"></span>
 
-				<button class="stop" disabled={sessionBusy} aria-busy={sessionBusy} onclick={stop}>
+				<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 						><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 					>
-					{sessionBusy ? $t.rail.stopping : $t.rail.stop}
+					{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
 				</button>
 			{:else}
 				<!-- ---- Idle: the numbered setup sheet ---- -->
@@ -1905,14 +1864,14 @@
 				<div class="launch">
 					<button
 						class="start"
-						disabled={!$hasKey || browserMode || sessionBusy}
-						aria-busy={sessionBusy}
+						disabled={!$hasKey || browserMode || $sessionBusy}
+						aria-busy={$sessionBusy}
 						onclick={start}
 					>
 						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 							><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 						>
-						{sessionBusy
+						{$sessionBusy
 							? $t.preflight.start.starting
 							: $options.mode === 'translate'
 								? $t.preflight.start.translate
@@ -1925,7 +1884,7 @@
 					<div class="rehearse-slot">
 						<button
 							class="rehearse"
-							disabled={!$hasKey || browserMode || sessionBusy || $options.provider === 'ondevice'}
+							disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
 							onclick={rehearse}
 						>
 							<svg
@@ -1942,7 +1901,7 @@
 									d="M17 8.5l3.5 3.5-3.5 3.5"
 								/></svg
 							>
-							{sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
+							{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 						</button>
 						<span class="rehearse-hint">
 							{$options.provider === 'ondevice'

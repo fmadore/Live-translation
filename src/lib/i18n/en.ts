@@ -352,6 +352,7 @@ export const en = {
 
 	transcript: {
 		heading: 'Transcript',
+		jumpToLatest: 'Jump to latest',
 		lines: (n: number) => (n === 1 ? '1 line' : `${n} lines`),
 		unsaved: 'Unsaved',
 		saved: 'Saved',

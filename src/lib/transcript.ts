@@ -2,7 +2,7 @@ import type { Origin, TranscriptLine } from './types';
 
 export type TranscriptFormat = 'markdown' | 'text';
 
-/** A run of consecutive lines from the same audio source, rendered as one paragraph. */
+/** Consecutive lines from one source, bounded by pauses and a readable paragraph length. */
 export interface TranscriptParagraph {
 	/** Id of the paragraph's first line — a stable list key. */
 	id: number;
@@ -28,18 +28,27 @@ export const DEFAULT_LABELS: TranscriptLabels = {
 };
 
 /**
- * Turn the newest-first log into chronological paragraphs, one per contiguous run of the
- * same source. A speaker change (mic ⇄ system) starts a new paragraph; everything else is
- * joined into flowing text.
+ * Turn the newest-first log into chronological paragraphs. A source change, five-second
+ * pause, timeline reset, or 600-character aggregation limit starts a new paragraph.
+ * Individual caption lines are never split or truncated.
  */
 export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagraph[] {
 	const paragraphs: TranscriptParagraph[] = [];
+	let previousEnd: number | undefined;
 	for (const line of [...newestFirst].reverse()) {
 		const text = line.text.trim();
 		if (!text) continue;
 		const last = paragraphs[paragraphs.length - 1];
-		if (last && last.origin === line.origin) last.text += ` ${text}`;
+		const pause =
+			line.startMs !== undefined &&
+			previousEnd !== undefined &&
+			(line.startMs - previousEnd >= 5000 || line.startMs < previousEnd);
+		// Keep complete caption lines together. Long individual turns remain intact;
+		// this bounds aggregation, never truncates the operator's text.
+		if (last && last.origin === line.origin && !pause && last.text.length + text.length + 1 <= 600)
+			last.text += ` ${text}`;
 		else paragraphs.push({ id: line.id, origin: line.origin, text });
+		previousEnd = line.endMs;
 	}
 	return paragraphs;
 }

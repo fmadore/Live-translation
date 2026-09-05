@@ -365,6 +365,7 @@ export const fr: Messages = {
 
 	transcript: {
 		heading: 'Transcription',
+		jumpToLatest: 'Aller aux derniers sous-titres',
 		lines: (n: number) => (n === 1 ? '1 ligne' : `${n} lignes`),
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',

@@ -11,7 +11,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc::channel, Mutex as AsyncMutex};
 use tokio_util::sync::CancellationToken;
 
-use crate::audio::capture::run_microphone;
+use crate::audio::capture::{run_microphone, MicrophoneRuntimeError};
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::AudioChunk;
@@ -66,6 +66,7 @@ struct ActiveTest {
 
 struct ActiveSession {
     cancel: CancellationToken,
+    sources: Vec<CancellationToken>,
     capture_threads: Vec<JoinHandle<()>>,
     /// Timer-driven audio producers used by commercial-provider rehearsal playback.
     fixture_tasks: Vec<AsyncJoinHandle<()>>,
@@ -76,6 +77,14 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
     mutex
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
+    anyhow::ensure!(
+        provider.can_translate() == (mode == OutputMode::Translate),
+        "The selected provider does not support this output mode"
+    );
+    Ok(())
 }
 
 /// Which failure this is, for a capture failure on one source.
@@ -89,6 +98,9 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 fn source_failure(origin: Origin, error: &anyhow::Error) -> AppError {
     let detail = format!("{error:#}");
     match origin {
+        Origin::Microphone if error.downcast_ref::<MicrophoneRuntimeError>().is_some() => {
+            AppError::with(id::MIC_STREAM, detail)
+        }
         Origin::Microphone => AppError::with(id::MIC_CAPTURE, detail),
         Origin::System => AppError::with(id::SYSTEM_CAPTURE, detail),
     }
@@ -103,6 +115,7 @@ fn report_source_failure(
     cancel: &CancellationToken,
 ) {
     tracing::error!(?origin, "capture failed: {error:#}");
+    cancel.cancel();
     let message = source_failure(origin, error);
     let _ = app.emit(
         events::STATUS,
@@ -112,7 +125,22 @@ fn report_source_failure(
             origin: Some(origin),
         },
     );
-    cancel.cancel();
+}
+
+fn complete_probe(
+    result: Result<()>,
+    origin: Origin,
+    cancel: &CancellationToken,
+    publish: impl FnOnce(AudioTestUpdate),
+) {
+    if let Err(error) = result {
+        tracing::error!(?origin, "audio test failed: {error:#}");
+        cancel.cancel();
+        publish(AudioTestUpdate {
+            active: false,
+            message: Some(source_failure(origin, &error)),
+        });
+    }
 }
 
 impl SessionManager {
@@ -122,25 +150,7 @@ impl SessionManager {
         // A preflight test is holding the very devices this session is about to open.
         self.stop_test_active(app).await;
 
-        match (options.mode, options.provider) {
-            (OutputMode::Translate, Provider::Mistral) => {
-                anyhow::bail!("Mistral Voxtral is transcription-only; choose Live subtitles")
-            }
-            (OutputMode::Translate, Provider::OnDevice) => {
-                anyhow::bail!(
-                    "The built-in demonstration is same-language only; choose Live subtitles, \
-                     or Gemini/OpenAI to translate"
-                )
-            }
-            // Guarded on the capability rather than a provider list, so adding another
-            // translating backend cannot silently become a valid subtitle engine.
-            (OutputMode::Transcribe, provider) if provider.can_translate() => {
-                anyhow::bail!(
-                    "Live subtitles use Mistral, Gemini Transcribe, or the built-in demonstration"
-                )
-            }
-            _ => {}
-        }
+        validate_provider(options.mode, options.provider)?;
         if options.provider == Provider::OnDevice && options.source != AudioSource::Microphone {
             anyhow::bail!("The built-in demonstration uses its bundled sample; select Demo audio")
         }
@@ -190,6 +200,7 @@ impl SessionManager {
         let mut capture_threads = Vec::new();
         let mut fixture_tasks = Vec::new();
         let mut client_tasks = Vec::new();
+        let mut sources = Vec::new();
 
         let (level_tx, mut level_rx) = channel::<AudioLevel>(LEVEL_CHANNEL_CAPACITY);
         let level_app = app.clone();
@@ -202,6 +213,7 @@ impl SessionManager {
         let mut spawn_source = |origin: Origin| -> Result<()> {
             let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             let source_cancel = cancel.child_token();
+            sources.push(source_cancel.clone());
 
             if provider == Provider::OnDevice {
                 // The deterministic demo emits its own level/caption timeline and never
@@ -246,7 +258,6 @@ impl SessionManager {
                             .spawn(move || {
                                 let result = match origin {
                                     Origin::Microphone => run_microphone(
-                                        capture_app.clone(),
                                         mic_name,
                                         target_rate,
                                         capture_level_tx,
@@ -376,6 +387,7 @@ impl SessionManager {
         let cancel = cancel_guard.disarm();
         *lock(&self.active) = Some(ActiveSession {
             cancel,
+            sources,
             capture_threads,
             fixture_tasks,
             client_tasks,
@@ -398,10 +410,15 @@ impl SessionManager {
         mic_device_name: Option<String>,
     ) -> Result<()> {
         let _lifecycle = self.lifecycle.lock().await;
-        if lock(&self.active).is_some() {
+        if lock(&self.active)
+            .as_ref()
+            .is_some_and(|session| session.sources.iter().any(|source| !source.is_cancelled()))
+        {
             anyhow::bail!("A session is already running, so its meters are already live");
         }
         self.stop_test_active(app).await;
+        // A failed provider may have left completed handles to join, but no live client.
+        self.stop_active(app).await;
 
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
@@ -415,6 +432,7 @@ impl SessionManager {
             }
         });
 
+        let mut starters = Vec::new();
         let mut spawn_probe = |origin: Origin| -> Result<()> {
             let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             // The receiver is dropped immediately and deliberately: that is what makes this
@@ -422,16 +440,22 @@ impl SessionManager {
             drop(audio_rx);
 
             let probe_app = app.clone();
-            let probe_cancel = cancel.child_token();
+            // A preflight is one test: failure on either source stops both devices.
+            let probe_cancel = cancel.clone();
             let error_cancel = probe_cancel.clone();
             let probe_level_tx = level_tx.clone();
             let mic_name = mic_device_name.clone();
+            let (start_tx, start_rx) = std::sync::mpsc::channel();
             let handle = std::thread::Builder::new()
                 .name(format!("audio-test-{origin:?}"))
                 .spawn(move || {
+                    // Publish active before a fast device-open error can publish inactive.
+                    // A failed thread spawn drops the senders and releases earlier workers.
+                    if start_rx.recv().is_err() || probe_cancel.is_cancelled() {
+                        return;
+                    }
                     let result = match origin {
                         Origin::Microphone => run_microphone(
-                            probe_app.clone(),
                             mic_name,
                             TEST_SAMPLE_RATE,
                             probe_level_tx,
@@ -445,22 +469,13 @@ impl SessionManager {
                             probe_cancel,
                         ),
                     };
-                    if let Err(error) = result {
-                        tracing::error!(?origin, "audio test failed: {error:#}");
-                        // Reported on the test channel, never as a session status: a failed
-                        // preflight must not leave the operator UI looking like a dead session.
-                        let _ = probe_app.emit(
-                            events::AUDIO_TEST,
-                            AudioTestUpdate {
-                                active: false,
-                                message: Some(source_failure(origin, &error)),
-                            },
-                        );
-                        error_cancel.cancel();
-                    }
+                    complete_probe(result, origin, &error_cancel, |update| {
+                        let _ = probe_app.emit(events::AUDIO_TEST, update);
+                    });
                 })
                 .context("failed to spawn audio test thread")?;
             capture_threads.push(handle);
+            starters.push(start_tx);
             Ok(())
         };
 
@@ -483,6 +498,9 @@ impl SessionManager {
                 message: None,
             },
         );
+        for starter in starters {
+            let _ = starter.send(());
+        }
         tracing::info!(?source, "audio test started");
         Ok(())
     }
@@ -575,6 +593,66 @@ impl SessionManager {
                 },
             );
             tracing::info!("session stopped");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_preflight_runtime_failure_stops_both_sources_and_reports_test_status() {
+        let test = CancellationToken::new();
+        let system = test.child_token();
+        let error = anyhow::Error::new(MicrophoneRuntimeError(cpal::Error::new(
+            cpal::ErrorKind::DeviceNotAvailable,
+        )));
+        let mut updates = Vec::new();
+        complete_probe(Err(error), Origin::Microphone, &test, |update| {
+            updates.push(update)
+        });
+        assert!(test.is_cancelled());
+        assert!(system.is_cancelled());
+        assert_eq!(updates.len(), 1);
+        assert!(!updates[0].active);
+        assert_eq!(updates[0].message.as_ref().unwrap().id, id::MIC_STREAM);
+    }
+
+    #[test]
+    fn device_open_failure_keeps_the_microphone_privacy_guidance() {
+        let error = anyhow::Error::new(cpal::Error::new(cpal::ErrorKind::PermissionDenied));
+        assert_eq!(
+            source_failure(Origin::Microphone, &error).id,
+            id::MIC_CAPTURE
+        );
+    }
+
+    #[test]
+    fn a_clean_preflight_stop_does_not_publish_a_failure() {
+        let test = CancellationToken::new();
+        complete_probe(Ok(()), Origin::System, &test, |_| {
+            panic!("unexpected failure")
+        });
+    }
+
+    #[test]
+    fn every_provider_is_rejected_in_the_wrong_mode() {
+        for (provider, translates) in [
+            (Provider::Gemini, true),
+            (Provider::OpenAi, true),
+            (Provider::GeminiTranscribe, false),
+            (Provider::Mistral, false),
+            (Provider::OnDevice, false),
+        ] {
+            assert_eq!(
+                validate_provider(OutputMode::Translate, provider).is_ok(),
+                translates
+            );
+            assert_eq!(
+                validate_provider(OutputMode::Transcribe, provider).is_ok(),
+                !translates
+            );
         }
     }
 }
