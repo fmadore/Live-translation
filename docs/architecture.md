@@ -49,7 +49,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
   save of an unchanged document stays saved while one further line makes it unsaved again.
   `clearTranscript` resets the marker with the text, because line ids keep climbing and a
   stale marker would make a later run's first lines look as if they were already saved.
-- **Optional recovery spool.** Off by default. When enabled, `src/routes/+page.svelte` writes
+- **Optional recovery spool.** Off by default. When enabled, `src/lib/recovery.ts` writes
   the finalized lines to one file in the app's local data directory every few seconds while
   the document is unsaved. `recovery.rs` reads and writes that file as opaque UTF-8 and never
   interprets it; the format lives in `src/lib/document.ts` and carries caption fields only.
@@ -58,6 +58,15 @@ The transcript is an explicit document with a saved state, not a scrolling side 
   written when it has one and validated on the way back in; a spool from a build that predates
   timing still restores, without it. Caption text is not held hostage to a metadata field the
   operator cannot recover.
+  All recovery operations share one renderer queue: deletion invalidates queued snapshots
+  and waits for an active write before removing it. The core serializes filesystem access,
+  writes and flushes a sibling staging file, then replaces the committed snapshot. Failed
+  writes preserve the previous snapshot; startup and deletion remove interrupted staging
+  files. The same coordinator serves Save, Clear, Disable, Restore, and Quit.
+- **Reading long transcripts.** Paragraphs break on a source change, a five-second pause,
+  a backwards timestamp, or before aggregation would exceed 600 characters. Individual
+  caption lines remain intact. The monitor follows incoming text only while the operator
+  is at the bottom, and provides a localized keyboard-accessible Jump to latest control.
 
 ## Provider contracts
 
@@ -88,6 +97,27 @@ capture threads, clears meters and current captions, and retains completed trans
 
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
+
+Terminal provider exits cancel their source, finalize the pending turn, and then publish
+their terminal status. Cancellation stays local to that source, preserving the other half
+of a Both session. Capture returns runtime errors to its owner: a live session reports a
+session error, while preflight stops both test devices and reports on the test channel.
+Preflight workers wait until the active event is published, so an immediate device-open
+failure cannot be followed by a stale active event. With its receiver closed, preflight
+meters audio without resampling it or retaining a PCM buffer.
+
+The operator's `src/lib/sessionController.ts` serializes start/stop requests and resets a
+failed startup's clock. A Stop requested during startup waits for startup to settle before
+stopping the core; repeated Stop requests share that operation.
+
+The operator page owns native event subscriptions and delegates their state to
+`preflightController.svelte.ts` (device readiness, signal expiry, audio tests),
+`quitController.svelte.ts` (tray and close prompts), and `overlayController.svelte.ts`
+(appearance and window commands). These controllers expose reactive getters and
+explicit actions; they do not subscribe globally when imported. Page teardown disposes
+the preflight timers and capture test. `CaptionAppearance.svelte` renders the same
+appearance controls in the live rail and settings dialog, sharing persisted stores
+while keeping each contrast description's accessible ID unique.
 
 ## Leaving the app
 

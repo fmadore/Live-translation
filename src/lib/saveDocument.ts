@@ -7,6 +7,7 @@ import { get } from 'svelte/store';
 import { t } from './i18n';
 import { markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
+import { recovery } from './recovery';
 import { formatTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
 
 /**
@@ -34,7 +35,7 @@ export async function saveTranscriptDocument(
 	);
 	markTranscriptSaved(lines, path);
 	try {
-		await api.clearRecovery();
+		await recovery.clear();
 	} catch {
 		// Deliberately ignored; see above.
 	}

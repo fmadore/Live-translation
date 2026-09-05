@@ -152,11 +152,15 @@ pub async fn run_session<P: RealtimeProtocol>(
     cancel: CancellationToken,
     clock: SessionClock,
 ) {
+    // Aborting a client task must release its producer too. Normal terminal exits below
+    // also finalize text before reporting that the source has ended.
+    let _capture_guard = cancel.clone().drop_guard();
     let origin = proto.origin();
     let mut backoff = INITIAL_BACKOFF;
     let mut first = true;
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock);
+    let mut terminal_error = None;
 
     while !cancel.is_cancelled() {
         emit_status(
@@ -190,29 +194,19 @@ pub async fn run_session<P: RealtimeProtocol>(
                 // The provider's own wording, which is not ours to translate; the interface
                 // frames it and prints it verbatim.
                 let detail = format!("{} — {message}", P::NAME);
-                emit_status(
-                    &app,
-                    SessionState::Error,
-                    Some(AppError::with(id::PROVIDER_STOPPED, detail)),
-                    origin,
-                );
-                return;
+                terminal_error = Some(AppError::with(id::PROVIDER_STOPPED, detail));
+                break;
             }
             Ok(RunEnd::Reconnect) => {
                 tracing::warn!(?origin, "{} stream closed; reconnecting", P::NAME);
             }
             Err(error) => {
                 if let Some(status) = fatal_handshake_rejection(&error) {
-                    emit_status(
-                        &app,
-                        SessionState::Error,
-                        Some(AppError::with(
-                            id::PROVIDER_REJECTED,
-                            format!("{} — HTTP {status}", P::NAME),
-                        )),
-                        origin,
-                    );
-                    return;
+                    terminal_error = Some(AppError::with(
+                        id::PROVIDER_REJECTED,
+                        format!("{} — HTTP {status}", P::NAME),
+                    ));
+                    break;
                 }
                 tracing::error!(?origin, "{} stream error: {error:#}", P::NAME);
                 emit_status(
@@ -246,8 +240,27 @@ pub async fn run_session<P: RealtimeProtocol>(
         backoff = (backoff * 2).min(MAX_BACKOFF);
     }
 
-    finalize_accumulator(&app, origin, &mut acc);
+    // A cancellation originating in capture already carries its own error. Do not
+    // overwrite it with Idle; whole-session Stop publishes Idle after the drain.
+    let report_idle = !cancel.is_cancelled();
+    finish_source(
+        &cancel,
+        || finalize_accumulator(&app, origin, &mut acc),
+        || {
+            if let Some(error) = terminal_error {
+                emit_status(&app, SessionState::Error, Some(error), origin);
+            } else if report_idle {
+                emit_status(&app, SessionState::Idle, None, origin);
+            }
+        },
+    );
     tracing::info!(?origin, "{} session loop ended", P::NAME);
+}
+
+fn finish_source(cancel: &CancellationToken, finalize: impl FnOnce(), report: impl FnOnce()) {
+    cancel.cancel();
+    finalize();
+    report();
 }
 
 async fn connect_and_run<P: RealtimeProtocol>(
@@ -511,6 +524,40 @@ fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn terminal_exit_stops_its_capture_and_finalizes_before_reporting() {
+        let session = CancellationToken::new();
+        let source = session.child_token();
+        let sibling = session.child_token();
+        let capture = source.clone();
+        let worker = tokio::spawn(async move { capture.cancelled().await });
+        let events = std::cell::RefCell::new(Vec::new());
+        finish_source(
+            &source,
+            || events.borrow_mut().push("caption-final"),
+            || events.borrow_mut().push("provider-error"),
+        );
+        tokio::time::timeout(Duration::from_secs(1), worker)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(*events.borrow(), ["caption-final", "provider-error"]);
+        assert!(!sibling.is_cancelled());
+        assert!(!session.is_cancelled());
+    }
+
+    #[test]
+    fn authentication_rejections_are_terminal_but_rate_limits_are_retryable() {
+        for (status, fatal) in [(401, true), (403, true), (429, false), (503, false)] {
+            let response = tungstenite::http::Response::builder()
+                .status(status)
+                .body(None)
+                .unwrap();
+            let error = anyhow::Error::from(tungstenite::Error::Http(Box::new(response)));
+            assert_eq!(fatal_handshake_rejection(&error), fatal.then_some(status));
+        }
+    }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
         TurnAccumulator::new(SessionClock::at(elapsed_ms))

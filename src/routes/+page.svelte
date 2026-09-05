@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { createPreflightController } from '$lib/preflightController.svelte';
+	import { createQuitController } from '$lib/quitController.svelte';
+	import { createOverlayController } from '$lib/overlayController.svelte';
+	import CaptionAppearance from '$lib/CaptionAppearance.svelte';
 	import { get } from 'svelte/store';
 	import { api, on, isTauri } from '$lib/tauri';
 	import { asStatus, describeError } from '$lib/errors';
@@ -16,68 +20,29 @@
 		recoveryEnabled,
 		restoreTranscript,
 		closeToTray,
-		trayHideExplained,
 		micLevel,
 		systemLevel,
-		overlayCaptionFace,
-		overlayCaptionWidth,
-		overlayContrast,
-		overlayPalette,
-		overlayFontSize,
 		overlayPlaced,
 		sessionStartedAt,
-		pushCaption,
-		beginSession
+		pushCaption
 	} from '$lib/stores';
-	import {
-		closeAction,
-		decodeRecovery,
-		encodeRecovery,
-		newestLineId,
-		shouldGuardClose,
-		type CloseChoice,
-		type RecoverySnapshot
-	} from '$lib/document';
-	import { acknowledgeClose, endsLiveSession, prepareClose, resolveClose } from '$lib/quit';
+	import { decodeRecovery, shouldGuardClose, type RecoverySnapshot } from '$lib/document';
+	import { recovery, startRecoverySpool } from '$lib/recovery';
+	import { createSessionController } from '$lib/sessionController';
 	import { followTextScale } from '$lib/textScale';
 	import type {
-		AudioDevice,
-		AudioLevel,
 		AudioSource,
 		Caption,
 		Origin,
 		OutputMode,
-		OnDeviceReadiness,
-		OverlayConfig,
 		Provider,
 		SessionState,
-		TargetLanguage,
-		TrayCommand
+		TargetLanguage
 	} from '$lib/types';
-	import {
-		CAPTION_CONTRAST_TARGET,
-		clampHex,
-		clampScrimOpacity,
-		DEFAULT_CAPTION_PALETTE,
-		SCRIM_OPACITY_MAX,
-		SCRIM_OPACITY_MIN
-	} from '$lib/captionColour';
-	import type { CaptionPalette } from '$lib/captionColour';
-	import {
-		availableCaptionFaces,
-		captionFaceStack,
-		CAPTION_FACES,
-		DEFAULT_CAPTION_FACE,
-		measureWithCanvas
-	} from '$lib/captionFont';
-	import type { CaptionFace, CaptionFaceId } from '$lib/captionFont';
 	import {
 		canFlipDirection,
 		captionLanguageOf,
-		clampOverlayFont,
-		clampOverlayWidth,
-		DEFAULT_OVERLAY_FONT,
-		DEFAULT_OVERLAY_WIDTH,
+		describeReadiness,
 		providerCanTranslate,
 		providerDetectsLanguage,
 		providerRequiresKey
@@ -108,15 +73,20 @@
 	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
 	import ModalPrompt from '$lib/ModalPrompt.svelte';
 
-	let microphones = $state<AudioDevice[]>([]);
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
 	// available on the very first render — which is what keeps a child like ApiKeyPanel from
 	// mounting and firing a Tauri-only command during `npm run dev`.
-	let browserMode = $state(!isTauri());
-	let sessionBusy = $state(false);
-	let localReadiness = $state<OnDeviceReadiness | null>(null);
-	const controlsLocked = $derived($isRunning || sessionBusy);
+	const browserMode = !isTauri();
+	const session = createSessionController();
+	const overlay = createOverlayController();
+	const quit = createQuitController({
+		stop: () => session.stop(),
+		toggleOverlayVisible: () => overlay.toggleOverlayVisible()
+	});
+	const sessionBusy = session.busy;
+	const controlsLocked = $derived($isRunning || $sessionBusy);
+	const preflight = createPreflightController(!browserMode, () => controlsLocked);
 
 	// The keyless demonstration is always bundled and ready. A commercial
 	// provider starts NOT ready: clearing the flag on the switch itself closes the
@@ -124,7 +94,7 @@
 	// remounted ApiKeyPanel has re-checked the keychain.
 	const needsKey = $derived(providerRequiresKey($options.provider));
 	$effect(() => {
-		hasKey.set(needsKey ? false : (localReadiness?.ready ?? false));
+		hasKey.set(needsKey ? false : (preflight.localReadiness?.ready ?? false));
 	});
 
 	const meta = $derived(PROVIDER_META[$options.provider]);
@@ -159,84 +129,6 @@
 			: `${pad(minutes)}:${pad(seconds)}`;
 	}
 
-	// ---- Pre-flight audio check -------------------------------------------------
-	// A source counts as arriving while it has been above the noise floor recently. Driven by
-	// the level events themselves, so nothing polls while the window sits idle.
-	const SIGNAL_RMS = 0.02;
-	const SIGNAL_HOLD_MS = 3000;
-	let micSignal = $state(false);
-	let systemSignal = $state(false);
-	let micSignalTimer: ReturnType<typeof setTimeout> | undefined;
-	let systemSignalTimer: ReturnType<typeof setTimeout> | undefined;
-
-	function noteLevel(level: AudioLevel) {
-		if (level.source === 'microphone') {
-			micLevel.set(level);
-			if (level.rms <= SIGNAL_RMS) return;
-			micSignal = true;
-			micVerified = true;
-			clearTimeout(micSignalTimer);
-			micSignalTimer = setTimeout(() => (micSignal = false), SIGNAL_HOLD_MS);
-		} else {
-			systemLevel.set(level);
-			if (level.rms <= SIGNAL_RMS) return;
-			systemSignal = true;
-			systemVerified = true;
-			clearTimeout(systemSignalTimer);
-			systemSignalTimer = setTimeout(() => (systemSignal = false), SIGNAL_HOLD_MS);
-		}
-	}
-
-	// ---- Preflight audio test ---------------------------------------------------
-	// Levels only exist while something is capturing, so the idle sheet cannot observe the
-	// room on its own. Rather than implying that it is listening, it offers a deliberate
-	// level-only test: the same devices a session would open, every sample discarded, no
-	// provider contacted and nothing billed or stored. See `SessionManager::start_test`.
-	let audioTesting = $state(false);
-	let audioTestBusy = $state(false);
-	// Latched once a source has genuinely been heard, so the tick survives the test ending.
-	// Dropped whenever the operator changes what is under test.
-	let micVerified = $state(false);
-	let systemVerified = $state(false);
-
-	async function startAudioTest() {
-		if (browserMode || audioTestBusy || audioTesting || controlsLocked) return;
-		audioTestBusy = true;
-		statusMessage.set('');
-		try {
-			await api.startAudioTest($options.source, $options.micDeviceName ?? null);
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			audioTestBusy = false;
-		}
-	}
-
-	async function stopAudioTest() {
-		if (browserMode) return;
-		audioTestBusy = true;
-		try {
-			await api.stopAudioTest();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			audioTestBusy = false;
-		}
-	}
-
-	/** A running test holds one specific device. Once the operator changes the source, the
-	 *  device or the provider, that probe is measuring something they are no longer asking
-	 *  about — so release it, and drop the verdict along with it. */
-	function invalidateAudioTest() {
-		micVerified = false;
-		systemVerified = false;
-		micSignal = false;
-		systemSignal = false;
-		clearTimeout(micSignalTimer);
-		clearTimeout(systemSignalTimer);
-		if (audioTesting) void stopAudioTest();
-	}
-
 	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
 	// instead of live audio. It only ever reaches the backend as one extra field on the start
 	// call: writing it into the options store would persist it, and the next launch would
@@ -254,10 +146,12 @@
 	// only flow once capture is running.
 	const audioVerified = $derived(
 		$options.provider === 'ondevice' ||
-			((!usesMic || micVerified) && (!usesSystem || systemVerified))
+			((!usesMic || preflight.micVerified) && (!usesSystem || preflight.systemVerified))
 	);
 	// Live view for the duration of a test.
-	const audioHearing = $derived((!usesMic || micSignal) && (!usesSystem || systemSignal));
+	const audioHearing = $derived(
+		(!usesMic || preflight.micSignal) && (!usesSystem || preflight.systemSignal)
+	);
 
 	// Which of the four things is under test: the room mic, system loopback, both, or the
 	// bundled sample. One key, used for the row title and both tenses of the description.
@@ -274,7 +168,7 @@
 	const audioCheckDesc = $derived(
 		$options.provider === 'ondevice'
 			? $t.preflight.audio.heard.demo
-			: audioTesting
+			: preflight.audioTesting
 				? audioHearing
 					? $t.preflight.audio.hearing[audioSubject]
 					: $t.preflight.audio.listening
@@ -286,20 +180,12 @@
 	onMount(() => {
 		if (browserMode) return;
 
-		void refresh();
-		void refreshLocalReadiness();
+		void preflight.refresh();
+		void preflight.refreshLocalReadiness();
 		void loadRecovery();
-		// Which faces this machine has. Measured here rather than at module load so the
-		// bundled webfont has had a chance to arrive first — see `availableCaptionFaces`.
-		captionFaces = availableCaptionFaces(measureWithCanvas());
-		// The choice persists, the font does not: a face uninstalled since it was chosen would
-		// leave the control showing one thing and the overlay painting its fallback. Settle it
-		// back to the bundled default instead of letting the two disagree.
-		if (!captionFaces.some((f) => f.id === get(overlayCaptionFace)))
-			setCaptionFace(DEFAULT_CAPTION_FACE);
-
+		overlay.initialize();
 		// Sync the overlay to the operator's current caption size and language on load.
-		pushOverlayConfig({ locale: $locale });
+		overlay.pushOverlayConfig({ locale: $locale });
 
 		const unlisteners: Array<Promise<() => void>> = [
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
@@ -307,79 +193,28 @@
 			// `docs/accessibility.md`.
 			followTextScale(),
 			on.caption((c) => pushCaption(c)),
-			on.level((l) => noteLevel(l)),
+			on.level((l) => preflight.noteLevel(l)),
 			on.status((s) => applyStatus(s)),
 			// A test is not a session, so it reports on its own channel and never touches the
 			// session state machine. Rust is authoritative: it also ends the test when a
 			// session starts, and says so here.
 			// Closing with unsaved captions, or mid-session, is held by the core until this
 			// answers it — see `lifecycle::CloseGuard`.
-			on.closeRequested(() => void onCloseRequested()),
+			on.closeRequested(() => void quit.onCloseRequested()),
 			// Tray entries that need session or transcript state to carry out.
-			on.trayCommand((command) => void onTrayCommand(command)),
+			on.trayCommand((command) => void quit.onTrayCommand(command)),
 			// Named `audioTest` rather than `t`, which is now the message catalog.
-			on.audioTest((audioTest) => {
-				audioTesting = audioTest.active;
-				if (!audioTest.active) {
-					// The live signal belonged to the capture that just ended.
-					micSignal = false;
-					systemSignal = false;
-					clearTimeout(micSignalTimer);
-					clearTimeout(systemSignalTimer);
-					if (audioTest.message) statusMessage.set(audioTest.message);
-				}
-			}),
+			on.audioTest(preflight.applyAudioTest),
 			// The overlay can be locked, placed and resized from its own toolbar; mirror that
 			// back so the rail and the pre-flight check don't drift out of sync.
-			on.overlayState((msg) => {
-				if (msg.interactive === false) moveOverlay = false;
-				if (msg.placed === true) overlayPlaced.set(true);
-				if (typeof msg.fontSize === 'number' && Number.isFinite(msg.fontSize)) {
-					overlayFontSize.set(clampOverlayFont(msg.fontSize));
-				}
-			})
+			on.overlayState(overlay.applyState)
 		];
 
 		return () => {
-			clearTimeout(micSignalTimer);
-			clearTimeout(systemSignalTimer);
-			// Never leave a capture device open behind a closed window.
-			if (audioTesting) void api.stopAudioTest();
+			preflight.dispose();
 			void Promise.all(unlisteners).then((fns) => fns.forEach((f) => f()));
 		};
 	});
-
-	async function refresh() {
-		if ($options.provider === 'ondevice') {
-			microphones = [];
-			return;
-		}
-		try {
-			microphones = await api.listMicrophones();
-			// Options persist across launches, so a remembered device may be gone (unplugged,
-			// renamed). Falling back to the system default beats failing at session start.
-			const name = $options.micDeviceName;
-			if (name && !microphones.some((d) => d.name === name)) {
-				$options = { ...$options, micDeviceName: null };
-			}
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		}
-	}
-
-	async function refreshLocalReadiness() {
-		try {
-			localReadiness = await api.onDeviceReadiness();
-		} catch (e) {
-			localReadiness = {
-				ready: false,
-				engine: 'none',
-				state: 'check-failed',
-				canPrepare: false,
-				detail: String(e)
-			};
-		}
-	}
 
 	// ---- Quit and crash safety (issue #25) --------------------------------------
 	// The transcript is a document with a saved state, not a scrolling side effect: it is
@@ -388,19 +223,6 @@
 
 	/** How often the opt-in spool is refreshed while captions are arriving. Long enough that a
 	 *  busy session is not writing constantly, short enough that a crash costs a sentence. */
-	const RECOVERY_INTERVAL_MS = 8000;
-
-	let closePrompt = $state(false);
-	let closeEndedSession = $state(false);
-	let closeSaving = $state(false);
-	let closeError = $state('');
-	let answeringClose = false;
-
-	// Leaving is asked about in stages, and each stage is one question: may this session end,
-	// then what about the unsaved text. Never more than one is on screen.
-	let sessionPrompt = $state(false);
-	let sessionPromptFromTray = $state(false);
-	let hidePrompt = $state(false);
 
 	let recovered = $state<{ snapshot: RecoverySnapshot; path: string } | null>(null);
 
@@ -422,183 +244,28 @@
 	// once on mount.
 	$effect(() => {
 		if (browserMode) return;
-		void api.setTrayState($isRunning, overlayVisible).catch(() => {});
+		void api.setTrayState($isRunning, overlay.overlayVisible).catch(() => {});
 	});
-
-	async function onCloseRequested() {
-		// Claimed first, unconditionally. A second click on the window's X while a prompt is
-		// already up is still an interception the core is counting down on, and letting that
-		// one lapse would release the window with the transcript still unsaved.
-		await acknowledgeClose();
-		switch (closeAction($closeToTray, $trayHideExplained)) {
-			case 'hide':
-				await hideWindow();
-				return;
-			case 'explain-then-hide':
-				// Said in the window they are looking at, not as a toast: an app that vanishes
-				// from the taskbar while holding a microphone has to be sure the message landed.
-				hidePrompt = true;
-				return;
-			case 'quit':
-				await beginQuit(false);
-		}
-	}
-
-	async function hideWindow() {
-		try {
-			await api.hideToTray();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		}
-	}
-
-	async function onHideChoice(choice: 'hide' | 'quit') {
-		hidePrompt = false;
-		if (choice === 'quit') {
-			// They meant to leave. The explanation is deliberately *not* marked as given: the
-			// app never actually hid, so the first hide still deserves it.
-			await beginQuit(false);
-			return;
-		}
-		trayHideExplained.set(true);
-		await hideWindow();
-	}
-
-	/** One shutdown, whichever way it was asked for. */
-	async function beginQuit(fromTray: boolean) {
-		if (closePrompt || sessionPrompt || answeringClose) return;
-		answeringClose = true;
-		try {
-			// Ending an event's captions is the operator's decision, never a consequence of a
-			// mis-aimed click — so this is asked before anything is stopped.
-			if (endsLiveSession()) {
-				sessionPromptFromTray = fromTray;
-				await showWindowForQuestion();
-				sessionPrompt = true;
-				return;
-			}
-			await finishQuit();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			answeringClose = false;
-		}
-	}
-
-	/** Stop, drain, finalize — then either ask about unsaved text or leave. */
-	async function finishQuit() {
-		const outcome = await prepareClose(stop);
-		closeEndedSession = outcome.endedSession;
-		closeError = '';
-		if (outcome.prompt) {
-			await showWindowForQuestion();
-			closePrompt = true;
-		}
-	}
-
-	/** A question the operator cannot answer from the tray, so the window comes back first.
-	 *  Failure is not fatal: the prompt still renders if the window was already visible. */
-	async function showWindowForQuestion() {
-		try {
-			await api.showOperator();
-		} catch {
-			// Ignored deliberately; see above.
-		}
-	}
-
-	async function onSessionChoice(stopIt: boolean) {
-		sessionPrompt = false;
-		if (!stopIt) return;
-		// Held across the stop and drain as well: with both prompts down, nothing else would
-		// stop a second close request from starting the whole sequence again underneath it.
-		answeringClose = true;
-		try {
-			await finishQuit();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			answeringClose = false;
-		}
-	}
-
-	async function onTrayCommand(command: TrayCommand) {
-		switch (command) {
-			case 'toggle-overlay':
-				await toggleOverlayVisible();
-				return;
-			case 'stop-session':
-				await stop();
-				return;
-			case 'quit':
-				// Quit from the tray is counted down on just like a window close.
-				await acknowledgeClose();
-				await beginQuit(true);
-		}
-	}
-
-	async function onCloseChoice(choice: CloseChoice) {
-		if (choice === 'cancel') {
-			closePrompt = false;
-			closeEndedSession = false;
-			closeError = '';
-			return;
-		}
-		closeSaving = choice === 'save';
-		closeError = '';
-		try {
-			await resolveClose(choice);
-			closePrompt = false;
-		} catch (e) {
-			// Stay open on a failed write: quitting here would lose exactly what the operator
-			// just asked to keep.
-			closeError = describeError(e, $t);
-		} finally {
-			closeSaving = false;
-		}
-	}
 
 	// ---- Recovery spool ---------------------------------------------------------
 
 	$effect(() => {
 		if (browserMode || !$recoveryEnabled) return;
-		// Tracked inside the effect so switching recovery off and on again starts clean.
-		let spooledId = -1;
-		let writing = false;
-		let stopped = false;
-		const id = setInterval(() => {
-			if (writing || stopped) return;
-			const lines = get(transcript);
-			const newest = newestLineId(lines);
-			// Nothing new since the last spool, or nothing unsaved to protect.
-			if (newest === spooledId || !get(transcriptDirty)) return;
-			writing = true;
-			void api
-				.writeRecovery(encodeRecovery(lines, new Date()))
-				.then(() => {
-					spooledId = newest;
-				})
-				.catch((error) => {
-					// Said once. A spool that cannot be written must not bury the session's own
-					// status messages under the same failure every few seconds.
-					stopped = true;
-					statusMessage.set($t.error.recoveryWrite(String(error)));
-				})
-				.finally(() => {
-					writing = false;
-				});
-		}, RECOVERY_INTERVAL_MS);
-		return () => clearInterval(id);
+		return startRecoverySpool(
+			() => (get(transcriptDirty) ? get(transcript) : null),
+			(error) => statusMessage.set(get(t).error.recoveryWrite(String(error)))
+		);
 	});
 
 	async function loadRecovery() {
 		try {
-			const stored = await api.readRecovery();
+			const stored = await recovery.read();
 			if (!stored) return;
 			const snapshot = decodeRecovery(stored.contents);
 			if (!snapshot) {
 				// Truncated mid-write, or hand-edited. There is nothing to offer, and leaving it
 				// would strand caption text on disk that no prompt will ever clear.
-				await api.clearRecovery();
+				await recovery.clear();
 				return;
 			}
 			recovered = { snapshot, path: stored.path };
@@ -615,7 +282,7 @@
 		if (!found) return;
 		if (restore) restoreTranscript(found.snapshot.lines);
 		try {
-			await api.clearRecovery();
+			await recovery.clear();
 		} catch (error) {
 			statusMessage.set(asStatus(error));
 		}
@@ -645,40 +312,23 @@
 
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
 	async function launch(rehearsal?: TargetLanguage) {
-		if (sessionBusy || $isRunning) return;
-		sessionBusy = true;
-		statusMessage.set('');
-		beginSession();
+		if ($sessionBusy || $isRunning) return;
 		rehearsing = rehearsal !== undefined;
-		try {
-			await api.startSession(rehearsal === undefined ? $options : { ...$options, rehearsal });
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-			rehearsing = false;
-		} finally {
-			sessionBusy = false;
-		}
+		const started = await session.start(
+			rehearsal === undefined ? $options : { ...$options, rehearsal }
+		);
+		if (!started) rehearsing = false;
 	}
 
 	const start = () => launch();
 	const rehearse = () => launch(fixtureLanguage);
 
-	async function stop() {
-		if (sessionBusy) return;
-		sessionBusy = true;
-		try {
-			await api.stopSession();
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		} finally {
-			sessionBusy = false;
-		}
-	}
+	const stop = () => session.stop();
 
 	function setSource(s: AudioSource) {
 		if (controlsLocked) return;
 		if ($options.provider === 'ondevice' && s !== 'microphone') return;
-		if (s !== $options.source) invalidateAudioTest();
+		if (s !== $options.source) preflight.invalidateAudioTest();
 		$options = { ...$options, source: s };
 	}
 
@@ -694,18 +344,18 @@
 		if (controlsLocked || p === $options.provider) return;
 		// Each mode accepts only the backends that can serve it.
 		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
-		invalidateAudioTest();
+		preflight.invalidateAudioTest();
 		$options = {
 			...$options,
 			provider: p,
 			...(p === 'ondevice' ? { source: 'microphone' as const, micDeviceName: null } : {})
 		};
-		if (p !== 'ondevice') void refresh();
+		if (p !== 'ondevice') void preflight.refresh();
 	}
 
 	function setMode(mode: OutputMode) {
 		if (controlsLocked || mode === $options.mode) return;
-		invalidateAudioTest();
+		preflight.invalidateAudioTest();
 		$options = {
 			...$options,
 			mode,
@@ -720,139 +370,9 @@
 		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
 	}
 
-	/** The faces this machine can actually render. Starts as the whole list and narrows on
-	 *  mount, once there is a canvas to measure with — offering a face and finding out later
-	 *  that it silently fell back is the failure this avoids. */
-	let captionFaces = $state<readonly CaptionFace[]>(CAPTION_FACES);
-
-	/** The language the audience is reading, or undefined while a subtitle engine detects it.
-	 *  `$derived`, so it changes only when the answer does — which is what keeps the effect
-	 *  below from re-pushing every time an unrelated option moves. */
-	const captionLanguage = $derived(captionLanguageOf($options));
-
-	// Every push carries the whole appearance, not the field that changed: the overlay is a
-	// separate webview that can be reloaded independently, and a partial config would leave
-	// it showing whatever it had before. One helper so no call site can forget a field.
-	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
-		void api.setOverlayConfig({
-			fontSize: get(overlayFontSize),
-			captionWidth: get(overlayCaptionWidth),
-			captionFace: get(overlayCaptionFace),
-			captionColour: get(overlayPalette).text,
-			scrimColour: get(overlayPalette).scrim,
-			scrimOpacity: get(overlayPalette).scrimOpacity,
-			captionLanguage,
-			...extra
-		});
-	}
-
-	// The overlay has to be told which language its captions are in: it is the window an
-	// audience reads, and it cannot work the answer out itself — mode, provider and target
-	// all live here. Flipping direction or switching mode changes it between sessions.
-	$effect(() => {
-		if (browserMode) return;
-		pushOverlayConfig({ captionLanguage });
-	});
-
-	// Caption size: update the store (persists) and push it live to the overlay.
-	function setFont(size: number) {
-		overlayFontSize.set(clampOverlayFont(size));
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	// Caption measure: how long a line is allowed to run before it wraps. Same shape as the
-	// size control, and the same live push.
-	function setCaptionWidth(width: number) {
-		overlayCaptionWidth.set(clampOverlayWidth(width));
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	/** Change part of the palette. Clamped here as well as on the way in to the overlay: the
-	 *  operator window is where the contrast readout is computed, and a readout describing a
-	 *  colour the overlay would refuse to paint would be worse than no readout. */
-	function setPalette(patch: Partial<CaptionPalette>) {
-		overlayPalette.update((current) => {
-			const next = { ...current, ...patch };
-			return {
-				text: clampHex(next.text, DEFAULT_CAPTION_PALETTE.text),
-				scrim: clampHex(next.scrim, DEFAULT_CAPTION_PALETTE.scrim),
-				scrimOpacity: clampScrimOpacity(next.scrimOpacity)
-			};
-		});
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	/** Whether anything in the overlay's appearance has been changed from what it ships with.
-	 *  Drives the reset button's disabled state, so the control also answers the question
-	 *  "have I changed anything?" — which is the one an operator has after an hour of
-	 *  adjusting and no memory of where they started. */
-	const overlayAtDefaults = $derived(
-		$overlayFontSize === DEFAULT_OVERLAY_FONT &&
-			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
-			$overlayCaptionFace === DEFAULT_CAPTION_FACE &&
-			$overlayPalette.text === DEFAULT_CAPTION_PALETTE.text &&
-			$overlayPalette.scrim === DEFAULT_CAPTION_PALETTE.scrim &&
-			$overlayPalette.scrimOpacity === DEFAULT_CAPTION_PALETTE.scrimOpacity
-	);
-
-	/** Put the overlay's whole appearance back to what it ships with.
-	 *
-	 *  Everything in this section, not just the colours: a palette that has gone wrong has
-	 *  usually gone wrong alongside a size and a measure that were moved trying to fix it, and
-	 *  a reset that left those behind would not be the way out it is reached for. Placement is
-	 *  deliberately untouched — that is where the window sits on the projector, it took a walk
-	 *  across the room to get right, and nothing here is a reason to lose it. */
-	function resetOverlayAppearance() {
-		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
-		overlayCaptionWidth.set(DEFAULT_OVERLAY_WIDTH);
-		overlayCaptionFace.set(DEFAULT_CAPTION_FACE);
-		overlayPalette.set({ ...DEFAULT_CAPTION_PALETTE });
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	function setCaptionFace(id: CaptionFaceId) {
-		overlayCaptionFace.set(id);
-		// Carrying move mode through, like the size and the measure: the operator is usually
-		// looking at the overlay while choosing, and a push that dropped it would snap the
-		// window back to click-through mid-adjustment.
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
 	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
 	let settingsOpen = $state(false);
-
-	// Move mode: the overlay is click-through while captioning; this flips it into an
-	// interactive drag region so it can be dragged/resized into place, then flipped back.
-	// The overlay can also leave move mode on its own (its Enter/Escape keys), which arrives
-	// as an overlayState event — so this flag is the single source of truth, never cached.
-	let moveOverlay = $state(false);
-
-	// The overlay window is created visible (tauri.conf.json), so the toggle starts on "Hide".
-	// Blanking it covers a coffee break or a video clip without ending the session.
-	let overlayVisible = $state(true);
-
-	async function toggleMoveOverlay() {
-		moveOverlay = !moveOverlay;
-		try {
-			await api.showOverlay(true);
-			overlayVisible = true;
-			await api.setOverlayClickThrough(!moveOverlay);
-			pushOverlayConfig({ interactive: moveOverlay });
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		}
-	}
-
-	async function toggleOverlayVisible() {
-		const next = !overlayVisible;
-		try {
-			await api.showOverlay(next);
-			overlayVisible = next;
-		} catch (e) {
-			statusMessage.set(asStatus(e));
-		}
-	}
 
 	// Names the interface-language group for a screen reader; the heading is the only thing
 	// that says what those two buttons are choosing between.
@@ -860,35 +380,29 @@
 	// the first. Both are unique to this instance, which is all either needs to be.
 	const idBase = $props.id();
 	const localeHeadingId = `${idBase}-locale`;
-	const contrastId = `${idBase}-contrast`;
-
-	/** The achieved ratio, written the way the interface language writes numbers — 5.7 in
-	 *  English, 5,7 in French. */
-	const contrastReading = $derived(
-		$overlayContrast.worst.toLocaleString($localeTag, {
-			minimumFractionDigits: 1,
-			maximumFractionDigits: 1
-		})
-	);
-	const contrastTarget = $derived(
-		CAPTION_CONTRAST_TARGET.toLocaleString($localeTag, {
-			minimumFractionDigits: 1,
-			maximumFractionDigits: 1
-		})
-	);
 
 	// The overlay is a separate webview, so the operator's language choice is pushed to it the
 	// same way the caption size is. Skipped in a browser preview, which has no second window.
 	$effect(() => {
 		const chosen = $locale;
 		if (browserMode) return;
-		pushOverlayConfig({ locale: chosen });
+		overlay.pushOverlayConfig({ locale: chosen });
+	});
+
+	const captionLanguage = $derived(captionLanguageOf($options));
+	$effect(() => {
+		if (!browserMode) overlay.pushOverlayConfig({ captionLanguage });
 	});
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
 	// the technical detail. Derived rather than stored, so switching language re-words a
 	// message that is already on screen.
 	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
+
+	// The demo row's sentence. The core names the readiness state and the catalog words it, so
+	// this re-words itself when the interface language changes rather than freezing whatever
+	// was true at check time.
+	const demoRowText = $derived(describeReadiness(preflight.localReadiness, $t));
 
 	// ---- Display labels ---------------------------------------------------------
 	//
@@ -980,7 +494,7 @@
 	<div class="divider"></div>
 	<div class="rail-section">
 		<h2 class="kicker">{$t.window.heading}</h2>
-		<button class="tool wide" disabled={browserMode} onclick={hideWindow}>
+		<button class="tool wide" disabled={browserMode} onclick={quit.hideWindow}>
 			<svg
 				width="13"
 				height="13"
@@ -1010,133 +524,6 @@
 			</span>
 		</label>
 	</div>
-{/snippet}
-
-{#snippet captionAppearance(heading: string)}
-	<!-- Rendered in two places on purpose. In the running rail, because the size is what gets
-	     nudged mid-session when someone at the back cannot read; and in the settings panel,
-	     because the whole look is chosen before a room fills, and an operator should not have
-	     to start a session — or pay for one — to choose a typeface. One snippet over one set
-	     of stores, so the two views cannot disagree about what the overlay is wearing.
-
-	     The heading is a parameter rather than fixed: in the rail this sits under "Overlay"
-	     among the live controls, while in the panel it names itself against the other
-	     preferences. -->
-	<h2 class="kicker">{heading}</h2>
-	<div class="stepper">
-		<span class="stepper-label">{$t.overlayControls.captionSize}</span>
-		<button
-			class="step"
-			onclick={() => setFont($overlayFontSize - 2)}
-			aria-label={$t.overlayControls.smaller}>−</button
-		>
-		<span class="stepper-value">{$overlayFontSize}</span>
-		<button
-			class="step"
-			onclick={() => setFont($overlayFontSize + 2)}
-			aria-label={$t.overlayControls.larger}>+</button
-		>
-	</div>
-	<div class="stepper">
-		<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
-		<button
-			class="step"
-			onclick={() => setCaptionWidth($overlayCaptionWidth - 2)}
-			aria-label={$t.overlayControls.narrower}>−</button
-		>
-		<span class="stepper-value">{$overlayCaptionWidth}</span>
-		<button
-			class="step"
-			onclick={() => setCaptionWidth($overlayCaptionWidth + 2)}
-			aria-label={$t.overlayControls.wider}>+</button
-		>
-	</div>
-	<div class="select-row">
-		<select
-			aria-label={$t.overlayControls.captionFace}
-			value={$overlayCaptionFace}
-			onchange={(e) => setCaptionFace(e.currentTarget.value as CaptionFaceId)}
-		>
-			<!-- Each option is set in the face it names, so the list is its own preview.
-			     The names are proper nouns and stay untranslated; only the note on the
-			     bundled default says anything, and it is the one thing that needs to. -->
-			{#each captionFaces as face (face.id)}
-				<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
-					{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
-				</option>
-			{/each}
-		</select>
-		<svg
-			class="chevron"
-			width="12"
-			height="12"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-		>
-	</div>
-	<div class="colour-row">
-		<label class="swatch">
-			<span class="swatch-label">{$t.overlayControls.captionColour}</span>
-			<input
-				type="color"
-				value={$overlayPalette.text}
-				aria-describedby={contrastId}
-				oninput={(e) => setPalette({ text: e.currentTarget.value })}
-			/>
-		</label>
-		<label class="swatch">
-			<span class="swatch-label">{$t.overlayControls.scrimColour}</span>
-			<input
-				type="color"
-				value={$overlayPalette.scrim}
-				aria-describedby={contrastId}
-				oninput={(e) => setPalette({ scrim: e.currentTarget.value })}
-			/>
-		</label>
-	</div>
-	<div class="stepper">
-		<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
-		<button
-			class="step"
-			disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
-			onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
-			aria-label={$t.overlayControls.weakerScrim}>−</button
-		>
-		<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
-		<button
-			class="step"
-			disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
-			onclick={() => setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
-			aria-label={$t.overlayControls.strongerScrim}>+</button
-		>
-	</div>
-	<!-- Not a live region on purpose: this changes on every step of a colour drag, and
-	     `docs/accessibility.md` keeps announcements for things worth interrupting a
-	     reader for. It is the description of the controls instead, so it is read on
-	     arrival at the one moment it is worth hearing. -->
-	<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
-		<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
-		<span class="contrast-note">
-			{$overlayContrast.passes
-				? $t.overlayControls.contrastOk
-				: $t.overlayControls.contrastLow(
-						$t.overlayControls.contrastStep[$overlayContrast.worstStep],
-						contrastTarget
-					)}
-		</span>
-	</p>
-	<button
-		class="reset"
-		disabled={overlayAtDefaults}
-		onclick={resetOverlayAppearance}
-		aria-label={$t.overlayControls.resetLabel}
-	>
-		{$t.overlayControls.reset}
-	</button>
 {/snippet}
 
 <div class="app">
@@ -1314,7 +701,7 @@
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					{@render captionAppearance($t.overlayControls.heading)}
+					<CaptionAppearance heading={$t.overlayControls.heading} {overlay} />
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
 						     all a sighted operator needs beside the "Overlay" heading. The accessible
@@ -1322,12 +709,12 @@
 						     at the button without the heading. -->
 						<button
 							class="tool"
-							class:on={moveOverlay}
-							aria-pressed={moveOverlay}
-							aria-label={moveOverlay
+							class:on={overlay.moveOverlay}
+							aria-pressed={overlay.moveOverlay}
+							aria-label={overlay.moveOverlay
 								? $t.overlayControls.moveDoneLabel
 								: $t.overlayControls.moveLabel}
-							onclick={toggleMoveOverlay}
+							onclick={overlay.toggleMoveOverlay}
 						>
 							<svg
 								width="13"
@@ -1343,15 +730,15 @@
 									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
 								/></svg
 							>
-							{moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
+							{overlay.moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
 						</button>
 						<button
 							class="tool"
-							class:off={!overlayVisible}
-							aria-label={overlayVisible
+							class:off={!overlay.overlayVisible}
+							aria-label={overlay.overlayVisible
 								? $t.overlayControls.hideLabel
 								: $t.overlayControls.showLabel}
-							onclick={toggleOverlayVisible}
+							onclick={overlay.toggleOverlayVisible}
 						>
 							<svg
 								width="13"
@@ -1364,20 +751,20 @@
 								aria-hidden="true"
 							>
 								<rect x="2.5" y="4.5" width="19" height="13" rx="2" /><path d="M9 20.5h6" />
-								{#if overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
+								{#if overlay.overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
 							</svg>
-							{overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
+							{overlay.overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
 						</button>
 					</div>
 				</div>
 
 				<span class="grow"></span>
 
-				<button class="stop" disabled={sessionBusy} aria-busy={sessionBusy} onclick={stop}>
+				<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
 					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 						><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 					>
-					{sessionBusy ? $t.rail.stopping : $t.rail.stop}
+					{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
 				</button>
 			{:else}
 				<!-- ---- Idle: the numbered setup sheet ---- -->
@@ -1546,12 +933,12 @@
 								disabled={controlsLocked}
 								value={$options.micDeviceName ?? ''}
 								onchange={(e) => {
-									invalidateAudioTest();
+									preflight.invalidateAudioTest();
 									$options = { ...$options, micDeviceName: e.currentTarget.value || null };
 								}}
 							>
 								<option value="">{$t.rail.systemDefault}</option>
-								{#each microphones as dev (dev.name)}
+								{#each preflight.microphones as dev (dev.name)}
 									<option value={dev.name}>
 										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
 									</option>
@@ -1731,7 +1118,7 @@
 				<div class="checklist">
 					{#if !needsKey}
 						<div class="check-row">
-							{#if localReadiness?.ready}
+							{#if preflight.localReadiness?.ready}
 								<span class="mark ok" aria-hidden="true">
 									<svg
 										width="12"
@@ -1749,8 +1136,8 @@
 							{/if}
 							<div class="check-body">
 								<span class="check-title">{$t.preflight.demoRow.title}</span>
-								<span class="check-desc" class:warn={!localReadiness?.ready}>
-									{localReadiness?.detail ?? $t.preflight.demoRow.checking}
+								<span class="check-desc" class:warn={!preflight.localReadiness?.ready}>
+									{demoRowText}
 								</span>
 							</div>
 							<span></span>
@@ -1785,7 +1172,7 @@
 						{/if}
 						<div class="check-body">
 							<span class="check-title">{audioTitle}</span>
-							<span class="check-desc" class:warn={audioTesting && !audioHearing}>
+							<span class="check-desc" class:warn={preflight.audioTesting && !audioHearing}>
 								{audioCheckDesc}
 							</span>
 						</div>
@@ -1794,21 +1181,21 @@
 						     room mic is exactly when an operator needs it. -->
 						{#if $options.provider === 'ondevice' || browserMode}
 							<span></span>
-						{:else if audioTesting}
+						{:else if preflight.audioTesting}
 							<button
 								class="adjust"
-								disabled={audioTestBusy}
-								aria-busy={audioTestBusy}
-								onclick={stopAudioTest}
+								disabled={preflight.audioTestBusy}
+								aria-busy={preflight.audioTestBusy}
+								onclick={preflight.stopAudioTest}
 							>
 								{$t.preflight.audio.stopTest}
 							</button>
 						{:else}
 							<button
 								class="place"
-								disabled={audioTestBusy || controlsLocked}
-								aria-busy={audioTestBusy}
-								onclick={startAudioTest}
+								disabled={preflight.audioTestBusy || controlsLocked}
+								aria-busy={preflight.audioTestBusy}
+								onclick={preflight.startAudioTest}
 							>
 								{audioVerified ? $t.preflight.audio.retest : $t.preflight.audio.test}
 							</button>
@@ -1843,24 +1230,24 @@
 						{#if $overlayPlaced}
 							<button
 								class="adjust"
-								aria-pressed={moveOverlay}
-								aria-label={moveOverlay
+								aria-pressed={overlay.moveOverlay}
+								aria-label={overlay.moveOverlay
 									? $t.preflight.overlay.doneLabel
 									: $t.preflight.overlay.adjustLabel}
-								onclick={toggleMoveOverlay}
+								onclick={overlay.toggleMoveOverlay}
 							>
-								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
+								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
 							</button>
 						{:else}
 							<button
 								class="place"
-								aria-pressed={moveOverlay}
-								aria-label={moveOverlay
+								aria-pressed={overlay.moveOverlay}
+								aria-label={overlay.moveOverlay
 									? $t.preflight.overlay.doneLabel
 									: $t.preflight.overlay.placeLabel}
-								onclick={toggleMoveOverlay}
+								onclick={overlay.toggleMoveOverlay}
 							>
-								{moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
+								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
 							</button>
 						{/if}
 					</div>
@@ -1899,14 +1286,14 @@
 				<div class="launch">
 					<button
 						class="start"
-						disabled={!$hasKey || browserMode || sessionBusy}
-						aria-busy={sessionBusy}
+						disabled={!$hasKey || browserMode || $sessionBusy}
+						aria-busy={$sessionBusy}
 						onclick={start}
 					>
 						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 							><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 						>
-						{sessionBusy
+						{$sessionBusy
 							? $t.preflight.start.starting
 							: $options.mode === 'translate'
 								? $t.preflight.start.translate
@@ -1919,7 +1306,7 @@
 					<div class="rehearse-slot">
 						<button
 							class="rehearse"
-							disabled={!$hasKey || browserMode || sessionBusy || $options.provider === 'ondevice'}
+							disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
 							onclick={rehearse}
 						>
 							<svg
@@ -1936,7 +1323,7 @@
 									d="M17 8.5l3.5 3.5-3.5 3.5"
 								/></svg
 							>
-							{sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
+							{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 						</button>
 						<span class="rehearse-hint">
 							{$options.provider === 'ondevice'
@@ -1970,21 +1357,21 @@
 	>
 		<div class="settings">
 			<div class="rail-section">
-				{@render captionAppearance($t.settings.appearance)}
+				<CaptionAppearance heading={$t.settings.appearance} {overlay} />
 				<p class="hint">{$t.settings.appearanceNote}</p>
 				<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 				     whatever is chosen above. Same button and same labels as the pre-flight check,
 				     because it is the same thing being done. -->
 				<button
 					class="tool wide"
-					aria-pressed={moveOverlay}
+					aria-pressed={overlay.moveOverlay}
 					disabled={browserMode}
-					aria-label={moveOverlay
+					aria-label={overlay.moveOverlay
 						? $t.preflight.overlay.doneLabel
 						: $overlayPlaced
 							? $t.preflight.overlay.adjustLabel
 							: $t.preflight.overlay.placeLabel}
-					onclick={toggleMoveOverlay}
+					onclick={overlay.toggleMoveOverlay}
 				>
 					<svg
 						width="13"
@@ -2000,7 +1387,7 @@
 							d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
 						/></svg
 					>
-					{moveOverlay
+					{overlay.moveOverlay
 						? $t.preflight.overlay.done
 						: $overlayPlaced
 							? $t.preflight.overlay.adjust
@@ -2035,25 +1422,25 @@
 	/>
 {/if}
 
-{#if hidePrompt}
-	<TrayHidePrompt running={$isRunning} onChoice={(choice) => void onHideChoice(choice)} />
+{#if quit.hidePrompt}
+	<TrayHidePrompt running={$isRunning} onChoice={(choice) => void quit.onHideChoice(choice)} />
 {/if}
 
-{#if sessionPrompt}
+{#if quit.sessionPrompt}
 	<ActiveSessionPrompt
 		elapsed={formatElapsed(elapsedMs)}
-		fromTray={sessionPromptFromTray}
-		onChoice={(stopIt) => void onSessionChoice(stopIt)}
+		fromTray={quit.sessionPromptFromTray}
+		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
 {/if}
 
-{#if closePrompt}
+{#if quit.closePrompt}
 	<UnsavedPrompt
 		lines={$transcript.length}
-		endedSession={closeEndedSession}
-		saving={closeSaving}
-		error={closeError}
-		onChoice={(choice) => void onCloseChoice(choice)}
+		endedSession={quit.closeEndedSession}
+		saving={quit.closeSaving}
+		error={quit.closeError}
+		onChoice={(choice) => void quit.onCloseChoice(choice)}
 	/>
 {/if}
 
@@ -2698,140 +2085,6 @@
 		text-wrap: pretty;
 	}
 
-	.stepper {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-	.stepper-label {
-		font-size: var(--type-12);
-		line-height: 1;
-		color: var(--muted);
-		flex: 1;
-	}
-	.stepper-value {
-		font-family: var(--font-mono);
-		font-size: var(--type-13);
-		font-weight: 500;
-		line-height: 1;
-		/* Two mono digits, so the buttons either side stop moving as the number changes. */
-		min-width: 2ch;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-	.step {
-		width: 30px;
-		height: 30px;
-		border-radius: 8px;
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		color: var(--text-soft);
-		font-size: var(--type-14);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.step:hover {
-		border-color: var(--border-hover);
-	}
-
-	/* ---- Caption colours ---------------------------------------------- */
-
-	.colour-row {
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		gap: 0.5rem;
-	}
-	.swatch {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0.5rem 0.625rem;
-		border-radius: 9px;
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		cursor: pointer;
-	}
-	.swatch:hover {
-		border-color: var(--border-hover);
-	}
-	.swatch-label {
-		font-size: var(--type-12);
-		line-height: 1.2;
-		color: var(--muted);
-	}
-	/* The native control is a button-with-a-swatch; only the swatch is wanted. */
-	.swatch input[type='color'] {
-		flex: 0 0 auto;
-		width: 26px;
-		height: 20px;
-		padding: 0;
-		border: 1px solid var(--border-hover);
-		border-radius: 5px;
-		background: none;
-		cursor: pointer;
-	}
-	.swatch input[type='color']::-webkit-color-swatch-wrapper {
-		padding: 0;
-	}
-	.swatch input[type='color']::-webkit-color-swatch {
-		border: none;
-		border-radius: 4px;
-	}
-
-	.contrast {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 0.375rem;
-		margin: 0;
-	}
-	.contrast-ratio {
-		font-family: var(--font-mono);
-		font-size: var(--type-12);
-		font-weight: 500;
-		font-variant-numeric: tabular-nums;
-		color: var(--text-dim);
-	}
-	.contrast-note {
-		font-size: var(--type-11);
-		line-height: 1.45;
-		color: var(--muted-2);
-	}
-	/* Amber, not red: the captions are still painted and still legible enough to run a room
-	   with. What this says is that the dimmest step has stopped clearing the bar the rest of
-	   the app holds — a thing to fix before the doors open, not an error. */
-	.contrast.warn .contrast-ratio {
-		color: var(--warn);
-	}
-	.contrast.warn .contrast-note {
-		color: var(--warn-soft);
-	}
-
-	/* Quieter than the Move/Show pair below it: it is the way back, not a thing to reach for
-	   in the ordinary run of setting the overlay up. Disabled — and so visibly inert — while
-	   there is nothing to undo. */
-	.reset {
-		align-self: flex-start;
-		padding: 0.375rem 0.625rem;
-		border-radius: 8px;
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--muted);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.reset:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text-soft);
-	}
-	.reset:disabled {
-		opacity: 0.45;
-		cursor: default;
-	}
-
 	.overlay-actions {
 		display: flex;
 		gap: 8px;
@@ -3274,9 +2527,6 @@
 		   value. A contrast theme repainting it would leave the operator choosing a caption
 		   colour they cannot see. The label and the reading beside it are repainted as
 		   normal, which is what a contrast theme is for. */
-		.swatch input[type='color'] {
-			forced-color-adjust: none;
-		}
 		/* Selection is a mint border and a mint wash, and both flatten to the same
 		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
 		.card.selected,

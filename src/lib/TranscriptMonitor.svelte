@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { api, isTauri } from './tauri';
+	import { untrack } from 'svelte';
+	import { isTauri } from './tauri';
+	import { recovery } from './recovery';
 	import { t } from './i18n';
 	import { asStatus, type AppError } from './errors';
 	import {
@@ -32,8 +34,8 @@
 	// (`export.origin`). Both follow the interface language.
 	const sideLabel = $derived<Record<Origin, string>>($t.transcript.side);
 
-	// Show the log exactly as it will be saved: chronological, grouped into a paragraph per
-	// audio source, newest at the bottom.
+	// Show the log exactly as it will be saved: chronological, grouped into readable
+	// paragraphs, newest at the bottom.
 	const paragraphs = $derived(groupTranscript(transcript));
 
 	// What a screen reader hears after a save. Empty while there is nothing new to report, so
@@ -46,12 +48,28 @@
 	// disk before something else decides for the operator.
 	const veryLong = $derived(transcript.length >= TRANSCRIPT_WARN_LINES);
 
-	let logEl = $state<HTMLUListElement | null>(null);
+	let logEl = $state<HTMLDivElement | null>(null);
+	let following = $state(true);
+	const idBase = $props.id();
+	const logId = `${idBase}-transcript-log`;
+
+	function noteScroll() {
+		if (logEl) following = logEl.scrollHeight - logEl.clientHeight - logEl.scrollTop <= 24;
+	}
+
+	function jumpToLatest() {
+		following = true;
+		if (logEl) {
+			logEl.scrollTop = logEl.scrollHeight;
+			logEl.focus({ preventScroll: true });
+		}
+	}
 
 	$effect(() => {
-		// Re-runs whenever the log grows so the newest paragraph stays in view.
+		// Follow incoming text only while the operator is already at the bottom.
 		paragraphs;
-		if (logEl) logEl.scrollTop = logEl.scrollHeight;
+		if (!paragraphs.length) following = true;
+		if (logEl && untrack(() => following)) logEl.scrollTop = logEl.scrollHeight;
 	});
 
 	// New captions withdraw the pending "discard?" question: the log the operator was about to
@@ -81,7 +99,7 @@
 		confirmingClear = false;
 		clearTranscriptStore();
 		// The spool covered exactly the text just discarded, so it goes with it.
-		if (desktop) void api.clearRecovery().catch(() => {});
+		if (desktop) void recovery.clear().catch(() => {});
 	}
 
 	function toggleRecovery(enabled: boolean) {
@@ -89,7 +107,7 @@
 		recoveryEnabled.set(enabled);
 		// Switching it off has to remove what it already wrote, or "disabled" would still
 		// leave captions sitting on disk.
-		if (!enabled) void api.clearRecovery().catch((error) => onError(asStatus(error)));
+		if (!enabled) void recovery.clear().catch((error) => onError(asStatus(error)));
 	}
 </script>
 
@@ -149,14 +167,30 @@
 	{/if}
 
 	{#if paragraphs.length}
-		<ul class="log" bind:this={logEl}>
-			{#each paragraphs as paragraph (paragraph.id)}
-				<li class="origin-{paragraph.origin}">
-					<span class="side">{sideLabel[paragraph.origin]}</span>
-					<span class="text">{paragraph.text}</span>
-				</li>
-			{/each}
-		</ul>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable transcript needs keyboard scrolling and a focus target after Jump to latest.) -->
+		<div
+			class="log-scroll"
+			id={logId}
+			role="region"
+			aria-label={$t.transcript.heading}
+			tabindex="0"
+			onscroll={noteScroll}
+			bind:this={logEl}
+		>
+			<ul class="log">
+				{#each paragraphs as paragraph (paragraph.id)}
+					<li class="origin-{paragraph.origin}">
+						<span class="side">{sideLabel[paragraph.origin]}</span>
+						<span class="text">{paragraph.text}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
+		{#if !following}
+			<button class="ghost jump-latest" aria-controls={logId} onclick={jumpToLatest}>
+				{$t.transcript.jumpToLatest}
+			</button>
+		{/if}
 	{:else}
 		<p class="hint">
 			{mode === 'translate' ? $t.transcript.emptyTranslate : $t.transcript.emptySubtitles}
@@ -180,6 +214,10 @@
 </section>
 
 <style>
+	.jump-latest {
+		align-self: flex-end;
+		white-space: normal;
+	}
 	.monitor {
 		display: flex;
 		flex-direction: column;
@@ -316,6 +354,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
+	}
+	.log-scroll {
 		/* 180px at 100% — about six rows, in `em` so it stays about six rows. */
 		max-height: 11.25em;
 		overflow-y: auto;
