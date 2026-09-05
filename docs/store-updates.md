@@ -11,12 +11,17 @@ packages are built.
 
 ## The route
 
+Current prepared version: **1.2.1** (MSIX **1.2.1.0**). The review fixes and automated
+checks are complete; manual desktop testing is pending. Tagging and submission come
+after that testing.
+
 1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml` and
-   `src-tauri/tauri.conf.json`. All three must match, and all three must be **higher than the
+   `src-tauri/tauri.conf.json`, and synchronize the root app versions in `package-lock.json`
+   and `src-tauri/Cargo.lock`. All three manifests must match and be **higher than the
    version already in the Store** — Partner Center rejects a package that does not increase.
    The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z` so the
    bump is one reviewable change rather than three scattered ones.
-2. **Tag and push**: `git tag v1.2.0 && git push origin v1.2.0`. The
+2. **Tag and push after manual testing**: `git tag v1.2.1 && git push origin v1.2.1`. The
    [`Release installers`](../.github/workflows/release.yml) workflow builds the NSIS installer,
    both architectures' `.msix`, and one multi-architecture
    `Live.Translation_<version>.msixbundle`, and attaches them to the GitHub release. Download

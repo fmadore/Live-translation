@@ -14,7 +14,7 @@ ignored, and Svelte check reported no errors or warnings.
 | R3 | High | Recovery overwrites the only snapshot in place. Independent writes and deletion can race, recreating discarded text. | Atomically replace snapshots, serialize recovery operations, invalidate queued obsolete writes, and test interrupted writes and deletion races. | Implemented; verification below |
 | R4 | Medium | Microphone runtime failures always emit session errors, including during preflight; the test can remain displayed as active. | Return capture failures to the owning controller. Preflight errors must end the test and use its event channel. | Implemented; verification below |
 | R5 | Medium | Backend mode validation rejects Mistral/demo translation but omits Gemini Transcribe. | Validate capabilities symmetrically and test the entire provider/mode matrix. | Implemented; verification below |
-| R6 | Refactor | The 3,309-line operator page combines session/preflight, recovery, quit/tray, overlay settings, and presentation. | Extract independently testable controllers along those boundaries, beginning with the lifecycle and recovery work above. | Controllers and shared caption appearance extracted; broader layout decomposition remains optional |
+| R6 | Refactor | The 3,309-line operator page combines session/preflight, recovery, quit/tray, overlay settings, and presentation. | Extract independently testable controllers along those boundaries, beginning with the lifecycle and recovery work above. | Implemented; controllers and shared caption appearance extracted |
 | R7 | Improvement | New transcript lines force scrolling to the bottom; a single-source session becomes one enormous paragraph. | Preserve reading position, provide a localized Jump to latest control, and group paragraphs using pauses and a length threshold without losing text. | Implemented; verification below |
 | R8 | Testing | Existing tests cover pure logic and message formats more thoroughly than lifecycle coordination. | Add regressions for terminal provider exits, closed capture receivers, preflight failure, and delayed recovery writes overlapping deletion. | Implemented; verification below |
 
@@ -64,6 +64,10 @@ and operator/overlay capability boundaries. No dependencies or permissions chang
   write/delete races, start/stop overlap, and transcript scrolling/grouping.
 
 ## Verification and remaining work
+
+All eight review findings are implemented. Further layout decomposition is optional
+maintenance, not an outstanding review fix. Version **1.2.1** and its release/Store copy
+are prepared; manual desktop testing is deferred to the user before release.
 
 Verified on 5 September 2026:
 

@@ -17,6 +17,25 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.2.1 — prepared, pending manual testing
+
+Do not tag or submit this release until the desktop checks in
+[`app-review-2026-09-05.md`](app-review-2026-09-05.md#verification-and-remaining-work)
+have been completed.
+
+```markdown
+This update improves transcript reading and fixes audio and recovery failures.
+
+- Read earlier transcript lines without new captions pulling you to the bottom. Jump to latest resumes following the conversation.
+- Long transcripts use shorter paragraphs on screen and in text and Markdown exports, without dropping any text.
+- A fatal provider error now releases its audio capture and finalizes the last caption. A healthy second audio source can continue.
+- Audio tests no longer accumulate unused audio buffers. Microphone failures end the test and display its error correctly.
+- Optional recovery snapshots are replaced atomically, and queued writes cannot recreate a snapshot after it has been discarded.
+- Overlay controls report failed appearance updates and preserve the confirmed move mode when a command fails.
+
+The operator's session, preflight, quit/tray, recovery, and overlay logic now have separate controllers, with shared caption appearance controls. Regression coverage includes 256 frontend tests and 61 Rust tests; the billable live-provider test remains opt-in.
+```
+
 ## v1.2.0
 
 ```markdown

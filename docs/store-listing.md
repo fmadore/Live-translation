@@ -3,6 +3,8 @@
 Each heading below corresponds to a separate Partner Center field. Paste only the text inside
 the relevant code block. Do not paste the headings or explanations.
 
+Prepared for **1.2.1**. Manual desktop testing and Store submission are pending.
+
 ## English (United States)
 
 ### Description — full text
@@ -47,7 +49,7 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.2.0
+### What's new in this version — 1.2.1
 
 Paste this into **What's new in this version**. Unlike every other field here, this one
 describes a single release and has to be rewritten for the next one; the heading carries the
@@ -55,13 +57,13 @@ version it was written for so a stale block is obvious. Write it for someone dec
 to update, not for someone reading a changelog — no version numbers, no internal names.
 
 ```text
-The app is now available in French as well as English. The interface language is separate from the caption language, so a French-speaking operator can run an English event, or the other way round.
+The interface is available in English and French. Caption appearance and language settings are accessible before and during a session, with a contrast readout to help prepare the overlay for your room.
 
-Captions can now be styled for the room they are read in. Choose the typeface, the text colour, the colour and strength of the backing behind it, the text size, and how long a line runs before it wraps. A contrast reading beside the controls says whether the result stays readable over both a bright slide and a dark one, measured the way the audience sees it: through the backing, over the slide.
+Read earlier transcript lines while captions continue arriving without losing your place. Use Jump to latest when you want to follow along again. Long transcripts are now grouped into shorter paragraphs, both on screen and in saved files.
 
-All of that now lives in a settings panel reached from the title bar at any time, along with the interface language and the notification-area preference. These controls previously appeared only while a session was running.
+Audio tests now end correctly when a microphone fails, and capture stops when a provider connection cannot continue. Audio tests also use less memory.
 
-The operator window has had an accessibility pass: full keyboard operation, Narrator support, Windows contrast themes, and it now follows the Windows text-size setting.
+Optional transcript recovery handles saving and discarding more reliably. Overlay controls now report failed appearance updates and keep move mode consistent when a command fails.
 ```
 
 ## Français (France)
@@ -108,19 +110,19 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.2.0
+### Nouveautés de cette version — 1.2.1
 
 Collez ce texte dans **Nouveautés de cette version**. À réécrire à chaque version : voir la
 note sous la version anglaise.
 
 ```text
-L’application est désormais disponible en français comme en anglais. La langue de l’interface est indépendante de celle des sous-titres : un opérateur francophone peut donc animer un événement en anglais, ou l’inverse.
+L’interface est disponible en français et en anglais. Les réglages de langue et d’apparence des sous-titres sont accessibles avant et pendant une session, avec une mesure de contraste pour préparer la surimpression à votre salle.
 
-Les sous-titres peuvent maintenant être adaptés à la salle où ils sont lus. Choisissez la police, la couleur du texte, la couleur et l’intensité du fond derrière lui, la taille du texte et la longueur des lignes avant retour. Une mesure de contraste affichée à côté des contrôles indique si le résultat reste lisible aussi bien sur une diapositive claire que sombre, calculée telle que le public la voit : à travers le fond, par-dessus la diapositive.
+Relisez les passages précédents de la transcription sans perdre votre position lorsque de nouveaux sous-titres arrivent. Un bouton permet de revenir aux derniers sous-titres pour les suivre à nouveau. Les longues transcriptions sont désormais réparties en paragraphes plus courts, à l’écran comme dans les fichiers enregistrés.
 
-Tout cela se trouve désormais dans un panneau de paramètres accessible depuis la barre de titre à tout moment, avec la langue de l’interface et le réglage de la zone de notification. Ces contrôles n’apparaissaient auparavant que pendant une session.
+Les tests audio se terminent correctement en cas de défaillance du microphone, et la capture s’arrête lorsque la connexion au fournisseur ne peut plus continuer. Les tests audio consomment également moins de mémoire.
 
-La fenêtre de l’opérateur a fait l’objet d’une passe d’accessibilité : pilotage complet au clavier, prise en charge du Narrateur, thèmes de contraste Windows, et respect du réglage de taille du texte de Windows.
+La récupération facultative des transcriptions gère plus fiablement l’enregistrement et la suppression. Les contrôles de la surimpression signalent désormais les échecs de mise à jour de l’apparence et conservent un état cohérent du mode de déplacement lorsqu’une commande échoue.
 ```
 
 ## Notes for certification — separate Partner Center field
@@ -131,7 +133,7 @@ text:
 ```text
 Product ID: 9PFB8LR3RR9X
 
-Version 1.0.5 addresses the previous 10.1.2.10 report, “Unusable Feature: Start Subtitles.” The device-dependent Windows Speech implementation has been removed.
+The previous 10.1.2.10 report, “Unusable Feature: Start Subtitles,” was addressed in version 1.0.5 by removing the device-dependent Windows Speech implementation. Version 1.2.1 retains that built-in demonstration.
 
 No account, API key, microphone, language pack, or network connection is required for the default test:
 

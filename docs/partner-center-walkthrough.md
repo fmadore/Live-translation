@@ -1,16 +1,17 @@
 # Partner Center submission walkthrough
 
-Submission target: **Live Translation & Subtitles 1.0.5**, Product ID `9PFB8LR3RR9X`.
+Submission target: **Live Translation & Subtitles 1.2.1**, Product ID `9PFB8LR3RR9X`.
+Manual desktop testing is pending; this is preparation for a later submission.
 
 ## Before Partner Center
 
-1. Build and verify both native packages:
-   - `Live.Translation_1.0.5_x64.msixbundle`
-   - `Live.Translation_1.0.5_arm64.msixbundle`
-2. Install the signed ARM64 package on the target Surface and complete the manual test in
-   [`microsoft-store.md`](microsoft-store.md).
-3. Capture the new screenshots listed in [`store-listing.md`](store-listing.md). Do not reuse
-   screenshots from the removed Windows Speech implementation.
+1. Build and verify both native packages and the single multi-architecture bundle:
+   `Live.Translation_1.2.1.msixbundle`.
+2. Sideload the per-architecture MSIX packages using
+   [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
+   manual checks in [`microsoft-store.md`](microsoft-store.md).
+3. Refresh the English and French screenshots in [`store-listing.md`](store-listing.md)
+   if the visible content has changed.
 4. Confirm the privacy policy is published at
    <https://fmadore.github.io/Live-translation/privacy>.
 
@@ -50,7 +51,8 @@ OpenAI, or Mistral. The built-in demo itself has no network access.
 
 ## Packages
 
-Upload both unsigned Store bundles for version `1.0.5.0`. The Store signs accepted packages.
+Remove previously listed packages and upload the single unsigned multi-architecture
+`Live.Translation_1.2.1.msixbundle` for version `1.2.1.0`. The Store signs accepted packages.
 Do not upload the locally self-signed test package.
 
 Verify these manifest values:
@@ -60,7 +62,7 @@ Verify these manifest values:
 | `Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
-| Version | `1.0.5.0` |
+| Version | `1.2.1.0` |
 
 Windows Desktop is the only device family. Native x64 and ARM64 packages are supplied.
 
@@ -88,17 +90,8 @@ list is intentionally not duplicated inside the Description.
 
 ### What’s new
 
-English:
-
-```text
-Version 1.0.5 replaces device-dependent Windows speech recognition with a clearly labeled built-in caption demonstration that works on x64 and ARM64 without a microphone, language pack, network, account, or key. Optional live providers are unchanged.
-```
-
-Français :
-
-```text
-La version 1.0.5 remplace la reconnaissance vocale Windows dépendante de l’appareil par une démonstration intégrée clairement identifiée, compatible x64 et ARM64 sans microphone, module linguistique, réseau, compte ni clé. Les fournisseurs en direct restent inchangés.
-```
+Paste the English and French **1.2.1** blocks from
+[`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
 
 Additional system requirements:
 
@@ -132,8 +125,8 @@ Before clicking **Submit to the Store**, confirm:
   something in the set has to show that the default action needs no key and costs nothing, or
   10.1.2 has nothing to look at. Shot 1 now opens on the provider pre-flight, so shot 3 is
   where a reviewer finds it;
-- certification notes contain the deterministic six-step test;
+- certification notes contain the deterministic demo test in both languages;
 - no field or screenshot claims the built-in path recognizes speech.
 
-If certification raises 10.1.2 again, reply with Product ID `9PFB8LR3RR9X`, the exact 1.0.5
+If certification raises 10.1.2 again, reply with Product ID `9PFB8LR3RR9X`, the current demo
 test steps, and a short screen recording showing the installed ARM64 package completing them.
