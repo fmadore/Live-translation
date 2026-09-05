@@ -110,6 +110,15 @@ The operator's `src/lib/sessionController.ts` serializes start/stop requests and
 failed startup's clock. A Stop requested during startup waits for startup to settle before
 stopping the core; repeated Stop requests share that operation.
 
+The operator page owns native event subscriptions and delegates their state to
+`preflightController.svelte.ts` (device readiness, signal expiry, audio tests),
+`quitController.svelte.ts` (tray and close prompts), and `overlayController.svelte.ts`
+(appearance and window commands). These controllers expose reactive getters and
+explicit actions; they do not subscribe globally when imported. Page teardown disposes
+the preflight timers and capture test. `CaptionAppearance.svelte` renders the same
+appearance controls in the live rail and settings dialog, sharing persisted stores
+while keeping each contrast description's accessible ID unique.
+
 ## Leaving the app
 
 `lifecycle.rs` owns what closing means; `src/lib/quit.ts` owns the order it happens in. The
