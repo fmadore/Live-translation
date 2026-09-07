@@ -122,6 +122,18 @@ export const fr: Messages = {
 		twoSources: '×2 sources'
 	},
 
+	devices: {
+		refresh: 'Actualiser les appareils',
+		refreshing: 'Actualisation des appareils…',
+		output: 'Sortie audio système',
+		missing: 'Appareil sélectionné indisponible',
+		retry: 'Arrêter et relancer la session',
+		fallback: 'Arrêter et relancer avec l’appareil par défaut',
+		recovery:
+			'Un appareil de capture a échoué. La relance termine la session en cours, y compris toute source encore active, puis démarre une nouvelle session. Votre transcription est conservée.',
+		idleFallback:
+			'Un appareil audio mémorisé est indisponible. La prochaine session utilisera le choix par défaut de Windows.'
+	},
 	rail: {
 		locked: 'Session verrouillée',
 		lockedNote: 'Arrêtez la session pour modifier l’un de ces réglages.',
@@ -159,7 +171,7 @@ export const fr: Messages = {
 		},
 
 		sourceHint:
-			'L’audio système capte tout ce qui est joué sur cette machine — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
+			'L’audio système capte les applications utilisant la sortie choisie — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
 		demoSourceHint:
 			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
 		micDevice: 'Périphérique microphone',
@@ -497,10 +509,12 @@ export const fr: Messages = {
 		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',
 		transcriptWrite: 'La transcription n’a pas pu être écrite',
 		taskFailed: 'Une tâche en arrière-plan s’est arrêtée de façon inattendue',
-		micStream: 'Le microphone a cessé d’envoyer de l’audio',
+		micStream:
+			'Le microphone a cessé d’envoyer de l’audio. Vérifiez la connexion dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',
 		micCapture:
 			'La capture du microphone a échoué. Si l’accès est bloqué, activez-le dans Paramètres Windows > Confidentialité et sécurité > Microphone (ms-settings:privacy-microphone), puis redémarrez',
-		systemCapture: 'La capture de l’audio système a échoué',
+		systemCapture:
+			'La capture de l’audio système a échoué. Vérifiez la sortie sélectionnée dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',
 		providerRejected:
 			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
 		providerStopped: 'Le fournisseur a mis fin à la session',

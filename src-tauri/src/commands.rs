@@ -20,7 +20,16 @@ use crate::types::{AudioDevice, AudioSource, Provider, StartOptions};
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, AppError> {
     tauri::async_runtime::spawn_blocking(list_input_devices)
         .await
+        .map_err(|error| AppError::with(id::DEVICE_ENUMERATION, error))?
         .map_err(|error| AppError::with(id::DEVICE_ENUMERATION, error))
+}
+
+#[tauri::command]
+pub async fn list_outputs() -> Result<Vec<AudioDevice>, AppError> {
+    tauri::async_runtime::spawn_blocking(crate::audio::devices::list_outputs)
+        .await
+        .map_err(|e| AppError::with(id::DEVICE_ENUMERATION, e))?
+        .map_err(|e| AppError::with(id::DEVICE_ENUMERATION, e))
 }
 
 #[tauri::command]
@@ -93,9 +102,10 @@ pub async fn start_audio_test(
     manager: State<'_, SessionManager>,
     source: AudioSource,
     mic_device_name: Option<String>,
+    system_device_id: Option<String>,
 ) -> Result<(), AppError> {
     manager
-        .start_test(&app, source, mic_device_name)
+        .start_test(&app, source, mic_device_name, system_device_id)
         .await
         .map_err(|error| AppError::with(id::AUDIO_TEST_START, format!("{error:#}")))
 }

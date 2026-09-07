@@ -16,6 +16,7 @@ use crate::types::AudioLevel;
 
 #[cfg(not(windows))]
 pub fn run_system_loopback(
+    _device_id: Option<String>,
     _target_rate: u32,
     _level_tx: Sender<AudioLevel>,
     _chunk_tx: Sender<AudioChunk>,
@@ -26,12 +27,13 @@ pub fn run_system_loopback(
 
 #[cfg(windows)]
 pub fn run_system_loopback(
+    device_id: Option<String>,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
     chunk_tx: Sender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
-    windows_impl::run(target_rate, level_tx, chunk_tx, cancel)
+    windows_impl::run(device_id, target_rate, level_tx, chunk_tx, cancel)
 }
 
 #[cfg(windows)]
@@ -61,6 +63,7 @@ mod windows_impl {
     }
 
     pub fn run(
+        device_id: Option<String>,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
         chunk_tx: Sender<AudioChunk>,
@@ -73,9 +76,18 @@ mod windows_impl {
             .context("failed to initialise COM (MTA)")?;
 
         let enumerator = DeviceEnumerator::new().ctx("failed to create device enumerator")?;
-        let device = enumerator
-            .get_default_device(&Direction::Render)
-            .ctx("no default render device for loopback")?;
+        let device = match device_id {
+            Some(id) => enumerator
+                .get_device(&id)
+                .ctx("selected output device unavailable")?,
+            None => enumerator
+                .get_default_device(&Direction::Render)
+                .ctx("no default render device for loopback")?,
+        };
+        anyhow::ensure!(
+            device.get_direction() == Direction::Render,
+            "selected device is not an output endpoint"
+        );
         let mut audio_client = device
             .get_iaudioclient()
             .ctx("failed to get IAudioClient")?;
@@ -126,6 +138,12 @@ mod windows_impl {
         let mut frame: Vec<f32> = Vec::new();
 
         while !cancel.is_cancelled() {
+            // An endpoint can disappear without producing another audio event. Never reopen
+            // the new default silently: this stream stays pinned to its original endpoint.
+            anyhow::ensure!(
+                matches!(device.get_state(), Ok(wasapi::DeviceState::Active)),
+                "selected output device disconnected or disabled"
+            );
             // Drain whatever the device has buffered into `raw`.
             capture_client
                 .read_from_device_to_deque(&mut raw)

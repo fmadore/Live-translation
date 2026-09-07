@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { api } from './tauri';
 import { asStatus, describeError } from './errors';
 import { t } from './i18n';
+import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
 import type { AudioDevice, AudioLevel, AudioTestUpdate, OnDeviceReadiness } from './types';
 
@@ -9,6 +10,11 @@ import type { AudioDevice, AudioLevel, AudioTestUpdate, OnDeviceReadiness } from
 export function createPreflightController(desktop: boolean, locked: () => boolean, port = api) {
 	const api = port;
 	let microphones = $state<AudioDevice[]>([]);
+	let outputs = $state<AudioDevice[]>([]);
+	let refreshing = $state(false);
+	let loaded = false;
+	let disposed = false;
+	let refreshAgain = false;
 	let localReadiness = $state<OnDeviceReadiness | null>(null);
 	// ---- Pre-flight audio check -------------------------------------------------
 	// A source counts as arriving while it has been above the noise floor recently. Driven by
@@ -55,7 +61,12 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 		audioTestBusy = true;
 		statusMessage.set('');
 		try {
-			await api.startAudioTest(get(options).source, get(options).micDeviceName ?? null);
+			const selected = get(options);
+			await api.startAudioTest(
+				selected.source,
+				selected.micDeviceId ?? selected.micDeviceName ?? null,
+				selected.systemDeviceId ?? null
+			);
 		} catch (e) {
 			statusMessage.set(asStatus(e));
 		} finally {
@@ -88,22 +99,52 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 		if (audioTesting) void stopAudioTest();
 	}
 
+	function validateSelection() {
+		if (!loaded || locked() || audioTesting || audioTestBusy) return;
+		const current = get(options);
+		const next = validateDevices(current, microphones, outputs);
+		if (
+			current.micDeviceId !== next.micDeviceId ||
+			current.systemDeviceId !== next.systemDeviceId ||
+			current.micDeviceName !== next.micDeviceName
+		) {
+			if (
+				!get(statusMessage) &&
+				(((current.micDeviceId || current.micDeviceName) && !next.micDeviceId) ||
+					(current.systemDeviceId && !next.systemDeviceId))
+			) {
+				statusMessage.set(get(t).devices.idleFallback);
+			}
+			invalidateAudioTest();
+			options.set(next);
+		}
+	}
+
 	async function refresh() {
-		if (!desktop) return;
-		if (get(options).provider === 'ondevice') {
-			microphones = [];
+		if (!desktop || disposed) return;
+		if (refreshing) {
+			refreshAgain = true;
 			return;
 		}
+		refreshing = true;
 		try {
-			microphones = await api.listMicrophones();
-			// Options persist across launches, so a remembered device may be gone (unplugged,
-			// renamed). Falling back to the system default beats failing at session start.
-			const name = get(options).micDeviceName;
-			if (name && !microphones.some((d) => d.name === name)) {
-				options.update((current) => ({ ...current, micDeviceName: null }));
-			}
+			do {
+				refreshAgain = false;
+				const [mics, render] = await Promise.all([api.listMicrophones(), api.listOutputs()]);
+				if (disposed) return;
+				if (loaded && JSON.stringify([mics, render]) !== JSON.stringify([microphones, outputs])) {
+					micVerified = false;
+					systemVerified = false;
+				}
+				microphones = mics;
+				outputs = render;
+				loaded = true;
+				validateSelection();
+			} while (refreshAgain && !disposed);
 		} catch (e) {
-			statusMessage.set(asStatus(e));
+			if (!disposed) statusMessage.set(asStatus(e));
+		} finally {
+			refreshing = false;
 		}
 	}
 
@@ -134,12 +175,20 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	}
 
 	function dispose() {
+		disposed = true;
 		clearTimeout(micSignalTimer);
 		clearTimeout(systemSignalTimer);
 		if (desktop && audioTesting) void stopAudioTest();
 	}
 
 	return {
+		get outputs() {
+			return outputs;
+		},
+		get refreshing() {
+			return refreshing;
+		},
+		validateSelection,
 		get microphones() {
 			return microphones;
 		},

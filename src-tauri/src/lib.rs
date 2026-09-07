@@ -103,6 +103,7 @@ pub fn run() {
         .manage(TrayMenu::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
+            commands::list_outputs,
             commands::has_api_key,
             commands::set_api_key,
             commands::clear_api_key,
@@ -172,6 +173,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            audio::devices::watch(app.handle().clone());
             // Before anything else: once a session is live, the tray is the only surface that
             // can stop it with the window hidden.
             tray::init(app.handle())?;

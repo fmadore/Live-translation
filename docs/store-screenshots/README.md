@@ -4,6 +4,11 @@ The Microsoft Store listing is per-language, so each language needs its own scre
 live here rather than only in Partner Center, so that "do these still match the build?" is a
 question the repository can answer instead of one somebody has to remember.
 
+The committed captures are from 1.2.0. Before submitting 1.2.1, refresh captures that
+show the source controls (new output selector and Refresh action), and recapture
+`2-running.png` in both languages with the overlay clear of the transcript. This is
+pending the installed-package hardware/visual test, not evidence of 1.2.1 verification.
+
 ```text
 en/    English listing
 fr/    French listing

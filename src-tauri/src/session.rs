@@ -252,7 +252,11 @@ impl SessionManager {
                         let capture_cancel = source_cancel.clone();
                         let capture_error_cancel = source_cancel.clone();
                         let capture_level_tx = level_tx.clone();
-                        let mic_name = options.mic_device_name.clone();
+                        let mic_name = options
+                            .mic_device_id
+                            .clone()
+                            .or(options.mic_device_name.clone());
+                        let system_id = options.system_device_id.clone();
                         let handle = std::thread::Builder::new()
                             .name(format!("capture-{origin:?}"))
                             .spawn(move || {
@@ -265,6 +269,7 @@ impl SessionManager {
                                         capture_cancel,
                                     ),
                                     Origin::System => run_system_loopback(
+                                        system_id,
                                         target_rate,
                                         capture_level_tx,
                                         audio_tx,
@@ -408,6 +413,7 @@ impl SessionManager {
         app: &AppHandle,
         source: AudioSource,
         mic_device_name: Option<String>,
+        system_device_id: Option<String>,
     ) -> Result<()> {
         let _lifecycle = self.lifecycle.lock().await;
         if lock(&self.active)
@@ -445,6 +451,7 @@ impl SessionManager {
             let error_cancel = probe_cancel.clone();
             let probe_level_tx = level_tx.clone();
             let mic_name = mic_device_name.clone();
+            let system_id = system_device_id.clone();
             let (start_tx, start_rx) = std::sync::mpsc::channel();
             let handle = std::thread::Builder::new()
                 .name(format!("audio-test-{origin:?}"))
@@ -463,6 +470,7 @@ impl SessionManager {
                             probe_cancel,
                         ),
                         Origin::System => run_system_loopback(
+                            system_id,
                             TEST_SAMPLE_RATE,
                             probe_level_tx,
                             audio_tx,

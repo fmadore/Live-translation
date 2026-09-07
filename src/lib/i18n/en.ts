@@ -116,6 +116,18 @@ export const en = {
 		twoSources: '×2 sources'
 	},
 
+	devices: {
+		refresh: 'Refresh devices',
+		refreshing: 'Refreshing devices…',
+		output: 'System audio output',
+		missing: 'Selected device unavailable',
+		retry: 'Stop and retry session',
+		fallback: 'Stop and retry with default device',
+		recovery:
+			'A capture device failed. Retrying ends the current session, including any source still running, and starts a new session. Your transcript is kept.',
+		idleFallback:
+			'A saved audio device is unavailable. The next session will use the Windows default.'
+	},
 	rail: {
 		locked: 'Session locked',
 		lockedNote: 'Stop the session to change any of these.',
@@ -151,7 +163,7 @@ export const en = {
 		},
 
 		sourceHint:
-			'System audio captures whatever is playing on this machine — Zoom, Teams, a browser tab, a media player.',
+			'System audio captures apps playing through the selected output — Zoom, Teams, a browser tab, a media player.',
 		demoSourceHint:
 			'Uses a bundled deterministic sample. Choose Voxtral or Gemini for live microphone or system-audio subtitles.',
 		micDevice: 'Microphone device',
@@ -478,10 +490,12 @@ export const en = {
 		transcriptDir: 'The transcript folder could not be created',
 		transcriptWrite: 'The transcript could not be written',
 		taskFailed: 'A background task stopped unexpectedly',
-		micStream: 'The microphone stopped sending audio',
+		micStream:
+			'The microphone stopped sending audio. Check the connection in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		micCapture:
 			'Microphone capture failed. If access is blocked, enable it under Windows Settings > Privacy & security > Microphone (ms-settings:privacy-microphone), then start again',
-		systemCapture: 'System audio capture failed',
+		systemCapture:
+			'System audio capture failed. Check the selected output in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		providerRejected: 'The provider rejected the connection — check the API key and model access',
 		providerStopped: 'The provider ended the session',
 		providerReconnecting: 'The connection dropped; reconnecting',

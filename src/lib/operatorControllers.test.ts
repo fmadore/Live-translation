@@ -52,7 +52,10 @@ it('falls back to the default microphone when a saved device disappears', async 
 	options.update((value) => ({ ...value, provider: 'gemini', micDeviceName: 'Unplugged' }));
 	const probe = createPreflightController(true, () => false, {
 		...api,
-		listMicrophones: vi.fn().mockResolvedValue([{ name: 'Available', isDefault: true }])
+		listMicrophones: vi
+			.fn()
+			.mockResolvedValue([{ id: 'mic-1', name: 'Available', isDefault: true }]),
+		listOutputs: vi.fn().mockResolvedValue([])
 	});
 	await probe.refresh();
 	expect(get(options).micDeviceName).toBeNull();

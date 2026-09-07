@@ -117,6 +117,8 @@ export interface StartOptions {
 	provider: Provider;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
+	micDeviceId?: string | null;
+	systemDeviceId?: string | null;
 	/** Rehearse instead of capturing: a cloud backend plays a bundled ~20 s speech fixture spoken in
 	 *  this language through the real pipeline — one System-origin stream, looping until Stop —
 	 *  so captions, levels, transcript and overlay behave exactly as in a live session. `source`
@@ -175,6 +177,7 @@ export interface AudioTestUpdate {
 }
 
 export interface AudioDevice {
+	id: string;
 	name: string;
 	isDefault: boolean;
 }
@@ -257,6 +260,7 @@ export const EVT = {
 	level: 'audio-level',
 	status: 'status',
 	audioTest: 'audio-test',
+	devicesChanged: 'audio-devices-changed',
 	closeRequested: 'close-requested',
 	trayCommand: 'tray-command',
 	overlayConfig: 'overlay-config',
@@ -426,7 +430,9 @@ export function loadStartOptions(): StartOptions {
 			DEFAULT_START_OPTIONS.targetLanguage
 		),
 		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
-		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null
+		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
+		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
+		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null
 	};
 	// The compatibility id `ondevice` now means the deterministic bundled demonstration.
 	// Repair older saved Windows-speech configurations to its single virtual Demo audio source.

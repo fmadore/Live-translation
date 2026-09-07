@@ -61,7 +61,7 @@ The interface is available in English and French. Caption appearance and languag
 
 Read earlier transcript lines while captions continue arriving without losing your place. Use Jump to latest when you want to follow along again. Long transcripts are now grouped into shorter paragraphs, both on screen and in saved files.
 
-Audio tests now end correctly when a microphone fails, and capture stops when a provider connection cannot continue. Audio tests also use less memory.
+Choose the output used for system-audio captions and refresh devices without restarting. Device lists update when hardware changes. A disconnected source offers a session retry or a switch to the default device. Audio tests also handle microphone failures correctly and use less memory.
 
 Optional transcript recovery handles saving and discarding more reliably. Overlay controls now report failed appearance updates and keep move mode consistent when a command fails.
 ```
@@ -120,7 +120,7 @@ L’interface est disponible en français et en anglais. Les réglages de langue
 
 Relisez les passages précédents de la transcription sans perdre votre position lorsque de nouveaux sous-titres arrivent. Un bouton permet de revenir aux derniers sous-titres pour les suivre à nouveau. Les longues transcriptions sont désormais réparties en paragraphes plus courts, à l’écran comme dans les fichiers enregistrés.
 
-Les tests audio se terminent correctement en cas de défaillance du microphone, et la capture s’arrête lorsque la connexion au fournisseur ne peut plus continuer. Les tests audio consomment également moins de mémoire.
+Choisissez la sortie utilisée pour les sous-titres de l’audio système et actualisez les appareils sans redémarrer. Les listes suivent les changements de matériel. Une source déconnectée permet de relancer la session ou de choisir l’appareil par défaut. Les tests audio gèrent aussi les défaillances du microphone et consomment moins de mémoire.
 
 La récupération facultative des transcriptions gère plus fiablement l’enregistrement et la suppression. Les contrôles de la surimpression signalent désormais les échecs de mise à jour de l’apparence et conservent un état cohérent du mode de déplacement lorsqu’une commande échoue.
 ```

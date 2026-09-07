@@ -6,7 +6,7 @@
 	import CaptionAppearance from '$lib/CaptionAppearance.svelte';
 	import { get } from 'svelte/store';
 	import { api, on, isTauri } from '$lib/tauri';
-	import { asStatus, describeError } from '$lib/errors';
+	import { asStatus, describeError, isAppError } from '$lib/errors';
 	import {
 		sessionState,
 		isRunning,
@@ -86,7 +86,39 @@
 	});
 	const sessionBusy = session.busy;
 	const controlsLocked = $derived($isRunning || $sessionBusy);
-	const preflight = createPreflightController(!browserMode, () => controlsLocked);
+	const preflight = createPreflightController(
+		!browserMode,
+		() => controlsLocked || failedDevice !== null || retryingDevice
+	);
+	let failedDevice = $state<Origin | null>(null);
+	let retryingDevice = $state(false);
+	$effect(() => {
+		if (!controlsLocked && !preflight.audioTesting && !preflight.audioTestBusy)
+			preflight.validateSelection();
+	});
+	async function retryDevice(fallback: boolean) {
+		if (!failedDevice || retryingDevice) return;
+		retryingDevice = true;
+		const affected = failedDevice;
+		// Snapshot before stopping: idle validation must not change an explicit Retry
+		// into an implicit fallback if the chosen endpoint is still absent.
+		const selected = { ...$options };
+		try {
+			await session.stop();
+			if ($isRunning) return;
+			if (fallback) {
+				if (affected === 'microphone') {
+					selected.micDeviceId = null;
+					selected.micDeviceName = null;
+				} else selected.systemDeviceId = null;
+			}
+			$options = selected;
+			failedDevice = null;
+			await session.start(selected);
+		} finally {
+			retryingDevice = false;
+		}
+	}
 
 	// The keyless demonstration is always bundled and ready. A commercial
 	// provider starts NOT ready: clearing the flag on the switch itself closes the
@@ -194,7 +226,18 @@
 			followTextScale(),
 			on.caption((c) => pushCaption(c)),
 			on.level((l) => preflight.noteLevel(l)),
-			on.status((s) => applyStatus(s)),
+			on.status((s) => {
+				applyStatus(s);
+				if (
+					s.state === 'error' &&
+					isAppError(s.message) &&
+					['error.micCapture', 'error.micStream', 'error.systemCapture'].includes(s.message.id)
+				) {
+					failedDevice =
+						s.origin ?? (s.message.id === 'error.systemCapture' ? 'system' : 'microphone');
+				}
+			}),
+			on.devicesChanged(() => void preflight.refresh()),
 			// A test is not a session, so it reports on its own channel and never touches the
 			// session state machine. Rust is authoritative: it also ends the test when a
 			// session starts, and says so here.
@@ -314,6 +357,7 @@
 	async function launch(rehearsal?: TargetLanguage) {
 		if ($sessionBusy || $isRunning) return;
 		rehearsing = rehearsal !== undefined;
+		failedDevice = null;
 		const started = await session.start(
 			rehearsal === undefined ? $options : { ...$options, rehearsal }
 		);
@@ -526,7 +570,7 @@
 	</div>
 {/snippet}
 
-<div class="app">
+<div class="app" class:device-error={failedDevice !== null}>
 	<header class="titlebar">
 		<span class="brand" aria-hidden="true">
 			<svg
@@ -588,6 +632,24 @@
 	     visible copies of this text below are `aria-hidden`, so nothing is announced twice. -->
 	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
 	<p class="sr-only" role="status">{statusText}</p>
+	{#if failedDevice}
+		<section class="device-recovery" aria-label={$t.devices.retry}>
+			<p class="hint">
+				<strong>{failedDevice === 'microphone' ? $t.source.microphone : $t.source.system}</strong>: {$t
+					.devices.recovery}
+			</p>
+			<button
+				class="tool"
+				disabled={$sessionBusy || retryingDevice}
+				onclick={() => retryDevice(false)}>{$t.devices.retry}</button
+			>
+			<button
+				class="tool"
+				disabled={$sessionBusy || retryingDevice}
+				onclick={() => retryDevice(true)}>{$t.devices.fallback}</button
+			>
+		</section>
+	{/if}
 
 	<div class="rule" class:live={$isRunning}>
 		{#if $isRunning}<span class="sweep"></span>{/if}
@@ -931,15 +993,22 @@
 							<select
 								aria-label={$t.rail.micDevice}
 								disabled={controlsLocked}
-								value={$options.micDeviceName ?? ''}
+								value={$options.micDeviceId ?? ''}
 								onchange={(e) => {
 									preflight.invalidateAudioTest();
-									$options = { ...$options, micDeviceName: e.currentTarget.value || null };
+									$options = {
+										...$options,
+										micDeviceId: e.currentTarget.value || null,
+										micDeviceName: null
+									};
 								}}
 							>
 								<option value="">{$t.rail.systemDefault}</option>
-								{#each preflight.microphones as dev (dev.name)}
-									<option value={dev.name}>
+								{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
+									<option value={$options.micDeviceId}>{$t.devices.missing}</option>
+								{/if}
+								{#each preflight.microphones as dev (dev.id)}
+									<option value={dev.id}>
 										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
 									</option>
 								{/each}
@@ -958,6 +1027,51 @@
 						</div>
 					{/if}
 
+					{#if usesSystem && $options.provider !== 'ondevice'}
+						<label class="hint" for="system-output">{$t.devices.output}</label>
+						<div class="select-row">
+							<select
+								id="system-output"
+								disabled={controlsLocked}
+								value={$options.systemDeviceId ?? ''}
+								onchange={(e) => {
+									preflight.invalidateAudioTest();
+									$options = { ...$options, systemDeviceId: e.currentTarget.value || null };
+								}}
+							>
+								<option value="">{$t.rail.systemDefault}</option>
+								{#if $options.systemDeviceId && !preflight.outputs.some((d) => d.id === $options.systemDeviceId)}
+									<option value={$options.systemDeviceId}>{$t.devices.missing}</option>
+								{/if}
+								{#each preflight.outputs as dev (dev.id)}
+									<option value={dev.id}
+										>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
+									>
+								{/each}
+							</select>
+							<svg
+								class="chevron"
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
+							>
+						</div>
+					{/if}
+					{#if $options.provider !== 'ondevice'}
+						<button
+							class="tool"
+							disabled={browserMode || preflight.refreshing}
+							aria-busy={preflight.refreshing}
+							onclick={preflight.refresh}
+						>
+							{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
+						</button>
+					{/if}
 					<div class="meters">
 						{#if usesMic}
 							<LevelMeter
@@ -1445,6 +1559,16 @@
 {/if}
 
 <style>
+	.device-recovery {
+		padding: 0.75rem 1.25rem;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.625rem;
+		border-bottom: 1px solid var(--border);
+	}
+	.device-recovery p {
+		flex-basis: 100%;
+	}
 	.app {
 		height: 100vh;
 		display: grid;
@@ -1455,6 +1579,9 @@
 		/* The query container for the column rule below. Its `em` is the scaled root, which
 		   is what lets a text-size change move the breakpoint. */
 		container: window / inline-size;
+	}
+	.app.device-error {
+		grid-template-rows: auto auto 2px minmax(0, 1fr);
 	}
 
 	/* ---- Header ------------------------------------------------------------- */

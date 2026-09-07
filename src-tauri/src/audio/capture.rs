@@ -33,19 +33,30 @@ impl std::error::Error for MicrophoneRuntimeError {
 }
 
 /// Enumerate available input devices for the operator UI.
-pub fn list_input_devices() -> Vec<AudioDevice> {
+pub fn list_input_devices() -> Result<Vec<AudioDevice>> {
     let host = cpal::default_host();
-    let default_name = host.default_input_device().map(|device| device.to_string());
+    let default_id = host
+        .default_input_device()
+        .and_then(|device| device.id().ok());
 
     let mut out = Vec::new();
-    if let Ok(devices) = host.input_devices() {
+    {
+        let devices = host
+            .input_devices()
+            .context("failed to enumerate microphones")?;
         for device in devices {
             let name = device.to_string();
-            let is_default = Some(&name) == default_name.as_ref();
-            out.push(AudioDevice { name, is_default });
+            if let Ok(id) = device.id() {
+                let is_default = Some(&id) == default_id.as_ref();
+                out.push(AudioDevice {
+                    id: id.to_string(),
+                    name,
+                    is_default,
+                });
+            }
         }
     }
-    out
+    Ok(out)
 }
 
 fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
@@ -54,7 +65,9 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
         Some(wanted) => host
             .input_devices()
             .context("failed to enumerate input devices")?
-            .find(|device| device.to_string() == wanted)
+            .find(|device| {
+                device.id().is_ok_and(|id| id.to_string() == wanted) || device.to_string() == wanted
+            })
             .ok_or_else(|| anyhow!("microphone '{}' not found", wanted)),
         None => host
             .default_input_device()
@@ -202,9 +215,22 @@ pub fn run_microphone(
 
     stream.play().context("failed to start microphone stream")?;
 
-    // Keep the stream alive until cancelled.
+    // Check availability off the realtime callback, including silent/suspended devices
+    // whose driver fails to deliver an error. The opened device never follows a new default.
+    let pinned_id = device
+        .id()
+        .context("failed to identify active microphone")?;
+    let mut checked = Instant::now();
     while !cancel.is_cancelled() {
         std::thread::sleep(Duration::from_millis(100));
+        if checked.elapsed() >= Duration::from_secs(1) {
+            checked = Instant::now();
+            let available = cpal::default_host()
+                .input_devices()
+                .context("failed to check microphone availability")?
+                .any(|device| device.id().is_ok_and(|id| id == pinned_id));
+            anyhow::ensure!(available, "selected microphone disconnected or disabled");
+        }
     }
     tracing::info!("microphone capture stopped");
     match error_rx.try_recv() {

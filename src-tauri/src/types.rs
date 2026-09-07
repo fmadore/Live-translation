@@ -113,6 +113,10 @@ pub struct StartOptions {
     pub provider: Provider,
     #[serde(default)]
     pub mic_device_name: Option<String>,
+    #[serde(default)]
+    pub mic_device_id: Option<String>,
+    #[serde(default)]
+    pub system_device_id: Option<String>,
     /// Rehearsal mode: play the bundled speech fixture for this language through the whole
     /// pipeline instead of capturing audio, so the overlay, move mode and the export can be
     /// exercised with no microphone and no sound in the room. Absent — the normal case — runs
@@ -189,6 +193,7 @@ pub struct AudioTestUpdate {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioDevice {
+    pub id: String,
     pub name: String,
     pub is_default: bool,
 }
@@ -200,6 +205,7 @@ pub mod events {
     pub const STATUS: &str = "status";
     /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
     /// must never move the operator UI's session state machine.
+    pub const AUDIO_DEVICES_CHANGED: &str = "audio-devices-changed";
     pub const AUDIO_TEST: &str = "audio-test";
     /// The operator tried to close the window while something was still unsaved or running,
     /// and the core held the window open for an answer. See `lifecycle::CloseGuard`.

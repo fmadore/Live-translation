@@ -119,6 +119,14 @@ the preflight timers and capture test. `CaptionAppearance.svelte` renders the sa
 appearance controls in the live rail and settings dialog, sharing persisted stores
 while keeping each contrast description's accessible ID unique.
 
+Audio device lists carry stable endpoint IDs. `audio/devices.rs` forwards Windows
+notifications through a bounded worker queue; COM callbacks never enumerate or emit
+webview events. `audioDevices.ts` validates idle selections and migrates unambiguous
+legacy microphone names. Capture remains pinned to its opened endpoint when Windows
+changes the default. The explicit failure recovery controls stop and drain the session
+before starting again, preserving the transcript. See the
+[hardware matrix](audio-device-testing.md) for issue #28's manual checks.
+
 ## Leaving the app
 
 `lifecycle.rs` owns what closing means; `src/lib/quit.ts` owns the order it happens in. The
