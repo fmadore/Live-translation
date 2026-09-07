@@ -29,7 +29,7 @@
 		"generate:rehearsal-fixtures": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-rehearsal-fixtures.ps1"
 	},
 	"devDependencies": {
-		"@choochmeque/tauri-windows-bundle": "^0.1.28",
+		"@choochmeque/tauri-windows-bundle": "^0.1.29",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
@@ -40,7 +40,7 @@
 		"jsdom": "^30.0.1",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^4.1.1",
-		"svelte": "^5.56.10",
+		"svelte": "^5.57.0",
 		"svelte-check": "^4.7.6",
 		"typescript": "^6.0.3",
 		"vite": "^8.2.2",
