@@ -9,29 +9,54 @@ use std::time::{Duration, Instant};
 use anyhow::{anyhow, Context, Result};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::SampleFormat;
-use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::{error::TrySendError, Sender};
 use tokio_util::sync::CancellationToken;
 
 use super::resample::{downmix_to_mono, f32_to_pcm16_le, LinearResampler};
 use super::{chunk_samples, AudioChunk};
-use crate::errors::{id, AppError};
-use crate::types::{events, AudioDevice, AudioLevel, Origin, SessionState, StatusUpdate};
+use crate::types::{AudioDevice, AudioLevel, Origin};
+
+/// Distinguish a stream that failed while running from a device that could not open.
+#[derive(Debug)]
+pub struct MicrophoneRuntimeError(pub cpal::Error);
+
+impl std::fmt::Display for MicrophoneRuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "microphone stream error: {}", self.0)
+    }
+}
+
+impl std::error::Error for MicrophoneRuntimeError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
 
 /// Enumerate available input devices for the operator UI.
-pub fn list_input_devices() -> Vec<AudioDevice> {
+pub fn list_input_devices() -> Result<Vec<AudioDevice>> {
     let host = cpal::default_host();
-    let default_name = host.default_input_device().map(|device| device.to_string());
+    let default_id = host
+        .default_input_device()
+        .and_then(|device| device.id().ok());
 
     let mut out = Vec::new();
-    if let Ok(devices) = host.input_devices() {
+    {
+        let devices = host
+            .input_devices()
+            .context("failed to enumerate microphones")?;
         for device in devices {
             let name = device.to_string();
-            let is_default = Some(&name) == default_name.as_ref();
-            out.push(AudioDevice { name, is_default });
+            if let Ok(id) = device.id() {
+                let is_default = Some(&id) == default_id.as_ref();
+                out.push(AudioDevice {
+                    id: id.to_string(),
+                    name,
+                    is_default,
+                });
+            }
         }
     }
-    out
+    Ok(out)
 }
 
 fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
@@ -40,7 +65,9 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
         Some(wanted) => host
             .input_devices()
             .context("failed to enumerate input devices")?
-            .find(|device| device.to_string() == wanted)
+            .find(|device| {
+                device.id().is_ok_and(|id| id.to_string() == wanted) || device.to_string() == wanted
+            })
             .ok_or_else(|| anyhow!("microphone '{}' not found", wanted)),
         None => host
             .default_input_device()
@@ -50,12 +77,9 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
 
 /// Capture from the microphone until `cancel` fires. Blocks the calling thread.
 ///
-/// Everything that can fail here fails *before* the stream starts — device resolution, config,
-/// and the stream build below — and the errors stay technical on purpose. The operator-facing
-/// wording, including the Windows privacy-setting guidance a packaged build needs, is added
-/// where the failure becomes a `StatusUpdate`: `session::report_source_failure`.
+/// Startup and runtime failures return to the owner. The session owner supplies session
+/// status, while preflight supplies test status; capture itself knows neither UI lifecycle.
 pub fn run_microphone(
-    app: AppHandle,
     device_name: Option<String>,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
@@ -82,16 +106,12 @@ pub fn run_microphone(
     let mut state = CaptureState::new(Origin::Microphone, in_rate, target_rate, level_tx, chunk_tx);
 
     let stream_error_cancel = cancel.clone();
+    let (error_tx, error_rx) = std::sync::mpsc::sync_channel(1);
     let err_fn = move |e: cpal::Error| {
         tracing::error!("microphone stream error: {e}");
-        let _ = app.emit(
-            events::STATUS,
-            StatusUpdate {
-                state: SessionState::Error,
-                message: Some(AppError::with(id::MIC_STREAM, e)),
-                origin: Some(Origin::Microphone),
-            },
-        );
+        // The owner decides whether this is a session or a preflight failure. Never
+        // emit UI events from a device callback, and never block the callback on reporting.
+        let _ = error_tx.try_send(anyhow::Error::new(MicrophoneRuntimeError(e)));
         stream_error_cancel.cancel();
     };
 
@@ -195,12 +215,28 @@ pub fn run_microphone(
 
     stream.play().context("failed to start microphone stream")?;
 
-    // Keep the stream alive until cancelled.
+    // Check availability off the realtime callback, including silent/suspended devices
+    // whose driver fails to deliver an error. The opened device never follows a new default.
+    let pinned_id = device
+        .id()
+        .context("failed to identify active microphone")?;
+    let mut checked = Instant::now();
     while !cancel.is_cancelled() {
         std::thread::sleep(Duration::from_millis(100));
+        if checked.elapsed() >= Duration::from_secs(1) {
+            checked = Instant::now();
+            let available = cpal::default_host()
+                .input_devices()
+                .context("failed to check microphone availability")?
+                .any(|device| device.id().is_ok_and(|id| id == pinned_id));
+            anyhow::ensure!(available, "selected microphone disconnected or disabled");
+        }
     }
     tracing::info!("microphone capture stopped");
-    Ok(())
+    match error_rx.try_recv() {
+        Ok(error) => Err(error),
+        Err(_) => Ok(()),
+    }
 }
 
 /// Mutable state shared into a cpal callback: resampling, chunk accumulation, level metering.
@@ -278,6 +314,14 @@ impl CaptureState {
         }
         self.maybe_emit_level();
 
+        // Preflight intentionally has no receiver. Also covers a provider that has
+        // ended: continue metering until cancellation without retaining audio samples.
+        if self.chunk_tx.is_closed() {
+            self.pending.clear();
+            self.pending_start = 0;
+            return;
+        }
+
         self.resampled.clear();
         self.resampler.process(&self.mono_buf, &mut self.resampled);
         self.pending.extend_from_slice(&self.resampled);
@@ -291,7 +335,8 @@ impl CaptureState {
             // already behind, so bounded loss is preferable to unbounded caption latency.
             if let Err(error) = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm }) {
                 if matches!(error, TrySendError::Closed(_)) {
-                    return;
+                    self.pending_start = self.pending.len();
+                    break;
                 }
             }
         }
@@ -323,5 +368,42 @@ impl CaptureState {
         self.peak_accum = 0.0;
         self.sq_sum = 0.0;
         self.sq_count = 0;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::sync::mpsc::channel;
+
+    #[test]
+    fn sustained_preflight_meters_without_accumulating_audio() {
+        let (levels, mut level_rx) = channel(8);
+        let (audio, audio_rx) = channel(5);
+        drop(audio_rx);
+        let mut state = CaptureState::new(Origin::Microphone, 48_000, 16_000, levels, audio);
+        let samples = vec![0.25; 480];
+        for _ in 0..10_000 {
+            state.last_level = Instant::now() - Duration::from_millis(100);
+            state.push_samples(&samples, 1);
+            assert_eq!(level_rx.try_recv().unwrap().rms, 0.25);
+            assert!(state.pending.is_empty());
+            assert!(state.resampled.is_empty());
+        }
+    }
+
+    #[test]
+    fn receiver_closing_mid_stream_discards_partial_audio() {
+        let (levels, _) = channel(8);
+        let (audio, audio_rx) = channel(5);
+        let mut state = CaptureState::new(Origin::Microphone, 16_000, 16_000, levels, audio);
+        state.push_samples(&[0.5; 160], 1);
+        assert!(!state.pending.is_empty());
+        drop(audio_rx);
+        for _ in 0..100 {
+            state.push_samples(&[0.5; 1600], 1);
+            assert!(state.pending.is_empty());
+            assert_eq!(state.pending_start, 0);
+        }
     }
 }

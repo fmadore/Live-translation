@@ -15,6 +15,7 @@
 /// Every command registered in `generate_handler!`, in the same order.
 pub const COMMANDS: &[&str] = &[
     "list_microphones",
+    "list_outputs",
     "has_api_key",
     "set_api_key",
     "clear_api_key",

@@ -48,6 +48,7 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 
 export const api = {
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
+	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
 
 	hasApiKey: (provider: Provider) => invoke<boolean>('has_api_key', { provider }),
 	setApiKey: (provider: Provider, key: string) => invoke<void>('set_api_key', { provider, key }),
@@ -60,8 +61,11 @@ export const api = {
 
 	/** Level-only capture for the preflight: no provider connection, no captions, no stored
 	 *  audio. See `SessionManager::start_test`. */
-	startAudioTest: (source: AudioSource, micDeviceName: string | null) =>
-		invoke<void>('start_audio_test', { source, micDeviceName }),
+	startAudioTest: (
+		source: AudioSource,
+		micDeviceName: string | null,
+		systemDeviceId: string | null = null
+	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId }),
 	stopAudioTest: () => invoke<void>('stop_audio_test'),
 
 	setOverlayClickThrough: (enabled: boolean) =>
@@ -124,6 +128,7 @@ export const api = {
 // ---- Events ---------------------------------------------------------------
 
 export const on = {
+	devicesChanged: (h: () => void) => listen<null>(EVT.devicesChanged, h),
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),
 	status: (h: (s: StatusUpdate) => void) => listen<StatusUpdate>(EVT.status, h),

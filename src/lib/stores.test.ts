@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { get } from 'svelte/store';
 import {
 	applyStatus,
+	beginSession,
+	isRunning,
+	micLevel,
+	sessionStartedAt,
+	sessionState,
 	clearTranscript,
 	flushTranscript,
 	markTranscriptSaved,
@@ -61,6 +66,39 @@ describe('caption timing', () => {
 		const byOrigin = Object.fromEntries(get(transcript).map((l) => [l.origin, l.startMs]));
 		expect(byOrigin.microphone).toBe(2000);
 		expect(byOrigin.system).toBe(2400);
+	});
+});
+
+describe('source failure lifecycle', () => {
+	it('settles a failed single-source session without losing its final caption', () => {
+		applyStatus({ state: 'idle' });
+		beginSession();
+		applyStatus({ state: 'running', origin: 'microphone' });
+		micLevel.set({ source: 'microphone', rms: 0.8, peak: 1 });
+		pushCaption(caption(1, 'partial', false));
+		pushCaption(caption(1, 'partial then final'));
+		applyStatus({ state: 'error', origin: 'microphone', message: 'Provider rejected the session' });
+		expect(get(isRunning)).toBe(false);
+		expect(get(sessionState)).toBe('error');
+		expect(get(sessionStartedAt)).toBeNull();
+		expect(get(micLevel).rms).toBe(0);
+		expect(get(transcript).map((line) => line.text)).toEqual(['partial then final']);
+		beginSession();
+		applyStatus({ state: 'connecting', origin: 'microphone' });
+		expect(get(sessionState)).toBe('connecting');
+		applyStatus({ state: 'idle' });
+	});
+
+	it('keeps the clock and healthy source active when only one of Both fails', () => {
+		applyStatus({ state: 'idle' });
+		beginSession();
+		applyStatus({ state: 'running', origin: 'microphone' });
+		applyStatus({ state: 'running', origin: 'system' });
+		const startedAt = get(sessionStartedAt);
+		applyStatus({ state: 'error', origin: 'microphone' });
+		expect(get(isRunning)).toBe(true);
+		expect(get(sessionStartedAt)).toBe(startedAt);
+		applyStatus({ state: 'idle' });
 	});
 });
 

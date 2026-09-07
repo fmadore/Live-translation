@@ -2,7 +2,7 @@
 // minimal state (see routes/overlay/+page.svelte) so it stays lightweight.
 
 import type { AppError } from './errors';
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type {
 	AudioLevel,
 	Caption,
@@ -72,6 +72,23 @@ export function applyStatus(u: StatusUpdate) {
 	if (u.origin) {
 		const origin = u.origin;
 		originStates.update((m) => ({ ...m, [origin]: u.state }));
+		if (u.state === 'error' || u.state === 'idle') {
+			const level = { source: origin, rms: 0, peak: 0 };
+			(origin === 'microphone' ? micLevel : systemLevel).set(level);
+			currentCaptions.update((m) => {
+				const next = { ...m };
+				delete next[origin];
+				return next;
+			});
+			if (!get(isRunning)) {
+				sessionStartedAt.set(null);
+				latestCaption.set(null);
+			}
+		} else if (get(sessionStartedAt) === null) {
+			// Starting a replacement first drains the old backend session, whose Idle
+			// can arrive after beginSession. Its first active status starts the new clock.
+			sessionStartedAt.set(Date.now());
+		}
 	} else if (u.state === 'idle') {
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
@@ -198,6 +215,9 @@ export function flushTranscript() {
 /** Prepare the monitor for a new run without discarding already finalized transcript lines. */
 export function beginSession() {
 	flushTranscript();
+	originStates.set({});
+	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
+	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
 	latestCaption.set(null);
 	currentCaptions.set({});
 	sessionStartedAt.set(Date.now());

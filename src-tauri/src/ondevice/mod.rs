@@ -24,6 +24,10 @@ pub struct OnDeviceConfig {
     pub language: TargetLanguage,
 }
 
+/// `state` names the situation; the interface catalog words it. This used to carry a `detail`
+/// sentence written here, which reached the French interface in English because nothing on the
+/// way to the screen could translate a finished string. Same bargain as `AppError`: the core
+/// names, the catalog words.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OnDeviceReadiness {
@@ -31,7 +35,6 @@ pub struct OnDeviceReadiness {
     pub engine: String,
     pub state: String,
     pub can_prepare: bool,
-    pub detail: String,
 }
 
 pub fn readiness(_app: &AppHandle) -> OnDeviceReadiness {
@@ -40,7 +43,6 @@ pub fn readiness(_app: &AppHandle) -> OnDeviceReadiness {
         engine: "built-in-demo".into(),
         state: "ready".into(),
         can_prepare: false,
-        detail: "Ready — bundled sample captions can demonstrate the overlay without a microphone, account, key, language pack, or network.".into(),
     }
 }
 
@@ -222,5 +224,22 @@ mod tests {
     #[test]
     fn setup_is_always_a_no_op() {
         assert!(prepare().is_ok());
+    }
+
+    // The readiness payload is named, not worded: anything prose-like here would reach a
+    // French interface in English, which is how the demo row used to regress.
+    #[test]
+    fn readiness_serializes_as_names_the_catalog_can_word() {
+        let json = serde_json::to_string(&OnDeviceReadiness {
+            ready: true,
+            engine: "built-in-demo".into(),
+            state: "ready".into(),
+            can_prepare: false,
+        })
+        .expect("readiness serializes");
+        assert_eq!(
+            json,
+            r#"{"ready":true,"engine":"built-in-demo","state":"ready","canPrepare":false}"#
+        );
     }
 }

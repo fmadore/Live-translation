@@ -75,8 +75,8 @@ each update rather than trusting that a passing package stays passing — 1.0.3 
 build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
-  all three matching and all three above the published version. All three read `1.1.0` today,
-  which is the version now published, so the next submission cannot reuse them.
+  with the root app versions in both lockfiles synchronized. The prepared version is
+  `1.2.1` (`1.2.1.0` in MSIX); confirm it exceeds the published version before submission.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled

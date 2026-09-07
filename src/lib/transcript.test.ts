@@ -11,6 +11,37 @@ const lines: TranscriptLine[] = [
 ];
 
 describe('groupTranscript', () => {
+	it('separates same-source speech after a five-second pause', () => {
+		expect(
+			groupTranscript([
+				{ ...lines[0], id: 2, text: 'Next topic.', startMs: 7000, endMs: 8000 },
+				{ ...lines[0], id: 1, text: 'First topic.', startMs: 1000, endMs: 2000 }
+			]).map((p) => p.text)
+		).toEqual(['First topic.', 'Next topic.']);
+	});
+
+	it('bounds paragraph aggregation without losing or splitting caption lines', () => {
+		const source = Array.from({ length: 100 }, (_, i) => ({
+			...lines[0],
+			id: 100 - i,
+			text: `Sentence ${100 - i}: ${'words '.repeat(20).trim()}.`
+		}));
+		const paragraphs = groupTranscript(source);
+		expect(paragraphs.length).toBeGreaterThan(1);
+		expect(paragraphs.every((p) => p.text.length <= 600)).toBe(true);
+		expect(paragraphs.map((p) => p.text).join(' ')).toBe(
+			[...source]
+				.reverse()
+				.map((l) => l.text)
+				.join(' ')
+		);
+	});
+
+	it('keeps a single long caption intact', () => {
+		const text = 'word '.repeat(200).trim();
+		expect(groupTranscript([{ ...lines[0], text }])[0].text).toBe(text);
+	});
+
 	it('orders lines chronologically and starts a paragraph on each source change', () => {
 		expect(groupTranscript(lines)).toEqual([
 			{ id: 1, origin: 'microphone', text: 'Ça fonctionne.' },

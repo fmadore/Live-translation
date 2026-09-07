@@ -7,6 +7,7 @@
     "core:default",
     "core:event:default",
     "allow-list-microphones",
+    "allow-list-outputs",
     "allow-has-api-key",
     "allow-set-api-key",
     "allow-clear-api-key",

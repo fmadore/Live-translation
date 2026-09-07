@@ -113,6 +113,10 @@ pub struct StartOptions {
     pub provider: Provider,
     #[serde(default)]
     pub mic_device_name: Option<String>,
+    #[serde(default)]
+    pub mic_device_id: Option<String>,
+    #[serde(default)]
+    pub system_device_id: Option<String>,
     /// Rehearsal mode: play the bundled speech fixture for this language through the whole
     /// pipeline instead of capturing audio, so the overlay, move mode and the export can be
     /// exercised with no microphone and no sound in the room. Absent — the normal case — runs
@@ -189,6 +193,7 @@ pub struct AudioTestUpdate {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioDevice {
+    pub id: String,
     pub name: String,
     pub is_default: bool,
 }
@@ -198,6 +203,9 @@ pub mod events {
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";
+    /// Windows endpoint notifications; other platforms use manual device refresh.
+    #[cfg(windows)]
+    pub const AUDIO_DEVICES_CHANGED: &str = "audio-devices-changed";
     /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
     /// must never move the operator UI's session state machine.
     pub const AUDIO_TEST: &str = "audio-test";

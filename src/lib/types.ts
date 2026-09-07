@@ -3,6 +3,7 @@
 
 /** Which audio input(s) to translate or transcribe. */
 import type { AppError } from './errors';
+import type { Messages } from './i18n/en';
 import type { CaptionFaceId } from './captionFont';
 
 export type AudioSource = 'microphone' | 'system' | 'both';
@@ -25,9 +26,28 @@ export type Provider = 'gemini' | 'gemini-transcribe' | 'openai' | 'mistral' | '
 export interface OnDeviceReadiness {
 	ready: boolean;
 	engine: 'built-in-demo' | 'none' | string;
-	state: string;
+	/** What the core found, as a name for the catalog to word — never a finished sentence.
+	 *  `check-failed` is raised here rather than in Rust, when the command itself throws. */
+	state: 'ready' | 'check-failed' | string;
 	canPrepare: boolean;
-	detail: string;
+	/** Untranslated technical detail from a failed check, appended in parentheses the way
+	 *  `describeError` appends an `AppError`'s. The core never sends prose here. */
+	detail?: string;
+}
+
+/** The demo row's sentence: the catalog words whatever state the core named. A state the
+ *  catalog has never heard of falls back to the checking line rather than showing an
+ *  identifier — the same bargain `describeError` strikes for an unknown failure id. */
+export function describeReadiness(readiness: OnDeviceReadiness | null, m: Messages): string {
+	const catalog = m.preflight.demoRow;
+	if (!readiness) return catalog.checking;
+	const sentence =
+		readiness.state === 'ready'
+			? catalog.ready
+			: readiness.state === 'check-failed'
+				? catalog.checkFailed
+				: catalog.checking;
+	return readiness.detail ? `${sentence} (${readiness.detail})` : sentence;
 }
 
 /** Backends that produce translated captions. The built-in demo is same-language only. */
@@ -97,6 +117,8 @@ export interface StartOptions {
 	provider: Provider;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
+	micDeviceId?: string | null;
+	systemDeviceId?: string | null;
 	/** Rehearse instead of capturing: a cloud backend plays a bundled ~20 s speech fixture spoken in
 	 *  this language through the real pipeline — one System-origin stream, looping until Stop —
 	 *  so captions, levels, transcript and overlay behave exactly as in a live session. `source`
@@ -155,6 +177,7 @@ export interface AudioTestUpdate {
 }
 
 export interface AudioDevice {
+	id: string;
 	name: string;
 	isDefault: boolean;
 }
@@ -237,6 +260,7 @@ export const EVT = {
 	level: 'audio-level',
 	status: 'status',
 	audioTest: 'audio-test',
+	devicesChanged: 'audio-devices-changed',
 	closeRequested: 'close-requested',
 	trayCommand: 'tray-command',
 	overlayConfig: 'overlay-config',
@@ -406,7 +430,9 @@ export function loadStartOptions(): StartOptions {
 			DEFAULT_START_OPTIONS.targetLanguage
 		),
 		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
-		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null
+		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
+		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
+		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null
 	};
 	// The compatibility id `ondevice` now means the deterministic bundled demonstration.
 	// Repair older saved Windows-speech configurations to its single virtual Demo audio source.

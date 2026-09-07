@@ -129,6 +129,25 @@ describe('discarding', () => {
 });
 
 describe('long sessions', () => {
+	it('preserves reading position on new text and follows again after Jump to latest', async () => {
+		const { getByRole, rerender } = mount(seed(10));
+		const log = getByRole('region', { name: 'Transcript' });
+		Object.defineProperties(log, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 180 }
+		});
+		log.scrollTop = 120;
+		await fireEvent.scroll(log);
+		await rerender({ mode: 'transcribe', transcript: seed(11), onError: vi.fn() });
+		expect(log.scrollTop).toBe(120);
+		await fireEvent.click(getByRole('button', { name: 'Jump to latest' }));
+		expect(log.scrollTop).toBe(1000);
+		expect(log).toHaveFocus();
+		Object.defineProperty(log, 'scrollHeight', { value: 1200 });
+		await rerender({ mode: 'transcribe', transcript: seed(12), onError: vi.fn() });
+		expect(log.scrollTop).toBe(1200);
+	});
+
 	// The warning is one of several `role="status"` regions in the component now, so these
 	// address it by its text and assert separately that it is a region at all.
 	const WARNING = /Nothing is being dropped/;
