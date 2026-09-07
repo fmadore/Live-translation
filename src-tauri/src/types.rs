@@ -203,9 +203,11 @@ pub mod events {
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";
+    /// Windows endpoint notifications; other platforms use manual device refresh.
+    #[cfg(windows)]
+    pub const AUDIO_DEVICES_CHANGED: &str = "audio-devices-changed";
     /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
     /// must never move the operator UI's session state machine.
-    pub const AUDIO_DEVICES_CHANGED: &str = "audio-devices-changed";
     pub const AUDIO_TEST: &str = "audio-test";
     /// The operator tried to close the window while something was still unsaved or running,
     /// and the core held the window open for an answer. See `lifecycle::CloseGuard`.
