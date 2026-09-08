@@ -1,5 +1,11 @@
 # App review — 5 September 2026
 
+**Closed and archived on 8 September 2026.** All findings R1–R8 were implemented.
+This report preserves the review history and its verification results; it is not
+the current Store submission checklist. See [Store updates](../store-updates.md)
+for submission guidance and [audio device testing](../audio-device-testing.md)
+for subsequent fixes, manual test results, and outstanding hardware coverage.
+
 Scope: source review of audio capture, provider lifecycle, recovery, transcript handling,
 and operator orchestration. No live provider or hardware failure was exercised during
 the review. Baseline: 236 frontend tests and 50 Rust tests passed, one billable test

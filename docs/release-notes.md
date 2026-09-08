@@ -34,7 +34,7 @@ Includes the device selection, transcript, recovery, and interface improvements 
 ## v1.2.1
 
 Do not tag or submit this release until the desktop checks in
-[`app-review-2026-09-05.md`](app-review-2026-09-05.md#verification-and-remaining-work)
+[`app-review-2026-09-05.md`](archive/app-review-2026-09-05.md#verification-and-remaining-work)
 have been completed.
 
 ```markdown

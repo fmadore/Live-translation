@@ -4,11 +4,10 @@ The Microsoft Store listing is per-language, so each language needs its own scre
 live here rather than only in Partner Center, so that "do these still match the build?" is a
 question the repository can answer instead of one somebody has to remember.
 
-The English captures were refreshed during the September 2026 installed-MSIX testing.
-The French captures are still from 1.2.0. Before submitting 1.2.2, refresh the French
-captures that show the source controls (new output selector and Refresh action), and
-recapture `fr/2-running.png` with the overlay clear of the transcript. Review both
-sets against the final build before uploading them to Partner Center.
+Both the English and French captures were refreshed during the September 2026
+installed-MSIX testing. On 8 September, the user confirmed that all screenshots
+had been updated for the 1.2.2 Store submission. The current sets contain five
+screenshots per language, ready to upload to Partner Center.
 
 ```text
 en/    English listing
