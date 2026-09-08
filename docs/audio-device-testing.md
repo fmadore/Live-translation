@@ -1,5 +1,11 @@
 # Audio devices — issue #28
 
+The first installed 1.2.1 test on 8 September exposed COM apartment conflicts during
+output enumeration and recoverable microphone xruns incorrectly ending preflight.
+The 1.2.2 fix runs output discovery on an isolated MTA thread with balanced COM cleanup,
+and ignores CPAL Xrun/RealtimeDenied quality notifications while preserving fatal errors.
+Regression tests exercise an STA caller and the real error-callback dispatch logic.
+
 Implemented for the prepared 1.2.1 release. Hardware checks below are **pending**;
 automated tests and browser previews do not replace them.
 

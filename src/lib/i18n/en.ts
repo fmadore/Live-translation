@@ -481,7 +481,7 @@ export const en = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
-		deviceEnumeration: 'Windows would not list the microphones',
+		deviceEnumeration: 'Windows could not list the audio devices',
 		keychain: 'Windows Credential Manager refused the request',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',

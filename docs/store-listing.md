@@ -3,7 +3,7 @@
 Each heading below corresponds to a separate Partner Center field. Paste only the text inside
 the relevant code block. Do not paste the headings or explanations.
 
-Prepared for **1.2.1**. Manual desktop testing and Store submission are pending.
+Prepared for **1.2.2**. Manual desktop testing and Store submission are pending.
 
 ## English (United States)
 
@@ -49,7 +49,7 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.2.1
+### What's new in this version — 1.2.2
 
 Paste this into **What's new in this version**. Unlike every other field here, this one
 describes a single release and has to be rewritten for the next one; the heading carries the
@@ -110,7 +110,7 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.2.1
+### Nouveautés de cette version — 1.2.2
 
 Collez ce texte dans **Nouveautés de cette version**. À réécrire à chaque version : voir la
 note sous la version anglaise.
@@ -133,7 +133,7 @@ text:
 ```text
 Product ID: 9PFB8LR3RR9X
 
-The previous 10.1.2.10 report, “Unusable Feature: Start Subtitles,” was addressed in version 1.0.5 by removing the device-dependent Windows Speech implementation. Version 1.2.1 retains that built-in demonstration.
+The previous 10.1.2.20 report, “Unusable Feature: Start Subtitles,” was addressed in version 1.0.5 by removing the device-dependent Windows Speech implementation. Version 1.2.2 retains that built-in demonstration.
 
 No account, API key, microphone, language pack, or network connection is required for the default test:
 

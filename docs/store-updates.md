@@ -11,7 +11,7 @@ packages are built.
 
 ## The route
 
-Current prepared version: **1.2.1** (MSIX **1.2.1.0**). The review fixes and automated
+Current prepared version: **1.2.2** (MSIX **1.2.2.0**). The review fixes and automated
 checks are complete; manual desktop testing is pending. Tagging and submission come
 after that testing.
 
@@ -21,7 +21,7 @@ after that testing.
    version already in the Store** — Partner Center rejects a package that does not increase.
    The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z` so the
    bump is one reviewable change rather than three scattered ones.
-2. **Tag and push after manual testing**: `git tag v1.2.1 && git push origin v1.2.1`. The
+2. **Tag and push after manual testing**: `git tag v1.2.2 && git push origin v1.2.2`. The
    [`Release installers`](../.github/workflows/release.yml) workflow builds the NSIS installer,
    both architectures' `.msix`, and one multi-architecture
    `Live.Translation_<version>.msixbundle`, and attaches them to the GitHub release. Download
@@ -49,7 +49,7 @@ after that testing.
 9. Set a **gradual rollout** percentage for anything touching audio capture or the session
    lifecycle. Start at 10% and raise it once the crash and review data look clean.
 10. **Submit to the Store**, then watch certification. A clean submission is not a pass — 1.0.3
-   uploaded perfectly and then failed policy 10.1.2.10.
+   uploaded perfectly and then failed policy 10.1.2.20.
 
 [`partner-center-walkthrough.md`](partner-center-walkthrough.md) has the screen-by-screen
 version of steps 6–10, including the French labels.
@@ -141,7 +141,7 @@ had to be cleaned up by hand for exactly this reason.
 - **One pending submission per product.** Partner Center allows one open submission at a time.
   Finish or delete the pending one before starting another.
 - **Certification can still fail.** An accepted upload is not a pass. 1.0.3 uploaded perfectly
-  well and then failed policy 10.1.2.10 — the reviewer pressed **Start Subtitles** and nothing
+  well and then failed policy 10.1.2.20 — the reviewer pressed **Start Subtitles** and nothing
   happened on their device. See [`microsoft-store.md`](microsoft-store.md) for what that cost
   and what the bundled demonstration exists to prevent.
 - **The listing is not in this repository.** `store-listing.md` is paste-ready source text, not

@@ -500,7 +500,7 @@ export const fr: Messages = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
-		deviceEnumeration: 'Windows n’a pas voulu énumérer les microphones',
+		deviceEnumeration: 'Windows n’a pas pu énumérer les appareils audio',
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',

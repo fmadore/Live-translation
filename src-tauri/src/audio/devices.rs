@@ -9,8 +9,35 @@ pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
 
 #[cfg(windows)]
 pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
-    use wasapi::{initialize_mta, DeviceEnumerator, Direction};
-    initialize_mta().ok()?;
+    on_mta_thread(enumerate_outputs)
+}
+
+/// Blocking-pool threads may already belong to CPAL's STA apartment. Never change
+/// their COM model or leave COM initialized on a reusable thread.
+#[cfg(windows)]
+fn on_mta_thread<T: Send + 'static>(
+    work: impl FnOnce() -> anyhow::Result<T> + Send + 'static,
+) -> anyhow::Result<T> {
+    std::thread::Builder::new()
+        .name("enumerate-audio-outputs".into())
+        .spawn(move || {
+            wasapi::initialize_mta().ok()?;
+            struct Apartment;
+            impl Drop for Apartment {
+                fn drop(&mut self) {
+                    wasapi::deinitialize();
+                }
+            }
+            let _apartment = Apartment;
+            work()
+        })?
+        .join()
+        .map_err(|_| anyhow::anyhow!("audio output enumeration thread panicked"))?
+}
+
+#[cfg(windows)]
+fn enumerate_outputs() -> anyhow::Result<Vec<AudioDevice>> {
+    use wasapi::{DeviceEnumerator, Direction};
     let enumerator = DeviceEnumerator::new()?;
     let default_id = enumerator
         .get_default_device(&Direction::Render)
@@ -28,6 +55,27 @@ pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
         });
     }
     Ok(devices)
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn output_enumeration_does_not_change_the_callers_sta_apartment() {
+        std::thread::spawn(|| {
+            wasapi::initialize_sta().ok().unwrap();
+            // Reproduce the exact error the pooled worker used to produce.
+            assert_eq!(wasapi::initialize_mta().0 as u32, 0x80010106);
+            for _ in 0..3 {
+                assert!(on_mta_thread(|| Ok(wasapi::initialize_sta().is_err())).unwrap());
+            }
+            assert_eq!(wasapi::initialize_mta().0 as u32, 0x80010106);
+            wasapi::deinitialize();
+        })
+        .join()
+        .unwrap();
+    }
 }
 
 #[cfg(not(windows))]

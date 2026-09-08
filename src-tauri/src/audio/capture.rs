@@ -32,6 +32,23 @@ impl std::error::Error for MicrophoneRuntimeError {
     }
 }
 
+fn handle_stream_error(
+    error: cpal::Error,
+    errors: &std::sync::mpsc::SyncSender<anyhow::Error>,
+    cancel: &CancellationToken,
+) {
+    // CPAL continues delivering buffers after an xrun or denied realtime priority.
+    // These are quality notifications, not a disconnected or invalid stream.
+    if matches!(
+        error.kind(),
+        cpal::ErrorKind::Xrun | cpal::ErrorKind::RealtimeDenied
+    ) {
+        return;
+    }
+    let _ = errors.try_send(anyhow::Error::new(MicrophoneRuntimeError(error)));
+    cancel.cancel();
+}
+
 /// Enumerate available input devices for the operator UI.
 pub fn list_input_devices() -> Result<Vec<AudioDevice>> {
     let host = cpal::default_host();
@@ -108,11 +125,9 @@ pub fn run_microphone(
     let stream_error_cancel = cancel.clone();
     let (error_tx, error_rx) = std::sync::mpsc::sync_channel(1);
     let err_fn = move |e: cpal::Error| {
-        tracing::error!("microphone stream error: {e}");
         // The owner decides whether this is a session or a preflight failure. Never
         // emit UI events from a device callback, and never block the callback on reporting.
-        let _ = error_tx.try_send(anyhow::Error::new(MicrophoneRuntimeError(e)));
-        stream_error_cancel.cancel();
+        handle_stream_error(e, &error_tx, &stream_error_cancel);
     };
 
     let stream = match sample_format {
@@ -374,6 +389,41 @@ impl CaptureState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn quality_notifications_keep_capture_alive_but_device_failures_stop_it() {
+        let cancel = CancellationToken::new();
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        for kind in [cpal::ErrorKind::Xrun, cpal::ErrorKind::RealtimeDenied] {
+            for _ in 0..100 {
+                handle_stream_error(cpal::Error::new(kind), &sender, &cancel);
+            }
+        }
+        assert!(!cancel.is_cancelled());
+        assert!(receiver.try_recv().is_err());
+        handle_stream_error(
+            cpal::Error::new(cpal::ErrorKind::DeviceNotAvailable),
+            &sender,
+            &cancel,
+        );
+        assert!(cancel.is_cancelled());
+        // A second failure must never block the audio callback on the full channel.
+        handle_stream_error(
+            cpal::Error::new(cpal::ErrorKind::StreamInvalidated),
+            &sender,
+            &cancel,
+        );
+        assert_eq!(
+            receiver
+                .try_recv()
+                .unwrap()
+                .downcast_ref::<MicrophoneRuntimeError>()
+                .unwrap()
+                .0
+                .kind(),
+            cpal::ErrorKind::DeviceNotAvailable
+        );
+    }
     use tokio::sync::mpsc::channel;
 
     #[test]
