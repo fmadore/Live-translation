@@ -1,5 +1,7 @@
 # Live Translation & Subtitles
 
+[![Get it from the Microsoft Store](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/detail/9PFB8LR3RR9X)
+
 Real-time captions for hybrid rooms and events. The desktop app captures a presenter’s
 microphone, Windows system audio (whatever is playing — Zoom, Teams, a browser tab, a media
 player), or both and renders captions in a transparent, always-on-top overlay. Built for the
@@ -20,7 +22,7 @@ It has two deliberately separate modes:
   (`voxtral-mini-transcribe-realtime-2602`) or Google Gemini
   (`gemini-3.5-transcribe-live`). Both detect the spoken language themselves; Gemini covers
   over 70 languages and cleans fillers and false starts out of the subtitle, Voxtral is flat-rate
-  and has no session length limit. The transcript can be saved as plain `.txt` or Markdown.
+  and has no session length limit. The transcript can be saved as plain `.txt` or Markdown; SRT/VTT export and the native Windows Save As dialog are available in version 1.2.3.
 
 The app opens on a deterministic **Built-in demo**: no publisher key, account, microphone,
 language pack, network, or per-minute charge. It drives the real caption UI, overlay, elapsed
@@ -38,6 +40,14 @@ Provider details and verified wire formats are documented in
 [`docs/gemini-live-api.md`](docs/gemini-live-api.md),
 [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md), and
 [`docs/mistral-realtime-api.md`](docs/mistral-realtime-api.md).
+
+## Release status
+
+**Version 1.2.3** adds native Windows Save As, SRT/VTT transcript export, and capture of
+one selected application and its child processes. The user confirmed Save As and application
+selection in the ARM64 test package. The Store update is submitted separately through
+Partner Center; [release preparation](docs/store-updates.md#release-123-handoff) records
+remaining testing and screenshot work.
 
 ## Install
 
@@ -205,8 +215,16 @@ CI then combines into the multi-architecture bundle described in
    place, **Esc** cancels and restores where it was, arrow keys nudge by a pixel (**Shift** for
    10), and **+**/**−** resize the text. **Hide overlay** blanks the captions mid-session (a
    video clip, a coffee break) without stopping anything.
-4. Use **Save text** or **Save Markdown** after captions finalize. Files are written under
-   `Documents/Live-translation/` (with Downloads/temp fallbacks).
+   For system audio or Both, **System capture** also offers **One application**. Select an
+   open application window, then run the audio test. This captures its process tree, not an
+   individual browser tab. Application capture requires Windows build 20348 or later;
+   unsupported systems retain the existing output capture option. See
+   [application capture](docs/application-capture.md) for scope and testing limits.
+4. Choose Markdown, plain text, WebVTT, or SubRip in the transcript's format selector,
+   then **Save as…**. The native Windows dialog lets you choose the folder and filename,
+   confirms overwrites, and remembers the last successful destination folder.
+   Timed exports require caption timing; older untimed recovery files can still be saved
+   as text or Markdown. See [transcript export](docs/transcript-export.md).
 5. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
    provider surfaces should be re-verified shortly beforehand.
 
@@ -215,7 +233,7 @@ CI then combines into the multi-architecture bundle described in
 ```text
 src/                         SvelteKit operator and overlay windows
   lib/ApiKeyPanel.svelte     provider key management
-  lib/TranscriptMonitor.svelte monitor and text/Markdown export
+  lib/TranscriptMonitor.svelte monitor and text/Markdown/SRT/VTT export
   lib/transcript.ts          pure export formatting (unit tested)
 src-tauri/src/audio/         capture, metering, resampling
 src-tauri/src/realtime.rs    shared WebSocket lifecycle

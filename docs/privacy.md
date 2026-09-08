@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 24 August 2026
+**Effective date:** 8 September 2026
 
 ## What this app is
 
@@ -22,7 +22,11 @@ device.
 
 When a live provider is selected, the app captures only the audio source selected by the user:
 a chosen microphone, Windows system audio, or both. Audio is processed in memory and streamed
-directly to the selected provider for the duration of the session. The application does not
+directly to the selected provider for the duration of the session. System capture can use
+all audio on a selected output or only the selected application and its child processes.
+The latter includes that application’s notifications and may include several browser tabs.
+Application titles and process identities are used locally to select the source, not sent
+to the speech provider. The application does not
 write captured audio to disk.
 
 ## Captions and transcripts
@@ -41,7 +45,6 @@ captioning*, the app periodically writes the finalized caption lines of the curr
 single file in its own local application-data folder on the same PC:
 
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\recovery\transcript.json`
-ecovery	ranscript.json`
 
 - It contains finalized caption text only — no audio, no API key, no provider identity, and no
   device name.
@@ -68,6 +71,9 @@ copy, proxy, or store provider keys.
 The app locally stores ordinary interface preferences, including the last selected mode,
 provider, audio source, language, overlay position, caption size, whether the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
+The app also remembers the folder of the last successful transcript export and whether
+system capture uses an output or an application. The selected process identity is not
+persisted; choose the application again after relaunch.
 These preferences contain no captured audio, caption text, or provider key.
 
 ## Running in the notification area

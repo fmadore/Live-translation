@@ -37,6 +37,20 @@ beforeEach(() => {
 });
 
 describe('caption timing', () => {
+	it('appends a restarted session after existing cues and retains only the latest partial', () => {
+		beginSession();
+		pushCaption(caption(1, 'First'));
+		beginSession();
+		pushCaption(caption(1, 'Par', false));
+		pushCaption(caption(1, 'Partial replaced', false));
+		flushTranscript();
+		const lines = get(transcript);
+		expect(lines).toHaveLength(2);
+		expect(lines[0].text).toBe('Partial replaced');
+		expect(lines[0].startMs).toBe(2900);
+		expect(lines[0].endMs).toBe(3800);
+		expect(lines[0].startMs).toBeGreaterThanOrEqual(lines[1].endMs!);
+	});
 	// The core stamps the cue; the store's only job is not to lose it on the way to the log.
 	it('commits the cue the core stamped', () => {
 		pushCaption(caption(3, 'a finished turn'));

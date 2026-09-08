@@ -1,12 +1,13 @@
 # Partner Center submission walkthrough
 
-Submission target: **Live Translation & Subtitles 1.2.2**, Product ID `9PFB8LR3RR9X`.
-Manual desktop testing is pending; this is preparation for a later submission.
+Submission target: **Live Translation & Subtitles 1.2.3**, Product ID `9PFB8LR3RR9X`.
+The user confirmed Save As and application selection in the ARM64 test build.
+See the [release handoff](store-updates.md#release-123-handoff) for remaining checks.
 
 ## Before Partner Center
 
 1. Build and verify both native packages and the single multi-architecture bundle:
-   `Live.Translation_1.2.2.msixbundle`.
+   `Live.Translation_1.2.3.msixbundle`.
 2. Sideload the per-architecture MSIX packages using
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
    manual checks in [`microsoft-store.md`](microsoft-store.md).
@@ -52,7 +53,7 @@ OpenAI, or Mistral. The built-in demo itself has no network access.
 ## Packages
 
 Remove previously listed packages and upload the single unsigned multi-architecture
-`Live.Translation_1.2.2.msixbundle` for version `1.2.2.0`. The Store signs accepted packages.
+`Live.Translation_1.2.3.msixbundle` for version `1.2.3.0`. The Store signs accepted packages.
 Do not upload the locally self-signed test package.
 
 Verify these manifest values:
@@ -62,7 +63,7 @@ Verify these manifest values:
 | `Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
-| Version | `1.2.2.0` |
+| Version | `1.2.3.0` |
 
 Windows Desktop is the only device family. Native x64 and ARM64 packages are supplied.
 
@@ -90,7 +91,7 @@ list is intentionally not duplicated inside the Description.
 
 ### What’s new
 
-Paste the English and French **1.2.2** blocks from
+Paste the English and French **1.2.3** blocks from
 [`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
 
 Additional system requirements:

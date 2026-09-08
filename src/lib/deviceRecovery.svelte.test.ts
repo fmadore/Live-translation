@@ -15,6 +15,7 @@ vi.mock('./tauri', () => ({
 			stopSession: native.stopSession,
 			listMicrophones: vi.fn().mockResolvedValue([{ id: 'mic-1', name: 'Mic', isDefault: true }]),
 			listOutputs: vi.fn().mockResolvedValue([{ id: 'render-1', name: 'Dock', isDefault: true }]),
+			listApplications: vi.fn().mockResolvedValue({ supported: true, applications: [] }),
 			onDeviceReadiness: vi.fn().mockResolvedValue({ ready: true }),
 			readRecovery: vi.fn().mockResolvedValue(null)
 		},
@@ -50,7 +51,54 @@ import Page from '../routes/+page.svelte';
 import { options, applyStatus, transcript, pushCaption, clearTranscript } from './stores';
 import { locale } from './i18n';
 
+it('reselecting an application stops capture without widening scope or discarding text', async () => {
+	vi.clearAllMocks();
+	locale.set('en');
+	clearTranscript();
+	applyStatus({ state: 'idle' });
+	options.set({
+		source: 'both',
+		provider: 'gemini',
+		mode: 'translate',
+		targetLanguage: 'en',
+		systemCapture: { kind: 'application', process: { pid: 123, createdAt: 'old' } }
+	});
+	native.stopSession.mockImplementation(async () => {
+		applyStatus({ state: 'idle' });
+	});
+	const view = render(Page);
+	await waitFor(() => expect(native.handlers.status).toBeTypeOf('function'));
+	native.handlers.status({ state: 'running', origin: 'microphone' });
+	pushCaption({
+		origin: 'microphone',
+		turnId: 1,
+		text: 'Keep application transcript',
+		sourceText: '',
+		final: true,
+		startMs: 0,
+		endMs: 100
+	});
+	native.handlers.status({
+		state: 'error',
+		origin: 'system',
+		message: { id: 'error.systemCapture', detail: 'Application closed' }
+	});
+	await waitFor(() =>
+		expect(view.getByRole('button', { name: 'Stop and select an application' })).toBeInTheDocument()
+	);
+	expect(view.queryByRole('button', { name: 'Stop and retry with default device' })).toBeNull();
+	await fireEvent.click(view.getByRole('button', { name: 'Stop and select an application' }));
+	await waitFor(() =>
+		expect(get(options).systemCapture).toEqual({ kind: 'application', process: null })
+	);
+	expect(native.stopSession).toHaveBeenCalledOnce();
+	expect(native.startSession).not.toHaveBeenCalled();
+	expect(get(transcript)[0].text).toBe('Keep application transcript');
+	view.unmount();
+});
+
 it('keeps the failed endpoint until an explicit fallback and drains before restarting', async () => {
+	vi.clearAllMocks();
 	locale.set('en');
 	clearTranscript();
 	options.set({

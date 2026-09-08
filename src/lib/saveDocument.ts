@@ -33,9 +33,10 @@ export async function saveTranscriptDocument(
 		}),
 		transcriptFilename(now, format)
 	);
+	if (!path) return '';
 	markTranscriptSaved(lines, path);
 	try {
-		await recovery.clear();
+		if (get(transcript) === lines) await recovery.clear();
 	} catch {
 		// Deliberately ignored; see above.
 	}

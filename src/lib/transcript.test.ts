@@ -2,6 +2,43 @@ import { describe, expect, it } from 'vitest';
 import { formatTranscript, groupTranscript, transcriptFilename } from './transcript';
 import type { TranscriptLine } from './types';
 
+describe('timed exports', () => {
+	const mic: TranscriptLine = {
+		id: 1,
+		origin: 'microphone',
+		text: 'Bonjour <room>\n\n& hello',
+		sourceText: '',
+		startMs: 1000,
+		endMs: 3000
+	};
+	const system: TranscriptLine = {
+		...mic,
+		id: 2,
+		origin: 'system',
+		text: 'English',
+		startMs: 0,
+		endMs: 0
+	};
+	it('orders overlapping sources by start and gives instant finalizations a positive duration', () => {
+		const result = formatTranscript([mic, system], 'srt');
+		expect(result).toContain('1\n00:00:00,000 --> 00:00:00,001\n[System] English');
+		expect(result).toContain(
+			'2\n00:00:01,000 --> 00:00:03,000\n[Microphone] Bonjour &lt;room&gt; &amp; hello'
+		);
+	});
+	it('writes WebVTT voice labels and hours beyond 24', () => {
+		const result = formatTranscript([{ ...mic, startMs: 90000000, endMs: 90001000 }], 'vtt');
+		expect(result).toContain('WEBVTT\n\n1\n25:00:00.000 --> 25:00:01.000');
+		expect(result).toContain('<v Microphone>');
+	});
+	it('handles empty exports but refuses missing or invalid timings without losing text', () => {
+		expect(formatTranscript([], 'vtt')).toBe('WEBVTT\n\n');
+		expect(formatTranscript([], 'srt')).toBe('');
+		for (const invalid of [undefined, -1, NaN])
+			expect(() => formatTranscript([{ ...mic, startMs: invalid }], 'srt')).toThrow();
+	});
+});
+
 /** The store keeps the log newest-first, so fixtures are written that way too. */
 const lines: TranscriptLine[] = [
 	{ id: 4, text: 'problématique.', sourceText: '', origin: 'microphone' },

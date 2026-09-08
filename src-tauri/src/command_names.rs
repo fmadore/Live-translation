@@ -16,6 +16,7 @@
 pub const COMMANDS: &[&str] = &[
     "list_microphones",
     "list_outputs",
+    "list_applications",
     "has_api_key",
     "set_api_key",
     "clear_api_key",

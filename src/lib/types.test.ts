@@ -20,6 +20,18 @@ import {
 } from './types';
 import { PROVIDER_META } from './providers';
 
+it('restores application scope without restoring an old process identity', () => {
+	storing({
+		source: 'both',
+		mode: 'translate',
+		provider: 'gemini',
+		targetLanguage: 'en',
+		systemCapture: { kind: 'application', process: { pid: 123, createdAt: '987' } }
+	});
+	expect(loadStartOptions().systemCapture).toEqual({ kind: 'application', process: null });
+	Reflect.deleteProperty(globalThis, 'localStorage');
+});
+
 // The operator UI used to offer "Flip mid-session with F2" over a handler that refused for
 // the whole of a session (issue #21). Keeping the rule in one tested predicate is what stops
 // the shortcut and the copy drifting apart again.

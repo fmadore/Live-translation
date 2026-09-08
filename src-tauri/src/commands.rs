@@ -40,6 +40,14 @@ pub async fn has_api_key(provider: Provider) -> Result<bool, AppError> {
 }
 
 #[tauri::command]
+pub async fn list_applications() -> Result<crate::audio::applications::ApplicationList, AppError> {
+    tauri::async_runtime::spawn_blocking(crate::audio::applications::list)
+        .await
+        .map_err(|e| AppError::with(id::DEVICE_ENUMERATION, e))?
+        .map_err(|e| AppError::with(id::DEVICE_ENUMERATION, e))
+}
+
+#[tauri::command]
 pub async fn set_api_key(provider: Provider, key: String) -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(move || secrets::set_api_key(provider, &key))
         .await
@@ -103,9 +111,16 @@ pub async fn start_audio_test(
     source: AudioSource,
     mic_device_name: Option<String>,
     system_device_id: Option<String>,
+    system_capture: Option<crate::audio::applications::SystemCapture>,
 ) -> Result<(), AppError> {
     manager
-        .start_test(&app, source, mic_device_name, system_device_id)
+        .start_test(
+            &app,
+            source,
+            mic_device_name,
+            system_device_id,
+            system_capture.unwrap_or_default(),
+        )
         .await
         .map_err(|error| AppError::with(id::AUDIO_TEST_START, format!("{error:#}")))
 }
@@ -156,46 +171,16 @@ pub async fn text_scale_factor() -> f64 {
     textscale::current()
 }
 
-/// Write the transcript to a `Live-translation` folder under the user's Documents directory
-/// (falling back to Downloads, then the temp dir). `filename` is sanitized. Returns the path.
+/// Show Windows Save As, then atomically write only to the selected destination.
 #[tauri::command]
 pub async fn save_transcript(
     app: AppHandle,
+    window: tauri::WebviewWindow,
     content: String,
     filename: String,
-) -> Result<String, AppError> {
-    let dir = app
-        .path()
-        .document_dir()
-        .or_else(|_| app.path().download_dir())
-        .unwrap_or_else(|_| std::env::temp_dir())
-        .join("Live-translation");
-
+) -> Result<Option<String>, AppError> {
     tauri::async_runtime::spawn_blocking(move || {
-        std::fs::create_dir_all(&dir)
-            .map_err(|e| AppError::with(id::TRANSCRIPT_DIR, format!("{} — {e}", dir.display())))?;
-
-        let safe: String = filename
-            .chars()
-            .map(|c| {
-                if c.is_alphanumeric() || matches!(c, '-' | '_' | '.') {
-                    c
-                } else {
-                    '-'
-                }
-            })
-            .collect();
-        let safe = if safe.trim_matches(|c| c == '-' || c == '.').is_empty() {
-            "transcript.md".to_string()
-        } else {
-            safe
-        };
-
-        let path = dir.join(safe);
-        std::fs::write(&path, content).map_err(|e| {
-            AppError::with(id::TRANSCRIPT_WRITE, format!("{} — {e}", path.display()))
-        })?;
-        Ok(path.to_string_lossy().into_owned())
+        crate::export::save(app, window, content, filename)
     })
     .await
     .map_err(|error| AppError::with(id::TASK_FAILED, error))?

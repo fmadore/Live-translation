@@ -9,12 +9,31 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## The route
+## Release 1.2.3 handoff
 
-Current release version: **1.2.2** (MSIX **1.2.2.0**). The review fixes and automated
-checks are complete. The user confirmed the two audio fixes on the installed ARM64
-package and refreshed both screenshot sets on 8 September 2026. Broader hardware
-coverage remains documented in [audio device testing](audio-device-testing.md).
+Current release target: **1.2.3** (MSIX **1.2.3.0**). The user confirmed that the prior
+Store version was updated, and that Save As and application selection work on the local
+ARM64 1.2.3.0 test package. The subsequent start/rehearsal layout fix was visually checked
+in English and French and is included in the release source.
+
+- [x] Implement native Save As and timed SRT/VTT export (#26).
+- [x] Implement capture of a selected application and its child processes (#27).
+- [x] Prepare English/French [listing fields](store-listing.md) and [release notes](release-notes.md).
+- [x] Synchronize application manifests and lockfiles to 1.2.3.
+- [ ] Verify release workflow success and download the **x64 + ARM64** bundle.
+- [ ] Smoke-test the final package, including the layout fix. Full NSIS/x64 and audio
+      isolation/device-transition matrices remain unverified; see
+      [export checks](transcript-export.md#verification) and
+      [application capture checks](application-capture.md#verification).
+- [ ] Refresh screenshots that show the changed idle controls or transcript toolbar in
+      both languages; review captions against the actual images. Existing images remain
+      the 1.2.2 set, not new captures of 1.2.3.
+- [ ] Submit the bundle and both listing languages manually in Partner Center.
+
+Use Live.Translation_1.2.3.msixbundle from the GitHub release. The locally generated
+ARM64-only test bundle is not the multi-architecture Store artifact.
+
+## The route
 
 1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml` and
    `src-tauri/tauri.conf.json`, and synchronize the root app versions in `package-lock.json`
@@ -22,7 +41,7 @@ coverage remains documented in [audio device testing](audio-device-testing.md).
    version already in the Store** — Partner Center rejects a package that does not increase.
    The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z` so the
    bump is one reviewable change rather than three scattered ones.
-2. **Tag and push after manual testing**: `git tag v1.2.2 && git push origin v1.2.2`. The
+2. **Tag and push after manual testing**: `git tag vX.Y.Z` then `git push origin vX.Y.Z` (replace `X.Y.Z` with the tested version; do not reuse the published `v1.2.2` tag). The
    [`Release installers`](../.github/workflows/release.yml) workflow builds the NSIS installer,
    both architectures' `.msix`, and one multi-architecture
    `Live.Translation_<version>.msixbundle`, and attaches them to the GitHub release. Download

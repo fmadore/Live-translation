@@ -28,4 +28,5 @@ pub struct AudioChunk {
 
 pub use capture::list_input_devices;
 
+pub mod applications;
 pub mod devices;

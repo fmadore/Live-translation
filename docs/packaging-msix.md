@@ -254,7 +254,7 @@ nothing). Then work through the list; the first three are the open gates in
 | **WASAPI loopback (gate 7)** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
 | **Credential Manager (gate 8)** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
 | **Overlay** | Transparent background, click-through to the window behind, always on top over a full-screen slide deck, and move mode still drags it. |
-| **Export** | Export a transcript and confirm it lands in `Documents\Live-translation\`. Full-trust packages are not filesystem-virtualised, so this should be the real Documents folder — check that it is, and not a `Packages\…\LocalCache` redirect. |
+| **Export** | For 1.2.3, use native Save As to choose a folder and filename for text, Markdown, SRT and VTT. Verify remembered folder, overwrite confirmation and cancellation (including the quit prompt); check the file exists at the exact selected path. See [transcript export](transcript-export.md#verification). The published 1.2.2 package uses the previous Documents export path. |
 
 Anything that fails here is a bug to fix before submission, not a packaging setting to tweak:
 the same binary runs in both shapes.

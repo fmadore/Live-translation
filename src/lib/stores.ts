@@ -115,7 +115,15 @@ export const options = writable<StartOptions>(loadStartOptions());
 
 options.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') {
-		localStorage.setItem(SESSION_OPTIONS_KEY, JSON.stringify(v));
+		localStorage.setItem(
+			SESSION_OPTIONS_KEY,
+			JSON.stringify({
+				...v,
+				...(v.systemCapture?.kind === 'application'
+					? { systemCapture: { kind: 'application', process: null } }
+					: {})
+			})
+		);
 	}
 });
 
@@ -163,6 +171,7 @@ export function markTranscriptSaved(lines: TranscriptLine[], path: string) {
 const pending: Partial<Record<Origin, Caption>> = {};
 
 let nextLineId = 1;
+let transcriptTimeOffset = 0;
 
 function commit(c: Caption) {
 	if (!c.text.trim()) return;
@@ -173,8 +182,8 @@ function commit(c: Caption) {
 		origin: c.origin,
 		// The committed caption's own interval: the turn's start, and the moment this text
 		// was the last thing the provider had to say about it.
-		startMs: c.startMs,
-		endMs: c.endMs
+		startMs: c.startMs === undefined ? undefined : c.startMs + transcriptTimeOffset,
+		endMs: c.endMs === undefined ? undefined : c.endMs + transcriptTimeOffset
 	};
 	transcript.update((list) => [line, ...list]);
 }
@@ -215,6 +224,8 @@ export function flushTranscript() {
 /** Prepare the monitor for a new run without discarding already finalized transcript lines. */
 export function beginSession() {
 	flushTranscript();
+	// Retried/new sessions append to one document without resetting its cue timeline.
+	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
 	originStates.set({});
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
@@ -227,6 +238,7 @@ export function beginSession() {
  *  an empty document is neither saved nor unsaved, and the next run's line ids continue
  *  upward, so a stale marker could otherwise make fresh text look already written. */
 export function clearTranscript() {
+	transcriptTimeOffset = 0;
 	transcript.set([]);
 	latestCaption.set(null);
 	currentCaptions.set({});

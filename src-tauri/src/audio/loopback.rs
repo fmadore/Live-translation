@@ -17,6 +17,7 @@ use crate::types::AudioLevel;
 #[cfg(not(windows))]
 pub fn run_system_loopback(
     _device_id: Option<String>,
+    _capture: super::applications::SystemCapture,
     _target_rate: u32,
     _level_tx: Sender<AudioLevel>,
     _chunk_tx: Sender<AudioChunk>,
@@ -28,12 +29,13 @@ pub fn run_system_loopback(
 #[cfg(windows)]
 pub fn run_system_loopback(
     device_id: Option<String>,
+    capture: super::applications::SystemCapture,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
     chunk_tx: Sender<AudioChunk>,
     cancel: CancellationToken,
 ) -> Result<()> {
-    windows_impl::run(device_id, target_rate, level_tx, chunk_tx, cancel)
+    windows_impl::run(device_id, capture, target_rate, level_tx, chunk_tx, cancel)
 }
 
 #[cfg(windows)]
@@ -64,6 +66,7 @@ mod windows_impl {
 
     pub fn run(
         device_id: Option<String>,
+        capture: crate::audio::applications::SystemCapture,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
         chunk_tx: Sender<AudioChunk>,
@@ -74,28 +77,51 @@ mod windows_impl {
         initialize_mta()
             .ok()
             .context("failed to initialise COM (MTA)")?;
+        struct Apartment;
+        impl Drop for Apartment {
+            fn drop(&mut self) {
+                wasapi::deinitialize();
+            }
+        }
+        let _apartment = Apartment;
 
-        let enumerator = DeviceEnumerator::new().ctx("failed to create device enumerator")?;
-        let device = match device_id {
-            Some(id) => enumerator
-                .get_device(&id)
-                .ctx("selected output device unavailable")?,
-            None => enumerator
-                .get_default_device(&Direction::Render)
-                .ctx("no default render device for loopback")?,
+        use crate::audio::applications::{ProcessGuard, SystemCapture};
+        let (device, process, mut audio_client, format, period) = match capture {
+            SystemCapture::Output => {
+                let enumerator =
+                    DeviceEnumerator::new().ctx("failed to create device enumerator")?;
+                let device = match device_id {
+                    Some(id) => enumerator
+                        .get_device(&id)
+                        .ctx("selected output device unavailable")?,
+                    None => enumerator
+                        .get_default_device(&Direction::Render)
+                        .ctx("no default render device")?,
+                };
+                anyhow::ensure!(
+                    device.get_direction() == Direction::Render,
+                    "selected device is not an output endpoint"
+                );
+                let client = device
+                    .get_iaudioclient()
+                    .ctx("failed to get IAudioClient")?;
+                let format = client.get_mixformat().ctx("failed to get mix format")?;
+                let (_, period) = client
+                    .get_device_period()
+                    .ctx("failed to get device periods")?;
+                (Some(device), None, client, format, period)
+            }
+            SystemCapture::Application { process } => {
+                let identity = process.context("select an application before starting capture")?;
+                let guard = ProcessGuard::selected(&identity)?;
+                let client =
+                    wasapi::AudioClient::new_application_loopback_client(identity.pid, true)
+                        .ctx("failed to capture selected application")?;
+                // Process clients have neither a device mix format nor a device period.
+                let format = WaveFormat::new(32, 32, &SampleType::Float, 48000, 2, None);
+                (None, Some(guard), client, format, 200_000)
+            }
         };
-        anyhow::ensure!(
-            device.get_direction() == Direction::Render,
-            "selected device is not an output endpoint"
-        );
-        let mut audio_client = device
-            .get_iaudioclient()
-            .ctx("failed to get IAudioClient")?;
-
-        // Shared-mode mix format is what's actually playing; usually 32-bit float.
-        let format: WaveFormat = audio_client
-            .get_mixformat()
-            .ctx("failed to get mix format")?;
         let in_rate = format.get_samplespersec();
         let channels = format.get_nchannels() as usize;
         let bits = format.get_bitspersample();
@@ -109,14 +135,10 @@ mod windows_impl {
             "starting WASAPI loopback capture"
         );
 
-        let (_default_period, min_period) = audio_client
-            .get_device_period()
-            .ctx("failed to get device periods")?;
-
         // Loopback = render endpoint opened for capture.
         let mode = StreamMode::EventsShared {
             autoconvert: true,
-            buffer_duration_hns: min_period,
+            buffer_duration_hns: period,
         };
         audio_client
             .initialize_client(&format, &Direction::Capture, &mode)
@@ -141,8 +163,14 @@ mod windows_impl {
             // An endpoint can disappear without producing another audio event. Never reopen
             // the new default silently: this stream stays pinned to its original endpoint.
             anyhow::ensure!(
-                matches!(device.get_state(), Ok(wasapi::DeviceState::Active)),
+                device
+                    .as_ref()
+                    .is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
                 "selected output device disconnected or disabled"
+            );
+            anyhow::ensure!(
+                process.as_ref().is_none_or(|p| p.running()),
+                "selected application has closed; select it again"
             );
             // Drain whatever the device has buffered into `raw`.
             capture_client

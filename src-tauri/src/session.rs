@@ -151,6 +151,12 @@ impl SessionManager {
         self.stop_test_active(app).await;
 
         validate_provider(options.mode, options.provider)?;
+        if options.rehearsal.is_none()
+            && options.provider != Provider::OnDevice
+            && options.source != AudioSource::Microphone
+        {
+            crate::audio::applications::validate(&options.system_capture)?;
+        }
         if options.provider == Provider::OnDevice && options.source != AudioSource::Microphone {
             anyhow::bail!("The built-in demonstration uses its bundled sample; select Demo audio")
         }
@@ -257,6 +263,7 @@ impl SessionManager {
                             .clone()
                             .or(options.mic_device_name.clone());
                         let system_id = options.system_device_id.clone();
+                        let system_capture = options.system_capture.clone();
                         let handle = std::thread::Builder::new()
                             .name(format!("capture-{origin:?}"))
                             .spawn(move || {
@@ -270,6 +277,7 @@ impl SessionManager {
                                     ),
                                     Origin::System => run_system_loopback(
                                         system_id,
+                                        system_capture,
                                         target_rate,
                                         capture_level_tx,
                                         audio_tx,
@@ -414,6 +422,7 @@ impl SessionManager {
         source: AudioSource,
         mic_device_name: Option<String>,
         system_device_id: Option<String>,
+        system_capture: crate::audio::applications::SystemCapture,
     ) -> Result<()> {
         let _lifecycle = self.lifecycle.lock().await;
         if lock(&self.active)
@@ -425,6 +434,10 @@ impl SessionManager {
         self.stop_test_active(app).await;
         // A failed provider may have left completed handles to join, but no live client.
         self.stop_active(app).await;
+
+        if source != AudioSource::Microphone {
+            crate::audio::applications::validate(&system_capture)?;
+        }
 
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
@@ -452,6 +465,7 @@ impl SessionManager {
             let probe_level_tx = level_tx.clone();
             let mic_name = mic_device_name.clone();
             let system_id = system_device_id.clone();
+            let system_capture = system_capture.clone();
             let (start_tx, start_rx) = std::sync::mpsc::channel();
             let handle = std::thread::Builder::new()
                 .name(format!("audio-test-{origin:?}"))
@@ -471,6 +485,7 @@ impl SessionManager {
                         ),
                         Origin::System => run_system_loopback(
                             system_id,
+                            system_capture,
                             TEST_SAMPLE_RATE,
                             probe_level_tx,
                             audio_tx,

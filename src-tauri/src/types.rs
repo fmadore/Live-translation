@@ -117,6 +117,8 @@ pub struct StartOptions {
     pub mic_device_id: Option<String>,
     #[serde(default)]
     pub system_device_id: Option<String>,
+    #[serde(default)]
+    pub system_capture: crate::audio::applications::SystemCapture,
     /// Rehearsal mode: play the bundled speech fixture for this language through the whole
     /// pipeline instead of capturing audio, so the overlay, move mode and the export can be
     /// exercised with no microphone and no sound in the room. Absent — the normal case — runs

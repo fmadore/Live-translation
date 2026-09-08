@@ -17,6 +17,35 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.2.3
+
+The developer-signed ARM64 MSIX **1.2.3.0** was installed on 8 September 2026.
+The user confirmed Save As and application selection. The later layout correction
+was checked in English and French. Full audio isolation, device-transition and
+packaged x64/NSIS matrices remain unverified; see the
+[release handoff](store-updates.md#release-123-handoff).
+
+```markdown
+Save transcripts to your chosen folder with the native Windows Save As dialog. The last
+successful folder is remembered. Export plain text, Markdown, SubRip (SRT), or WebVTT (VTT).
+Cancelling a save keeps the transcript available and cancelling from the quit prompt keeps
+the app open. Captions received during a save remain marked as unsaved.
+
+For system audio, choose an output device or one open application. Application capture
+includes its child processes and notifications; browsers may include multiple tabs.
+Refresh the application list before selecting a source. If the application closes, its
+capture stops without switching to all system audio. Select it again after restarting it.
+
+The start and rehearsal buttons now share an aligned row, with readable explanations below.
+
+SRT/VTT timing follows the caption session clock, including provider latency, rather than
+alignment to a recording. Older recovered transcripts without timing can still be saved
+as text or Markdown. Application selection must be repeated after relaunching the app.
+
+Implements [#26](https://github.com/fmadore/Live-translation/issues/26) and
+[#27](https://github.com/fmadore/Live-translation/issues/27).
+```
+
 ## v1.2.2
 
 The user confirmed both fixes on the installed 1.2.2.0 ARM64 MSIX on 8 September 2026.

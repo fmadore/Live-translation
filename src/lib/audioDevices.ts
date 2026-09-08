@@ -12,8 +12,10 @@ export function validateDevices(
 		...current,
 		micDeviceName: null,
 		micDeviceId: microphones.some((device) => device.id === micId) ? micId : null,
-		systemDeviceId: outputs.some((device) => device.id === current.systemDeviceId)
-			? current.systemDeviceId
-			: null
+		systemDeviceId:
+			current.systemCapture?.kind === 'application' ||
+			outputs.some((device) => device.id === current.systemDeviceId)
+				? current.systemDeviceId
+				: null
 	};
 }

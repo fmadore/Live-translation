@@ -10,6 +10,7 @@ mod audio;
 pub mod command_names;
 mod commands;
 mod errors;
+mod export;
 mod gemini;
 mod lifecycle;
 mod mistral;
@@ -104,6 +105,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::list_outputs,
+            commands::list_applications,
             commands::has_api_key,
             commands::set_api_key,
             commands::clear_api_key,

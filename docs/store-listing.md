@@ -1,9 +1,10 @@
-# Partner Center listing text
+# Partner Center listing text — 1.2.3
 
-Each heading below corresponds to a separate Partner Center field. Paste only the text inside
-the relevant code block. Do not paste the headings or explanations.
-
-Prepared for **1.2.2**. Manual desktop testing and Store submission are pending.
+Prepared for **1.2.3** (MSIX **1.2.3.0**), following the Store update confirmed by the
+user on 8 September 2026. Paste only the relevant field blocks into Partner Center.
+The user confirmed native Save As and application selection on the ARM64 test package.
+See [release handoff](store-updates.md#release-123-handoff) for remaining verification
+and screenshot work.
 
 ## English (United States)
 
@@ -18,7 +19,7 @@ Live Translation & Subtitles is a Windows presentation tool for meetings, lectur
 
 A built-in English and French demonstration works without an account, API key, microphone, language pack, internet connection, or payment. It uses bundled scripted captions to demonstrate the overlay, timer, audio-level display, transcript, and export workflow. It does not recognize live speech.
 
-For real-time use, select Gemini or OpenAI for English–French translation, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both.
+For real-time use, select Gemini or OpenAI for English–French translation, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both. System capture can use all audio on an output device or one selected application and its child processes. Application notifications are included, and browsers may include multiple tabs. Save transcripts to a folder of your choice as plain text, Markdown, SRT, or VTT.
 
 The app does not sell subscriptions, credits, or API access. Provider keys are stored in Windows Credential Manager and sent only to the selected provider. The developer operates no server and receives no audio, keys, transcripts, analytics, or telemetry.
 
@@ -34,10 +35,10 @@ description:
 Built-in English and French caption demonstration with no account, API key, microphone, or network
 Live English–French translation with your own Google Gemini or OpenAI API key
 Live same-language subtitles with your own Mistral or Google Gemini API key
-Capture a selected microphone, Windows system audio, or both in live modes
+Capture a selected microphone, system audio from an output device or one application, or both in live modes
 Transparent, always-on-top caption overlay that remains click-through
 Move, resize, show, or hide the overlay during a session
-Save completed transcripts as plain text or Markdown
+Save transcripts as text, Markdown, SRT, or VTT using the Windows Save As dialog
 See elapsed time and estimated provider cost while live audio is streaming
 ```
 
@@ -49,21 +50,14 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.2.2
+### What's new in this version — 1.2.3
 
-Paste this into **What's new in this version**. Unlike every other field here, this one
-describes a single release and has to be rewritten for the next one; the heading carries the
-version it was written for so a stale block is obvious. Write it for someone deciding whether
-to update, not for someone reading a changelog — no version numbers, no internal names.
+Paste this into **What's new in this version** after packaged testing:
 
 ```text
-The interface is available in English and French. Caption appearance and language settings are accessible before and during a session, with a contrast readout to help prepare the overlay for your room.
+Save transcripts wherever you choose with the familiar Windows Save As dialog. Choose plain text, Markdown, SubRip (SRT), or WebVTT (VTT). The app remembers your last successful save folder. Cancelling keeps your transcript available. The start and rehearsal buttons now line up, with their explanations below.
 
-Read earlier transcript lines while captions continue arriving without losing your place. Use Jump to latest when you want to follow along again. Long transcripts are now grouped into shorter paragraphs, both on screen and in saved files.
-
-Choose the output used for system-audio captions and refresh devices without restarting. Device lists update when hardware changes. A disconnected source offers a session retry or a switch to the default device. Audio tests also handle microphone failures correctly and use less memory.
-
-Optional transcript recovery handles saving and discarding more reliably. Overlay controls now report failed appearance updates and keep move mode consistent when a command fails.
+For system-audio captions, choose all audio on an output device or one open application. Application capture includes that application's child processes and notifications; a browser may include several tabs. If the selected application closes, capture does not switch to all system audio. Select the application again after restarting it.
 ```
 
 ## Français (France)
@@ -79,7 +73,7 @@ Live Translation & Subtitles est un outil de présentation Windows destiné aux 
 
 Une démonstration intégrée en anglais et en français fonctionne sans compte, clé API, microphone, module linguistique, connexion Internet ni paiement. Elle utilise des sous-titres scénarisés fournis avec l’application pour montrer la surimpression, le chronomètre, l’indicateur de niveau, la transcription et l’export. Elle ne reconnaît pas la parole en direct.
 
-Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux.
+Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux. La capture système peut utiliser tout l’audio d’une sortie ou une application sélectionnée et ses processus enfants. Les notifications de cette application sont incluses, et un navigateur peut inclure plusieurs onglets. Enregistrez les transcriptions dans le dossier de votre choix en texte brut, Markdown, SRT ou VTT.
 
 L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
 
@@ -95,10 +89,10 @@ la description complète :
 Démonstration intégrée en anglais et en français, sans compte, clé API, microphone ni réseau
 Traduction français–anglais en direct avec votre propre clé API Google Gemini ou OpenAI
 Sous-titres en direct dans la langue parlée avec votre propre clé API Mistral ou Google Gemini
-Capture d’un microphone sélectionné, de l’audio système Windows ou des deux en mode direct
+Capture d’un microphone, de l’audio système d’une sortie ou d’une application, ou des deux en direct
 Surimpression de sous-titres transparente, toujours visible et transparente aux clics
 Déplacement, redimensionnement, affichage ou masquage de la surimpression pendant une session
-Enregistrement des transcriptions terminées en texte brut ou en Markdown
+Export en texte, Markdown, SRT ou VTT avec la fenêtre Enregistrer sous de Windows
 Affichage du temps écoulé et du coût estimé pendant la transmission audio en direct
 ```
 
@@ -110,19 +104,14 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.2.2
+### Nouveautés de cette version — 1.2.3
 
-Collez ce texte dans **Nouveautés de cette version**. À réécrire à chaque version : voir la
-note sous la version anglaise.
+À coller après les tests du paquet dans **Nouveautés de cette version** :
 
 ```text
-L’interface est disponible en français et en anglais. Les réglages de langue et d’apparence des sous-titres sont accessibles avant et pendant une session, avec une mesure de contraste pour préparer la surimpression à votre salle.
+Enregistrez vos transcriptions à l’endroit de votre choix avec la fenêtre habituelle Enregistrer sous de Windows. Choisissez le texte brut, Markdown, SubRip (SRT) ou WebVTT (VTT). L’application mémorise le dernier dossier utilisé avec succès. Une annulation conserve votre transcription. Les boutons de démarrage et de répétition sont désormais alignés, avec leurs explications en dessous.
 
-Relisez les passages précédents de la transcription sans perdre votre position lorsque de nouveaux sous-titres arrivent. Un bouton permet de revenir aux derniers sous-titres pour les suivre à nouveau. Les longues transcriptions sont désormais réparties en paragraphes plus courts, à l’écran comme dans les fichiers enregistrés.
-
-Choisissez la sortie utilisée pour les sous-titres de l’audio système et actualisez les appareils sans redémarrer. Les listes suivent les changements de matériel. Une source déconnectée permet de relancer la session ou de choisir l’appareil par défaut. Les tests audio gèrent aussi les défaillances du microphone et consomment moins de mémoire.
-
-La récupération facultative des transcriptions gère plus fiablement l’enregistrement et la suppression. Les contrôles de la surimpression signalent désormais les échecs de mise à jour de l’apparence et conservent un état cohérent du mode de déplacement lorsqu’une commande échoue.
+Pour les sous-titres de l’audio système, choisissez tout l’audio d’une sortie ou une application ouverte. La capture inclut les processus enfants et les notifications de cette application ; un navigateur peut inclure plusieurs onglets. Si l’application sélectionnée se ferme, la capture ne bascule pas vers tout l’audio système. Sélectionnez à nouveau l’application après son redémarrage.
 ```
 
 ## Notes for certification — separate Partner Center field
@@ -133,7 +122,7 @@ text:
 ```text
 Product ID: 9PFB8LR3RR9X
 
-The previous 10.1.2.20 report, “Unusable Feature: Start Subtitles,” was addressed in version 1.0.5 by removing the device-dependent Windows Speech implementation. Version 1.2.2 retains that built-in demonstration.
+The previous 10.1.2.20 report, “Unusable Feature: Start Subtitles,” was addressed in version 1.0.5 by removing the device-dependent Windows Speech implementation. This update retains that built-in demonstration.
 
 No account, API key, microphone, language pack, or network connection is required for the default test:
 
@@ -143,11 +132,14 @@ No account, API key, microphone, language pack, or network connection is require
 4. Within one second, the status changes to Demo, the Elapsed clock advances, and the Demo audio meter moves.
 5. Partial and final English captions appear automatically in the operator window and presentation overlay.
 6. Click Stop captions. The completed transcript remains available for export.
-7. Select Français and repeat to verify the French captions.
+7. Choose each transcript format (text, Markdown, SRT, VTT), click Save as, select a writable folder and verify the saved file. Cancel another save and confirm that the transcript remains available.
+8. Select Français and repeat to verify the French captions.
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
 Live microphone and system-audio recognition are optional provider-dependent modes. Mistral and Gemini provide live same-language subtitles. Gemini and OpenAI provide live English–French translation. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
+
+Application audio capture is optional. With an open application playing audio, select System audio, One application, and the application, then run the level-only audio test without a provider key. Live speech recognition still requires the user’s compatible provider key. Closing the selected application must not switch capture to all system audio. Application capture includes child processes, not an individually selected browser tab.
 
 The developer operates no backend, relay, telemetry, analytics, or crash-reporting service.
 ```

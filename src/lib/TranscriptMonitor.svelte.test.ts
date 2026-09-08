@@ -47,6 +47,27 @@ beforeEach(() => {
 });
 
 describe('saved / unsaved state', () => {
+	it('explains why old untimed recovery cannot be exported as subtitles', async () => {
+		const { getByRole, getByText } = mount(seed(2));
+		await fireEvent.change(getByRole('combobox', { name: 'Export format' }), {
+			target: { value: 'srt' }
+		});
+		expect(getByRole('button', { name: 'Save as…' })).toBeDisabled();
+		expect(getByText(/recovered transcript has no timing/)).toBeInTheDocument();
+		await fireEvent.change(getByRole('combobox'), { target: { value: 'text' } });
+		expect(getByRole('button', { name: 'Save as…' })).toBeEnabled();
+	});
+	it('exports the selected timed format through Save As', async () => {
+		const lines = seed(1).map((line) => ({ ...line, startMs: 0, endMs: 1000 }));
+		restoreTranscript(lines);
+		const { getByRole } = mount(lines);
+		await fireEvent.change(getByRole('combobox'), { target: { value: 'vtt' } });
+		await fireEvent.click(getByRole('button', { name: 'Save as…' }));
+		await waitFor(() => expect(mocks.saveTranscript).toHaveBeenCalled());
+		const [content, filename] = mocks.saveTranscript.mock.lastCall!;
+		expect(content).toMatch(/^WEBVTT/);
+		expect(filename).toMatch(/\.vtt$/);
+	});
 	// Issue #25: on screen a transcript that exists only in memory looked exactly like one
 	// that was already on disk.
 	it('marks a fresh log as unsaved', () => {
@@ -62,7 +83,7 @@ describe('saved / unsaved state', () => {
 	it('flips to saved and names the file once the write lands', async () => {
 		const { getByTestId, getByText } = mount(seed(3));
 
-		await fireEvent.click(getByText('Save Markdown'));
+		await fireEvent.click(getByText('Save as…'));
 
 		await waitFor(() => expect(getByTestId('save-state')).toHaveTextContent('Saved'));
 		expect(getByText('C:\\Docs\\Live-translation\\transcript.md')).toBeInTheDocument();
@@ -71,9 +92,9 @@ describe('saved / unsaved state', () => {
 	it('stays saved when the operator saves the same document again', async () => {
 		const { getByTestId, getByText } = mount(seed(3));
 
-		await fireEvent.click(getByText('Save text'));
+		await fireEvent.click(getByText('Save as…'));
 		await waitFor(() => expect(getByTestId('save-state')).toHaveTextContent('Saved'));
-		await fireEvent.click(getByText('Save Markdown'));
+		await fireEvent.click(getByText('Save as…'));
 
 		await waitFor(() => expect(mocks.saveTranscript).toHaveBeenCalledTimes(2));
 		expect(getByTestId('save-state')).toHaveTextContent('Saved');
@@ -84,7 +105,7 @@ describe('saved / unsaved state', () => {
 		mocks.saveTranscript.mockRejectedValue(new Error('could not create "D:\\Docs"'));
 		const { getByTestId, getByText, onError } = mount(seed(2));
 
-		await fireEvent.click(getByText('Save Markdown'));
+		await fireEvent.click(getByText('Save as…'));
 
 		await waitFor(() =>
 			expect(onError).toHaveBeenCalledWith(expect.stringContaining('could not create'))
@@ -120,7 +141,7 @@ describe('discarding', () => {
 	it('clears a saved log without asking', async () => {
 		const { getByText } = mount(seed(2));
 
-		await fireEvent.click(getByText('Save Markdown'));
+		await fireEvent.click(getByText('Save as…'));
 		await waitFor(() => expect(get(transcriptDirty)).toBe(false));
 		await fireEvent.click(getByText('Clear'));
 
@@ -163,7 +184,7 @@ describe('long sessions', () => {
 	it('does not nag about a long session that is already on disk', async () => {
 		const { getByText, queryByText } = mount(seed(TRANSCRIPT_WARN_LINES));
 
-		await fireEvent.click(getByText('Save Markdown'));
+		await fireEvent.click(getByText('Save as…'));
 
 		await waitFor(() => expect(queryByText(WARNING)).toBeNull());
 	});
@@ -181,7 +202,7 @@ describe('announcing a save', () => {
 	it('reports the path a screen reader would otherwise never hear', async () => {
 		const { getByText, container } = mount(seed(3));
 
-		await fireEvent.click(getByText('Save text'));
+		await fireEvent.click(getByText('Save as…'));
 
 		await waitFor(() => {
 			const region = container.querySelector('p.sr-only[role="status"]');

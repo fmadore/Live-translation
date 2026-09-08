@@ -108,6 +108,21 @@ export function captionLanguageOf(
 	return undefined;
 }
 
+export interface ProcessIdentity {
+	pid: number;
+	createdAt: string;
+}
+export type SystemCapture =
+	{ kind: 'output' } | { kind: 'application'; process: ProcessIdentity | null };
+export interface CaptureApplication {
+	process: ProcessIdentity;
+	name: string;
+}
+export interface ApplicationList {
+	supported: boolean;
+	applications: CaptureApplication[];
+}
+
 export interface StartOptions {
 	source: AudioSource;
 	mode: OutputMode;
@@ -119,6 +134,7 @@ export interface StartOptions {
 	micDeviceName?: string | null;
 	micDeviceId?: string | null;
 	systemDeviceId?: string | null;
+	systemCapture?: SystemCapture;
 	/** Rehearse instead of capturing: a cloud backend plays a bundled ~20 s speech fixture spoken in
 	 *  this language through the real pipeline — one System-origin stream, looping until Stop —
 	 *  so captions, levels, transcript and overlay behave exactly as in a live session. `source`
@@ -432,7 +448,11 @@ export function loadStartOptions(): StartOptions {
 		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
 		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
 		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
-		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null
+		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null,
+		// Remember the privacy choice, never restore a PID across app launches.
+		...((stored.systemCapture as { kind?: string } | null)?.kind === 'application'
+			? { systemCapture: { kind: 'application' as const, process: null } }
+			: {})
 	};
 	// The compatibility id `ondevice` now means the deterministic bundled demonstration.
 	// Repair older saved Windows-speech configurations to its single virtual Demo audio source.

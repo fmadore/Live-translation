@@ -52,6 +52,14 @@ beforeEach(() => {
 });
 
 describe('preparing to close', () => {
+	it('does not quit or clear recovery when Save As is cancelled', async () => {
+		pushCaption(caption(1, 'Keep me'));
+		mocks.saveTranscript.mockResolvedValue(null);
+		expect(await resolveClose('save')).toBe(false);
+		expect(mocks.confirmClose).not.toHaveBeenCalled();
+		expect(mocks.clearRecovery).not.toHaveBeenCalled();
+		expect(get(transcriptDirty)).toBe(true);
+	});
 	it('quits straight away when nothing is running and nothing is unsaved', async () => {
 		const stop = vi.fn().mockResolvedValue(undefined);
 
@@ -172,7 +180,7 @@ describe('answering the prompt', () => {
 		pushCaption(caption(1, 'not worth keeping'));
 		mocks.clearRecovery.mockRejectedValue(new Error('file is locked'));
 
-		await expect(resolveClose('discard')).resolves.toBeUndefined();
+		await expect(resolveClose('discard')).resolves.toBe(true);
 		expect(mocks.confirmClose).toHaveBeenCalledTimes(1);
 	});
 });

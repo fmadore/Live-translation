@@ -8,6 +8,67 @@ import { DEFAULT_START_OPTIONS } from './types';
 
 const mic = { id: 'mic-1', name: 'USB mic', isDefault: true };
 const output = { id: 'render-1', name: 'Dock speakers', isDefault: true };
+
+it('output endpoint changes do not alter application capture settings', () => {
+	const current = {
+		...DEFAULT_START_OPTIONS,
+		systemDeviceId: 'unused-output',
+		systemCapture: { kind: 'application' as const, process: { pid: 100, createdAt: '1000' } }
+	};
+	const validated = validateDevices(current, [], []);
+	expect(validated.systemCapture).toEqual(current.systemCapture);
+	expect(validated.systemDeviceId).toBe('unused-output');
+});
+
+it('application capture passes a stable process identity and never falls back when missing', async () => {
+	const process = { pid: 100, createdAt: '987654321' };
+	const startAudioTest = vi.fn();
+	const listApplications = vi
+		.fn()
+		.mockResolvedValue({ supported: true, applications: [{ process, name: 'Meeting' }] });
+	const probe = createPreflightController(true, () => false, {
+		...api,
+		startAudioTest,
+		listApplications
+	});
+	options.set({ ...get(options), source: 'both', systemCapture: { kind: 'application', process } });
+	await probe.refreshApplications();
+	expect(probe.applicationReady(get(options))).toBe(true);
+	await probe.startAudioTest();
+	expect(startAudioTest).toHaveBeenCalledWith('both', mic.id, output.id, {
+		kind: 'application',
+		process
+	});
+	listApplications.mockResolvedValue({
+		supported: true,
+		applications: [{ process: { ...process, createdAt: 'different' }, name: 'Unrelated app' }]
+	});
+	await probe.refreshApplications();
+	expect(probe.applicationReady(get(options))).toBe(false);
+	await probe.startAudioTest();
+	expect(startAudioTest).toHaveBeenCalledTimes(1);
+	expect(get(options).systemCapture).toEqual({ kind: 'application', process });
+	probe.dispose();
+});
+
+it('unsupported Windows leaves the application mode selected and blocks capture', async () => {
+	const startAudioTest = vi.fn();
+	const probe = createPreflightController(true, () => false, {
+		...api,
+		startAudioTest,
+		listApplications: vi.fn().mockResolvedValue({ supported: false, applications: [] })
+	});
+	options.set({
+		...get(options),
+		source: 'system',
+		systemCapture: { kind: 'application', process: null }
+	});
+	await probe.refreshApplications();
+	await probe.startAudioTest();
+	expect(startAudioTest).not.toHaveBeenCalled();
+	expect(get(options).systemCapture?.kind).toBe('application');
+	probe.dispose();
+});
 beforeEach(() => {
 	options.set({
 		...DEFAULT_START_OPTIONS,
@@ -113,5 +174,5 @@ it('passes the chosen endpoints to level-only capture', async () => {
 	const startAudioTest = vi.fn().mockResolvedValue(undefined);
 	const probe = createPreflightController(true, () => false, { ...api, startAudioTest });
 	await probe.startAudioTest();
-	expect(startAudioTest).toHaveBeenCalledWith(get(options).source, mic.id, output.id);
+	expect(startAudioTest).toHaveBeenCalledWith(get(options).source, mic.id, output.id, undefined);
 });

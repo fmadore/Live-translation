@@ -60,7 +60,6 @@ pub mod id {
     /// The overlay window refused a window-level change.
     pub const OVERLAY_WINDOW: &str = "error.overlayWindow";
     /// The transcript folder could not be created.
-    pub const TRANSCRIPT_DIR: &str = "error.transcriptDir";
     /// The transcript file could not be written.
     pub const TRANSCRIPT_WRITE: &str = "error.transcriptWrite";
     /// A blocking task panicked or was cancelled. Nothing the operator did.

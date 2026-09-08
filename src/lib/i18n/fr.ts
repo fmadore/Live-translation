@@ -122,6 +122,21 @@ export const fr: Messages = {
 		twoSources: '×2 sources'
 	},
 
+	applications: {
+		recovery:
+			'La capture de l’application sélectionnée s’est arrêtée. Sélectionnez-la à nouveau après sa fermeture ou son redémarrage. Les autres sons système ne sont jamais sélectionnés automatiquement.',
+		mode: 'Capture du son système',
+		output: 'Tout le son de la sortie sélectionnée',
+		application: 'Une application',
+		choose: 'Sélectionner une application',
+		refresh: 'Actualiser les applications',
+		unsupported:
+			'La capture par application nécessite Windows build 20348 ou ultérieur. Choisissez explicitement tout le son de la sortie pour utiliser ce mode.',
+		hint: 'Capture l’application sélectionnée et ses processus enfants, y compris ses notifications. Pour un navigateur, plusieurs onglets peuvent être inclus.',
+		missing: 'Application indisponible — sélectionnez-la à nouveau',
+		empty: 'Aucune fenêtre d’application accessible. Ouvrez l’application, puis actualisez.',
+		reselect: 'Arrêter et sélectionner une application'
+	},
 	devices: {
 		refresh: 'Actualiser les appareils',
 		refreshing: 'Actualisation des appareils…',
@@ -167,7 +182,7 @@ export const fr: Messages = {
 		},
 		transcribe: {
 			title: 'Sous-titres',
-			desc: 'Démonstration intégrée ou parole en direct avec Voxtral ou Gemini. Enregistrables en texte ou en Markdown.'
+			desc: 'Démonstration intégrée ou parole en direct avec Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
 		},
 
 		sourceHint:
@@ -382,6 +397,11 @@ export const fr: Messages = {
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',
 		saveText: 'Enregistrer en texte',
+		saveAs: 'Enregistrer sous…',
+		format: 'Format d’export',
+		plainText: 'Texte brut',
+		noTiming:
+			'Cette transcription récupérée ne contient pas d’horodatage. Enregistrez-la en texte ou en Markdown.',
 		saveMarkdown: 'Enregistrer en Markdown',
 		clear: 'Effacer',
 		confirmClear: 'Supprimer les lignes non enregistrées ?',
@@ -392,9 +412,9 @@ export const fr: Messages = {
 		longSession: (threshold: number) =>
 			`Cette session est longue et rien n’en a été enregistré depuis qu’elle a dépassé ${threshold} lignes. Rien n’est supprimé, mais enregistrez-la maintenant pour qu’un plantage ne l’emporte pas.`,
 		emptyTranslate:
-			'Les traductions finalisées s’accumulent ici, prêtes à être enregistrées en texte ou en Markdown.',
+			'Les traductions finalisées s’accumulent ici, prêtes à être exportées dans le format de votre choix.',
 		emptySubtitles:
-			'Les sous-titres finalisés s’accumulent ici, prêts à être enregistrés en texte ou en Markdown.',
+			'Les sous-titres finalisés s’accumulent ici, prêts à être exportés dans le format de votre choix.',
 		side: {
 			microphone: 'Salle',
 			system: 'Distant'
@@ -431,7 +451,7 @@ export const fr: Messages = {
 			saving: 'Enregistrement…',
 			discard: 'Supprimer et fermer',
 			cancel: 'Annuler',
-			note: 'Enregistre un fichier Markdown dans votre dossier Documents. Annuler laisse l’application ouverte.'
+			note: 'Choisissez où enregistrer le fichier Markdown. Annuler laisse l’application ouverte.'
 		},
 		recovery: {
 			title: 'Récupérer la transcription de votre dernière session ?',

@@ -10,7 +10,7 @@ scaling — is **not** in it and ships in the next submission.
 
 ## Certification objective
 
-The 1.0.3 submission failed policy 10.1.2.20 because **Start Subtitles** was unusable on the
+The 1.0.3 submission failed policy 10.1.2.30 because **Start Subtitles** was unusable on the
 review device. Two attempted credential-free Windows recognizers were not sufficiently portable:
 
 - the experimental Windows AI Speech/ML component crashed natively on the target ARM64 Surface;
@@ -76,7 +76,7 @@ build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
   with the root app versions in both lockfiles synchronized. The prepared version is
-  `1.2.2` (`1.2.2.0` in MSIX); confirm it exceeds the published version before submission.
+  `1.2.3` (`1.2.3.0` in MSIX); confirm it exceeds the published version before submission.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled

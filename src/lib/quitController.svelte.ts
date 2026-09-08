@@ -145,8 +145,7 @@ export function createQuitController(actions: {
 		closeSaving = choice === 'save';
 		closeError = '';
 		try {
-			await resolveClose(choice);
-			closePrompt = false;
+			if (await resolveClose(choice)) closePrompt = false;
 		} catch (e) {
 			// Stay open on a failed write: quitting here would lose exactly what the operator
 			// just asked to keep.

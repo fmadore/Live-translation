@@ -49,6 +49,7 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 export const api = {
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
+	listApplications: () => invoke<import('./types').ApplicationList>('list_applications'),
 
 	hasApiKey: (provider: Provider) => invoke<boolean>('has_api_key', { provider }),
 	setApiKey: (provider: Provider, key: string) => invoke<void>('set_api_key', { provider, key }),
@@ -64,8 +65,9 @@ export const api = {
 	startAudioTest: (
 		source: AudioSource,
 		micDeviceName: string | null,
-		systemDeviceId: string | null = null
-	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId }),
+		systemDeviceId: string | null = null,
+		systemCapture?: import('./types').SystemCapture
+	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId, systemCapture }),
 	stopAudioTest: () => invoke<void>('stop_audio_test'),
 
 	setOverlayClickThrough: (enabled: boolean) =>
@@ -80,7 +82,7 @@ export const api = {
 
 	/** Write the transcript to disk; returns the saved file path. */
 	saveTranscript: (content: string, filename: string) =>
-		invoke<string>('save_transcript', { content, filename }),
+		invoke<string | null>('save_transcript', { content, filename }),
 
 	/** Windows' accessibility text-size factor, asked for as the operator window boots.
 	 *  Later changes arrive on `on.textScale`. See `textScale.ts`. */

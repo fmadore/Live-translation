@@ -1,6 +1,6 @@
 [package]
 name = "live-translation"
-version = "1.2.2"
+version = "1.2.3"
 description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"
@@ -54,6 +54,7 @@ tauri-plugin-single-instance = "2.4.3"
 
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]
+rfd = { version = "0.17.2", default-features = false }
 # Direct event-driven WASAPI access for render-device loopback capture.
 wasapi = "0.24"
 # Win32 z-order/activation control for the caption overlay (`src/overlay.rs`). Already in
@@ -61,6 +62,9 @@ wasapi = "0.24"
 windows-sys = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Threading",
+  "Win32_System_SystemInformation",
+  "Wdk_System_SystemServices",
 ] }
 # `UISettings.TextScaleFactor` for the accessibility text-size setting (`src/textscale.rs`).
 # WinRT, so it needs the projected `windows` crate rather than the raw `windows-sys` above;

@@ -11,6 +11,39 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	const api = port;
 	let microphones = $state<AudioDevice[]>([]);
 	let outputs = $state<AudioDevice[]>([]);
+	let applications = $state<import('./types').CaptureApplication[]>([]);
+	let applicationCaptureSupported = $state<boolean | null>(null);
+	let refreshingApplications = $state(false);
+	function applicationReady(selected: import('./types').StartOptions): boolean {
+		if (
+			selected.source === 'microphone' ||
+			selected.provider === 'ondevice' ||
+			selected.systemCapture?.kind !== 'application'
+		)
+			return true;
+		const process = selected.systemCapture.process;
+		return (
+			applicationCaptureSupported === true &&
+			!!process &&
+			applications.some(
+				(app) => app.process.pid === process.pid && app.process.createdAt === process.createdAt
+			)
+		);
+	}
+	async function refreshApplications() {
+		if (!desktop || disposed || refreshingApplications) return;
+		refreshingApplications = true;
+		try {
+			const result = await api.listApplications();
+			if (disposed) return;
+			applications = result.applications;
+			applicationCaptureSupported = result.supported;
+		} catch (error) {
+			if (!disposed) statusMessage.set(asStatus(error));
+		} finally {
+			refreshingApplications = false;
+		}
+	}
 	let refreshing = $state(false);
 	let loaded = false;
 	let disposed = false;
@@ -58,6 +91,10 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 
 	async function startAudioTest() {
 		if (!desktop || audioTestBusy || audioTesting || locked()) return;
+		if (!applicationReady(get(options))) {
+			statusMessage.set(get(t).applications.missing);
+			return;
+		}
 		audioTestBusy = true;
 		statusMessage.set('');
 		try {
@@ -65,7 +102,8 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 			await api.startAudioTest(
 				selected.source,
 				selected.micDeviceId ?? selected.micDeviceName ?? null,
-				selected.systemDeviceId ?? null
+				selected.systemDeviceId ?? null,
+				selected.systemCapture
 			);
 		} catch (e) {
 			statusMessage.set(asStatus(e));
@@ -182,6 +220,17 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	}
 
 	return {
+		applicationReady,
+		get applications() {
+			return applications;
+		},
+		get applicationCaptureSupported() {
+			return applicationCaptureSupported;
+		},
+		get refreshingApplications() {
+			return refreshingApplications;
+		},
+		refreshApplications,
 		get outputs() {
 			return outputs;
 		},

@@ -116,6 +116,21 @@ export const en = {
 		twoSources: '×2 sources'
 	},
 
+	applications: {
+		recovery:
+			'Capture of the selected application stopped. Select it again after it closes or restarts. Other system audio is never selected automatically.',
+		mode: 'System capture',
+		output: 'All audio on the selected output',
+		application: 'One application',
+		choose: 'Select an application',
+		refresh: 'Refresh applications',
+		unsupported:
+			'Application capture requires Windows build 20348 or later. Choose all output audio explicitly to use that mode.',
+		hint: 'Captures the selected application and its child processes, including its notifications. A browser selection may include multiple tabs.',
+		missing: 'Application unavailable — select it again',
+		empty: 'No accessible application windows found. Open the application and refresh.',
+		reselect: 'Stop and select an application'
+	},
 	devices: {
 		refresh: 'Refresh devices',
 		refreshing: 'Refreshing devices…',
@@ -159,7 +174,7 @@ export const en = {
 		},
 		transcribe: {
 			title: 'Subtitles',
-			desc: 'Built-in demonstration or live speech with Voxtral or Gemini. Saveable as text or Markdown.'
+			desc: 'Built-in demonstration or live speech with Voxtral or Gemini. Export as text, Markdown, SRT or VTT.'
 		},
 
 		sourceHint:
@@ -369,6 +384,10 @@ export const en = {
 		unsaved: 'Unsaved',
 		saved: 'Saved',
 		saveText: 'Save text',
+		saveAs: 'Save as…',
+		format: 'Export format',
+		plainText: 'Plain text',
+		noTiming: 'This recovered transcript has no timing. Save it as text or Markdown.',
 		saveMarkdown: 'Save Markdown',
 		clear: 'Clear',
 		confirmClear: 'Discard unsaved lines?',
@@ -378,8 +397,8 @@ export const en = {
 		staleAfter: 'are not on disk yet.',
 		longSession: (threshold: number) =>
 			`This is a long session and none of it has been saved since it grew past ${threshold} lines. Nothing is being dropped, but save it now so a crash cannot take it.`,
-		emptyTranslate: 'Finalized translations collect here, ready to save as text or Markdown.',
-		emptySubtitles: 'Finalized subtitles collect here, ready to save as text or Markdown.',
+		emptyTranslate: 'Finalized translations collect here, ready to export in your chosen format.',
+		emptySubtitles: 'Finalized subtitles collect here, ready to export in your chosen format.',
 		side: {
 			microphone: 'Room',
 			system: 'Remote'
@@ -415,7 +434,7 @@ export const en = {
 			saving: 'Saving…',
 			discard: 'Discard and close',
 			cancel: 'Cancel',
-			note: 'Saves Markdown to your Documents folder. Cancel keeps the app open.'
+			note: 'Choose where to save a Markdown file. Cancel keeps the app open.'
 		},
 		recovery: {
 			title: 'Recover the transcript from your last session?',

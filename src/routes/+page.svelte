@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import SystemCapturePicker from '$lib/SystemCapturePicker.svelte';
 	import { createPreflightController } from '$lib/preflightController.svelte';
 	import { createQuitController } from '$lib/quitController.svelte';
 	import { createOverlayController } from '$lib/overlayController.svelte';
@@ -96,6 +97,13 @@
 		if (!controlsLocked && !preflight.audioTesting && !preflight.audioTestBusy)
 			preflight.validateSelection();
 	});
+	async function reselectApplication() {
+		await session.stop();
+		if ($isRunning) return;
+		failedDevice = null;
+		$options = { ...$options, systemCapture: { kind: 'application', process: null } };
+		await preflight.refreshApplications();
+	}
 	async function retryDevice(fallback: boolean) {
 		if (!failedDevice || retryingDevice) return;
 		retryingDevice = true;
@@ -356,6 +364,10 @@
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
 	async function launch(rehearsal?: TargetLanguage) {
 		if ($sessionBusy || $isRunning) return;
+		if (!rehearsal && !preflight.applicationReady($options)) {
+			statusMessage.set($t.applications.missing);
+			return;
+		}
 		rehearsing = rehearsal !== undefined;
 		failedDevice = null;
 		const started = await session.start(
@@ -635,8 +647,10 @@
 	{#if failedDevice}
 		<section class="device-recovery" aria-label={$t.devices.retry}>
 			<p class="hint">
-				<strong>{failedDevice === 'microphone' ? $t.source.microphone : $t.source.system}</strong>: {$t
-					.devices.recovery}
+				<strong>{failedDevice === 'microphone' ? $t.source.microphone : $t.source.system}</strong>: {failedDevice ===
+					'system' && $options.systemCapture?.kind === 'application'
+					? $t.applications.recovery
+					: $t.devices.recovery}
 			</p>
 			<button
 				class="tool"
@@ -646,7 +660,12 @@
 			<button
 				class="tool"
 				disabled={$sessionBusy || retryingDevice}
-				onclick={() => retryDevice(true)}>{$t.devices.fallback}</button
+				onclick={failedDevice === 'system' && $options.systemCapture?.kind === 'application'
+					? reselectApplication
+					: () => retryDevice(true)}
+				>{failedDevice === 'system' && $options.systemCapture?.kind === 'application'
+					? $t.applications.reselect
+					: $t.devices.fallback}</button
 			>
 		</section>
 	{/if}
@@ -985,7 +1004,11 @@
 						</button>
 					</div>
 					<p class="hint">
-						{$options.provider === 'ondevice' ? $t.rail.demoSourceHint : $t.rail.sourceHint}
+						{$options.provider === 'ondevice'
+							? $t.rail.demoSourceHint
+							: $options.systemCapture?.kind === 'application' && usesSystem
+								? $t.applications.hint
+								: $t.rail.sourceHint}
 					</p>
 
 					{#if usesMic && $options.provider !== 'ondevice'}
@@ -1028,39 +1051,15 @@
 					{/if}
 
 					{#if usesSystem && $options.provider !== 'ondevice'}
-						<label class="hint" for="system-output">{$t.devices.output}</label>
-						<div class="select-row">
-							<select
-								id="system-output"
-								disabled={controlsLocked}
-								value={$options.systemDeviceId ?? ''}
-								onchange={(e) => {
-									preflight.invalidateAudioTest();
-									$options = { ...$options, systemDeviceId: e.currentTarget.value || null };
-								}}
-							>
-								<option value="">{$t.rail.systemDefault}</option>
-								{#if $options.systemDeviceId && !preflight.outputs.some((d) => d.id === $options.systemDeviceId)}
-									<option value={$options.systemDeviceId}>{$t.devices.missing}</option>
-								{/if}
-								{#each preflight.outputs as dev (dev.id)}
-									<option value={dev.id}
-										>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
-									>
-								{/each}
-							</select>
-							<svg
-								class="chevron"
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-							>
-						</div>
+						<SystemCapturePicker
+							locked={controlsLocked}
+							outputs={preflight.outputs}
+							applications={preflight.applications}
+							supported={preflight.applicationCaptureSupported}
+							refreshing={preflight.refreshingApplications}
+							refresh={preflight.refreshApplications}
+							changed={preflight.invalidateAudioTest}
+						/>
 					{/if}
 					{#if $options.provider !== 'ondevice'}
 						<button
@@ -1307,7 +1306,9 @@
 						{:else}
 							<button
 								class="place"
-								disabled={preflight.audioTestBusy || controlsLocked}
+								disabled={preflight.audioTestBusy ||
+									controlsLocked ||
+									!preflight.applicationReady($options)}
 								aria-busy={preflight.audioTestBusy}
 								onclick={preflight.startAudioTest}
 							>
@@ -1398,28 +1399,33 @@
 				{/if}
 
 				<div class="launch">
-					<button
-						class="start"
-						disabled={!$hasKey || browserMode || $sessionBusy}
-						aria-busy={$sessionBusy}
-						onclick={start}
-					>
-						<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-							><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+					<div class="launch-actions">
+						<button
+							class="start"
+							disabled={!$hasKey ||
+								browserMode ||
+								$sessionBusy ||
+								!preflight.applicationReady($options)}
+							aria-busy={$sessionBusy}
+							onclick={start}
 						>
-						{$sessionBusy
-							? $t.preflight.start.starting
-							: $options.mode === 'translate'
-								? $t.preflight.start.translate
-								: $options.provider === 'ondevice'
-									? $t.preflight.start.demo
-									: $t.preflight.start.subtitles}
-					</button>
-					<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
+							<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+								><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+							>
+							{$sessionBusy
+								? $t.preflight.start.starting
+								: $options.mode === 'translate'
+									? $t.preflight.start.translate
+									: $options.provider === 'ondevice'
+										? $t.preflight.start.demo
+										: $t.preflight.start.subtitles}
+						</button>
+						<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
 					     key and the same desktop runtime. -->
-					<div class="rehearse-slot">
+
 						<button
 							class="rehearse"
+							aria-describedby="rehearse-hint"
 							disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
 							onclick={rehearse}
 						>
@@ -1439,12 +1445,12 @@
 							>
 							{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 						</button>
-						<span class="rehearse-hint">
-							{$options.provider === 'ondevice'
-								? $t.preflight.rehearse.demoHint
-								: $t.preflight.rehearse.hint}
-						</span>
 					</div>
+					<span class="rehearse-hint" id="rehearse-hint">
+						{$options.provider === 'ondevice'
+							? $t.preflight.rehearse.demoHint
+							: $t.preflight.rehearse.hint}
+					</span>
 					<span class="privacy">
 						{$recoveryEnabled ? $t.preflight.privacy.spooled : $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
@@ -2430,18 +2436,19 @@
 		color: var(--text);
 	}
 
-	/* Wraps rather than squeezes: at the minimum window width the three parts of this row do
-	   not fit side by side, and without a wrap the Rehearse button grew out of its slot and
-	   under the privacy note beside it. The privacy line is the part that drops. */
+	/* Keep actions aligned and let supporting text use the available reading width. */
 	.launch {
 		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 16px;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
 		margin-top: 30px;
 	}
-	.rehearse-slot {
-		min-width: max-content;
+	.launch-actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: stretch;
+		gap: 12px;
 	}
 	.start {
 		display: flex;
@@ -2466,13 +2473,6 @@
 	}
 	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
 	   the thing the operator came to press. */
-	.rehearse-slot {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 8px;
-		min-width: 0;
-	}
 	.rehearse {
 		display: flex;
 		align-items: center;
@@ -2496,7 +2496,7 @@
 		font-size: var(--type-11-5);
 		line-height: 1.45;
 		color: var(--muted-3);
-		max-width: 38ch;
+		max-width: 72ch;
 		text-wrap: pretty;
 	}
 
@@ -2504,7 +2504,7 @@
 		font-size: var(--type-12-5);
 		line-height: 1.5;
 		color: var(--muted-3);
-		max-width: 34ch;
+		max-width: 72ch;
 		text-wrap: pretty;
 	}
 	.status-msg {

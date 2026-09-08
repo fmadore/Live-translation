@@ -12,7 +12,7 @@
 	} from './stores';
 	import { TRANSCRIPT_WARN_LINES } from './document';
 	import { saveTranscriptDocument } from './saveDocument';
-	import { groupTranscript, type TranscriptFormat } from './transcript';
+	import { groupTranscript, hasTranscriptTiming, type TranscriptFormat } from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
 
 	interface Props {
@@ -26,6 +26,11 @@
 	// feature whose only outcome would be an IPC error is the mistake issue #29 fixed elsewhere.
 	const desktop = isTauri();
 	let saving = $state(false);
+	let exportFormat = $state<TranscriptFormat>('markdown');
+	const timedExportAvailable = $derived(hasTranscriptTiming(transcript));
+	const missingTiming = $derived(
+		(exportFormat === 'srt' || exportFormat === 'vtt') && !timedExportAvailable
+	);
 	// Clear throws away unsaved text, so when there is any it asks once rather than acting on
 	// the first click.
 	let confirmingClear = $state(false);
@@ -123,21 +128,19 @@
 			</span>
 		{/if}
 		<div class="spacer"></div>
+		<select aria-label={$t.transcript.format} bind:value={exportFormat} disabled={saving}>
+			<option value="markdown">Markdown (.md)</option>
+			<option value="text">{$t.transcript.plainText} (.txt)</option>
+			<option value="vtt">WebVTT (.vtt)</option>
+			<option value="srt">SubRip (.srt)</option>
+		</select>
 		<button
 			class="ghost"
-			disabled={!transcript.length || saving}
+			disabled={!desktop || !transcript.length || saving || missingTiming}
 			aria-busy={saving}
-			onclick={() => save('text')}
+			onclick={() => save(exportFormat)}
 		>
-			{$t.transcript.saveText}
-		</button>
-		<button
-			class="ghost"
-			disabled={!transcript.length || saving}
-			aria-busy={saving}
-			onclick={() => save('markdown')}
-		>
-			{$t.transcript.saveMarkdown}
+			{$t.transcript.saveAs}
 		</button>
 		<button
 			class="ghost quiet"
@@ -148,6 +151,9 @@
 			{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
 		</button>
 	</div>
+	{#if missingTiming && transcript.length}<p class="hint" role="status">
+			{$t.transcript.noTiming}
+		</p>{/if}
 
 	<!-- The announcement lives in its own always-present region — a live region created at the
 	     same moment as its text is routinely missed, and this one is out of flow, so it costs
@@ -261,6 +267,16 @@
 		border-radius: 7px;
 		border: 1px solid var(--border);
 		background: transparent;
+	}
+	select {
+		font: inherit;
+		font-size: var(--type-11-5);
+		color: var(--text);
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 7px;
+		padding: 6px;
+		max-width: 100%;
 	}
 	button.ghost:hover:not(:disabled) {
 		border-color: var(--border-hover);
