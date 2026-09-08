@@ -11,9 +11,10 @@ packages are built.
 
 ## The route
 
-Current prepared version: **1.2.2** (MSIX **1.2.2.0**). The review fixes and automated
-checks are complete; manual desktop testing is pending. Tagging and submission come
-after that testing.
+Current release version: **1.2.2** (MSIX **1.2.2.0**). The review fixes and automated
+checks are complete. The user confirmed the two audio fixes on the installed ARM64
+package and refreshed both screenshot sets on 8 September 2026. Broader hardware
+coverage remains documented in [audio device testing](audio-device-testing.md).
 
 1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml` and
    `src-tauri/tauri.conf.json`, and synchronize the root app versions in `package-lock.json`

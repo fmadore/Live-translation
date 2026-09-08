@@ -17,18 +17,28 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
-## v1.2.2 — prepared, reported audio fixes verified
+## v1.2.2
 
 The user confirmed both fixes on the installed 1.2.2.0 ARM64 MSIX on 8 September 2026.
 The broader hardware matrix in `audio-device-testing.md` remains pending.
 
 ```markdown
-Fixes two problems found while testing the MSIX on Windows:
+This release brings a bilingual interface, caption appearance controls, and more reliable audio capture and transcript recovery.
+
+- Use the interface in English or French, independently of the caption language.
+- Adjust caption typeface, size, colours, backing, and line width, with a contrast readout and an overlay placement preview.
+- Refresh audio devices without restarting and choose the output used for system-audio capture. Device changes update the lists automatically; disconnected sources offer an explicit retry or default-device fallback.
+- Read earlier transcript lines without incoming captions pulling you to the bottom. Jump to latest resumes following, and long transcripts use shorter paragraphs on screen and in exports.
+- Fatal provider failures release audio capture and finalize the last caption while a healthy second source can continue.
+- Audio tests no longer accumulate unused buffers, and recovery snapshots are saved atomically with ordered writes and deletion.
+- Overlay controls report failed appearance updates and preserve the confirmed placement mode.
 
 - Refreshing audio devices no longer fails when a worker thread already uses another COM apartment mode.
 - A recoverable microphone buffer underrun or overrun no longer ends an audio test or live session. Disconnections and invalid streams still stop the affected source.
 
-Includes the device selection, transcript, recovery, and interface improvements described below for 1.2.1.
+The two reported Windows audio errors were retested successfully with the installed 1.2.2.0 ARM64 MSIX. Automated verification: 263 frontend tests and 63 Rust tests passed; the billable live-provider test remains opt-in.
+
+For Microsoft Store submission, use `Live.Translation_1.2.2.msixbundle`, which contains both x64 and ARM64 packages. The individual `.msix` files are unsigned packages for local signing and sideload testing.
 ```
 
 ## v1.2.1
