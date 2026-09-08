@@ -6,6 +6,10 @@ The 1.2.2 fix runs output discovery on an isolated MTA thread with balanced COM 
 and ignores CPAL Xrun/RealtimeDenied quality notifications while preserving fatal errors.
 Regression tests exercise an STA caller and the real error-callback dispatch logic.
 
+On 8 September 2026, the user retested the signed 1.2.2.0 ARM64 MSIX and confirmed
+that both reported errors were resolved. This confirms the reported refresh and
+audio-test failures; the broader hardware matrix below remains pending.
+
 Implemented for the prepared 1.2.1 release. Hardware checks below are **pending**;
 automated tests and browser previews do not replace them.
 

@@ -17,7 +17,10 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
-## v1.2.2 — prepared, pending manual testing
+## v1.2.2 — prepared, reported audio fixes verified
+
+The user confirmed both fixes on the installed 1.2.2.0 ARM64 MSIX on 8 September 2026.
+The broader hardware matrix in `audio-device-testing.md` remains pending.
 
 ```markdown
 Fixes two problems found while testing the MSIX on Windows:
