@@ -55,7 +55,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.2.2.0"
+  Version="1.2.4.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -65,8 +65,22 @@ network access. The package carries no speech model, Windows AI runtime, WinRT r
 full-trust desktop process.
 
 `Version` is the field here that moves: the bundler stamps it from `tauri.conf.json`, with a
-fourth component appended. It reads `1.2.2.0` at the time of writing and whatever that file
+fourth component appended. It reads `1.2.4.0` at the time of writing and whatever that file
 says at the time of reading.
+
+## Local responsive-caption test build (14 September 2026)
+
+A separate unpackaged ARM64 executable was installed as **Live Translation Local Test**
+under %LOCALAPPDATA%\Programs\Live Translation Local Test, with Desktop and Start-menu
+shortcuts. The initial test executable reported 1.2.3; it was then updated to 1.2.4 with
+the shallow bottom-alignment preset. Its identifier is io.github.fmadore.live-translation.local-test;
+its WebView preferences are separate, while provider keys use the existing Credential Manager
+service. The Store-signed 1.2.2.0 install was left intact.
+
+This executable is for local feedback, not proof of MSIX compatibility. The ignored
+src-tauri/target/local-test.conf.json override must not be used for release packages.
+Build 1.2.4 with the normal committed configuration and complete the
+[release verification](caption-layout.md#release-verification).
 
 ## Prerequisites
 
@@ -89,8 +103,8 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.2.2.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.2.2.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.2.4.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.2.4.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`. CI builds x64 and ARM64 packages,
@@ -98,7 +112,7 @@ combines them into `Live.Translation_<version>.msixbundle`, and attaches that si
 to the release for Store submission. For local verification, use the per-architecture
 `Live.Translation_<version>_<arch>.msix` files instead.
 
-Substitute the current `tauri.conf.json` version for `1.2.2` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.2.4` throughout this file. Every
 release built on this machine is still in `target/msix/` beside the newest one, which is why
 the commands below derive the name instead of spelling it out.
 
@@ -254,7 +268,7 @@ nothing). Then work through the list; the first three are the open gates in
 | **WASAPI loopback (gate 7)** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
 | **Credential Manager (gate 8)** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
 | **Overlay** | Transparent background, click-through to the window behind, always on top over a full-screen slide deck, and move mode still drags it. |
-| **Export** | For 1.2.3, use native Save As to choose a folder and filename for text, Markdown, SRT and VTT. Verify remembered folder, overwrite confirmation and cancellation (including the quit prompt); check the file exists at the exact selected path. See [transcript export](transcript-export.md#verification). The published 1.2.2 package uses the previous Documents export path. |
+| **Export** | Use native Save As to choose a folder and filename for text, Markdown, SRT and VTT. Verify remembered folder, overwrite confirmation and cancellation (including the quit prompt); check the file exists at the exact selected path. See [transcript export](transcript-export.md#verification). Older packages may use the previous Documents export path. |
 
 Anything that fails here is a bug to fix before submission, not a packaging setting to tweak:
 the same binary runs in both shapes.

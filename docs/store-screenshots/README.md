@@ -7,7 +7,10 @@ question the repository can answer instead of one somebody has to remember.
 Both the English and French captures were refreshed during the September 2026
 installed-MSIX testing. On 8 September, the user confirmed that all screenshots
 had been updated for the 1.2.2 Store submission. The current sets contain five
-screenshots per language, ready to upload to Partner Center.
+screenshots per language. They are historical captures, not ready for the 1.2.4 submission.
+Re-capture the changed overlay and appearance controls in both languages from the final MSIX;
+review the idle, running and contrast captures against that package too.
+The unpackaged Local Test app does not replace MSIX screenshot verification.
 
 ```text
 en/    English listing
@@ -22,7 +25,7 @@ scrolls through, so it belongs to the listing rather than to whoever captured th
 | `1-idle.png` | The pre-flight screen while idle: provider key, microphone, overlay placement, hourly cost. |
 | `2-running.png` | A running demo: Demo status, a moving meter, elapsed time, and a caption. |
 | `3-overlay.png` | The overlay in placement mode: drag handles, the size readout, and the stand-in caption set in the chosen appearance. |
-| `4-appearance.png` | Caption appearance: size, line width, typeface, caption colour, backing colour and backing strength. |
+| `4-appearance.png` | Caption appearance: Fit window / Compact, size, typeface, caption colour and backing; line width appears only in Compact. |
 | `5-contrast.png` | The contrast readout, caught naming a step that falls below its target rather than sitting on "Readable". |
 
 Two of these describe the product and three argue for it. Shots 4 and 5 exist because the

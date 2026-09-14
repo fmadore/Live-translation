@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 8 September 2026
+**Effective date:** 14 September 2026
 
 ## What this app is
 
@@ -36,6 +36,11 @@ is never shortened or discarded behind the user's back. A transcript is written 
 the user explicitly chooses to save it, or through the optional recovery copy described below.
 The app does not automatically upload saved transcripts.
 
+The overlay keeps a bounded recent reading context in memory so that a larger window can
+show more captions. Text removed from the overlay by resizing or its idle timeout remains
+in the full session transcript. The layout feature creates no additional disk history or
+network requests.
+
 Closing the app with unsaved caption text asks whether to save or discard it first.
 
 ## Optional local recovery copy
@@ -69,7 +74,8 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, audio source, language, overlay position, caption size, whether the optional recovery
+provider, audio source, language, overlay position, caption size, layout (Fit window or Compact),
+compact line width, whether the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
 system capture uses an output or an application. The selected process identity is not

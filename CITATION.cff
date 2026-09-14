@@ -7,7 +7,7 @@ abstract: >-
   audio from any application, or both, and renders captions in a transparent,
   always-on-top overlay. Two modes are kept deliberately separate: live
   translation into English or French via Google Gemini or OpenAI realtime
-  speech models, and same-language live subtitles via Mistral Voxtral. Built
+  speech models, and same-language live subtitles via Mistral Voxtral or Google Gemini. Built
   for the workshop "Digital Humanities and Artificial Intelligence in African
   Studies" / "Humanités numériques et intelligence artificielle en études
   africaines" (STIAS, Stellenbosch, 21-24 September 2026).
@@ -20,8 +20,8 @@ authors:
 repository-code: "https://github.com/fmadore/Live-translation"
 url: "https://github.com/fmadore/Live-translation"
 license: MIT
-version: 0.5.3
-date-released: "2026-08-12"
+version: 1.2.4
+date-released: "2026-09-14"
 keywords:
   - live captions
   - speech translation

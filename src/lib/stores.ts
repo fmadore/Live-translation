@@ -1,3 +1,5 @@
+import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
+import type { CaptionLayout } from './captionLayout';
 // Svelte stores shared across the operator window. The overlay window keeps its own
 // minimal state (see routes/overlay/+page.svelte) so it stays lightweight.
 
@@ -264,6 +266,11 @@ export const overlayFontSize = writable<number>(loadOverlayFont());
 
 /** How wide a caption line may run, in `ch`. Persisted like the font size, and shared with
  *  the overlay window through the same localStorage origin. */
+export const overlayCaptionLayout = writable<CaptionLayout>(loadCaptionLayout());
+overlayCaptionLayout.subscribe((value) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(CAPTION_LAYOUT_KEY, value);
+});
+
 export const overlayCaptionWidth = writable<number>(loadOverlayWidth());
 
 overlayCaptionWidth.subscribe((v) => {

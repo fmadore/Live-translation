@@ -43,11 +43,18 @@ Provider details and verified wire formats are documented in
 
 ## Release status
 
-**Version 1.2.3** adds native Windows Save As, SRT/VTT transcript export, and capture of
-one selected application and its child processes. The user confirmed Save As and application
-selection in the ARM64 test package. The Store update is submitted separately through
-Partner Center; [release preparation](docs/store-updates.md#release-123-handoff) records
-remaining testing and screenshot work.
+**Version 1.2.4.** Captions now use the overlay’s available width and
+height. Wider windows fit more words per line; taller windows retain more recent context.
+Font size stays under your control, and Compact keeps the adjustable line-width setting.
+See [caption layout](docs/caption-layout.md) for use and testing instructions.
+
+Version **1.2.3** added
+native Windows Save As, SRT/VTT export and selected-application audio capture.
+[Release preparation](docs/store-updates.md#release-124-handoff) tracks the remaining
+GitHub installer builds, Windows package tests, screenshots and manual Store submission for 1.2.4.
+
+Thanks to **@valentinrabot** for the responsive-caption feedback and suggestion in
+[#77](https://github.com/fmadore/Live-translation/issues/77).
 
 ## Install
 
@@ -175,7 +182,11 @@ and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
 
 ### Testing
 
-`npm test` runs two vitest projects. Pure logic runs in **node** — faster, and a test cannot
+Vitest 5 uses the existing Node 22.12+/24 and Vite 8 toolchain. DOM matchers are
+registered in `vitest-setup-client.ts`; `src/vitest.d.ts` bridges jest-dom 7.0.1
+types to Vitest 5’s matcher interface until upstream provides compatible declarations.
+
+`npm test` runs two Vitest 5 projects. Pure logic runs in **node** — faster, and a test cannot
 start depending on the DOM by accident. Anything that renders a component opts in to
 **jsdom** by being named `*.svelte.test.ts`; those get Testing Library, jest-dom matchers and
 automatic cleanup via `vitest-setup-client.ts`.

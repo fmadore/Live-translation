@@ -1,3 +1,4 @@
+import type { CaptionLayout } from './captionLayout';
 import { get } from 'svelte/store';
 import { api } from './tauri';
 import { asStatus } from './errors';
@@ -5,6 +6,7 @@ import {
 	options,
 	overlayFontSize,
 	overlayCaptionWidth,
+	overlayCaptionLayout,
 	overlayCaptionFace,
 	overlayPalette,
 	overlayPlaced,
@@ -47,6 +49,7 @@ export function createOverlayController(port = api) {
 			.setOverlayConfig({
 				fontSize: get(overlayFontSize),
 				captionWidth: get(overlayCaptionWidth),
+				captionLayout: get(overlayCaptionLayout),
 				captionFace: get(overlayCaptionFace),
 				captionColour: get(overlayPalette).text,
 				scrimColour: get(overlayPalette).scrim,
@@ -65,6 +68,11 @@ export function createOverlayController(port = api) {
 
 	// Caption measure: how long a line is allowed to run before it wraps. Same shape as the
 	// size control, and the same live push.
+	function setCaptionLayout(layout: CaptionLayout) {
+		overlayCaptionLayout.set(layout);
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
 	function setCaptionWidth(width: number) {
 		overlayCaptionWidth.set(clampOverlayWidth(width));
 		pushOverlayConfig({ interactive: moveOverlay });
@@ -93,6 +101,7 @@ export function createOverlayController(port = api) {
 	 *  deliberately untouched — that is where the window sits on the projector, it took a walk
 	 *  across the room to get right, and nothing here is a reason to lose it. */
 	function resetOverlayAppearance() {
+		overlayCaptionLayout.set('fit');
 		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
 		overlayCaptionWidth.set(DEFAULT_OVERLAY_WIDTH);
 		overlayCaptionFace.set(DEFAULT_CAPTION_FACE);
@@ -174,6 +183,7 @@ export function createOverlayController(port = api) {
 		pushOverlayConfig,
 		setFont,
 		setCaptionWidth,
+		setCaptionLayout,
 		setPalette,
 		resetOverlayAppearance,
 		setCaptionFace,

@@ -20,6 +20,7 @@ contrast themes (see *Contrast themes* below).
 | Text size | `src/app.css` — one type ramp, every step of which is a multiple of `--text-scale`. No component declares its own pixel size. |
 | Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
+| Caption reflow | Fit window measures rendered text against the overlay width and height, preserving newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
 | Caption colours | `src/lib/captionColour.ts` — the operator picks the ink and the scrim, and every ratio is computed on the **composite**: the scrim as it is thinned under the text, over both a white and a black slide, with the halo that rings the glyph. One function settles how dim each step is painted *and* what the readout says, so the two cannot disagree. A single control puts the whole overlay appearance back to what it ships with, because a way into an unreadable palette needs a way out of it. |
 | Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesized bold at projector size is a legibility failure, not a cosmetic one. |
 | Reaching the controls | The caption appearance controls used to exist only inside a running session, which put them behind starting one. They are one snippet rendered in two places now — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
@@ -98,6 +99,13 @@ treats the window.
    for Web** (or `axe` DevTools) against `npm run dev` for the DOM-level rules.
 9. **Minimum window size.** Resize to 980 × 660. Nothing overlaps and nothing is clipped; both
    columns scroll rather than compress.
+
+10. **Responsive captions.** Follow the [caption layout matrix](caption-layout.md#release-verification):
+    narrow/wide and short/tall windows, 20/38/96px fonts, both origins, long words, and
+    Fit window / Compact switching. Verify the selector’s keyboard operation and Narrator
+    label in English and French. Reset must return to Fit window; the hidden measurement
+    paragraph must not be announced. If the window cannot fit a whole line at the chosen
+    font size, enlarge it or reduce the font size.
 
 ## Windows text scaling
 

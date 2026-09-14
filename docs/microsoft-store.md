@@ -1,12 +1,15 @@
 # Microsoft Store distribution
 
-**Published:** 1.1.0, native x64 and ARM64, at
-<https://apps.microsoft.com/detail/9PFB8LR3RR9X>. Accepted 27 August 2026; 1.0.5 was the
-release before it. Updates go through [`store-updates.md`](store-updates.md).
+**Next submission: 1.2.4 (prepared, not submitted).** Native x64 and ARM64 packages
+will be distributed at <https://apps.microsoft.com/detail/9PFB8LR3RR9X>.
+GitHub’s latest published release was v1.2.3 on 14 September 2026. The Store-signed
+copy found on the local test PC that day was 1.2.2.0; check Partner Center for the
+current publication and rollout state before submitting.
 
-The package the Store is serving was cut from the `v1.1.0` tag. Work merged to `main` after
-that tag — the accessibility pass, the capability split, the French interface, Windows text
-scaling — is **not** in it and ships in the next submission.
+This update adds Fit window / Compact caption layouts, following feedback in issue #77.
+The unpackaged ARM64 local test build launched successfully, but final MSIX caption tests,
+Windows scaling checks and fresh Store screenshots remain pending. Follow the
+[1.2.4 release handoff](store-updates.md#release-124-handoff).
 
 ## Certification objective
 
@@ -76,7 +79,7 @@ build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
   with the root app versions in both lockfiles synchronized. The prepared version is
-  `1.2.3` (`1.2.3.0` in MSIX); confirm it exceeds the published version before submission.
+  `1.2.4` (`1.2.4.0` in MSIX); confirm it exceeds the published version before submission.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled
@@ -91,7 +94,8 @@ build that failed on a machine configured differently from the developer's.
 - [ ] Meter movement, elapsed clock, English and French captions, overlay, Stop and transcript
   export all confirmed under package identity.
 - [ ] Windows App Certification Kit run against the final package.
-- [ ] Screenshots re-captured if any of them no longer match the build.
+- [ ] Fit window and Compact pass the [caption layout matrix](caption-layout.md#release-verification).
+- [ ] EN/FR screenshots re-captured for the changed overlay and appearance controls.
 
 ## Store package identity and signing
 

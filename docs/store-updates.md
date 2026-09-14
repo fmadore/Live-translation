@@ -9,9 +9,53 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.2.4 handoff
+
+Release target: **1.2.4** (MSIX **1.2.4.0**). Microsoft Store submission is pending
+and will be performed by the maintainer. Keep issue #77 open for the maintainer’s reply.
+GitHub's latest published release was v1.2.3 when checked on 14 September 2026.
+The Store-signed copy installed on the test PC was 1.2.2.0; that local observation
+is not a claim about the version currently offered to every Store customer.
+
+This update adds responsive captions for [#77](https://github.com/fmadore/Live-translation/issues/77).
+Thank **@valentinrabot for the feedback and suggestion**, not for implementation.
+The exact acknowledgment is included in the GitHub and EN/FR Store release copy.
+
+- [x] Implement Fit window, optional Compact layout, bounded recent context, and EN/FR controls.
+- [x] Upgrade the test runner to stable Vitest 5.0.0 with the jest-dom matcher type bridge.
+- [x] Pass 287 frontend tests, Svelte checks, formatting, and the production frontend build.
+- [x] Verify browser resizing at 600 × 260, 1200 × 600 and 1200 × 850, Compact mode, and large text.
+- [x] Build a native ARM64 release executable and install/launch a separate local test copy.
+- [x] Prepare README, layout documentation, EN/FR listing fields, certification steps and release notes.
+- [x] Synchronize application manifests and root app versions in both lockfiles to 1.2.4.
+- [ ] Verify the 160px initial overlay and Align to bottom reset to roughly two lines per visible source.
+- [ ] User confirms the responsive captions in the installed local test app.
+- [ ] Verify final x64 and ARM64 MSIX packages using the [caption layout matrix](caption-layout.md#release-verification).
+- [ ] Complete native display scaling, mixed-DPI, font, keyboard and contrast checks.
+- [ ] Recheck demo, live captions, Save As, transcript export, application capture and tray behavior.
+- [ ] Refresh both screenshot sets, especially the overlay and appearance images; existing PNGs are the 1.2.2 set.
+- [ ] Run Windows App Certification Kit against the final packages.
+- [ ] Commit/tag v1.2.4, push, and verify the GitHub release workflow and both architectures.
+- [x] Update CITATION.cff to 1.2.4 with the release date 14 September 2026.
+- [ ] Download and inspect Live.Translation_1.2.4.msixbundle; publish the prepared GitHub release body with the feedback credit.
+- [ ] Publish the updated privacy documentation and verify the Store privacy-policy link.
+- [ ] Upload the bundle, EN/FR copy and fresh screenshots manually in Partner Center; submit and verify certification.
+
+The installed **Live Translation Local Test** was updated on 14 September to **1.2.4**,
+including the shallow bottom-alignment preset. It is an unpackaged ARM64 executable with a
+separate application identity, not a 1.2.4 MSIX or a Store submission artifact. Launching it
+successfully does not establish that the manual caption tests passed. The Store installation
+was preserved. Build the final packages from the normal configuration, without the ignored
+local-test override under src-tauri/target/.
+
+Use **Live.Translation_1.2.4.msixbundle** containing x64 and ARM64 for Partner Center.
+The local executable and a single-architecture test bundle are not substitutes.
+
 ## Release 1.2.3 handoff
 
-Current release target: **1.2.3** (MSIX **1.2.3.0**). The user confirmed that the prior
+Historical record; use the 1.2.4 handoff above for current release work.
+
+Previous release target: **1.2.3** (MSIX **1.2.3.0**). The user confirmed that the prior
 Store version was updated, and that Save As and application selection work on the local
 ARM64 1.2.3.0 test package. The subsequent start/rehearsal layout fix was visually checked
 in English and French and is included in the release source.
@@ -92,7 +136,7 @@ scrolls through, so it is part of the listing rather than an implementation deta
 | `1-idle.png` | The pre-flight screen while idle: provider key, microphone, overlay placement, hourly cost. |
 | `2-running.png` | A running demo: Demo status, a moving meter, elapsed time, and a caption. |
 | `3-overlay.png` | The overlay in placement mode: drag handles, size readout, and the stand-in caption. |
-| `4-appearance.png` | Caption appearance: size, line width, typeface, caption colour, backing colour and backing strength. |
+| `4-appearance.png` | Caption appearance: Fit window / Compact, size, typeface, caption colour and backing; line width appears only in Compact. |
 | `5-contrast.png` | The contrast readout, naming a step that falls below its target. |
 
 Three of those five are there to make an argument rather than to describe a screen. The

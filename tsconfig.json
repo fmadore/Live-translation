@@ -10,6 +10,6 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler",
-		"types": ["node", "vite/client", "@testing-library/jest-dom"]
+		"types": ["node", "vite/client"]
 	}
 }

@@ -8,14 +8,28 @@ someone who already has the app, or who is looking at the source. It can name ve
 issues and say what changed under the surface. It should still not be a commit log — the
 commit log is one click away and nobody wants it twice.
 
-Every previous release published with an empty body. That was a small, steady loss: the
-releases page carries the unsigned installers the README points people at, and it said nothing
-about what they were installing.
-
 Written before tagging, pasted into the release GitHub creates. The
 [`Release installers`](../.github/workflows/release.yml) workflow does not fill the body in.
 
 ---
+
+## v1.2.4
+
+GitHub release copy. See [release handoff](store-updates.md#release-124-handoff) for
+package testing and publication status. The local test executable reports 1.2.4; final MSIX verification is pending.
+
+```markdown
+Captions now adapt to the overlay window. Widen it to fit more words per line, or make
+it taller to show more recent caption context. Font size stays under your control.
+New overlays start as a shallow strip, and Align to bottom resets an enlarged overlay
+to roughly two lines per visible speaker.
+Choose Compact in the caption appearance controls to retain a limited line width.
+
+Development tooling now uses Vitest 5.0.0; all 287 frontend tests pass.
+
+Thanks to @valentinrabot for the feedback and responsive-layout suggestion in
+[#77](https://github.com/fmadore/Live-translation/issues/77).
+```
 
 ## v1.2.3
 

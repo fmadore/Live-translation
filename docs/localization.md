@@ -84,6 +84,12 @@ Two things are not translated, on purpose:
 `i18n.test.ts` enforces the two typographic conventions that are invisible in a diff: a
 non-breaking space before `: ? ; !`, and the typographic apostrophe.
 
+For 1.2.4, the layout controls use **Caption layout / Disposition des sous-titres**,
+**Fit window / Adapter à la fenêtre**, and **Compact / Compact**. The existing
+**Line width / Largeur des lignes** control appears only in Compact. Both the live rail
+and settings panel use the same translations. EN/FR browser controls were checked on
+14 September; native package checks and new screenshots remain in the release checklist.
+
 Still open before publication:
 
 - French screenshots, captured from the translated UI on Windows and committed to

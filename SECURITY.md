@@ -22,10 +22,16 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 
 ## What leaves the machine
 
-Captured audio is streamed to whichever provider you select, under that provider's terms.
-Nothing is sent when no session is running. Transcripts are written only when you choose
-**Save text** or **Save Markdown**, under `Documents/Live-translation/`. A native Save As
-workflow is planned in [issue #26](https://github.com/fmadore/Live-translation/issues/26).
+Live modes stream captured audio directly to the selected provider under that provider's
+terms. The built-in demo captures no audio and uses no network. The developer receives
+no audio, keys or transcripts.
+
+Save as writes text, Markdown, SRT or VTT to the folder the user selects in the native
+Windows dialog. The optional local recovery copy is off by default and stores finalized
+caption text on the same PC. Saved transcripts and recovery data are not uploaded.
+Responsive-caption history is held only in memory; trimming the overlay does not delete
+the operator transcript. See the [privacy policy](docs/privacy.md) and
+[transcript export](docs/transcript-export.md) for details.
 
 ## Installer signing
 

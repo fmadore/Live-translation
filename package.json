@@ -1,6 +1,6 @@
 {
 	"name": "live-translation",
-	"version": "1.2.3",
+	"version": "1.2.4",
 	"description": "Real-time speech translation and same-language subtitles with a transparent caption overlay for hybrid rooms and events",
 	"license": "MIT",
 	"author": "Frédérick Madore (https://orcid.org/0000-0003-0959-2092)",
@@ -44,7 +44,7 @@
 		"svelte-check": "^4.7.6",
 		"typescript": "^6.0.3",
 		"vite": "^8.2.2",
-		"vitest": "^4.1.11"
+		"vitest": "^5.0.0"
 	},
 	"dependencies": {
 		"@fontsource/archivo": "^5.3.0",

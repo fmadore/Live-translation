@@ -127,6 +127,28 @@ changes the default. The explicit failure recovery controls stop and drain the s
 before starting again, preserving the transcript. See the
 [hardware matrix](audio-device-testing.md) for issue #28's manual checks.
 
+## Responsive caption overlay
+
+The overlay route owns current and previous turns per origin, plus a bounded in-memory
+history (12,000 characters per origin). Fit window uses that recent context; Compact retains
+the previous-turn character budget and adjustable typographic width. The full operator
+transcript is independent and is not truncated when captions shrink or fade.
+
+The persisted overlay.captionLayout preference defaults to fit and is synchronized by
+OverlayConfig through overlayController.svelte.ts. Both instances of CaptionAppearance.svelte
+show the same layout choice; line width appears only in Compact, and reset restores Fit window.
+
+OverlayCaptionLine.svelte measures candidate text in a hidden paragraph using the same
+font, line height, available width and live-caret footprint as the visible text.
+captionLayout.ts finds a fitting suffix, preserving newest words and handling long unbroken
+tokens. Viewport size, measured row width and font changes trigger refitting. Visible origins
+share the usable height after padding and row gaps, with system audio above the microphone.
+
+Placement mode intentionally replaces the audience view with positioning controls; lock the
+window to see captions again. Existing idle timers remain: 4 seconds after a final update,
+3 seconds after a stalled interim update. Expiry clears the origin’s current text and reading
+context, not the session transcript. See [caption layout](caption-layout.md).
+
 ## Leaving the app
 
 `lifecycle.rs` owns what closing means; `src/lib/quit.ts` owns the order it happens in. The

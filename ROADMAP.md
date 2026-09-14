@@ -4,17 +4,30 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.1.0 is live
+## Current status — 1.2.4 release
 
-Version **1.0.5** passed certification and is published at
-[apps.microsoft.com/detail/9PFB8LR3RR9X](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
-Version **1.1.0** passed certification on 27 August 2026 and is what the Store now hands to
-anyone who installs or updates the app. Updates are uploaded to Partner Center by hand, as
-described in [`docs/store-updates.md`](docs/store-updates.md) — the submission API
-authenticates as a Microsoft Entra application, which Partner Center offers only to Company
-accounts.
+GitHub's latest published release is **v1.2.3**, checked 14 September 2026. It adds
+native Save As, SRT/VTT export and selected-application audio capture. The locally installed
+Store-signed copy was 1.2.2.0 that day; verify rollout status in Partner Center rather than
+inferring the public Store version from one PC.
 
-Version **1.0.5** was the release before it, and the one that first got through.
+**1.2.4 adds responsive captions.** [Issue #77](https://github.com/fmadore/Live-translation/issues/77)
+adds Fit window, optional Compact layout, and more recent caption context in taller windows.
+Thanks to @valentinrabot for the feedback and suggestion. Frontend checks and browser resizing
+passed; an unpackaged ARM64 Local Test build is installed for user feedback. Final MSIX,
+Windows scaling and screenshot checks remain pending in the
+[release handoff](docs/store-updates.md#release-124-handoff).
+
+The README, EN/FR Store listing, certification instructions and package versions are prepared
+for 1.2.4. GitHub publication is tracked in the release handoff. The maintainer will handle
+the Microsoft Store submission and reply to issue #77; leave that issue open.
+Citation metadata identifies 1.2.4.
+
+## Historical delivery context
+
+The sections below preserve earlier plans and acceptance criteria. They are not the current
+release checklist. Version 1.0.5 first passed certification; 1.1.0 followed on 27 August 2026.
+Store updates are submitted manually through [Partner Center](docs/store-updates.md).
 
 It took several attempts. The 1.0.3 submission failed policy 10.1.2.10 because **Start
 Subtitles** did nothing on the review device, and neither credential-free Windows recognizer
@@ -55,8 +68,8 @@ interface level, and comfortable to leave running without an open operator windo
      code complete; keyboard/Narrator operation of the tray menu and the packaged-build walk
      are manual and stay open until they are run on Windows.
 
-**Built after the 1.1.0 package was cut**, and therefore due in the next release. Everything
-below is on `main` and in none of the bytes the Store is serving:
+**Historical post-1.1.0 implementation work.** The list below records what was added
+after that package; it does not describe the current Store rollout:
 
 3. **Inclusive and bilingual UI**
    - [#24 — Windows accessibility and high-contrast pass](https://github.com/fmadore/Live-translation/issues/24) —
@@ -106,31 +119,25 @@ review. The text-scaling layout is verified at the window's 980 × 660 minimum a
 the slider — no clipping, no overflow, no overlap — but verified in a browser preview at a
 forced factor, which is not the same as a real slider on a real Windows machine.
 
-## 1.2 — Windows integration
+## 1.2 — Windows integration and responsive captions
 
-**Goal:** narrow capture to the intended source and make the resulting captions useful outside
-the app.
+Implemented across the 1.2 releases:
 
-1. [#28 — audio hot-plug and loopback-output selection](https://github.com/fmadore/Live-translation/issues/28)
-2. [#27 — per-application WASAPI loopback capture](https://github.com/fmadore/Live-translation/issues/27)
-3. [#26 — native Save As plus SRT/VTT export](https://github.com/fmadore/Live-translation/issues/26)
-   — its timing prerequisite has landed. The issue asks for cues built on "explicit monotonic
-   caption timing rather than display timestamps", and there was no caption timing anywhere in
-   the app: neither `Caption` nor `TranscriptLine` carried a clock, and the only one in reach
-   was the renderer's arrival time, which is the thing the issue rules out. Captions now carry
-   an interval stamped in the core (`src-tauri/src/timing.rs`), so what is left of #26 is the
-   picker and the formatters.
+- [#28 — device lifecycle and output selection](https://github.com/fmadore/Live-translation/issues/28):
+  implemented; see [audio device testing](docs/audio-device-testing.md) for remaining hardware checks.
+- [#27 — application audio capture](https://github.com/fmadore/Live-translation/issues/27):
+  included in 1.2.3. Selection was confirmed locally; the full isolation matrix remains pending.
+  Closing the selected application stops that capture rather than switching to all system audio.
+- [#26 — native Save As and SRT/VTT export](https://github.com/fmadore/Live-translation/issues/26):
+  included in 1.2.3. Save As was confirmed locally; complete export verification is recorded
+  in [transcript export](docs/transcript-export.md).
+- [#77 — responsive caption layout](https://github.com/fmadore/Live-translation/issues/77):
+  implemented for 1.2.4; local test installation and release documentation are prepared.
+  User feedback, packaged Windows checks and fresh screenshots remain pending.
 
-Device lifecycle work comes first because both all-system and per-process capture need a shared,
-recoverable device model. The process-capture implementation must retain all-system loopback as
-a fallback on unsupported Windows builds.
-
-Definition of done for 1.2:
-
-- Teams/Zoom, Chromium child processes, USB/Bluetooth removal, dock changes, sleep/wake, and
-  mixed-DPI multi-monitor scenarios pass the hardware test matrix.
-- Process capture excludes unrelated notification/media audio.
-- Markdown, text, SRT, and VTT exports round-trip through a native picker in the Store MSIX.
+Release acceptance still includes Teams/Zoom, browser child processes, device changes,
+sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
+Use the [1.2.4 handoff](docs/store-updates.md#release-124-handoff) for the current checklist.
 
 ## Research and unscheduled work
 

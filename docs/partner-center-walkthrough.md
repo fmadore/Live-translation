@@ -1,18 +1,18 @@
 # Partner Center submission walkthrough
 
-Submission target: **Live Translation & Subtitles 1.2.3**, Product ID `9PFB8LR3RR9X`.
-The user confirmed Save As and application selection in the ARM64 test build.
-See the [release handoff](store-updates.md#release-123-handoff) for remaining checks.
+Submission target: **Live Translation & Subtitles 1.2.4**, Product ID `9PFB8LR3RR9X`.
+Prepared, not submitted. Responsive-caption testing on the final x64 and ARM64 packages is pending.
+See the [release handoff](store-updates.md#release-124-handoff) for remaining checks.
 
 ## Before Partner Center
 
 1. Build and verify both native packages and the single multi-architecture bundle:
-   `Live.Translation_1.2.3.msixbundle`.
+   `Live.Translation_1.2.4.msixbundle`.
 2. Sideload the per-architecture MSIX packages using
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
    manual checks in [`microsoft-store.md`](microsoft-store.md).
 3. Refresh the English and French screenshots in [`store-listing.md`](store-listing.md)
-   if the visible content has changed.
+   especially the overlay and appearance controls; the existing 1.2.2 set is stale.
 4. Confirm the privacy policy is published at
    <https://fmadore.github.io/Live-translation/privacy>.
 
@@ -53,8 +53,8 @@ OpenAI, or Mistral. The built-in demo itself has no network access.
 ## Packages
 
 Remove previously listed packages and upload the single unsigned multi-architecture
-`Live.Translation_1.2.3.msixbundle` for version `1.2.3.0`. The Store signs accepted packages.
-Do not upload the locally self-signed test package.
+`Live.Translation_1.2.4.msixbundle` for version `1.2.4.0`. The Store signs accepted packages.
+Do not upload the locally self-signed test package or the unpackaged Local Test executable.
 
 Verify these manifest values:
 
@@ -63,7 +63,7 @@ Verify these manifest values:
 | `Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
-| Version | `1.2.3.0` |
+| Version | `1.2.4.0` |
 
 Windows Desktop is the only device family. Native x64 and ARM64 packages are supplied.
 
@@ -91,7 +91,7 @@ list is intentionally not duplicated inside the Description.
 
 ### What’s new
 
-Paste the English and French **1.2.3** blocks from
+Paste the English and French **1.2.4** blocks from
 [`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
 
 Additional system requirements:
@@ -124,9 +124,8 @@ Before clicking **Submit to the Store**, confirm:
 - a screenshot shows Built-in demo / Demo audio / Free / Start demo subtitles. This used to
   name the *first* screenshot, and the guarantee is what matters rather than the position:
   something in the set has to show that the default action needs no key and costs nothing, or
-  10.1.2 has nothing to look at. Shot 1 now opens on the provider pre-flight, so shot 3 is
-  where a reviewer finds it;
-- certification notes contain the deterministic demo test in both languages;
+  10.1.2 has nothing to look at. Use the running-demo capture for that evidence;
+- certification notes contain the deterministic demo and Fit window / Compact checks;
 - no field or screenshot claims the built-in path recognizes speech.
 
 If certification raises 10.1.2 again, reply with Product ID `9PFB8LR3RR9X`, the current demo

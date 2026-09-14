@@ -308,7 +308,11 @@ describe('values that come back from disk', () => {
 // invisible to every test here, which is precisely how the failures in #24 arrived.
 describe('the overlay stylesheet', () => {
 	const CSS = readFileSync(new URL('../routes/overlay/+page.svelte', import.meta.url), 'utf8');
-	const style = CSS.slice(CSS.indexOf('<style>'));
+	const line = readFileSync(
+		new URL('../routes/overlay/OverlayCaptionLine.svelte', import.meta.url),
+		'utf8'
+	);
+	const style = CSS.slice(CSS.indexOf('<style>')) + line.slice(line.indexOf('<style>'));
 
 	it('paints every caption step from the palette', () => {
 		for (const name of [

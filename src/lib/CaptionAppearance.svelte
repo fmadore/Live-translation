@@ -1,8 +1,10 @@
 <script lang="ts">
+	import type { CaptionLayout } from './captionLayout';
 	import { t, localeTag } from './i18n';
 	import {
 		overlayFontSize,
 		overlayCaptionWidth,
+		overlayCaptionLayout,
 		overlayCaptionFace,
 		overlayPalette,
 		overlayContrast
@@ -25,7 +27,8 @@
 	 *  "have I changed anything?" — which is the one an operator has after an hour of
 	 *  adjusting and no memory of where they started. */
 	const overlayAtDefaults = $derived(
-		$overlayFontSize === DEFAULT_OVERLAY_FONT &&
+		$overlayCaptionLayout === 'fit' &&
+			$overlayFontSize === DEFAULT_OVERLAY_FONT &&
 			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
 			$overlayCaptionFace === DEFAULT_CAPTION_FACE &&
 			$overlayPalette.text === DEFAULT_CAPTION_PALETTE.text &&
@@ -73,20 +76,44 @@
 		aria-label={$t.overlayControls.larger}>+</button
 	>
 </div>
-<div class="stepper">
-	<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
-	<button
-		class="step"
-		onclick={() => overlay.setCaptionWidth($overlayCaptionWidth - 2)}
-		aria-label={$t.overlayControls.narrower}>−</button
+<div class="select-row">
+	<select
+		aria-label={$t.overlayControls.captionLayout}
+		value={$overlayCaptionLayout}
+		onchange={(e) => overlay.setCaptionLayout(e.currentTarget.value as CaptionLayout)}
 	>
-	<span class="stepper-value">{$overlayCaptionWidth}</span>
-	<button
-		class="step"
-		onclick={() => overlay.setCaptionWidth($overlayCaptionWidth + 2)}
-		aria-label={$t.overlayControls.wider}>+</button
+		<option value="fit">{$t.overlayControls.fitWindow}</option>
+		<option value="compact">{$t.overlayControls.compact}</option>
+	</select>
+	<svg
+		class="chevron"
+		width="12"
+		height="12"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
 	>
 </div>
+{#if $overlayCaptionLayout === 'compact'}
+	<div class="stepper">
+		<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
+		<button
+			class="step"
+			onclick={() => overlay.setCaptionWidth($overlayCaptionWidth - 2)}
+			aria-label={$t.overlayControls.narrower}>−</button
+		>
+		<span class="stepper-value">{$overlayCaptionWidth}</span>
+		<button
+			class="step"
+			onclick={() => overlay.setCaptionWidth($overlayCaptionWidth + 2)}
+			aria-label={$t.overlayControls.wider}>+</button
+		>
+	</div>
+{/if}
 <div class="select-row">
 	<select
 		aria-label={$t.overlayControls.captionFace}

@@ -1,5 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
+	import {
+		appendCaptionHistory,
+		loadCaptionLayout,
+		isCaptionLayout,
+		bottomCaptionHeight
+	} from '$lib/captionLayout';
 	import { api, on, isTauri } from '$lib/tauri';
 	import { locale, t } from '$lib/i18n';
 	import type { Caption, Origin, TargetLanguage } from '$lib/types';
@@ -24,9 +31,10 @@
 
 	// The overlay keeps only what it needs to render: one current turn per origin (mic and
 	// system turns have independent ids, so they must never share a slot) plus that origin's
-	// previous turn, which trails into the current one so the audience can finish reading it.
+	// bounded recent context, so a taller region can retain several short turns.
 	let current = $state<Partial<Record<Origin, Caption>>>({});
 	let previous = $state<Partial<Record<Origin, string>>>({});
+	let history = $state<Partial<Record<Origin, string>>>({});
 
 	// Stable render order: the remote speaker (system) above the room mic.
 	const ORIGIN_ORDER: Origin[] = ['system', 'microphone'];
@@ -38,6 +46,8 @@
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
+	let captionLayout = $state(loadCaptionLayout());
+	let fontsLoaded = $state(0);
 	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
 
 	// The ink and the scrim behind it. The overlay keeps the operator's three plain values and
@@ -77,7 +87,7 @@
 	const INTERIM_HOLD_MS = 3000;
 	const clearTimers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
 
-	// Keep captions subtitle-sized. A turn streams until it completes, which during
+	// Compact mode keeps captions subtitle-sized. A turn streams until it completes, which during
 	// continuous speech can run for many sentences, so render only the most recent slice of
 	// the (still-growing) turn instead of the whole thing — otherwise it fills the screen.
 	// The budget follows the measure, so the block stays the same number of lines however
@@ -110,9 +120,15 @@
 		ORIGIN_ORDER.flatMap((origin) => {
 			const caption = current[origin];
 			if (!caption) return [];
-			const text = tail(caption.text, maxChars);
+			const text =
+				captionLayout === 'fit' ? caption.text.slice(-12000) : tail(caption.text, maxChars);
 			const room = maxChars - text.length;
-			const lead = room >= MIN_LEAD_CHARS ? tail(previous[origin] ?? '', room) : '';
+			const lead =
+				captionLayout === 'fit'
+					? (history[origin] ?? '')
+					: room >= MIN_LEAD_CHARS
+						? tail(previous[origin] ?? '', room)
+						: '';
 			return [{ origin, lead, text, interim: !caption.final }];
 		})
 	);
@@ -120,6 +136,18 @@
 	// A single speaker needs no label — the row is unambiguous, and the label would only
 	// steal width from the caption. Labels appear exactly when both origins are on screen.
 	const showLabels = $derived(lines.length > 1);
+	const sidePadding = $derived(
+		captionLayout === 'fit' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
+	);
+	const topPadding = $derived(captionLayout === 'fit' ? 16 : winH * 0.09);
+	const bottomPadding = $derived(captionLayout === 'fit' ? 16 : winH * 0.06);
+	const rowHeight = $derived(
+		Math.max(
+			0,
+			(winH - topPadding - bottomPadding - Math.max(0, lines.length - 1) * 18) /
+				Math.max(1, lines.length)
+		)
+	);
 
 	onMount(() => {
 		const measure = () => {
@@ -127,15 +155,31 @@
 			winH = Math.round(window.innerHeight);
 		};
 		measure();
+		let mounted = true;
+		void document.fonts.ready.then(() => {
+			if (mounted) fontsLoaded += 1;
+		});
+		const fontsChanged = () => {
+			fontsLoaded += 1;
+		};
+		document.fonts.addEventListener('loadingdone', fontsChanged);
+		const cleanup = () => {
+			mounted = false;
+			window.removeEventListener('resize', measure);
+			document.fonts.removeEventListener('loadingdone', fontsChanged);
+			for (const timer of Object.values(clearTimers)) clearTimeout(timer);
+		};
 		window.addEventListener('resize', measure);
 
 		if (!isTauri()) {
 			// Demo content so the overlay can be previewed in a browser: both origins visible
 			// (so the labels show), one finalized line and one live turn carrying a lead-in.
-			previous.system = 'Bienvenue — les sous-titres apparaîtront ici. Il me semble';
+			previous.system =
+				'Bienvenue à cette démonstration des sous-titres. Pendant une réunion, les phrases récentes restent disponibles pour suivre la discussion. Agrandissez la fenêtre pour afficher davantage de contexte, ou réduisez-la pour ne garder que les mots les plus récents. La taille des caractères reste celle que vous avez choisie.';
+			history.system = previous.system;
 			current.system = {
 				turnId: 1,
-				text: "que c'est un peu bizarre comment le texte apparaît.",
+				text: 'Les sous-titres utilisent la largeur disponible et le texte revient à la ligne lorsque la fenêtre devient plus étroite.',
 				sourceText: '',
 				final: false,
 				origin: 'system',
@@ -144,14 +188,14 @@
 			};
 			current.microphone = {
 				turnId: 1,
-				text: 'So the corpus is about forty thousand documents.',
+				text: 'This is the room microphone. Its captions remain separate from the remote speaker above. Resize the overlay to see more of this conversation while keeping the newest words visible. Both speakers share the available height, and their labels identify where the audio comes from.',
 				sourceText: '',
 				final: true,
 				origin: 'microphone',
 				startMs: 0,
 				endMs: 0
 			};
-			return () => window.removeEventListener('resize', measure);
+			return cleanup;
 		}
 
 		const unlistenCaption = on.caption((c) => {
@@ -161,6 +205,7 @@
 			// this keys off the turn id changing rather than on `cur.final`.
 			if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
 				previous[c.origin] = cur.text;
+				history[c.origin] = appendCaptionHistory(history[c.origin] ?? '', cur.text);
 			}
 			current[c.origin] = c;
 			// Always re-arm this origin's auto-hide: even when a turn ends on an interim
@@ -170,12 +215,14 @@
 				() => {
 					delete current[c.origin];
 					delete previous[c.origin];
+					delete history[c.origin];
 				},
 				c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
 			);
 		});
 
 		const unlistenConfig = on.overlayConfig((cfg) => {
+			if (isCaptionLayout(cfg.captionLayout)) captionLayout = cfg.captionLayout;
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
 			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
@@ -208,7 +255,7 @@
 		});
 
 		return () => {
-			window.removeEventListener('resize', measure);
+			cleanup();
 			void unlistenCaption.then((f) => f());
 			void unlistenConfig.then((f) => f());
 		};
@@ -267,8 +314,11 @@
 			// Monitor geometry is physical; window setters take logical pixels.
 			const bounds = monitor.size.toLogical(monitor.scaleFactor);
 			const corner = monitor.position.toLogical(monitor.scaleFactor);
-			// Height is the operator's choice — snapping only settles width and position.
-			const height = (await win.innerSize()).toLogical(await win.scaleFactor()).height;
+			// Reset an enlarged reading region to a shallow subtitle strip.
+			const height = Math.min(
+				bottomCaptionHeight(fontSize, lines.length, captionLayout),
+				Math.max(1, bounds.height - 80)
+			);
 			await win.setSize(new LogicalSize(Math.round(bounds.width - 96), Math.round(height)));
 			await win.setPosition(
 				new LogicalPosition(
@@ -369,8 +419,9 @@
 <div
 	class="stage"
 	class:interactive
+	class:fit={captionLayout === 'fit'}
 	data-tauri-drag-region={interactive || undefined}
-	style="--fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
+	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"
 >
@@ -456,16 +507,14 @@
 					<!-- The label is interface-language text sitting beside caption-language text, and
 					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
 					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
-					<!-- One block per speaker: dimmed lead-in, then the live text, as running text.
-					     The separating space is explicit — Svelte trims literal whitespace here. -->
-					<!-- `lang=""` is not a fallback: HTML spells "unknown language" that way, and it
-					     is the honest markup while a subtitle engine detects. Inheriting the
-					     interface language instead would assert something nobody checked, which is
-					     how a screen reader ends up reading French with English phonemes. -->
-					<!-- prettier-ignore -->
-					<p class="line" lang={captionLanguage ?? ''} class:final={!line.interim}>
-						{#if line.lead}<span class="lead">{line.lead}</span>{' '}{/if}{line.text}{#if line.interim}<span class="caret"></span>{/if}
-					</p>
+					<OverlayCaptionLine
+						lead={line.lead}
+						text={line.text}
+						interim={line.interim}
+						height={rowHeight}
+						fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded}
+						language={captionLanguage ?? ''}
+					/>
 				</div>
 			{/each}
 		</div>
@@ -505,7 +554,9 @@
 		flex-direction: column;
 		align-items: center;
 		gap: 18px;
-		padding: 9vh 6.5vw 6vh;
+		padding: var(--top-pad) var(--side-pad) var(--bottom-pad);
+		max-height: 100%;
+		overflow: hidden;
 		pointer-events: none;
 		/* The audience view only. Move-mode chrome stays on the app's own face: it is this
 		   operator's interface, not the thing being projected. */
@@ -522,10 +573,17 @@
 	}
 	/* Centred like cinema subtitles; with labels on, the label+text pair centres as a unit. */
 	.row {
+		width: 100%;
+		min-height: 0;
+		max-width: var(--measure);
+		font-size: var(--fs);
 		display: flex;
 		justify-content: center;
 		align-items: baseline;
 		gap: 20px;
+	}
+	.fit .row {
+		max-width: none;
 	}
 	.origin {
 		flex: 0 0 auto;
@@ -537,48 +595,6 @@
 		text-transform: uppercase;
 		color: var(--caption-ink-label);
 	}
-	.line {
-		margin: 0;
-		/* Operator-chosen, in `ch` so a measure survives a font-size change. It is a cap, not
-		   a width: a region narrower than the measure simply wraps sooner, which is why no
-		   setting here can push text outside the caption region. */
-		max-width: var(--measure);
-		font-weight: 600;
-		font-size: var(--fs);
-		line-height: 1.34;
-		letter-spacing: -0.005em;
-		text-align: center;
-		color: var(--caption-ink);
-		/* A tight edge plus a soft halo: keeps the text readable over a bright slide even
-		   where the fade above has thinned to nothing. Black behind a light caption, white
-		   behind a dark one — a fixed black ring would be the thing swallowing dark ink
-		   rather than the thing rescuing it. See `haloColour`. */
-		text-shadow:
-			0 1px 3px var(--caption-halo-tight),
-			0 2px 14px var(--caption-halo-soft);
-		text-wrap: pretty;
-	}
-	/* A finished line loses a little weight of colour, never size or slant: both cost
-	   legibility at the back of a room. */
-	.line.final {
-		color: var(--caption-ink-final);
-	}
-	/* The lead-in is the same size and sits in the same block as the live text — only its
-	   contrast drops, so a sentence spanning two turns still reads as one line. */
-	.lead {
-		color: var(--caption-ink-lead);
-	}
-	/* Marks the live turn. `blink` is a global keyframe (app.css). */
-	.caret {
-		display: inline-block;
-		width: 4px;
-		height: 0.86em;
-		margin-left: 10px;
-		vertical-align: -1px;
-		background: #5ad1a0;
-		animation: blink 1.1s steps(1) infinite;
-	}
-
 	/* ---- Move mode -------------------------------------------------------- */
 
 	.region {
