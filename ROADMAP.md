@@ -6,8 +6,8 @@ why earlier architectural decisions were made.
 
 ## Current status — 1.2.4 release
 
-GitHub's latest published release is **v1.2.3**, checked 14 September 2026. It adds
-native Save As, SRT/VTT export and selected-application audio capture. The locally installed
+GitHub's latest published release is **v1.2.4**, published 14 September 2026. It adds
+responsive captions and a shallow bottom-alignment preset. The locally installed
 Store-signed copy was 1.2.2.0 that day; verify rollout status in Partner Center rather than
 inferring the public Store version from one PC.
 

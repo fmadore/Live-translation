@@ -2,7 +2,7 @@
 
 **Next submission: 1.2.4 (prepared, not submitted).** Native x64 and ARM64 packages
 will be distributed at <https://apps.microsoft.com/detail/9PFB8LR3RR9X>.
-GitHub’s latest published release was v1.2.3 on 14 September 2026. The Store-signed
+GitHub’s latest published release is v1.2.4, published 14 September 2026. The Store-signed
 copy found on the local test PC that day was 1.2.2.0; check Partner Center for the
 current publication and rollout state before submitting.
 

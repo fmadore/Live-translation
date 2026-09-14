@@ -13,7 +13,7 @@ packages are built.
 
 Release target: **1.2.4** (MSIX **1.2.4.0**). Microsoft Store submission is pending
 and will be performed by the maintainer. Keep issue #77 open for the maintainer’s reply.
-GitHub's latest published release was v1.2.3 when checked on 14 September 2026.
+GitHub release v1.2.4 was published on 14 September 2026 with the feedback credit.
 The Store-signed copy installed on the test PC was 1.2.2.0; that local observation
 is not a claim about the version currently offered to every Store customer.
 
@@ -35,9 +35,9 @@ The exact acknowledgment is included in the GitHub and EN/FR Store release copy.
 - [ ] Recheck demo, live captions, Save As, transcript export, application capture and tray behavior.
 - [ ] Refresh both screenshot sets, especially the overlay and appearance images; existing PNGs are the 1.2.2 set.
 - [ ] Run Windows App Certification Kit against the final packages.
-- [ ] Commit/tag v1.2.4, push, and verify the GitHub release workflow and both architectures.
+- [x] Commit/tag v1.2.4, push, and verify the GitHub release workflow and both architectures.
 - [x] Update CITATION.cff to 1.2.4 with the release date 14 September 2026.
-- [ ] Download and inspect Live.Translation_1.2.4.msixbundle; publish the prepared GitHub release body with the feedback credit.
+- [x] Download and inspect Live.Translation_1.2.4.msixbundle; publish the prepared GitHub release body with the feedback credit.
 - [ ] Publish the updated privacy documentation and verify the Store privacy-policy link.
 - [ ] Upload the bundle, EN/FR copy and fresh screenshots manually in Partner Center; submit and verify certification.
 
@@ -50,6 +50,13 @@ local-test override under src-tauri/target/.
 
 Use **Live.Translation_1.2.4.msixbundle** containing x64 and ARM64 for Partner Center.
 The local executable and a single-architecture test bundle are not substitutes.
+
+Release source: `75ef719`, tagged `v1.2.4`. [CI](https://github.com/fmadore/Live-translation/actions/runs/34818981260)
+and the [release workflow](https://github.com/fmadore/Live-translation/actions/runs/34818980978)
+passed. The downloaded bundle's manifest identifies both x64 and ARM64 packages at
+1.2.4.0 with the Store identity. Its SHA-256 matches the GitHub asset digest:
+`e2e6b88c9885c4d247094156229007e1cf6c3d31db0842fe6c6cfed4574a724c`.
+This verifies package contents and download integrity; the manual checks above remain pending.
 
 ## Release 1.2.3 handoff
 
