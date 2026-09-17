@@ -9,10 +9,28 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Release 1.2.4 handoff
+## Next submission — the German listing
 
-Release target: **1.2.4** (MSIX **1.2.4.0**). Microsoft Store submission is pending
-and will be performed by the maintainer. Keep issue #77 open for the maintainer’s reply.
+**1.2.4 was accepted and is live in the Store.** The next submission is the first one to carry
+a third listing language, and that is the only thing genuinely new about it: German copy is
+written and waiting in [`store-listing.md`](store-listing.md#deutsch-deutschland).
+
+It cannot go out on its own. A Store listing in German advertises a German interface, so the
+listing and the release that ships `src/lib/i18n/de.ts` are the same submission — the checklist
+is under [Adding the German listing](store-listing.md#adding-the-german-listing). The two items
+with a lead time are the ones to start first: **German screenshots from the final MSIX**, and a
+**native German speaker's review** of both the catalog and the copy.
+
+Worth an hour before that submission, because it would change what the listing can claim:
+**nobody has put German speech in front of the subtitle engines.** Both detect the spoken
+language themselves and Gemini documents over 70, so German subtitles most likely already work
+with no code at all. Verified, the German listing could say so; unverified, it says exactly what
+the English one says and singles out no language.
+
+## Release 1.2.4 handoff — done
+
+Released and live. Kept for the record of what was checked. Keep issue #77 open for the
+maintainer’s reply.
 GitHub release v1.2.4 was published on 14 September 2026 with the feedback credit.
 The Store-signed copy installed on the test PC was 1.2.2.0; that local observation
 is not a claim about the version currently offered to every Store customer.
@@ -39,7 +57,15 @@ The exact acknowledgment is included in the GitHub and EN/FR Store release copy.
 - [x] Update CITATION.cff to 1.2.4 with the release date 14 September 2026.
 - [x] Download and inspect Live.Translation_1.2.4.msixbundle; publish the prepared GitHub release body with the feedback credit.
 - [ ] Publish the updated privacy documentation and verify the Store privacy-policy link.
-- [ ] Upload the bundle, EN/FR copy and fresh screenshots manually in Partner Center; submit and verify certification.
+- [x] Upload the bundle and EN/FR copy manually in Partner Center; submit and verify certification. **Accepted; 1.2.4 is live.**
+
+One loose end the repository can see and Partner Center cannot: **the committed PNGs were not
+refreshed for 1.2.4.** `chore(release): 1.2.4` touched only
+`docs/store-screenshots/README.md`, not a single image, and the last actual capture was
+`0382eac` on 8 September. So whatever screenshots the live listing carries, the repository no
+longer answers "do these still match the build?" — which is the entire reason the sets are kept
+here. Re-capture from the live 1.2.4 MSIX and commit, or note deliberately that the listing
+still shows an older UI.
 
 The installed **Live Translation Local Test** was updated on 14 September to **1.2.4**,
 including the shallow bottom-alignment preset. It is an unpackaged ARM64 executable with a
@@ -107,16 +133,16 @@ ARM64-only test bundle is not the multi-architecture Store artifact.
    [`accessibility.md`](accessibility.md#release-checklist-manual-on-windows) against this
    install, because package identity changes how Windows treats the window.
 5. **Re-capture the screenshots** if anything they show has changed — see
-   [Screenshots](#screenshots). Both languages.
+   [Screenshots](#screenshots). Every listing language.
 6. Partner Center → **Apps and games** → *Live Translation & Subtitles* → **Create new
    submission**. In French: **Applications et jeux**, **Créer une soumission**.
 7. Under **Packages**, **delete every package already listed**, then upload the single
    `.msixbundle`. Deleting matters: 1.0.5 went up as two separate per-architecture packages,
    and leaving one behind ships a stale architecture silently. One bundle in, nothing else.
-8. **Paste the listing text** for both languages if it changed. The paste-ready English and
-   French copy is in [`store-listing.md`](store-listing.md), and **What's new in this version**
-   has to be rewritten for every release. Editing that file changes nothing on its own; the
-   Store only knows what is typed into Partner Center.
+8. **Paste the listing text** for every language if it changed. The paste-ready copy is in
+   [`store-listing.md`](store-listing.md), and **What's new in this version** has to be
+   rewritten for every release, in every language the listing has. Editing that file changes
+   nothing on its own; the Store only knows what is typed into Partner Center.
 9. Set a **gradual rollout** percentage for anything touching audio capture or the session
    lifecycle. Start at 10% and raise it once the crash and review data look clean.
 10. **Submit to the Store**, then watch certification. A clean submission is not a pass — 1.0.3

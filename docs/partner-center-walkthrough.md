@@ -11,8 +11,9 @@ See the [release handoff](store-updates.md#release-124-handoff) for remaining ch
 2. Sideload the per-architecture MSIX packages using
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
    manual checks in [`microsoft-store.md`](microsoft-store.md).
-3. Refresh the English and French screenshots in [`store-listing.md`](store-listing.md)
-   especially the overlay and appearance controls; the existing 1.2.2 set is stale.
+3. Refresh the screenshots for every listing language in
+   [`store-listing.md`](store-listing.md), especially the overlay and appearance controls. The
+   German set does not exist yet and has to be captured with the interface set to German.
 4. Confirm the privacy policy is published at
    <https://fmadore.github.io/Live-translation/privacy>.
 
@@ -69,8 +70,9 @@ Windows Desktop is the only device family. Native x64 and ARM64 packages are sup
 
 ## Store listings
 
-Create separate English (United States) and French (France) listings. Partner Center has three
-different fields; do not combine them:
+Create separate English (United States) and French (France) listings — and, from the release
+that ships the German interface, Deutsch (Deutschland). Partner Center has three different
+fields per language; do not combine them:
 
 1. **Description** — full paragraphs only.
 2. **Features / Fonctionnalités** — one feature per line; Partner Center renders the lines as
@@ -85,6 +87,14 @@ All six exact copy-and-paste blocks are in [`store-listing.md`](store-listing.md
 - French full Description
 - French Fonctionnalités
 - French Description courte — 171 characters
+- German vollständige Beschreibung
+- German Funktionen
+- German Kurzbeschreibung — 193 characters
+
+The German blocks are prepared but **not to be published before the release that ships the
+German interface** — [`store-listing.md`](store-listing.md#adding-the-german-listing) lists what
+has to be true first. German also carries one extra Funktionen bullet naming the interface
+languages, which is deliberate.
 
 The provider dependency remains in the first paragraph of each full Description. The feature
 list is intentionally not duplicated inside the Description.
@@ -92,7 +102,10 @@ list is intentionally not duplicated inside the Description.
 ### What’s new
 
 Paste the English and French **1.2.4** blocks from
-[`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
+[`store-listing.md`](store-listing.md), the single source for release-specific Store copy. The
+German **Neuerungen** block there is written for the release that introduces the German
+interface, and that release needs its own English and French blocks written alongside it —
+adding a language does not rewrite the other two, but a release still needs all three.
 
 Additional system requirements:
 

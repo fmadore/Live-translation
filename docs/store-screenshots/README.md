@@ -12,9 +12,15 @@ Re-capture the changed overlay and appearance controls in both languages from th
 review the idle, running and contrast captures against that package too.
 The unpackaged Local Test app does not replace MSIX screenshot verification.
 
+`de/` does not exist yet and should not be created until there is something true to put in it:
+the German captures come from the final MSIX of the release that ships the German interface,
+with the interface set to German. Same five filenames, same order — the order belongs to the
+listing, not to the language.
+
 ```text
 en/    English listing
 fr/    French listing
+de/    German listing — not captured yet
 ```
 
 Five per language, named for the order they are uploaded in — that order is what a visitor

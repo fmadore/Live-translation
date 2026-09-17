@@ -1,9 +1,17 @@
-# Partner Center listing text — 1.2.4
+# Partner Center listing text — 1.2.4 live, German prepared
 
-Prepared for **1.2.4** (MSIX **1.2.4.0**); not yet submitted. Paste only the relevant
-field blocks into Partner Center after final package testing. See the
+**1.2.4** (MSIX **1.2.4.0**) was accepted and is live in the Store. The English and French
+blocks below are the copy that listing carries; leave them alone unless the listing itself is
+being changed.
+
+**Deutsch (Deutschland) is new and not yet published.** It goes out with the release that ships
+the German interface — not before. A German listing on a build whose interface is English and
+French only is a mismatch a German-speaking customer notices immediately, and it is the kind of
+thing certification is entitled to fail. See
+[Adding the German listing](#adding-the-german-listing) for what has to be true first.
+
+Paste only the relevant field blocks into Partner Center. See the
 [release handoff](store-updates.md#release-124-handoff) for verification and screenshot status.
-The current local test executable is unpackaged and reports 1.2.4; final MSIX verification is pending.
 
 ## English (United States)
 
@@ -119,6 +127,139 @@ Adaptez la surimpression à votre réunion. Adapter à la fenêtre utilise la la
 Merci à @valentinrabot pour ses retours et sa suggestion de disposition adaptative dans le ticket GitHub nº 77.
 ```
 
+## Deutsch (Deutschland)
+
+### Beschreibung — vollständiger Text
+
+Fügen Sie diesen Text in **Beschreibung** ein:
+
+```text
+Untertitel und Übersetzung in Echtzeit aus Mikrofon- oder Systemaudio erfordern einen eigenen kompatiblen API-Schlüssel und ein Konto bei Google Gemini, OpenAI oder Mistral. Diese Drittanbieterdienste können Ihr Konto nutzungsabhängig abrechnen.
+
+Live Translation & Subtitles ist ein Windows-Präsentationswerkzeug für Besprechungen, Lehrveranstaltungen und Konferenzen. Es zeigt Untertitel in einem eigenen Bedienfenster und in einem transparenten Overlay, das immer im Vordergrund bleibt und über Folien, Videoanrufe oder andere Inhalte gelegt werden kann.
+
+Eine integrierte Demonstration auf Englisch und Französisch funktioniert ohne Konto, API-Schlüssel, Mikrofon, Sprachpaket, Internetverbindung oder Bezahlung. Sie verwendet mitgelieferte, skriptbasierte Untertitel, um Overlay, Zeitmessung, Pegelanzeige, Transkript und Export vorzuführen. Sie erkennt keine live gesprochene Sprache.
+
+Für den Einsatz in Echtzeit wählen Sie Gemini oder OpenAI für die Übersetzung zwischen Englisch und Französisch, oder Gemini oder Mistral für Untertitel in der gesprochenen Sprache. Beide Untertitel-Engines erkennen die gesprochene Sprache selbst, und Gemini deckt über 70 Sprachen ab. Die Live-Anbieter können ein ausgewähltes Raummikrofon, das Windows-Systemaudio oder beides aufnehmen. Die Systemaufnahme kann das gesamte Audio eines Ausgabegeräts verwenden oder eine ausgewählte Anwendung samt ihrer Unterprozesse. Benachrichtigungen dieser Anwendung sind enthalten, und ein Browser kann mehrere Tabs umfassen. Speichern Sie Transkripte in einem Ordner Ihrer Wahl als reinen Text, Markdown, SRT oder VTT.
+
+Machen Sie das Overlay breiter, um mehr Wörter pro Zeile unterzubringen, oder höher, um mehr vom zuletzt Gesagten stehen zu lassen. An Fenster anpassen passt die Textfläche an und behält Ihre gewählte Schriftgröße bei. Mit Kompakt stellen Sie die Zeilenbreite gesondert ein.
+
+Die Oberfläche steht auf Deutsch, Englisch und Französisch zur Verfügung und wird unabhängig von der Sprache der Untertitel gewählt: Sie arbeiten auf Deutsch, während der Raum in einer anderen Sprache mitliest.
+
+Die App verkauft weder Abonnements noch Guthaben oder API-Zugang. Anbieterschlüssel werden in der Windows-Anmeldeinformationsverwaltung gespeichert und ausschließlich an den ausgewählten Anbieter gesendet. Der Entwickler betreibt keinen Server und erhält weder Audio noch Schlüssel, Transkripte, Analyse- oder Telemetriedaten.
+
+Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Live-Modi erfordern zusätzlich einen Internetzugang, ein kompatibles Anbieterkonto mit API-Schlüssel sowie die Berechtigung für die ausgewählte Audioquelle. Native x64- und ARM64-Pakete stehen zur Verfügung.
+```
+
+### Funktionen — eine Funktion pro Zeile
+
+Fügen Sie diesen Block in **Funktionen** ein. Jede Zeile wird zu einem Aufzählungspunkt; fügen
+Sie ihn nicht in die vollständige Beschreibung ein:
+
+```text
+Integrierte Untertitel-Demonstration auf Englisch und Französisch, ohne Konto, API-Schlüssel, Mikrofon oder Netzwerk
+Live-Übersetzung zwischen Englisch und Französisch mit Ihrem eigenen Google-Gemini- oder OpenAI-API-Schlüssel
+Live-Untertitel in der gesprochenen Sprache mit Ihrem eigenen Mistral- oder Google-Gemini-API-Schlüssel
+Aufnahme eines ausgewählten Mikrofons, des Systemaudios eines Ausgabegeräts oder einer Anwendung, oder beider in Live-Modi
+Transparentes Untertitel-Overlay, immer im Vordergrund und durchklickbar
+Overlay während einer Sitzung verschieben, in der Größe ändern, ein- oder ausblenden
+Untertitel an das Fenster anpassen oder Kompakt mit einstellbarer Zeilenbreite wählen
+Transkripte als Text, Markdown, SRT oder VTT über den Windows-Dialog Speichern unter sichern
+Verstrichene Zeit und geschätzte Anbieterkosten während der Live-Audioübertragung ablesen
+Oberfläche auf Deutsch, Englisch und Französisch, unabhängig von der Sprache der Untertitel
+```
+
+The German list carries one bullet the English and French ones do not — the interface
+languages. It is the single reason a German-speaking visitor is looking at a German listing at
+all, and burying it in a paragraph wastes it. Partner Center allows up to 20 entries, so the
+tenth line costs nothing.
+
+### Kurzbeschreibung — 193 Zeichen
+
+Fügen Sie diesen Text in **Kurzbeschreibung** ein:
+
+```text
+Integrierte Untertitel-Demo ohne Einrichtung, dazu Live-Untertitel aus Mikrofon und Systemaudio sowie Übersetzung Englisch–Französisch mit Ihrem eigenen Gemini-, OpenAI- oder Mistral-Schlüssel.
+```
+
+German runs longer than both other languages here — 193 characters against English's 175 and
+French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
+than assuming the margin is still there.
+
+### Neuerungen in dieser Version — Release mit deutscher Oberfläche
+
+Set the version number when that release is cut; this text does not name one, exactly as the
+English and French blocks do not.
+
+```text
+Die Oberfläche der App gibt es jetzt auf Deutsch. Sie wird unabhängig von der Sprache der Untertitel gewählt, sodass Sie auf Deutsch arbeiten können, während der Raum Englisch oder Französisch mitliest. Beim ersten Start folgt die App der Sprache von Windows; danach gilt Ihre eigene Wahl.
+
+Die Live-Übersetzung arbeitet weiterhin zwischen Englisch und Französisch.
+```
+
+That second paragraph is not filler and should not be cut. A German listing sets an
+expectation that the app translates into German, and it does not: the caption languages are
+still English and French
+([#78](https://github.com/fmadore/Live-translation/issues/78) is what changes that). Saying so
+in the release note costs one line and is cheaper than a one-star review that is entirely fair.
+
+### Adding the German listing
+
+Before the German listing is published, all of these have to be true. None of them is a
+formality:
+
+- [ ] The release that ships `src/lib/i18n/de.ts` is built, packaged and verified — the
+      listing cannot be live before the interface it describes.
+- [ ] A native German speaker has reviewed the catalog and this copy. This is the same gate
+      French passed and the one that catches what a translation check cannot.
+- [ ] German screenshots exist in `docs/store-screenshots/de/`, captured from the final MSIX
+      with the interface set to German — five, same filenames and order as the other languages.
+- [ ] The English and French **What's new** blocks for that same release are written. Adding a
+      language does not rewrite them, but a release still needs all three.
+- [ ] The certification notes name the German interface, so the reviewer exercises it.
+
+Worth doing, and deliberately not claimed here until it is: **German subtitles are unverified.**
+Both subtitle engines detect the spoken language themselves and Gemini documents over 70
+languages, so German subtitles most likely already work with no code at all — but nobody has
+put German speech in front of them. Until somebody does, the German listing claims exactly what
+the English one does and singles out no language. Verifying it would let this listing say
+"Untertitel in gesprochenem Deutsch", which for a German-language Store listing is the strongest
+line available and currently unusable.
+
+### Deutsche Bildunterschriften
+
+Same five screenshots, same order. Each is under the 200-character cap; re-count after an edit.
+
+1. `1-idle.png`
+
+```text
+Vier Prüfungen, bevor irgendetwas startet: der Anbieterschlüssel, das Mikrofon, wohin die Untertitel fallen und was die Stunde kostet. Alle vier werden gesperrt, sobald die Sitzung läuft.
+```
+
+2. `2-running.png`
+
+```text
+Eine laufende Sitzung zeigt Pegel, verstrichene Zeit und laufende Kosten. Die Untertitelsprache ist von der Oberfläche getrennt: Der Raum liest eine Sprache, Sie arbeiten in einer anderen.
+```
+
+3. `3-overlay.png`
+
+```text
+Das Overlay wird platziert, bevor der Raum sich füllt: dorthin gezogen, wo das Publikum liest, am Projektor bemessen und verankert, damit mitten im Vortrag nichts verrutscht.
+```
+
+4. `4-appearance.png`
+
+```text
+Wählen Sie An Fenster anpassen oder Kompakt und stellen Sie dann Größe, Schriftart, Farbe und Hintergrund ein. Kompakt erlaubt zusätzlich die Zeilenbreite.
+```
+
+5. `5-contrast.png`
+
+```text
+Jede Farbwahl wird gegen eine helle und eine dunkle Folie gemessen, und die App benennt die Zeile, die darunter bleibt, statt Sie es aus der letzten Reihe herausfinden zu lassen.
+```
+
 ## Notes for certification — separate Partner Center field
 
 Paste the following into **Notes for certification**. This is not Store-facing description
@@ -139,8 +280,9 @@ No account, API key, microphone, language pack, or network connection is require
 6. Click Stop captions. The completed transcript remains available for export.
 7. Choose each transcript format (text, Markdown, SRT, VTT), click Save as, select a writable folder and verify the saved file. Cancel another save and confirm that the transcript remains available.
 8. Select Français and repeat to verify the French captions.
+9. In Settings, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
 
-Also test the new caption layout during the demo: open Settings, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact). Placement mode intentionally shows positioning controls rather than live captions.
+Also test the new caption layout during the demo: open Settings, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact) and the German one (An Fenster anpassen / Kompakt). Placement mode intentionally shows positioning controls rather than live captions.
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
@@ -156,9 +298,10 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.2.4
 captures; do not upload the old appearance screenshots with the new descriptions.
 
-The listing is per-language and so are its screenshots. Both sets are kept in the repository
-and uploaded after they are refreshed for 1.2.4 — `docs/store-screenshots/en/` and `docs/store-screenshots/fr/`, in
-the order their filenames give.
+The listing is per-language and so are its screenshots. Every set is kept in the repository and
+uploaded in the order the filenames give — `docs/store-screenshots/en/`,
+`docs/store-screenshots/fr/` and, once the German interface ships,
+`docs/store-screenshots/de/`.
 
 Each screenshot has an optional **Description** field in Partner Center, on the same screen as
 the upload. Fill it: it is the alt text a screen reader announces, so an empty one makes the
