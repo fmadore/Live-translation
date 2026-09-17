@@ -47,9 +47,12 @@
 <style>
 	.meter {
 		display: grid;
-		/* 74px at 100%, in `em` so MICROPHONE / SYSTEM keeps its column and the bar keeps
-		   the rest, whatever the operator's text size. */
-		grid-template-columns: 4.625em 1fr;
+		/* In `em` so the label keeps its column and the bar keeps the rest, whatever the
+		   operator's text size. Wide enough for the longest label any catalog puts here on one
+		   line — German's RAUMMIKROFON, at ~101px — because that is the constraint a space can
+		   no longer solve: "Micro de la salle" wraps to two lines and fits a narrow column, a
+		   German compound has nowhere to break and painted straight across the bar. */
+		grid-template-columns: 6.75em 1fr;
 		align-items: center;
 		gap: 10px;
 	}
@@ -60,6 +63,12 @@
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
 		color: var(--muted-3);
+		/* Last resort, not the plan: the column above is sized to hold the labels we ship, and
+		   this only decides what a longer one does. Breaking mid-word is ugly — but a label
+		   drawn across the level meter is worse, and silent, which is how the German one got
+		   as far as a screenshot. `hyphens: auto` is deliberately not used: it needs a
+		   hyphenation dictionary the WebView may not have, so it fails to exactly this. */
+		overflow-wrap: break-word;
 	}
 	.meter.active .label {
 		color: var(--muted);

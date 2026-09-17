@@ -108,7 +108,8 @@ Definition of done for 1.1:
 
 - All issue acceptance criteria and CI checks pass.
 - Keyboard, Narrator, contrast-theme, reduced-motion, and 225% text-scale checks pass.
-- English and French layouts are visually checked at the minimum window size and on the overlay.
+- English, French and German layouts are visually checked at the minimum window size and on the
+  overlay.
 - Tray, graceful quit, Credential Manager, microphone, and loopback behavior pass in the Store
   MSIX on Windows 11.
 
@@ -189,15 +190,24 @@ Use the [1.2.4 handoff](docs/store-updates.md#release-124-handoff) for the curre
   tray preference, which were being rendered into both the rail and the pre-flight sheet. It
   points at placement mode as its preview, because the stand-in caption the overlay already
   shows while being positioned is set in whatever the panel is choosing.
-- [#56 — German as a caption output language](https://github.com/fmadore/Live-translation/issues/56)
-  now carries the standing note about expanding beyond English and French. The enum is still
-  trivially extensible and both Rust matches on it are exhaustive, so the compiler names most of
-  the work; what it cannot name is what stops being derivable once there are three languages —
-  the F2 flip, and the rehearsal rule that picks *the language the room is not reading*. It also
-  finally owes the localized selector the two hard-coded language cards have been standing in
-  for. The interface stays English and French:
-  [`docs/localization.md`](docs/localization.md) keeps the caption language and the UI language
-  independent, and a German caption target does not imply a German UI.
+- [#78 — a searchable caption-language dropdown with favourites](https://github.com/fmadore/Live-translation/issues/78)
+  now carries the standing note about expanding beyond English and French, and supersedes #56,
+  which asked for German alone. The enum is still trivially extensible and both Rust matches on
+  it are exhaustive, so the compiler names most of the work; what it cannot name is what stops
+  being derivable once there are more than two — the F2 flip, and the rehearsal rule that picks
+  *the language the room is not reading*. The list has to be a function of the engine, not one
+  array: Gemini Live Translate documents 78 target languages and OpenAI Realtime Translate
+  thirteen, while the bundled demonstration has exactly the two scripts it ships with. That last
+  point is why the issue splits `DemoLanguage` out of `TargetLanguage` — widening the shared
+  enum would turn a compile-time guarantee that a fixture exists into a runtime error in an
+  installed package.
+- **The interface is now English, French and German.** `src/lib/i18n/de.ts` is a full catalog,
+  the selector is built from `LOCALES` so it needed no markup, and `detectLocale` matches on the
+  primary subtag, so `de-AT` and `de-CH` open in German. This is independent of the caption
+  language, as [`docs/localization.md`](docs/localization.md) has always insisted: a German
+  interface does not imply a German caption target, and a German caption target is #78. Still
+  owed before it can be advertised: German Store copy, German screenshots, and a native-speaker
+  review — the same gate French is waiting on.
 - Measure audio-to-first-caption latency and make rate-card verification dates visible. The
   clock this needs now exists: `timing::SessionClock` stamps every caption, so the missing
   half is a mark on the audio side to measure against.

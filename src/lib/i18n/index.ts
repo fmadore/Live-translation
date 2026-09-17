@@ -5,27 +5,32 @@
 // independent. Nothing here touches `options.targetLanguage`.
 
 import { derived, writable } from 'svelte/store';
+import { de } from './de';
 import { en, type Messages } from './en';
 import { fr } from './fr';
 
-export type Locale = 'en' | 'fr';
+export type Locale = 'en' | 'fr' | 'de';
 
-export const LOCALES: Locale[] = ['en', 'fr'];
+export const LOCALES: Locale[] = ['en', 'fr', 'de'];
 
-const CATALOGS: Record<Locale, Messages> = { en, fr };
+const CATALOGS: Record<Locale, Messages> = { en, fr, de };
 
 /** Each language's name in its own language — a selector that says "French" to someone who
  *  cannot read English has not helped them. */
 export const LOCALE_NAMES: Record<Locale, string> = {
 	en: en.locale.name,
-	fr: fr.locale.name
+	fr: fr.locale.name,
+	de: de.locale.name
 };
 
 /** localStorage key. Both windows share an origin, so the overlay reads the same choice. */
 export const LOCALE_KEY = 'ui.locale';
 
-function isLocale(value: string | null): value is Locale {
-	return value === 'en' || value === 'fr';
+/** Exported because the overlay is a separate webview and has to validate the locale it is
+ *  handed over the config event. Re-listing the locales there is how `de` came close to being
+ *  pushed to a window that would have kept rendering English. */
+export function isLocale(value: string | null | undefined): value is Locale {
+	return typeof value === 'string' && (LOCALES as string[]).includes(value);
 }
 
 /**
@@ -42,10 +47,10 @@ export function detectLocale(): Locale {
 	}
 	if (typeof navigator !== 'undefined') {
 		for (const tag of navigator.languages ?? [navigator.language]) {
-			// Match on the primary subtag: fr-CA and fr-FR are both French here.
+			// Match on the primary subtag: fr-CA and fr-FR are both French here, de-AT and
+			// de-CH both German.
 			const primary = tag?.split('-')[0]?.toLowerCase();
-			if (primary === 'fr') return 'fr';
-			if (primary === 'en') return 'en';
+			if (isLocale(primary)) return primary;
 		}
 	}
 	return 'en';
@@ -92,5 +97,5 @@ export function formatDateTime(value: number | string | Date, tag: string): stri
 	});
 }
 
-export { en, fr };
+export { de, en, fr };
 export type { Messages };

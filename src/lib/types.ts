@@ -221,7 +221,7 @@ export interface OverlayConfig {
 	 *  origin labels. Pushed rather than read from storage: the two windows are separate
 	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
 	 *  language: that is `captionLanguage`, and the two are deliberately independent. */
-	locale?: 'en' | 'fr';
+	locale?: 'en' | 'fr' | 'de';
 	/** The language of the caption text itself, so the overlay can mark it up and a screen
 	 *  reader on the projected view pronounces it rather than reading French with English
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see

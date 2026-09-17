@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { asStatus, describeError, isAppError } from './errors';
+import { de } from './i18n/de';
 import { en } from './i18n/en';
 import { fr } from './i18n/fr';
 
@@ -67,8 +68,8 @@ describe('the catalog and the core', () => {
 		expect(ids).toContain('micCapture');
 	});
 
-	it.each(['en', 'fr'])('has a sentence in %s for every one of them', (code) => {
-		const catalog = code === 'en' ? en : fr;
+	it.each(['en', 'fr', 'de'])('has a sentence in %s for every one of them', (code) => {
+		const catalog = { en, fr, de }[code] ?? en;
 		for (const id of ids) {
 			expect(
 				(catalog.error as Record<string, unknown>)[id],

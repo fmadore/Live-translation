@@ -1,0 +1,544 @@
+// The German catalog.
+//
+// Terminology is kept consistent with the German Windows shell, because the operator has to
+// find these things on their own screen: **Infobereich** for the tray (not "Tray"),
+// **Windows-Anmeldeinformationsverwaltung** for Credential Manager, and the settings paths
+// under **Windows-Einstellungen**. The `ms-settings:` URIs are not translated — they are
+// identifiers the operator types or clicks.
+//
+// **Overlay** and **Engine** are kept as they are: both are current in German software and
+// both are what the Store listing will say. **Untertitel** covers captions and subtitles
+// alike, **Transkript** the transcript, **Vorabprüfung** the pre-flight, **Probelauf** the
+// rehearsal.
+//
+// The interface addresses the operator formally (Sie), which is what a tool used in front of
+// a room should do.
+//
+// Product names are not translated (Gemini, OpenAI, Voxtral, WASAPI, Zoom, Teams, Markdown),
+// and neither is the app's own name — the Store lists it in English, and inventing a German
+// one would give the same app a third name.
+
+import type { Messages } from './en';
+
+export const de: Messages = {
+	locale: {
+		/** Name of this language, written in this language, for the language selector. */
+		name: 'Deutsch',
+		/** BCP 47 tag used for dates, times and number formatting. */
+		tag: 'de-DE',
+		label: 'Sprache der Oberfläche',
+		note: 'Ändert die App, nicht die Untertitel.'
+	},
+
+	app: {
+		name: 'Live Captions',
+		tagline: 'Übersetzung und Untertitel in Echtzeit'
+	},
+
+	state: {
+		idle: 'Inaktiv',
+		connecting: 'Verbindet',
+		running: 'Live',
+		reconnecting: 'Neuverbindung',
+		error: 'Fehler',
+		/** Shown in place of "Live" while the bundled demonstration is playing. */
+		demo: 'Demo'
+	},
+
+	/** Spoken by the status region on a state change. Never drawn. */
+	announce: {
+		idle: 'Sitzung inaktiv.',
+		connecting: 'Verbindung zur Untertitel-Engine wird hergestellt.',
+		running: 'Untertitel sind live.',
+		reconnecting: 'Verbindung verloren – Neuverbindung läuft.',
+		error: 'Sitzungsfehler.'
+	},
+
+	mode: {
+		translate: 'Übersetzung',
+		transcribe: 'Untertitel'
+	},
+
+	source: {
+		microphone: 'Raummikrofon',
+		system: 'Systemaudio',
+		both: 'Beides',
+		/** The microphone tile and meter while the built-in demonstration is selected. */
+		demo: 'Demo-Audio',
+		/** The source chip during a rehearsal, which plays a bundled recording. */
+		sample: 'Beispiel'
+	},
+
+	engine: {
+		gemini: 'Gemini',
+		'gemini-transcribe': 'Gemini',
+		openai: 'OpenAI',
+		mistral: 'Voxtral',
+		ondevice: 'Integrierte Demo'
+	},
+
+	language: {
+		en: 'Englisch',
+		fr: 'Französisch',
+		/** Target-language chip when the engine detects the spoken language itself. */
+		auto: 'Auto'
+	},
+
+	provider: {
+		vendor: {
+			gemini: 'Google Gemini',
+			'gemini-transcribe': 'Google Gemini',
+			openai: 'OpenAI',
+			mistral: 'Mistral Voxtral',
+			ondevice: 'Integrierte Demo'
+		},
+		/** Shown in the mono face under the vendor. Model ids are not translated; the
+		 *  demonstration has no model, so it describes itself instead. */
+		model: {
+			ondevice: 'Mitgeliefertes Beispiel · deterministisch'
+		},
+		costNote: {
+			gemini:
+				'Gemini: Die Eingabe wird nach Echtzeit abgerechnet, die Ausgabe nur während der Übersetzung – Pausen und Folienwechsel senken die Kosten.',
+			'gemini-transcribe':
+				'Gemini: Eingehendes Audio wird nach Echtzeit abgerechnet, Transkripttext nur, während jemand spricht.',
+			openai:
+				'OpenAI: Eingehendes Audio und ausgehender Text werden pro Minute abgerechnet, solange der Stream offen bleibt.',
+			mistral:
+				'Voxtral: Abrechnung pro Minute übertragenem Audio, solange die Sitzung offen bleibt.',
+			ondevice:
+				'Integrierte Demonstration: Es wird kein Live-Audio aufgenommen, kein Dienst kontaktiert und nichts abgerechnet.'
+		}
+	},
+
+	cost: {
+		/** Appended to a published rate: "$3.06" + "/hr". */
+		perHour: '/Std.',
+		free: 'Kostenlos',
+		elapsed: 'Vergangen',
+		streamed: 'Übertragen',
+		estimate: 'Gesch. Kosten',
+		twoSources: '×2 Quellen'
+	},
+
+	applications: {
+		recovery:
+			'Die Aufnahme der ausgewählten Anwendung wurde beendet. Wählen Sie sie erneut aus, sobald sie geschlossen oder neu gestartet wurde. Anderes Systemaudio wird nie automatisch ausgewählt.',
+		mode: 'Systemaufnahme',
+		output: 'Gesamtes Audio der ausgewählten Ausgabe',
+		application: 'Eine Anwendung',
+		choose: 'Anwendung auswählen',
+		refresh: 'Anwendungen aktualisieren',
+		unsupported:
+			'Die Anwendungsaufnahme erfordert Windows-Build 20348 oder neuer. Wählen Sie ausdrücklich das gesamte Ausgabeaudio, um diesen Modus zu verwenden.',
+		hint: 'Nimmt die ausgewählte Anwendung und ihre Unterprozesse auf, einschließlich ihrer Benachrichtigungen. Bei einem Browser können mehrere Tabs enthalten sein.',
+		missing: 'Anwendung nicht verfügbar – erneut auswählen',
+		empty:
+			'Keine zugänglichen Anwendungsfenster gefunden. Öffnen Sie die Anwendung und aktualisieren Sie.',
+		reselect: 'Beenden und Anwendung auswählen'
+	},
+	devices: {
+		refresh: 'Geräte aktualisieren',
+		refreshing: 'Geräte werden aktualisiert…',
+		output: 'Systemaudio-Ausgabe',
+		missing: 'Ausgewähltes Gerät nicht verfügbar',
+		retry: 'Sitzung beenden und erneut versuchen',
+		fallback: 'Beenden und mit Standardgerät erneut versuchen',
+		recovery:
+			'Ein Aufnahmegerät ist ausgefallen. Ein erneuter Versuch beendet die laufende Sitzung einschließlich aller noch aktiven Quellen und startet eine neue. Ihr Transkript bleibt erhalten.',
+		idleFallback:
+			'Ein gespeichertes Audiogerät ist nicht verfügbar. Die nächste Sitzung verwendet den Windows-Standard.'
+	},
+	rail: {
+		locked: 'Sitzung gesperrt',
+		lockedNote: 'Beenden Sie die Sitzung, um hieran etwas zu ändern.',
+		demoNote:
+			'Eine integrierte Demonstration läuft – es wird kein Mikrofon- oder Systemaudio aufgenommen.',
+		rehearsalNote: 'Eine Beispielaufnahme läuft – im Raum wird nichts aufgenommen.',
+		chip: {
+			mode: 'Modus',
+			source: 'Quelle',
+			roomReads: 'Der Raum liest',
+			engine: 'Engine'
+		},
+		arriving: 'Audio kommt an',
+		stop: 'Untertitel beenden',
+		stopping: 'Wird beendet…',
+
+		step: {
+			whatToShow: 'Was angezeigt wird',
+			whereFrom: 'Woher das Audio kommt',
+			engine: 'Engine',
+			/** Step 03's heading, which asks a different question per mode. */
+			roomReads: 'Der Raum liest',
+			demoLanguage: 'Demo-Sprache',
+			spokenLanguage: 'Gesprochene Sprache'
+		},
+
+		translate: {
+			title: 'Live-Übersetzung',
+			desc: 'Sprache wird erkannt und in die Sprache übersetzt, die der Raum liest.'
+		},
+		transcribe: {
+			title: 'Untertitel',
+			desc: 'Integrierte Demonstration oder Live-Sprache mit Voxtral oder Gemini. Export als Text, Markdown, SRT oder VTT.'
+		},
+
+		sourceHint:
+			'Systemaudio nimmt Anwendungen auf, die über die ausgewählte Ausgabe laufen – Zoom, Teams, einen Browser-Tab, einen Medienplayer.',
+		demoSourceHint:
+			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
+		micDevice: 'Mikrofongerät',
+		systemDefault: 'Systemstandard',
+		/** Appended to the name of the device Windows would pick on its own. */
+		isDefault: (name: string) => `${name} (Standard)`,
+
+		autoDetectHint: (engine: string) =>
+			`${engine} erkennt die gesprochene Sprache selbst und schreibt Untertitel in derselben Sprache. Eine Zielsprache ist nicht nötig.`,
+		flipHint: 'Wechseln sich die Sprechenden ab? Vor dem Start umschalten mit',
+		flipKey: 'F2',
+		demoLanguageHint:
+			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.'
+	},
+
+	settings: {
+		heading: 'Einstellungen',
+		openLabel: 'Einstellungen öffnen',
+		close: 'Schließen',
+		closeLabel: 'Einstellungen schließen',
+		appearance: 'Darstellung der Untertitel',
+		/** Says where to look while choosing. The stand-in caption the overlay shows in
+		 *  placement mode is set in whatever is chosen here, so placement is the preview. */
+		appearanceNote:
+			'Platzieren Sie das Overlay, um dies auf dem Projektor zu beurteilen – der Platzhalter-Untertitel wird in dem gesetzt, was Sie hier wählen.'
+	},
+
+	overlayControls: {
+		heading: 'Overlay',
+		captionSize: 'Untertitelgröße',
+		smaller: 'Kleinere Untertitel',
+		larger: 'Größere Untertitel',
+		captionLayout: 'Untertitel-Layout',
+		fitWindow: 'An Fenster anpassen',
+		compact: 'Kompakt',
+		captionWidth: 'Zeilenbreite',
+		narrower: 'Kürzere Untertitelzeilen',
+		wider: 'Längere Untertitelzeilen',
+		captionFace: 'Untertitel-Schriftart',
+		faceDefault: (label: string) => `${label} (Standard)`,
+		captionColour: 'Untertitelfarbe',
+		scrimColour: 'Hintergrundfarbe',
+		scrimOpacity: 'Hintergrundstärke',
+		weakerScrim: 'Schwächerer Hintergrund hinter den Untertiteln',
+		strongerScrim: 'Stärkerer Hintergrund hinter den Untertiteln',
+		contrast: (ratio: string) => `Kontrast ${ratio}:1`,
+		contrastOk: 'Lesbar über einer hellen wie über einer dunklen Folie.',
+		contrastLow: (step: string, target: string) =>
+			`${step} liegt über einer hellen oder einer dunklen Folie unter ${target}:1.`,
+		contrastStep: {
+			live: 'Der laufende Untertitel',
+			final: 'Eine fertige Zeile',
+			label: 'Die Sprecherkennzeichnung',
+			lead: 'Die vorherige Zeile, die nachläuft'
+		},
+		reset: 'Zurücksetzen',
+		resetLabel: 'Overlay auf das Standardaussehen zurücksetzen',
+		move: 'Verschieben',
+		done: 'Fertig',
+		moveLabel: 'Overlay verschieben',
+		moveDoneLabel: 'Verschieben des Overlays beenden',
+		show: 'Einblenden',
+		hide: 'Ausblenden',
+		showLabel: 'Overlay einblenden',
+		hideLabel: 'Overlay ausblenden'
+	},
+
+	window: {
+		heading: 'Fenster',
+		minimizeToTray: 'In den Infobereich minimieren',
+		keepRunning: 'Im Infobereich weiterlaufen lassen, wenn ich dieses Fenster schließe',
+		keepRunningNote:
+			'Standardmäßig aus, sodass die Schaltfläche zum Schließen wie gewohnt beendet. Ist die Option an, untertitelt die Sitzung nach dem Schließen weiter, und das Symbol im Infobereich ist der Weg zurück.',
+		needsDesktop: 'Erfordert die Desktop-App – eine Browser-Vorschau hat keinen Infobereich.'
+	},
+
+	stage: {
+		browserBanner: {
+			before:
+				'Läuft im Browser ohne die Tauri-Laufzeit – die Bedienelemente sind deaktiviert. Starten Sie mit',
+			command: 'npm run tauri dev',
+			after: 'für Audioaufnahme, Übersetzung und Untertitel.'
+		},
+		onScreen: 'Jetzt auf dem Bildschirm',
+		newestLast: 'Neueste unten',
+		twoSpeakers: 'Zwei Sprechende · neueste unten',
+		origin: {
+			microphone: 'Raum',
+			system: 'Remote',
+			demo: 'Demo'
+		},
+		originSub: {
+			microphone: 'Mikrofon',
+			system: 'System',
+			demo: 'Beispiel'
+		},
+		waitingTranslation: 'Übersetzte Untertitel erscheinen hier und im Overlay.',
+		waitingSubtitles: 'Live-Untertitel erscheinen hier und im Overlay.',
+		waitingDemo: 'Demonstrations-Untertitel erscheinen hier und im Overlay.'
+	},
+
+	preflight: {
+		kicker: 'Vorabprüfung',
+		heading: 'Bereit, wenn Sie es sind',
+		intro:
+			'Vier Prüfungen, dann eine Schaltfläche. Alles auf der linken Seite wird gesperrt, während Untertitel laufen, damit mitten in der Sitzung nichts versehentlich geändert wird.',
+
+		demoRow: {
+			title: 'Integrierte Demo · kein Schlüssel nötig',
+			checking: 'Die integrierte Demonstration wird geprüft…',
+			/** The core names the readiness state; these word it. Kept here rather than in
+			 *  `ondevice/mod.rs` so the German interface does not read them in English. */
+			ready:
+				'Bereit – mitgelieferte Beispiel-Untertitel können das Overlay ohne Mikrofon, Konto, Schlüssel, Sprachpaket oder Netzwerk vorführen.',
+			checkFailed: 'Die integrierte Demonstration konnte nicht geprüft werden.'
+		},
+
+		audio: {
+			/** Row title: names whatever is being checked. */
+			title: {
+				microphone: 'Raummikrofon',
+				system: 'Systemaudio',
+				both: 'Audio',
+				demo: 'Demo-Audio'
+			},
+			/** What was heard, in the past tense, once a test has confirmed it. */
+			heard: {
+				microphone: 'Das Raummikrofon hat Ton aufgenommen',
+				system: 'Der WASAPI-Loopback hat Ton empfangen',
+				both: 'Sowohl das Raummikrofon als auch der WASAPI-Loopback haben Ton empfangen',
+				demo: 'Mitgeliefertes Beispiel ist bereit – es wird kein Mikrofon geöffnet'
+			},
+			/** The same fact in the present tense, while the test is still running. English
+			 *  used to reach this by replacing "was" with "is"; that does not survive
+			 *  translation, so both tenses are written out. */
+			hearing: {
+				microphone:
+					'Das Raummikrofon nimmt Ton auf – beenden Sie den Test, wenn Sie zufrieden sind',
+				system: 'Der WASAPI-Loopback empfängt Ton – beenden Sie den Test, wenn Sie zufrieden sind',
+				both: 'Sowohl das Raummikrofon als auch der WASAPI-Loopback empfangen Ton – beenden Sie den Test, wenn Sie zufrieden sind',
+				demo: 'Mitgeliefertes Beispiel ist bereit – es wird kein Mikrofon geöffnet'
+			},
+			listening: 'Es wird zugehört – sprechen Sie ins Mikrofon oder spielen Sie Audio ab',
+			unchecked:
+				'Noch nicht geprüft – Audio wird nur während eines Tests oder einer laufenden Sitzung überwacht',
+			test: 'Audio testen',
+			retest: 'Erneut testen',
+			stopTest: 'Test beenden'
+		},
+
+		overlay: {
+			title: 'Overlay-Platzierung',
+			placed: 'Platziert – Untertitel erscheinen dort, wo Sie sie verankert haben',
+			unplaced: 'Noch nicht platziert – Untertitel sitzen unten mittig auf diesem Bildschirm',
+			place: 'Platzieren',
+			adjust: 'Anpassen',
+			done: 'Fertig',
+			placeLabel: 'Overlay platzieren',
+			adjustLabel: 'Platzierung des Overlays anpassen',
+			doneLabel: 'Platzieren des Overlays beenden'
+		},
+
+		cost: {
+			title: 'Laufende Kosten',
+			billed: 'Abrechnung pro Minute übertragenem Audio, solange die Sitzung offen ist',
+			free: 'In der App enthalten – es wird nichts abgerechnet'
+		},
+
+		start: {
+			translate: 'Übersetzung starten',
+			subtitles: 'Untertitel starten',
+			demo: 'Demo-Untertitel starten',
+			starting: 'Wird gestartet…'
+		},
+		rehearse: {
+			action: 'Probelauf',
+			hint: 'Spielt eine mitgelieferte Beispielaufnahme durch die Live-Pipeline – kein Mikrofon nötig.',
+			demoHint: 'Demo-Untertitel starten führt die integrierte Demonstration bereits aus.'
+		},
+		privacy: {
+			memoryOnly: 'Das Transkript bleibt im Arbeitsspeicher, bis Sie es speichern.',
+			spooled:
+				'Das Transkript bleibt im Arbeitsspeicher und wird lokal zwischengespeichert, bis Sie es speichern.',
+			demo: 'Die integrierte Demo bleibt vollständig in der App.',
+			cloud: (vendor: string) => `Außer Audio an ${vendor} verlässt nichts den Rechner.`
+		}
+	},
+
+	key: {
+		title: (name: string) => `${name}-Schlüssel`,
+		saved: 'In der Windows-Anmeldeinformationsverwaltung gespeichert · nur vom Rust-Kern gelesen',
+		desc: {
+			before:
+				'In der Windows-Anmeldeinformationsverwaltung gespeichert, nur vom Rust-Kern verwendet. Benötigt Zugriff auf',
+			after: '.'
+		},
+		getKey: 'Schlüssel holen',
+		opensInBrowser: ' (öffnet sich im Browser)',
+		placeholder: (name: string) => `${name}-API-Schlüssel einfügen`,
+		save: 'Speichern',
+		saving: 'Wird gespeichert…',
+		replace: 'Ersetzen',
+		remove: 'Entfernen',
+		cancel: 'Abbrechen'
+	},
+
+	transcript: {
+		heading: 'Transkript',
+		jumpToLatest: 'Zum Neuesten springen',
+		lines: (n: number) => (n === 1 ? '1 Zeile' : `${n} Zeilen`),
+		unsaved: 'Nicht gespeichert',
+		saved: 'Gespeichert',
+		saveText: 'Text speichern',
+		saveAs: 'Speichern unter…',
+		format: 'Exportformat',
+		plainText: 'Reiner Text',
+		noTiming:
+			'Dieses wiederhergestellte Transkript hat keine Zeitangaben. Speichern Sie es als Text oder Markdown.',
+		saveMarkdown: 'Markdown speichern',
+		clear: 'Leeren',
+		confirmClear: 'Nicht gespeicherte Zeilen verwerfen?',
+		savedTo: 'Gespeichert unter',
+		savedAnnouncement: (path: string) => `Transkript gespeichert unter ${path}`,
+		staleBefore: 'Zeilen, die seit dem Speichern unter',
+		staleAfter: 'hinzugekommen sind, liegen noch nicht auf der Festplatte.',
+		longSession: (threshold: number) =>
+			`Dies ist eine lange Sitzung, und seit sie über ${threshold} Zeilen hinausgewachsen ist, wurde nichts davon gespeichert. Es geht nichts verloren, aber speichern Sie jetzt, damit ein Absturz sie nicht mitnehmen kann.`,
+		emptyTranslate:
+			'Fertige Übersetzungen sammeln sich hier und können im gewählten Format exportiert werden.',
+		emptySubtitles:
+			'Fertige Untertitel sammeln sich hier und können im gewählten Format exportiert werden.',
+		side: {
+			microphone: 'Raum',
+			system: 'Remote'
+		},
+		recovery: {
+			title: 'Während des Untertitelns eine lokale Wiederherstellungskopie behalten',
+			note: 'Schreibt die fertigen Zeilen alle paar Sekunden auf diesen PC, damit ein Absturz oder ein Stromausfall die Sitzung nicht mitnimmt. Verlässt nie den Rechner, enthält weder Audio noch API-Schlüssel und wird gelöscht, sobald Sie speichern, leeren oder dies ausschalten.',
+			needsDesktop: 'Erfordert die Desktop-App – eine Browser-Vorschau hat keinen Ort dafür.'
+		}
+	},
+
+	// What the saved file says. Issue #23 puts the transcript's headings in the interface
+	// language: an operator working in German is writing a German document, and the file is
+	// the part of this app that leaves the machine.
+	export: {
+		title: 'Transkript der Live-Untertitel',
+		origin: {
+			microphone: 'Mikrofon',
+			system: 'System'
+		}
+	},
+
+	prompt: {
+		unsaved: {
+			title: 'Dieses Transkript vor dem Schließen speichern?',
+			sessionEnded: 'Die Sitzung wurde beendet und die letzten Untertitel wurden erfasst.',
+			body: (lines: number) =>
+				lines === 1
+					? '1 Zeile wurde nicht gespeichert. Schließen ohne Speichern verwirft sie.'
+					: `${lines} Zeilen wurden nicht gespeichert. Schließen ohne Speichern verwirft sie.`,
+			failed: (error: string) => `Speichern nicht möglich: ${error}`,
+			save: 'Speichern und schließen',
+			saving: 'Wird gespeichert…',
+			discard: 'Verwerfen und schließen',
+			cancel: 'Abbrechen',
+			note: 'Wählen Sie, wo eine Markdown-Datei gespeichert werden soll. Abbrechen lässt die App geöffnet.'
+		},
+		recovery: {
+			title: 'Transkript der letzten Sitzung wiederherstellen?',
+			body: (lines: number, savedAt: string) =>
+				`Die App wurde mit ${lines === 1 ? '1 nicht gespeicherten Zeile' : `${lines} nicht gespeicherten Zeilen`} im Protokoll geschlossen. Sie wurden um ${savedAt} lokal zwischengespeichert und haben diesen PC nicht verlassen.`,
+			restore: 'Transkript wiederherstellen',
+			delete: 'Löschen',
+			noteBefore: 'Beide Antworten entfernen die Zwischenspeicherdatei unter',
+			noteAfter:
+				'. Beim Wiederherstellen werden die Zeilen wieder ins Protokoll geladen, weiterhin ungespeichert, sodass Sie sie dort ablegen können, wo Sie sie haben möchten.'
+		},
+		activeSession: {
+			title: 'Eine Untertitelsitzung läuft',
+			body: (elapsed: string) =>
+				`Untertitel laufen seit ${elapsed} live. Beim Schließen wird die Sitzung beendet, auf die letzten Untertitel gewartet und die App danach geschlossen.`,
+			noteBefore:
+				'Um das Fenster wegzulegen, ohne etwas zu beenden, verwenden Sie In den Infobereich minimieren – oder aktivieren Sie',
+			noteEmphasis: 'Im Infobereich weiterlaufen lassen, wenn ich dieses Fenster schließe',
+			noteAfter: '.',
+			keep: 'Weiter untertiteln',
+			stop: 'Beenden und schließen'
+		},
+		trayHide: {
+			title: 'Live Translation läuft weiter',
+			bodyBefore:
+				'Sie haben festgelegt, dass die App beim Schließen dieses Fensters im Infobereich weiterläuft, also verschwindet sie aus der Taskleiste',
+			bodyRunning: 'und untertitelt weiter.',
+			bodyIdle: 'bleibt aber bereit.',
+			bodyAfter:
+				'Ihr Symbol bleibt im Infobereich neben der Uhr – von dort öffnen Sie die App, blenden das Overlay ein oder aus, beenden die Sitzung oder schließen die App.',
+			noteBefore: 'Wird einmal gesagt. Wieder ausschalten mit',
+			noteEmphasis: 'Im Infobereich weiterlaufen lassen, wenn ich dieses Fenster schließe',
+			noteAfter: '.',
+			hide: 'Verstanden – in den Infobereich',
+			quit: 'Stattdessen beenden'
+		}
+	},
+
+	overlay: {
+		placeholder: (size: number) => `Untertitel sitzen hier, zwei Zeilen mit ${size} px.`,
+		dragToPlace: 'Zum Platzieren ziehen',
+		moveMode: 'Verschiebemodus',
+		paused: 'Untertitel sind im Overlay pausiert',
+		keysLocks: 'verankert',
+		keysCancels: 'bricht ab',
+		keysNudge: 'verschieben',
+		keyEnter: 'Eingabe',
+		keyEscape: 'Esc',
+		keyArrows: 'Pfeiltasten',
+		size: 'Größe',
+		smaller: 'Kleinere Untertitel',
+		larger: 'Größere Untertitel',
+		snapToBottom: 'Unten ausrichten',
+		lock: 'An Position verankern',
+		origin: {
+			microphone: 'Raum',
+			system: 'Remote'
+		}
+	},
+
+	// One sentence per failure the core can name (`src-tauri/src/errors.rs`). The technical
+	// detail is appended in parentheses by `describeError`, so none of these end in a full
+	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
+	// if a failure the core can report has no sentence here.
+	error: {
+		deviceEnumeration: 'Windows konnte die Audiogeräte nicht auflisten',
+		keychain: 'Die Windows-Anmeldeinformationsverwaltung hat die Anfrage abgelehnt',
+		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',
+		sessionStart: 'Die Sitzung konnte nicht gestartet werden',
+		audioTestStart: 'Der Audiotest konnte diese Quelle nicht öffnen',
+		overlayWindow: 'Das Overlay-Fenster hat nicht reagiert',
+		transcriptDir: 'Der Transkriptordner konnte nicht erstellt werden',
+		transcriptWrite: 'Das Transkript konnte nicht geschrieben werden',
+		taskFailed: 'Eine Hintergrundaufgabe wurde unerwartet beendet',
+		micStream:
+			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
+		micCapture:
+			'Die Mikrofonaufnahme ist fehlgeschlagen. Falls der Zugriff blockiert ist, aktivieren Sie ihn unter Windows-Einstellungen > Datenschutz und Sicherheit > Mikrofon (ms-settings:privacy-microphone) und starten Sie erneut',
+		systemCapture:
+			'Die Aufnahme des Systemaudios ist fehlgeschlagen. Prüfen Sie die ausgewählte Ausgabe unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
+		providerRejected:
+			'Der Anbieter hat die Verbindung abgelehnt – prüfen Sie den API-Schlüssel und den Modellzugriff',
+		providerStopped: 'Der Anbieter hat die Sitzung beendet',
+		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft',
+		/** Front-end only: the recovery spool is written from the operator window. */
+		recoveryWrite: (detail: string) =>
+			`Die Wiederherstellungskopie konnte nicht geschrieben werden: ${detail}`
+	}
+};

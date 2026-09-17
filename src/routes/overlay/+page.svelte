@@ -8,7 +8,7 @@
 		bottomCaptionHeight
 	} from '$lib/captionLayout';
 	import { api, on, isTauri } from '$lib/tauri';
-	import { locale, t } from '$lib/i18n';
+	import { isLocale, locale, t } from '$lib/i18n';
 	import type { Caption, Origin, TargetLanguage } from '$lib/types';
 	import {
 		captionCssVars,
@@ -240,7 +240,7 @@
 				scrimOpacity: clampScrimOpacity(cfg.scrimOpacity ?? palette.scrimOpacity)
 			};
 			// The operator owns the interface language; this window follows it.
-			if (cfg.locale === 'en' || cfg.locale === 'fr') locale.set(cfg.locale);
+			if (isLocale(cfg.locale)) locale.set(cfg.locale);
 			// Unconditional, unlike the rest: an absent caption language is a real answer
 			// ("nobody knows"), so it has to be able to clear one that was set before.
 			captionLanguage =

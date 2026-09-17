@@ -13,6 +13,7 @@ the rail's app-level section rather than in the numbered setup sheet.
 | --- | --- |
 | `src/lib/i18n/en.ts` | The English catalog, and the shape every other catalog has to match. `Messages` is `typeof en`. |
 | `src/lib/i18n/fr.ts` | French. Typed as `Messages`, so a missing, extra or wrongly-shaped key fails `npm run check`. |
+| `src/lib/i18n/de.ts` | German. Same contract as French. |
 | `src/lib/i18n/index.ts` | The `locale` store, `t` (the active catalog), `localeTag`, detection and persistence. |
 | `src-tauri/src/errors.rs` | The ids the core reports failures under. It never writes a sentence. |
 | `src/lib/errors.ts` | Turns an id plus its technical detail into one line the operator can read. |
@@ -49,23 +50,82 @@ existing overlay-config event rather than relying on a `storage` event crossing 
 
 ## What is checked automatically
 
-- `npm run check` — the type system is the completeness check. `fr` is `Messages`.
+- `npm run check` — the type system is the completeness check. Every catalog is `Messages`.
 - `npm test`:
   - `i18n.test.ts` — key-for-key parity, matching parameter counts, nothing blank, each
-    language named in its own language, detection and persistence, and that `t` follows the
-    store.
+    language named in its own language, every locale the selector offers actually named,
+    detection and persistence, and that `t` follows the store. The parity checks iterate
+    `TRANSLATIONS`, so a fourth language is one entry there rather than a new copy of each
+    test.
+  - `i18n.test.ts` also bounds how many whole English sentences a translation may keep
+    (under 10% of them). A catalog copied from another and left half-translated passes the
+    type system, passes parity, and renders the wrong language; shared sentences are the
+    cheapest signal of it.
   - `errors.test.ts` — reads the ids out of `src-tauri/src/errors.rs` and fails if a failure
     the core can report has no sentence in either catalog.
   - `transcript.test.ts` — the saved file's headings and date follow the language it is given.
 
 ## Adding a language
 
-1. Copy `fr.ts`, rename the export, set `locale.name` (in that language) and `locale.tag`.
-2. Add it to `Locale`, `LOCALES` and `CATALOGS` in `index.ts`, and to `detectLocale`.
-3. Widen `OverlayConfig.locale` in `src/lib/types.ts` and `src-tauri/src/types.rs`.
-4. Run `npm run check` and `npm test`; both will name anything missing.
-5. Walk the operator window and the overlay at the minimum window size — a translation is
-   routinely 20–30% longer than its English source, and this UI is dense.
+1. Copy `en.ts`, rename the export, set `locale.name` (in that language) and `locale.tag`.
+2. Add it to `Locale`, `LOCALES`, `CATALOGS` and `LOCALE_NAMES` in `index.ts`, and re-export
+   it. `detectLocale` needs nothing: it matches the primary subtag against `LOCALES`, so
+   `de-AT` and `de-CH` are German the same way `fr-CA` is French.
+3. Widen `OverlayConfig.locale` in `src/lib/types.ts`. The overlay validates what it is handed
+   with the exported `isLocale`, so there is no second list to update there — and the Rust
+   core has no locale of its own; it reports ids, never sentences.
+4. Add it to `TRANSLATIONS` in `i18n.test.ts` and to the `it.each` list in `errors.test.ts`.
+5. Run `npm run check` and `npm test`; both will name anything missing.
+6. Walk the operator window and the overlay at the minimum window size (980×660) — a
+   translation is routinely 20–30% longer than its English source, and this UI is dense.
+
+## German, specifically
+
+`de.ts` is translated and addresses the operator formally (*Sie*), which is what a tool driven
+in front of a room should do.
+
+The terminology follows the **German Windows shell**, because these are things the operator
+has to find on their own screen:
+
+| | |
+| --- | --- |
+| tray | **Infobereich** (not "Tray"), with **Taskleiste** for the taskbar |
+| Credential Manager | **Windows-Anmeldeinformationsverwaltung** |
+| settings paths | **Windows-Einstellungen > System > Sound**, **> Datenschutz und Sicherheit > Mikrofon** |
+
+The `ms-settings:` URIs are left alone — they are identifiers, not prose.
+
+**Overlay** and **Engine** are kept as they are; both are current in German software. Otherwise:
+**Untertitel** covers captions and subtitles alike, **Transkript** the transcript,
+**Vorabprüfung** the pre-flight, **Probelauf** the rehearsal, **Raummikrofon** the room mic.
+
+German needs no typographic rule of its own, so there is no `de` equivalent of the French
+punctuation tests. `de-DE`'s medium date style is numeric and dotted (`27.08.2026`) where
+English and French both name the month, which is what `formatDateTime`'s test asserts.
+
+German did find one layout bug, and it is the kind worth knowing about before the next
+language: **a compound noun has nowhere to wrap.** The level meter's label column was sized on
+the assumption that a long label breaks at a space — `Micro de la salle` has always run to two
+lines inside it — so `Raummikrofon` simply painted across the meter. The column is now sized to
+hold the longest label on one line. When walking a new language, look for labels in fixed
+columns before anything else: a language that builds words rather than phrases will find them.
+
+The German Store copy is written — full description, Funktionen, Kurzbeschreibung, a release
+note and the five screenshot descriptions, in `docs/store-listing.md`. It is prepared, not
+published: it goes out with the release that ships `de.ts`, for the reason that doc gives.
+
+Still open before publication:
+
+- German screenshots in `docs/store-screenshots/de/`, captured from the final MSIX with the
+  interface set to German.
+- A native German speaker reviews the catalog and the Store copy.
+- **German subtitles are unverified.** Both subtitle engines detect the spoken language
+  themselves and Gemini documents over 70, so German subtitles most likely work already with no
+  code at all — but nobody has put German speech in front of them, so nothing claims it. This is
+  worth an hour: it is the strongest line a German-language listing could carry.
+- The **caption** languages in `$t.language` are still English and French only, because
+  `TargetLanguage` is; a German *caption* target is
+  [#78](https://github.com/fmadore/Live-translation/issues/78), not this.
 
 ## French, specifically
 
@@ -90,8 +150,5 @@ For 1.2.4, the layout controls use **Caption layout / Disposition des sous-titre
 and settings panel use the same translations. EN/FR browser controls were checked on
 14 September; native package checks and new screenshots remain in the release checklist.
 
-Still open before publication:
-
-- French screenshots, captured from the translated UI on Windows and committed to
-  `docs/store-screenshots/fr/` — see that folder's README for the set and the capture rules.
-- A native French speaker reviews the app and the Store copy.
+French is settled: the screenshots are captured and committed, and the copy has been
+reviewed.
