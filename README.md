@@ -43,7 +43,11 @@ Provider details and verified wire formats are documented in
 
 ## Release status
 
-**Latest published GitHub version: 1.3.0.** Optional local transcript history saves finalized captions progressively
+**Latest GitHub release: [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0).**
+See [what changed in 1.4.0](#version-140-usability-improvements) and the
+[release handoff](docs/store-updates.md#release-140-handoff).
+
+Introduced in 1.3.0: Optional local transcript history saves finalized captions progressively
 and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
 at the top left and advances by whole lines. Optional filler cleanup affects only the overlay;
 raw transcripts remain intact. The interface is available in English, French and German.
@@ -77,10 +81,10 @@ reachable — open the window, show or hide the overlay, stop the session, or qu
 operator window out of the way. Closing the window quits the app unless you turn on **Keep
 running in the tray when I close this window**.
 
-## Preparing version 1.4.0
+## Version 1.4.0 usability improvements
 
-Version 1.4.0 is implemented on `main` and being prepared for release; it is not yet tagged or
-published. See the [1.4.0 release handoff](docs/store-updates.md#release-140-handoff--preparation).
+Version 1.4.0 is released on GitHub. Installer availability and remaining native/Store checks
+are tracked in the [release handoff](docs/store-updates.md#release-140-handoff).
 
 Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
 optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting

@@ -1,6 +1,6 @@
 # Meeting profiles and live controls
 
-Prepared for **v1.4.0**, not yet published. See the [release checklist](store-updates.md#release-140-handoff--preparation).
+Available in **v1.4.0**. See the [release checklist](store-updates.md#release-140-handoff).
 This update adds no new scroll-back or return-to-live controls.
 
 ## Meeting profiles

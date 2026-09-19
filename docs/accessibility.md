@@ -156,4 +156,4 @@ control theme. Search/date controls retain visible keyboard focus. See
 [Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
 focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
 Windows text scaling and mixed-DPI acceptance for the final package remain in the
-[release checklist](store-updates.md#release-140-handoff--preparation).
+[release checklist](store-updates.md#release-140-handoff).

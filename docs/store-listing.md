@@ -1,11 +1,11 @@
 # Partner Center listing text — 1.4.0 prepared
 
-Prepared for **1.4.0** (MSIX **1.4.0.0**), not yet packaged, published or submitted. The prior documented live Store
+Prepared for **1.4.0** (MSIX **1.4.0.0**), not yet submitted to the Store. The prior documented live Store
 release is 1.2.4. These blocks replace the listing fields for the next submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-140-handoff--preparation) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-140-handoff) for remaining checks.
 
 ## English (United States)
 

@@ -13,11 +13,11 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
-## v1.4.0 — prepared
+## v1.4.0
 
-Unpublished preparation. Package acceptance and publication are tracked in the
-[release handoff](store-updates.md#release-140-handoff--preparation). Do not treat the expected
-bundle name below as an existing downloadable artifact. Update validation after final checks.
+GitHub release: [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0),
+19 September 2026. Installer build and native/Store acceptance are tracked separately in the
+[release handoff](store-updates.md#release-140-handoff).
 
 ```markdown
 Set up recurring meetings faster and make live captions easier to follow.

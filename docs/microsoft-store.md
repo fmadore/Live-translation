@@ -2,9 +2,9 @@
 
 **Next submission: 1.4.0 (prepared, not submitted).** Use the x64 + ARM64
 `Live.Translation_1.4.0.msixbundle` once the release workflow builds it and the remaining packaged checks pass.
-No 1.4.0 release artifact has been built or published as part of this preparation.
+Track installer availability on the [GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0).
 The previous documented Store version is 1.2.4. See the
-[1.4.0 release handoff](store-updates.md#release-140-handoff--preparation) and
+[1.4.0 release handoff](store-updates.md#release-140-handoff) and
 [paste-ready EN/FR/DE fields](store-listing.md). The German listing is new and still needs
 native-language review and final-package screenshots.
 

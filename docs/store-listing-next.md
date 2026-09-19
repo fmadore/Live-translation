@@ -1,13 +1,13 @@
 # Store update preparation — 1.4.0
 
 Target **1.4.0** (MSIX **1.4.0.0**). The [EN/FR/DE listing](store-listing.md) is the single
-source for paste-ready fields. The [release handoff](store-updates.md#release-140-handoff--preparation)
+source for paste-ready fields. The [release handoff](store-updates.md#release-140-handoff)
 tracks checks, packages, screenshots, privacy publication and manual submission.
 
-This is preparation only: no 1.4.0 tag, release, installer bundle or Store submission exists
-from this work. The latest GitHub release is 1.3.0; the previous documented Store release is
-1.2.4. When built and verified, upload **Live.Translation_1.4.0.msixbundle**, containing
-x64 and ARM64. Do not substitute the existing 1.3.0 bundle.
+The GitHub release is [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0).
+Store submission remains pending; the previous documented Store release is 1.2.4. After the
+installer workflow and package checks pass, upload **Live.Translation_1.4.0.msixbundle**,
+containing x64 and ARM64. Do not substitute the existing 1.3.0 bundle.
 
 The copy covers meeting profiles, reading controls/previews, history titles/search, input
 status, shortcuts and Gemini Smart finalization. It also retains history/Stable reading/local

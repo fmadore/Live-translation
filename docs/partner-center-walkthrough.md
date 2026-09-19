@@ -2,7 +2,7 @@
 
 Submission target: **Live Translation & Subtitles 1.4.0**, Product ID `9PFB8LR3RR9X`.
 Prepared, not submitted. Responsive-caption testing on the final x64 and ARM64 packages is pending.
-See the [release handoff](store-updates.md#release-140-handoff--preparation) for remaining checks.
+See the [release handoff](store-updates.md#release-140-handoff) for remaining checks.
 
 ## Before Partner Center
 
