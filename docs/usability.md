@@ -58,6 +58,15 @@ finalization, stop cancellation, preference validation, profile round trips and 
 profile controls, safe placement, concurrent history renames, search, keyboard guards and live
 status classification. Gemini tests cover Smart final/interim precedence and empty finals.
 
-Browser inspection checks the appearance preview, presets, profile controls and shortcut help
-at 1280×720 and 800×600, including the German settings. Native mixed-DPI placement, keyboard
-operation in the packaged app, and a fresh paid provider probe still require release acceptance.
+Impeccable browser inspection on 2026-09-19 covered appearance previews, the Large room preset,
+profile save/load feedback, history search and title editing, separate active/quiet input statuses,
+and the stop shortcut. The checks used the real components with a temporary synthetic backend
+at 1280×800 and 800×600, including French and German interfaces and 200% accessibility text
+scaling. The two-source stable overlay was also inspected at 1000×400. Long unbroken session
+titles now wrap without horizontal scrolling, and history date controls use a dark color scheme
+so their calendar icons remain visible. Keyboard focus was checked in the search/date controls;
+the tested pages reported no browser console errors. The temporary backend was removed.
+
+Earlier browser inspection covered shortcut help at 1280×720 and 800×600. Native mixed-DPI
+placement, keyboard operation in the packaged app, and a fresh paid provider probe still require
+release acceptance. These browser checks do not exercise native storage or cloud services.

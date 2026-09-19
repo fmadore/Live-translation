@@ -278,6 +278,7 @@
 		flex-shrink: 0;
 	}
 	.history {
+		color-scheme: dark;
 		padding: 1rem;
 		border-top: 1px solid var(--border);
 		color: var(--text-soft);
@@ -347,6 +348,8 @@
 		gap: 0.3rem;
 		text-align: left;
 		min-width: 12rem;
+		max-width: 100%;
+		overflow-wrap: anywhere;
 	}
 	.saved-text {
 		max-height: 24rem;
