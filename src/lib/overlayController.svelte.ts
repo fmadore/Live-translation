@@ -1,9 +1,12 @@
+import { holdSeconds, type CaptionPace } from './reading';
 import type { CaptionLayout } from './captionLayout';
 import { get } from 'svelte/store';
 import { api } from './tauri';
 import { asStatus } from './errors';
 import {
 	options,
+	overlayHoldSeconds,
+	overlayPace,
 	overlayFontSize,
 	overlayCaptionWidth,
 	overlayCaptionLayout,
@@ -48,6 +51,8 @@ export function createOverlayController(port = api) {
 	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
 		void api
 			.setOverlayConfig({
+				holdSeconds: get(overlayHoldSeconds),
+				pace: get(overlayPace),
 				fontSize: get(overlayFontSize),
 				captionWidth: get(overlayCaptionWidth),
 				captionLayout: get(overlayCaptionLayout),
@@ -103,6 +108,8 @@ export function createOverlayController(port = api) {
 	 *  deliberately untouched — that is where the window sits on the projector, it took a walk
 	 *  across the room to get right, and nothing here is a reason to lose it. */
 	function resetOverlayAppearance() {
+		overlayHoldSeconds.set(4);
+		overlayPace.set('immediate');
 		overlayCaptionLayout.set('fit');
 		overlayCleanSpeech.set(false);
 		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
@@ -184,6 +191,14 @@ export function createOverlayController(port = api) {
 		initialize,
 		applyState,
 		pushOverlayConfig,
+		setHoldSeconds(value: number) {
+			overlayHoldSeconds.set(holdSeconds(value));
+			pushOverlayConfig({ interactive: moveOverlay });
+		},
+		setPace(value: CaptionPace) {
+			overlayPace.set(value);
+			pushOverlayConfig({ interactive: moveOverlay });
+		},
 		setFont,
 		setCaptionWidth,
 		setCaptionLayout,

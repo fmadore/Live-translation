@@ -241,3 +241,27 @@ describe('restoring a recovered snapshot', () => {
 		expect(NOTHING_SAVED).toBe(0);
 	});
 });
+
+it('retracts an empty Smart final instead of archiving its speculative filler', () => {
+	clearTranscript();
+	pushCaption({
+		turnId: 99,
+		startMs: 0,
+		endMs: 1000,
+		origin: 'microphone',
+		text: 'Um, uh',
+		sourceText: '',
+		final: false
+	});
+	pushCaption({
+		turnId: 99,
+		startMs: 0,
+		endMs: 1000,
+		origin: 'microphone',
+		text: '',
+		sourceText: '',
+		final: true
+	});
+	flushTranscript();
+	expect(get(transcript)).toEqual([]);
+});

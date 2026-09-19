@@ -1,3 +1,4 @@
+import { matchesSession } from './historySearch';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
@@ -56,7 +57,9 @@ it('reopens raw history without replacing the live transcript and exports every 
 	expect(view.getByText('Euh, bonjour.')).toBeTruthy();
 	expect(get(transcript)[0].text).toBe('Live session');
 	for (const format of ['text', 'markdown', 'srt', 'vtt']) {
-		await fireEvent.change(view.getByRole('combobox'), { target: { value: format } });
+		await fireEvent.change(view.getByRole('combobox', { name: 'Export format' }), {
+			target: { value: format }
+		});
 		await fireEvent.click(view.getByText('Save as…'));
 		await waitFor(() =>
 			expect(api.saveTranscript).toHaveBeenCalledWith(
@@ -99,5 +102,43 @@ it('shows unreadable records and read errors instead of silently losing history'
 	vi.mocked(api.listHistory).mockRejectedValue(new Error('Access denied'));
 	await fireEvent.click(view.getByText('Refresh'));
 	await waitFor(() => expect(view.getByRole('alert').textContent).toContain('Access denied'));
+	view.unmount();
+});
+
+it('searches titles, original source and translated text with inclusive local dates', () => {
+	const filter = { query: 'BONJOUR', from: '', to: '', language: 'fr' };
+	expect(matchesSession(saved, filter)).toBe(true);
+	expect(matchesSession({ ...saved, title: 'Workshop' }, { ...filter, query: 'workshop' })).toBe(
+		true
+	);
+	expect(matchesSession(saved, { ...filter, language: 'en' })).toBe(false);
+	expect(matchesSession(saved, { ...filter, from: '2099-01-01' })).toBe(false);
+	const localDate = new Date(saved.startedAt);
+	const day = [
+		localDate.getFullYear(),
+		String(localDate.getMonth() + 1).padStart(2, '0'),
+		String(localDate.getDate()).padStart(2, '0')
+	].join('-');
+	expect(matchesSession(saved, { ...filter, from: day, to: day })).toBe(true);
+});
+it('filters the session list and saves a title without changing raw text', async () => {
+	const rename = vi.spyOn(sessionHistory, 'rename').mockResolvedValue();
+	const view = render(TranscriptHistory);
+	await fireEvent.click(view.getByText('Browse sessions'));
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.input(view.getByLabelText('Search titles and transcript text'), {
+		target: { value: 'missing' }
+	});
+	expect(view.getByText('No matching sessions.')).toBeTruthy();
+	await fireEvent.input(view.getByLabelText('Search titles and transcript text'), {
+		target: { value: 'bonjour' }
+	});
+	await fireEvent.click(view.container.querySelector('.session')!);
+	await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Workshop' } });
+	await fireEvent.submit(view.container.querySelector('form')!);
+	await waitFor(() =>
+		expect(rename).toHaveBeenCalledWith(expect.objectContaining({ lines: saved.lines }), 'Workshop')
+	);
+	rename.mockRestore();
 	view.unmount();
 });

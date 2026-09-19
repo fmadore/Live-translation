@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
 	import { t, localeTag, formatDateTime } from './i18n';
@@ -27,6 +28,32 @@
 	let format = $state<TranscriptFormat>('markdown');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
 	const timed = $derived(selected ? hasTranscriptTiming(selected.lines) : false);
+	let query = $state('');
+	let from = $state('');
+	let to = $state('');
+	let language = $state('');
+	let title = $state('');
+	const filtered = $derived(
+		sessions.filter((entry) =>
+			entry.session
+				? matchesSession(entry.session, { query, from, to, language })
+				: !query && !from && !to && !language
+		)
+	);
+	async function rename() {
+		if (!selected || busy) return;
+		busy = true;
+		error = '';
+		try {
+			await sessionHistory.rename(selected, title);
+			await refresh();
+			notice = $t.usability.titleSaved;
+		} catch (e) {
+			error = String(e);
+		} finally {
+			busy = false;
+		}
+	}
 	let request = 0;
 
 	async function refresh() {
@@ -129,8 +156,22 @@
 	{#if open}
 		<button disabled={busy} onclick={refresh}>{$t.history.refresh}</button>
 		{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
+		<div class="filters">
+			<label>{$t.usability.search}<input type="search" bind:value={query} /></label>
+			<label>{$t.usability.from}<input type="date" bind:value={from} /></label>
+			<label>{$t.usability.to}<input type="date" bind:value={to} /></label>
+			<label
+				>{$t.usability.language}<select bind:value={language}
+					><option value="">{$t.usability.allLanguages}</option><option value="en">English</option
+					><option value="fr">Français</option><option value="auto"
+						>{$t.usability.unknownLanguage}</option
+					></select
+				></label
+			>
+		</div>
+		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
 		<ul class="sessions">
-			{#each sessions as entry (entry.id)}
+			{#each filtered as entry (entry.id)}
 				<li>
 					<button
 						class="session"
@@ -138,12 +179,19 @@
 						aria-pressed={selectedId === entry.id}
 						onclick={() => {
 							selectedId = entry.id;
+							title = entry.session?.title ?? '';
 							confirmDelete = '';
 							notice = '';
 						}}
 					>
 						{#if entry.session}
-							<strong>{formatDateTime(entry.session.startedAt, $localeTag)}</strong>
+							<strong
+								>{entry.session.title ||
+									formatDateTime(entry.session.startedAt, $localeTag)}</strong
+							>
+							{#if entry.session.title}<span
+									>{formatDateTime(entry.session.startedAt, $localeTag)}</span
+								>{/if}
 							<span
 								>{Math.floor(entry.session.durationMs / 60000)}:{String(
 									Math.floor(entry.session.durationMs / 1000) % 60
@@ -166,6 +214,20 @@
 			{/each}
 		</ul>
 		{#if selected}
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					void rename();
+				}}
+			>
+				<label
+					>{$t.usability.title}<input maxlength="120" bind:value={title} disabled={busy} /></label
+				>
+				<p class="hint">{$t.usability.titleHint}</p>
+				<button disabled={busy || title.trim() === (selected.title ?? '')}
+					>{$t.usability.saveTitle}</button
+				>
+			</form>
 			<div class="actions">
 				<button disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</button>
 				<select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
@@ -196,6 +258,20 @@
 </section>
 
 <style>
+	.filters {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+	}
+	.filters label,
+	form label {
+		display: grid;
+		min-width: 0;
+	}
+	input {
+		min-width: 0;
+		max-width: 100%;
+	}
 	.history.open {
 		max-height: 70vh;
 		overflow: auto;
@@ -232,6 +308,7 @@
 		line-height: 1.5;
 	}
 	button,
+	input,
 	select {
 		background: var(--panel-2);
 		border: 1px solid var(--border);

@@ -111,40 +111,11 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
             return MessageOutcome::default();
         };
 
-        // Both fields describe the *same* segment, so each one replaces the buffer rather
-        // than extending it. Appending would repeat every revised hypothesis on screen.
-        if let Some(interim) = content
-            .interim_input_transcription
-            .as_ref()
-            .filter(|t| !t.text.is_empty())
-        {
-            acc.translated.clear();
-            acc.translated.push_str(&interim.text);
-            emit_caption(app, self.origin, acc, false);
-            return MessageOutcome::activity();
-        }
-
-        // A finalized segment is the model's authoritative reading of it, and ends the turn:
-        // one segment is one transcript line, broken where the speaker paused.
-        if let Some(final_text) = content
-            .input_transcription
-            .as_ref()
-            .filter(|t| !t.text.is_empty())
-        {
-            acc.translated.clear();
-            acc.translated.push_str(&final_text.text);
-        }
-        // `generationComplete` is the marker the server actually sends; `turnComplete` is
-        // Live Translate's and is accepted here only for symmetry. It matters for the segment
-        // that yields no final text — SMART mode dropping an all-filler utterance — where
-        // without it the last speculative hypothesis would sit on screen until the idle timer
-        // committed it to the transcript as though it had been confirmed.
-        let closed = content.input_transcription.is_some()
-            || content.generation_complete.unwrap_or(false)
-            || content.turn_complete.unwrap_or(false);
-        if closed {
-            if !acc.is_empty() {
-                emit_caption(app, self.origin, acc, true);
+        if let Some(finalized) = apply_transcription(&content, acc) {
+            // Empty finalized captions retract speculative text in both windows and the
+            // pending transcript. Never archive an all-filler interim as confirmed speech.
+            emit_caption(app, self.origin, acc, finalized);
+            if finalized {
                 acc.next_turn();
             }
             return MessageOutcome::activity();
@@ -155,6 +126,62 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
 
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
+    }
+}
+
+/// Final text wins even when a frame also carries an interim hypothesis.
+fn apply_transcription(
+    content: &super::protocol::ServerContent,
+    acc: &mut TurnAccumulator,
+) -> Option<bool> {
+    if let Some(final_text) = &content.input_transcription {
+        acc.translated.clone_from(&final_text.text);
+        return Some(true);
+    }
+    if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
+        if acc.is_empty() {
+            return None;
+        }
+        acc.translated.clear();
+        acc.source.clear();
+        return Some(true);
+    }
+    if let Some(interim) = &content.interim_input_transcription {
+        acc.translated.clone_from(&interim.text);
+        return Some(false);
+    }
+    None
+}
+
+#[cfg(test)]
+mod smart_tests {
+    use super::*;
+    fn content(raw: &str) -> super::super::protocol::ServerContent {
+        serde_json::from_str::<ServerMessage>(raw)
+            .unwrap()
+            .server_content
+            .unwrap()
+    }
+    #[test]
+    fn smart_final_replaces_interim_even_in_the_same_frame() {
+        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
+        let frame = content(
+            r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
+        );
+        assert_eq!(apply_transcription(&frame, &mut acc), Some(true));
+        assert_eq!(acc.translated, "Hello.");
+    }
+    #[test]
+    fn empty_smart_final_and_bare_close_retract_fillers() {
+        for raw in [
+            r#"{"serverContent":{"inputTranscription":{"text":""}}}"#,
+            r#"{"serverContent":{"generationComplete":true}}"#,
+        ] {
+            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
+            acc.translated = "Um, uh".into();
+            assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
+            assert!(acc.is_empty());
+        }
     }
 }
 

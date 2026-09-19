@@ -23,6 +23,11 @@ const line: TranscriptLine = {
 function setup(enabled = true) {
 	const disk = new Map<string, string>();
 	const port = {
+		renameHistory: vi.fn(async (id: string, title: string) => {
+			const raw = disk.get(id);
+			if (!raw) throw new Error('missing');
+			disk.set(id, JSON.stringify({ ...JSON.parse(raw), title }));
+		}),
 		writeHistory: vi.fn(async (id: string, raw: string) => {
 			disk.set(id, raw);
 		}),
@@ -44,6 +49,49 @@ function setup(enabled = true) {
 }
 
 describe('session history', () => {
+	it('renames an older session from its latest disk record after another session starts', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		const stale = decodeSession(s.disk.get(id)!, id)!;
+		s.history.append({ ...line, id: 2, text: 'Latest line' });
+		await s.history.finish();
+		s.history.begin(options, start, id2);
+		await s.history.rename(stale, 'Earlier meeting');
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			title: 'Earlier meeting',
+			lines: [{ id: 2 }, { id: 1 }]
+		});
+	});
+	it('renames active sessions without overwriting captions queued after the history view loaded', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		const old = decodeSession(s.disk.get(id)!, id)!;
+		s.history.append({ ...line, id: 2, text: 'New text' });
+		await s.history.rename(old, 'Workshop');
+		s.history.append({ ...line, id: 3 });
+		await s.history.finish();
+		const saved = decodeSession(s.disk.get(id)!, id)!;
+		expect(saved.title).toBe('Workshop');
+		expect(saved.lines).toHaveLength(3);
+	});
+	it('retains a renamed title through a failed write retry and never resurrects deleted sessions', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.finish();
+		const saved = decodeSession(s.disk.get(id)!, id)!;
+		s.port.renameHistory.mockRejectedValueOnce(new Error('disk full'));
+		await expect(s.history.rename(saved, 'Meeting')).rejects.toThrow('disk full');
+		await s.history.retry();
+		expect(decodeSession(s.disk.get(id)!, id)?.title).toBe('Meeting');
+		await s.history.delete(id);
+		await expect(s.history.rename(saved, 'Gone')).rejects.toThrow();
+		expect(s.disk.size).toBe(0);
+	});
 	it('writes nothing by default or for an empty session', async () => {
 		const s = setup(false);
 		s.history.begin(options, start, id);

@@ -21,6 +21,69 @@
 import type { Messages } from './en';
 
 export const de: Messages = {
+	usability: {
+		hold: 'Anzeigedauer fertiger Untertitel (Sekunden)',
+		holdHint:
+			'Nur für Fensterbreite und Kompakt. Stabiles Lesen behält Untertitel, bis sie herausrollen oder die Sitzung endet.',
+		pace: 'Aktualisierung der Untertitel',
+		immediate: 'Sofort',
+		steady: 'Ruhiger',
+		paceHint:
+			'Ruhiger bündelt vorläufige Ergebnisse alle 450 ms. Fertiger Text erscheint sofort. Korrekturen des Anbieters bleiben möglich.',
+		preview: 'Vorschau',
+		bright: 'Helle Folie',
+		dark: 'Dunkle Folie',
+		sample: 'Gut lesbare Untertitel helfen allen, dem Gespräch zu folgen.',
+		preset: 'Lesevoreinstellungen',
+		standard: 'Standard',
+		projector: 'Großer Raum',
+		contrast: 'Hoher Kontrast',
+		previewHint:
+			'Beispiel in der gewählten Schriftgröße; das Overlay kann eine andere Breite haben.',
+		geminiSmart:
+			'Gemini-Untertitel verwenden Smart-Transkription: Google entfernt Füllwörter und Fehlstarts vor der endgültigen Transkription. Füllwörter ausblenden ist ein zusätzlicher lokaler Overlay-Filter; das Ausschalten deaktiviert Googles Bereinigung nicht.',
+		profiles: 'Besprechungsprofile',
+		profileName: 'Profilname',
+		saveProfile: 'Aktuelle Einstellungen speichern',
+		loadProfile: 'Profil laden',
+		deleteProfile: 'Profil löschen',
+		confirmDelete: 'Endgültig löschen',
+		profileHint:
+			'Speichert Einstellungen, Aussehen und Overlay-Position lokal, ohne API-Schlüssel. Nur bei gestoppter Sitzung laden und Geräte prüfen. Anwendungen müssen erneut ausgewählt werden.',
+		profileLoaded: 'Profil geladen. Geräte und Overlay-Position vor dem Start prüfen.',
+		profileMissing:
+			'Ein Audiogerät fehlt; der Windows-Standard ist ausgewählt. Vor dem Start prüfen.',
+		profileSaved: 'Profil gespeichert.',
+		chooseProfile: 'Profil auswählen',
+		title: 'Sitzungstitel',
+		saveTitle: 'Titel speichern',
+		search: 'Titel und Transkripte durchsuchen',
+		from: 'Ab Datum',
+		to: 'Bis Datum',
+		language: 'Untertitelsprache',
+		allLanguages: 'Alle Sprachen',
+		unknownLanguage: 'Automatisch erkannt / unbekannt',
+		noMatches: 'Keine passenden Sitzungen.',
+		titleSaved: 'Sitzungstitel gespeichert.',
+		shortcuts: 'Tastenkombinationen',
+		shortcutHint:
+			'Wenn das Hauptfenster fokussiert ist, außerhalb von Eingabefeldern und Dialogen.',
+		shortcutStart: 'Sitzung starten / stoppen',
+		shortcutOverlay: 'Overlay ein- / ausblenden',
+		shortcutSize: 'Untertitel vergrößern / verkleinern',
+		shortcutDirection: 'Übersetzungsrichtung bei gestoppter Sitzung wechseln',
+		listening: 'Bereit — kein aktuelles Audiosignal',
+		audio: 'Audio wird empfangen',
+		captions: 'Untertitel werden empfangen',
+		stale:
+			'Audio trifft ein, aber seit 15 Sekunden keine Untertitel. Anbieter und Verbindung prüfen.',
+		connecting: 'Verbindung wird hergestellt…',
+		reconnecting: 'Verbindung wird wiederhergestellt…',
+		error: 'Quelle mit Fehler gestoppt',
+		idle: 'Quelle gestoppt',
+		activity: 'Status der Live-Eingänge',
+		titleHint: 'Leer lassen, um das Sitzungsdatum zu verwenden.'
+	},
 	locale: {
 		/** Name of this language, written in this language, for the language selector. */
 		name: 'Deutsch',

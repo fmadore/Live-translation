@@ -113,3 +113,48 @@ it('restores caption expiry when leaving stable mode after its old timer elapsed
 	expect(view.container.querySelector('.captions')).toBeNull();
 	view.unmount();
 });
+
+it('honors a custom hold time and cancels buffered interim text on stable Stop', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await tick();
+	handlers.config({ fontSize: 38, captionLayout: 'fit', holdSeconds: 8, pace: 'steady' });
+	const c: Caption = {
+		startMs: 0,
+		endMs: 1000,
+		origin: 'system',
+		turnId: 1,
+		text: 'Final text',
+		sourceText: 'Original',
+		final: true
+	};
+	handlers.caption(c);
+	await tick();
+	expect(view.container.querySelector('.captions')).not.toBeNull();
+	await vi.advanceTimersByTimeAsync(7999);
+	await tick();
+	expect(view.container.querySelector('.captions')).not.toBeNull();
+	await vi.advanceTimersByTimeAsync(1);
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	handlers.config({ fontSize: 38, captionLayout: 'stable', pace: 'steady' });
+	handlers.caption({ ...c, turnId: 2, final: false, text: 'Pending' });
+	handlers.status({ state: 'idle' });
+	await vi.advanceTimersByTimeAsync(500);
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	expect(c.text).toBe('Final text');
+	view.unmount();
+});

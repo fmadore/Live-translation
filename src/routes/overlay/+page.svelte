@@ -1,4 +1,11 @@
 <script lang="ts">
+	import {
+		createCaptionPresenter,
+		loadHoldSeconds,
+		loadPace,
+		holdSeconds,
+		type CaptionPace
+	} from '$lib/reading';
 	import { cleanSpeech, loadCleanSpeech } from '$lib/cleanSpeech';
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
@@ -47,6 +54,8 @@
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
+	let readingHold = $state(loadHoldSeconds());
+	let pace = $state<CaptionPace>(loadPace());
 	let hideFillers = $state(loadCleanSpeech());
 	let captionLayout = $state(loadCaptionLayout());
 	let fontsLoaded = $state(0);
@@ -85,7 +94,7 @@
 	// Auto-hide captions after the last update so the overlay never sits on a stale line
 	// over the slides. A finalized line gets a short reading pause; an in-progress line
 	// that stalls (no turn-complete arriving) clears a little sooner.
-	const FINAL_HOLD_MS = 4000;
+
 	const INTERIM_HOLD_MS = 3000;
 	const clearTimers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
 
@@ -173,7 +182,7 @@
 				delete previous[c.origin];
 				delete history[c.origin];
 			},
-			c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
+			c.final ? readingHold * 1000 : INTERIM_HOLD_MS
 		);
 	}
 
@@ -226,23 +235,31 @@
 			return cleanup;
 		}
 
-		const unlistenCaption = on.caption((c) => {
-			const cur = current[c.origin];
-			// A caption for a new turn of this origin: keep the finished text as the dimmed
-			// lead-in to the fresh one. A turn can end without ever being flagged final, so
-			// this keys off the turn id changing rather than on `cur.final`.
-			if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
-				previous[c.origin] = cur.text;
-				history[c.origin] =
-					captionLayout === 'stable'
-						? `${history[c.origin] ?? ''} ${cur.text}`
-						: appendCaptionHistory(history[c.origin] ?? '', cur.text);
-			}
-			current[c.origin] = c;
-			scheduleExpiry(c);
-		});
+		const presenter = createCaptionPresenter(
+			(c) => {
+				const cur = current[c.origin];
+				// A caption for a new turn of this origin: keep the finished text as the dimmed
+				// lead-in to the fresh one. A turn can end without ever being flagged final, so
+				// this keys off the turn id changing rather than on `cur.final`.
+				if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
+					previous[c.origin] = cur.text;
+					history[c.origin] =
+						captionLayout === 'stable'
+							? `${history[c.origin] ?? ''} ${cur.text}`
+							: appendCaptionHistory(history[c.origin] ?? '', cur.text);
+				}
+				current[c.origin] = c;
+				scheduleExpiry(c);
+			},
+			() => pace
+		);
 
+		const unlistenCaption = on.caption((c) => presenter.push(c));
 		const unlistenStatus = on.status((status) => {
+			if (status.state === 'idle' || status.state === 'error') {
+				if (!status.origin && captionLayout !== 'stable') presenter.flush();
+				presenter.clear(status.origin);
+			}
 			if (captionLayout === 'stable' && status.state === 'idle' && !status.origin) {
 				current = {};
 				previous = {};
@@ -252,6 +269,14 @@
 		});
 
 		const unlistenConfig = on.overlayConfig((cfg) => {
+			if (typeof cfg.holdSeconds === 'number') {
+				readingHold = holdSeconds(cfg.holdSeconds);
+				for (const c of Object.values(current)) if (c) scheduleExpiry(c);
+			}
+			if (cfg.pace === 'steady' || cfg.pace === 'immediate') {
+				pace = cfg.pace;
+				presenter.flush();
+			}
 			if (typeof cfg.cleanSpeech === 'boolean') hideFillers = cfg.cleanSpeech;
 			if (isCaptionLayout(cfg.captionLayout) && cfg.captionLayout !== captionLayout) {
 				captionLayout = cfg.captionLayout;
@@ -293,6 +318,7 @@
 		});
 
 		return () => {
+			presenter.clear();
 			cleanup();
 			void unlistenCaption.then((f) => f());
 			void unlistenStatus.then((f) => f());

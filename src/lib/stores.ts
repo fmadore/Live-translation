@@ -1,3 +1,4 @@
+import { HOLD_KEY, PACE_KEY, loadHoldSeconds, loadPace, type CaptionPace } from './reading';
 import { sessionHistory } from './history';
 import { CLEAN_SPEECH_KEY, loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
@@ -49,7 +50,7 @@ import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 // independently, so state is tracked per origin and aggregated for display: the worst
 // state wins, and the session counts as active while any source still is.
 
-const originStates = writable<Partial<Record<Origin, SessionState>>>({});
+export const originStates = writable<Partial<Record<Origin, SessionState>>>({});
 
 const DISPLAY_PRIORITY: SessionState[] = ['error', 'reconnecting', 'connecting', 'running'];
 
@@ -97,6 +98,7 @@ export function applyStatus(u: StatusUpdate) {
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
+		activityTimes.set({});
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
@@ -111,6 +113,15 @@ export function applyStatus(u: StatusUpdate) {
 	}
 }
 
+export const activityTimes = writable<Partial<Record<Origin, { audio: number; caption: number }>>>(
+	{}
+);
+export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Date.now()) {
+	activityTimes.update((value) => ({
+		...value,
+		[origin]: { audio: 0, caption: 0, ...value[origin], [kind]: now }
+	}));
+}
 export const hasKey = writable<boolean>(false);
 
 // Persisted to localStorage: the keyless built-in demo applies to a first run only, and a
@@ -194,6 +205,7 @@ function commit(c: Caption) {
 }
 
 export function pushCaption(c: Caption) {
+	noteActivity(c.origin, 'caption');
 	latestCaption.set(c);
 	// Re-insert this origin last so the object's key order tracks recency.
 	currentCaptions.update((m) => {
@@ -356,4 +368,13 @@ export const systemLevel = writable<AudioLevel>({ source: 'system', rms: 0, peak
 export const overlayCleanSpeech = writable(loadCleanSpeech());
 overlayCleanSpeech.subscribe((value) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(CLEAN_SPEECH_KEY, String(value));
+});
+
+export const overlayHoldSeconds = writable(loadHoldSeconds());
+export const overlayPace = writable<CaptionPace>(loadPace());
+overlayHoldSeconds.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(HOLD_KEY, String(v));
+});
+overlayPace.subscribe((v) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(PACE_KEY, v);
 });

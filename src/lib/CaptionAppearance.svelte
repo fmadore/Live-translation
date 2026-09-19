@@ -1,7 +1,10 @@
 <script lang="ts">
+	import ReadingPreferences from './ReadingPreferences.svelte';
 	import type { CaptionLayout } from './captionLayout';
 	import { t, localeTag } from './i18n';
 	import {
+		overlayHoldSeconds,
+		overlayPace,
 		overlayFontSize,
 		overlayCaptionWidth,
 		overlayCaptionLayout,
@@ -28,7 +31,9 @@
 	 *  "have I changed anything?" — which is the one an operator has after an hour of
 	 *  adjusting and no memory of where they started. */
 	const overlayAtDefaults = $derived(
-		$overlayCaptionLayout === 'fit' &&
+		$overlayHoldSeconds === 4 &&
+			$overlayPace === 'immediate' &&
+			$overlayCaptionLayout === 'fit' &&
 			!$overlayCleanSpeech &&
 			$overlayFontSize === DEFAULT_OVERLAY_FONT &&
 			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
@@ -211,6 +216,8 @@
 >
 	{$t.overlayControls.reset}
 </button>
+
+<ReadingPreferences {overlay} />
 
 <style>
 	.cleanup {

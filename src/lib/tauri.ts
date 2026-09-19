@@ -47,6 +47,10 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 // ---- Commands -------------------------------------------------------------
 
 export const api = {
+	renameHistory: (id: string, title: string) => invoke<void>('rename_history', { id, title }),
+	getOverlayPlacement: () => invoke<import('./profiles').Placement>('get_overlay_placement'),
+	setOverlayPlacement: (placement: import('./profiles').Placement) =>
+		invoke<void>('set_overlay_placement', { placement }),
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
 	listHistory: () => invoke<StoredRecovery[]>('list_history'),
 	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),

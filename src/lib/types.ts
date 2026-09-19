@@ -200,6 +200,8 @@ export interface AudioDevice {
 
 /** Live overlay appearance/behaviour, pushed from the operator window to the overlay. */
 export interface OverlayConfig {
+	holdSeconds?: number;
+	pace?: import('./reading').CaptionPace;
 	fontSize: number;
 	/** How wide a caption line may run, as a typographic measure in `ch`. */
 	captionWidth?: number;
@@ -437,6 +439,10 @@ export function loadStartOptions(): StartOptions {
 	} catch {
 		return { ...DEFAULT_START_OPTIONS };
 	}
+	return normalizeStartOptions(parsed);
+}
+
+export function normalizeStartOptions(parsed: unknown): StartOptions {
 	if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_START_OPTIONS };
 	const stored = parsed as Record<string, unknown>;
 	const loaded: StartOptions = {

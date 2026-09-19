@@ -18,6 +18,7 @@ mod mistral;
 mod ondevice;
 mod openai;
 mod overlay;
+mod placement;
 mod realtime;
 mod recovery;
 mod secrets;
@@ -118,6 +119,8 @@ pub fn run() {
             commands::stop_audio_test,
             commands::set_overlay_click_through,
             commands::show_overlay,
+            placement::get_overlay_placement,
+            placement::set_overlay_placement,
             commands::save_transcript,
             commands::text_scale_factor,
             recovery::write_recovery,
@@ -126,6 +129,7 @@ pub fn run() {
             history::write_history,
             history::list_history,
             history::delete_history,
+            history::rename_history,
             lifecycle::ack_close,
             lifecycle::set_close_guard,
             lifecycle::set_close_to_tray,

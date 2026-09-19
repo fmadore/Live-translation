@@ -15,6 +15,7 @@ export const historyRevision = writable(0);
 
 export interface SavedSession {
 	version: 1;
+	title?: string;
 	id: string;
 	startedAt: string;
 	savedAt: string;
@@ -51,6 +52,7 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 		return {
 			version: 1,
 			id,
+			title: typeof s.title === 'string' ? s.title.trim().slice(0, 120) : undefined,
 			startedAt: s.startedAt,
 			savedAt: recovered.savedAt,
 			endedAt: s.endedAt,
@@ -68,7 +70,7 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 /** Serialize writes and deletions. Pending snapshots coalesce, but every completed write
  * is atomic. A deleted active session stays deleted; the next Start gets a fresh UUID. */
 export function createHistoryCoordinator(
-	port: Pick<typeof api, 'writeHistory' | 'deleteHistory'>,
+	port: Pick<typeof api, 'writeHistory' | 'deleteHistory' | 'renameHistory'>,
 	enabled: () => boolean,
 	onError: (error: unknown) => void = () => {},
 	onSaved: (failed: boolean) => void = () => {}
@@ -78,10 +80,16 @@ export function createHistoryCoordinator(
 	let revision = 0;
 	const deleted = new Set<string>();
 	const failed = new Map<string, SavedSession>();
+	const titles = new Map<string, string>();
 	async function write(snapshot: SavedSession) {
 		if (deleted.has(snapshot.id)) return;
 		try {
-			await port.writeHistory(snapshot.id, JSON.stringify(snapshot));
+			await port.writeHistory(
+				snapshot.id,
+				JSON.stringify(
+					titles.has(snapshot.id) ? { ...snapshot, title: titles.get(snapshot.id) } : snapshot
+				)
+			);
 			failed.delete(snapshot.id);
 			onSaved(failed.size > 0);
 		} catch (error) {
@@ -143,6 +151,19 @@ export function createHistoryCoordinator(
 		},
 		flush() {
 			return queue;
+		},
+		rename(session: SavedSession, value: string) {
+			const title = value.trim().slice(0, 120);
+			titles.set(session.id, title);
+			if (active?.id === session.id) active.title = title;
+			const result = queue.then(async () => {
+				if (deleted.has(session.id)) throw new Error('Session deleted');
+				// Rename the newest disk record, never the history view's possibly stale copy.
+				await port.renameHistory(session.id, title);
+				onSaved(failed.size > 0);
+			});
+			queue = result.catch(onError);
+			return result;
 		},
 		delete(id: string) {
 			deleted.add(id);

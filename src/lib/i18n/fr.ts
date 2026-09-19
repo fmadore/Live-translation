@@ -21,6 +21,69 @@
 import type { Messages } from './en';
 
 export const fr: Messages = {
+	usability: {
+		hold: 'Durée des sous-titres terminés (secondes)',
+		holdHint:
+			'Adapter à la fenêtre et Compact uniquement. La lecture stable conserve les sous-titres jusqu’à leur défilement ou l’arrêt de la session.',
+		pace: 'Actualisation des sous-titres',
+		immediate: 'Immédiate',
+		steady: 'Plus stable',
+		paceHint:
+			'Le mode plus stable regroupe les résultats partiels toutes les 450 ms. Le texte final apparaît immédiatement. Les corrections du fournisseur restent possibles.',
+		preview: 'Aperçu de l’apparence',
+		bright: 'Diapositive claire',
+		dark: 'Diapositive sombre',
+		sample: 'Des sous-titres lisibles aident chacun à suivre la conversation.',
+		preset: 'Préréglages de lecture',
+		standard: 'Standard',
+		projector: 'Grande salle',
+		contrast: 'Contraste élevé',
+		previewHint:
+			'Exemple à la taille choisie ; la surimpression peut avoir une largeur différente.',
+		geminiSmart:
+			'Les sous-titres Gemini utilisent la transcription intelligente : Google retire les hésitations et les faux départs avant de renvoyer la transcription finale. Masquer les hésitations est un filtre local supplémentaire ; le désactiver ne désactive pas le nettoyage de Google.',
+		profiles: 'Profils de réunion',
+		profileName: 'Nom du profil',
+		saveProfile: 'Enregistrer la configuration',
+		loadProfile: 'Charger le profil',
+		deleteProfile: 'Supprimer le profil',
+		confirmDelete: 'Supprimer définitivement',
+		profileHint:
+			'Enregistre la configuration, l’apparence et la position sur ce PC, sans clé API. Chargez à l’arrêt et vérifiez les périphériques. Sélectionnez à nouveau l’application à capturer.',
+		profileLoaded: 'Profil chargé. Vérifiez les périphériques et la position avant de démarrer.',
+		profileMissing:
+			'Un périphérique audio est absent ; celui par défaut de Windows est sélectionné. Vérifiez-le avant de démarrer.',
+		profileSaved: 'Profil enregistré.',
+		chooseProfile: 'Choisir un profil',
+		title: 'Titre de la session',
+		saveTitle: 'Enregistrer le titre',
+		search: 'Rechercher dans les titres et les transcriptions',
+		from: 'À partir du',
+		to: 'Jusqu’au',
+		language: 'Langue des sous-titres',
+		allLanguages: 'Toutes les langues',
+		unknownLanguage: 'Détection automatique / inconnue',
+		noMatches: 'Aucune session correspondante.',
+		titleSaved: 'Titre de la session enregistré.',
+		shortcuts: 'Raccourcis clavier',
+		shortcutHint:
+			'Lorsque la fenêtre principale est active, hors des champs de saisie et des boîtes de dialogue.',
+		shortcutStart: 'Démarrer / arrêter la session',
+		shortcutOverlay: 'Afficher / masquer la surimpression',
+		shortcutSize: 'Agrandir / réduire les sous-titres',
+		shortcutDirection: 'Inverser la traduction à l’arrêt',
+		listening: 'À l’écoute — aucun signal audio récent',
+		audio: 'Réception audio',
+		captions: 'Réception des sous-titres',
+		stale:
+			'Le son arrive, mais aucun sous-titre depuis 15 secondes. Vérifiez le fournisseur et la connexion.',
+		connecting: 'Connexion…',
+		reconnecting: 'Reconnexion…',
+		error: 'Source arrêtée avec une erreur',
+		idle: 'Source arrêtée',
+		activity: 'État des entrées en direct',
+		titleHint: 'Laissez vide pour utiliser la date de la session.'
+	},
 	locale: {
 		/** Name of this language, written in this language, for the language selector. */
 		name: 'Français',

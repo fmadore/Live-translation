@@ -116,3 +116,24 @@ The built-in demo provides a free first check. Use live speech for continuous lo
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
 [release handoff](store-updates.md#release-124-handoff) for the remaining release gates.
+
+## Reading pace and preview
+
+Fit window and Compact keep finished captions for a configurable **2–30 seconds** (default
+4 seconds). This is a per-source reading pause after its latest completed caption, not a
+minimum display time that delays new speech. Unfinished, stalled text still expires after
+3 seconds. Stable reading retains its existing session-long context behavior.
+
+**Immediate** remains the default. **Steadier** presents the most recent interim hypothesis
+every 450 ms per source, without waiting indefinitely for silence. Final text and turn
+transitions flush promptly; it can still revise already displayed words. This setting only
+changes presentation: it does not buffer audio, delay transcription storage or add requests.
+
+The expandable **Appearance preview** shows sample text at the selected font size over bright
+and dark slides. Standard, Large room and High contrast presets change appearance; the Reset
+button also restores the default reading pace, hold time and filler filter. The real overlay
+may have different dimensions, so finish placement on the presentation display.
+
+Gemini subtitles already request Google's Smart transcription. The optional local filler
+filter is additional and cannot restore fillers removed by the provider. Raw text means the
+provider's returned text, not a guaranteed verbatim record of speech.

@@ -1,9 +1,12 @@
+import { get } from 'svelte/store';
 import { expect, it, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import CaptionAppearance from './CaptionAppearance.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { api } from './tauri';
 import {
+	overlayHoldSeconds,
+	overlayPace,
 	overlayFontSize,
 	overlayCaptionLayout,
 	overlayCaptionWidth,
@@ -76,5 +79,29 @@ it('switches layout live, remembers compact width, and resets to fit window', as
 	overlay.resetOverlayAppearance();
 	await waitFor(() => expect(selector.value).toBe('fit'));
 	expect(loadCaptionLayout()).toBe('fit');
+	view.unmount();
+});
+
+it('updates reading preferences, previews presets, and resets the complete appearance', async () => {
+	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
+	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	overlay.resetOverlayAppearance();
+	const view = render(CaptionAppearance, { heading: 'Appearance', overlay });
+	await fireEvent.change(view.getByLabelText('Keep finished captions (seconds)'), {
+		target: { value: '9' }
+	});
+	await fireEvent.change(view.getByLabelText('Caption updates'), { target: { value: 'steady' } });
+	expect(get(overlayHoldSeconds)).toBe(9);
+	expect(get(overlayPace)).toBe('steady');
+	await fireEvent.click(view.getByText('Large room'));
+	expect(get(overlayFontSize)).toBe(52);
+	expect(get(overlayCaptionLayout)).toBe('stable');
+	expect(view.getByLabelText('Keep finished captions (seconds)')).toBeDisabled();
+	overlay.resetOverlayAppearance();
+	await waitFor(() =>
+		expect(view.getByLabelText('Keep finished captions (seconds)')).not.toBeDisabled()
+	);
+	expect(get(overlayHoldSeconds)).toBe(4);
+	expect(get(overlayPace)).toBe('immediate');
 	view.unmount();
 });

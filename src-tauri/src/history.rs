@@ -73,6 +73,29 @@ fn read_sessions(dir: &Path) -> Result<Vec<StoredRecovery>, String> {
     Ok(sessions)
 }
 
+fn rename_session(path: &Path, title: &str) -> Result<(), String> {
+    let raw = std::fs::read(path).map_err(|e| e.to_string())?;
+    let mut session: serde_json::Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
+    let record = session.as_object_mut().ok_or("invalid session")?;
+    record.insert(
+        "title".into(),
+        title.trim().chars().take(120).collect::<String>().into(),
+    );
+    let contents = serde_json::to_vec(&session).map_err(|e| e.to_string())?;
+    replace_snapshot(path, |f| f.write_all(&contents)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result<(), String> {
+    let path = session_path(&directory(&app)?, &id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        rename_session(&path, &title)
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 #[tauri::command]
 pub async fn list_history(app: AppHandle) -> Result<Vec<StoredRecovery>, String> {
     let dir = directory(&app)?;
@@ -98,6 +121,30 @@ pub async fn delete_history(app: AppHandle, id: String) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rename_preserves_latest_disk_contents_and_does_not_recreate_missing_sessions() {
+        let dir = std::env::temp_dir().join(format!(
+            "history-rename-{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("session.json");
+        let raw = br#"{"lines":[{"text":"newest caption"}],"futureField":42}"#;
+        std::fs::write(&path, raw).unwrap();
+        rename_session(&path, " Meeting ").unwrap();
+        let record: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        assert_eq!(record["title"], "Meeting");
+        assert_eq!(record["lines"][0]["text"], "newest caption");
+        assert_eq!(record["futureField"], 42);
+        std::fs::remove_file(&path).unwrap();
+        assert!(rename_session(&path, "gone").is_err());
+        std::fs::remove_dir(dir).unwrap();
+    }
     #[test]
     fn history_survives_reopening_and_deletion_is_per_session() {
         let dir = std::env::temp_dir().join(format!(

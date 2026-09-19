@@ -41,3 +41,15 @@ Native release acceptance should also exercise the built-in demonstration with h
 restart the packaged app, reopen two sessions, export and delete one, and confirm the other is
 still available. Abruptly end a disposable demo run and check its last saved snapshot. No paid
 provider call is needed for these checks.
+
+## Titles and search
+
+Saved sessions can be renamed (up to 120 characters); a blank title restores the date label.
+Titles are stored inside the existing local session JSON, including when the active session
+continues receiving captions. Older files without titles remain readable. Changing a title
+never replaces or edits caption text.
+
+Search matches session titles, caption text and available source text. Date bounds include
+both selected local calendar days. The caption-language filter uses the translation target,
+or the known source language for subtitles; automatically detected languages remain marked
+unknown rather than guessed. Filters do not delete sessions or change export contents.

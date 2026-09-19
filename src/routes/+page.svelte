@@ -1,4 +1,9 @@
 <script lang="ts">
+	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
+	import LiveActivity from '$lib/LiveActivity.svelte';
+	import KeyboardHelp from '$lib/KeyboardHelp.svelte';
+	import { shortcut } from '$lib/shortcuts';
+	import { overlayFontSize, noteActivity } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import SystemCapturePicker from '$lib/SystemCapturePicker.svelte';
 	import { createPreflightController } from '$lib/preflightController.svelte';
@@ -88,7 +93,8 @@
 		toggleOverlayVisible: () => overlay.toggleOverlayVisible()
 	});
 	const sessionBusy = session.busy;
-	const controlsLocked = $derived($isRunning || $sessionBusy);
+	let profileBusy = $state(false);
+	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
 	const preflight = createPreflightController(
 		!browserMode,
 		() => controlsLocked || failedDevice !== null || retryingDevice
@@ -235,7 +241,10 @@
 			// `docs/accessibility.md`.
 			followTextScale(),
 			on.caption((c) => pushCaption(c)),
-			on.level((l) => preflight.noteLevel(l)),
+			on.level((l) => {
+				preflight.noteLevel(l);
+				if (l.rms > 0.02 && $isRunning) noteActivity(l.source, 'audio');
+			}),
 			on.status((s) => {
 				applyStatus(s);
 				if (
@@ -365,7 +374,7 @@
 
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
 	async function launch(rehearsal?: TargetLanguage) {
-		if ($sessionBusy || $isRunning) return;
+		if ($sessionBusy || $isRunning || profileBusy) return;
 		if (!rehearsal && !preflight.applicationReady($options)) {
 			statusMessage.set($t.applications.missing);
 			return;
@@ -517,7 +526,24 @@
 
 <svelte:window
 	onkeydown={(e) => {
-		if (e.key === 'F2') flipDirection();
+		const command = shortcut(
+			e,
+			settingsOpen ||
+				quit.hidePrompt ||
+				quit.sessionPrompt ||
+				quit.closePrompt ||
+				!!document.querySelector('[role="dialog"]')
+		);
+		if (!command) return;
+		e.preventDefault();
+		if (command === 'direction') flipDirection();
+		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
+		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
+		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
+		if (command === 'toggleSession' && !browserMode && !profileBusy && !$sessionBusy) {
+			if ($isRunning) void stop();
+			else if ($hasKey && preflight.applicationReady($options)) void start();
+		}
 	}}
 />
 
@@ -738,6 +764,7 @@
 
 				<div class="rail-section">
 					<h2 class="kicker">{$t.rail.arriving}</h2>
+					<LiveActivity now={clock} microphone={usesMic} system={usesSystem} />
 					{#if usesMic}
 						<LevelMeter
 							level={$micLevel}
@@ -1400,12 +1427,27 @@
 					<p class="status-msg" aria-hidden="true">{statusText}</p>
 				{/if}
 
+				<MeetingProfiles
+					locked={controlsLocked || preflight.audioTesting || preflight.audioTestBusy}
+					{overlay}
+					onBusy={(value) => (profileBusy = value)}
+					onLoaded={async () => {
+						preflight.invalidateAudioTest();
+						await preflight.refresh();
+						await preflight.refreshLocalReadiness();
+					}}
+				/>
+				<KeyboardHelp />
+				{#if $options.provider === 'gemini-transcribe'}<p class="hint">
+						{$t.usability.geminiSmart}
+					</p>{/if}
 				<div class="launch">
 					<div class="launch-actions">
 						<button
 							class="start"
 							disabled={!$hasKey ||
 								browserMode ||
+								profileBusy ||
 								$sessionBusy ||
 								!preflight.applicationReady($options)}
 							aria-busy={$sessionBusy}
@@ -1485,6 +1527,7 @@
 		<div class="settings">
 			<div class="rail-section">
 				<CaptionAppearance heading={$t.settings.appearance} {overlay} />
+				<KeyboardHelp />
 				<p class="hint">{$t.settings.appearanceNote}</p>
 				<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 				     whatever is chosen above. Same button and same labels as the pre-flight check,

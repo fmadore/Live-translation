@@ -71,7 +71,7 @@ saves finalized raw caption lines from that point onward, in one file per sessio
 
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`
 
-Each session contains its start time, duration through the last save, output mode, known
+Each session contains its optional user-entered title, start time, duration through the last save, output mode, known
 language information, and raw translated/source text with cue timing. Automatically detected
 source languages are marked as such; the app does not guess which language was spoken.
 No audio, credentials, application identity or device name is included.
@@ -96,12 +96,19 @@ copy, proxy, or store provider keys.
 
 The app locally stores ordinary interface preferences, including the last selected mode,
 provider, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
-compact line width, filler-word cleanup, whether transcript history or the optional recovery
+compact line width, caption persistence and update pace, filler-word cleanup, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
 system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch.
-These preferences contain no captured audio, caption text, or provider key.
+Named meeting profiles additionally store the selected setup, audio device identifiers,
+appearance and overlay rectangle locally in the app's webview storage. Profiles contain no
+API key, captured audio or caption text. Selected application process identities and rehearsal
+mode are not saved. Profiles remain until deleted with confirmation in Meeting profiles.
+
+Raw transcripts preserve the text returned by the provider. Gemini Smart transcription can
+remove hesitations and resolve spoken corrections before that text reaches this app; turning
+off the local overlay filter does not switch off provider-side cleanup.
 
 ## Running in the notification area
 

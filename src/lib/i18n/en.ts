@@ -16,6 +16,67 @@
 //   kind of thing a translator has to be able to decide.
 
 export const en = {
+	usability: {
+		hold: 'Keep finished captions (seconds)',
+		holdHint:
+			'Fit window and Compact only. Stable reading keeps captions until they scroll out or the session stops.',
+		pace: 'Caption updates',
+		immediate: 'Immediate',
+		steady: 'Steadier',
+		paceHint:
+			'Steadier groups partial updates every 450 ms. Completed text appears immediately. It reduces changes but cannot prevent provider corrections.',
+		preview: 'Appearance preview',
+		bright: 'Bright slide',
+		dark: 'Dark slide',
+		sample: 'Clear captions help everyone follow the conversation.',
+		preset: 'Reading presets',
+		standard: 'Standard',
+		projector: 'Large room',
+		contrast: 'High contrast',
+		previewHint: 'Sample at your chosen text size; the actual overlay may have a different width.',
+		geminiSmart:
+			'Gemini subtitles use Smart transcription: Google removes fillers and false starts before returning the final transcript. Hide filler words is an additional local overlay filter; switching it off does not disable Google’s cleanup.',
+		profiles: 'Meeting profiles',
+		profileName: 'Profile name',
+		saveProfile: 'Save current setup',
+		loadProfile: 'Load profile',
+		deleteProfile: 'Delete profile',
+		confirmDelete: 'Delete permanently',
+		profileHint:
+			'Saves setup, appearance and overlay position on this PC, without API keys. Load while stopped; check the selected devices before starting. Applications must be selected again.',
+		profileLoaded: 'Profile loaded. Check the devices and overlay position before starting.',
+		profileMissing:
+			'An audio device is unavailable; the Windows default is selected. Check it before starting.',
+		profileSaved: 'Profile saved.',
+		chooseProfile: 'Choose a profile',
+		title: 'Session title',
+		saveTitle: 'Save title',
+		search: 'Search titles and transcript text',
+		from: 'From date',
+		to: 'To date',
+		language: 'Caption language',
+		allLanguages: 'All languages',
+		unknownLanguage: 'Auto-detected / unknown',
+		noMatches: 'No matching sessions.',
+		titleSaved: 'Session title saved.',
+		shortcuts: 'Keyboard shortcuts',
+		shortcutHint: 'While the operator window is focused, outside text fields and dialogs.',
+		shortcutStart: 'Start / stop session',
+		shortcutOverlay: 'Show / hide overlay',
+		shortcutSize: 'Increase / decrease caption size',
+		shortcutDirection: 'Switch translation direction while stopped',
+		listening: 'Listening — no recent audio signal',
+		audio: 'Receiving audio',
+		captions: 'Receiving captions',
+		stale:
+			'Audio is arriving, but no captions have arrived for 15 seconds. Check the provider and connection.',
+		connecting: 'Connecting…',
+		reconnecting: 'Reconnecting…',
+		error: 'Source stopped with an error',
+		idle: 'Source stopped',
+		activity: 'Live input status',
+		titleHint: 'Leave blank to use the session date.'
+	},
 	locale: {
 		/** Name of this language, written in this language, for the language selector. */
 		name: 'English',

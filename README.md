@@ -77,6 +77,19 @@ reachable — open the window, show or hide the overlay, stop the session, or qu
 operator window out of the way. Closing the window quits the app unless you turn on **Keep
 running in the tray when I close this window**.
 
+## Usability improvements in development
+
+Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
+optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting
+profiles restore setup, appearance and overlay placement after checking audio devices. History
+supports titles and text/date/language search. Per-source status distinguishes recent audio,
+captions, silence and reconnection, with a notice when audio arrives without captions.
+
+Operator-window shortcuts: **Ctrl+Shift+Space** starts/stops, **Ctrl+Shift+O** shows/hides the
+overlay, and **Ctrl+Shift+Up/Down** changes caption size. They do not intercept text fields or
+dialogs. **F2** continues to switch translation direction while stopped.
+See [meeting profiles and live controls](docs/usability.md) for behavior and verification.
+
 ## Architecture
 
 ```text
