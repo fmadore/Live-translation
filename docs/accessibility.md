@@ -144,3 +144,16 @@ operator's PC has no business resizing what an audience is reading.
 
 Verified at 980 × 660 — the window's minimum — at every step of the Windows slider: no
 horizontal overflow, no clipped box, and no overlapping region at 225%.
+
+## 1.4.0 usability verification
+
+Impeccable browser checks covered the new profile, history, preview and live-status controls
+in compact and desktop layouts, including French/German and 200% text scaling. Long saved
+session titles wrap without horizontal scrolling; history calendar icons use the dark
+control theme. Search/date controls retain visible keyboard focus. See
+[verification details](usability.md#verification) for the tested sizes and scope.
+
+[Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
+focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
+Windows text scaling and mixed-DPI acceptance for the final package remain in the
+[release checklist](store-updates.md#release-140-handoff--preparation).

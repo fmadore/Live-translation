@@ -1,14 +1,19 @@
-# Store update preparation — 1.3.0
+# Store update preparation — 1.4.0
 
-The prepared **1.3.0** (MSIX **1.3.0.0**) copy is in the active
-[English/French/German Store listing](store-listing.md). Use that single source for Partner Center.
-The [release handoff](store-updates.md#release-130-handoff) tracks build artifacts, remaining
-packaged-app checks, screenshots, privacy-policy publication and manual submission.
+Target **1.4.0** (MSIX **1.4.0.0**). The [EN/FR/DE listing](store-listing.md) is the single
+source for paste-ready fields. The [release handoff](store-updates.md#release-140-handoff--preparation)
+tracks checks, packages, screenshots, privacy publication and manual submission.
 
-This prepares a submission; it does not change the live Store listing. The previous documented
-Store release is 1.2.4. Upload **Live.Translation_1.3.0.msixbundle**, containing x64 and ARM64,
-after the outstanding acceptance checks. Do not upload an old or single-architecture bundle.
+This is preparation only: no 1.4.0 tag, release, installer bundle or Store submission exists
+from this work. The latest GitHub release is 1.3.0; the previous documented Store release is
+1.2.4. When built and verified, upload **Live.Translation_1.4.0.msixbundle**, containing
+x64 and ARM64. Do not substitute the existing 1.3.0 bundle.
 
-GitHub and all three Store “What’s new” blocks thank **@valentinrabot** for feedback and
-suggestions in issues #79, #80 and #81, without crediting implementation. The German listing
-is new; native-language review and German screenshots remain required before publishing it.
+The copy covers meeting profiles, reading controls/previews, history titles/search, input
+status, shortcuts and Gemini Smart finalization. It also retains history/Stable reading/local
+cleanup and German-interface information for customers updating from 1.2.4. GitHub and all
+three Store “What's new” blocks thank **@valentinrabot** for feedback, not implementation.
+
+The custom word-list request [#85](https://github.com/fmadore/Live-translation/issues/85)
+remains open. Native package acceptance, new screenshots, German review and certification
+remain outstanding. See the [submission walkthrough](partner-center-walkthrough.md).

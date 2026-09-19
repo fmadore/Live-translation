@@ -44,6 +44,8 @@ provider call is needed for these checks.
 
 ## Titles and search
 
+New in **1.4.0 (in preparation)**.
+
 Saved sessions can be renamed (up to 120 characters); a blank title restores the date label.
 Titles are stored inside the existing local session JSON, including when the active session
 continues receiving captions. Older files without titles remain readable. Changing a title

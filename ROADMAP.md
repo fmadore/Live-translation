@@ -4,24 +4,25 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.2.4 release
+## Current status — preparing 1.4.0
 
-GitHub's latest published release is **v1.2.4**, published 14 September 2026. It adds
-responsive captions and a shallow bottom-alignment preset. The locally installed
-Store-signed copy was 1.2.2.0 that day; verify rollout status in Partner Center rather than
-inferring the public Store version from one PC.
+The latest published GitHub release is **v1.3.0** (19 September 2026). It delivered local
+transcript history (#81), Stable reading (#79), overlay filler cleanup (#80), and the German
+interface. Those three issues are closed. Thanks to @valentinrabot for the meeting feedback.
 
-**1.2.4 adds responsive captions.** [Issue #77](https://github.com/fmadore/Live-translation/issues/77)
-adds Fit window, optional Compact layout, and more recent caption context in taller windows.
-Thanks to @valentinrabot for the feedback and suggestion. Frontend checks and browser resizing
-passed; an unpackaged ARM64 Local Test build is installed for user feedback. Final MSIX,
-Windows scaling and screenshot checks remain pending in the
-[release handoff](docs/store-updates.md#release-124-handoff).
+**1.4.0 is implemented and being prepared, not yet published.** It adds meeting profiles,
+reading persistence and update pace, appearance previews/presets, history titles and search,
+per-source input status, and operator shortcuts. Gemini Smart final results now replace
+speculative interim text, including all-filler empty results. Impeccable visual checks also
+fixed long history-title overflow and date-picker icon contrast.
 
-The README, EN/FR Store listing, certification instructions and package versions are prepared
-for 1.2.4. GitHub publication is tracked in the release handoff. The maintainer will handle
-the Microsoft Store submission and reply to issue #77; leave that issue open.
-Citation metadata identifies 1.2.4.
+See the [release handoff](docs/store-updates.md#release-140-handoff--preparation) for verified
+checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.4.0; the last
+documented Store release is 1.2.4, with no claim of a new Partner Center submission.
+Citation metadata remains at the latest published release until 1.4.0 is actually released.
+
+The customizable filter list remains open in [#85](https://github.com/fmadore/Live-translation/issues/85).
+No new scroll-back or return-to-live controls are included in this update.
 
 ## Historical delivery context
 
@@ -138,7 +139,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.2.4 handoff](docs/store-updates.md#release-124-handoff) for the current checklist.
+Use the [1.4.0 handoff](docs/store-updates.md#release-140-handoff--preparation) for the current checklist.
 
 ## Research and unscheduled work
 

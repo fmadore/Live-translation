@@ -1,13 +1,13 @@
 # Partner Center submission walkthrough
 
-Submission target: **Live Translation & Subtitles 1.2.4**, Product ID `9PFB8LR3RR9X`.
+Submission target: **Live Translation & Subtitles 1.4.0**, Product ID `9PFB8LR3RR9X`.
 Prepared, not submitted. Responsive-caption testing on the final x64 and ARM64 packages is pending.
-See the [release handoff](store-updates.md#release-124-handoff) for remaining checks.
+See the [release handoff](store-updates.md#release-140-handoff--preparation) for remaining checks.
 
 ## Before Partner Center
 
 1. Build and verify both native packages and the single multi-architecture bundle:
-   `Live.Translation_1.2.4.msixbundle`.
+   `Live.Translation_1.4.0.msixbundle`.
 2. Sideload the per-architecture MSIX packages using
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
    manual checks in [`microsoft-store.md`](microsoft-store.md).
@@ -54,7 +54,7 @@ OpenAI, or Mistral. The built-in demo itself has no network access.
 ## Packages
 
 Remove previously listed packages and upload the single unsigned multi-architecture
-`Live.Translation_1.2.4.msixbundle` for version `1.2.4.0`. The Store signs accepted packages.
+`Live.Translation_1.4.0.msixbundle` for version `1.4.0.0`. The Store signs accepted packages.
 Do not upload the locally self-signed test package or the unpackaged Local Test executable.
 
 Verify these manifest values:
@@ -64,7 +64,7 @@ Verify these manifest values:
 | `Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
-| Version | `1.2.4.0` |
+| Version | `1.4.0.0` |
 
 Windows Desktop is the only device family. Native x64 and ARM64 packages are supplied.
 
@@ -79,7 +79,7 @@ fields per language; do not combine them:
    bullets. Up to 20 entries.
 3. **Short description / Description courte** — one short paragraph, maximum 270 characters.
 
-All six exact copy-and-paste blocks are in [`store-listing.md`](store-listing.md):
+All nine exact copy-and-paste blocks are in [`store-listing.md`](store-listing.md):
 
 - English full Description
 - English Features
@@ -101,11 +101,9 @@ list is intentionally not duplicated inside the Description.
 
 ### What’s new
 
-Paste the English and French **1.2.4** blocks from
-[`store-listing.md`](store-listing.md), the single source for release-specific Store copy. The
-German **Neuerungen** block there is written for the release that introduces the German
-interface, and that release needs its own English and French blocks written alongside it —
-adding a language does not rewrite the other two, but a release still needs all three.
+Paste the English, French and German **1.4.0** blocks from
+[`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
+Complete native German review and final-package screenshots before submitting that listing.
 
 Additional system requirements:
 
@@ -133,7 +131,7 @@ Before clicking **Submit to the Store**, confirm:
 - every section says Complete;
 - the uploaded packages show the version in `src-tauri/tauri.conf.json` and the intended
   architectures;
-- the first sentence of both descriptions discloses the live-provider dependency;
+- the first sentence of all three descriptions discloses the live-provider dependency;
 - a screenshot shows Built-in demo / Demo audio / Free / Start demo subtitles. This used to
   name the *first* screenshot, and the guarantee is what matters rather than the position:
   something in the set has to show that the default action needs no key and costs nothing, or

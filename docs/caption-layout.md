@@ -1,6 +1,6 @@
 # Caption layout
 
-Prepared for **1.2.4**, following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior through **1.4.0 (in preparation)**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 
@@ -90,8 +90,8 @@ Completed on 14 September 2026:
 - The optimized native ARM64 executable built and launched successfully as a separate
   **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
 
-User confirmation of caption behavior in the installed app is pending. Before publishing
-1.2.4, run this matrix against the final x64 and ARM64 MSIX packages:
+The checks above are historical evidence for 1.2.4, not acceptance of the next package.
+For 1.4.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
 
 | Check | Expected result |
 | --- | --- |
@@ -115,9 +115,11 @@ User confirmation of caption behavior in the installed app is pending. Before pu
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-124-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-140-handoff--preparation) for the remaining release gates.
 
 ## Reading pace and preview
+
+New in **1.4.0 (in preparation)**.
 
 Fit window and Compact keep finished captions for a configurable **2–30 seconds** (default
 4 seconds). This is a per-source reading pause after its latest completed caption, not a

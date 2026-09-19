@@ -43,7 +43,7 @@ Provider details and verified wire formats are documented in
 
 ## Release status
 
-**Version 1.3.0.** Optional local transcript history saves finalized captions progressively
+**Latest published GitHub version: 1.3.0.** Optional local transcript history saves finalized captions progressively
 and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
 at the top left and advances by whole lines. Optional filler cleanup affects only the overlay;
 raw transcripts remain intact. The interface is available in English, French and German.
@@ -77,7 +77,10 @@ reachable — open the window, show or hide the overlay, stop the session, or qu
 operator window out of the way. Closing the window quits the app unless you turn on **Keep
 running in the tray when I close this window**.
 
-## Usability improvements in development
+## Preparing version 1.4.0
+
+Version 1.4.0 is implemented on `main` and being prepared for release; it is not yet tagged or
+published. See the [1.4.0 release handoff](docs/store-updates.md#release-140-handoff--preparation).
 
 Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
 optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting
@@ -88,6 +91,9 @@ captions, silence and reconnection, with a notice when audio arrives without cap
 Operator-window shortcuts: **Ctrl+Shift+Space** starts/stops, **Ctrl+Shift+O** shows/hides the
 overlay, and **Ctrl+Shift+Up/Down** changes caption size. They do not intercept text fields or
 dialogs. **F2** continues to switch translation direction while stopped.
+Gemini Smart transcription now treats final results as authoritative, including empty results
+that retract speculative filler text. The local overlay filter remains optional and separate.
+A custom word list is still planned in [#85](https://github.com/fmadore/Live-translation/issues/85).
 See [meeting profiles and live controls](docs/usability.md) for behavior and verification.
 
 ## Architecture

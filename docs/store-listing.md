@@ -1,11 +1,11 @@
-# Partner Center listing text — 1.3.0 prepared
+# Partner Center listing text — 1.4.0 prepared
 
-Prepared for **1.3.0** (MSIX **1.3.0.0**), not yet submitted. The prior documented live Store
+Prepared for **1.4.0** (MSIX **1.4.0.0**), not yet packaged, published or submitted. The prior documented live Store
 release is 1.2.4. These blocks replace the listing fields for the next submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-130-handoff) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-140-handoff--preparation) for remaining checks.
 
 ## English (United States)
 
@@ -25,6 +25,8 @@ For real-time use, select Gemini or OpenAI for English–French translation, or 
 For long meetings, choose Stable reading: left-aligned text stays at the top and advances by whole lines. Optional Hide filler words cleans obvious hesitation sounds only in the overlay; raw transcripts and exports remain unchanged. Fit window and Compact are also available.
 
 Optional transcript history progressively saves finalized captions locally, with session date, duration and known language information. Reopen sessions to read, copy, export or delete them. History is off by default. Turning it off keeps existing sessions until you delete them. No audio is saved.
+
+Save named meeting profiles to reuse setup, caption appearance and overlay position on this PC. Adjust completed-caption persistence, choose steadier interim updates, and preview reading presets. Name saved sessions and search their text, dates and caption language. Per-source input status and keyboard shortcuts help operate live sessions. Profiles exclude API keys; check devices and placement before starting. Gemini subtitles use Smart transcription: saved text reflects provider cleanup, while the optional local filler filter only changes the overlay.
 
 Use the interface in English, French or German, independently of the caption language. Live translation remains English–French.
 
@@ -50,6 +52,10 @@ Optional filler cleanup in the overlay while preserving raw transcripts
 Optional local session history with progressive saving, reopening, copying, export and deletion
 Save transcripts as text, Markdown, SRT, or VTT using the Windows Save As dialog
 See elapsed time and estimated provider cost while live audio is streaming
+Local meeting profiles without API keys, with device checks on load
+Caption persistence, steadier updates, appearance previews and reading presets
+Session titles and text, date and caption-language search
+Per-source live status and operator-window keyboard shortcuts
 ```
 
 ### Short description — 175 characters
@@ -60,11 +66,13 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.3.0
+### What's new in this version — 1.4.0
 
 Paste after final packaged-app verification:
 
 ```text
+New: meeting profiles, caption persistence and steadier updates, reading previews/presets, session titles/search, source status and operator shortcuts. Gemini Smart final results now replace speculative interim text, including filler-only results. Long history titles wrap and date-picker icons are clearer.
+
 Save previous meetings with optional local transcript history. Finalized captions are saved progressively and can be reopened, copied, exported or deleted. History is off by default and remains until deleted.
 
 Stable reading keeps captions left-aligned and advances by whole lines. Optional Hide filler words cleans the overlay while preserving raw transcripts. The interface is now available in English, French and German; live translation remains English–French.
@@ -91,6 +99,8 @@ Pour les longues réunions, choisissez Lecture stable : le texte est aligné à
 
 L’historique facultatif enregistre progressivement les sous-titres finalisés en local, avec la date, la durée et les langues connues de chaque session. Rouvrez une session pour la lire, la copier, l’exporter ou la supprimer. L’historique est désactivé par défaut. Sa désactivation conserve les sessions existantes jusqu’à leur suppression. Aucun audio n’est enregistré.
 
+Enregistrez des profils de réunion pour retrouver la configuration, l’apparence et la position de la surimpression sur ce PC. Réglez la durée des sous-titres terminés, stabilisez les mises à jour partielles et prévisualisez les préréglages. Nommez les sessions enregistrées et recherchez leur texte, leur date et leur langue. Le statut de chaque source et les raccourcis facilitent le pilotage en direct. Les profils excluent les clés API ; vérifiez les périphériques et la position avant de démarrer. Les sous-titres Gemini utilisent la transcription Smart : le texte enregistré reflète le nettoyage du fournisseur ; le filtre local ne modifie que la surimpression.
+
 L’interface est disponible en anglais, français et allemand, indépendamment de la langue des sous-titres. La traduction en direct reste français–anglais.
 
 L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
@@ -115,6 +125,10 @@ Masquage facultatif des hésitations dans la surimpression, avec conservation de
 Historique local facultatif avec enregistrement progressif, lecture, copie, export et suppression
 Export en texte, Markdown, SRT ou VTT avec la fenêtre Enregistrer sous de Windows
 Affichage du temps écoulé et du coût estimé pendant la transmission audio en direct
+Profils locaux sans clés API, avec vérification des périphériques au chargement
+Durée des sous-titres, mises à jour plus stables, aperçus et préréglages de lecture
+Titres de session et recherche par texte, date et langue des sous-titres
+Statut de chaque source et raccourcis dans la fenêtre de contrôle
 ```
 
 ### Description courte — 171 caractères
@@ -125,11 +139,13 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.3.0
+### Nouveautés de cette version — 1.4.0
 
 Paste after final packaged-app verification:
 
 ```text
+Nouveautés : profils de réunion, durée et actualisation plus stable des sous-titres, aperçus et préréglages, titres et recherche, statut des sources et raccourcis. Les résultats finaux de Gemini Smart remplacent désormais le texte provisoire, y compris les hésitations seules. Les longs titres reviennent à la ligne et les icônes de calendrier sont plus lisibles.
+
 Retrouvez vos réunions grâce à l’historique local facultatif. Les sous-titres finalisés sont enregistrés progressivement et peuvent être rouverts, copiés, exportés ou supprimés. L’historique est désactivé par défaut et conservé jusqu’à sa suppression.
 
 Lecture stable aligne les sous-titres à gauche et les fait défiler par lignes entières. Masquer les hésitations nettoie uniquement la surimpression, sans modifier les transcriptions originales. L’interface est disponible en anglais, français et allemand ; la traduction reste français–anglais.
@@ -156,6 +172,8 @@ Für längere Besprechungen wählen Sie Ruhiger Lesemodus: Der Text bleibt links
 
 Der optionale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend lokal, mit Datum, Dauer und bekannten Sprachangaben. Öffnen Sie frühere Sitzungen zum Lesen, Kopieren, Exportieren oder Löschen. Der Verlauf ist standardmäßig deaktiviert. Beim Deaktivieren bleiben vorhandene Sitzungen bis zum Löschen erhalten. Audio wird nicht gespeichert.
 
+Speichern Sie Besprechungsprofile mit Einstellungen, Untertiteldarstellung und Overlay-Position auf diesem PC. Passen Sie die Anzeigedauer fertiger Untertitel an, bündeln Sie vorläufige Aktualisierungen und prüfen Sie Lesevoreinstellungen in der Vorschau. Benennen Sie gespeicherte Sitzungen und durchsuchen Sie Text, Datum und Untertitelsprache. Eingangsstatus je Quelle und Tastenkombinationen erleichtern die Bedienung. Profile enthalten keine API-Schlüssel; prüfen Sie Geräte und Position vor dem Start. Gemini-Untertitel verwenden Smart-Transkription: Gespeicherter Text enthält die Bereinigung des Anbieters, der optionale lokale Filter ändert nur das Overlay.
+
 Die Oberfläche steht auf Deutsch, Englisch und Französisch zur Verfügung und wird unabhängig von der Sprache der Untertitel gewählt: Sie arbeiten auf Deutsch, während der Raum in einer anderen Sprache mitliest.
 
 Die App verkauft weder Abonnements noch Guthaben oder API-Zugang. Anbieterschlüssel werden in der Windows-Anmeldeinformationsverwaltung gespeichert und ausschließlich an den ausgewählten Anbieter gesendet. Der Entwickler betreibt keinen Server und erhält weder Audio noch Schlüssel, Transkripte, Analyse- oder Telemetriedaten.
@@ -180,6 +198,10 @@ Optionale Bereinigung von Fülllauten im Overlay bei unveränderten Originaltran
 Optionaler lokaler Verlauf mit fortlaufender Speicherung, Lesen, Kopieren, Export und Löschen
 Transkripte als Text, Markdown, SRT oder VTT über den Windows-Dialog Speichern unter sichern
 Verstrichene Zeit und geschätzte Anbieterkosten während der Live-Audioübertragung ablesen
+Lokale Besprechungsprofile ohne API-Schlüssel, mit Geräteprüfung beim Laden
+Anzeigedauer, ruhigere Aktualisierungen, Vorschau und Lesevoreinstellungen
+Sitzungstitel und Suche nach Text, Datum und Untertitelsprache
+Live-Status je Quelle und Tastenkombinationen im Bedienfenster
 Oberfläche auf Deutsch, Englisch und Französisch, unabhängig von der Sprache der Untertitel
 ```
 
@@ -200,11 +222,13 @@ German runs longer than both other languages here — 193 characters against Eng
 French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
 than assuming the margin is still there.
 
-### Neuerungen in dieser Version — 1.3.0
+### Neuerungen in dieser Version — 1.4.0
 
 Paste after final packaged-app verification:
 
 ```text
+Neu: Besprechungsprofile, Anzeigedauer und ruhigere Untertitel-Aktualisierungen, Vorschau und Voreinstellungen, Sitzungstitel und Suche, Eingangsstatus und Tastenkombinationen. Fertige Gemini-Smart-Ergebnisse ersetzen nun vorläufigen Text, auch reine Fülllaute. Lange Verlaufstitel werden umgebrochen und Kalendersymbole sind besser sichtbar.
+
 Der optionale lokale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend. Frühere Sitzungen lassen sich öffnen, kopieren, exportieren und löschen. Der Verlauf ist standardmäßig deaktiviert und bleibt bis zum Löschen erhalten.
 
 Ruhiger Lesemodus hält Untertitel linksbündig und bewegt sie in ganzen Zeilen. Fülllaute ausblenden bereinigt nur das Overlay; Originaltranskripte bleiben erhalten. Die Oberfläche ist jetzt auf Deutsch, Englisch und Französisch verfügbar. Die Live-Übersetzung bleibt auf Englisch–Französisch beschränkt.
@@ -297,7 +321,13 @@ No account, API key, microphone, language pack, or network connection is require
 8. Select Français and repeat to verify the French captions.
 9. In Settings, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
 
-New in 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
+Retained from 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
+
+New in 1.4.0: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
+
+In Settings, expand Appearance preview and try Standard, Large room and High contrast. Fit window/Compact allow a 2–30 second hold; Stable reading retains text until it rolls out or the session stops. Choose Steadier updates and verify completed demo captions still appear promptly. Live interim timing and Gemini cleanup need a separate provider test; the deterministic demo cannot validate cloud recognition.
+
+Name a saved demo session, search title and transcript text, filter inclusive dates and caption language, and test a long title at enlarged text size. Clearing the title restores its date label. A title change must preserve the recorded lines. Test Ctrl+Shift+Space, Ctrl+Shift+O and Ctrl+Shift+Up/Down in the operator window, then verify they do not intercept typing in inputs or dialogs. Inspect per-source status and keyboard focus. No custom filter list is included.
 
 During a demo, choose Stable reading in Settings. Text should stay left-aligned at the top, wrap naturally and advance by complete lines as the area fills. A pause should retain it, and Stop should clear it. Resize, then return to Fit window and check normal expiry resumes. Toggle Hide filler words; it affects only the overlay, not the raw transcript/history/export. The scripted demo does not guarantee filler sounds, so the absence of a visible text change there is expected. The filter handles exact hesitation tokens such as um, uh, erm, hmm, euh and heu; it is not semantic speech analysis.
 
@@ -314,7 +344,7 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 
 ## Screenshots
 
-The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.3.0
+The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.4.0
 captures; do not upload the old appearance screenshots with the new descriptions.
 
 The listing is per-language and so are its screenshots. Every set is kept in the repository and

@@ -1,6 +1,7 @@
 # Meeting profiles and live controls
 
-These improvements are in development after v1.3.0. Scroll-back playback is not included.
+Prepared for **v1.4.0**, not yet published. See the [release checklist](store-updates.md#release-140-handoff--preparation).
+This update adds no new scroll-back or return-to-live controls.
 
 ## Meeting profiles
 

@@ -150,5 +150,13 @@ For 1.2.4, the layout controls use **Caption layout / Disposition des sous-titre
 and settings panel use the same translations. EN/FR browser controls were checked on
 14 September; native package checks and new screenshots remain in the release checklist.
 
-French is settled: the screenshots are captured and committed, and the copy has been
-reviewed.
+The historical French screenshot set is committed. The 1.4.0 controls and listing copy need
+final-package screenshots; previous review does not certify newly added strings.
+
+## 1.4.0 usability strings
+
+The typed `usability` catalog in EN/FR/DE covers profiles, reading duration and pace, previews,
+presets, title/search controls, input status and shortcut help. Interface language remains
+independent of caption language. User-entered profile names and session titles are not translated.
+French and German layouts were visually checked in the browser, including enlarged German
+text. Native German review and fresh Store screenshots remain pending for submission.

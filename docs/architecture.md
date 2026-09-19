@@ -135,7 +135,7 @@ and coalesces complete snapshots, waits for the queue at Stop/quit, retries fail
 deletion after any in-flight write. A tombstone prevents an active deleted session reappearing.
 The native history commands use the same flushed staging-and-replace operation as recovery,
 but write separate session files under app-local data/history. Only the operator has permission
-to list, save or delete these files. UUID validation prevents renderer paths escaping the folder.
+to list, save, rename or delete these files. UUID validation prevents renderer paths escaping the folder.
 History opt-in is independent of crash recovery and defaults off. See [history](transcript-history.md).
 
 ## Responsive caption overlay
@@ -260,3 +260,22 @@ await window.__TAURI_INTERNALS__.invoke('stop_session')
 - CI contract-tests provider messages but does not call billable services.
 - Live caption accuracy and availability depend on the selected third-party provider.
 - The built-in demo verifies product presentation and workflow, not microphone recognition.
+
+## Usability additions in 1.4.0
+
+`reading.ts` throttles interim presentation per source at 450 ms in Steadier mode; final results
+flush immediately. Hold-time expiry affects the overlay only. Provider text enters transcript
+storage independently of presentation pacing and the optional display filter.
+
+`profiles.ts` validates local profile snapshots. `MeetingProfiles.svelte` rechecks devices before
+loading and excludes API keys, process IDs and rehearsal state. Operator-only placement commands
+clamp saved rectangles to an available monitor work area. Profiles never start a session.
+
+History titles use a serialized `rename_history` command under the native history I/O mutex.
+It reads the latest on-disk record and changes only the title, preventing a stale browser view
+from overwriting newer recorded lines. Search normalizes text with NFKC and uses inclusive
+local-calendar dates. Old history records without titles remain readable.
+
+`liveActivity.ts` classifies per-source connection/audio/caption observations; it is not voice
+activity detection. `shortcuts.ts` guards app-local shortcuts against editable controls,
+dialogs, repeated keys and IME composition. See [usability](usability.md).

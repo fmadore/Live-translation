@@ -7,7 +7,7 @@ question the repository can answer instead of one somebody has to remember.
 Both the English and French captures were refreshed during the September 2026
 installed-MSIX testing. On 8 September, the user confirmed that all screenshots
 had been updated for the 1.2.2 Store submission. The current sets contain five
-screenshots per language. They are historical captures, not ready for the 1.3.0 submission.
+screenshots per language. They are historical captures, not ready for the 1.4.0 submission.
 Re-capture the changed overlay and appearance controls in both languages from the final MSIX;
 review the idle, running and contrast captures against that package too.
 The unpackaged Local Test app does not replace MSIX screenshot verification.
@@ -46,8 +46,8 @@ second provider screen repeated the first one’s layout at a single field’s d
 is a slot spent showing the same thing twice.
 
 **One current set, overwritten in place.** Re-capture over the existing files rather than adding
-a folder per version: the history keeps every past set, and the working tree keeps exactly what
-is on the listing now. A folder per version would grow the repository by a few megabytes every
+a folder per version: the history keeps every past set, and the working tree should contain the current verified set. It currently holds historical
+1.2.2 captures. A folder per version would grow the repository by a few megabytes every
 release to preserve something nobody looks at twice.
 
 Capture from a **sideloaded MSIX** on Windows, not a dev build — package identity changes how
@@ -75,4 +75,8 @@ says in both listings, since a set captured entirely in one language cannot show
 Full rules, and where these sit in a submission, are in
 [`../store-updates.md`](../store-updates.md#screenshots).
 
-For 1.3.0, recapture the new Stable reading and Hide filler words controls and add a saved-session history image in each listing language. Capture only disposable demo transcripts, with no private meeting text. The existing images have not been refreshed by this release preparation.
+For 1.4.0, recapture the new Stable reading and Hide filler words controls and add a saved-session history image in each listing language. Capture only disposable demo transcripts, with no private meeting text. The existing images have not been refreshed by this release preparation.
+
+For 1.4.0 also capture Meeting profiles, the expanded appearance preview/presets, and a titled
+history session with search filters. Use disposable demo content. Impeccable browser fixtures
+verify layout but are not Store screenshots or evidence of native provider behavior.

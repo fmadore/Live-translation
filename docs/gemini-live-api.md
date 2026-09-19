@@ -224,7 +224,7 @@ confirm Smart transcription's disfluency removal. This app already explicitly re
 needed. The blog's Gemini 3.8 Live models are conversational audio models, not replacements
 for the dedicated transcription integration.
 
-Finalized text now takes precedence when a message also carries interim text. An empty final
+In **1.4.0 (in preparation)**, finalized text takes precedence when a message also carries interim text. An empty final
 or segment-close retracts an all-filler speculative caption instead of preserving it as final
 speech. Regression tests cover both paths, and the front end discards the pending empty turn.
 No fresh billable provider probe was run for this change. The optional local Hide filler words

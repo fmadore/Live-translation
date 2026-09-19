@@ -13,6 +13,30 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.4.0 — prepared
+
+Unpublished preparation. Package acceptance and publication are tracked in the
+[release handoff](store-updates.md#release-140-handoff--preparation). Do not treat the expected
+bundle name below as an existing downloadable artifact. Update validation after final checks.
+
+```markdown
+Set up recurring meetings faster and make live captions easier to follow.
+
+- **Meeting profiles:** save setup, caption appearance and overlay placement locally. Load while stopped, with device checks and safe placement on connected displays. Keys and application process IDs are excluded.
+- **Reading controls:** keep completed Fit window/Compact captions for 2–30 seconds, optionally group interim updates every 450 ms, and preview appearance on bright/dark backgrounds. Standard, Large room and High contrast presets are available.
+- **Find saved meetings:** name sessions and search titles, captions and source text; filter by dates and caption language. Titles update without replacing newer recorded lines. Long titles wrap at enlarged text sizes.
+- **Live feedback and shortcuts:** distinguish recent audio, captions, quiet inputs and reconnecting sources. Use Ctrl+Shift+Space to start/stop, Ctrl+Shift+O to show/hide the overlay, and Ctrl+Shift+Up/Down to resize captions while the operator window has focus. Input fields and dialogs retain their normal keys.
+- **Gemini subtitle corrections:** Smart transcription was already enabled. Final text now takes precedence over simultaneous interim text, and empty finals retract speculative filler-only captions. The optional local overlay filler filter is separate; saved text is the text returned by the provider.
+
+Thanks again to **@valentinrabot** for the detailed meeting feedback and suggestions in [#79](https://github.com/fmadore/Live-translation/issues/79), [#80](https://github.com/fmadore/Live-translation/issues/80), and [#81](https://github.com/fmadore/Live-translation/issues/81), which informed these improvements. This acknowledges feedback, not implementation.
+
+The custom filter-list proposal remains open in [#85](https://github.com/fmadore/Live-translation/issues/85). This update adds no new scroll-back or return-to-live controls.
+
+Implementation verification: 331 frontend tests, 73 Rust tests, formatting, Svelte/TypeScript checks, Clippy and production build passed; the paid provider test remains opt-in. Impeccable browser checks covered compact/desktop layouts, French/German, enlarged text, profile/history/live controls and the two-source overlay. Native package acceptance and Store certification are tracked separately.
+
+The expected Partner Center artifact is **Live.Translation_1.4.0.msixbundle**, containing x64 and ARM64 packages. Verify its manifests and digest after the installer workflow completes.
+```
+
 ## v1.3.0
 
 Published on 19 September 2026: [GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0). See [release handoff](store-updates.md#release-130-handoff).

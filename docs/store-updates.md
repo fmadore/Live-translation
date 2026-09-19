@@ -9,6 +9,43 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.4.0 handoff — preparation
+
+Target app version: **1.4.0**, MSIX **1.4.0.0**. **Not tagged, published, packaged or submitted
+by this preparation.** GitHub's latest release is 1.3.0; the last documented Store release
+is 1.2.4. This section supersedes the 1.3.0 submission target; that release's record below
+remains historical evidence, including its bundle digest.
+
+Included: named meeting profiles, 2–30 second completed-caption persistence, Steadier interim
+updates, bright/dark appearance previews and presets, session titles and text/date/language
+search, per-source live status and operator shortcuts. Gemini Smart transcription now gives
+final results precedence and clears all-filler speculative text. Long history titles wrap and
+date-picker icons remain visible. No new scroll-back controls or customizable word list are
+included; [#85](https://github.com/fmadore/Live-translation/issues/85) remains open.
+
+- [x] Implement features and document behavior, privacy and limitations.
+- [x] Pass 331 frontend tests, formatting, Svelte/TypeScript checks and production build after the visual fixes.
+- [x] Implementation validation: 73 Rust tests passed, one paid-provider test ignored, and all-features Clippy passed before the documentation/version preparation.
+- [x] Impeccable browser checks: 1280×800, 800×600, French/German, 200% text size, synthetic history/profile/live flows and 1000×400 two-source overlay. See [verification](usability.md#verification).
+- [x] Prepare EN/FR/DE Store copy and GitHub notes, retaining thanks to @valentinrabot for feedback.
+- [x] Set app manifests and root lockfile versions to 1.4.0; dependency versions are unchanged.
+- [ ] Verify final native packages on x64 and ARM64, including the existing audio/export/tray regressions.
+- [ ] Save/load profiles across restart, disconnected devices and monitors; confirm application reselection and safe mixed-DPI placement.
+- [ ] Verify persistence limits, Steadier updates, presets, reset and two-source layouts in the installed app.
+- [ ] Verify history titles/search, restart persistence, rename during recording, copy/export/delete and opt-out with disposable transcripts.
+- [ ] Verify all operator shortcuts, input/dialog guards, text scaling, keyboard focus and contrast themes in the installed app.
+- [ ] Optionally run a fresh billable Gemini Smart transcription probe; record provider/model and results separately from contract tests.
+- [ ] Capture final-package EN/FR screenshots and add DE screenshots; committed PNGs are still historical 1.2.2 captures. Complete native German review.
+- [ ] Re-run final CI, update CITATION.cff version and actual release date, tag v1.4.0, and publish the [prepared GitHub body](release-notes.md#v140--prepared).
+- [ ] Verify the installer workflow, both embedded 1.4.0.0 manifests, Store identity, architectures and downloaded bundle SHA-256. Expected asset: **Live.Translation_1.4.0.msixbundle**; no digest exists yet.
+- [ ] Run Windows App Certification Kit and verify the published privacy policy includes profile storage and session titles.
+- [ ] Submit the bundle and [listing fields](store-listing.md) manually through Partner Center; record certification and rollout status.
+
+History and local filler cleanup remain opt-in. Profiles store no API keys or application
+process IDs and do not enable history/recovery. Gemini Smart cleanup occurs upstream, so
+“raw” history/export means provider-returned text, not a guaranteed verbatim recording.
+Citation metadata continues to identify the published 1.3.0 release until publication.
+
 ## Release 1.3.0 handoff
 
 GitHub release: **1.3.0**, MSIX **1.3.0.0**, published 19 September 2026.
@@ -203,7 +240,8 @@ that stops at the demo never mentions them; the overlay shot is the captions whe
 reads them, rather than the window that produces them.
 
 **One current set, overwritten in place.** They are re-captured rather than accumulated, so the
-history holds the changes and the working tree always holds what is on the listing right now.
+history holds previous sets. The working tree currently contains historical 1.2.2 captures;
+replace them only with verified final-package screenshots and update the capture record.
 The alternative — a folder per version — grows the repository by a few megabytes every release
 to preserve something nobody reads twice.
 

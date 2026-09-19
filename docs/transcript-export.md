@@ -44,3 +44,12 @@ Native acceptance checks remain manual, separately in development, NSIS and Stor
 
 Issue #26 is closed at the user’s request for release 1.2.3. Closure records implementation
 and the reported ARM64 test; it does not certify every packaging scenario above.
+
+## Titles, cleanup and reading controls in 1.4.0
+
+Saved session titles and history search help find a session; they do not rewrite its exported
+caption text or change the date-based export filename. Reading pace, hold duration and the
+optional local filler filter affect only presentation. Raw transcript/export text means the
+text returned by the provider: Gemini Smart transcription can already have removed fillers
+and corrected false starts before the app receives a final caption. See
+[history titles/search](transcript-history.md#titles-and-search) and [reading controls](caption-layout.md#reading-pace-and-preview).
