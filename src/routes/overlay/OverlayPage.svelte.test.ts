@@ -1,0 +1,115 @@
+import { afterEach, expect, it, vi } from 'vitest';
+import { render } from '@testing-library/svelte';
+import { tick } from 'svelte';
+import Page from './+page.svelte';
+import type { Caption, OverlayConfig, StatusUpdate } from '$lib/types';
+
+const handlers = vi.hoisted(() => ({
+	caption: (_: Caption) => {},
+	config: (_: OverlayConfig) => {},
+	status: (_: StatusUpdate) => {}
+}));
+vi.mock('$lib/tauri', () => ({
+	isTauri: () => true,
+	api: {},
+	on: {
+		caption: (callback: typeof handlers.caption) => {
+			handlers.caption = callback;
+			return Promise.resolve(() => {});
+		},
+		overlayConfig: (callback: typeof handlers.config) => {
+			handlers.config = callback;
+			return Promise.resolve(() => {});
+		},
+		status: (callback: typeof handlers.status) => {
+			handlers.status = callback;
+			return Promise.resolve(() => {});
+		}
+	}
+}));
+
+afterEach(() => {
+	vi.useRealTimers();
+	vi.unstubAllGlobals();
+	localStorage.clear();
+});
+
+it('retains stable captions across pauses, cleans only displayed text, and clears on Stop', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	localStorage.setItem('overlay.captionLayout', 'stable');
+	const view = render(Page);
+	await tick();
+	handlers.config({ fontSize: 38, captionLayout: 'stable', cleanSpeech: true });
+	const first: Caption = {
+		turnId: 1,
+		text: 'Um, hello.',
+		sourceText: 'Euh, bonjour.',
+		origin: 'system',
+		final: true,
+		startMs: 0,
+		endMs: 1000
+	};
+	handlers.caption(first);
+	await tick();
+	expect(view.getByText('Hello.')).toBeTruthy();
+	expect(first.text).toBe('Um, hello.');
+	await vi.advanceTimersByTimeAsync(10000);
+	await tick();
+	expect(view.getByText('Hello.')).toBeTruthy();
+	handlers.caption({ ...first, turnId: 2, text: 'Next sentence.' });
+	await tick();
+	expect(view.getByText('Hello. Next sentence.')).toBeTruthy();
+	handlers.status({ state: 'idle' });
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	view.unmount();
+});
+
+it('restores caption expiry when leaving stable mode after its old timer elapsed', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	localStorage.setItem('overlay.captionLayout', 'stable');
+	const view = render(Page);
+	await tick();
+	handlers.caption({
+		turnId: 1,
+		text: 'A caption',
+		sourceText: '',
+		origin: 'system',
+		final: true,
+		startMs: 0,
+		endMs: 1000
+	});
+	await tick();
+	await vi.advanceTimersByTimeAsync(10000);
+	handlers.config({ fontSize: 38, captionLayout: 'fit' });
+	await tick();
+	expect(view.container.querySelector('.captions')).not.toBeNull();
+	await vi.advanceTimersByTimeAsync(4000);
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	view.unmount();
+});

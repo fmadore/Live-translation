@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 14 September 2026
+**Effective date:** 19 September 2026
 
 ## What this app is
 
@@ -33,10 +33,10 @@ write captured audio to disk.
 
 Caption text is held in memory while the app runs, and the whole session is kept: the transcript
 is never shortened or discarded behind the user's back. A transcript is written to disk only when
-the user explicitly chooses to save it, or through the optional recovery copy described below.
+the user explicitly chooses to save it, or through the optional recovery copy or session history described below.
 The app does not automatically upload saved transcripts.
 
-The overlay keeps a bounded recent reading context in memory so that a larger window can
+The overlay keeps reading context in memory (the current session in Stable reading mode) so that a larger window can
 show more captions. Text removed from the overlay by resizing or its idle timeout remains
 in the full session transcript. The layout feature creates no additional disk history or
 network requests.
@@ -64,6 +64,27 @@ single file in its own local application-data folder on the same PC:
 
 Deleting the file by hand at any time is safe and removes the data.
 
+## Optional transcript history
+
+History is **off by default**. Enabling *Automatically save sessions locally* progressively
+saves finalized raw caption lines from that point onward, in one file per session under:
+
+`%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`
+
+Each session contains its start time, duration through the last save, output mode, known
+language information, and raw translated/source text with cue timing. Automatically detected
+source languages are marked as such; the app does not guess which language was spoken.
+No audio, credentials, application identity or device name is included.
+
+History remains after export, clearing the current transcript, clean shutdown, and disabling
+history. Disabling stops further saves; delete unwanted sessions in Transcript history.
+Deletion is permanent and requires confirmation. Files are local, unencrypted, and never
+automatically uploaded. There is no automatic expiry. An interrupted session remains readable
+through its last completed save. Clearing the recovery copy does not delete history.
+
+*Hide filler words* is an optional overlay display filter. Raw text in the transcript,
+history, recovery copy and exports remains unchanged. It introduces no network requests.
+
 ## API keys
 
 No API key is needed for the built-in demonstration. Optional provider keys are stored in
@@ -74,8 +95,8 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, audio source, language, overlay position, caption size, layout (Fit window or Compact),
-compact line width, whether the optional recovery
+provider, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
+compact line width, filler-word cleanup, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
 system capture uses an output or an application. The selected process identity is not

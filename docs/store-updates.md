@@ -9,23 +9,35 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Next submission — the German listing
+## Release 1.3.0 handoff
 
-**1.2.4 was accepted and is live in the Store.** The next submission is the first one to carry
-a third listing language, and that is the only thing genuinely new about it: German copy is
-written and waiting in [`store-listing.md`](store-listing.md#deutsch-deutschland).
+Release target: **1.3.0**, MSIX **1.3.0.0**, prepared 19 September 2026.
+The prior documented Store release is 1.2.4. **1.3.0 has not been submitted to Partner Center.**
 
-It cannot go out on its own. A Store listing in German advertises a German interface, so the
-listing and the release that ships `src/lib/i18n/de.ts` are the same submission — the checklist
-is under [Adding the German listing](store-listing.md#adding-the-german-listing). The two items
-with a lead time are the ones to start first: **German screenshots from the final MSIX**, and a
-**native German speaker's review** of both the catalog and the copy.
+This release adds local transcript history (#81), Stable reading (#79), optional overlay
+filler cleanup (#80), and the German interface added since 1.2.4. Thank **@valentinrabot**
+for feedback and suggestions in the three feature issues, not for implementation.
 
-Worth an hour before that submission, because it would change what the listing can claim:
-**nobody has put German speech in front of the subtitle engines.** Both detect the spoken
-language themselves and Gemini documents over 70, so German subtitles most likely already work
-with no code at all. Verified, the German listing could say so; unverified, it says exactly what
-the English one says and singles out no language.
+- [x] Implement and test history, stable captions and display-only cleanup; keep history and cleanup opt-in.
+- [x] Prepare EN/FR/DE listing descriptions, features, What's new, and certification instructions.
+- [x] Document local retention, deletion and unchanged raw transcripts in the privacy policy.
+- [x] Pass 314 frontend and 69 Rust tests, type checks, formatting, Clippy, production build and browser layout checks.
+- [x] Patch devalue to 5.9.4; moderate-threshold npm audit passes (three inherited low cookie-chain findings remain).
+- [x] Synchronize manifests, root lockfile versions and citation metadata to 1.3.0.
+- [ ] Publish v1.3.0 and verify CI plus the release installer workflow.
+- [ ] Download and inspect the final x64 + ARM64 bundle and record its SHA-256.
+- [ ] Smoke-test the final packaged app: two saved demo sessions, restart/reopen, copy/export/delete, opt-out, interrupted save, Stable reading and cleanup settings.
+- [ ] Complete native keyboard, scaling, mixed-DPI, contrast, tray and existing audio/export regression checks.
+- [ ] Refresh EN/FR screenshots and add DE screenshots from the final MSIX; committed PNGs remain historical 1.2.2 captures.
+- [ ] Obtain native German review of the interface and listing; German speech recognition remains unverified and is not newly advertised.
+- [ ] Run Windows App Certification Kit against final packages.
+- [ ] Verify the public privacy-policy link shows the 19 September 2026 history-retention policy.
+- [ ] Upload **Live.Translation_1.3.0.msixbundle** and the prepared listing fields in Partner Center; submit and verify certification.
+
+History and cleanup are off by default. History stores raw caption text and session metadata
+locally until explicitly deleted; disabling it does not delete existing sessions. No audio is
+saved and no additional provider requests are introduced. Keep these facts in the Store copy.
+The default built-in demonstration still requires no key, account, microphone or network.
 
 ## Release 1.2.4 handoff — done
 

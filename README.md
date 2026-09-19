@@ -43,18 +43,21 @@ Provider details and verified wire formats are documented in
 
 ## Release status
 
-**Version 1.2.4.** Captions now use the overlay’s available width and
-height. Wider windows fit more words per line; taller windows retain more recent context.
-Font size stays under your control, and Compact keeps the adjustable line-width setting.
-See [caption layout](docs/caption-layout.md) for use and testing instructions.
+**Version 1.3.0.** Optional local transcript history saves finalized captions progressively
+and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
+at the top left and advances by whole lines. Optional filler cleanup affects only the overlay;
+raw transcripts remain intact. The interface is available in English, French and German.
 
-Version **1.2.3** added
-native Windows Save As, SRT/VTT export and selected-application audio capture.
-[Release preparation](docs/store-updates.md#release-124-handoff) tracks the remaining
-GitHub installer builds, Windows package tests, screenshots and manual Store submission for 1.2.4.
+See [transcript history](docs/transcript-history.md), [caption layout](docs/caption-layout.md),
+and the [1.3.0 release handoff](docs/store-updates.md#release-130-handoff).
+The GitHub release and prepared Store submission are separate: final packaged acceptance,
+fresh screenshots and Partner Center submission remain tracked in that handoff.
 
-Thanks to **@valentinrabot** for the responsive-caption feedback and suggestion in
-[#77](https://github.com/fmadore/Live-translation/issues/77).
+Thanks to **@valentinrabot** for the detailed meeting feedback and suggestions in
+[#79](https://github.com/fmadore/Live-translation/issues/79),
+[#80](https://github.com/fmadore/Live-translation/issues/80), and
+[#81](https://github.com/fmadore/Live-translation/issues/81), following the earlier
+responsive-caption suggestion in [#77](https://github.com/fmadore/Live-translation/issues/77).
 
 ## Install
 
@@ -236,7 +239,14 @@ CI then combines into the multi-architecture bundle described in
    confirms overwrites, and remembers the last successful destination folder.
    Timed exports require caption timing; older untimed recovery files can still be saved
    as text or Markdown. See [transcript export](docs/transcript-export.md).
-5. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
+5. Optionally enable **Automatically save sessions locally** in **Transcript history**.
+   Finalized raw lines are saved progressively; **Browse sessions** reopens previous meetings
+   for copying, export, or deletion. History is off by default and remains until you delete it.
+   See [transcript history](docs/transcript-history.md).
+6. In caption appearance, choose **Stable reading** for top-left text that scrolls by whole
+   lines. **Hide filler words** optionally cleans obvious hesitations in the overlay while
+   preserving the raw transcript. See [caption layout](docs/caption-layout.md).
+7. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
    provider surfaces should be re-verified shortly beforehand.
 
 ## Project layout

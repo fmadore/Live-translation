@@ -7,6 +7,7 @@ import {
 	overlayFontSize,
 	overlayCaptionWidth,
 	overlayCaptionLayout,
+	overlayCleanSpeech,
 	overlayCaptionFace,
 	overlayPalette,
 	overlayPlaced,
@@ -50,6 +51,7 @@ export function createOverlayController(port = api) {
 				fontSize: get(overlayFontSize),
 				captionWidth: get(overlayCaptionWidth),
 				captionLayout: get(overlayCaptionLayout),
+				cleanSpeech: get(overlayCleanSpeech),
 				captionFace: get(overlayCaptionFace),
 				captionColour: get(overlayPalette).text,
 				scrimColour: get(overlayPalette).scrim,
@@ -102,6 +104,7 @@ export function createOverlayController(port = api) {
 	 *  across the room to get right, and nothing here is a reason to lose it. */
 	function resetOverlayAppearance() {
 		overlayCaptionLayout.set('fit');
+		overlayCleanSpeech.set(false);
 		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
 		overlayCaptionWidth.set(DEFAULT_OVERLAY_WIDTH);
 		overlayCaptionFace.set(DEFAULT_CAPTION_FACE);
@@ -184,6 +187,10 @@ export function createOverlayController(port = api) {
 		setFont,
 		setCaptionWidth,
 		setCaptionLayout,
+		setCleanSpeech(enabled: boolean) {
+			overlayCleanSpeech.set(enabled);
+			pushOverlayConfig({ interactive: moveOverlay });
+		},
 		setPalette,
 		resetOverlayAppearance,
 		setCaptionFace,

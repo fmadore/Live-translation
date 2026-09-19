@@ -127,7 +127,24 @@ changes the default. The explicit failure recovery controls stop and drain the s
 before starting again, preserving the transcript. See the
 [hardware matrix](audio-device-testing.md) for issue #28's manual checks.
 
+## Optional persistent history
+
+The renderer's history coordinator creates a UUID at each Start and accepts raw finalized
+lines directly from the transcript commit path, using session-relative cue timing. It queues
+and coalesces complete snapshots, waits for the queue at Stop/quit, retries failures, and orders
+deletion after any in-flight write. A tombstone prevents an active deleted session reappearing.
+The native history commands use the same flushed staging-and-replace operation as recovery,
+but write separate session files under app-local data/history. Only the operator has permission
+to list, save or delete these files. UUID validation prevents renderer paths escaping the folder.
+History opt-in is independent of crash recovery and defaults off. See [history](transcript-history.md).
+
 ## Responsive caption overlay
+
+Stable reading retains session context per origin and renders it in a top-left viewport.
+Rendered height and line height determine whole-line scrolling; the viewport height is rounded
+down to complete lines. Font and resize changes trigger new measurements. A whole-session idle
+event clears this mode's context. Display-only filler cleanup runs before rendering and does
+not mutate caption events or transcript records.
 
 The overlay route owns current and previous turns per origin, plus a bounded in-memory
 history (12,000 characters per origin). Fit window uses that recent context; Compact retains

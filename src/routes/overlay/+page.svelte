@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cleanSpeech, loadCleanSpeech } from '$lib/cleanSpeech';
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
 	import {
@@ -46,6 +47,7 @@
 	// then the operator pushes live updates via the overlay-config event.
 	let fontSize = $state(loadOverlayFont());
 	let captionWidth = $state(loadOverlayWidth());
+	let hideFillers = $state(loadCleanSpeech());
 	let captionLayout = $state(loadCaptionLayout());
 	let fontsLoaded = $state(0);
 	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
@@ -121,15 +123,26 @@
 			const caption = current[origin];
 			if (!caption) return [];
 			const text =
-				captionLayout === 'fit' ? caption.text.slice(-12000) : tail(caption.text, maxChars);
+				captionLayout !== 'compact'
+					? captionLayout === 'stable'
+						? caption.text
+						: caption.text.slice(-12000)
+					: tail(caption.text, maxChars);
 			const room = maxChars - text.length;
 			const lead =
-				captionLayout === 'fit'
+				captionLayout !== 'compact'
 					? (history[origin] ?? '')
 					: room >= MIN_LEAD_CHARS
 						? tail(previous[origin] ?? '', room)
 						: '';
-			return [{ origin, lead, text, interim: !caption.final }];
+			return [
+				{
+					origin,
+					lead: hideFillers ? cleanSpeech(lead) : lead,
+					text: hideFillers ? cleanSpeech(text, caption.final) : text,
+					interim: !caption.final
+				}
+			];
 		})
 	);
 
@@ -137,10 +150,10 @@
 	// steal width from the caption. Labels appear exactly when both origins are on screen.
 	const showLabels = $derived(lines.length > 1);
 	const sidePadding = $derived(
-		captionLayout === 'fit' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
+		captionLayout !== 'compact' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
 	);
-	const topPadding = $derived(captionLayout === 'fit' ? 16 : winH * 0.09);
-	const bottomPadding = $derived(captionLayout === 'fit' ? 16 : winH * 0.06);
+	const topPadding = $derived(captionLayout !== 'compact' ? 16 : winH * 0.09);
+	const bottomPadding = $derived(captionLayout !== 'compact' ? 16 : winH * 0.06);
 	const rowHeight = $derived(
 		Math.max(
 			0,
@@ -148,6 +161,21 @@
 				Math.max(1, lines.length)
 		)
 	);
+
+	function scheduleExpiry(c: Caption) {
+		// Always re-arm this origin's auto-hide: even when a turn ends on an interim
+		// update and no turn-complete ever arrives, the line must disappear on its own.
+		clearTimeout(clearTimers[c.origin]);
+		clearTimers[c.origin] = setTimeout(
+			() => {
+				if (captionLayout === 'stable') return;
+				delete current[c.origin];
+				delete previous[c.origin];
+				delete history[c.origin];
+			},
+			c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
+		);
+	}
 
 	onMount(() => {
 		const measure = () => {
@@ -205,24 +233,34 @@
 			// this keys off the turn id changing rather than on `cur.final`.
 			if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
 				previous[c.origin] = cur.text;
-				history[c.origin] = appendCaptionHistory(history[c.origin] ?? '', cur.text);
+				history[c.origin] =
+					captionLayout === 'stable'
+						? `${history[c.origin] ?? ''} ${cur.text}`
+						: appendCaptionHistory(history[c.origin] ?? '', cur.text);
 			}
 			current[c.origin] = c;
-			// Always re-arm this origin's auto-hide: even when a turn ends on an interim
-			// update and no turn-complete ever arrives, the line must disappear on its own.
-			clearTimeout(clearTimers[c.origin]);
-			clearTimers[c.origin] = setTimeout(
-				() => {
-					delete current[c.origin];
-					delete previous[c.origin];
-					delete history[c.origin];
-				},
-				c.final ? FINAL_HOLD_MS : INTERIM_HOLD_MS
-			);
+			scheduleExpiry(c);
+		});
+
+		const unlistenStatus = on.status((status) => {
+			if (captionLayout === 'stable' && status.state === 'idle' && !status.origin) {
+				current = {};
+				previous = {};
+				history = {};
+				for (const timer of Object.values(clearTimers)) clearTimeout(timer);
+			}
 		});
 
 		const unlistenConfig = on.overlayConfig((cfg) => {
-			if (isCaptionLayout(cfg.captionLayout)) captionLayout = cfg.captionLayout;
+			if (typeof cfg.cleanSpeech === 'boolean') hideFillers = cfg.cleanSpeech;
+			if (isCaptionLayout(cfg.captionLayout) && cfg.captionLayout !== captionLayout) {
+				captionLayout = cfg.captionLayout;
+				if (captionLayout !== 'stable') {
+					for (const c of Object.values(current)) if (c) scheduleExpiry(c);
+					for (const origin of ORIGIN_ORDER)
+						history[origin] = appendCaptionHistory('', history[origin] ?? '');
+				}
+			}
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
 			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
@@ -257,6 +295,7 @@
 		return () => {
 			cleanup();
 			void unlistenCaption.then((f) => f());
+			void unlistenStatus.then((f) => f());
 			void unlistenConfig.then((f) => f());
 		};
 	});
@@ -419,7 +458,8 @@
 <div
 	class="stage"
 	class:interactive
-	class:fit={captionLayout === 'fit'}
+	class:stable={captionLayout === 'stable'}
+	class:fit={captionLayout !== 'compact'}
 	data-tauri-drag-region={interactive || undefined}
 	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
 		captionFace
@@ -508,6 +548,7 @@
 					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
 					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
 					<OverlayCaptionLine
+						stable={captionLayout === 'stable'}
 						lead={line.lead}
 						text={line.text}
 						interim={line.interim}
@@ -522,6 +563,11 @@
 </div>
 
 <style>
+	.stable .captions {
+		top: 0;
+		bottom: auto;
+		background: var(--caption-scrim-strong);
+	}
 	/* The window itself is transparent (Tauri transparent:true). Nothing here may paint a
 	   full-window background in audience view — the scrim is the only ink, and only while
 	   captions are on screen. */

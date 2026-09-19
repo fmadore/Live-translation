@@ -206,7 +206,34 @@ export const en = {
 			'Place the overlay to judge these on the projector — the stand-in caption is set in what you choose here.'
 	},
 
+	history: {
+		stored: 'Transcript history is saved locally until you delete it.',
+		heading: 'Transcript history',
+		browse: 'Browse sessions',
+		close: 'Close history',
+		enable: 'Automatically save sessions locally',
+		privacy:
+			'Off by default. Saves finalized lines from now on. Turning this off keeps existing sessions; delete them here. No audio is saved.',
+		retry: 'Retry saving',
+		refresh: 'Refresh',
+		empty: 'No saved sessions yet.',
+		failed: 'Transcript history could not be updated.',
+		auto: 'Auto-detected speech',
+		sameLanguage: 'Same-language captions',
+		unfinished: 'In progress or interrupted · duration through last save',
+		unreadable: 'Unreadable session',
+		delete: 'Delete',
+		confirmDelete: 'Delete permanently',
+		cancel: 'Cancel',
+		copy: 'Copy transcript',
+		copied: 'Transcript copied.',
+		fullTranscript: 'Saved transcript'
+	},
 	overlayControls: {
+		stable: 'Stable reading',
+		cleanSpeech: 'Hide filler words',
+		cleanSpeechHint: 'Overlay only. The transcript keeps the original text.',
+
 		heading: 'Overlay',
 		captionSize: 'Caption size',
 		smaller: 'Smaller captions',

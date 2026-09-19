@@ -1,15 +1,11 @@
-# Microsoft Store distribution
+# Microsoft Store submission
 
-**Next submission: 1.2.4 (prepared, not submitted).** Native x64 and ARM64 packages
-will be distributed at <https://apps.microsoft.com/detail/9PFB8LR3RR9X>.
-GitHub’s latest published release is v1.2.4, published 14 September 2026. The Store-signed
-copy found on the local test PC that day was 1.2.2.0; check Partner Center for the
-current publication and rollout state before submitting.
-
-This update adds Fit window / Compact caption layouts, following feedback in issue #77.
-The unpackaged ARM64 local test build launched successfully, but final MSIX caption tests,
-Windows scaling checks and fresh Store screenshots remain pending. Follow the
-[1.2.4 release handoff](store-updates.md#release-124-handoff).
+**Next submission: 1.3.0 (prepared, not submitted).** Use the x64 + ARM64
+`Live.Translation_1.3.0.msixbundle` from the GitHub release after the remaining packaged checks.
+The previous documented Store version is 1.2.4. See the
+[1.3.0 release handoff](store-updates.md#release-130-handoff) and
+[paste-ready EN/FR/DE fields](store-listing.md). The German listing is new and still needs
+native-language review and final-package screenshots.
 
 ## Certification objective
 
@@ -79,7 +75,7 @@ build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
   with the root app versions in both lockfiles synchronized. The prepared version is
-  `1.2.4` (`1.2.4.0` in MSIX); confirm it exceeds the published version before submission.
+  `1.3.0` (`1.3.0.0` in MSIX); confirm it exceeds the published version before submission.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled

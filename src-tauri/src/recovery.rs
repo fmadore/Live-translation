@@ -34,7 +34,7 @@ fn staging_path(path: &Path) -> PathBuf {
 /// The old snapshot stays intact until all replacement bytes have been written and
 /// flushed. Rust's rename replaces an existing file on Windows as well as Unix.
 /// Both paths share a directory (and therefore a volume).
-fn replace_snapshot(
+pub(crate) fn replace_snapshot(
     path: &Path,
     write: impl FnOnce(&mut std::fs::File) -> io::Result<()>,
 ) -> io::Result<()> {
@@ -52,7 +52,7 @@ fn replace_snapshot(
     result
 }
 
-fn remove_snapshot(path: &Path) -> io::Result<()> {
+pub(crate) fn remove_snapshot(path: &Path) -> io::Result<()> {
     // Delete a staging file left by a process crash along with the committed snapshot.
     for candidate in [staging_path(path), path.to_owned()] {
         match std::fs::remove_file(candidate) {

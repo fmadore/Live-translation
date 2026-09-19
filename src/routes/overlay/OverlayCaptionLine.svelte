@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fitCaptionTail } from '$lib/captionLayout';
 	let {
+		stable = false,
 		lead,
 		text,
 		interim,
@@ -8,6 +9,7 @@
 		fontKey,
 		language
 	}: {
+		stable?: boolean;
 		lead: string;
 		text: string;
 		interim: boolean;
@@ -15,6 +17,13 @@
 		fontKey: string;
 		language: string;
 	} = $props();
+	let fullHeight = $state(0);
+	let lineHeight = $state(1);
+	const visibleRows = $derived(Math.max(0, Math.floor(height / lineHeight)));
+	const stableHeight = $derived(visibleRows * lineHeight);
+	const scrollOffset = $derived(
+		Math.max(0, Math.round(fullHeight / lineHeight) - visibleRows) * lineHeight
+	);
 	let width = $state(0);
 	let probe: HTMLParagraphElement;
 	let fitted = $state('');
@@ -27,6 +36,8 @@
 		// Font loading and resizing must refit even when no new caption arrives.
 		void fontKey;
 		if (!probe || width <= 0) return;
+		lineHeight = parseFloat(getComputedStyle(probe).lineHeight) || 1;
+		if (stable) return;
 		fitted = fitCaptionTail(`${lead} ${text}`, (candidate) => {
 			probe.textContent = candidate;
 			if (interim) {
@@ -40,13 +51,35 @@
 	});
 </script>
 
-<div class="text-region" bind:clientWidth={width} style:max-height="{height}px">
+<div class="text-region" class:stable bind:clientWidth={width} style:max-height="{height}px">
 	<p class="line probe" bind:this={probe} aria-hidden="true"></p>
-	<!-- prettier-ignore -->
-	<p class="line" lang={language} class:final={!interim}>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
+	{#if stable}
+		<div class="stable-viewport" style:height="{stableHeight}px">
+			<p
+				class="line"
+				lang={language}
+				bind:clientHeight={fullHeight}
+				style:transform="translateY(-{scrollOffset}px)"
+			>
+				{lead}{lead && text ? ' ' : ''}{text}
+			</p>
+		</div>
+	{:else}
+		<!-- prettier-ignore -->
+		<p class="line" lang={language} class:final={!interim}>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
+	{/if}
 </div>
 
 <style>
+	.stable {
+		align-self: flex-start;
+	}
+	.stable .line {
+		text-align: left;
+	}
+	.stable-viewport {
+		overflow: hidden;
+	}
 	.text-region {
 		position: relative;
 		width: 100%;

@@ -1,4 +1,4 @@
-export type CaptionLayout = 'fit' | 'compact';
+export type CaptionLayout = 'fit' | 'compact' | 'stable';
 export const CAPTION_LAYOUT_KEY = 'overlay.captionLayout';
 
 /** Bottom alignment is a subtitle strip; manually resizing still permits more context. */
@@ -13,7 +13,7 @@ export function bottomCaptionHeight(
 }
 
 export function isCaptionLayout(value: unknown): value is CaptionLayout {
-	return value === 'fit' || value === 'compact';
+	return value === 'fit' || value === 'compact' || value === 'stable';
 }
 
 export function loadCaptionLayout(): CaptionLayout {

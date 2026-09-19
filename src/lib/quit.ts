@@ -1,3 +1,4 @@
+import { sessionHistory } from './history';
 // Leaving the app, in the order the guarantees have to happen (issues #25 and #22): confirm
 // that a live session may end, stop capture, let the providers hand over their last turn,
 // finalize the document, and only then decide whether anything still has to be asked.
@@ -84,6 +85,7 @@ export async function prepareClose(
 	}
 	// A turn that never got an explicit turn-complete is still the operator's text.
 	flushTranscript();
+	await sessionHistory.finish();
 
 	if (get(transcriptDirty)) return { endedSession, prompt: true };
 
@@ -105,6 +107,7 @@ export async function resolveClose(choice: Exclude<CloseChoice, 'cancel'>): Prom
 		// The spool only ever held the text now being thrown away.
 		await recovery.clear().catch(() => {});
 	}
+	await sessionHistory.flush();
 	await api.confirmClose();
 	return true;
 }

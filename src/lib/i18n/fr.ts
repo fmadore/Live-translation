@@ -214,7 +214,35 @@ export const fr: Messages = {
 			'Placez la surimpression pour juger ces réglages sur le projecteur — le sous-titre témoin adopte ce qui est choisi ici.'
 	},
 
+	history: {
+		stored: 'L’historique des transcriptions reste enregistré localement jusqu’à sa suppression.',
+		heading: 'Historique des transcriptions',
+		browse: 'Parcourir les sessions',
+		close: 'Fermer l’historique',
+		enable: 'Enregistrer automatiquement les sessions en local',
+		privacy:
+			'Désactivé par défaut. Enregistre les lignes finalisées à partir de maintenant. La désactivation conserve les sessions existantes ; supprimez-les ici. Aucun audio n’est enregistré.',
+		retry: 'Réessayer l’enregistrement',
+		refresh: 'Actualiser',
+		empty: 'Aucune session enregistrée.',
+		failed: 'Impossible de mettre à jour l’historique.',
+		auto: 'Langue détectée automatiquement',
+		sameLanguage: 'Sous-titres dans la même langue',
+		unfinished: 'En cours ou interrompue · durée au dernier enregistrement',
+		unreadable: 'Session illisible',
+		delete: 'Supprimer',
+		confirmDelete: 'Supprimer définitivement',
+		cancel: 'Annuler',
+		copy: 'Copier la transcription',
+		copied: 'Transcription copiée.',
+		fullTranscript: 'Transcription enregistrée'
+	},
 	overlayControls: {
+		stable: 'Lecture stable',
+		cleanSpeech: 'Masquer les hésitations',
+		cleanSpeechHint:
+			'Uniquement dans la superposition. La transcription conserve le texte original.',
+
 		heading: 'Surimpression',
 		captionSize: 'Taille des sous-titres',
 		smaller: 'Réduire les sous-titres',

@@ -5,6 +5,7 @@
 		overlayFontSize,
 		overlayCaptionWidth,
 		overlayCaptionLayout,
+		overlayCleanSpeech,
 		overlayCaptionFace,
 		overlayPalette,
 		overlayContrast
@@ -28,6 +29,7 @@
 	 *  adjusting and no memory of where they started. */
 	const overlayAtDefaults = $derived(
 		$overlayCaptionLayout === 'fit' &&
+			!$overlayCleanSpeech &&
 			$overlayFontSize === DEFAULT_OVERLAY_FONT &&
 			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
 			$overlayCaptionFace === DEFAULT_CAPTION_FACE &&
@@ -83,6 +85,7 @@
 		onchange={(e) => overlay.setCaptionLayout(e.currentTarget.value as CaptionLayout)}
 	>
 		<option value="fit">{$t.overlayControls.fitWindow}</option>
+		<option value="stable">{$t.overlayControls.stable}</option>
 		<option value="compact">{$t.overlayControls.compact}</option>
 	</select>
 	<svg
@@ -98,6 +101,14 @@
 		aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
 	>
 </div>
+<label class="cleanup"
+	><input
+		type="checkbox"
+		checked={$overlayCleanSpeech}
+		onchange={(e) => overlay.setCleanSpeech(e.currentTarget.checked)}
+	/>{$t.overlayControls.cleanSpeech}</label
+>
+<p class="contrast-note">{$t.overlayControls.cleanSpeechHint}</p>
 {#if $overlayCaptionLayout === 'compact'}
 	<div class="stepper">
 		<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
@@ -202,6 +213,13 @@
 </button>
 
 <style>
+	.cleanup {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		color: var(--text-soft);
+		font-size: var(--type-12);
+	}
 	.kicker {
 		flex: 0 0 auto;
 	}

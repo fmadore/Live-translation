@@ -47,6 +47,9 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 // ---- Commands -------------------------------------------------------------
 
 export const api = {
+	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
+	listHistory: () => invoke<StoredRecovery[]>('list_history'),
+	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
 	listApplications: () => invoke<import('./types').ApplicationList>('list_applications'),

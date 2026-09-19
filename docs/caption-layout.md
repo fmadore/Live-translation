@@ -39,6 +39,33 @@ Switching layouts keeps the chosen font, colours and compact width. The layout p
 survives relaunch and is shared by the settings panel and live rail. **Reset appearance**
 restores Fit window and the other appearance defaults; it does not move the overlay.
 
+## Stable reading
+
+Choose **Stable reading** for a teleprompter-style display ([issue #79](https://github.com/fmadore/Live-translation/issues/79)).
+Text is left-aligned and anchored to the top of each source's allocated area. New words wrap
+naturally. Once the area fills, the viewport advances one complete rendered line at a time;
+there is no continuous centering, animated scrolling, or moving caret. Earlier turns retain
+the same colour so finishing a turn does not visually relocate the reading point.
+
+This mode retains the session's caption context in memory, including during pauses. Stop
+clears it. The two sources remain independent and share the window. Resizing, changing fonts,
+adding a second source, or provider corrections can still reflow text. The backing is even
+across the reading area so top-aligned text is readable over light content. Fit window and
+Compact retain their existing alignment, colour treatment, and idle expiry.
+
+## Hide filler words
+
+**Hide filler words** is off by default ([issue #80](https://github.com/fmadore/Live-translation/issues/80)).
+It removes exact hesitation tokens `um`, `uh`, `erm`, `hmm`, `euh`, and `heu` from the overlay
+and repairs adjacent punctuation. Meaningful words such as “so”, “well”, “like”, and “oh”
+remain. Substrings, uppercase abbreviations, quoted tokens, and unfinished streamed tokens
+are preserved. This is a conservative text filter, not semantic speech analysis: it cannot
+reliably distinguish every intentional hesitation from other uses in every language.
+
+The operator transcript, saved history, recovery copy, and exports retain the original text.
+No provider setting or additional request is involved. Both caption options persist across
+relaunch, synchronize with the live controls, and reset with the other appearance settings.
+
 ## Recent context and the transcript
 
 Fit window retains a bounded recent history in memory for each source. Completed text is
@@ -46,7 +73,7 @@ dimmed ahead of the current turn. Growing the window can reveal more of that ava
 history; shrinking it removes older words from the audience view first. Very long unbroken
 tokens can be shortened so their newest characters still fit.
 
-The existing fade-out timers remain: captions clear 4 seconds after the last final update,
+In Fit window and Compact, the existing fade-out timers remain: captions clear 4 seconds after the last final update,
 or 3 seconds after a stalled interim update. Clearing also removes that source's reading
 context. This is a live-caption view, not a scrolling transcript viewer. The full operator
 transcript and exported files are unaffected by overlay trimming or expiry. No additional

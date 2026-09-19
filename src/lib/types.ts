@@ -203,6 +203,7 @@ export interface OverlayConfig {
 	fontSize: number;
 	/** How wide a caption line may run, as a typographic measure in `ch`. */
 	captionWidth?: number;
+	cleanSpeech?: boolean;
 	captionLayout?: import('./captionLayout').CaptionLayout;
 	/** The caption ink and the scrim behind it. Sent as three plain values rather than as a
 	 *  computed stylesheet: the overlay derives its own steps and its own gradient from them,

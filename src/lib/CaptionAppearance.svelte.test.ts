@@ -3,7 +3,13 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import CaptionAppearance from './CaptionAppearance.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { api } from './tauri';
-import { overlayFontSize, overlayCaptionLayout, overlayCaptionWidth } from './stores';
+import {
+	overlayFontSize,
+	overlayCaptionLayout,
+	overlayCaptionWidth,
+	overlayCleanSpeech
+} from './stores';
+import { loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
 
 it('keeps both appearances synchronized with separate accessible contrast descriptions', async () => {
@@ -27,6 +33,26 @@ it('keeps both appearances synchronized with separate accessible contrast descri
 	expect(setOverlayConfig).toHaveBeenCalledTimes(1);
 	rail.unmount();
 	settings.unmount();
+});
+
+it('persists stable reading and display cleanup, synchronizes both windows, and resets both', async () => {
+	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
+	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	overlayCaptionLayout.set('fit');
+	overlayCleanSpeech.set(false);
+	const view = render(CaptionAppearance, { heading: 'Appearance', overlay });
+	await fireEvent.change(view.container.querySelector('select')!, { target: { value: 'stable' } });
+	await fireEvent.click(view.getByLabelText('Hide filler words'));
+	expect(loadCaptionLayout()).toBe('stable');
+	expect(loadCleanSpeech()).toBe(true);
+	expect(setOverlayConfig).toHaveBeenLastCalledWith(
+		expect.objectContaining({ captionLayout: 'stable', cleanSpeech: true })
+	);
+	overlay.resetOverlayAppearance();
+	await waitFor(() => expect(view.getByLabelText('Hide filler words')).not.toBeChecked());
+	expect(loadCaptionLayout()).toBe('fit');
+	expect(loadCleanSpeech()).toBe(false);
+	view.unmount();
 });
 
 it('switches layout live, remembers compact width, and resets to fit window', async () => {

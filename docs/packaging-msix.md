@@ -55,7 +55,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.2.4.0"
+  Version="1.3.0.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -65,7 +65,7 @@ network access. The package carries no speech model, Windows AI runtime, WinRT r
 full-trust desktop process.
 
 `Version` is the field here that moves: the bundler stamps it from `tauri.conf.json`, with a
-fourth component appended. It reads `1.2.4.0` at the time of writing and whatever that file
+fourth component appended. It reads `1.3.0.0` at the time of writing and whatever that file
 says at the time of reading.
 
 ## Local responsive-caption test build (14 September 2026)
@@ -79,7 +79,7 @@ service. The Store-signed 1.2.2.0 install was left intact.
 
 This executable is for local feedback, not proof of MSIX compatibility. The ignored
 src-tauri/target/local-test.conf.json override must not be used for release packages.
-Build 1.2.4 with the normal committed configuration and complete the
+Build 1.3.0 with the normal committed configuration and complete the
 [release verification](caption-layout.md#release-verification).
 
 ## Prerequisites
@@ -103,8 +103,8 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.2.4.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.2.4.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.3.0.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.3.0.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`. CI builds x64 and ARM64 packages,
@@ -112,7 +112,7 @@ combines them into `Live.Translation_<version>.msixbundle`, and attaches that si
 to the release for Store submission. For local verification, use the per-architecture
 `Live.Translation_<version>_<arch>.msix` files instead.
 
-Substitute the current `tauri.conf.json` version for `1.2.4` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.3.0` throughout this file. Every
 release built on this machine is still in `target/msix/` beside the newest one, which is why
 the commands below derive the name instead of spelling it out.
 

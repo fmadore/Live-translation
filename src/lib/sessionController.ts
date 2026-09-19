@@ -1,6 +1,7 @@
+import { sessionHistory } from './history';
 import { get, writable } from 'svelte/store';
 import { asStatus } from './errors';
-import { applyStatus, beginSession, isRunning, statusMessage } from './stores';
+import { applyStatus, beginSession, flushTranscript, isRunning, statusMessage } from './stores';
 import { api } from './tauri';
 import type { StartOptions } from './types';
 
@@ -22,7 +23,7 @@ export function createSessionController(
 			if (operation || stopping || get(isRunning)) return false;
 			busy.set(true);
 			statusMessage.set('');
-			beginSession();
+			beginSession(options);
 			const work = Promise.resolve().then(() => port.startSession(options));
 			operation = work;
 			try {
@@ -45,6 +46,8 @@ export function createSessionController(
 				await startup?.catch(() => {});
 				try {
 					await port.stopSession();
+					flushTranscript();
+					await sessionHistory.finish();
 				} catch (error) {
 					statusMessage.set(asStatus(error));
 				} finally {

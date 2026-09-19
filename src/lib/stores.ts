@@ -1,3 +1,5 @@
+import { sessionHistory } from './history';
+import { CLEAN_SPEECH_KEY, loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
 import type { CaptionLayout } from './captionLayout';
 // Svelte stores shared across the operator window. The overlay window keeps its own
@@ -188,6 +190,7 @@ function commit(c: Caption) {
 		endMs: c.endMs === undefined ? undefined : c.endMs + transcriptTimeOffset
 	};
 	transcript.update((list) => [line, ...list]);
+	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
 }
 
 export function pushCaption(c: Caption) {
@@ -224,8 +227,10 @@ export function flushTranscript() {
 }
 
 /** Prepare the monitor for a new run without discarding already finalized transcript lines. */
-export function beginSession() {
+export function beginSession(sessionOptions = get(options)) {
 	flushTranscript();
+	void sessionHistory.finish();
+	sessionHistory.begin(sessionOptions);
 	// Retried/new sessions append to one document without resetting its cue timeline.
 	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
 	originStates.set({});
@@ -347,3 +352,8 @@ trayHideExplained.subscribe((v) => {
 
 export const micLevel = writable<AudioLevel>({ source: 'microphone', rms: 0, peak: 0 });
 export const systemLevel = writable<AudioLevel>({ source: 'system', rms: 0, peak: 0 });
+
+export const overlayCleanSpeech = writable(loadCleanSpeech());
+overlayCleanSpeech.subscribe((value) => {
+	if (typeof localStorage !== 'undefined') localStorage.setItem(CLEAN_SPEECH_KEY, String(value));
+});

@@ -12,6 +12,7 @@ mod commands;
 mod errors;
 mod export;
 mod gemini;
+mod history;
 mod lifecycle;
 mod mistral;
 mod ondevice;
@@ -122,6 +123,9 @@ pub fn run() {
             recovery::write_recovery,
             recovery::read_recovery,
             recovery::clear_recovery,
+            history::write_history,
+            history::list_history,
+            history::delete_history,
             lifecycle::ack_close,
             lifecycle::set_close_guard,
             lifecycle::set_close_to_tray,

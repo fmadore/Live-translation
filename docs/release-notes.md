@@ -13,6 +13,26 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.3.0
+
+Prepared on 19 September 2026. See [release handoff](store-updates.md#release-130-handoff).
+
+```markdown
+This release makes long meetings easier to read and keeps optional local copies of past sessions.
+
+- **Transcript history:** opt in to progressively save finalized captions locally. Browse previous sessions by date, duration and language information, read raw captions and available source text, copy, export Markdown/text/SRT/VTT, or delete a session. History stays until deleted and is separate from the recovery copy.
+- **Stable reading:** left-aligned captions stay at the top of their area and advance by whole lines as it fills. Fit window and Compact remain available.
+- **Hide filler words:** optional, conservative cleanup of hesitation sounds in the overlay. Raw transcripts, history and exports remain unchanged. No extra provider requests are made.
+- **German interface:** choose Deutsch, English or Français independently of the caption language. Live translation remains English–French.
+- Updated privacy documentation, English/French/German controls and Store submission copy. Updated the compatible devalue dependency to 5.9.4 to resolve a moderate security advisory.
+
+Thanks to **@valentinrabot** for the detailed meeting feedback and suggestions in [#79](https://github.com/fmadore/Live-translation/issues/79), [#80](https://github.com/fmadore/Live-translation/issues/80), and [#81](https://github.com/fmadore/Live-translation/issues/81). This acknowledgment is for feedback, not implementation.
+
+Validation: 314 frontend tests and 69 Rust tests passed locally, alongside formatting, Svelte/TypeScript checks, Clippy, the production build and browser layout checks. The billable provider test remains opt-in. Final packaged-app acceptance and Microsoft Store certification are separate checks; this GitHub release is not a claim of Store submission or certification.
+
+For Partner Center, use **Live.Translation_1.3.0.msixbundle**, containing x64 and ARM64 packages. Individual unsigned MSIX files are for local signing and sideload testing.
+```
+
 ## v1.2.4
 
 GitHub release copy. See [release handoff](store-updates.md#release-124-handoff) for

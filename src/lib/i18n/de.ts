@@ -213,7 +213,34 @@ export const de: Messages = {
 			'Platzieren Sie das Overlay, um dies auf dem Projektor zu beurteilen – der Platzhalter-Untertitel wird in dem gesetzt, was Sie hier wählen.'
 	},
 
+	history: {
+		stored: 'Der Transkriptverlauf wird lokal gespeichert, bis Sie ihn löschen.',
+		heading: 'Transkriptverlauf',
+		browse: 'Sitzungen anzeigen',
+		close: 'Verlauf schließen',
+		enable: 'Sitzungen automatisch lokal speichern',
+		privacy:
+			'Standardmäßig deaktiviert. Speichert ab jetzt abgeschlossene Zeilen. Beim Deaktivieren bleiben vorhandene Sitzungen erhalten; löschen Sie diese hier. Audio wird nicht gespeichert.',
+		retry: 'Speichern wiederholen',
+		refresh: 'Aktualisieren',
+		empty: 'Noch keine gespeicherten Sitzungen.',
+		failed: 'Der Transkriptverlauf konnte nicht aktualisiert werden.',
+		auto: 'Automatisch erkannte Sprache',
+		sameLanguage: 'Gleichsprachige Untertitel',
+		unfinished: 'Laufend oder unterbrochen · Dauer bis zur letzten Speicherung',
+		unreadable: 'Unlesbare Sitzung',
+		delete: 'Löschen',
+		confirmDelete: 'Endgültig löschen',
+		cancel: 'Abbrechen',
+		copy: 'Transkript kopieren',
+		copied: 'Transkript kopiert.',
+		fullTranscript: 'Gespeichertes Transkript'
+	},
 	overlayControls: {
+		stable: 'Ruhiger Lesemodus',
+		cleanSpeech: 'Fülllaute ausblenden',
+		cleanSpeechHint: 'Nur in der Einblendung. Das Transkript behält den Originaltext.',
+
 		heading: 'Overlay',
 		captionSize: 'Untertitelgröße',
 		smaller: 'Kleinere Untertitel',

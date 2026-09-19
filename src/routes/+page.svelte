@@ -67,6 +67,8 @@
 	} from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
+	import TranscriptHistory from '$lib/TranscriptHistory.svelte';
+	import { historyEnabled } from '$lib/history';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
 	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
 	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
@@ -1452,13 +1454,18 @@
 							: $t.preflight.rehearse.hint}
 					</span>
 					<span class="privacy">
-						{$recoveryEnabled ? $t.preflight.privacy.spooled : $t.preflight.privacy.memoryOnly}
+						{$historyEnabled
+							? $t.history.stored
+							: $recoveryEnabled
+								? $t.preflight.privacy.spooled
+								: $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
 							? $t.preflight.privacy.demo
 							: $t.preflight.privacy.cloud(vendorLabel[$options.provider])}
 					</span>
 				</div>
 			{/if}
+			<TranscriptHistory />
 		</main>
 	</div>
 </div>

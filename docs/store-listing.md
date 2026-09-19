@@ -1,17 +1,11 @@
-# Partner Center listing text — 1.2.4 live, German prepared
+# Partner Center listing text — 1.3.0 prepared
 
-**1.2.4** (MSIX **1.2.4.0**) was accepted and is live in the Store. The English and French
-blocks below are the copy that listing carries; leave them alone unless the listing itself is
-being changed.
+Prepared for **1.3.0** (MSIX **1.3.0.0**), not yet submitted. The prior documented live Store
+release is 1.2.4. These blocks replace the listing fields for the next submission.
 
-**Deutsch (Deutschland) is new and not yet published.** It goes out with the release that ships
-the German interface — not before. A German listing on a build whose interface is English and
-French only is a mismatch a German-speaking customer notices immediately, and it is the kind of
-thing certification is entitled to fail. See
-[Adding the German listing](#adding-the-german-listing) for what has to be true first.
-
-Paste only the relevant field blocks into Partner Center. See the
-[release handoff](store-updates.md#release-124-handoff) for verification and screenshot status.
+The German listing is new. Native-language review and final-package screenshots remain
+pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
+field blocks. See the [release handoff](store-updates.md#release-130-handoff) for remaining checks.
 
 ## English (United States)
 
@@ -28,7 +22,11 @@ A built-in English and French demonstration works without an account, API key, m
 
 For real-time use, select Gemini or OpenAI for English–French translation, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both. System capture can use all audio on an output device or one selected application and its child processes. Application notifications are included, and browsers may include multiple tabs. Save transcripts to a folder of your choice as plain text, Markdown, SRT, or VTT.
 
-Make the overlay wider to fit more words per line, or taller to show more recent caption context. Fit window adapts the text area while keeping your chosen font size. Choose Compact to control line width separately.
+For long meetings, choose Stable reading: left-aligned text stays at the top and advances by whole lines. Optional Hide filler words cleans obvious hesitation sounds only in the overlay; raw transcripts and exports remain unchanged. Fit window and Compact are also available.
+
+Optional transcript history progressively saves finalized captions locally, with session date, duration and known language information. Reopen sessions to read, copy, export or delete them. History is off by default. Turning it off keeps existing sessions until you delete them. No audio is saved.
+
+Use the interface in English, French or German, independently of the caption language. Live translation remains English–French.
 
 The app does not sell subscriptions, credits, or API access. Provider keys are stored in Windows Credential Manager and sent only to the selected provider. The developer operates no server and receives no audio, keys, transcripts, analytics, or telemetry.
 
@@ -47,7 +45,9 @@ Live same-language subtitles with your own Mistral or Google Gemini API key
 Capture a selected microphone, system audio from an output device or one application, or both in live modes
 Transparent, always-on-top caption overlay that remains click-through
 Move, resize, show, or hide the overlay during a session
-Fit captions to the window or choose Compact with adjustable line width
+Fit window, Compact, or Stable reading with left-aligned captions and whole-line scrolling
+Optional filler cleanup in the overlay while preserving raw transcripts
+Optional local session history with progressive saving, reopening, copying, export and deletion
 Save transcripts as text, Markdown, SRT, or VTT using the Windows Save As dialog
 See elapsed time and estimated provider cost while live audio is streaming
 ```
@@ -60,14 +60,16 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.2.4
+### What's new in this version — 1.3.0
 
-Paste this into **What's new in this version** after packaged testing:
+Paste after final packaged-app verification:
 
 ```text
-Resize the caption overlay to suit your meeting. Fit window uses the available width and shows more recent caption context when you make the window taller. Your chosen font size stays the same. Align to bottom resets the overlay to a shallow caption strip. Switch to Compact for adjustable line width. Both microphone and system-audio captions share the available space.
+Save previous meetings with optional local transcript history. Finalized captions are saved progressively and can be reopened, copied, exported or deleted. History is off by default and remains until deleted.
 
-Thanks to @valentinrabot for the feedback and responsive-layout suggestion in GitHub issue #77.
+Stable reading keeps captions left-aligned and advances by whole lines. Optional Hide filler words cleans the overlay while preserving raw transcripts. The interface is now available in English, French and German; live translation remains English–French.
+
+Thanks to @valentinrabot for the detailed feedback and suggestions in GitHub issues #79, #80 and #81.
 ```
 
 ## Français (France)
@@ -85,7 +87,11 @@ Une démonstration intégrée en anglais et en français fonctionne sans compte,
 
 Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux. La capture système peut utiliser tout l’audio d’une sortie ou une application sélectionnée et ses processus enfants. Les notifications de cette application sont incluses, et un navigateur peut inclure plusieurs onglets. Enregistrez les transcriptions dans le dossier de votre choix en texte brut, Markdown, SRT ou VTT.
 
-Élargissez la surimpression pour afficher davantage de mots par ligne, ou agrandissez-la en hauteur pour conserver plus de contexte récent. Adapter à la fenêtre ajuste la zone de texte sans changer la taille des caractères choisie. Le mode Compact permet de régler séparément la largeur des lignes.
+Pour les longues réunions, choisissez Lecture stable : le texte est aligné à gauche, reste en haut et défile par lignes entières. L’option Masquer les hésitations nettoie uniquement la surimpression ; les transcriptions originales et les exports restent inchangés. Adapter à la fenêtre et Compact restent disponibles.
+
+L’historique facultatif enregistre progressivement les sous-titres finalisés en local, avec la date, la durée et les langues connues de chaque session. Rouvrez une session pour la lire, la copier, l’exporter ou la supprimer. L’historique est désactivé par défaut. Sa désactivation conserve les sessions existantes jusqu’à leur suppression. Aucun audio n’est enregistré.
+
+L’interface est disponible en anglais, français et allemand, indépendamment de la langue des sous-titres. La traduction en direct reste français–anglais.
 
 L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
 
@@ -104,7 +110,9 @@ Sous-titres en direct dans la langue parlée avec votre propre clé API Mistral 
 Capture d’un microphone, de l’audio système d’une sortie ou d’une application, ou des deux en direct
 Surimpression de sous-titres transparente, toujours visible et transparente aux clics
 Déplacement, redimensionnement, affichage ou masquage de la surimpression pendant une session
-Sous-titres adaptés à la fenêtre ou mode Compact avec largeur des lignes réglable
+Adapter à la fenêtre, Compact ou Lecture stable avec alignement à gauche et défilement par lignes
+Masquage facultatif des hésitations dans la surimpression, avec conservation des transcriptions originales
+Historique local facultatif avec enregistrement progressif, lecture, copie, export et suppression
 Export en texte, Markdown, SRT ou VTT avec la fenêtre Enregistrer sous de Windows
 Affichage du temps écoulé et du coût estimé pendant la transmission audio en direct
 ```
@@ -117,14 +125,16 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.2.4
+### Nouveautés de cette version — 1.3.0
 
-À coller après les tests du paquet dans **Nouveautés de cette version** :
+Paste after final packaged-app verification:
 
 ```text
-Adaptez la surimpression à votre réunion. Adapter à la fenêtre utilise la largeur disponible et affiche davantage de contexte récent lorsque vous agrandissez la fenêtre en hauteur. La taille des caractères choisie reste inchangée. Aligner en bas ramène la surimpression à une bande de sous-titres peu haute. Le mode Compact conserve le réglage de largeur des lignes. Les sous-titres du microphone et de l’audio système se partagent l’espace disponible.
+Retrouvez vos réunions grâce à l’historique local facultatif. Les sous-titres finalisés sont enregistrés progressivement et peuvent être rouverts, copiés, exportés ou supprimés. L’historique est désactivé par défaut et conservé jusqu’à sa suppression.
 
-Merci à @valentinrabot pour ses retours et sa suggestion de disposition adaptative dans le ticket GitHub nº 77.
+Lecture stable aligne les sous-titres à gauche et les fait défiler par lignes entières. Masquer les hésitations nettoie uniquement la surimpression, sans modifier les transcriptions originales. L’interface est disponible en anglais, français et allemand ; la traduction reste français–anglais.
+
+Merci à @valentinrabot pour ses retours détaillés et ses suggestions dans les tickets GitHub nº 79, 80 et 81.
 ```
 
 ## Deutsch (Deutschland)
@@ -142,7 +152,9 @@ Eine integrierte Demonstration auf Englisch und Französisch funktioniert ohne K
 
 Für den Einsatz in Echtzeit wählen Sie Gemini oder OpenAI für die Übersetzung zwischen Englisch und Französisch, oder Gemini oder Mistral für Untertitel in der gesprochenen Sprache. Beide Untertitel-Engines erkennen die gesprochene Sprache selbst, und Gemini deckt über 70 Sprachen ab. Die Live-Anbieter können ein ausgewähltes Raummikrofon, das Windows-Systemaudio oder beides aufnehmen. Die Systemaufnahme kann das gesamte Audio eines Ausgabegeräts verwenden oder eine ausgewählte Anwendung samt ihrer Unterprozesse. Benachrichtigungen dieser Anwendung sind enthalten, und ein Browser kann mehrere Tabs umfassen. Speichern Sie Transkripte in einem Ordner Ihrer Wahl als reinen Text, Markdown, SRT oder VTT.
 
-Machen Sie das Overlay breiter, um mehr Wörter pro Zeile unterzubringen, oder höher, um mehr vom zuletzt Gesagten stehen zu lassen. An Fenster anpassen passt die Textfläche an und behält Ihre gewählte Schriftgröße bei. Mit Kompakt stellen Sie die Zeilenbreite gesondert ein.
+Für längere Besprechungen wählen Sie Ruhiger Lesemodus: Der Text bleibt linksbündig am oberen Rand und rückt in ganzen Zeilen weiter. Fülllaute ausblenden entfernt optional eindeutige Zögerlaute nur im Overlay; Originaltranskripte und Exporte bleiben unverändert. An Fenster anpassen und Kompakt bleiben verfügbar.
+
+Der optionale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend lokal, mit Datum, Dauer und bekannten Sprachangaben. Öffnen Sie frühere Sitzungen zum Lesen, Kopieren, Exportieren oder Löschen. Der Verlauf ist standardmäßig deaktiviert. Beim Deaktivieren bleiben vorhandene Sitzungen bis zum Löschen erhalten. Audio wird nicht gespeichert.
 
 Die Oberfläche steht auf Deutsch, Englisch und Französisch zur Verfügung und wird unabhängig von der Sprache der Untertitel gewählt: Sie arbeiten auf Deutsch, während der Raum in einer anderen Sprache mitliest.
 
@@ -163,7 +175,9 @@ Live-Untertitel in der gesprochenen Sprache mit Ihrem eigenen Mistral- oder Goog
 Aufnahme eines ausgewählten Mikrofons, des Systemaudios eines Ausgabegeräts oder einer Anwendung, oder beider in Live-Modi
 Transparentes Untertitel-Overlay, immer im Vordergrund und durchklickbar
 Overlay während einer Sitzung verschieben, in der Größe ändern, ein- oder ausblenden
-Untertitel an das Fenster anpassen oder Kompakt mit einstellbarer Zeilenbreite wählen
+An Fenster anpassen, Kompakt oder Ruhiger Lesemodus mit linksbündigen Untertiteln und ganzen Zeilen
+Optionale Bereinigung von Fülllauten im Overlay bei unveränderten Originaltranskripten
+Optionaler lokaler Verlauf mit fortlaufender Speicherung, Lesen, Kopieren, Export und Löschen
 Transkripte als Text, Markdown, SRT oder VTT über den Windows-Dialog Speichern unter sichern
 Verstrichene Zeit und geschätzte Anbieterkosten während der Live-Audioübertragung ablesen
 Oberfläche auf Deutsch, Englisch und Französisch, unabhängig von der Sprache der Untertitel
@@ -172,7 +186,7 @@ Oberfläche auf Deutsch, Englisch und Französisch, unabhängig von der Sprache 
 The German list carries one bullet the English and French ones do not — the interface
 languages. It is the single reason a German-speaking visitor is looking at a German listing at
 all, and burying it in a paragraph wastes it. Partner Center allows up to 20 entries, so the
-tenth line costs nothing.
+additional line fits within that limit.
 
 ### Kurzbeschreibung — 193 Zeichen
 
@@ -186,15 +200,16 @@ German runs longer than both other languages here — 193 characters against Eng
 French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
 than assuming the margin is still there.
 
-### Neuerungen in dieser Version — Release mit deutscher Oberfläche
+### Neuerungen in dieser Version — 1.3.0
 
-Set the version number when that release is cut; this text does not name one, exactly as the
-English and French blocks do not.
+Paste after final packaged-app verification:
 
 ```text
-Die Oberfläche der App gibt es jetzt auf Deutsch. Sie wird unabhängig von der Sprache der Untertitel gewählt, sodass Sie auf Deutsch arbeiten können, während der Raum Englisch oder Französisch mitliest. Beim ersten Start folgt die App der Sprache von Windows; danach gilt Ihre eigene Wahl.
+Der optionale lokale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend. Frühere Sitzungen lassen sich öffnen, kopieren, exportieren und löschen. Der Verlauf ist standardmäßig deaktiviert und bleibt bis zum Löschen erhalten.
 
-Die Live-Übersetzung arbeitet weiterhin zwischen Englisch und Französisch.
+Ruhiger Lesemodus hält Untertitel linksbündig und bewegt sie in ganzen Zeilen. Fülllaute ausblenden bereinigt nur das Overlay; Originaltranskripte bleiben erhalten. Die Oberfläche ist jetzt auf Deutsch, Englisch und Französisch verfügbar. Die Live-Übersetzung bleibt auf Englisch–Französisch beschränkt.
+
+Vielen Dank an @valentinrabot für die ausführlichen Rückmeldungen und Vorschläge in den GitHub-Issues #79, #80 und #81.
 ```
 
 That second paragraph is not filler and should not be cut. A German listing sets an
@@ -214,9 +229,9 @@ formality:
       French passed and the one that catches what a translation check cannot.
 - [ ] German screenshots exist in `docs/store-screenshots/de/`, captured from the final MSIX
       with the interface set to German — five, same filenames and order as the other languages.
-- [ ] The English and French **What's new** blocks for that same release are written. Adding a
+- [x] The English and French **What's new** blocks for that same release are written. Adding a
       language does not rewrite them, but a release still needs all three.
-- [ ] The certification notes name the German interface, so the reviewer exercises it.
+- [x] The certification notes name the German interface, so the reviewer exercises it.
 
 Worth doing, and deliberately not claimed here until it is: **German subtitles are unverified.**
 Both subtitle engines detect the spoken language themselves and Gemini documents over 70
@@ -251,7 +266,7 @@ Das Overlay wird platziert, bevor der Raum sich füllt: dorthin gezogen, wo das 
 4. `4-appearance.png`
 
 ```text
-Wählen Sie An Fenster anpassen oder Kompakt und stellen Sie dann Größe, Schriftart, Farbe und Hintergrund ein. Kompakt erlaubt zusätzlich die Zeilenbreite.
+Wählen Sie An Fenster anpassen, Ruhiger Lesemodus oder Kompakt. Stellen Sie Schrift, Farbe und Hintergrund ein und blenden Sie bei Bedarf Fülllaute aus.
 ```
 
 5. `5-contrast.png`
@@ -282,7 +297,11 @@ No account, API key, microphone, language pack, or network connection is require
 8. Select Français and repeat to verify the French captions.
 9. In Settings, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
 
-Also test the new caption layout during the demo: open Settings, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact) and the German one (An Fenster anpassen / Kompakt). Placement mode intentionally shows positioning controls rather than live captions.
+New in 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
+
+During a demo, choose Stable reading in Settings. Text should stay left-aligned at the top, wrap naturally and advance by complete lines as the area fills. A pause should retain it, and Stop should clear it. Resize, then return to Fit window and check normal expiry resumes. Toggle Hide filler words; it affects only the overlay, not the raw transcript/history/export. The scripted demo does not guarantee filler sounds, so the absence of a visible text change there is expected. The filter handles exact hesitation tokens such as um, uh, erm, hmm, euh and heu; it is not semantic speech analysis.
+
+Also test Fit window and Compact during the demo: open Settings, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact) and the German one (An Fenster anpassen / Kompakt). Placement mode intentionally shows positioning controls rather than live captions.
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
@@ -295,7 +314,7 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 
 ## Screenshots
 
-The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.2.4
+The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.3.0
 captures; do not upload the old appearance screenshots with the new descriptions.
 
 The listing is per-language and so are its screenshots. Every set is kept in the repository and
@@ -338,7 +357,7 @@ The overlay is placed before the room fills: dragged to where the audience will 
    caption colour, backing colour and backing strength. Line width is shown only in Compact.
 
 ```text
-Choose Fit window or Compact, then adjust caption size, typeface, colour and backing. Compact also lets you set line width.
+Choose Fit window, Stable reading or Compact. Adjust caption size, typeface, colour and backing, and optionally hide filler words.
 ```
 
 5. `5-contrast.png` — the contrast readout naming a step that falls below its target.
@@ -370,7 +389,7 @@ La surimpression se place avant l’arrivée du public : on la fait glisser là 
 4. `4-appearance.png`
 
 ```text
-Choisissez Adapter à la fenêtre ou Compact, puis réglez taille, police, couleur et fond. Le mode Compact permet aussi de régler la largeur des lignes.
+Choisissez Adapter à la fenêtre, Lecture stable ou Compact. Réglez taille, police, couleur et fond, et masquez les hésitations si souhaité.
 ```
 
 5. `5-contrast.png`
