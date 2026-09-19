@@ -15,7 +15,7 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ## v1.3.0
 
-Prepared on 19 September 2026. See [release handoff](store-updates.md#release-130-handoff).
+Published on 19 September 2026: [GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0). See [release handoff](store-updates.md#release-130-handoff).
 
 ```markdown
 This release makes long meetings easier to read and keeps optional local copies of past sessions.

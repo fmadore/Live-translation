@@ -11,7 +11,7 @@ packages are built.
 
 ## Release 1.3.0 handoff
 
-Release target: **1.3.0**, MSIX **1.3.0.0**, prepared 19 September 2026.
+GitHub release: **1.3.0**, MSIX **1.3.0.0**, published 19 September 2026.
 The prior documented Store release is 1.2.4. **1.3.0 has not been submitted to Partner Center.**
 
 This release adds local transcript history (#81), Stable reading (#79), optional overlay
@@ -24,20 +24,33 @@ for feedback and suggestions in the three feature issues, not for implementation
 - [x] Pass 314 frontend and 69 Rust tests, type checks, formatting, Clippy, production build and browser layout checks.
 - [x] Patch devalue to 5.9.4; moderate-threshold npm audit passes (three inherited low cookie-chain findings remain).
 - [x] Synchronize manifests, root lockfile versions and citation metadata to 1.3.0.
-- [ ] Publish v1.3.0 and verify CI plus the release installer workflow.
-- [ ] Download and inspect the final x64 + ARM64 bundle and record its SHA-256.
+- [x] Publish v1.3.0 and verify CI plus the release installer workflow.
+- [x] Download and inspect the final x64 + ARM64 bundle and record its SHA-256.
 - [ ] Smoke-test the final packaged app: two saved demo sessions, restart/reopen, copy/export/delete, opt-out, interrupted save, Stable reading and cleanup settings.
 - [ ] Complete native keyboard, scaling, mixed-DPI, contrast, tray and existing audio/export regression checks.
 - [ ] Refresh EN/FR screenshots and add DE screenshots from the final MSIX; committed PNGs remain historical 1.2.2 captures.
 - [ ] Obtain native German review of the interface and listing; German speech recognition remains unverified and is not newly advertised.
 - [ ] Run Windows App Certification Kit against final packages.
-- [ ] Verify the public privacy-policy link shows the 19 September 2026 history-retention policy.
+- [x] Verify the public privacy-policy link shows the 19 September 2026 history-retention policy (HTTP 200 after Pages deployment).
 - [ ] Upload **Live.Translation_1.3.0.msixbundle** and the prepared listing fields in Partner Center; submit and verify certification.
 
 History and cleanup are off by default. History stores raw caption text and session metadata
 locally until explicitly deleted; disabling it does not delete existing sessions. No audio is
 saved and no additional provider requests are introduced. Keep these facts in the Store copy.
 The default built-in demonstration still requires no key, account, microphone or network.
+
+Release source: `03ed191`, tagged `v1.3.0`. [CI](https://github.com/fmadore/Live-translation/actions/runs/35438586678)
+and the [release workflow](https://github.com/fmadore/Live-translation/actions/runs/35438589774)
+passed. The [published release](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0)
+contains EXE/MSI installers, both MSIX packages and the combined Store bundle. Issues #79,
+#80 and #81 are closed with release links and thanks to @valentinrabot.
+
+The downloaded **Live.Translation_1.3.0.msixbundle** and both embedded package manifests
+identify the Store name and publisher, version **1.3.0.0**, and **x64 + ARM64** architectures.
+Its SHA-256 matches the GitHub asset digest:
+`bad9b6a32c241e49750741c9e8d8344eddbb110e377b2ef9caa3badfa6720369`.
+This verifies package contents and download integrity; the manual acceptance and Store
+submission checks above remain pending.
 
 ## Release 1.2.4 handoff — done
 
