@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Select from './ui/Select.svelte';
 	import Field from './ui/Field.svelte';
+	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
 	import { matchesSession } from './historySearch';
@@ -155,8 +156,8 @@
 		{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
 		<div class="filters">
 			<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
-			<Field label={$t.usability.from}><input type="date" bind:value={from} /></Field>
-			<Field label={$t.usability.to}><input type="date" bind:value={to} /></Field>
+			<DateField label={$t.usability.from} bind:value={from} />
+			<DateField label={$t.usability.to} bind:value={to} />
 			<Field label={$t.usability.language}
 				><Select bind:value={language}
 					><option value="">{$t.usability.allLanguages}</option><option value="en">English</option

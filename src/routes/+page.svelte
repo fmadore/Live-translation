@@ -1521,6 +1521,7 @@
 {#if settingsOpen}
 	<ModalPrompt
 		wide
+		stableHeight
 		title={$t.settings.heading}
 		dismissLabel={$t.settings.closeLabel}
 		onDismiss={() => (settingsOpen = false)}
@@ -1559,61 +1560,63 @@
 				>
 			{/each}
 		</div>
-		<div
-			class="settings"
-			id="settings-panel"
-			role="tabpanel"
-			aria-labelledby={`settings-${settingsTab}`}
-			tabindex="0"
-		>
-			{#if settingsTab === 'captions'}
-				<div class="rail-section">
-					<CaptionAppearance heading={$t.settings.appearance} {overlay} />
-					<p class="hint">{$t.settings.appearanceNote}</p>
-					<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
+		{#key settingsTab}
+			<div
+				class="settings"
+				id="settings-panel"
+				role="tabpanel"
+				aria-labelledby={`settings-${settingsTab}`}
+				tabindex="0"
+			>
+				{#if settingsTab === 'captions'}
+					<div class="rail-section">
+						<CaptionAppearance heading={$t.settings.appearance} {overlay} />
+						<p class="hint">{$t.settings.appearanceNote}</p>
+						<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 				     whatever is chosen above. Same button and same labels as the pre-flight check,
 				     because it is the same thing being done. -->
-					<button
-						class="tool wide"
-						aria-pressed={overlay.moveOverlay}
-						disabled={browserMode}
-						aria-label={overlay.moveOverlay
-							? $t.preflight.overlay.doneLabel
-							: $overlayPlaced
-								? $t.preflight.overlay.adjustLabel
-								: $t.preflight.overlay.placeLabel}
-						onclick={overlay.toggleMoveOverlay}
-					>
-						<svg
-							width="13"
-							height="13"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.7"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-							><path
-								d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-							/></svg
+						<button
+							class="tool wide"
+							aria-pressed={overlay.moveOverlay}
+							disabled={browserMode}
+							aria-label={overlay.moveOverlay
+								? $t.preflight.overlay.doneLabel
+								: $overlayPlaced
+									? $t.preflight.overlay.adjustLabel
+									: $t.preflight.overlay.placeLabel}
+							onclick={overlay.toggleMoveOverlay}
 						>
-						{overlay.moveOverlay
-							? $t.preflight.overlay.done
-							: $overlayPlaced
-								? $t.preflight.overlay.adjust
-								: $t.preflight.overlay.place}
-					</button>
-				</div>
-			{:else if settingsTab === 'reading'}
-				<ReadingPreferences {overlay} />
-			{:else if settingsTab === 'history'}
-				<TranscriptHistory />
-			{:else}
-				{@render appPreferences()}
-				<KeyboardHelp />
-			{/if}
-		</div>
+							<svg
+								width="13"
+								height="13"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.7"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								aria-hidden="true"
+								><path
+									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
+								/></svg
+							>
+							{overlay.moveOverlay
+								? $t.preflight.overlay.done
+								: $overlayPlaced
+									? $t.preflight.overlay.adjust
+									: $t.preflight.overlay.place}
+						</button>
+					</div>
+				{:else if settingsTab === 'reading'}
+					<ReadingPreferences {overlay} />
+				{:else if settingsTab === 'history'}
+					<TranscriptHistory />
+				{:else}
+					{@render appPreferences()}
+					<KeyboardHelp />
+				{/if}
+			</div>
+		{/key}
 	</ModalPrompt>
 {/if}
 
@@ -1747,6 +1750,14 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.875rem;
+		flex: 1 0 0;
+		min-height: 0;
+		overflow-y: auto;
+		scrollbar-gutter: stable;
+		padding: 3px;
+	}
+	.settings > :global(*) {
+		flex-shrink: 0;
 	}
 	.settings .tool:disabled {
 		opacity: 0.45;

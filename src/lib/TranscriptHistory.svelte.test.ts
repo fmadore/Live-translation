@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import TranscriptHistory from './TranscriptHistory.svelte';
+import { locale } from './i18n';
 import { api } from './tauri';
 import { historyEnabled, historyError, sessionHistory, type SavedSession } from './history';
 import { transcript, clearTranscript } from './stores';
@@ -38,6 +39,7 @@ const saved: SavedSession = {
 	]
 };
 beforeEach(() => {
+	locale.set('en');
 	historyEnabled.set(false);
 	historyError.set('');
 	clearTranscript();
@@ -45,6 +47,32 @@ beforeEach(() => {
 		{ path: saved.id, contents: JSON.stringify(saved) }
 	]);
 	vi.mocked(api.saveTranscript).mockResolvedValue('saved.txt');
+});
+
+it('filters history with both German date fields and resets them', async () => {
+	locale.set('de');
+	const view = render(TranscriptHistory);
+	try {
+		await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+		const from = view.getByRole('textbox', { name: 'Ab Datum' });
+		const to = view.getByRole('textbox', { name: 'Bis Datum' });
+		expect(from).toHaveAttribute('placeholder', 'JJJJ-MM-TT');
+		expect(to).toHaveAttribute('placeholder', 'JJJJ-MM-TT');
+		await fireEvent.input(from, { target: { value: '2026-09-20' } });
+		expect(view.container.querySelector('.session')).toBeNull();
+		await fireEvent.input(from, { target: { value: '2026-09-19' } });
+		await fireEvent.input(to, { target: { value: '2026-09-19' } });
+		expect(view.container.querySelector('.session')).not.toBeNull();
+		await fireEvent.input(to, { target: { value: '2026-09-18' } });
+		expect(view.container.querySelector('.session')).toBeNull();
+		await fireEvent.click(view.getByText('Filter zurücksetzen'));
+		expect(from).toHaveValue('');
+		expect(to).toHaveValue('');
+		expect(view.container.querySelector('.session')).not.toBeNull();
+	} finally {
+		view.unmount();
+		locale.set('en');
+	}
 });
 
 it('reopens raw history without replacing the live transcript and exports every format', async () => {

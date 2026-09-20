@@ -22,10 +22,19 @@
 		/** A roomier box, for a panel of controls rather than a paragraph and three buttons.
 		 *  The narrow default is a measure chosen for reading; controls are not read. */
 		wide?: boolean;
+		/** Keep tabbed panels stationary while their body scrolls independently. */
+		stableHeight?: boolean;
 		children: Snippet;
 	}
 
-	let { title, onDismiss, dismissLabel, wide = false, children }: Props = $props();
+	let {
+		title,
+		onDismiss,
+		dismissLabel,
+		wide = false,
+		stableHeight = false,
+		children
+	}: Props = $props();
 
 	const titleId = $props.id();
 
@@ -48,7 +57,7 @@
 			prompt.querySelectorAll<HTMLElement>(
 				'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 			)
-		);
+		).filter((element) => element.tabIndex >= 0);
 	}
 
 	function onKeydown(event: KeyboardEvent) {
@@ -84,6 +93,7 @@
 	<div
 		class="prompt"
 		class:wide
+		class:stableHeight
 		bind:this={prompt}
 		role="dialog"
 		aria-modal="true"
@@ -141,6 +151,13 @@
 	   fixed pixel width turns a two-column row of controls into a column of clipped ones. */
 	.prompt.wide {
 		width: min(52em, 100%);
+	}
+	.prompt.stableHeight {
+		height: min(48rem, calc(100dvh - 48px));
+		overflow: hidden;
+	}
+	.prompt.stableHeight > :global(*) {
+		flex-shrink: 0;
 	}
 	.header {
 		display: flex;

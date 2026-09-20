@@ -43,8 +43,8 @@ Provider details and verified wire formats are documented in
 
 ## Release status
 
-**Latest GitHub release: [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0).**
-See [what changed in 1.4.0](#version-140-usability-improvements) and the
+**Latest GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1).**
+See [what changed in 1.4.1](#version-141-interface-update) and the
 [release handoff](docs/store-updates.md#release-140-handoff).
 
 Introduced in 1.3.0: Optional local transcript history saves finalized captions progressively
@@ -81,13 +81,13 @@ reachable — open the window, show or hide the overlay, stop the session, or qu
 operator window out of the way. Closing the window quits the app unless you turn on **Keep
 running in the tray when I close this window**.
 
-## Version 1.4.1 interface update — prepared
+## Version 1.4.1 interface update
 
 The next Store submission target is **1.4.1**. Settings now has Captions, Reading,
 Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
 view, presets and previews stay visible, and the tray follows the interface language.
 See the [1.4.1 handoff](docs/store-updates.md#release-141-handoff) for native testing and
-packaging status; the latest published GitHub release remains 1.4.0.
+packaging status. Version 1.4.1 is released on GitHub.
 
 ## Version 1.4.0 usability improvements
 

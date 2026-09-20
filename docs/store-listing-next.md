@@ -4,8 +4,7 @@ Target **1.4.1** (MSIX **1.4.1.0**). The [EN/FR/DE listing](store-listing.md) is
 source for paste-ready fields. The [release handoff](store-updates.md#release-141-handoff)
 tracks checks, packages, screenshots, privacy publication and manual submission.
 
-Version 1.4.1 is prepared on `main`; it has not been tagged or published. The latest
-published GitHub release is [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0),
+The latest published GitHub release is [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1),
 which has not been submitted to the Store. The next submission should use 1.4.1 after native
 acceptance and release packaging. Expected artifact: **Live.Translation_1.4.1.msixbundle**,
 containing x64 and ARM64. A local x64 installer is not the Store upload artifact.

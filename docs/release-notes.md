@@ -13,9 +13,11 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
-## v1.4.1 — prepared, not published
+## v1.4.1
 
-Native acceptance and publication remain tracked in the [1.4.1 handoff](store-updates.md#release-141-handoff).
+GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1),
+20 September 2026. Installer builds and native/Store acceptance are tracked separately
+in the [1.4.1 handoff](store-updates.md#release-141-handoff).
 
 ```markdown
 A clearer operator interface for setting up and running meetings.
@@ -26,10 +28,12 @@ A clearer operator interface for setting up and running meetings.
 - Choose visible appearance presets and curated colour swatches, with bright/dark previews and contrast feedback.
 - Consistent controls, readable small type, explicit units and overlay labels make the app easier to scan. The tray menu follows the English, French or German interface and shows session status.
 - Corrected accented labels and retained the existing opt-in history and local caption-cleanup behavior.
+- Settings keeps its window and tab bar stationary when switching tabs; only the content scrolls. Profile controls now share aligned edges and heights.
+- History date fields use explicit English, French and German format hints, with calendar selection and validation of real dates, including leap years.
 
 Includes the meeting profiles, reading controls, history search and Gemini finalization improvements from 1.4.0. Thanks to @valentinrabot for the meeting feedback and suggestions that informed this work.
 
-For Partner Center, use Live.Translation_1.4.1.msixbundle with x64 and ARM64 packages after native acceptance and release workflow verification. This release draft is not a claim of Store certification.
+For Partner Center, use Live.Translation_1.4.1.msixbundle with x64 and ARM64 packages after native acceptance and release workflow verification. GitHub publication does not imply Store certification.
 ```
 
 ## v1.4.0

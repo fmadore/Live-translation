@@ -311,8 +311,21 @@
 	.picker {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: end;
-		gap: 0.625rem;
+		align-items: stretch;
+		gap: 0.5rem 0.625rem;
+	}
+	.picker :global(.ui-field) {
+		display: contents;
+	}
+	.picker :global(.ui-field > span:first-child) {
+		grid-column: 1 / -1;
+	}
+	.picker > :global(.ui-tool) {
+		display: grid;
+		place-items: center;
+		width: 2.5rem;
+		min-height: 2.5rem;
+		padding: 0;
 	}
 	p {
 		color: var(--muted);

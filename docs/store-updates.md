@@ -14,7 +14,9 @@ packages are built.
 Next Store submission target: **1.4.1**, MSIX **1.4.1.0**, prepared 20 September 2026.
 This replaces the unsubmitted 1.4.0 target. The last documented Store release remains 1.2.4;
 v1.4.0 is published on GitHub and its existing tag/assets must not be overwritten.
-Version 1.4.1 is not yet tagged, published or submitted to Partner Center.
+GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1),
+20 September 2026. Installer workflow completion must be verified separately.
+Version 1.4.1 has not been submitted to Partner Center.
 
 This patch includes the [18-point operator UI audit](ui-audit-implementation.md): tabbed
 Settings, profiles above setup with save/rename/delete actions, a session browser in History,
@@ -27,7 +29,7 @@ and localized tray actions with session status. All 1.4.0 features remain includ
 - [x] Record the final 1.4.1 build and validation results below.
 - [ ] Verify the built app on Windows: settings/tab keyboard navigation, live appearance, profile save/rename/load/delete, history filters/export/delete and localized tray status/actions.
 - [ ] Complete the inherited 1.4.0 native audio, overlay, mixed-DPI, accessibility, persistence and export checks on x64 and ARM64.
-- [ ] Tag/publish v1.4.1 after native acceptance; update CITATION.cff to its actual publication version/date (currently the published 1.4.0 citation).
+- [x] Publish v1.4.1 on GitHub at the user’s request; update CITATION.cff to 1.4.1 / 20 September 2026. Native acceptance remains pending.
 - [ ] Verify release workflow, both embedded 1.4.1.0 manifests and SHA-256 for **Live.Translation_1.4.1.msixbundle**.
 - [ ] Capture final-package EN/FR/DE screenshots; existing PNGs are historical 1.2.2 captures. Complete native German review.
 - [ ] Run Windows App Certification Kit and verify the public privacy-policy page.
@@ -37,7 +39,17 @@ Keep profile/history privacy statements and the feedback credit to @valentinrabo
 patch introduces no extra audio storage or provider requests. A local executable/NSIS installer
 is for native testing, not a replacement for the x64 + ARM64 Store bundle.
 
-### Local build and validation — 20 September 2026
+### Pre-publication follow-up fixes
+
+Settings now retains a stable frame and tab bar with a scrollable body. Profile controls
+share aligned heights. History date fields have localized EN/FR/DE format hints,
+calendar selection, date validation and German date-filter regression coverage.
+Final frontend validation: all 337 tests passed, production build succeeded, and
+formatting and Svelte/TypeScript checks passed.
+The local NSIS artifact recorded below predates these follow-up fixes; use the tagged
+release workflow artifacts for the final 1.4.1 build.
+
+### Earlier local build and validation — 20 September 2026
 
 - Clean `npm ci`; frontend formatting and Svelte/TypeScript checks passed.
 - All 333 frontend tests passed with `--maxWorkers=2`. The initial default-worker run
