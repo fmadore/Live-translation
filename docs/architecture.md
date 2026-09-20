@@ -279,3 +279,18 @@ local-calendar dates. Old history records without titles remain readable.
 `liveActivity.ts` classifies per-source connection/audio/caption observations; it is not voice
 activity detection. `shortcuts.ts` guards app-local shortcuts against editable controls,
 dialogs, repeated keys and IME composition. See [usability](usability.md).
+
+## Operator interface in 1.4.1
+
+`src/lib/ui/` holds shared Field, Select, Stepper, ToolButton, Preference and DateField
+controls. `CaptionPreview.svelte` shares presets and bright/dark samples with appearance
+controls. Settings uses the shared modal's optional stable height, with fixed header/tabs
+and a scrolling, keyed tab panel; other prompts retain content-based sizing.
+
+`DateField.svelte` presents localized year-month-day hints while retaining ISO date
+values for filtering. It validates calendar dates before updating the bound value and
+uses a native date input for the calendar button. Hidden picker inputs are excluded
+from the modal focus cycle. The popup's own language can depend on the host runtime.
+
+The frontend passes localized `TrayLabels` to `set_tray_state`; the Rust tray menu
+uses those labels and a disabled status item with elapsed session time.

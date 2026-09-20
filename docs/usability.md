@@ -25,6 +25,12 @@ after display or scaling changes. Only the operator window may invoke the placem
 
 ## Reading and saved sessions
 
+Settings has **Captions**, **Reading**, **Transcript history** and **App** tabs.
+The dialog and tab bar retain their dimensions when switching tabs; the content scrolls
+independently and starts at the top of each newly selected tab. Short tabs intentionally
+leave spare space. Use Left/Right arrows, Home or End within the tab bar, and Tab to
+reach its content. Changes apply immediately; close with the corner button or Escape.
+
 See [caption layout](caption-layout.md#reading-pace-and-preview) for the adjustable reading pause,
 Steadier updates and presets. See [transcript history](transcript-history.md#titles-and-search)
 for session titles, full-text search and inclusive date/language filters.
@@ -55,6 +61,14 @@ Shortcut help lives in **Settings → App**. A shortcut hint sits beside Start. 
 move-mode keys are unchanged.
 
 ## Verification
+
+The final 1.4.1 frontend suite passed all **337 tests**. On 20 September, browser checks
+confirmed identical dialog/tab-bar positions across all four tabs at 1280×800 and a
+narrow preview, with independently scrolling content. The profile selector and manage
+button had matching top/bottom edges and 40 px heights at default text size.
+French date hints were visually checked; automated German regressions cover valid and
+invalid dates, leap years, calendar event handling, inclusive bounds and filter reset.
+These checks do not certify the native calendar popup or installed MSIX behavior.
 
 Automated tests cover interim batching without starvation, independent sources, immediate
 finalization, stop cancellation, preference validation, profile round trips and hardware checks,

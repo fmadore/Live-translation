@@ -5,7 +5,7 @@ How the app says things, in which language, and what has to happen for a new one
 The rule the whole design follows: **the interface language is not the caption language.** An
 operator running a French-language event may be working in English, or the other way round.
 Nothing here touches `options.targetLanguage`, and the language selector is deliberately in
-the rail's app-level section rather than in the numbered setup sheet.
+**Settings → App**, separate from the numbered setup sheet.
 
 ## Where the words live
 
@@ -112,9 +112,10 @@ columns before anything else: a language that builds words rather than phrases w
 
 The German Store copy is written — full description, Funktionen, Kurzbeschreibung, a release
 note and the five screenshot descriptions, in `docs/store-listing.md`. It is prepared, not
-published: it goes out with the release that ships `de.ts`, for the reason that doc gives.
+published in the Store. The German interface ships in the GitHub release; final-package
+screenshots and native language review are still required for its Store listing.
 
-Still open before publication:
+Still open before Store submission:
 
 - German screenshots in `docs/store-screenshots/de/`, captured from the final MSIX with the
   interface set to German.
@@ -150,7 +151,7 @@ For 1.2.4, the layout controls use **Caption layout / Disposition des sous-titre
 and settings panel use the same translations. EN/FR browser controls were checked on
 14 September; native package checks and new screenshots remain in the release checklist.
 
-The historical French screenshot set is committed. The 1.4.0 controls and listing copy need
+The historical French screenshot set is committed. The 1.4.1 controls and listing copy need
 final-package screenshots; previous review does not certify newly added strings.
 
 ## 1.4.0 usability strings
@@ -160,3 +161,14 @@ presets, title/search controls, input status and shortcut help. Interface langua
 independent of caption language. User-entered profile names and session titles are not translated.
 French and German layouts were visually checked in the browser, including enlarged German
 text. Native German review and fresh Store screenshots remain pending for submission.
+
+## 1.4.1 interface and dates
+
+The `design` catalog covers the new settings tabs, profile actions and shared visual
+controls. Tray labels follow the interface through `TrayLabels` sent to the Rust core.
+History date fields use `usability.dateFormat`, `chooseDate` and `invalidDate`:
+`YYYY-MM-DD`, `AAAA-MM-JJ` and `JJJJ-MM-TT` all represent ISO year-month-day values.
+Changing interface language changes the hint, not an entered date or its filter meaning.
+The native calendar receives the locale tag, but its popup wording can still depend
+on browser/WebView regional settings. German component tests cover input validation,
+leap days, calendar selection, inclusive history bounds and clearing filters.

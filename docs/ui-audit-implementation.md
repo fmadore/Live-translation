@@ -1,6 +1,6 @@
 # Operator UI audit implementation — 20 September 2026
 
-Implements the supplied **Live Translation UI Audit** for the unreleased 1.4.0 UI.
+Implements the supplied **Live Translation UI Audit** following the 1.4.0 feature release.
 The existing dark surfaces, mint selection state, numbered setup and live-session
 identity are preserved. These changes are included in version 1.4.1; final Store
 assets and native acceptance remain pending.
@@ -29,7 +29,7 @@ assets and native acceptance remain pending.
 ## Validation
 
 - Svelte/TypeScript check: no errors or warnings.
-- Full frontend suite: 333 tests passed with two workers after a clean locked install.
+- Final frontend suite: 337 tests passed with two workers after a clean locked install.
   The default-worker attempt hit worker startup timeouts during concurrent native compilation.
 - Production frontend build passed.
 - Rust formatting and all-target/all-feature Clippy passed with warnings denied.

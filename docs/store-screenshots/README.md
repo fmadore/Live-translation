@@ -77,7 +77,7 @@ Full rules, and where these sit in a submission, are in
 
 For 1.4.1, recapture the new Stable reading and Hide filler words controls and add a saved-session history image in each listing language. Capture only disposable demo transcripts, with no private meeting text. The existing images have not been refreshed by this release preparation.
 
-For 1.4.1 also capture Meeting profiles, the expanded appearance preview/presets, and a titled
+For 1.4.1 also capture Meeting profiles, the always-visible appearance previews/presets, and a titled
 history session with search filters. Use disposable demo content. Impeccable browser fixtures
 verify layout but are not Store screenshots or evidence of native provider behavior.
 

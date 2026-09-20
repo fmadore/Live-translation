@@ -59,3 +59,12 @@ unknown rather than guessed. Filters do not delete sessions or change export con
 In 1.4.1, the selected session appears beside the list (below it in narrow windows).
 Use **Clear filters** to reset search, date and language constraints. Rename, copy, export
 and confirmed deletion are grouped with the selected session.
+
+Enter date bounds in year-month-day order, or use the calendar button. The format hint
+follows the interface language: **YYYY-MM-DD** (English), **AAAA-MM-JJ** (French),
+and **JJJJ-MM-TT** (German); for example, `2026-09-20` in every language.
+Invalid dates show a localized error and do not replace the last valid filter.
+Both bounds include the whole selected local day. Clear a field to remove that bound,
+or use **Clear filters** to reset the applied search, dates and language.
+The calendar popup is a native browser/WebView control; its presentation can follow
+the host's regional settings independently of the translated text field.

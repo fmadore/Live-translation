@@ -29,6 +29,10 @@ no audio, keys or transcripts.
 Save as writes text, Markdown, SRT or VTT to the folder the user selects in the native
 Windows dialog. The optional local recovery copy is off by default and stores finalized
 caption text on the same PC. Saved transcripts and recovery data are not uploaded.
+Optional session history is also off by default. It stores unencrypted finalized text
+locally until the user deletes it; disabling history stops new saves but retains existing
+sessions. Meeting profiles store setup preferences and device identifiers, never API keys
+or transcript contents.
 Responsive-caption history is held only in memory; trimming the overlay does not delete
 the operator transcript. See the [privacy policy](docs/privacy.md) and
 [transcript export](docs/transcript-export.md) for details.

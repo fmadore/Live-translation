@@ -45,7 +45,7 @@ Provider details and verified wire formats are documented in
 
 **Latest GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1).**
 See [what changed in 1.4.1](#version-141-interface-update) and the
-[release handoff](docs/store-updates.md#release-140-handoff).
+[release handoff](docs/store-updates.md#release-141-handoff).
 
 Introduced in 1.3.0: Optional local transcript history saves finalized captions progressively
 and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
@@ -53,7 +53,7 @@ at the top left and advances by whole lines. Optional filler cleanup affects onl
 raw transcripts remain intact. The interface is available in English, French and German.
 
 See [transcript history](docs/transcript-history.md), [caption layout](docs/caption-layout.md),
-and the [1.3.0 release handoff](docs/store-updates.md#release-130-handoff).
+and the [current release handoff](docs/store-updates.md#release-141-handoff).
 The GitHub release and prepared Store submission are separate: final packaged acceptance,
 fresh screenshots and Partner Center submission remain tracked in that handoff.
 
@@ -92,7 +92,7 @@ packaging status. Version 1.4.1 is released on GitHub.
 ## Version 1.4.0 usability improvements
 
 Version 1.4.0 is released on GitHub. Installer availability and remaining native/Store checks
-are tracked in the [release handoff](docs/store-updates.md#release-140-handoff).
+are tracked in the [release handoff](docs/store-updates.md#release-141-handoff).
 
 Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
 optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting
@@ -270,11 +270,11 @@ CI then combines into the multi-architecture bundle described in
    confirms overwrites, and remembers the last successful destination folder.
    Timed exports require caption timing; older untimed recovery files can still be saved
    as text or Markdown. See [transcript export](docs/transcript-export.md).
-5. Optionally enable **Automatically save sessions locally** in **Transcript history**.
-   Finalized raw lines are saved progressively; **Browse sessions** reopens previous meetings
+5. Open **Settings → Transcript history** and optionally enable **Automatically save sessions locally**.
+   Finalized raw lines are saved progressively; select a saved session in the list
    for copying, export, or deletion. History is off by default and remains until you delete it.
    See [transcript history](docs/transcript-history.md).
-6. In caption appearance, choose **Stable reading** for top-left text that scrolls by whole
+6. In **Settings → Reading**, choose **Stable reading** for top-left text that scrolls by whole
    lines. **Hide filler words** optionally cleans obvious hesitations in the overlay while
    preserving the raw transcript. See [caption layout](docs/caption-layout.md).
 7. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime

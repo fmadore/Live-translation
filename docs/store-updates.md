@@ -18,6 +18,13 @@ GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/ta
 20 September 2026. Installer workflow completion must be verified separately.
 Version 1.4.1 has not been submitted to Partner Center.
 
+Publication checkpoint, 20 September 2026: tag `v1.4.1` points to `fb35c7a`.
+The release page is public. [Release installers](https://github.com/fmadore/Live-translation/actions/runs/35529783692)
+and [release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/35529783699)
+were still running at this documentation check, with no release assets attached yet.
+Follow those runs for current status; no final bundle digest or manifest verification is
+recorded until the tagged artifacts exist.
+
 This patch includes the [18-point operator UI audit](ui-audit-implementation.md): tabbed
 Settings, profiles above setup with save/rename/delete actions, a session browser in History,
 visible appearance presets/previews, curated colour swatches, consistent controls/type/labels,

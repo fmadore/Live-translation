@@ -91,8 +91,8 @@ All nine exact copy-and-paste blocks are in [`store-listing.md`](store-listing.m
 - German Funktionen
 - German Kurzbeschreibung — 193 characters
 
-The German blocks are prepared but **not to be published before the release that ships the
-German interface** — [`store-listing.md`](store-listing.md#adding-the-german-listing) lists what
+The German interface is included in 1.4.1. Before publishing its Store listing, complete
+final-package screenshots and native German review — [`store-listing.md`](store-listing.md#adding-the-german-listing) lists what
 has to be true first. German also carries one extra Funktionen bullet naming the interface
 languages, which is deliberate.
 

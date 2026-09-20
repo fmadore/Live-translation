@@ -156,4 +156,16 @@ control theme. Search/date controls retain visible keyboard focus. See
 [Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
 focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
 Windows text scaling and mixed-DPI acceptance for the final package remain in the
-[release checklist](store-updates.md#release-140-handoff).
+[release checklist](store-updates.md#release-141-handoff).
+
+## 1.4.1 settings and date controls
+
+Settings uses a roving tab stop with Left/Right, Home and End navigation. The dialog
+frame and tab bar stay stationary while the selected body scrolls; the body is also
+keyboard focusable. Switching tabs starts the new panel at its top. The close control
+remains outside the scrolling body. Modal Tab cycling excludes negative-tabindex controls.
+
+Date fields have explicit labels, localized format hints and `aria-invalid` with a linked
+localized error for invalid input. Calendar buttons have translated accessible names;
+the implementation's hidden native date input is excluded from the accessibility tree
+and normal Tab order. Packaged WebView calendar and screen-reader acceptance remain pending.

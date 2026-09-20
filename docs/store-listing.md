@@ -331,6 +331,11 @@ Retained from 1.3.0: enable Automatically save sessions locally in Transcript hi
 
 In 1.4.1, open Settings and use the Captions, Reading, Transcript history and App tabs. Presets and bright/dark previews are always visible in Captions. Changes apply immediately; close with the top-right button or Escape. Manage profiles above step 01; save, rename, load and confirm deletion. History has a session list and detail pane with filters and Clear filters. Check EN/FR/DE tray labels and live status.
 
+Switch all four tabs and verify the dialog and tab bar remain stationary while the content
+scrolls. In History, test both date bounds and Clear filters in English, French and German.
+Hints are YYYY-MM-DD, AAAA-MM-JJ and JJJJ-MM-TT; entered values remain year-month-day.
+Check valid leap days, invalid-date messages and native calendar selection in the packaged app.
+
 Introduced in 1.4.0 and included in 1.4.1: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
 
 In Settings → Captions, try Standard, Large room and High contrast. Fit window/Compact allow a 2–30 second hold; Stable reading retains text until it rolls out or the session stops. Choose Steadier updates and verify completed demo captions still appear promptly. Live interim timing and Gemini cleanup need a separate provider test; the deterministic demo cannot validate cloud recognition.
