@@ -21,6 +21,27 @@
 import type { Messages } from './en';
 
 export const fr: Messages = {
+	design: {
+		smartSummary: 'La transcription intelligente retire les hésitations et les faux départs.',
+		captions: 'Sous-titres',
+		reading: 'Lecture',
+		app: 'Application',
+		applies: 'Les modifications s’appliquent immédiatement.',
+		clearFilters: 'Effacer les filtres',
+		newProfile: 'Enregistrer la configuration…',
+		rename: 'Renommer',
+		saveName: 'Enregistrer le nom',
+		manageProfiles: 'Gérer les profils',
+		desktopOnly:
+			'Ouvrez l’application de bureau pour charger les profils et consulter les sessions enregistrées.',
+		selectSession: 'Choisissez une session à lire ou à exporter.',
+		custom: 'Personnaliser…',
+		trayOpen: 'Ouvrir la fenêtre',
+		trayQuit: 'Quitter',
+		trayStop: 'Arrêter la session',
+		trayShow: 'Afficher les sous-titres',
+		trayHide: 'Masquer les sous-titres'
+	},
 	usability: {
 		hold: 'Durée des sous-titres terminés (secondes)',
 		holdHint:
@@ -96,7 +117,7 @@ export const fr: Messages = {
 	// The product's own name is not translated — the Store lists it in English, and inventing a
 	// French one would give the same app a third name. The line under it is prose, so it is.
 	app: {
-		name: 'Live Captions',
+		name: 'Live Translation & Subtitles',
 		tagline: 'Traduction et sous-titrage en temps réel'
 	},
 
@@ -335,12 +356,12 @@ export const fr: Messages = {
 		},
 		reset: 'Rétablir',
 		resetLabel: 'Rétablir l’apparence par défaut de la surimpression',
-		move: 'Déplacer',
+		move: 'Déplacer les sous-titres',
 		done: 'Terminé',
-		moveLabel: 'Déplacer la surimpression',
+		moveLabel: 'Déplacer les sous-titres',
 		moveDoneLabel: 'Terminer le déplacement de la surimpression',
-		show: 'Afficher',
-		hide: 'Masquer',
+		show: 'Afficher les sous-titres',
+		hide: 'Masquer les sous-titres',
 		showLabel: 'Afficher la surimpression',
 		hideLabel: 'Masquer la surimpression'
 	},
@@ -431,11 +452,11 @@ export const fr: Messages = {
 			title: 'Placement de la surimpression',
 			placed: 'Placée — les sous-titres apparaîtront là où vous les avez verrouillés',
 			unplaced: 'Pas encore placée — les sous-titres se placeront en bas au centre de cet écran',
-			place: 'Placer',
-			adjust: 'Ajuster',
+			place: 'Déplacer les sous-titres',
+			adjust: 'Déplacer les sous-titres',
 			done: 'Terminé',
-			placeLabel: 'Placer la surimpression',
-			adjustLabel: 'Ajuster le placement de la surimpression',
+			placeLabel: 'Déplacer les sous-titres',
+			adjustLabel: 'Déplacer les sous-titres',
 			doneLabel: 'Terminer le placement de la surimpression'
 		},
 

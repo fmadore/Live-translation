@@ -246,7 +246,7 @@
 		font-weight: 500;
 		line-height: 1;
 		padding: 7px 11px;
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 	}
 	button.ghost {
 		color: var(--text-soft);
@@ -275,7 +275,7 @@
 		background: var(--panel-2);
 		border: 1px solid var(--border);
 		color: var(--text);
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		padding: 7px 10px;
 		font-size: var(--type-12-5);
 	}

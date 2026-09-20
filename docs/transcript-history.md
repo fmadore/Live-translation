@@ -2,7 +2,7 @@
 
 Implements [issue #81](https://github.com/fmadore/Live-translation/issues/81).
 
-The operator window has a **Transcript history** section below the session controls.
+Open **Settings → Transcript history** in the operator window.
 Enable **Automatically save sessions locally** before starting a meeting. This is off by
 default. Enabling it mid-session saves subsequent finalized lines; it does not retroactively
 archive the transcript already in memory.
@@ -13,7 +13,7 @@ atomically replaced JSON file in
 Stop drains and saves trailing partial text before finishing the session. A crash leaves the
 last successfully saved snapshot available. Empty sessions create no file.
 
-**Browse sessions** lists start date/time, duration, and known language information. Source
+The session list opens automatically and shows start date/time, duration, and known language information. Source
 speech is labelled auto-detected when the provider does not report its language. Demonstration
 and rehearsal sources have known languages. Unfinished sessions show duration through the last
 save. Select a session to read its raw captions and available source transcription, copy it, or
@@ -55,3 +55,7 @@ Search matches session titles, caption text and available source text. Date boun
 both selected local calendar days. The caption-language filter uses the translation target,
 or the known source language for subtitles; automatically detected languages remain marked
 unknown rather than guessed. Filters do not delete sessions or change export contents.
+
+In 1.4.1, the selected session appears beside the list (below it in narrow windows).
+Use **Clear filters** to reset search, date and language constraints. Rename, copy, export
+and confirmed deletion are grouped with the selected session.

@@ -1,6 +1,8 @@
 import { get } from 'svelte/store';
 import { expect, it, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import ReadingPreferences from './ReadingPreferences.svelte';
+import CaptionPreview from './CaptionPreview.svelte';
 import CaptionAppearance from './CaptionAppearance.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { api } from './tauri';
@@ -30,8 +32,8 @@ it('keeps both appearances synchronized with separate accessible contrast descri
 	)!;
 	await fireEvent.click(increase);
 	await waitFor(() => {
-		expect(rail.container.querySelector('.stepper-value')?.textContent).toBe('44');
-		expect(settings.container.querySelector('.stepper-value')?.textContent).toBe('44');
+		expect(rail.container.querySelector('.stepper-value')?.textContent).toBe('44 px');
+		expect(settings.container.querySelector('.stepper-value')?.textContent).toBe('44 px');
 	});
 	expect(setOverlayConfig).toHaveBeenCalledTimes(1);
 	rail.unmount();
@@ -43,7 +45,7 @@ it('persists stable reading and display cleanup, synchronizes both windows, and 
 	const overlay = createOverlayController({ ...api, setOverlayConfig });
 	overlayCaptionLayout.set('fit');
 	overlayCleanSpeech.set(false);
-	const view = render(CaptionAppearance, { heading: 'Appearance', overlay });
+	const view = render(ReadingPreferences, { overlay });
 	await fireEvent.change(view.container.querySelector('select')!, { target: { value: 'stable' } });
 	await fireEvent.click(view.getByLabelText('Hide filler words'));
 	expect(loadCaptionLayout()).toBe('stable');
@@ -63,11 +65,11 @@ it('switches layout live, remembers compact width, and resets to fit window', as
 	const overlay = createOverlayController({ ...api, setOverlayConfig });
 	overlayCaptionLayout.set('fit');
 	overlayCaptionWidth.set(44);
-	const view = render(CaptionAppearance, { heading: 'Appearance', overlay });
+	const view = render(ReadingPreferences, { overlay });
 	const selector = view.container.querySelector('select')!;
-	expect(view.container.querySelectorAll('.stepper')).toHaveLength(2);
+	expect(view.container.querySelectorAll('.ui-stepper')).toHaveLength(1);
 	await fireEvent.change(selector, { target: { value: 'compact' } });
-	expect(view.container.querySelectorAll('.stepper')).toHaveLength(3);
+	expect(view.container.querySelectorAll('.ui-stepper')).toHaveLength(2);
 	expect(setOverlayConfig).toHaveBeenLastCalledWith(
 		expect.objectContaining({ captionLayout: 'compact', captionWidth: 44 })
 	);
@@ -86,22 +88,25 @@ it('updates reading preferences, previews presets, and resets the complete appea
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
 	const overlay = createOverlayController({ ...api, setOverlayConfig });
 	overlay.resetOverlayAppearance();
-	const view = render(CaptionAppearance, { heading: 'Appearance', overlay });
-	await fireEvent.change(view.getByLabelText('Keep finished captions (seconds)'), {
-		target: { value: '9' }
-	});
+	const view = render(ReadingPreferences, { overlay });
+	for (let i = 0; i < 5; i++)
+		await fireEvent.click(view.getByRole('button', { name: 'Keep finished captions (seconds) +' }));
 	await fireEvent.change(view.getByLabelText('Caption updates'), { target: { value: 'steady' } });
 	expect(get(overlayHoldSeconds)).toBe(9);
 	expect(get(overlayPace)).toBe('steady');
-	await fireEvent.click(view.getByText('Large room'));
+	const presets = render(CaptionPreview, { overlay, part: 'presets' });
+	await fireEvent.click(presets.getByText('Large room'));
 	expect(get(overlayFontSize)).toBe(52);
 	expect(get(overlayCaptionLayout)).toBe('stable');
-	expect(view.getByLabelText('Keep finished captions (seconds)')).toBeDisabled();
+	expect(view.getByRole('button', { name: 'Keep finished captions (seconds) +' })).toBeDisabled();
 	overlay.resetOverlayAppearance();
 	await waitFor(() =>
-		expect(view.getByLabelText('Keep finished captions (seconds)')).not.toBeDisabled()
+		expect(
+			view.getByRole('button', { name: 'Keep finished captions (seconds) +' })
+		).not.toBeDisabled()
 	);
 	expect(get(overlayHoldSeconds)).toBe(4);
 	expect(get(overlayPace)).toBe('immediate');
+	presets.unmount();
 	view.unmount();
 });

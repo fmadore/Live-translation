@@ -130,8 +130,18 @@ export const api = {
 
 	/** Push session and overlay state onto the tray menu, so it cannot describe a state the
 	 *  app has already left. */
-	setTrayState: (sessionActive: boolean, overlayVisible: boolean) =>
-		invoke<void>('set_tray_state', { sessionActive, overlayVisible })
+	setTrayState: (
+		sessionActive: boolean,
+		overlayVisible: boolean,
+		labels?: {
+			open: string;
+			quit: string;
+			stop: string;
+			show: string;
+			hide: string;
+			status: string;
+		}
+	) => invoke<void>('set_tray_state', { sessionActive, overlayVisible, labels })
 };
 
 // ---- Events ---------------------------------------------------------------

@@ -9,7 +9,53 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.4.1 handoff
+
+Next Store submission target: **1.4.1**, MSIX **1.4.1.0**, prepared 20 September 2026.
+This replaces the unsubmitted 1.4.0 target. The last documented Store release remains 1.2.4;
+v1.4.0 is published on GitHub and its existing tag/assets must not be overwritten.
+Version 1.4.1 is not yet tagged, published or submitted to Partner Center.
+
+This patch includes the [18-point operator UI audit](ui-audit-implementation.md): tabbed
+Settings, profiles above setup with save/rename/delete actions, a session browser in History,
+visible appearance presets/previews, curated colour swatches, consistent controls/type/labels,
+and localized tray actions with session status. All 1.4.0 features remain included.
+
+- [x] Implement the UI audit and correct accented labels in UTF-8.
+- [x] Update EN/FR/DE Store copy, GitHub release draft, usage docs and screenshot instructions.
+- [x] Synchronize app manifests and root lockfile versions to 1.4.1.
+- [x] Record the final 1.4.1 build and validation results below.
+- [ ] Verify the built app on Windows: settings/tab keyboard navigation, live appearance, profile save/rename/load/delete, history filters/export/delete and localized tray status/actions.
+- [ ] Complete the inherited 1.4.0 native audio, overlay, mixed-DPI, accessibility, persistence and export checks on x64 and ARM64.
+- [ ] Tag/publish v1.4.1 after native acceptance; update CITATION.cff to its actual publication version/date (currently the published 1.4.0 citation).
+- [ ] Verify release workflow, both embedded 1.4.1.0 manifests and SHA-256 for **Live.Translation_1.4.1.msixbundle**.
+- [ ] Capture final-package EN/FR/DE screenshots; existing PNGs are historical 1.2.2 captures. Complete native German review.
+- [ ] Run Windows App Certification Kit and verify the public privacy-policy page.
+- [ ] Upload the combined bundle and [prepared listing fields](store-listing.md) manually; record certification and rollout.
+
+Keep profile/history privacy statements and the feedback credit to @valentinrabot. This UI
+patch introduces no extra audio storage or provider requests. A local executable/NSIS installer
+is for native testing, not a replacement for the x64 + ARM64 Store bundle.
+
+### Local build and validation — 20 September 2026
+
+- Clean `npm ci`; frontend formatting and Svelte/TypeScript checks passed.
+- All 333 frontend tests passed with `--maxWorkers=2`. The initial default-worker run
+  encountered worker startup timeouts while the native build was compiling.
+- Rust formatting, all-target/all-feature Clippy with warnings denied, and 73 Rust tests
+  passed. The one billable provider probe remains ignored.
+- `npm audit --audit-level=moderate` passed (three low-severity findings remain).
+- `npm run tauri build -- --bundles nsis` completed, including the production frontend.
+  Application file/product version: **1.4.1**.
+- Local x64 installer: `src-tauri/target/release/bundle/nsis/Live Translation_1.4.1_x64-setup.exe`
+  (**3,394,500 bytes**). SHA-256:
+  `7e807763e462e16cecb9937dda7a31ee2110fa21ab75fc1268d6571786a80e5b`.
+
+This confirms compilation and packaging, not installed-app acceptance or Store certification.
+
 ## Release 1.4.0 handoff
+
+Historical preparation record; the next Store target is now [1.4.1](#release-141-handoff).
 
 GitHub release: **1.4.0**, MSIX **1.4.0.0**, dated 19 September 2026.
 [Release and installers](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0).

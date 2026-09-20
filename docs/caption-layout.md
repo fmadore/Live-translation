@@ -1,14 +1,14 @@
 # Caption layout
 
-Current behavior through **1.4.0**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior through **1.4.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 
 ## Fit window
 
-Open Settings → Caption layout → **Fit window**. In French, use
-**Disposition des sous-titres → Adapter à la fenêtre**. The same control is available
-in the live session's caption appearance controls.
+Open Settings → Reading → Caption layout → **Fit window**. In French, use
+**Paramètres → Lecture → Disposition des sous-titres → Adapter à la fenêtre**.
+Settings remains available during a live session.
 
 Fit window is the default when no layout preference has been saved. Widening the overlay
 allows more words per line; increasing its height allows more recent caption context.
@@ -91,7 +91,7 @@ Completed on 14 September 2026:
   **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
 
 The checks above are historical evidence for 1.2.4, not acceptance of the next package.
-For 1.4.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
+For 1.4.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
 
 | Check | Expected result |
 | --- | --- |
@@ -115,7 +115,7 @@ For 1.4.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-140-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-141-handoff) for the remaining release gates.
 
 ## Reading pace and preview
 
@@ -131,7 +131,7 @@ every 450 ms per source, without waiting indefinitely for silence. Final text an
 transitions flush promptly; it can still revise already displayed words. This setting only
 changes presentation: it does not buffer audio, delay transcription storage or add requests.
 
-The expandable **Appearance preview** shows sample text at the selected font size over bright
+**Settings → Captions** keeps presets and the appearance preview visible. It shows sample text at the selected font size over bright
 and dark slides. Standard, Large room and High contrast presets change appearance; the Reset
 button also restores the default reading pace, hold time and filler filter. The real overlay
 may have different dimensions, so finish placement on the presentation display.

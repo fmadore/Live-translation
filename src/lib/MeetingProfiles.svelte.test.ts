@@ -40,6 +40,8 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	const loaded = vi.fn().mockResolvedValue(undefined);
 	const busy = vi.fn();
 	const view = render(MeetingProfiles, { locked: false, overlay, onLoaded: loaded, onBusy: busy });
+	await fireEvent.click(view.getByRole('button', { name: 'Manage profiles' }));
+	await fireEvent.click(view.getByText('Save current setup…'));
 	await fireEvent.input(view.getByLabelText('Profile name'), { target: { value: 'Lecture hall' } });
 	await fireEvent.click(view.getByText('Save current setup'));
 	await waitFor(() => expect(view.getByText('Profile saved.')).toBeTruthy());
@@ -55,6 +57,13 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	expect(get(options).micDeviceId).toBeNull();
 	expect(api.setOverlayPlacement).toHaveBeenCalled();
 	expect(view.getByText(/An audio device is unavailable/)).toBeTruthy();
+	await fireEvent.click(view.getByRole('button', { name: 'Manage profiles: Lecture hall' }));
+	await fireEvent.click(view.getByText('Rename'));
+	await fireEvent.input(view.getByLabelText('Profile name'), { target: { value: 'Seminar room' } });
+	await fireEvent.click(view.getByText('Save name'));
+	await waitFor(() =>
+		expect(JSON.parse(localStorage.getItem(PROFILES_KEY)!)[0].name).toBe('Seminar room')
+	);
 	await fireEvent.click(view.getByText('Delete profile'));
 	expect(JSON.parse(localStorage.getItem(PROFILES_KEY)!)).toHaveLength(1);
 	await fireEvent.click(view.getByText('Delete permanently'));

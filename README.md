@@ -81,6 +81,14 @@ reachable — open the window, show or hide the overlay, stop the session, or qu
 operator window out of the way. Closing the window quits the app unless you turn on **Keep
 running in the tray when I close this window**.
 
+## Version 1.4.1 interface update — prepared
+
+The next Store submission target is **1.4.1**. Settings now has Captions, Reading,
+Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
+view, presets and previews stay visible, and the tray follows the interface language.
+See the [1.4.1 handoff](docs/store-updates.md#release-141-handoff) for native testing and
+packaging status; the latest published GitHub release remains 1.4.0.
+
 ## Version 1.4.0 usability improvements
 
 Version 1.4.0 is released on GitHub. Installer availability and remaining native/Store checks

@@ -1,10 +1,13 @@
 <script lang="ts">
+	import Select from './ui/Select.svelte';
+	import Field from './ui/Field.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { get } from 'svelte/store';
 	import { t } from './i18n';
 	import { api, isTauri } from './tauri';
 	import { describeError } from './errors';
 	import { validateDevices } from './audioDevices';
-	import { normalizeStartOptions } from './types';
+	import { captionLanguageOf, normalizeStartOptions } from './types';
 	import { PROFILES_KEY, decodeProfiles, type MeetingProfile } from './profiles';
 	import {
 		options,
@@ -32,12 +35,16 @@
 	let profiles = $state(
 		decodeProfiles(typeof localStorage === 'undefined' ? null : localStorage.getItem(PROFILES_KEY))
 	);
+	let expanded = $state(false);
+	let editing = $state<'save' | 'rename' | null>(null);
 	let selected = $state('');
 	let name = $state('');
 	let busy = $state(false);
 	let notice = $state('');
 	let error = $state('');
 	let confirming = $state(false);
+	let rowMenu = $state('');
+	let renameId = $state('');
 	function persist(next: MeetingProfile[]) {
 		localStorage.setItem(PROFILES_KEY, JSON.stringify(next));
 		profiles = next;
@@ -79,6 +86,8 @@
 			persist([...profiles, profile]);
 			selected = profile.id;
 			name = '';
+			editing = null;
+			expanded = true;
 			notice = get(t).usability.profileSaved;
 		});
 	}
@@ -118,87 +127,220 @@
 		return perform(async () => {
 			persist(profiles.filter((p) => p.id !== selected));
 			selected = '';
+			editing = null;
+			rowMenu = '';
 			confirming = false;
+		});
+	}
+
+	function rename() {
+		return perform(async () => {
+			if (!name.trim()) return;
+			persist(
+				profiles.map((p) => (p.id === renameId ? { ...p, name: name.trim().slice(0, 80) } : p))
+			);
+			editing = null;
+			name = '';
+			notice = get(t).usability.profileSaved;
 		});
 	}
 </script>
 
-<details class="profiles">
-	<summary>{$t.usability.profiles}</summary>
-	<p>{$t.usability.profileHint}</p>
-	<label
-		>{$t.usability.profileName}<input
-			maxlength="80"
-			bind:value={name}
+<section class="profiles" aria-label={$t.usability.profiles}>
+	<div class="picker">
+		<Field label={$t.usability.profiles}>
+			<Select
+				aria-label={$t.usability.chooseProfile}
+				bind:value={selected}
+				disabled={locked || busy}
+				onchange={() => {
+					confirming = false;
+					editing = null;
+					expanded = true;
+				}}
+			>
+				<option value="">{$t.usability.chooseProfile}</option>
+				{#each profiles as p (p.id)}<option value={p.id}>{p.name}</option>{/each}
+			</Select>
+		</Field>
+		<ToolButton
+			aria-label={$t.design.manageProfiles}
+			aria-expanded={expanded}
 			disabled={locked || busy}
-		/></label
-	>
-	<button disabled={locked || busy || !name.trim()} onclick={save}
-		>{$t.usability.saveProfile}</button
-	>
-	<label
-		>{$t.usability.chooseProfile}<select
-			bind:value={selected}
-			disabled={locked || busy}
-			onchange={() => (confirming = false)}
-			><option value="">{$t.usability.chooseProfile}</option>{#each profiles as p (p.id)}<option
-					value={p.id}>{p.name}</option
-				>{/each}</select
-		></label
-	>
-	<div class="actions">
-		<button disabled={locked || busy || !selected || !isTauri()} onclick={load}
-			>{$t.usability.loadProfile}</button
-		><button disabled={locked || busy || !selected} onclick={remove}
-			>{confirming ? $t.usability.confirmDelete : $t.usability.deleteProfile}</button
-		>{#if confirming}<button onclick={() => (confirming = false)} disabled={busy}
-				>{$t.history.cancel}</button
-			>{/if}
+			onclick={() => (expanded = !expanded)}
+			title={$t.design.manageProfiles}
+		>
+			<svg
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.7"
+				aria-hidden="true"
+				><path d="M4 6h16M4 12h16M4 18h16" /><circle
+					cx="9"
+					cy="6"
+					r="2"
+					fill="var(--panel-2)"
+				/><circle cx="15" cy="12" r="2" fill="var(--panel-2)" /><circle
+					cx="9"
+					cy="18"
+					r="2"
+					fill="var(--panel-2)"
+				/></svg
+			>
+		</ToolButton>
 	</div>
-	<p role="status">{notice}</p>
+	{#if expanded}
+		<p>{$t.usability.profileHint}</p>
+		{#if !isTauri()}<p>{$t.design.desktopOnly}</p>{/if}
+		<ul>
+			{#each profiles as p (p.id)}
+				<li>
+					<strong>{p.name}</strong>
+					<p class="summary">
+						{p.options.mode === 'translate' ? $t.mode.translate : $t.mode.transcribe} · {$t.engine[
+							p.options.provider
+						]} · {$t.source[p.options.source]} · {$t.language[
+							captionLanguageOf(p.options) ?? 'auto'
+						]}
+					</p>
+					<div class="actions">
+						<ToolButton
+							disabled={locked || busy || !isTauri()}
+							onclick={() => {
+								selected = p.id;
+								void load();
+							}}>{$t.usability.loadProfile}</ToolButton
+						>
+						<ToolButton
+							aria-label={`${$t.design.manageProfiles}: ${p.name}`}
+							aria-expanded={rowMenu === p.id}
+							disabled={locked || busy}
+							onclick={() => {
+								rowMenu = rowMenu === p.id ? '' : p.id;
+								confirming = false;
+							}}
+							><svg
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="currentColor"
+								aria-hidden="true"
+								><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle
+									cx="19"
+									cy="12"
+									r="1.5"
+								/></svg
+							></ToolButton
+						>
+						{#if rowMenu === p.id}
+							<ToolButton
+								disabled={locked || busy}
+								onclick={() => {
+									selected = p.id;
+									name = p.name;
+									renameId = p.id;
+									editing = 'rename';
+									confirming = false;
+								}}>{$t.design.rename}</ToolButton
+							>
+							<ToolButton
+								class="danger"
+								disabled={locked || busy}
+								onclick={() => {
+									if (selected !== p.id) confirming = false;
+									selected = p.id;
+									void remove();
+								}}
+								>{confirming && selected === p.id
+									? $t.usability.confirmDelete
+									: $t.usability.deleteProfile}</ToolButton
+							>
+							{#if confirming && selected === p.id}<ToolButton
+									disabled={busy}
+									onclick={() => (confirming = false)}>{$t.history.cancel}</ToolButton
+								>{/if}
+						{/if}
+					</div>
+				</li>
+			{/each}
+		</ul>
+		<ToolButton
+			disabled={locked || busy}
+			onclick={() => {
+				name = '';
+				editing = 'save';
+				confirming = false;
+			}}>{$t.design.newProfile}</ToolButton
+		>
+		{#if editing}
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					void (editing === 'rename' ? rename() : save());
+				}}
+			>
+				<Field label={$t.usability.profileName}
+					><input maxlength="80" bind:value={name} disabled={locked || busy} /></Field
+				>
+				<div class="actions">
+					<ToolButton type="submit" disabled={locked || busy || !name.trim()}
+						>{editing === 'rename' ? $t.design.saveName : $t.usability.saveProfile}</ToolButton
+					>
+					<ToolButton disabled={busy} onclick={() => (editing = null)}
+						>{$t.history.cancel}</ToolButton
+					>
+				</div>
+			</form>
+		{/if}
+	{/if}
+	{#if notice}<p role="status">{notice}</p>{/if}
 	{#if error}<p role="alert">{error}</p>{/if}
-</details>
+</section>
 
 <style>
 	.profiles {
-		margin: 0.75rem 0;
-		padding: 0.75rem;
-		border-block: 1px solid var(--border);
+		min-width: 0;
 		font-size: var(--type-12);
 		color: var(--text-soft);
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--hairline);
 	}
-	summary {
-		cursor: pointer;
-		font-weight: 600;
+	.picker {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: end;
+		gap: 0.625rem;
 	}
 	p {
 		color: var(--muted);
 		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
-	label {
-		display: grid;
-		gap: 0.4rem;
-		margin: 0.75rem 0;
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
 	}
-	input,
-	select,
-	button {
-		min-width: 0;
-		max-width: 100%;
-		padding: 0.5rem;
-		font: inherit;
-		color: var(--text);
-		background: var(--panel-2);
-		border: 1px solid var(--border);
-		border-radius: 6px;
+	li {
+		padding: 0.75rem 0;
+		border-bottom: 1px solid var(--hairline);
+		margin-bottom: 0.75rem;
+		overflow-wrap: anywhere;
+	}
+	.summary {
+		margin: 0.375rem 0 0.625rem;
 	}
 	.actions {
 		display: flex;
-		gap: 0.5rem;
 		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
-	button:disabled {
-		opacity: 0.5;
+	form {
+		display: grid;
+		gap: 0.625rem;
+		margin-top: 0.75rem;
 	}
 </style>

@@ -35,6 +35,7 @@
 	// focus their own default button, which they do from their own `onMount`.
 	onMount(() => {
 		const opener = document.activeElement as HTMLElement | null;
+		prompt?.querySelector<HTMLElement>('button, input, select')?.focus();
 		return () => opener?.focus?.();
 	});
 
@@ -131,15 +132,15 @@
 		flex-direction: column;
 		gap: 14px;
 		padding: 24px;
-		border-radius: 14px;
+		border-radius: var(--radius-card);
 		border: 1px solid var(--border);
 		background: var(--panel);
 		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 	}
-	/* 640px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
+	/* 832px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
 	   fixed pixel width turns a two-column row of controls into a column of clipped ones. */
 	.prompt.wide {
-		width: min(40em, 100%);
+		width: min(52em, 100%);
 	}
 	.header {
 		display: flex;
@@ -165,7 +166,7 @@
 		margin: -4px -6px 0 0;
 		padding: 0;
 		border: none;
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		background: transparent;
 		color: var(--muted-3);
 	}
@@ -192,7 +193,7 @@
 	}
 	.prompt :global(p.error) {
 		padding: 9px 11px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
@@ -215,7 +216,7 @@
 		font-weight: 500;
 		line-height: 1;
 		padding: 10px 15px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--text-soft);

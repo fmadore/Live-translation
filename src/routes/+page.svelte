@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ReadingPreferences from '$lib/ReadingPreferences.svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import LiveActivity from '$lib/LiveActivity.svelte';
 	import KeyboardHelp from '$lib/KeyboardHelp.svelte';
@@ -306,7 +307,16 @@
 	// once on mount.
 	$effect(() => {
 		if (browserMode) return;
-		void api.setTrayState($isRunning, overlay.overlayVisible).catch(() => {});
+		void api
+			.setTrayState($isRunning, overlay.overlayVisible, {
+				open: $t.design.trayOpen,
+				quit: $t.design.trayQuit,
+				stop: $t.design.trayStop,
+				show: $t.design.trayShow,
+				hide: $t.design.trayHide,
+				status: `${stateLabel[$sessionState]}${$isRunning ? ' · ' + formatElapsed(elapsedMs) : ''}`
+			})
+			.catch(() => {});
 	});
 
 	// ---- Recovery spool ---------------------------------------------------------
@@ -440,6 +450,7 @@
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
 	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
 	let settingsOpen = $state(false);
+	let settingsTab = $state<'captions' | 'reading' | 'history' | 'app'>('captions');
 
 	// Names the interface-language group for a screen reader; the heading is the only thing
 	// that says what those two buttons are choosing between.
@@ -637,9 +648,7 @@
 				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
 			{/if}
 		</div>
-		<!-- The one control that is in the same place in every state. What it opens is reachable
-		     from nowhere else, so it cannot be a control that appears only once a session does —
-		     which is exactly how the caption appearance came to be undiscoverable. -->
+		<!-- Persistent access to caption, reading, history and app preferences. -->
 		<button
 			class="gear"
 			aria-haspopup="dialog"
@@ -704,6 +713,18 @@
 
 	<div class="body">
 		<aside class="rail">
+			{#if !$isRunning}
+				<MeetingProfiles
+					locked={controlsLocked || preflight.audioTesting || preflight.audioTestBusy}
+					{overlay}
+					onBusy={(value) => (profileBusy = value)}
+					onLoaded={async () => {
+						preflight.invalidateAudioTest();
+						await preflight.refresh();
+						await preflight.refreshLocalReadiness();
+					}}
+				/>
+			{/if}
 			{#if $isRunning}
 				<!-- ---- Running: the setup sheet collapses to what it locked in ---- -->
 				<div class="rail-head">
@@ -781,12 +802,6 @@
 
 				<div class="cost-card">
 					<div class="cost-figures">
-						<div class="figure">
-							<span class="chip-label"
-								>{$options.provider === 'ondevice' ? $t.cost.elapsed : $t.cost.streamed}</span
-							>
-							<span class="figure-value">{formatElapsed(elapsedMs)}</span>
-						</div>
 						{#if $options.provider !== 'ondevice'}
 							<div class="figure">
 								<span class="chip-label">{$t.cost.estimate}</span>
@@ -811,7 +826,7 @@
 				<div class="divider"></div>
 
 				<div class="rail-section">
-					<CaptionAppearance heading={$t.overlayControls.heading} {overlay} />
+					<CaptionAppearance heading={$t.overlayControls.heading} {overlay} compact />
 					<div class="overlay-actions">
 						<!-- Both labels are a single verb on screen, which is all the space allows and
 						     all a sighted operator needs beside the "Overlay" heading. The accessible
@@ -1093,9 +1108,9 @@
 					{#if $options.provider !== 'ondevice'}
 						<button
 							class="tool"
-							disabled={browserMode || preflight.refreshing}
-							aria-busy={preflight.refreshing}
-							onclick={preflight.refresh}
+							disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
+							aria-busy={preflight.refreshing || preflight.refreshingApplications}
+							onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
 						>
 							{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
 						</button>
@@ -1176,7 +1191,9 @@
 							>
 								<span class="engine-body">
 									<span class="engine-name">{vendorLabel[id]}</span>
-									<span class="engine-model">{modelLabel(p, $t)}</span>
+									<span class="engine-model">{modelLabel(p, $t)}</span
+									>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
+										>{/if}
 								</span>
 								<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>
 							</button>
@@ -1421,26 +1438,10 @@
 					/>
 				{/if}
 
-				<span class="grow"></span>
-
 				{#if $statusMessage}
 					<p class="status-msg" aria-hidden="true">{statusText}</p>
 				{/if}
 
-				<MeetingProfiles
-					locked={controlsLocked || preflight.audioTesting || preflight.audioTestBusy}
-					{overlay}
-					onBusy={(value) => (profileBusy = value)}
-					onLoaded={async () => {
-						preflight.invalidateAudioTest();
-						await preflight.refresh();
-						await preflight.refreshLocalReadiness();
-					}}
-				/>
-				<KeyboardHelp />
-				{#if $options.provider === 'gemini-transcribe'}<p class="hint">
-						{$t.usability.geminiSmart}
-					</p>{/if}
 				<div class="launch">
 					<div class="launch-actions">
 						<button
@@ -1467,6 +1468,7 @@
 						<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
 					     key and the same desktop runtime. -->
 
+						<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
 						<button
 							class="rehearse"
 							aria-describedby="rehearse-hint"
@@ -1507,7 +1509,6 @@
 					</span>
 				</div>
 			{/if}
-			<TranscriptHistory />
 		</main>
 	</div>
 </div>
@@ -1524,58 +1525,94 @@
 		dismissLabel={$t.settings.closeLabel}
 		onDismiss={() => (settingsOpen = false)}
 	>
-		<div class="settings">
-			<div class="rail-section">
-				<CaptionAppearance heading={$t.settings.appearance} {overlay} />
-				<KeyboardHelp />
-				<p class="hint">{$t.settings.appearanceNote}</p>
-				<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
+		<p class="hint">{$t.design.applies}</p>
+		<div class="settings-tabs" role="tablist" aria-label={$t.settings.heading}>
+			{#each ['captions', 'reading', 'history', 'app'] as tab, index}
+				<button
+					role="tab"
+					id={`settings-${tab}`}
+					aria-selected={settingsTab === tab}
+					aria-controls="settings-panel"
+					tabindex={settingsTab === tab ? 0 : -1}
+					onclick={() => (settingsTab = tab as typeof settingsTab)}
+					onkeydown={(e) => {
+						const tabs = ['captions', 'reading', 'history', 'app'] as const;
+						const next =
+							e.key === 'ArrowRight'
+								? (index + 1) % 4
+								: e.key === 'ArrowLeft'
+									? (index + 3) % 4
+									: e.key === 'Home'
+										? 0
+										: e.key === 'End'
+											? 3
+											: -1;
+						if (next >= 0) {
+							e.preventDefault();
+							settingsTab = tabs[next];
+							document.getElementById(`settings-${settingsTab}`)?.focus();
+						}
+					}}
+					>{tab === 'history'
+						? $t.history.heading
+						: $t.design[tab as 'captions' | 'reading' | 'app']}</button
+				>
+			{/each}
+		</div>
+		<div
+			class="settings"
+			id="settings-panel"
+			role="tabpanel"
+			aria-labelledby={`settings-${settingsTab}`}
+			tabindex="0"
+		>
+			{#if settingsTab === 'captions'}
+				<div class="rail-section">
+					<CaptionAppearance heading={$t.settings.appearance} {overlay} />
+					<p class="hint">{$t.settings.appearanceNote}</p>
+					<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 				     whatever is chosen above. Same button and same labels as the pre-flight check,
 				     because it is the same thing being done. -->
-				<button
-					class="tool wide"
-					aria-pressed={overlay.moveOverlay}
-					disabled={browserMode}
-					aria-label={overlay.moveOverlay
-						? $t.preflight.overlay.doneLabel
-						: $overlayPlaced
-							? $t.preflight.overlay.adjustLabel
-							: $t.preflight.overlay.placeLabel}
-					onclick={overlay.toggleMoveOverlay}
-				>
-					<svg
-						width="13"
-						height="13"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.7"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						aria-hidden="true"
-						><path
-							d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-						/></svg
+					<button
+						class="tool wide"
+						aria-pressed={overlay.moveOverlay}
+						disabled={browserMode}
+						aria-label={overlay.moveOverlay
+							? $t.preflight.overlay.doneLabel
+							: $overlayPlaced
+								? $t.preflight.overlay.adjustLabel
+								: $t.preflight.overlay.placeLabel}
+						onclick={overlay.toggleMoveOverlay}
 					>
-					{overlay.moveOverlay
-						? $t.preflight.overlay.done
-						: $overlayPlaced
-							? $t.preflight.overlay.adjust
-							: $t.preflight.overlay.place}
-				</button>
-			</div>
-
-			{@render appPreferences()}
-		</div>
-
-		<div class="actions">
-			<button
-				class="primary"
-				aria-label={$t.settings.closeLabel}
-				onclick={() => (settingsOpen = false)}
-			>
-				{$t.settings.close}
-			</button>
+						<svg
+							width="13"
+							height="13"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.7"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+							><path
+								d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
+							/></svg
+						>
+						{overlay.moveOverlay
+							? $t.preflight.overlay.done
+							: $overlayPlaced
+								? $t.preflight.overlay.adjust
+								: $t.preflight.overlay.place}
+					</button>
+				</div>
+			{:else if settingsTab === 'reading'}
+				<ReadingPreferences {overlay} />
+			{:else if settingsTab === 'history'}
+				<TranscriptHistory />
+			{:else}
+				{@render appPreferences()}
+				<KeyboardHelp />
+			{/if}
 		</div>
 	</ModalPrompt>
 {/if}
@@ -1615,6 +1652,39 @@
 {/if}
 
 <style>
+	.start-key {
+		align-self: center;
+	}
+	.settings-tabs {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		border-bottom: 1px solid var(--border);
+		padding-bottom: 0.75rem;
+	}
+	.settings-tabs button {
+		flex: 1;
+		padding: 0.75rem;
+		border: 1px solid transparent;
+		border-radius: var(--radius-control);
+		background: transparent;
+		color: var(--muted);
+		font-size: var(--type-12);
+	}
+	.settings-tabs button[aria-selected='true'] {
+		background: var(--accent-bg);
+		color: var(--accent-soft);
+		border-color: var(--accent-border);
+	}
+	.settings-tabs button:hover {
+		color: var(--text);
+	}
+	@media (forced-colors: active) {
+		.settings-tabs button[aria-selected='true'] {
+			outline: 2px solid Highlight;
+		}
+	}
+
 	.device-recovery {
 		padding: 0.75rem 1.25rem;
 		display: flex;
@@ -1661,7 +1731,7 @@
 		flex: 0 0 auto;
 		width: 28px;
 		height: 28px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid transparent;
 		background: transparent;
 		color: var(--muted-2);
@@ -1972,13 +2042,13 @@
 		align-items: flex-start;
 		gap: 0.6875rem;
 		padding: 0.75rem 0.8125rem;
-		border-radius: 11px;
+		border-radius: var(--radius-card);
 		width: 100%;
 	}
 	.card-icon {
 		width: 30px;
 		height: 30px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		background: rgba(255, 255, 255, 0.045);
 		color: var(--muted);
 		display: flex;
@@ -2032,7 +2102,7 @@
 		align-items: center;
 		gap: 7px;
 		padding: 12px 6px 10px;
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		color: var(--muted);
 		font-size: var(--type-11-5);
 		font-weight: 500;
@@ -2048,7 +2118,7 @@
 		display: flex;
 		align-items: center;
 		padding: 0.625rem 0.75rem;
-		border-radius: 9px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		margin-top: 2px;
@@ -2103,7 +2173,7 @@
 		align-items: center;
 		gap: 0.5625rem;
 		padding: 0.6875rem 0.75rem;
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 	}
 	.lang-code {
 		font-family: var(--font-mono);
@@ -2137,7 +2207,7 @@
 		align-items: center;
 		gap: 12px;
 		padding: 11px 13px;
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 	}
 	.engine-body {
 		display: flex;
@@ -2193,7 +2263,7 @@
 	}
 	.chip {
 		padding: 9px 11px;
-		border-radius: 9px;
+		border-radius: var(--radius-control);
 		background: var(--panel-2);
 		border: 1px solid var(--border-2);
 		display: flex;
@@ -2224,7 +2294,7 @@
 
 	.cost-card {
 		padding: 14px 15px;
-		border-radius: 11px;
+		border-radius: var(--radius-card);
 		background: var(--panel-2);
 		border: 1px solid var(--border-2);
 		display: flex;
@@ -2279,7 +2349,7 @@
 		justify-content: center;
 		gap: 0.4375rem;
 		padding: 0.625rem;
-		border-radius: 9px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		color: var(--text-soft);
@@ -2342,7 +2412,7 @@
 		justify-content: center;
 		gap: 10px;
 		padding: 14px;
-		border-radius: 11px;
+		border-radius: var(--radius-card);
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
@@ -2360,7 +2430,7 @@
 	.banner {
 		background: var(--panel-2);
 		border: 1px solid var(--border);
-		border-radius: 10px;
+		border-radius: var(--radius-card);
 		padding: 12px;
 		margin-bottom: 22px;
 		font-size: var(--type-13);
@@ -2463,7 +2533,7 @@
 		line-height: 1;
 		color: var(--warn-soft);
 		padding: 7px 11px;
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--warn-border);
 		background: rgba(255, 180, 84, 0.08);
 	}
@@ -2477,7 +2547,7 @@
 		line-height: 1;
 		color: var(--text-soft);
 		padding: 7px 11px;
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: transparent;
 	}
@@ -2506,7 +2576,7 @@
 		gap: 11px;
 		padding: 15px 24px;
 		border: 0;
-		border-radius: 12px;
+		border-radius: var(--radius-card);
 		background: linear-gradient(#5ad1a0, #43b989);
 		color: var(--on-accent);
 		font-size: var(--type-15-5);
@@ -2528,7 +2598,7 @@
 		align-items: center;
 		gap: 8px;
 		padding: 13px 18px;
-		border-radius: 11px;
+		border-radius: var(--radius-card);
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--text-soft);

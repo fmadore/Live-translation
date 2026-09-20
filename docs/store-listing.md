@@ -1,11 +1,11 @@
-# Partner Center listing text — 1.4.0 prepared
+# Partner Center listing text — 1.4.1 prepared
 
-Prepared for **1.4.0** (MSIX **1.4.0.0**), not yet submitted to the Store. The prior documented live Store
+Prepared for **1.4.1** (MSIX **1.4.1.0**), not yet submitted to the Store. The prior documented live Store
 release is 1.2.4. These blocks replace the listing fields for the next submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-140-handoff) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-141-handoff) for remaining checks.
 
 ## English (United States)
 
@@ -66,11 +66,13 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.4.0
+### What's new in this version — 1.4.1
 
 Paste after final packaged-app verification:
 
 ```text
+A clearer setup screen puts profiles beside the meeting controls. Settings now has Captions, Reading, History and App tabs, visible presets and previews, colour swatches and a session browser. The tray menu follows the interface language.
+
 New: meeting profiles, caption persistence and steadier updates, reading previews/presets, session titles/search, source status and operator shortcuts. Gemini Smart final results now replace speculative interim text, including filler-only results. Long history titles wrap and date-picker icons are clearer.
 
 Save previous meetings with optional local transcript history. Finalized captions are saved progressively and can be reopened, copied, exported or deleted. History is off by default and remains until deleted.
@@ -139,11 +141,13 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.4.0
+### Nouveautés de cette version — 1.4.1
 
 Paste after final packaged-app verification:
 
 ```text
+Une préparation plus claire place les profils près des réglages de réunion. Les paramètres regroupent sous-titres, lecture, historique et application, avec préréglages et aperçus visibles, palettes de couleurs et navigation dans les sessions. Le menu de notification suit la langue de l’interface.
+
 Nouveautés : profils de réunion, durée et actualisation plus stable des sous-titres, aperçus et préréglages, titres et recherche, statut des sources et raccourcis. Les résultats finaux de Gemini Smart remplacent désormais le texte provisoire, y compris les hésitations seules. Les longs titres reviennent à la ligne et les icônes de calendrier sont plus lisibles.
 
 Retrouvez vos réunions grâce à l’historique local facultatif. Les sous-titres finalisés sont enregistrés progressivement et peuvent être rouverts, copiés, exportés ou supprimés. L’historique est désactivé par défaut et conservé jusqu’à sa suppression.
@@ -222,11 +226,13 @@ German runs longer than both other languages here — 193 characters against Eng
 French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
 than assuming the margin is still there.
 
-### Neuerungen in dieser Version — 1.4.0
+### Neuerungen in dieser Version — 1.4.1
 
 Paste after final packaged-app verification:
 
 ```text
+Die übersichtlichere Einrichtung zeigt Profile neben den Besprechungsoptionen. Einstellungen sind in Untertitel, Lesen, Verlauf und App gegliedert, mit sichtbaren Voreinstellungen, Vorschauen, Farbauswahl und Sitzungsübersicht. Das Infobereich-Menü folgt der Oberflächensprache.
+
 Neu: Besprechungsprofile, Anzeigedauer und ruhigere Untertitel-Aktualisierungen, Vorschau und Voreinstellungen, Sitzungstitel und Suche, Eingangsstatus und Tastenkombinationen. Fertige Gemini-Smart-Ergebnisse ersetzen nun vorläufigen Text, auch reine Fülllaute. Lange Verlaufstitel werden umgebrochen und Kalendersymbole sind besser sichtbar.
 
 Der optionale lokale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend. Frühere Sitzungen lassen sich öffnen, kopieren, exportieren und löschen. Der Verlauf ist standardmäßig deaktiviert und bleibt bis zum Löschen erhalten.
@@ -314,24 +320,26 @@ No account, API key, microphone, language pack, or network connection is require
 1. Install and launch the x64 or ARM64 package.
 2. Keep the defaults: Subtitles, Demo audio, English, Built-in demo.
 3. Click Start demo subtitles.
-4. Within one second, the status changes to Demo, the Elapsed clock advances, and the Demo audio meter moves.
+4. Within one second, the status changes to Demo, the clock in the status pill advances, and the Demo audio meter moves.
 5. Partial and final English captions appear automatically in the operator window and presentation overlay.
 6. Click Stop captions. The completed transcript remains available for export.
 7. Choose each transcript format (text, Markdown, SRT, VTT), click Save as, select a writable folder and verify the saved file. Cancel another save and confirm that the transcript remains available.
 8. Select Français and repeat to verify the French captions.
-9. In Settings, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
+9. In Settings → App, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
 
 Retained from 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
 
-New in 1.4.0: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
+In 1.4.1, open Settings and use the Captions, Reading, Transcript history and App tabs. Presets and bright/dark previews are always visible in Captions. Changes apply immediately; close with the top-right button or Escape. Manage profiles above step 01; save, rename, load and confirm deletion. History has a session list and detail pane with filters and Clear filters. Check EN/FR/DE tray labels and live status.
 
-In Settings, expand Appearance preview and try Standard, Large room and High contrast. Fit window/Compact allow a 2–30 second hold; Stable reading retains text until it rolls out or the session stops. Choose Steadier updates and verify completed demo captions still appear promptly. Live interim timing and Gemini cleanup need a separate provider test; the deterministic demo cannot validate cloud recognition.
+Introduced in 1.4.0 and included in 1.4.1: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
+
+In Settings → Captions, try Standard, Large room and High contrast. Fit window/Compact allow a 2–30 second hold; Stable reading retains text until it rolls out or the session stops. Choose Steadier updates and verify completed demo captions still appear promptly. Live interim timing and Gemini cleanup need a separate provider test; the deterministic demo cannot validate cloud recognition.
 
 Name a saved demo session, search title and transcript text, filter inclusive dates and caption language, and test a long title at enlarged text size. Clearing the title restores its date label. A title change must preserve the recorded lines. Test Ctrl+Shift+Space, Ctrl+Shift+O and Ctrl+Shift+Up/Down in the operator window, then verify they do not intercept typing in inputs or dialogs. Inspect per-source status and keyboard focus. No custom filter list is included.
 
 During a demo, choose Stable reading in Settings. Text should stay left-aligned at the top, wrap naturally and advance by complete lines as the area fills. A pause should retain it, and Stop should clear it. Resize, then return to Fit window and check normal expiry resumes. Toggle Hide filler words; it affects only the overlay, not the raw transcript/history/export. The scripted demo does not guarantee filler sounds, so the absence of a visible text change there is expected. The filter handles exact hesitation tokens such as um, uh, erm, hmm, euh and heu; it is not semantic speech analysis.
 
-Also test Fit window and Compact during the demo: open Settings, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact) and the German one (An Fenster anpassen / Kompakt). Placement mode intentionally shows positioning controls rather than live captions.
+Also test Fit window and Compact during the demo: open Settings → Reading, verify Caption layout is Fit window, enter placement mode, resize the overlay and lock it again to resume the caption view. A wider window fits more words per line; a taller one can retain more available recent context. The font size remains unchanged. Switch to Compact, verify Line width becomes available, then reset the appearance and confirm Fit window returns. Repeat with the French interface (Adapter à la fenêtre / Compact) and the German one (An Fenster anpassen / Kompakt). Placement mode intentionally shows positioning controls rather than live captions.
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
@@ -344,7 +352,7 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 
 ## Screenshots
 
-The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.4.0
+The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.4.1
 captures; do not upload the old appearance screenshots with the new descriptions.
 
 The listing is per-language and so are its screenshots. Every set is kept in the repository and

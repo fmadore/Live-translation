@@ -264,7 +264,7 @@
 		line-height: 1;
 		color: var(--text-soft);
 		padding: 7px 11px;
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: transparent;
 	}
@@ -274,7 +274,7 @@
 		color: var(--text);
 		background: var(--bg);
 		border: 1px solid var(--border);
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		padding: 6px;
 		max-width: 100%;
 	}
@@ -331,7 +331,7 @@
 	.warn {
 		margin: 0;
 		padding: 9px 11px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--warn-border);
 		background: var(--warn-bg);
 		color: var(--warn-soft);

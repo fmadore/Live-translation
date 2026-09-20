@@ -1,4 +1,8 @@
 <script lang="ts">
+	import Select from './ui/Select.svelte';
+	import Field from './ui/Field.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
+	import Preference from './ui/Preference.svelte';
 	import { matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
@@ -18,7 +22,7 @@
 		type TranscriptFormat
 	} from './transcript';
 	const desktop = isTauri();
-	let open = $state(false);
+	const open = true;
 	let sessions = $state<{ id: string; session: SavedSession | null }[]>([]);
 	let selectedId = $state('');
 	let busy = $state(false);
@@ -132,223 +136,216 @@
 </script>
 
 <section class="history" class:open aria-label={$t.history.heading}>
-	<div class="heading">
-		<h2>{$t.history.heading}</h2>
-		<button
-			disabled={!desktop || busy}
-			aria-expanded={open}
-			onclick={() => {
-				open = !open;
-			}}>{open ? $t.history.close : $t.history.browse}</button
-		>
-	</div>
-	<label
-		><input type="checkbox" disabled={!desktop} bind:checked={$historyEnabled} />{$t.history
-			.enable}</label
-	>
-	<p class="hint">{$t.history.privacy}</p>
+	<Preference
+		label={$t.history.enable}
+		note={$t.history.privacy}
+		disabled={!desktop}
+		bind:checked={$historyEnabled}
+	/>
+	{#if !desktop}<p class="hint">{$t.design.desktopOnly}</p>{/if}
+
 	{#if $historyError}
 		<p role="alert">{$t.history.failed} {$historyError}</p>
-		<button disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}
-			>{$t.history.retry}</button
+		<ToolButton disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}
+			>{$t.history.retry}</ToolButton
 		>
 	{/if}
 	{#if open}
-		<button disabled={busy} onclick={refresh}>{$t.history.refresh}</button>
+		<ToolButton disabled={!desktop || busy} onclick={refresh}>{$t.history.refresh}</ToolButton>
 		{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
 		<div class="filters">
-			<label>{$t.usability.search}<input type="search" bind:value={query} /></label>
-			<label>{$t.usability.from}<input type="date" bind:value={from} /></label>
-			<label>{$t.usability.to}<input type="date" bind:value={to} /></label>
-			<label
-				>{$t.usability.language}<select bind:value={language}
+			<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
+			<Field label={$t.usability.from}><input type="date" bind:value={from} /></Field>
+			<Field label={$t.usability.to}><input type="date" bind:value={to} /></Field>
+			<Field label={$t.usability.language}
+				><Select bind:value={language}
 					><option value="">{$t.usability.allLanguages}</option><option value="en">English</option
 					><option value="fr">Français</option><option value="auto"
 						>{$t.usability.unknownLanguage}</option
-					></select
-				></label
+					></Select
+				></Field
 			>
 		</div>
+		<ToolButton
+			disabled={!query && !from && !to && !language}
+			onclick={() => {
+				query = '';
+				from = '';
+				to = '';
+				language = '';
+			}}>{$t.design.clearFilters}</ToolButton
+		>
 		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
-		<ul class="sessions">
-			{#each filtered as entry (entry.id)}
-				<li>
-					<button
-						class="session"
-						disabled={busy || !entry.session}
-						aria-pressed={selectedId === entry.id}
-						onclick={() => {
-							selectedId = entry.id;
-							title = entry.session?.title ?? '';
-							confirmDelete = '';
-							notice = '';
+		<div class="history-browser">
+			<ul class="sessions">
+				{#each filtered as entry (entry.id)}
+					<li>
+						<ToolButton
+							class="session"
+							disabled={busy}
+							aria-pressed={selectedId === entry.id}
+							onclick={() => {
+								selectedId = entry.id;
+								title = entry.session?.title ?? '';
+								confirmDelete = '';
+								notice = '';
+							}}
+						>
+							{#if entry.session}
+								<strong
+									>{entry.session.title ||
+										formatDateTime(entry.session.startedAt, $localeTag)}</strong
+								>
+								{#if entry.session.title}<span
+										>{formatDateTime(entry.session.startedAt, $localeTag)}</span
+									>{/if}
+								<span
+									>{Math.floor(entry.session.durationMs / 60000)}:{String(
+										Math.floor(entry.session.durationMs / 1000) % 60
+									).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
+										? $t.history.auto
+										: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
+										$t.history.sameLanguage}</span
+								>
+								{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
+							{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
+						</ToolButton>
+					</li>
+				{/each}
+			</ul>
+			<div class="detail">
+				{#if selected}
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							void rename();
 						}}
 					>
-						{#if entry.session}
-							<strong
-								>{entry.session.title ||
-									formatDateTime(entry.session.startedAt, $localeTag)}</strong
+						<Field label={$t.usability.title}
+							><input maxlength="120" bind:value={title} disabled={busy} /></Field
+						>
+						<p class="hint">{$t.usability.titleHint}</p>
+						<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
+							>{$t.usability.saveTitle}</ToolButton
+						>
+					</form>
+					<div class="actions">
+						<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton
+						>
+						<Select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
+							<option value="markdown">Markdown (.md)</option><option value="text"
+								>{$t.transcript.plainText} (.txt)</option
 							>
-							{#if entry.session.title}<span
-									>{formatDateTime(entry.session.startedAt, $localeTag)}</span
-								>{/if}
-							<span
-								>{Math.floor(entry.session.durationMs / 60000)}:{String(
-									Math.floor(entry.session.durationMs / 1000) % 60
-								).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
-									? $t.history.auto
-									: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
-									$t.history.sameLanguage}</span
-							>
-							{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
-						{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
-					</button>
-					<button disabled={busy} onclick={() => remove(entry.id)}
-						>{confirmDelete === entry.id ? $t.history.confirmDelete : $t.history.delete}</button
+							<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
+						</Select>
+						<ToolButton
+							disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
+							onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
+						>
+						<ToolButton disabled={busy} onclick={() => remove(selectedId)}
+							>{confirmDelete === selectedId
+								? $t.history.confirmDelete
+								: $t.history.delete}</ToolButton
+						>
+						{#if confirmDelete === selectedId}<ToolButton
+								disabled={busy}
+								onclick={() => (confirmDelete = '')}>{$t.history.cancel}</ToolButton
+							>{/if}
+					</div>
+					{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
+							{$t.transcript.noTiming}
+						</p>{/if}
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
+					<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
+						{#each [...selected.lines].reverse() as line (line.id)}
+							<p><strong>{$t.transcript.side[line.origin]}</strong> {line.text}</p>
+							{#if line.sourceText}<p class="source">{line.sourceText}</p>{/if}
+						{/each}
+					</div>
+				{:else if selectedId}
+					<p class="hint">{$t.history.unreadable}</p>
+					<ToolButton class="danger" disabled={busy} onclick={() => remove(selectedId)}
+						>{confirmDelete === selectedId
+							? $t.history.confirmDelete
+							: $t.history.delete}</ToolButton
 					>
-					{#if confirmDelete === entry.id}<button
-							disabled={busy}
-							onclick={() => (confirmDelete = '')}>{$t.history.cancel}</button
+					{#if confirmDelete === selectedId}<ToolButton onclick={() => (confirmDelete = '')}
+							>{$t.history.cancel}</ToolButton
 						>{/if}
-				</li>
-			{/each}
-		</ul>
-		{#if selected}
-			<form
-				onsubmit={(e) => {
-					e.preventDefault();
-					void rename();
-				}}
-			>
-				<label
-					>{$t.usability.title}<input maxlength="120" bind:value={title} disabled={busy} /></label
-				>
-				<p class="hint">{$t.usability.titleHint}</p>
-				<button disabled={busy || title.trim() === (selected.title ?? '')}
-					>{$t.usability.saveTitle}</button
-				>
-			</form>
-			<div class="actions">
-				<button disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</button>
-				<select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
-					<option value="markdown">Markdown (.md)</option><option value="text"
-						>{$t.transcript.plainText} (.txt)</option
-					>
-					<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
-				</select>
-				<button
-					disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
-					onclick={() => action('export')}>{$t.transcript.saveAs}</button
-				>
+				{:else}<p class="hint">{$t.design.selectSession}</p>
+				{/if}
 			</div>
-			{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
-					{$t.transcript.noTiming}
-				</p>{/if}
-			<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
-			<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
-				{#each [...selected.lines].reverse() as line (line.id)}
-					<p><strong>{$t.transcript.side[line.origin]}</strong> {line.text}</p>
-					{#if line.sourceText}<p class="source">{line.sourceText}</p>{/if}
-				{/each}
-			</div>
-		{/if}
+		</div>
 	{/if}
 	{#if error}<p role="alert">{$t.history.failed} {error}</p>{/if}
 	<p class="notice" role="status">{notice}</p>
 </section>
 
 <style>
-	.filters {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-	}
-	.filters label,
-	form label {
-		display: grid;
-		min-width: 0;
-	}
-	input {
-		min-width: 0;
-		max-width: 100%;
-	}
-	.history.open {
-		max-height: 70vh;
-		overflow: auto;
-		flex-shrink: 0;
-	}
 	.history {
-		color-scheme: dark;
-		padding: 1rem;
-		border-top: 1px solid var(--border);
-		color: var(--text-soft);
-	}
-	.heading,
-	.actions {
-		display: flex;
-		align-items: center;
+		display: grid;
 		gap: 0.75rem;
-		flex-wrap: wrap;
+		min-width: 0;
 	}
-	h2 {
-		font-size: var(--type-14);
-		margin: 0;
-		flex: 1;
+	.filters {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.625rem;
 	}
-	label {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-top: 0.75rem;
-		font-size: var(--type-12);
-	}
-	.hint,
-	.source {
-		color: var(--muted);
-		font-size: var(--type-12);
-		line-height: 1.5;
-	}
-	button,
-	input,
-	select {
-		background: var(--panel-2);
-		border: 1px solid var(--border);
-		color: var(--text-soft);
-		border-radius: 8px;
-		padding: 0.5rem 0.75rem;
-		font-size: var(--type-12);
-	}
-	button:hover:not(:disabled) {
-		border-color: var(--border-hover);
-	}
-	button[aria-pressed='true'] {
-		border-color: var(--accent-border);
-	}
-	button:disabled {
-		opacity: 0.5;
+	.history-browser {
+		display: grid;
+		grid-template-columns: minmax(11rem, 0.8fr) minmax(0, 1.4fr);
+		gap: 1.25rem;
+		align-items: start;
 	}
 	.sessions {
 		list-style: none;
 		padding: 0;
-		max-height: 16rem;
+		margin: 0;
+		max-height: 28rem;
 		overflow: auto;
 	}
 	li {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 0;
-		border-bottom: 1px solid var(--border);
+		margin-bottom: 0.5rem;
 	}
-	.session {
-		flex: 1;
+	.sessions :global(.session) {
 		display: flex;
 		flex-direction: column;
-		gap: 0.3rem;
+		gap: 0.375rem;
+		width: 100%;
 		text-align: left;
-		min-width: 12rem;
-		max-width: 100%;
+		overflow-wrap: anywhere;
+		line-height: 1.5;
+	}
+	.sessions :global(.session span) {
+		color: var(--muted);
+		font-size: var(--type-11);
+	}
+	.detail {
+		min-width: 0;
+	}
+	form {
+		display: grid;
+		gap: 0.625rem;
+		margin-bottom: 0.75rem;
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	.actions :global(.ui-select) {
+		flex: 1;
+		min-width: 9rem;
+	}
+	.hint,
+	.source,
+	.notice {
+		color: var(--muted);
+		font-size: var(--type-12);
+		line-height: 1.5;
+		margin: 0;
 		overflow-wrap: anywhere;
 	}
 	.saved-text {
@@ -356,17 +353,22 @@
 		overflow: auto;
 		overflow-wrap: anywhere;
 		margin-top: 1rem;
-		padding: 0.75rem;
-		background: var(--panel-2);
-		border-radius: 8px;
+		border-top: 1px solid var(--hairline);
 		font-size: var(--type-13);
 		line-height: 1.6;
 	}
 	.saved-text p {
-		margin: 0.25rem 0 0.75rem;
+		margin: 0.75rem 0;
 	}
-	.notice {
-		overflow-wrap: anywhere;
-		font-size: var(--type-12);
+	@media (max-width: 720px) {
+		.filters {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.history-browser {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.sessions {
+			max-height: 12rem;
+		}
 	}
 </style>

@@ -1,13 +1,13 @@
 # Partner Center submission walkthrough
 
-Submission target: **Live Translation & Subtitles 1.4.0**, Product ID `9PFB8LR3RR9X`.
+Submission target: **Live Translation & Subtitles 1.4.1**, Product ID `9PFB8LR3RR9X`.
 Prepared, not submitted. Responsive-caption testing on the final x64 and ARM64 packages is pending.
-See the [release handoff](store-updates.md#release-140-handoff) for remaining checks.
+See the [release handoff](store-updates.md#release-141-handoff) for remaining checks.
 
 ## Before Partner Center
 
 1. Build and verify both native packages and the single multi-architecture bundle:
-   `Live.Translation_1.4.0.msixbundle`.
+   `Live.Translation_1.4.1.msixbundle`.
 2. Sideload the per-architecture MSIX packages using
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1) and complete the
    manual checks in [`microsoft-store.md`](microsoft-store.md).
@@ -54,7 +54,7 @@ OpenAI, or Mistral. The built-in demo itself has no network access.
 ## Packages
 
 Remove previously listed packages and upload the single unsigned multi-architecture
-`Live.Translation_1.4.0.msixbundle` for version `1.4.0.0`. The Store signs accepted packages.
+`Live.Translation_1.4.1.msixbundle` for version `1.4.1.0`. The Store signs accepted packages.
 Do not upload the locally self-signed test package or the unpackaged Local Test executable.
 
 Verify these manifest values:
@@ -64,7 +64,7 @@ Verify these manifest values:
 | `Identity/Name` | `49346FMadore.LiveTranslationSubtitles` |
 | `Identity/Publisher` | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | `Properties/PublisherDisplayName` | `FMadore` |
-| Version | `1.4.0.0` |
+| Version | `1.4.1.0` |
 
 Windows Desktop is the only device family. Native x64 and ARM64 packages are supplied.
 
@@ -101,7 +101,7 @@ list is intentionally not duplicated inside the Description.
 
 ### What’s new
 
-Paste the English, French and German **1.4.0** blocks from
+Paste the English, French and German **1.4.1** blocks from
 [`store-listing.md`](store-listing.md), the single source for release-specific Store copy.
 Complete native German review and final-package screenshots before submitting that listing.
 

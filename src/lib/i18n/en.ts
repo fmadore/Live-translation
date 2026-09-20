@@ -16,6 +16,26 @@
 //   kind of thing a translator has to be able to decide.
 
 export const en = {
+	design: {
+		smartSummary: 'Smart transcription removes fillers and false starts.',
+		captions: 'Captions',
+		reading: 'Reading',
+		app: 'App',
+		applies: 'Changes apply immediately.',
+		clearFilters: 'Clear filters',
+		newProfile: 'Save current setup…',
+		rename: 'Rename',
+		saveName: 'Save name',
+		manageProfiles: 'Manage profiles',
+		desktopOnly: 'Open the desktop app to load profiles and browse saved sessions.',
+		selectSession: 'Choose a session to read or export it.',
+		custom: 'Custom…',
+		trayOpen: 'Open window',
+		trayQuit: 'Quit',
+		trayStop: 'Stop session',
+		trayShow: 'Show caption overlay',
+		trayHide: 'Hide caption overlay'
+	},
 	usability: {
 		hold: 'Keep finished captions (seconds)',
 		holdHint:
@@ -87,7 +107,7 @@ export const en = {
 	},
 
 	app: {
-		name: 'Live Captions',
+		name: 'Live Translation & Subtitles',
 		tagline: 'Realtime translation & subtitles'
 	},
 
@@ -324,12 +344,12 @@ export const en = {
 		},
 		reset: 'Reset',
 		resetLabel: 'Reset the overlay to how it looks by default',
-		move: 'Move',
+		move: 'Move overlay',
 		done: 'Done',
-		moveLabel: 'Move the overlay',
+		moveLabel: 'Move overlay',
 		moveDoneLabel: 'Finish moving the overlay',
-		show: 'Show',
-		hide: 'Hide',
+		show: 'Show overlay',
+		hide: 'Hide overlay',
 		showLabel: 'Show the overlay',
 		hideLabel: 'Hide the overlay'
 	},
@@ -418,11 +438,11 @@ export const en = {
 			title: 'Overlay placement',
 			placed: 'Placed — captions will appear where you locked them',
 			unplaced: 'Not placed yet — captions will sit bottom-centre on this display',
-			place: 'Place it',
-			adjust: 'Adjust',
+			place: 'Move overlay',
+			adjust: 'Move overlay',
 			done: 'Done',
-			placeLabel: 'Place the overlay',
-			adjustLabel: 'Adjust the overlay placement',
+			placeLabel: 'Move overlay',
+			adjustLabel: 'Move overlay',
 			doneLabel: 'Finish placing the overlay'
 		},
 

@@ -262,3 +262,14 @@ describe('formatting a timestamp', () => {
 		expect(german).not.toBe(english);
 	});
 });
+
+it('preserves accented design labels without replacement characters', () => {
+	expect(fr.design.manageProfiles).toBe('Gérer les profils');
+	expect(de.design.applies).toBe('Änderungen werden sofort angewendet.');
+	for (const catalog of [en, fr, de]) {
+		for (const path of paths(catalog)) {
+			const value = at(catalog, path);
+			if (typeof value === 'string') expect(value, path).not.toContain('\uFFFD');
+		}
+	}
+});

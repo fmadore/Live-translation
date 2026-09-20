@@ -3,6 +3,9 @@
    removed. Mint is the primary/live identity; blue is reserved for the room speaker. */
 
 :root {
+	--radius-control: 8px;
+	--radius-card: 11px;
+	color-scheme: dark;
 	/* Legacy names, remapped to the new palette. */
 	--bg: #08090b;
 	--panel: #111419;
@@ -81,9 +84,9 @@
 	   they are — the ramp was tuned against this window's density, and a role name would
 	   claim an abstraction the values do not have. `--fs` is something else entirely: the
 	   overlay's caption size, which the operator sets for the room. */
-	--type-9-5: calc(9.5px * var(--text-scale));
-	--type-10: calc(10px * var(--text-scale));
-	--type-10-5: calc(10.5px * var(--text-scale));
+	--type-9-5: calc(11px * var(--text-scale));
+	--type-10: calc(11px * var(--text-scale));
+	--type-10-5: calc(11px * var(--text-scale));
 	--type-11: calc(11px * var(--text-scale));
 	--type-11-5: calc(11.5px * var(--text-scale));
 	--type-12: calc(12px * var(--text-scale));
@@ -233,5 +236,117 @@ input[type='checkbox']:focus-visible {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
+	}
+}
+
+/* Shared operator controls. Overlay caption colours remain independently configurable. */
+::selection {
+	background: var(--accent-chip-bg);
+	color: var(--text-bright);
+}
+* {
+	scrollbar-color: var(--border-hover) var(--surface-0);
+	scrollbar-width: thin;
+}
+input {
+	caret-color: var(--accent);
+}
+.ui-tool,
+.ui-field input {
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	background: var(--panel-2);
+	color: var(--text-soft);
+	padding: 0.625rem 0.75rem;
+	font-size: var(--type-12);
+	min-width: 0;
+	max-width: 100%;
+}
+.ui-tool:hover:not(:disabled) {
+	border-color: var(--border-hover);
+	color: var(--text);
+}
+.ui-tool[aria-pressed='true'] {
+	border-color: var(--accent-border);
+	background: var(--accent-bg);
+	color: var(--accent-soft);
+}
+.ui-tool.danger {
+	color: var(--danger-soft);
+	border-color: var(--danger-border);
+}
+.ui-field {
+	display: grid;
+	gap: 0.5rem;
+	min-width: 0;
+	font-size: var(--type-12);
+	color: var(--text-soft);
+}
+.ui-select {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	width: 100%;
+}
+.ui-select select {
+	appearance: none;
+	width: 100%;
+	min-width: 0;
+	padding: 0.625rem 2rem 0.625rem 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius-control);
+	background: var(--panel-2);
+	color: var(--text-soft);
+	font-size: var(--type-12-5);
+}
+.ui-select svg {
+	position: absolute;
+	right: 0.75rem;
+	top: 50%;
+	transform: translateY(-50%);
+	pointer-events: none;
+	color: var(--muted);
+}
+.ui-pref {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.625rem;
+	color: var(--text-soft);
+	font-size: var(--type-12);
+	line-height: 1.5;
+}
+.ui-pref input {
+	accent-color: var(--accent);
+	margin-top: 0.2rem;
+}
+.ui-pref small {
+	display: block;
+	color: var(--muted);
+	font-size: var(--type-11-5);
+	margin-top: 0.25rem;
+}
+.ui-stepper {
+	display: flex;
+	gap: 0.625rem;
+	align-items: center;
+	font-size: var(--type-12);
+	color: var(--text-soft);
+}
+.ui-stepper > span {
+	flex: 1;
+}
+.ui-stepper output {
+	min-width: 4ch;
+	text-align: center;
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+}
+.ui-stepper .ui-tool {
+	padding: 0.375rem 0.625rem;
+}
+@media (forced-colors: active) {
+	.ui-tool[aria-pressed='true'] {
+		outline: 2px solid Highlight;
+		outline-offset: -2px;
 	}
 }

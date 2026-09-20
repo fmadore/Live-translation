@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Select from './ui/Select.svelte';
 	import { onMount } from 'svelte';
 	import { options } from './stores';
 	import { t } from './i18n';
@@ -33,7 +34,7 @@
 <div class="capture-picker">
 	<label>
 		<span>{$t.applications.mode}</span>
-		<select
+		<Select
 			disabled={locked}
 			value={applicationMode ? 'application' : 'output'}
 			onchange={(e) => {
@@ -49,12 +50,12 @@
 		>
 			<option value="output">{$t.applications.output}</option>
 			<option value="application">{$t.applications.application}</option>
-		</select>
+		</Select>
 	</label>
 	{#if applicationMode}
 		<label>
 			<span>{$t.applications.choose}</span>
-			<select
+			<Select
 				disabled={locked || supported === false}
 				value={selectionKey}
 				onchange={(e) => {
@@ -77,11 +78,8 @@
 						>{app.name} (PID {app.process.pid})</option
 					>
 				{/each}
-			</select>
+			</Select>
 		</label>
-		<button class="tool" disabled={refreshing} aria-busy={refreshing} onclick={refresh}
-			>{$t.applications.refresh}</button
-		>
 		{#if supported === false}<p class="hint" role="status">{$t.applications.unsupported}</p>
 		{:else if supported && !applications.length}<p class="hint" role="status">
 				{$t.applications.empty}
@@ -89,7 +87,7 @@
 	{:else}
 		<label>
 			<span>{$t.devices.output}</span>
-			<select
+			<Select
 				disabled={locked}
 				value={$options.systemDeviceId ?? ''}
 				onchange={(e) => {
@@ -104,7 +102,7 @@
 				{#each outputs as dev (dev.id)}<option value={dev.id}
 						>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
 					>{/each}
-			</select>
+			</Select>
 		</label>
 	{/if}
 </div>
@@ -121,25 +119,6 @@
 		color: var(--muted-2);
 		font-size: var(--type-12);
 		min-width: 0;
-	}
-	select {
-		width: 100%;
-		min-width: 0;
-		padding: 0.65em;
-		border: 1px solid var(--border);
-		border-radius: 7px;
-		background: var(--bg);
-		color: var(--text);
-		font: inherit;
-	}
-	button {
-		justify-self: start;
-		padding: 0.5em;
-		border: 1px solid var(--border);
-		border-radius: 7px;
-		background: transparent;
-		color: var(--text);
-		font-size: var(--type-12);
 	}
 	.hint {
 		margin: 0;

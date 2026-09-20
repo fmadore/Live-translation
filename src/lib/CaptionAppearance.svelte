@@ -1,6 +1,5 @@
 <script lang="ts">
-	import ReadingPreferences from './ReadingPreferences.svelte';
-	import type { CaptionLayout } from './captionLayout';
+	import CaptionPreview from './CaptionPreview.svelte';
 	import { t, localeTag } from './i18n';
 	import {
 		overlayHoldSeconds,
@@ -23,7 +22,11 @@
 	import { DEFAULT_CAPTION_FACE, captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
 	import type { OverlayController } from './overlayController.svelte';
-	let { heading, overlay }: { heading: string; overlay: OverlayController } = $props();
+	let {
+		heading,
+		overlay,
+		compact = false
+	}: { heading: string; overlay: OverlayController; compact?: boolean } = $props();
 	const idBase = $props.id();
 	const contrastId = `${idBase}-contrast`;
 	/** Whether anything in the overlay's appearance has been changed from what it ships with.
@@ -69,163 +72,189 @@
 	     among the live controls, while in the panel it names itself against the other
 	     preferences. -->
 <h2 class="kicker">{heading}</h2>
-<div class="stepper">
-	<span class="stepper-label">{$t.overlayControls.captionSize}</span>
-	<button
-		class="step"
-		onclick={() => overlay.setFont($overlayFontSize - 2)}
-		aria-label={$t.overlayControls.smaller}>−</button
-	>
-	<span class="stepper-value">{$overlayFontSize}</span>
-	<button
-		class="step"
-		onclick={() => overlay.setFont($overlayFontSize + 2)}
-		aria-label={$t.overlayControls.larger}>+</button
-	>
-</div>
-<div class="select-row">
-	<select
-		aria-label={$t.overlayControls.captionLayout}
-		value={$overlayCaptionLayout}
-		onchange={(e) => overlay.setCaptionLayout(e.currentTarget.value as CaptionLayout)}
-	>
-		<option value="fit">{$t.overlayControls.fitWindow}</option>
-		<option value="stable">{$t.overlayControls.stable}</option>
-		<option value="compact">{$t.overlayControls.compact}</option>
-	</select>
-	<svg
-		class="chevron"
-		width="12"
-		height="12"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-	>
-</div>
-<label class="cleanup"
-	><input
-		type="checkbox"
-		checked={$overlayCleanSpeech}
-		onchange={(e) => overlay.setCleanSpeech(e.currentTarget.checked)}
-	/>{$t.overlayControls.cleanSpeech}</label
->
-<p class="contrast-note">{$t.overlayControls.cleanSpeechHint}</p>
-{#if $overlayCaptionLayout === 'compact'}
-	<div class="stepper">
-		<span class="stepper-label">{$t.overlayControls.captionWidth}</span>
-		<button
-			class="step"
-			onclick={() => overlay.setCaptionWidth($overlayCaptionWidth - 2)}
-			aria-label={$t.overlayControls.narrower}>−</button
-		>
-		<span class="stepper-value">{$overlayCaptionWidth}</span>
-		<button
-			class="step"
-			onclick={() => overlay.setCaptionWidth($overlayCaptionWidth + 2)}
-			aria-label={$t.overlayControls.wider}>+</button
-		>
-	</div>
-{/if}
-<div class="select-row">
-	<select
-		aria-label={$t.overlayControls.captionFace}
-		value={$overlayCaptionFace}
-		onchange={(e) => overlay.setCaptionFace(e.currentTarget.value as CaptionFaceId)}
-	>
-		<!-- Each option is set in the face it names, so the list is its own preview.
+{#if !compact}<CaptionPreview {overlay} part="presets" />{/if}
+<div class="appearance-layout" class:compact>
+	<div class="appearance-controls">
+		<div class="stepper">
+			<span class="stepper-label">{$t.overlayControls.captionSize}</span>
+			<button
+				class="step"
+				onclick={() => overlay.setFont($overlayFontSize - 2)}
+				aria-label={$t.overlayControls.smaller}>−</button
+			>
+			<span class="stepper-value">{$overlayFontSize} px</span>
+			<button
+				class="step"
+				onclick={() => overlay.setFont($overlayFontSize + 2)}
+				aria-label={$t.overlayControls.larger}>+</button
+			>
+		</div>
+		<label class="face-label"
+			>{$t.overlayControls.captionFace}
+			<div class="select-row">
+				<select
+					aria-label={$t.overlayControls.captionFace}
+					value={$overlayCaptionFace}
+					onchange={(e) => overlay.setCaptionFace(e.currentTarget.value as CaptionFaceId)}
+				>
+					<!-- Each option is set in the face it names, so the list is its own preview.
 			     The names are proper nouns and stay untranslated; only the note on the
 			     bundled default says anything, and it is the one thing that needs to. -->
-		{#each overlay.captionFaces as face (face.id)}
-			<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
-				{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
-			</option>
-		{/each}
-	</select>
-	<svg
-		class="chevron"
-		width="12"
-		height="12"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-	>
-</div>
-<div class="colour-row">
-	<label class="swatch">
-		<span class="swatch-label">{$t.overlayControls.captionColour}</span>
-		<input
-			type="color"
-			value={$overlayPalette.text}
-			aria-describedby={contrastId}
-			oninput={(e) => overlay.setPalette({ text: e.currentTarget.value })}
-		/>
-	</label>
-	<label class="swatch">
-		<span class="swatch-label">{$t.overlayControls.scrimColour}</span>
-		<input
-			type="color"
-			value={$overlayPalette.scrim}
-			aria-describedby={contrastId}
-			oninput={(e) => overlay.setPalette({ scrim: e.currentTarget.value })}
-		/>
-	</label>
-</div>
-<div class="stepper">
-	<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
-	<button
-		class="step"
-		disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
-		onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
-		aria-label={$t.overlayControls.weakerScrim}>−</button
-	>
-	<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
-	<button
-		class="step"
-		disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
-		onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
-		aria-label={$t.overlayControls.strongerScrim}>+</button
-	>
-</div>
-<!-- Not a live region on purpose: this changes on every step of a colour drag, and
+					{#each overlay.captionFaces as face (face.id)}
+						<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
+							{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
+						</option>
+					{/each}
+				</select>
+				<svg
+					class="chevron"
+					width="12"
+					height="12"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
+				>
+			</div>
+		</label>
+		<div class="palette-options">
+			{#each ['text', 'scrim'] as role}
+				<div
+					role="group"
+					aria-label={role === 'text'
+						? $t.overlayControls.captionColour
+						: $t.overlayControls.scrimColour}
+				>
+					<span class="swatch-label"
+						>{role === 'text'
+							? $t.overlayControls.captionColour
+							: $t.overlayControls.scrimColour}</span
+					>
+					<div class="swatches">
+						{#each role === 'text' ? ['#ffffff', '#fff0b3', '#7fdcb6', '#b9d5ff', '#111419'] : ['#000000', '#111419', '#172b24', '#18263c', '#ffffff'] as colour}
+							<button
+								class="colour-choice"
+								style:background={colour}
+								aria-label={colour}
+								aria-pressed={(role === 'text' ? $overlayPalette.text : $overlayPalette.scrim) ===
+									colour}
+								onclick={() => overlay.setPalette({ [role]: colour })}
+							></button>
+						{/each}
+					</div>
+				</div>
+			{/each}
+		</div>
+		<div class="colour-row">
+			<label class="swatch">
+				<span class="swatch-label">{$t.overlayControls.captionColour} · {$t.design.custom}</span>
+				<input
+					type="color"
+					value={$overlayPalette.text}
+					aria-describedby={contrastId}
+					oninput={(e) => overlay.setPalette({ text: e.currentTarget.value })}
+				/>
+			</label>
+			<label class="swatch">
+				<span class="swatch-label">{$t.overlayControls.scrimColour} · {$t.design.custom}</span>
+				<input
+					type="color"
+					value={$overlayPalette.scrim}
+					aria-describedby={contrastId}
+					oninput={(e) => overlay.setPalette({ scrim: e.currentTarget.value })}
+				/>
+			</label>
+		</div>
+		<div class="stepper">
+			<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
+			<button
+				class="step"
+				disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
+				onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
+				aria-label={$t.overlayControls.weakerScrim}>−</button
+			>
+			<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
+			<button
+				class="step"
+				disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
+				onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
+				aria-label={$t.overlayControls.strongerScrim}>+</button
+			>
+		</div>
+		<!-- Not a live region on purpose: this changes on every step of a colour drag, and
 	     `docs/accessibility.md` keeps announcements for things worth interrupting a
 	     reader for. It is the description of the controls instead, so it is read on
 	     arrival at the one moment it is worth hearing. -->
-<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
-	<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
-	<span class="contrast-note">
-		{$overlayContrast.passes
-			? $t.overlayControls.contrastOk
-			: $t.overlayControls.contrastLow(
-					$t.overlayControls.contrastStep[$overlayContrast.worstStep],
-					contrastTarget
-				)}
-	</span>
-</p>
-<button
-	class="reset"
-	disabled={overlayAtDefaults}
-	onclick={overlay.resetOverlayAppearance}
-	aria-label={$t.overlayControls.resetLabel}
->
-	{$t.overlayControls.reset}
-</button>
+		<p class="contrast" class:warn={!$overlayContrast.passes} id={contrastId}>
+			<span class="contrast-ratio">{$t.overlayControls.contrast(contrastReading)}</span>
+			<span class="contrast-note">
+				{$overlayContrast.passes
+					? $t.overlayControls.contrastOk
+					: $t.overlayControls.contrastLow(
+							$t.overlayControls.contrastStep[$overlayContrast.worstStep],
+							contrastTarget
+						)}
+			</span>
+		</p>
 
-<ReadingPreferences {overlay} />
+		<button
+			class="reset"
+			disabled={overlayAtDefaults}
+			onclick={overlay.resetOverlayAppearance}
+			aria-label={$t.overlayControls.resetLabel}
+		>
+			{$t.overlayControls.reset}
+		</button>
+	</div>
+	{#if !compact}<CaptionPreview {overlay} />{/if}
+</div>
 
 <style>
-	.cleanup {
-		display: flex;
-		gap: 8px;
-		align-items: center;
-		color: var(--text-soft);
+	.face-label {
+		display: grid;
+		gap: 0.5rem;
 		font-size: var(--type-12);
+		color: var(--muted);
+	}
+	.appearance-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 1.5rem;
+		align-items: start;
+	}
+	.appearance-layout.compact {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.appearance-controls {
+		display: grid;
+		gap: 0.75rem;
+	}
+	@media (max-width: 760px) {
+		.appearance-layout {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+	.palette-options {
+		display: grid;
+		gap: 0.75rem;
+	}
+	.swatches {
+		display: flex;
+		gap: 0.5rem;
+		margin-top: 0.5rem;
+	}
+	.colour-choice {
+		width: 2rem;
+		height: 2rem;
+		border: 1px solid var(--border-hover);
+		border-radius: var(--radius-control);
+		forced-color-adjust: none;
+	}
+	.colour-choice[aria-pressed='true'] {
+		outline: 2px solid var(--focus);
+		outline-offset: 2px;
 	}
 	.kicker {
 		flex: 0 0 auto;
@@ -244,7 +273,7 @@
 		display: flex;
 		align-items: center;
 		padding: 0.625rem 0.75rem;
-		border-radius: 9px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		margin-top: 2px;
@@ -298,7 +327,7 @@
 	.step {
 		width: 30px;
 		height: 30px;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		color: var(--text-soft);
@@ -321,7 +350,7 @@
 		justify-content: space-between;
 		gap: 0.5rem;
 		padding: 0.5rem 0.625rem;
-		border-radius: 9px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		cursor: pointer;
@@ -379,7 +408,7 @@
 	.reset {
 		align-self: flex-start;
 		padding: 0.375rem 0.625rem;
-		border-radius: 8px;
+		border-radius: var(--radius-control);
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--muted);

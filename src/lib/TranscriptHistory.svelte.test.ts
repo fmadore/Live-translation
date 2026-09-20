@@ -50,7 +50,6 @@ beforeEach(() => {
 it('reopens raw history without replacing the live transcript and exports every format', async () => {
 	transcript.set([{ ...saved.lines[0], id: 99, text: 'Live session' }]);
 	const view = render(TranscriptHistory);
-	await fireEvent.click(view.getByText('Browse sessions'));
 	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
 	await fireEvent.click(view.container.querySelector('.session')!);
 	expect(view.getByText('Um, hello.')).toBeTruthy();
@@ -77,7 +76,6 @@ it('copies and deletes a selected session only after confirmation', async () => 
 	Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
 	const deletion = vi.spyOn(sessionHistory, 'delete').mockResolvedValue(undefined);
 	const view = render(TranscriptHistory);
-	await fireEvent.click(view.getByText('Browse sessions'));
 	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
 	await fireEvent.click(view.container.querySelector('.session')!);
 	await fireEvent.click(view.getByText('Copy transcript'));
@@ -97,7 +95,6 @@ it('copies and deletes a selected session only after confirmation', async () => 
 it('shows unreadable records and read errors instead of silently losing history', async () => {
 	vi.mocked(api.listHistory).mockResolvedValue([{ path: saved.id, contents: '{' }]);
 	const view = render(TranscriptHistory);
-	await fireEvent.click(view.getByText('Browse sessions'));
 	await waitFor(() => expect(view.getByText('Unreadable session', { exact: false })).toBeTruthy());
 	vi.mocked(api.listHistory).mockRejectedValue(new Error('Access denied'));
 	await fireEvent.click(view.getByText('Refresh'));
@@ -124,21 +121,38 @@ it('searches titles, original source and translated text with inclusive local da
 it('filters the session list and saves a title without changing raw text', async () => {
 	const rename = vi.spyOn(sessionHistory, 'rename').mockResolvedValue();
 	const view = render(TranscriptHistory);
-	await fireEvent.click(view.getByText('Browse sessions'));
 	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
 	await fireEvent.input(view.getByLabelText('Search titles and transcript text'), {
 		target: { value: 'missing' }
 	});
 	expect(view.getByText('No matching sessions.')).toBeTruthy();
+	await fireEvent.click(view.getByText('Clear filters'));
+	expect(view.getByLabelText('Search titles and transcript text')).toHaveValue('');
+	expect(view.container.querySelector('.session')).not.toBeNull();
 	await fireEvent.input(view.getByLabelText('Search titles and transcript text'), {
 		target: { value: 'bonjour' }
 	});
 	await fireEvent.click(view.container.querySelector('.session')!);
 	await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Workshop' } });
-	await fireEvent.submit(view.container.querySelector('form')!);
+	await fireEvent.click(view.getByText('Save title'));
 	await waitFor(() =>
 		expect(rename).toHaveBeenCalledWith(expect.objectContaining({ lines: saved.lines }), 'Workshop')
 	);
 	rename.mockRestore();
+	view.unmount();
+});
+
+it('allows explicit deletion of an unreadable record from the detail pane', async () => {
+	vi.mocked(api.listHistory).mockResolvedValue([{ path: saved.id, contents: '{' }]);
+	const deletion = vi.spyOn(sessionHistory, 'delete').mockResolvedValue();
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.click(view.container.querySelector('.session')!);
+	await fireEvent.click(view.getByText('Delete'));
+	expect(deletion).not.toHaveBeenCalled();
+	vi.mocked(api.listHistory).mockResolvedValue([]);
+	await fireEvent.click(view.getByText('Delete permanently'));
+	await waitFor(() => expect(deletion).toHaveBeenCalledWith(saved.id));
+	deletion.mockRestore();
 	view.unmount();
 });

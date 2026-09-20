@@ -16,7 +16,7 @@
 
 use std::sync::Mutex;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Wry};
@@ -48,7 +48,20 @@ pub struct TrayMenu {
     items: Mutex<Option<Items>>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TrayLabels {
+    open: String,
+    quit: String,
+    stop: String,
+    show: String,
+    hide: String,
+    status: String,
+}
+
 struct Items {
+    open: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+    status: MenuItem<Wry>,
     overlay: MenuItem<Wry>,
     stop: MenuItem<Wry>,
 }
@@ -59,16 +72,28 @@ impl TrayMenu {
     }
 
     /// Write the front-end's view of the world onto the menu.
-    fn apply(&self, session_active: bool, overlay_visible: bool) {
+    fn apply(&self, session_active: bool, overlay_visible: bool, labels: Option<TrayLabels>) {
         let guard = self.items.lock().unwrap_or_else(|e| e.into_inner());
         let Some(items) = guard.as_ref() else {
             return;
         };
-        let _ = items.overlay.set_text(if overlay_visible {
-            "Hide caption overlay"
+        if let Some(labels) = labels {
+            let _ = items.open.set_text(labels.open);
+            let _ = items.quit.set_text(labels.quit);
+            let _ = items.stop.set_text(labels.stop);
+            let _ = items.status.set_text(labels.status);
+            let _ = items.overlay.set_text(if overlay_visible {
+                labels.hide
+            } else {
+                labels.show
+            });
         } else {
-            "Show caption overlay"
-        });
+            let _ = items.overlay.set_text(if overlay_visible {
+                "Hide caption overlay"
+            } else {
+                "Show caption overlay"
+            });
+        }
         // Disabled rather than hidden: an operator glancing at the menu should be able to
         // tell "no session running" from "this build has no Stop".
         let _ = items.stop.set_enabled(session_active);
@@ -77,17 +102,21 @@ impl TrayMenu {
 
 /// Build the tray icon and its menu. Called once from `setup`.
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
-    let open = MenuItem::with_id(app, ID_OPEN, "Open Live Translation", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, ID_OPEN, "Open window", true, None::<&str>)?;
     let overlay = MenuItem::with_id(app, ID_OVERLAY, "Hide caption overlay", true, None::<&str>)?;
     // Starts disabled: nothing is running a moment after launch, and the front-end pushes
     // the truth as soon as that changes.
     let stop = MenuItem::with_id(app, ID_STOP, "Stop session", false, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, ID_QUIT, "Quit Live Translation", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, ID_QUIT, "Quit", true, None::<&str>)?;
 
-    let menu = Menu::with_items(app, &[&open, &overlay, &stop, &separator, &quit])?;
+    let status = MenuItem::with_id(app, "tray-status", "Idle", false, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&status, &open, &overlay, &stop, &separator, &quit])?;
 
     app.state::<TrayMenu>().store(Items {
+        open: open.clone(),
+        quit: quit.clone(),
+        status: status.clone(),
         overlay: overlay.clone(),
         stop: stop.clone(),
     });
@@ -172,7 +201,8 @@ pub async fn set_tray_state(
     tray: tauri::State<'_, TrayMenu>,
     session_active: bool,
     overlay_visible: bool,
+    labels: Option<TrayLabels>,
 ) -> Result<(), String> {
-    tray.apply(session_active, overlay_visible);
+    tray.apply(session_active, overlay_visible, labels);
     Ok(())
 }

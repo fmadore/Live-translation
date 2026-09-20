@@ -21,6 +21,27 @@
 import type { Messages } from './en';
 
 export const de: Messages = {
+	design: {
+		smartSummary: 'Intelligente Transkription entfernt Füllwörter und Fehlstarts.',
+		captions: 'Untertitel',
+		reading: 'Lesen',
+		app: 'App',
+		applies: 'Änderungen werden sofort angewendet.',
+		clearFilters: 'Filter zurücksetzen',
+		newProfile: 'Aktuelle Einrichtung speichern…',
+		rename: 'Umbenennen',
+		saveName: 'Namen speichern',
+		manageProfiles: 'Profile verwalten',
+		desktopOnly:
+			'Öffnen Sie die Desktop-App, um Profile zu laden und gespeicherte Sitzungen anzuzeigen.',
+		selectSession: 'Wählen Sie eine Sitzung zum Lesen oder Exportieren.',
+		custom: 'Benutzerdefiniert…',
+		trayOpen: 'Fenster öffnen',
+		trayQuit: 'Beenden',
+		trayStop: 'Sitzung beenden',
+		trayShow: 'Untertitel einblenden',
+		trayHide: 'Untertitel ausblenden'
+	},
 	usability: {
 		hold: 'Anzeigedauer fertiger Untertitel (Sekunden)',
 		holdHint:
@@ -94,7 +115,7 @@ export const de: Messages = {
 	},
 
 	app: {
-		name: 'Live Captions',
+		name: 'Live Translation & Subtitles',
 		tagline: 'Übersetzung und Untertitel in Echtzeit'
 	},
 
@@ -333,12 +354,12 @@ export const de: Messages = {
 		},
 		reset: 'Zurücksetzen',
 		resetLabel: 'Overlay auf das Standardaussehen zurücksetzen',
-		move: 'Verschieben',
+		move: 'Untertitel verschieben',
 		done: 'Fertig',
-		moveLabel: 'Overlay verschieben',
+		moveLabel: 'Untertitel verschieben',
 		moveDoneLabel: 'Verschieben des Overlays beenden',
-		show: 'Einblenden',
-		hide: 'Ausblenden',
+		show: 'Untertitel einblenden',
+		hide: 'Untertitel ausblenden',
 		showLabel: 'Overlay einblenden',
 		hideLabel: 'Overlay ausblenden'
 	},
@@ -430,11 +451,11 @@ export const de: Messages = {
 			title: 'Overlay-Platzierung',
 			placed: 'Platziert – Untertitel erscheinen dort, wo Sie sie verankert haben',
 			unplaced: 'Noch nicht platziert – Untertitel sitzen unten mittig auf diesem Bildschirm',
-			place: 'Platzieren',
-			adjust: 'Anpassen',
+			place: 'Untertitel verschieben',
+			adjust: 'Untertitel verschieben',
 			done: 'Fertig',
-			placeLabel: 'Overlay platzieren',
-			adjustLabel: 'Platzierung des Overlays anpassen',
+			placeLabel: 'Untertitel verschieben',
+			adjustLabel: 'Untertitel verschieben',
 			doneLabel: 'Platzieren des Overlays beenden'
 		},
 

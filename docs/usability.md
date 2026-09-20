@@ -1,12 +1,14 @@
 # Meeting profiles and live controls
 
-Available in **v1.4.0**. See the [release checklist](store-updates.md#release-140-handoff).
+Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
+See the [release checklist](store-updates.md#release-141-handoff).
 This update adds no new scroll-back or return-to-live controls.
 
 ## Meeting profiles
 
-Expand **Meeting profiles** on the idle setup screen, enter a name and choose **Save current
-setup**. Each save creates a named snapshot; delete an obsolete profile with confirmation.
+Use the profile picker above step 01, then **Manage profiles**. Choose **Save current setup…**,
+enter a name and save. Each profile row offers **Load profile** and a management menu for
+**Rename** or confirmed deletion. Each save creates a named snapshot.
 Profiles persist locally across restart, using `meeting.profiles` in webview local storage.
 
 A profile includes output mode, provider, caption language, audio source and device identifiers,
@@ -49,7 +51,7 @@ system-wide hotkeys and cannot control the app while another application is focu
 | Ctrl+Shift+Up / Down | Increase / decrease caption size |
 | F2 | Switch translation direction while stopped |
 
-The Settings and idle setup screen both include expandable shortcut help. Existing overlay
+Shortcut help lives in **Settings → App**. A shortcut hint sits beside Start. Existing overlay
 move-mode keys are unchanged.
 
 ## Verification

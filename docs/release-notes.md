@@ -13,6 +13,25 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.4.1 — prepared, not published
+
+Native acceptance and publication remain tracked in the [1.4.1 handoff](store-updates.md#release-141-handoff).
+
+```markdown
+A clearer operator interface for setting up and running meetings.
+
+- Settings is organized into Captions, Reading, Transcript history and App, with keyboard navigation and an explicit note that changes apply immediately.
+- Meeting profiles sit above setup. Save a new setup, load a profile, rename it or confirm deletion from its row.
+- Browse saved sessions beside their transcript, with aligned filters, Clear filters and grouped copy/export/delete actions.
+- Choose visible appearance presets and curated colour swatches, with bright/dark previews and contrast feedback.
+- Consistent controls, readable small type, explicit units and overlay labels make the app easier to scan. The tray menu follows the English, French or German interface and shows session status.
+- Corrected accented labels and retained the existing opt-in history and local caption-cleanup behavior.
+
+Includes the meeting profiles, reading controls, history search and Gemini finalization improvements from 1.4.0. Thanks to @valentinrabot for the meeting feedback and suggestions that informed this work.
+
+For Partner Center, use Live.Translation_1.4.1.msixbundle with x64 and ARM64 packages after native acceptance and release workflow verification. This release draft is not a claim of Store certification.
+```
+
 ## v1.4.0
 
 GitHub release: [v1.4.0](https://github.com/fmadore/Live-translation/releases/tag/v1.4.0),
