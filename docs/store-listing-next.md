@@ -7,7 +7,9 @@ tracks checks, packages, screenshots, privacy publication and manual submission.
 The latest published GitHub release is [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2),
 which has not been submitted to the Store. The next submission should use 1.4.2 after native
 acceptance and release packaging. Expected artifact: **Live.Translation_1.4.2.msixbundle**,
-containing x64 and ARM64. A local x64 installer is not the Store upload artifact.
+containing x64 and ARM64. The release workflow has completed and the downloaded bundle's
+two 1.4.2.0 manifests, Store identity and SHA-256 are verified in the handoff.
+A local x64 installer is not the Store upload artifact.
 
 The copy also covers tabbed Settings, profile management in the setup rail, history browsing,
 visible presets, colour swatches and the localized tray. It retains the 1.4.0 additions:

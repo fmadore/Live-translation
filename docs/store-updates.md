@@ -22,14 +22,34 @@ All 1.4.1 UI, profile, history and localized date improvements remain included.
 - [x] Implement persistent session controls and update usage documentation.
 - [x] Synchronize manifests/lockfiles and citation metadata to 1.4.2.
 - [x] Prepare EN/FR/DE listing updates and GitHub release notes.
-- [ ] Confirm final automated validation and GitHub installer workflow completion.
-- [ ] Verify the combined x64/ARM64 bundle, embedded 1.4.2.0 manifests and SHA-256.
+- [x] Confirm final automated validation and GitHub installer workflow completion.
+- [x] Verify the combined x64/ARM64 bundle, embedded 1.4.2.0 manifests and SHA-256.
 - [ ] Test installed x64 and ARM64 packages: Start/Stop while scrolled, narrow windows,
   enlarged text, audio/overlay behavior, history and profile persistence/export, localized tray.
 - [ ] Capture fresh packaged-app EN/FR/DE screenshots; complete native German review.
 - [ ] Run Windows App Certification Kit and check the public privacy policy.
 - [ ] Submit **Live.Translation_1.4.2.msixbundle** and prepared listing fields manually in
   Partner Center; record certification and rollout. This release has not been submitted.
+
+### Verified 1.4.2 artifacts — 21 September 2026
+
+Release commit: `c3ea981`. [CI](https://github.com/fmadore/Live-translation/actions/runs/35647744590)
+and [all installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/35647744806)
+completed successfully. Local frontend validation passed 337 tests, formatting, type checks
+and the production build. The release includes EXE, MSI, separate x64/ARM64 MSIX packages,
+and the combined Store bundle.
+
+Upload [Live.Translation_1.4.2.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.4.2/Live.Translation_1.4.2.msixbundle)
+to Partner Center after the remaining native acceptance checks. Downloaded size:
+**7,947,693 bytes**. SHA-256 verified against GitHub:
+`63d7a38a345b4135d962233aa8d24dfca0f2c48536d2b7ab0eed631cbd03b7b4`.
+
+Both embedded manifests report **1.4.2.0**, architectures **x64** and **arm64**,
+identity `49346FMadore.LiveTranslationSubtitles`, publisher
+`CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`, and publisher display name `FMadore`.
+Both include `live-translation.exe`, declare only `microphone` and `runFullTrust`,
+and are unsigned for Store signing. This verifies packaging, not installed-app operation
+or Store certification. EN/FR/DE What's new fields are within the 1,500-character limit.
 
 ## Release 1.4.1 handoff
 

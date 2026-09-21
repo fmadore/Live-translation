@@ -92,7 +92,7 @@ checks, capture behavior and keyboard shortcuts are unchanged.
 The next Store submission target is **1.4.2**. Settings now has Captions, Reading,
 Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
 view, presets and previews stay visible, and the tray follows the interface language.
-See the [1.4.1 handoff](docs/store-updates.md#release-142-handoff) for native testing and
+See the [current release handoff](docs/store-updates.md#release-142-handoff) for native testing and
 packaging status. Version 1.4.1 is released on GitHub.
 
 ## Version 1.4.0 usability improvements
