@@ -13,6 +13,24 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.4.2
+
+GitHub release: [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2),
+21 September 2026. See the [Store handoff](store-updates.md#release-142-handoff).
+
+```markdown
+Start and Stop stay within reach throughout a meeting.
+
+- Session controls now sit in a persistent bar directly below the app header.
+- Start and Stop occupy the same position; setup, live captions and the completed transcript scroll below them.
+- The controls remain visible in narrow windows, with Rehearse beside Start and the existing keyboard shortcut nearby.
+- Readiness checks, audio capture, translation and transcript storage behavior are unchanged.
+
+Includes the interface, profile, history and localized date improvements from 1.4.1. Thanks to @valentinrabot for the meeting feedback that informed these improvements.
+
+For Microsoft Store submission, use Live.Translation_1.4.2.msixbundle (x64 + ARM64), not the EXE or MSI installer. Native acceptance and Store certification are tracked separately from GitHub publication.
+```
+
 ## v1.4.1
 
 GitHub release: [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1),

@@ -1,8 +1,16 @@
 # Meeting profiles and live controls
 
 Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
-See the [release checklist](store-updates.md#release-141-handoff).
+See the [release checklist](store-updates.md#release-142-handoff).
 This update adds no new scroll-back or return-to-live controls.
+
+## Session controls (1.4.2)
+
+Start and Stop share a persistent action bar immediately below the app header. The bar
+stays visible while either column scrolls, including the stacked layout at narrow widths
+or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and the saved
+transcript all remain below the session controls. Readiness gates and keyboard shortcuts
+are unchanged.
 
 ## Meeting profiles
 

@@ -9,7 +9,33 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.4.2 handoff
+
+Next Store submission target: **1.4.2**, MSIX **1.4.2.0**, dated 21 September 2026.
+GitHub release: [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2).
+This supersedes the unsubmitted 1.4.1 target. The last documented Store release is 1.2.4.
+
+Start and Stop share a persistent action bar below the header. Setup, live captions and
+saved transcripts remain beneath it. Readiness gates and session behavior are unchanged.
+All 1.4.1 UI, profile, history and localized date improvements remain included.
+
+- [x] Implement persistent session controls and update usage documentation.
+- [x] Synchronize manifests/lockfiles and citation metadata to 1.4.2.
+- [x] Prepare EN/FR/DE listing updates and GitHub release notes.
+- [ ] Confirm final automated validation and GitHub installer workflow completion.
+- [ ] Verify the combined x64/ARM64 bundle, embedded 1.4.2.0 manifests and SHA-256.
+- [ ] Test installed x64 and ARM64 packages: Start/Stop while scrolled, narrow windows,
+  enlarged text, audio/overlay behavior, history and profile persistence/export, localized tray.
+- [ ] Capture fresh packaged-app EN/FR/DE screenshots; complete native German review.
+- [ ] Run Windows App Certification Kit and check the public privacy policy.
+- [ ] Submit **Live.Translation_1.4.2.msixbundle** and prepared listing fields manually in
+  Partner Center; record certification and rollout. This release has not been submitted.
+
 ## Release 1.4.1 handoff
+
+Historical record; the current submission target is [1.4.2](#release-142-handoff).
+The 1.4.1 combined bundle is now available on its release page; its GitHub SHA-256 is
+`3f6827fd76ce8852f7a2eedb73cb97db4d28c23e24b7af90ac5af4d8eb3631d6`.
 
 Next Store submission target: **1.4.1**, MSIX **1.4.1.0**, prepared 20 September 2026.
 This replaces the unsubmitted 1.4.0 target. The last documented Store release remains 1.2.4;

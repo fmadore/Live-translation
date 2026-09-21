@@ -711,6 +711,59 @@
 		{#if $isRunning}<span class="sweep"></span>{/if}
 	</div>
 
+	<div class="session-controls">
+		{#if $isRunning}
+			<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+					><rect x="6" y="6" width="12" height="12" rx="2" /></svg
+				>
+				{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
+			</button>
+		{:else}
+			<button
+				class="start"
+				disabled={!$hasKey ||
+					browserMode ||
+					profileBusy ||
+					$sessionBusy ||
+					!preflight.applicationReady($options)}
+				aria-busy={$sessionBusy}
+				onclick={start}
+			>
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+				>
+				{$sessionBusy
+					? $t.preflight.start.starting
+					: $options.mode === 'translate'
+						? $t.preflight.start.translate
+						: $options.provider === 'ondevice'
+							? $t.preflight.start.demo
+							: $t.preflight.start.subtitles}
+			</button><button
+				class="rehearse"
+				aria-describedby="rehearse-hint"
+				disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
+				onclick={rehearse}
+			>
+				<svg
+					width="13"
+					height="13"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+					><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
+				>
+				{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
+			</button>
+		{/if}
+		<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
+	</div>
+
 	<div class="body">
 		<aside class="rail">
 			{#if !$isRunning}
@@ -884,13 +937,6 @@
 				</div>
 
 				<span class="grow"></span>
-
-				<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-						><rect x="6" y="6" width="12" height="12" rx="2" /></svg
-					>
-					{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
-				</button>
 			{:else}
 				<!-- ---- Idle: the numbered setup sheet ---- -->
 				<section class="rail-section">
@@ -1427,9 +1473,7 @@
 					</div>
 				</div>
 
-				<!-- Straight after Stop, saving the transcript is the operator's next job, so it
-				     sits above the Start row — below it, past the spacer, it scrolls out of view
-				     and reads as lost (the store keeps the lines regardless). -->
+				<!-- Saved transcript follows the persistent session controls. -->
 				{#if $transcript.length > 0}
 					<TranscriptMonitor
 						mode={$options.mode}
@@ -1443,55 +1487,6 @@
 				{/if}
 
 				<div class="launch">
-					<div class="launch-actions">
-						<button
-							class="start"
-							disabled={!$hasKey ||
-								browserMode ||
-								profileBusy ||
-								$sessionBusy ||
-								!preflight.applicationReady($options)}
-							aria-busy={$sessionBusy}
-							onclick={start}
-						>
-							<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-								><path d="M8 5.5l11 6.5-11 6.5z" /></svg
-							>
-							{$sessionBusy
-								? $t.preflight.start.starting
-								: $options.mode === 'translate'
-									? $t.preflight.start.translate
-									: $options.provider === 'ondevice'
-										? $t.preflight.start.demo
-										: $t.preflight.start.subtitles}
-						</button>
-						<!-- Same gate as Start: a rehearsal runs the real pipeline, so it needs the same
-					     key and the same desktop runtime. -->
-
-						<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
-						<button
-							class="rehearse"
-							aria-describedby="rehearse-hint"
-							disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
-							onclick={rehearse}
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.8"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path
-									d="M17 8.5l3.5 3.5-3.5 3.5"
-								/></svg
-							>
-							{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
-						</button>
-					</div>
 					<span class="rehearse-hint" id="rehearse-hint">
 						{$options.provider === 'ondevice'
 							? $t.preflight.rehearse.demoHint
@@ -1703,14 +1698,14 @@
 		display: grid;
 		/* The title bar sizes to its own text rather than to a slot: at 225% its label is
 		   28px tall and a fixed 40px row would crop it. */
-		grid-template-rows: auto 2px minmax(0, 1fr);
+		grid-template-rows: auto 2px auto minmax(0, 1fr);
 		background: var(--surface-0);
 		/* The query container for the column rule below. Its `em` is the scaled root, which
 		   is what lets a text-size change move the breakpoint. */
 		container: window / inline-size;
 	}
 	.app.device-error {
-		grid-template-rows: auto auto 2px minmax(0, 1fr);
+		grid-template-rows: auto auto 2px auto minmax(0, 1fr);
 	}
 
 	/* ---- Header ------------------------------------------------------------- */
@@ -2575,11 +2570,19 @@
 		gap: 12px;
 		margin-top: 30px;
 	}
-	.launch-actions {
+	.session-controls {
+		padding: 0.75rem 1.375rem;
+		border-bottom: 1px solid var(--border);
+		background: var(--panel);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: stretch;
 		gap: 12px;
+	}
+	.session-controls .start,
+	.session-controls .stop {
+		min-width: min(15rem, 100%);
+		justify-content: center;
 	}
 	.start {
 		display: flex;

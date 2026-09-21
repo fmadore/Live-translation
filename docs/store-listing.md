@@ -1,11 +1,11 @@
-# Partner Center listing text — 1.4.1 prepared
+# Partner Center listing text — 1.4.2 prepared
 
-Prepared for **1.4.1** (MSIX **1.4.1.0**), not yet submitted to the Store. The prior documented live Store
+Prepared for **1.4.2** (MSIX **1.4.2.0**), not yet submitted to the Store. The prior documented live Store
 release is 1.2.4. These blocks replace the listing fields for the next submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-141-handoff) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-142-handoff) for remaining checks.
 
 ## English (United States)
 
@@ -66,11 +66,13 @@ Paste this into **Short description**:
 Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
 ```
 
-### What's new in this version — 1.4.1
+### What's new in this version — 1.4.2
 
 Paste after final packaged-app verification:
 
 ```text
+Start and Stop now stay at the top of the app while setup and transcripts scroll below.
+
 A clearer setup screen puts profiles beside the meeting controls. Settings now has Captions, Reading, History and App tabs, visible presets and previews, colour swatches and a session browser. The tray menu follows the interface language.
 
 New: meeting profiles, caption persistence and steadier updates, reading previews/presets, session titles/search, source status and operator shortcuts. Gemini Smart final results now replace speculative interim text, including filler-only results. Long history titles wrap and date-picker icons are clearer.
@@ -141,11 +143,13 @@ Collez ce texte dans **Description courte** :
 Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
 ```
 
-### Nouveautés de cette version — 1.4.1
+### Nouveautés de cette version — 1.4.2
 
 Paste after final packaged-app verification:
 
 ```text
+Les boutons Démarrer et Arrêter restent en haut de l’application pendant le défilement des réglages et des transcriptions.
+
 Une préparation plus claire place les profils près des réglages de réunion. Les paramètres regroupent sous-titres, lecture, historique et application, avec préréglages et aperçus visibles, palettes de couleurs et navigation dans les sessions. Le menu de notification suit la langue de l’interface.
 
 Nouveautés : profils de réunion, durée et actualisation plus stable des sous-titres, aperçus et préréglages, titres et recherche, statut des sources et raccourcis. Les résultats finaux de Gemini Smart remplacent désormais le texte provisoire, y compris les hésitations seules. Les longs titres reviennent à la ligne et les icônes de calendrier sont plus lisibles.
@@ -226,11 +230,13 @@ German runs longer than both other languages here — 193 characters against Eng
 French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
 than assuming the margin is still there.
 
-### Neuerungen in dieser Version — 1.4.1
+### Neuerungen in dieser Version — 1.4.2
 
 Paste after final packaged-app verification:
 
 ```text
+Start und Stopp bleiben oben in der App sichtbar, während Einstellungen und Transkripte darunter scrollen.
+
 Die übersichtlichere Einrichtung zeigt Profile neben den Besprechungsoptionen. Einstellungen sind in Untertitel, Lesen, Verlauf und App gegliedert, mit sichtbaren Voreinstellungen, Vorschauen, Farbauswahl und Sitzungsübersicht. Das Infobereich-Menü folgt der Oberflächensprache.
 
 Neu: Besprechungsprofile, Anzeigedauer und ruhigere Untertitel-Aktualisierungen, Vorschau und Voreinstellungen, Sitzungstitel und Suche, Eingangsstatus und Tastenkombinationen. Fertige Gemini-Smart-Ergebnisse ersetzen nun vorläufigen Text, auch reine Fülllaute. Lange Verlaufstitel werden umgebrochen und Kalendersymbole sind besser sichtbar.
@@ -329,14 +335,14 @@ No account, API key, microphone, language pack, or network connection is require
 
 Retained from 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
 
-In 1.4.1, open Settings and use the Captions, Reading, Transcript history and App tabs. Presets and bright/dark previews are always visible in Captions. Changes apply immediately; close with the top-right button or Escape. Manage profiles above step 01; save, rename, load and confirm deletion. History has a session list and detail pane with filters and Clear filters. Check EN/FR/DE tray labels and live status.
+In 1.4.2, open Settings and use the Captions, Reading, Transcript history and App tabs. Presets and bright/dark previews are always visible in Captions. Changes apply immediately; close with the top-right button or Escape. Manage profiles above step 01; save, rename, load and confirm deletion. History has a session list and detail pane with filters and Clear filters. Check EN/FR/DE tray labels and live status.
 
 Switch all four tabs and verify the dialog and tab bar remain stationary while the content
 scrolls. In History, test both date bounds and Clear filters in English, French and German.
 Hints are YYYY-MM-DD, AAAA-MM-JJ and JJJJ-MM-TT; entered values remain year-month-day.
 Check valid leap days, invalid-date messages and native calendar selection in the packaged app.
 
-Introduced in 1.4.0 and included in 1.4.1: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
+Introduced in 1.4.0 and included in 1.4.2: while stopped, save a Meeting profile, change appearance, then load it. Verify setup and appearance return without starting capture or changing history/recovery preferences. Restart to check profile persistence. Profiles exclude API keys and application process IDs; missing devices require checking the default fallback, and application capture requires reselection.
 
 In Settings → Captions, try Standard, Large room and High contrast. Fit window/Compact allow a 2–30 second hold; Stable reading retains text until it rolls out or the session stops. Choose Steadier updates and verify completed demo captions still appear promptly. Live interim timing and Gemini cleanup need a separate provider test; the deterministic demo cannot validate cloud recognition.
 
@@ -357,7 +363,7 @@ The developer operates no backend, relay, telemetry, analytics, or crash-reporti
 
 ## Screenshots
 
-The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.4.1
+The existing PNGs are the 1.2.2 set. These descriptions are prepared for fresh 1.4.2
 captures; do not upload the old appearance screenshots with the new descriptions.
 
 The listing is per-language and so are its screenshots. Every set is kept in the repository and

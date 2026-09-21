@@ -1,12 +1,12 @@
-# Store update preparation — 1.4.1
+# Store update preparation — 1.4.2
 
-Target **1.4.1** (MSIX **1.4.1.0**). The [EN/FR/DE listing](store-listing.md) is the single
-source for paste-ready fields. The [release handoff](store-updates.md#release-141-handoff)
+Target **1.4.2** (MSIX **1.4.2.0**). The [EN/FR/DE listing](store-listing.md) is the single
+source for paste-ready fields. The [release handoff](store-updates.md#release-142-handoff)
 tracks checks, packages, screenshots, privacy publication and manual submission.
 
-The latest published GitHub release is [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1),
-which has not been submitted to the Store. The next submission should use 1.4.1 after native
-acceptance and release packaging. Expected artifact: **Live.Translation_1.4.1.msixbundle**,
+The latest published GitHub release is [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2),
+which has not been submitted to the Store. The next submission should use 1.4.2 after native
+acceptance and release packaging. Expected artifact: **Live.Translation_1.4.2.msixbundle**,
 containing x64 and ARM64. A local x64 installer is not the Store upload artifact.
 
 The copy also covers tabbed Settings, profile management in the setup rail, history browsing,

@@ -4,9 +4,9 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.4.1 release
+## Current status — 1.4.2 release
 
-The latest GitHub release is **v1.4.1** (20 September 2026). Version 1.3.0 delivered local
+The latest GitHub release is **v1.4.2** (21 September 2026). Version 1.3.0 delivered local
 transcript history (#81), Stable reading (#79), overlay filler cleanup (#80), and the German
 interface. Those three issues are closed. Thanks to @valentinrabot for the meeting feedback.
 
@@ -16,10 +16,10 @@ per-source input status, and operator shortcuts. Gemini Smart final results now 
 speculative interim text, including all-filler empty results. Impeccable visual checks also
 fixed long history-title overflow and date-picker icon contrast.
 
-See the [release handoff](docs/store-updates.md#release-141-handoff) for verified
-checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.4.1; the last
+See the [release handoff](docs/store-updates.md#release-142-handoff) for verified
+checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.4.2; the last
 documented Store release is 1.2.4, with no claim of a new Partner Center submission.
-Citation metadata identifies 1.4.1, published on GitHub on 20 September 2026.
+Citation metadata identifies 1.4.2, published on GitHub on 21 September 2026.
 
 **1.4.1 refines the operator interface.** Settings has four tabs in a stable window,
 profiles sit above setup with aligned controls, and history uses a list/detail view.
@@ -28,6 +28,9 @@ The final frontend suite has 337 passing tests. Store acceptance remains pending
 
 The customizable filter list remains open in [#85](https://github.com/fmadore/Live-translation/issues/85).
 No new scroll-back or return-to-live controls are included in this update.
+
+**1.4.2 keeps session controls visible.** Start and Stop share a persistent top bar;
+setup and transcripts scroll underneath.
 
 ## Historical delivery context
 
@@ -144,7 +147,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.4.1 handoff](docs/store-updates.md#release-141-handoff) for the current checklist.
+Use the [1.4.2 handoff](docs/store-updates.md#release-142-handoff) for the current checklist.
 
 ## Research and unscheduled work
 
