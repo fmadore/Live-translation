@@ -28,8 +28,8 @@ remain included. [Release notes](release-1.5.0.md) · [EN/FR/DE listing](store-l
   formatting, catalog parity and Clippy. Two billable/network probes are opt-in.
 - [x] Browser layout checks at 980×660 in EN/FR/DE, centered rows, Japanese/Arabic font fallback
   and Arabic stable-reading direction.
-- [ ] Confirm release-commit CI and all installer/MSIX/bundle jobs.
-- [ ] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
+- [x] Confirm release-commit CI and all installer/MSIX/bundle jobs.
+- [x] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
   embedded 1.5.0.0 manifests below.
 - [ ] Complete OpenAI target-code probe, especially Portuguese/Chinese variants, and live
   non-EN/FR speech on both translation providers. #78 remains open; see [coverage](language-coverage.md).
@@ -42,8 +42,21 @@ remain included. [Release notes](release-1.5.0.md) · [EN/FR/DE listing](store-l
 
 ### 1.5.0 artifact verification
 
-Installer workflow and bundle verification pending publication. Do not upload a previous
-version's bundle. GitHub publication does not establish live-provider acceptance or Store certification.
+Verified on 22 September 2026. Tag `v1.5.0` points to release commit `d1ad615`.
+[Release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/35703510948)
+and [all installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/35703560787)
+passed. The release contains EXE, MSI, separate x64/ARM64 MSIX packages and the combined bundle.
+
+Upload [Live.Translation_1.5.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.5.0/Live.Translation_1.5.0.msixbundle)
+after the remaining acceptance checks. Downloaded size: **7,960,437 bytes**.
+Local SHA-256 matches the GitHub asset digest:
+`737b95a417030666b55dc0f8a4850b12b29e528424206fe2dd4a387836e494ce`.
+
+The bundle and both embedded package manifests report **1.5.0.0**. The packages target
+**x64** and **arm64**, use identity `49346FMadore.LiveTranslationSubtitles` and publisher
+`CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`, and each includes nonempty English and French
+rehearsal WAV fixtures. This verifies packaging, not live-provider acceptance, installed-app
+operation or Store certification. No Partner Center submission has been made.
 
 ## Release 1.4.2 handoff
 

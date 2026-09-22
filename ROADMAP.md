@@ -151,7 +151,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.4.2 handoff](docs/store-updates.md#release-150-handoff) for the current checklist.
+Use the [1.5.0 handoff](docs/store-updates.md#release-150-handoff) for the current checklist.
 
 ## Research and unscheduled work
 
