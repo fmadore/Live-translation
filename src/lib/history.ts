@@ -1,3 +1,4 @@
+import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { decodeRecovery } from './document';
 import { api } from './tauri';
@@ -22,8 +23,8 @@ export interface SavedSession {
 	endedAt: string | null;
 	durationMs: number;
 	mode: 'translate' | 'transcribe';
-	sourceLanguage: 'auto' | 'en' | 'fr';
-	targetLanguage: 'en' | 'fr' | null;
+	sourceLanguage: 'auto' | TargetLanguage;
+	targetLanguage: TargetLanguage | null;
 	lines: TranscriptLine[];
 }
 
@@ -36,8 +37,8 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 			s.id !== id ||
 			!/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(id) ||
 			!['translate', 'transcribe'].includes(s.mode) ||
-			!['auto', 'en', 'fr'].includes(s.sourceLanguage) ||
-			![null, 'en', 'fr'].includes(s.targetLanguage) ||
+			(s.sourceLanguage !== 'auto' && !isTargetLanguage(s.sourceLanguage)) ||
+			(s.targetLanguage !== null && !isTargetLanguage(s.targetLanguage)) ||
 			typeof s.startedAt !== 'string' ||
 			!Number.isFinite(Date.parse(s.startedAt)) ||
 			(s.endedAt !== null &&

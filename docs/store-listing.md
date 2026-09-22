@@ -1,11 +1,12 @@
-# Partner Center listing text — 1.4.2 prepared
+# Partner Center listing text — 1.5.0 prepared
 
-Prepared for **1.4.2** (MSIX **1.4.2.0**), not yet submitted to the Store. The prior documented live Store
-release is 1.2.4. These blocks replace the listing fields for the next submission.
+Prepared for **1.5.0** (MSIX **1.5.0.0**), not submitted to the Store. This supersedes the
+unsubmitted 1.4.2 listing. Complete the live-provider and final-package checks in
+[the 1.5.0 handoff](store-updates.md#release-150-handoff) before submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-142-handoff) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-150-handoff) for remaining checks.
 
 ## English (United States)
 
@@ -20,7 +21,7 @@ Live Translation & Subtitles is a Windows presentation tool for meetings, lectur
 
 A built-in English and French demonstration works without an account, API key, microphone, language pack, internet connection, or payment. It uses bundled scripted captions to demonstrate the overlay, timer, audio-level display, transcript, and export workflow. It does not recognize live speech.
 
-For real-time use, select Gemini or OpenAI for English–French translation, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both. System capture can use all audio on an output device or one selected application and its child processes. Application notifications are included, and browsers may include multiple tabs. Save transcripts to a folder of your choice as plain text, Markdown, SRT, or VTT.
+For real-time use, select Gemini or OpenAI for translation with engine-dependent language coverage, or Gemini or Mistral for same-language subtitles. Both subtitle engines detect the spoken language themselves, and Gemini covers over 70 languages. Live providers can capture a selected room microphone, Windows system audio, or both. System capture can use all audio on an output device or one selected application and its child processes. Application notifications are included, and browsers may include multiple tabs. Save transcripts to a folder of your choice as plain text, Markdown, SRT, or VTT.
 
 For long meetings, choose Stable reading: left-aligned text stays at the top and advances by whole lines. Optional Hide filler words cleans obvious hesitation sounds only in the overlay; raw transcripts and exports remain unchanged. Fit window and Compact are also available.
 
@@ -28,7 +29,7 @@ Optional transcript history progressively saves finalized captions locally, with
 
 Save named meeting profiles to reuse setup, caption appearance and overlay position on this PC. Adjust completed-caption persistence, choose steadier interim updates, and preview reading presets. Name saved sessions and search their text, dates and caption language. Per-source input status and keyboard shortcuts help operate live sessions. Profiles exclude API keys; check devices and placement before starting. Gemini subtitles use Smart transcription: saved text reflects provider cleanup, while the optional local filler filter only changes the overlay.
 
-Use the interface in English, French or German, independently of the caption language. Live translation remains English–French.
+Use the interface in English, French or German, independently of the caption language. Caption coverage depends on the engine: 78 translation targets with Gemini, 13 with OpenAI. Search names or codes and pin favourites. The built-in demo stays English/French.
 
 The app does not sell subscriptions, credits, or API access. Provider keys are stored in Windows Credential Manager and sent only to the selected provider. The developer operates no server and receives no audio, keys, transcripts, analytics, or telemetry.
 
@@ -42,12 +43,12 @@ description:
 
 ```text
 Built-in English and French caption demonstration with no account, API key, microphone, or network
-Live English–French translation with your own Google Gemini or OpenAI API key
+Live translation with engine-dependent language coverage with your own Google Gemini or OpenAI API key
 Live same-language subtitles with your own Mistral or Google Gemini API key
 Capture a selected microphone, system audio from an output device or one application, or both in live modes
 Transparent, always-on-top caption overlay that remains click-through
 Move, resize, show, or hide the overlay during a session
-Fit window, Compact, or Stable reading with left-aligned captions and whole-line scrolling
+Fit window, Compact, or Stable reading with direction-aware captions and whole-line scrolling
 Optional filler cleanup in the overlay while preserving raw transcripts
 Optional local session history with progressive saving, reopening, copying, export and deletion
 Save transcripts as text, Markdown, SRT, or VTT using the Windows Save As dialog
@@ -58,30 +59,24 @@ Session titles and text, date and caption-language search
 Per-source live status and operator-window keyboard shortcuts
 ```
 
-### Short description — 175 characters
+### Short description — 172 characters
 
 Paste this into **Short description**:
 
 ```text
-Built-in caption demo with no setup, plus optional live microphone and system-audio subtitles and English–French translation using your own Gemini, OpenAI, or Mistral API key.
+Built-in caption demo, plus live subtitles and multilingual translation from microphone or system audio with your own provider key. Language coverage depends on the engine.
 ```
 
-### What's new in this version — 1.4.2
+### What's new in this version — 1.5.0
 
 Paste after final packaged-app verification:
 
 ```text
-Start and Stop now stay at the top of the app while setup and transcripts scroll below.
+Find caption languages by name or code and pin favourites. Coverage depends on the engine: Gemini offers 78 translation targets, OpenAI 13. Unsupported choices stay visible with a reason and block Start. F2 swaps the first two supported favourites before starting. Demo scripts remain English/French; subtitle engines auto-detect.
 
-A clearer setup screen puts profiles beside the meeting controls. Settings now has Captions, Reading, History and App tabs, visible presets and previews, colour swatches and a session browser. The tray menu follows the interface language.
+Arabic, Hebrew, Persian and Urdu captions support right-to-left reading. Language rows and stars are vertically centered. The English/French/German interface remains independent of caption language.
 
-New: meeting profiles, caption persistence and steadier updates, reading previews/presets, session titles/search, source status and operator shortcuts. Gemini Smart final results now replace speculative interim text, including filler-only results. Long history titles wrap and date-picker icons are clearer.
-
-Save previous meetings with optional local transcript history. Finalized captions are saved progressively and can be reopened, copied, exported or deleted. History is off by default and remains until deleted.
-
-Stable reading keeps captions left-aligned and advances by whole lines. Optional Hide filler words cleans the overlay while preserving raw transcripts. The interface is now available in English, French and German; live translation remains English–French.
-
-Thanks to @valentinrabot for the detailed feedback and suggestions in GitHub issues #79, #80 and #81.
+Also includes local meeting profiles, optional transcript history with search and export, reading presets, steadier updates, and persistent Start/Stop controls. No audio is saved. Thanks to @valentinrabot for the earlier meeting feedback.
 ```
 
 ## Français (France)
@@ -97,7 +92,7 @@ Live Translation & Subtitles est un outil de présentation Windows destiné aux 
 
 Une démonstration intégrée en anglais et en français fonctionne sans compte, clé API, microphone, module linguistique, connexion Internet ni paiement. Elle utilise des sous-titres scénarisés fournis avec l’application pour montrer la surimpression, le chronomètre, l’indicateur de niveau, la transcription et l’export. Elle ne reconnaît pas la parole en direct.
 
-Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction français–anglais, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux. La capture système peut utiliser tout l’audio d’une sortie ou une application sélectionnée et ses processus enfants. Les notifications de cette application sont incluses, et un navigateur peut inclure plusieurs onglets. Enregistrez les transcriptions dans le dossier de votre choix en texte brut, Markdown, SRT ou VTT.
+Pour une utilisation en temps réel, sélectionnez Gemini ou OpenAI pour la traduction avec une couverture linguistique propre à chaque moteur, ou Gemini ou Mistral pour les sous-titres dans la langue parlée. Les deux moteurs de sous-titrage détectent eux-mêmes la langue parlée, et Gemini prend en charge plus de 70 langues. Les fournisseurs en direct peuvent capter un microphone sélectionné, l’audio système Windows ou les deux. La capture système peut utiliser tout l’audio d’une sortie ou une application sélectionnée et ses processus enfants. Les notifications de cette application sont incluses, et un navigateur peut inclure plusieurs onglets. Enregistrez les transcriptions dans le dossier de votre choix en texte brut, Markdown, SRT ou VTT.
 
 Pour les longues réunions, choisissez Lecture stable : le texte est aligné à gauche, reste en haut et défile par lignes entières. L’option Masquer les hésitations nettoie uniquement la surimpression ; les transcriptions originales et les exports restent inchangés. Adapter à la fenêtre et Compact restent disponibles.
 
@@ -105,7 +100,7 @@ L’historique facultatif enregistre progressivement les sous-titres finalisés 
 
 Enregistrez des profils de réunion pour retrouver la configuration, l’apparence et la position de la surimpression sur ce PC. Réglez la durée des sous-titres terminés, stabilisez les mises à jour partielles et prévisualisez les préréglages. Nommez les sessions enregistrées et recherchez leur texte, leur date et leur langue. Le statut de chaque source et les raccourcis facilitent le pilotage en direct. Les profils excluent les clés API ; vérifiez les périphériques et la position avant de démarrer. Les sous-titres Gemini utilisent la transcription Smart : le texte enregistré reflète le nettoyage du fournisseur ; le filtre local ne modifie que la surimpression.
 
-L’interface est disponible en anglais, français et allemand, indépendamment de la langue des sous-titres. La traduction en direct reste français–anglais.
+L’interface est disponible en anglais, français et allemand, indépendamment de la langue des sous-titres. La couverture dépend du moteur : 78 langues cibles avec Gemini, 13 avec OpenAI. Recherchez un nom ou un code et épinglez vos favoris. La démo reste en anglais et en français.
 
 L’application ne vend ni abonnement, ni crédits, ni accès API. Les clés des fournisseurs sont enregistrées dans le Gestionnaire d’informations d’identification Windows et transmises uniquement au fournisseur sélectionné. Le développeur n’exploite aucun serveur et ne reçoit ni audio, ni clé, ni transcription, ni donnée analytique ou télémétrique.
 
@@ -135,30 +130,24 @@ Titres de session et recherche par texte, date et langue des sous-titres
 Statut de chaque source et raccourcis dans la fenêtre de contrôle
 ```
 
-### Description courte — 171 caractères
+### Description courte — 148 caractères
 
 Collez ce texte dans **Description courte** :
 
 ```text
-Démo de sous-titres sans configuration, plus sous-titrage micro/audio système et traduction français–anglais en direct avec votre propre clé API Gemini, OpenAI ou Mistral.
+Démo intégrée, sous-titres et traduction multilingue du micro ou de l’audio système avec votre clé API. Les langues disponibles dépendent du moteur.
 ```
 
-### Nouveautés de cette version — 1.4.2
+### Nouveautés de cette version — 1.5.0
 
 Paste after final packaged-app verification:
 
 ```text
-Les boutons Démarrer et Arrêter restent en haut de l’application pendant le défilement des réglages et des transcriptions.
+Recherchez une langue par nom ou code et épinglez vos favoris. La couverture dépend du moteur : 78 langues cibles avec Gemini, 13 avec OpenAI. Un choix incompatible reste visible avec une explication et bloque le démarrage. F2 permute les deux premiers favoris compatibles avant de démarrer. La démo reste anglais/français ; les moteurs de sous-titrage détectent la langue.
 
-Une préparation plus claire place les profils près des réglages de réunion. Les paramètres regroupent sous-titres, lecture, historique et application, avec préréglages et aperçus visibles, palettes de couleurs et navigation dans les sessions. Le menu de notification suit la langue de l’interface.
+Les sous-titres arabes, hébreux, persans et ourdous se lisent de droite à gauche. Les langues et étoiles sont centrées verticalement. L’interface anglais/français/allemand reste indépendante.
 
-Nouveautés : profils de réunion, durée et actualisation plus stable des sous-titres, aperçus et préréglages, titres et recherche, statut des sources et raccourcis. Les résultats finaux de Gemini Smart remplacent désormais le texte provisoire, y compris les hésitations seules. Les longs titres reviennent à la ligne et les icônes de calendrier sont plus lisibles.
-
-Retrouvez vos réunions grâce à l’historique local facultatif. Les sous-titres finalisés sont enregistrés progressivement et peuvent être rouverts, copiés, exportés ou supprimés. L’historique est désactivé par défaut et conservé jusqu’à sa suppression.
-
-Lecture stable aligne les sous-titres à gauche et les fait défiler par lignes entières. Masquer les hésitations nettoie uniquement la surimpression, sans modifier les transcriptions originales. L’interface est disponible en anglais, français et allemand ; la traduction reste français–anglais.
-
-Merci à @valentinrabot pour ses retours détaillés et ses suggestions dans les tickets GitHub nº 79, 80 et 81.
+Inclut aussi profils locaux, historique facultatif avec recherche et export, préréglages de lecture, mises à jour plus stables et commandes Démarrer/Arrêter persistantes. Aucun audio n’est enregistré. Merci à @valentinrabot pour ses retours sur les réunions.
 ```
 
 ## Deutsch (Deutschland)
@@ -174,7 +163,7 @@ Live Translation & Subtitles ist ein Windows-Präsentationswerkzeug für Besprec
 
 Eine integrierte Demonstration auf Englisch und Französisch funktioniert ohne Konto, API-Schlüssel, Mikrofon, Sprachpaket, Internetverbindung oder Bezahlung. Sie verwendet mitgelieferte, skriptbasierte Untertitel, um Overlay, Zeitmessung, Pegelanzeige, Transkript und Export vorzuführen. Sie erkennt keine live gesprochene Sprache.
 
-Für den Einsatz in Echtzeit wählen Sie Gemini oder OpenAI für die Übersetzung zwischen Englisch und Französisch, oder Gemini oder Mistral für Untertitel in der gesprochenen Sprache. Beide Untertitel-Engines erkennen die gesprochene Sprache selbst, und Gemini deckt über 70 Sprachen ab. Die Live-Anbieter können ein ausgewähltes Raummikrofon, das Windows-Systemaudio oder beides aufnehmen. Die Systemaufnahme kann das gesamte Audio eines Ausgabegeräts verwenden oder eine ausgewählte Anwendung samt ihrer Unterprozesse. Benachrichtigungen dieser Anwendung sind enthalten, und ein Browser kann mehrere Tabs umfassen. Speichern Sie Transkripte in einem Ordner Ihrer Wahl als reinen Text, Markdown, SRT oder VTT.
+Für den Einsatz in Echtzeit wählen Sie Gemini oder OpenAI für die Übersetzung mit engineabhängiger Sprachauswahl, oder Gemini oder Mistral für Untertitel in der gesprochenen Sprache. Beide Untertitel-Engines erkennen die gesprochene Sprache selbst, und Gemini deckt über 70 Sprachen ab. Die Live-Anbieter können ein ausgewähltes Raummikrofon, das Windows-Systemaudio oder beides aufnehmen. Die Systemaufnahme kann das gesamte Audio eines Ausgabegeräts verwenden oder eine ausgewählte Anwendung samt ihrer Unterprozesse. Benachrichtigungen dieser Anwendung sind enthalten, und ein Browser kann mehrere Tabs umfassen. Speichern Sie Transkripte in einem Ordner Ihrer Wahl als reinen Text, Markdown, SRT oder VTT.
 
 Für längere Besprechungen wählen Sie Ruhiger Lesemodus: Der Text bleibt linksbündig am oberen Rand und rückt in ganzen Zeilen weiter. Fülllaute ausblenden entfernt optional eindeutige Zögerlaute nur im Overlay; Originaltranskripte und Exporte bleiben unverändert. An Fenster anpassen und Kompakt bleiben verfügbar.
 
@@ -196,7 +185,7 @@ Sie ihn nicht in die vollständige Beschreibung ein:
 
 ```text
 Integrierte Untertitel-Demonstration auf Englisch und Französisch, ohne Konto, API-Schlüssel, Mikrofon oder Netzwerk
-Live-Übersetzung zwischen Englisch und Französisch mit Ihrem eigenen Google-Gemini- oder OpenAI-API-Schlüssel
+Live-Übersetzung mit engineabhängiger Sprachauswahl mit Ihrem eigenen Google-Gemini- oder OpenAI-API-Schlüssel
 Live-Untertitel in der gesprochenen Sprache mit Ihrem eigenen Mistral- oder Google-Gemini-API-Schlüssel
 Aufnahme eines ausgewählten Mikrofons, des Systemaudios eines Ausgabegeräts oder einer Anwendung, oder beider in Live-Modi
 Transparentes Untertitel-Overlay, immer im Vordergrund und durchklickbar
@@ -218,41 +207,32 @@ languages. It is the single reason a German-speaking visitor is looking at a Ger
 all, and burying it in a paragraph wastes it. Partner Center allows up to 20 entries, so the
 additional line fits within that limit.
 
-### Kurzbeschreibung — 193 Zeichen
+### Kurzbeschreibung — 164 Zeichen
 
 Fügen Sie diesen Text in **Kurzbeschreibung** ein:
 
 ```text
-Integrierte Untertitel-Demo ohne Einrichtung, dazu Live-Untertitel aus Mikrofon und Systemaudio sowie Übersetzung Englisch–Französisch mit Ihrem eigenen Gemini-, OpenAI- oder Mistral-Schlüssel.
+Integrierte Demo, Live-Untertitel und mehrsprachige Übersetzung aus Mikrofon- oder Systemaudio mit Ihrem API-Schlüssel. Die Sprachabdeckung hängt von der Engine ab.
 ```
 
-German runs longer than both other languages here — 193 characters against English's 175 and
-French's 171. The Partner Center cap is 270, so it fits, but re-count after any edit rather
-than assuming the margin is still there.
+All three short descriptions are below the documented 270-character Partner Center cap.
+The counts above were refreshed for 1.5.0.
 
-### Neuerungen in dieser Version — 1.4.2
+### Neuerungen in dieser Version — 1.5.0
 
 Paste after final packaged-app verification:
 
 ```text
-Start und Stopp bleiben oben in der App sichtbar, während Einstellungen und Transkripte darunter scrollen.
+Untertitelsprachen nach Name oder Code suchen und als Favoriten anheften. Die Abdeckung hängt von der Engine ab: 78 Übersetzungsziele mit Gemini, 13 mit OpenAI. Nicht unterstützte Ziele bleiben mit Erklärung sichtbar und verhindern den Start. F2 tauscht vor dem Start die ersten beiden unterstützten Favoriten. Die Demo bleibt Englisch/Französisch; Untertitel-Engines erkennen die Sprache automatisch.
 
-Die übersichtlichere Einrichtung zeigt Profile neben den Besprechungsoptionen. Einstellungen sind in Untertitel, Lesen, Verlauf und App gegliedert, mit sichtbaren Voreinstellungen, Vorschauen, Farbauswahl und Sitzungsübersicht. Das Infobereich-Menü folgt der Oberflächensprache.
+Arabisch, Hebräisch, Persisch und Urdu unterstützen die Leserichtung von rechts nach links. Sprachzeilen und Sterne sind vertikal zentriert. Die deutsche, englische oder französische Oberfläche bleibt unabhängig.
 
-Neu: Besprechungsprofile, Anzeigedauer und ruhigere Untertitel-Aktualisierungen, Vorschau und Voreinstellungen, Sitzungstitel und Suche, Eingangsstatus und Tastenkombinationen. Fertige Gemini-Smart-Ergebnisse ersetzen nun vorläufigen Text, auch reine Fülllaute. Lange Verlaufstitel werden umgebrochen und Kalendersymbole sind besser sichtbar.
-
-Der optionale lokale Transkriptverlauf speichert abgeschlossene Untertitel fortlaufend. Frühere Sitzungen lassen sich öffnen, kopieren, exportieren und löschen. Der Verlauf ist standardmäßig deaktiviert und bleibt bis zum Löschen erhalten.
-
-Ruhiger Lesemodus hält Untertitel linksbündig und bewegt sie in ganzen Zeilen. Fülllaute ausblenden bereinigt nur das Overlay; Originaltranskripte bleiben erhalten. Die Oberfläche ist jetzt auf Deutsch, Englisch und Französisch verfügbar. Die Live-Übersetzung bleibt auf Englisch–Französisch beschränkt.
-
-Vielen Dank an @valentinrabot für die ausführlichen Rückmeldungen und Vorschläge in den GitHub-Issues #79, #80 und #81.
+Enthalten sind auch lokale Besprechungsprofile, optionaler Transkriptverlauf mit Suche und Export, Lesevoreinstellungen, ruhigere Aktualisierungen und ständig erreichbare Start/Stopp-Tasten. Audio wird nicht gespeichert. Danke an @valentinrabot für das frühere Feedback.
 ```
 
-That second paragraph is not filler and should not be cut. A German listing sets an
-expectation that the app translates into German, and it does not: the caption languages are
-still English and French
-([#78](https://github.com/fmadore/Live-translation/issues/78) is what changes that). Saying so
-in the release note costs one line and is cheaper than a one-star review that is entirely fair.
+The interface language and caption language remain separate. This 1.5.0 listing includes
+German among the translation targets. Publish that claim only with a build that contains #78
+and after its live acceptance checks pass.
 
 ### Adding the German listing
 
@@ -331,7 +311,7 @@ No account, API key, microphone, language pack, or network connection is require
 6. Click Stop captions. The completed transcript remains available for export.
 7. Choose each transcript format (text, Markdown, SRT, VTT), click Save as, select a writable folder and verify the saved file. Cancel another save and confirm that the transcript remains available.
 8. Select Français and repeat to verify the French captions.
-9. In Settings → App, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The caption languages are English and French; the interface language is chosen separately and does not change them.
+9. In Settings → App, switch the interface language between English, Français and Deutsch and confirm the operator window and overlay follow it. The built-in demo caption languages are English and French; the interface language is chosen separately and does not change them.
 
 Retained from 1.3.0: enable Automatically save sessions locally in Transcript history, start and stop two demo sessions, restart the app and browse both sessions. Verify date, duration and known language information, raw caption/source text, Copy transcript and all four exports. Delete one session with confirmation; the other must remain. Turning history off must stop future saves while retaining existing sessions. History is local, unencrypted, opt-in, and never uploads audio or transcripts. It is independent of the single recovery copy.
 
@@ -354,7 +334,7 @@ Also test Fit window and Compact during the demo: open Settings → Reading, ver
 
 The built-in demo uses bundled scripted content. It does not open an audio device, invoke Windows speech recognition, contact a server, or use a publisher API key. It deterministically exercises the session state, timing, level meter, partial and final captions, overlay, transcript, Stop action, and export workflow on both x64 and ARM64.
 
-Live microphone and system-audio recognition are optional provider-dependent modes. Mistral and Gemini provide live same-language subtitles. Gemini and OpenAI provide live English–French translation. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
+Live microphone and system-audio recognition are optional provider-dependent modes. Mistral and Gemini provide live same-language subtitles. Gemini and OpenAI provide live translation with engine-dependent language coverage. These modes use an API key supplied by the user. No live-provider credential is needed to test the complete default built-in workflow.
 
 Application audio capture is optional. With an open application playing audio, select System audio, One application, and the application, then run the level-only audio test without a provider key. Live speech recognition still requires the user’s compatible provider key. Closing the selected application must not switch capture to all system audio. Application capture includes child processes, not an individually selected browser tab.
 

@@ -12,7 +12,7 @@ Stellenbosch, 21–24 September 2026).
 
 It has two deliberately separate modes:
 
-- **Live translation** — speech is auto-detected and translated into English or French by
+- **Live translation** — speech is auto-detected and translated into the selected caption language by
   Google Gemini (`gemini-3.5-live-translate-preview`) or OpenAI
   (`gpt-realtime-translate`). Their generated audio is discarded; only transcript text is
   displayed. Gemini also captions speech that is already in the selected target language,
@@ -41,11 +41,25 @@ Provider details and verified wire formats are documented in
 [`docs/openai-realtime-api.md`](docs/openai-realtime-api.md), and
 [`docs/mistral-realtime-api.md`](docs/mistral-realtime-api.md).
 
+## Caption languages (1.5.0)
+
+Coverage depends on the selected engine: Gemini Live Translate offers **78 target languages**;
+OpenAI Realtime Translate offers **13**. This includes German, Japanese and Spanish. The
+built-in demo remains English/French only, and live subtitle engines auto-detect speech.
+The interface stays independently available in English, French and German.
+
+Step 03 lets you search by name, native name or language code and pin favourites. English and
+French are pinned initially. Unsupported favourites stay visible with an explanation after
+an engine change; an unsupported selection blocks Start until you choose another language.
+F2 swaps the first two favourites while stopped, only when both are supported. Rehearsal
+recordings remain English/French. See [language coverage and verification](docs/language-coverage.md).
+Live-provider and packaged-app acceptance are still pending; see the verification notes above.
+
 ## Release status
 
-**Latest GitHub release: [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2).**
-See [what changed in 1.4.2](#version-142-session-controls) and the
-[release handoff](docs/store-updates.md#release-142-handoff).
+**Latest GitHub release: [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0).**
+See [what changed in 1.5.0](docs/release-1.5.0.md) and the
+[release handoff](docs/store-updates.md#release-150-handoff).
 
 Introduced in 1.3.0: Optional local transcript history saves finalized captions progressively
 and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
@@ -53,7 +67,7 @@ at the top left and advances by whole lines. Optional filler cleanup affects onl
 raw transcripts remain intact. The interface is available in English, French and German.
 
 See [transcript history](docs/transcript-history.md), [caption layout](docs/caption-layout.md),
-and the [current release handoff](docs/store-updates.md#release-142-handoff).
+and the [current release handoff](docs/store-updates.md#release-150-handoff).
 The GitHub release and prepared Store submission are separate: final packaged acceptance,
 fresh screenshots and Partner Center submission remain tracked in that handoff.
 
@@ -89,16 +103,16 @@ checks, capture behavior and keyboard shortcuts are unchanged.
 
 ## Version 1.4.1 interface update
 
-The next Store submission target is **1.4.2**. Settings now has Captions, Reading,
+The next Store submission target is **1.5.0**. Settings now has Captions, Reading,
 Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
 view, presets and previews stay visible, and the tray follows the interface language.
-See the [current release handoff](docs/store-updates.md#release-142-handoff) for native testing and
+See the [current release handoff](docs/store-updates.md#release-150-handoff) for native testing and
 packaging status. Version 1.4.1 is released on GitHub.
 
 ## Version 1.4.0 usability improvements
 
 Version 1.4.0 is released on GitHub. Installer availability and remaining native/Store checks
-are tracked in the [release handoff](docs/store-updates.md#release-142-handoff).
+are tracked in the [release handoff](docs/store-updates.md#release-150-handoff).
 
 Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
 optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting

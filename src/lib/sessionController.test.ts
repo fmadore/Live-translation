@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { createSessionController } from './sessionController';
 import { applyStatus, clearTranscript, options, sessionStartedAt, statusMessage } from './stores';
+import { locale } from './i18n';
 
 beforeEach(() => {
 	applyStatus({ state: 'idle' });
@@ -9,6 +10,26 @@ beforeEach(() => {
 });
 
 describe('session coordination', () => {
+	it('blocks unsupported targets before IPC or starting a transcript, in every interface locale', async () => {
+		const startSession = vi.fn();
+		const controller = createSessionController({ startSession, stopSession: vi.fn() });
+		for (const language of ['en', 'fr', 'de'] as const) {
+			locale.set(language);
+			expect(
+				await controller.start({
+					...get(options),
+					mode: 'translate',
+					provider: 'openai',
+					targetLanguage: 'sw'
+				})
+			).toBe(false);
+			expect(get(statusMessage)).toMatch(/OpenAI/);
+			expect(get(statusMessage)).toMatch(/swahili|Swahili|Suaheli/);
+		}
+		locale.set('en');
+		expect(startSession).not.toHaveBeenCalled();
+		expect(get(sessionStartedAt)).toBeNull();
+	});
 	it('resets the clock when startup fails', async () => {
 		const controller = createSessionController({
 			startSession: vi.fn().mockRejectedValue(new Error('missing credential')),

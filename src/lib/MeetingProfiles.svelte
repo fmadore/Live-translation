@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { languageName } from './languages';
+	import { locale } from './i18n';
 	import Select from './ui/Select.svelte';
 	import Field from './ui/Field.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
@@ -202,9 +204,9 @@
 					<p class="summary">
 						{p.options.mode === 'translate' ? $t.mode.translate : $t.mode.transcribe} · {$t.engine[
 							p.options.provider
-						]} · {$t.source[p.options.source]} · {$t.language[
-							captionLanguageOf(p.options) ?? 'auto'
-						]}
+						]} · {$t.source[p.options.source]} · {captionLanguageOf(p.options)
+							? languageName(p.options.targetLanguage, $locale)
+							: $t.language.auto}
 					</p>
 					<div class="actions">
 						<ToolButton

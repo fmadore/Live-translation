@@ -17,11 +17,11 @@ use crate::audio::AudioChunk;
 use crate::errors::AppError;
 use crate::realtime::{emit_caption, TurnAccumulator};
 use crate::timing::SessionClock;
-use crate::types::{events, AudioLevel, Origin, SessionState, StatusUpdate, TargetLanguage};
+use crate::types::{events, AudioLevel, DemoLanguage, Origin, SessionState, StatusUpdate};
 
 pub struct OnDeviceConfig {
     pub origin: Origin,
-    pub language: TargetLanguage,
+    pub language: DemoLanguage,
 }
 
 /// `state` names the situation; the interface catalog words it. This used to carry a `detail`
@@ -97,10 +97,10 @@ const FRENCH_SCRIPT: &[DemoLine] = &[
     },
 ];
 
-fn script(language: TargetLanguage) -> &'static [DemoLine] {
+fn script(language: DemoLanguage) -> &'static [DemoLine] {
     match language {
-        TargetLanguage::En => ENGLISH_SCRIPT,
-        TargetLanguage::Fr => FRENCH_SCRIPT,
+        DemoLanguage::En => ENGLISH_SCRIPT,
+        DemoLanguage::Fr => FRENCH_SCRIPT,
     }
 }
 
@@ -212,12 +212,24 @@ mod tests {
 
     #[test]
     fn both_demo_languages_have_complete_non_empty_lines() {
-        for language in [TargetLanguage::En, TargetLanguage::Fr] {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).unwrap();
+        assert_eq!(
+            config["bundle"]["resources"]["resources/fixtures/*"],
+            "fixtures/"
+        );
+        for language in DemoLanguage::ALL {
             let lines = script(language);
             assert!(lines.len() >= 3);
             assert!(lines
                 .iter()
                 .all(|line| !line.partial.is_empty() && !line.final_text.is_empty()));
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("resources/fixtures")
+                .join(language.fixture_file());
+            let samples =
+                crate::audio::fixture::load_fixture(&path).expect("packaged demo fixture");
+            assert!(!samples.is_empty());
         }
     }
 

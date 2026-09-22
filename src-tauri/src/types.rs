@@ -29,19 +29,68 @@ pub enum Origin {
     System,
 }
 
+include!("language_codes.rs");
+
+#[cfg(test)]
+mod language_tests {
+    use super::*;
+
+    #[test]
+    fn all_catalog_codes_round_trip_and_match_provider_support() {
+        let catalog: serde_json::Value =
+            serde_json::from_str(include_str!("../../src/lib/languages.json")).unwrap();
+        for row in catalog["languages"].as_array().unwrap() {
+            let language: TargetLanguage = serde_json::from_value(row["code"].clone()).unwrap();
+            assert_eq!(language.bcp47(), row["code"].as_str().unwrap());
+            assert_eq!(serde_json::to_value(language).unwrap(), row["code"]);
+            for (name, provider) in [
+                ("gemini", Provider::Gemini),
+                ("openai", Provider::OpenAi),
+                ("ondevice", Provider::OnDevice),
+            ] {
+                assert_eq!(
+                    language.supported_by(provider),
+                    row["providers"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .any(|p| p == name)
+                );
+            }
+        }
+        assert!(serde_json::from_str::<TargetLanguage>("\"invalid\"").is_err());
+        assert!(serde_json::from_str::<DemoLanguage>("\"de\"").is_err());
+        assert!(DemoLanguage::try_from(TargetLanguage::Ja).is_err());
+    }
+}
+
+/// Only languages with reviewed bundled scripts and packaged rehearsal audio.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum TargetLanguage {
+pub enum DemoLanguage {
     En,
     Fr,
 }
 
-impl TargetLanguage {
-    /// BCP-47 code sent to the provider as the target language.
-    pub fn bcp47(self) -> &'static str {
+impl DemoLanguage {
+    #[cfg(test)]
+    pub const ALL: [Self; 2] = [Self::En, Self::Fr];
+
+    pub fn fixture_file(self) -> &'static str {
         match self {
-            TargetLanguage::En => "en",
-            TargetLanguage::Fr => "fr",
+            Self::En => "rehearsal-en.wav",
+            Self::Fr => "rehearsal-fr.wav",
+        }
+    }
+}
+
+impl TryFrom<TargetLanguage> for DemoLanguage {
+    type Error = anyhow::Error;
+    fn try_from(language: TargetLanguage) -> Result<Self, Self::Error> {
+        match language {
+            TargetLanguage::En => Ok(Self::En),
+            TargetLanguage::Fr => Ok(Self::Fr),
+            _ => anyhow::bail!("The built-in demo only supports English and French"),
         }
     }
 }
@@ -125,7 +174,7 @@ pub struct StartOptions {
     /// a live session. `source` and `mic_device_name` are ignored while it is set.
     /// See gate 2 in `docs/microsoft-store.md`.
     #[serde(default)]
-    pub rehearsal: Option<TargetLanguage>,
+    pub rehearsal: Option<DemoLanguage>,
 }
 
 #[derive(Debug, Clone, Serialize)]

@@ -87,7 +87,7 @@ export const en = {
 		shortcutStart: 'Start / stop session',
 		shortcutOverlay: 'Show / hide overlay',
 		shortcutSize: 'Increase / decrease caption size',
-		shortcutDirection: 'Switch translation direction while stopped',
+		shortcutDirection: 'Swap the first two favourites before starting with F2',
 		listening: 'Listening — no recent audio signal',
 		audio: 'Receiving audio',
 		captions: 'Receiving captions',
@@ -157,8 +157,14 @@ export const en = {
 	},
 
 	language: {
-		en: 'English',
-		fr: 'Français',
+		searchHint: 'Type a name or code. Use ↑/↓ to browse; Tab to pin the active language.',
+		favourites: 'Favourites',
+		all: 'All languages',
+		noMatches: 'No matching languages.',
+		pin: (language: string) => `Pin ${language}`,
+		unpin: (language: string) => `Unpin ${language}`,
+		unsupported: (engine: string, language: string) =>
+			`${engine} does not support ${language} — choose another language.`,
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -272,7 +278,7 @@ export const en = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} auto-detects the spoken language and writes same-language subtitles. No translation target is needed.`,
-		flipHint: 'Speakers alternating? Swap it before you start with',
+		flipHint: 'Swap the first two favourites before starting with',
 		flipKey: 'F2',
 		demoLanguageHint:
 			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.'

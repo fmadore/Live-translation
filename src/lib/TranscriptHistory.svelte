@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { TARGET_LANGUAGES, languageName } from './languages';
 	import Select from './ui/Select.svelte';
 	import Field from './ui/Field.svelte';
 	import DateField from './ui/DateField.svelte';
@@ -7,7 +8,7 @@
 	import { matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
-	import { t, localeTag, formatDateTime } from './i18n';
+	import { t, locale, localeTag, formatDateTime } from './i18n';
 	import {
 		decodeSession,
 		historyEnabled,
@@ -160,10 +161,10 @@
 			<DateField label={$t.usability.to} bind:value={to} />
 			<Field label={$t.usability.language}
 				><Select bind:value={language}
-					><option value="">{$t.usability.allLanguages}</option><option value="en">English</option
-					><option value="fr">Français</option><option value="auto"
-						>{$t.usability.unknownLanguage}</option
-					></Select
+					><option value="">{$t.usability.allLanguages}</option
+					>{#each TARGET_LANGUAGES as code}<option value={code}
+							>{languageName(code, $locale)}</option
+						>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
 				></Field
 			>
 		</div>

@@ -95,7 +95,7 @@ export const fr: Messages = {
 		shortcutStart: 'Démarrer / arrêter la session',
 		shortcutOverlay: 'Afficher / masquer la surimpression',
 		shortcutSize: 'Agrandir / réduire les sous-titres',
-		shortcutDirection: 'Inverser la traduction à l’arrêt',
+		shortcutDirection: 'Permuter les deux premiers favoris avant de démarrer avec F2',
 		listening: 'À l’écoute — aucun signal audio récent',
 		audio: 'Réception audio',
 		captions: 'Réception des sous-titres',
@@ -167,8 +167,15 @@ export const fr: Messages = {
 	},
 
 	language: {
-		en: 'Anglais',
-		fr: 'Français',
+		searchHint:
+			'Saisissez un nom ou un code. ↑/↓ pour parcourir ; Tab pour épingler la langue active.',
+		favourites: 'Favoris',
+		all: 'Toutes les langues',
+		noMatches: 'Aucune langue correspondante.',
+		pin: (language: string) => `Épingler ${language}`,
+		unpin: (language: string) => `Désépingler ${language}`,
+		unsupported: (engine: string, language: string) =>
+			`${engine} ne prend pas en charge la langue ${language} — choisissez une autre langue.`,
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -283,7 +290,7 @@ export const fr: Messages = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} détecte lui-même la langue parlée et écrit les sous-titres dans cette même langue. Aucune langue cible n’est nécessaire.`,
-		flipHint: 'Des intervenants qui alternent ? Changez avant de démarrer avec',
+		flipHint: 'Permuter les deux premiers favoris avant de démarrer avec',
 		flipKey: 'F2',
 		demoLanguageHint:
 			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.'

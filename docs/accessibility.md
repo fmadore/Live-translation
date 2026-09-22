@@ -169,3 +169,18 @@ Date fields have explicit labels, localized format hints and `aria-invalid` with
 localized error for invalid input. Calendar buttons have translated accessible names;
 the implementation's hidden native date input is excluded from the accessibility tree
 and normal Tab order. Packaged WebView calendar and screen-reader acceptance remain pending.
+
+## Searchable caption language (1.5.0, #78)
+
+The translation selector uses a combobox and filtered listbox with active-descendant,
+selected and disabled states. Keyboard and pin interaction are documented in
+[language coverage](language-coverage.md#keyboard-and-accessibility). Test in all three UI
+locales, including an unsupported pinned language after a provider change. The list has
+bounded scrolling and scrolls into the operator viewport on opening; the Start/Stop bar
+remains reachable. Confirm active option and disabled reason with Narrator in the native
+build before release. Automated keyboard tests are not a substitute for that check.
+
+Caption paragraphs inherit their selected language and explicit RTL/LTR direction; unknown
+subtitle languages use auto direction. Stable reading uses logical start alignment so Arabic
+starts at the right edge. Verify actual Japanese and Arabic glyph fallback on Windows; the
+bundled Archivo face falls back to the system for uncovered scripts.

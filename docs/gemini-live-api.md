@@ -229,3 +229,93 @@ or segment-close retracts an all-filler speculative caption instead of preservin
 speech. Regression tests cover both paths, and the front end discards the pending empty turn.
 No fresh billable provider probe was run for this change. The optional local Hide filler words
 setting remains independent and applies to overlays from every provider, in both modes.
+
+## Target-language catalog — verified 2026-09-22
+
+Rechecked the [live translation guide](https://ai.google.dev/gemini-api/docs/live-api/live-translate)
+on 2026-09-22 (page updated 2026-09-16). It still lists 78 languages / 79 codes. The app
+shows one Norwegian row and sends `no`; `nb` is a search alias. The canonical machine-readable
+catalog is `src/lib/languages.json`; generated Rust and TypeScript types share that source.
+Subtitle language auto-detection is unchanged. This is documentation verification, not a
+live-speech pass; see [acceptance status](language-coverage.md).
+
+| Language | Code |
+| --- | --- |
+| Afrikaans | `af` |
+| Akan | `ak` |
+| Albanian | `sq` |
+| Amharic | `am` |
+| Arabic | `ar` |
+| Armenian | `hy` |
+| Azerbaijani | `az` |
+| Basque | `eu` |
+| Belarusian | `be` |
+| Bengali | `bn` |
+| Bulgarian | `bg` |
+| Burmese (Myanmar) | `my` |
+| Catalan | `ca` |
+| Chinese (Simplified) | `zh-Hans` |
+| Chinese (Traditional) | `zh-Hant` |
+| Croatian | `hr` |
+| Czech | `cs` |
+| Danish | `da` |
+| Dutch | `nl` |
+| English | `en` |
+| Estonian | `et` |
+| Filipino | `fil` |
+| Finnish | `fi` |
+| French | `fr` |
+| Galician | `gl` |
+| Georgian | `ka` |
+| German | `de` |
+| Greek | `el` |
+| Gujarati | `gu` |
+| Hausa | `ha` |
+| Hebrew | `he` |
+| Hindi | `hi` |
+| Hungarian | `hu` |
+| Icelandic | `is` |
+| Indonesian | `id` |
+| Italian | `it` |
+| Japanese | `ja` |
+| Javanese | `jv` |
+| Kannada | `kn` |
+| Kazakh | `kk` |
+| Khmer | `km` |
+| Kinyarwanda | `rw` |
+| Korean | `ko` |
+| Lao | `lo` |
+| Latvian | `lv` |
+| Lithuanian | `lt` |
+| Macedonian | `mk` |
+| Malay | `ms` |
+| Malayalam | `ml` |
+| Marathi | `mr` |
+| Mongolian | `mn` |
+| Nepali | `ne` |
+| Norwegian | `no` |
+| Persian | `fa` |
+| Polish | `pl` |
+| Portuguese (Brazil) | `pt-BR` |
+| Portuguese (Portugal) | `pt-PT` |
+| Punjabi | `pa` |
+| Romanian | `ro` |
+| Russian | `ru` |
+| Serbian | `sr` |
+| Sindhi | `sd` |
+| Sinhala | `si` |
+| Slovak | `sk` |
+| Slovenian | `sl` |
+| Spanish | `es` |
+| Sundanese | `su` |
+| Swahili | `sw` |
+| Swedish | `sv` |
+| Tamil | `ta` |
+| Telugu | `te` |
+| Thai | `th` |
+| Turkish | `tr` |
+| Ukrainian | `uk` |
+| Urdu | `ur` |
+| Uzbek | `uz` |
+| Vietnamese | `vi` |
+| Zulu | `zu` |

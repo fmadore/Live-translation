@@ -21,7 +21,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::capture::CaptureState;
 use super::{chunk_samples, AudioChunk, CHUNK_MS};
-use crate::types::{AudioLevel, Origin, TargetLanguage};
+use crate::types::{AudioLevel, DemoLanguage, Origin};
 
 /// Directory the fixtures are bundled into, relative to the app's resource directory —
 /// `bundle.resources` in `tauri.conf.json` maps `resources/fixtures/*` here. Resolved through
@@ -45,11 +45,8 @@ fn gap_samples() -> usize {
 }
 
 /// Where the fixture for `language` lives in the installed app.
-fn fixture_path(app: &AppHandle, language: TargetLanguage) -> Result<PathBuf> {
-    let file = match language {
-        TargetLanguage::En => "rehearsal-en.wav",
-        TargetLanguage::Fr => "rehearsal-fr.wav",
-    };
+fn fixture_path(app: &AppHandle, language: DemoLanguage) -> Result<PathBuf> {
+    let file = language.fixture_file();
     app.path()
         .resolve(
             format!("{FIXTURE_DIR}/{file}"),
@@ -221,7 +218,7 @@ impl FixtureLoop {
 /// same level events — so the session cannot tell the difference. Only the sample source does.
 pub async fn run_rehearsal(
     app: &AppHandle,
-    language: TargetLanguage,
+    language: DemoLanguage,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
     chunk_tx: Sender<AudioChunk>,

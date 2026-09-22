@@ -95,7 +95,7 @@ export const de: Messages = {
 		shortcutStart: 'Sitzung starten / stoppen',
 		shortcutOverlay: 'Overlay ein- / ausblenden',
 		shortcutSize: 'Untertitel vergrößern / verkleinern',
-		shortcutDirection: 'Übersetzungsrichtung bei gestoppter Sitzung wechseln',
+		shortcutDirection: 'Vor dem Start die ersten beiden Favoriten tauschen mit F2',
 		listening: 'Bereit — kein aktuelles Audiosignal',
 		audio: 'Audio wird empfangen',
 		captions: 'Untertitel werden empfangen',
@@ -165,8 +165,14 @@ export const de: Messages = {
 	},
 
 	language: {
-		en: 'Englisch',
-		fr: 'Französisch',
+		searchHint: 'Name oder Code eingeben. Mit ↑/↓ navigieren; mit Tab die aktive Sprache anheften.',
+		favourites: 'Favoriten',
+		all: 'Alle Sprachen',
+		noMatches: 'Keine passenden Sprachen.',
+		pin: (language: string) => `Anheften: ${language}`,
+		unpin: (language: string) => `Lösen: ${language}`,
+		unsupported: (engine: string, language: string) =>
+			`${engine} unterstützt ${language} nicht — wählen Sie eine andere Sprache.`,
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -282,7 +288,7 @@ export const de: Messages = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} erkennt die gesprochene Sprache selbst und schreibt Untertitel in derselben Sprache. Eine Zielsprache ist nicht nötig.`,
-		flipHint: 'Wechseln sich die Sprechenden ab? Vor dem Start umschalten mit',
+		flipHint: 'Vor dem Start die ersten beiden Favoriten tauschen mit',
 		flipKey: 'F2',
 		demoLanguageHint:
 			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.'

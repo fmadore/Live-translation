@@ -1,3 +1,4 @@
+import { loadLanguageFavourites, LANGUAGE_FAVOURITES_KEY } from './languages';
 import { HOLD_KEY, PACE_KEY, loadHoldSeconds, loadPace, type CaptionPace } from './reading';
 import { sessionHistory } from './history';
 import { CLEAN_SPEECH_KEY, loadCleanSpeech } from './cleanSpeech';
@@ -377,4 +378,15 @@ overlayHoldSeconds.subscribe((v) => {
 });
 overlayPace.subscribe((v) => {
 	if (typeof localStorage !== 'undefined') localStorage.setItem(PACE_KEY, v);
+});
+
+/** Operator preference, deliberately outside StartOptions and IPC. */
+export const languageFavourites = writable(loadLanguageFavourites());
+languageFavourites.subscribe((codes) => {
+	try {
+		if (typeof localStorage !== 'undefined')
+			localStorage.setItem(LANGUAGE_FAVOURITES_KEY, JSON.stringify(codes));
+	} catch {
+		/* Preferences remain usable when storage is unavailable. */
+	}
 });

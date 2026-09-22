@@ -6,7 +6,7 @@ abstract: >-
   in-person conferences. It captures a presenter's microphone, Windows system
   audio from any application, or both, and renders captions in a transparent,
   always-on-top overlay. Two modes are kept deliberately separate: live
-  translation into English or French via Google Gemini or OpenAI realtime
+  translation into provider-supported target languages via Google Gemini or OpenAI realtime
   speech models, and same-language live subtitles via Mistral Voxtral or Google Gemini. Built
   for the workshop "Digital Humanities and Artificial Intelligence in African
   Studies" / "Humanités numériques et intelligence artificielle en études
@@ -20,8 +20,8 @@ authors:
 repository-code: "https://github.com/fmadore/Live-translation"
 url: "https://github.com/fmadore/Live-translation"
 license: MIT
-version: 1.4.2
-date-released: "2026-09-21"
+version: 1.5.0
+date-released: "2026-09-22"
 keywords:
   - live captions
   - speech translation

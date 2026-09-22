@@ -172,3 +172,25 @@ Changing interface language changes the hint, not an entered date or its filter 
 The native calendar receives the locale tag, but its popup wording can still depend
 on browser/WebView regional settings. German component tests cover input validation,
 leap days, calendar selection, inclusive history bounds and clearing filters.
+
+## Caption language selector (issue #78)
+
+Caption coverage is provider-dependent: Gemini translation has 78 choices and OpenAI 13;
+the bundled demo has only English/French scripts. Subtitle providers auto-detect and show no
+selector. Choosing a caption language never changes the English/French/German interface.
+
+The source of truth is `src/lib/languages.json`, including English fallback names, endonyms,
+provider memberships, source URLs and verification dates. Run `npm run generate:languages`
+after editing it; this generates the TypeScript union and Rust enum/support checks. A test
+runs `npm run check:languages`'s equivalent to reject drift. Norwegian uses `no`; `nb`
+is a search alias, not a second option. Portuguese region and Chinese script tags stay distinct.
+
+Names come from `Intl.DisplayNames` in the interface locale, with the catalog English name
+as fallback. Search strips combining accents and matches codes, English/localized names,
+endonyms and aliases. Prefix matches outrank substrings. UI catalogs contain only selector
+copy. Favourites live separately in `language.favourites`, never in StartOptions or IPC.
+
+Overlay captions carry the selected BCP-47 code and their own text direction. Arabic, Hebrew,
+Persian, Urdu and Sindhi are RTL; unknown auto-detected subtitles use `dir="auto"`. Stable
+reading aligns to the start edge. Font stacks keep the system fallback after bundled Archivo
+for scripts outside the bundled font's coverage. See [verification](language-coverage.md).

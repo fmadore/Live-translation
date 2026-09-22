@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { captionDirection } from '$lib/languages';
 	import { fitCaptionTail } from '$lib/captionLayout';
 	let {
 		stable = false,
@@ -35,6 +36,7 @@
 	$effect(() => {
 		// Font loading and resizing must refit even when no new caption arrives.
 		void fontKey;
+		void language;
 		if (!probe || width <= 0) return;
 		lineHeight = parseFloat(getComputedStyle(probe).lineHeight) || 1;
 		if (stable) return;
@@ -51,7 +53,14 @@
 	});
 </script>
 
-<div class="text-region" class:stable bind:clientWidth={width} style:max-height="{height}px">
+<div
+	dir={captionDirection(language)}
+	lang={language}
+	class="text-region"
+	class:stable
+	bind:clientWidth={width}
+	style:max-height="{height}px"
+>
 	<p class="line probe" bind:this={probe} aria-hidden="true"></p>
 	{#if stable}
 		<div class="stable-viewport" style:height="{stableHeight}px">
@@ -75,7 +84,7 @@
 		align-self: flex-start;
 	}
 	.stable .line {
-		text-align: left;
+		text-align: start;
 	}
 	.stable-viewport {
 		overflow: hidden;
@@ -118,7 +127,7 @@
 		display: inline-block;
 		width: 4px;
 		height: 0.86em;
-		margin-left: 10px;
+		margin-inline-start: 10px;
 		vertical-align: -1px;
 		background: #5ad1a0;
 		animation: blink 1.1s steps(1) infinite;

@@ -70,5 +70,11 @@ it('holds earlier rows until a full line overflows and refits whole rows after r
 	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(-80px)'));
 	expect(paragraph.textContent).toContain('First sentence.');
 	expect(view.container.querySelector('.caret')).toBeNull();
+	await view.rerender({ ...props, text: 'مرحبا بكم', language: 'ar' });
+	expect(view.container.querySelector('.text-region')).toHaveAttribute('dir', 'rtl');
+	expect(view.container.querySelector('.text-region')).toHaveAttribute('lang', 'ar');
+	await view.rerender({ ...props, stable: false, text: 'こんにちは', language: 'ja' });
+	expect(view.container.querySelector('.text-region')).toHaveAttribute('dir', 'ltr');
+	expect(view.container.querySelector('.text-region')).toHaveAttribute('lang', 'ja');
 	view.unmount();
 });

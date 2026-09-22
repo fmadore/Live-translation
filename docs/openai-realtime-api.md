@@ -47,3 +47,26 @@ source delta from prematurely finalizing a caption before its translation arrive
 The client sends `{"type":"session.close"}`, stops appending audio, and continues reading
 until `session.closed` or a four-second safety timeout. OpenAI documents that immediately
 closing the socket can lose translated output still draining from the session.
+
+## Target-language catalog — documentation checked 2026-09-22
+
+The [official cookbook](https://developers.openai.com/cookbook/examples/voice_solutions/realtime_translation_guide)
+still names 13 targets. The development catalog lists `en es pt fr ja ru zh de ko hi id vi it`.
+The source is `src/lib/languages.json`, shared by generated Rust and TypeScript types.
+
+**Endpoint verification is pending.** On 2026-09-22 the opt-in probe could not resolve an
+OpenAI API key, including outside the sandbox. Portuguese `pt` versus `pt-BR`/`pt-PT` and
+Chinese `zh` versus `zh-Hans`/`zh-Hant` must not be represented as proven until it runs.
+The probe opens a separate translation session per candidate, uses the production update
+payload, waits for `session.updated` or `error`, prints only language verdicts, and closes
+without transmitting audio. It tests all 13 targets plus the four ambiguous alternatives.
+
+Save the key in the app (or set `OPENAI_API_KEY`), then run:
+
+```powershell
+cargo test --manifest-path src-tauri/Cargo.toml --lib probe_target_language_codes -- --ignored --nocapture
+```
+
+Record returned codes/verdicts here and update the catalog if needed. A successful session
+update proves configuration acceptance, not translation quality; the non-EN/FR real-speech
+check on both providers remains separate in [language coverage](language-coverage.md).

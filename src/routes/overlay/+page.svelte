@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { isTargetLanguage } from '$lib/languages';
 	import {
 		createCaptionPresenter,
 		loadHoldSeconds,
@@ -232,6 +233,22 @@
 				startMs: 0,
 				endMs: 0
 			};
+			// Browser-only visual fixtures for font fallback and bidirectional layout QA.
+			// These are labelled preview text, never live-provider verification.
+			const previewLanguage = new URLSearchParams(window.location.search).get('language');
+			const samples: Record<string, string> = {
+				ja: '字幕の表示テストです。会議の参加者が会話を理解できるように、日本語の文字と句読点を確認します。',
+				ar: 'هذه معاينة لاختبار عرض الترجمة العربية. نتحقق من وضوح الحروف واتجاه النص من اليمين إلى اليسار، مع الأرقام 123.',
+				he: 'זוהי תצוגה מקדימה לבדיקת כתוביות בעברית וכיוון הטקסט מימין לשמאל.',
+				fa: 'این پیش‌نمایش برای بررسی نمایش زیرنویس فارسی و جهت متن از راست به چپ است.',
+				ur: 'یہ اردو ذیلی عنوانات اور دائیں سے بائیں متن کی سمت جانچنے کا پیش منظر ہے۔'
+			};
+			if (isTargetLanguage(previewLanguage) && samples[previewLanguage]) {
+				captionLanguage = previewLanguage;
+				current = { microphone: { ...current.microphone, text: samples[previewLanguage] } };
+				previous = {};
+				history = {};
+			}
 			return cleanup;
 		}
 
@@ -306,10 +323,7 @@
 			if (isLocale(cfg.locale)) locale.set(cfg.locale);
 			// Unconditional, unlike the rest: an absent caption language is a real answer
 			// ("nobody knows"), so it has to be able to clear one that was set before.
-			captionLanguage =
-				cfg.captionLanguage === 'en' || cfg.captionLanguage === 'fr'
-					? cfg.captionLanguage
-					: undefined;
+			captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
 			if (typeof cfg.interactive === 'boolean') {
 				// Entering move mode: record the rect first, so Escape has something to restore.
 				if (cfg.interactive && !interactive) void snapshotGeometry();

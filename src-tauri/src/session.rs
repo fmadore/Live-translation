@@ -151,6 +151,12 @@ impl SessionManager {
         self.stop_test_active(app).await;
 
         validate_provider(options.mode, options.provider)?;
+        anyhow::ensure!(
+            options.target_language.supported_by(options.provider),
+            "{:?} does not support caption language {}",
+            options.provider,
+            options.target_language.bcp47()
+        );
         if options.rehearsal.is_none()
             && options.provider != Provider::OnDevice
             && options.source != AudioSource::Microphone
@@ -369,7 +375,7 @@ impl SessionManager {
                 Provider::OnDevice => {
                     let config = OnDeviceConfig {
                         origin,
-                        language: options.target_language,
+                        language: options.target_language.try_into()?,
                     };
                     client_tasks.push(tauri::async_runtime::spawn(ondevice::run_session(
                         client_app,

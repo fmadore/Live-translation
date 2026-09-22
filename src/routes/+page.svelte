@@ -1,4 +1,7 @@
 <script lang="ts">
+	import LanguagePicker from '$lib/LanguagePicker.svelte';
+	import { languageName, supportsLanguage, nextFavourite, type DemoLanguage } from '$lib/languages';
+	import { languageFavourites } from '$lib/stores';
 	import ReadingPreferences from '$lib/ReadingPreferences.svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import LiveActivity from '$lib/LiveActivity.svelte';
@@ -372,19 +375,25 @@
 	 *  language the room is *not* reading, so the operator sees real translation rather than a
 	 *  passthrough; the subtitle engines auto-detect and rehearse with the English fixture. The built-in
 	 *  demonstration already owns a sample timeline, so its separate rehearsal control is disabled. */
-	const fixtureLanguage = $derived<TargetLanguage>(
+	const fixtureLanguage = $derived<DemoLanguage>(
 		$options.mode === 'translate'
 			? $options.targetLanguage === 'en'
 				? 'fr'
 				: 'en'
 			: $options.provider === 'ondevice'
-				? $options.targetLanguage
+				? $options.targetLanguage === 'fr'
+					? 'fr'
+					: 'en'
 				: 'en'
 	);
 
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
-	async function launch(rehearsal?: TargetLanguage) {
+	async function launch(rehearsal?: DemoLanguage) {
 		if ($sessionBusy || $isRunning || profileBusy) return;
+		if (languageError) {
+			statusMessage.set(languageError);
+			return;
+		}
 		if (!rehearsal && !preflight.applicationReady($options)) {
 			statusMessage.set($t.applications.missing);
 			return;
@@ -444,7 +453,8 @@
 	// Quick flip of the caption language — handy when speakers alternate.
 	function flipDirection() {
 		if (!canFlipDirection($options.mode, controlsLocked)) return;
-		setTarget($options.targetLanguage === 'en' ? 'fr' : 'en');
+		const next = nextFavourite($options.targetLanguage, $languageFavourites, $options.provider);
+		if (next) setTarget(next);
 	}
 
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
@@ -505,7 +515,14 @@
 
 	const modeLabel = $derived<Record<OutputMode, string>>($t.mode);
 	const sourceLabel = $derived<Record<AudioSource, string>>($t.source);
-	const languageLabel = $derived<Record<TargetLanguage, string>>($t.language);
+	const languageError = $derived(
+		supportsLanguage($options.provider, $options.targetLanguage)
+			? ''
+			: $t.language.unsupported(
+					$t.engine[$options.provider],
+					languageName($options.targetLanguage, $locale)
+				)
+	);
 	const engineLabel = $derived<Record<Provider, string>>($t.engine);
 	const costNote = $derived<Record<Provider, string>>($t.provider.costNote);
 	const vendorLabel = $derived<Record<Provider, string>>($t.provider.vendor);
@@ -514,7 +531,7 @@
 	const roomReadsLabel = $derived(
 		providerDetectsLanguage($options.provider)
 			? $t.language.auto
-			: languageLabel[$options.targetLanguage]
+			: languageName($options.targetLanguage, $locale)
 	);
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
@@ -722,7 +739,8 @@
 		{:else}
 			<button
 				class="start"
-				disabled={!$hasKey ||
+				disabled={!!languageError ||
+					!$hasKey ||
 					browserMode ||
 					profileBusy ||
 					$sessionBusy ||
@@ -743,7 +761,11 @@
 			</button><button
 				class="rehearse"
 				aria-describedby="rehearse-hint"
-				disabled={!$hasKey || browserMode || $sessionBusy || $options.provider === 'ondevice'}
+				disabled={!!languageError ||
+					!$hasKey ||
+					browserMode ||
+					$sessionBusy ||
+					$options.provider === 'ondevice'}
 				onclick={rehearse}
 			>
 				<svg
@@ -1183,7 +1205,24 @@
 					</div>
 					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 						<p class="hint">{$t.rail.autoDetectHint(engineLabel[$options.provider])}</p>
+					{:else if $options.mode === 'translate'}
+						<LanguagePicker
+							value={$options.targetLanguage}
+							provider={$options.provider}
+							favourites={$languageFavourites}
+							disabled={controlsLocked}
+							error={languageError}
+							onchange={setTarget}
+							onpin={(code) =>
+								languageFavourites.update((pins) =>
+									pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
+								)}
+						/>
+						<p class="hint inline-hint">
+							<span>{$t.rail.flipHint}</span><span class="key">{$t.rail.flipKey}</span>
+						</p>
 					{:else}
+						{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
 						<div class="lang-cards">
 							<button
 								class="lang"
@@ -1193,7 +1232,7 @@
 								onclick={() => setTarget('en')}
 							>
 								<span class="lang-code">EN</span>
-								<span class="lang-name">{$t.language.en}</span>
+								<span class="lang-name">{languageName('en', $locale)}</span>
 							</button>
 							<button
 								class="lang"
@@ -1203,17 +1242,10 @@
 								onclick={() => setTarget('fr')}
 							>
 								<span class="lang-code">FR</span>
-								<span class="lang-name">{$t.language.fr}</span>
+								<span class="lang-name">{languageName('fr', $locale)}</span>
 							</button>
 						</div>
-						{#if $options.mode === 'translate'}
-							<p class="hint inline-hint">
-								<span>{$t.rail.flipHint}</span>
-								<span class="key">{$t.rail.flipKey}</span>
-							</p>
-						{:else}
-							<p class="hint">{$t.rail.demoLanguageHint}</p>
-						{/if}
+						<p class="hint">{$t.rail.demoLanguageHint}</p>
 					{/if}
 				</section>
 

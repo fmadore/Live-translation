@@ -49,6 +49,19 @@ function setup(enabled = true) {
 }
 
 describe('session history', () => {
+	it('saves and reopens non-Latin translation targets without discarding the session', async () => {
+		const s = setup();
+		s.history.begin({ ...options, targetLanguage: 'ja' }, start, id);
+		s.history.append({ ...line, text: '皆さん、こんにちは。' });
+		await s.history.finish();
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			targetLanguage: 'ja',
+			lines: [{ text: '皆さん、こんにちは。' }]
+		});
+		const corrupt = JSON.parse(s.disk.get(id)!);
+		corrupt.targetLanguage = 'unknown';
+		expect(decodeSession(JSON.stringify(corrupt), id)).toBeNull();
+	});
 	it('renames an older session from its latest disk record after another session starts', async () => {
 		const s = setup();
 		s.history.begin(options, start, id);

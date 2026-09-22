@@ -9,7 +9,45 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.5.0 handoff
+
+Next Store submission target: **1.5.0**, MSIX **1.5.0.0**, dated 22 September 2026.
+GitHub release: [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0).
+This supersedes unsubmitted 1.4.2. The last documented Store release remains 1.2.4.
+
+Includes searchable provider-scoped caption languages, persistent favourites, unsupported-target
+Start/Rehearse gates, F2 favourite swapping, separate English/French demo/rehearsal types,
+expanded transcript/profile metadata and RTL overlay direction. Dropdown labels and stars are
+vertically centered. All earlier profile, history, reading and persistent-control improvements
+remain included. [Release notes](release-1.5.0.md) · [EN/FR/DE listing](store-listing.md).
+
+- [x] Implement #78 and document the behavior and pending live acceptance.
+- [x] Synchronize manifests, lockfiles and citation metadata to 1.5.0.
+- [x] Prepare GitHub release notes and EN/FR/DE Store listing text.
+- [x] Local validation: 356 frontend tests, 74 Rust tests, type checks, production build,
+  formatting, catalog parity and Clippy. Two billable/network probes are opt-in.
+- [x] Browser layout checks at 980×660 in EN/FR/DE, centered rows, Japanese/Arabic font fallback
+  and Arabic stable-reading direction.
+- [ ] Confirm release-commit CI and all installer/MSIX/bundle jobs.
+- [ ] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
+  embedded 1.5.0.0 manifests below.
+- [ ] Complete OpenAI target-code probe, especially Portuguese/Chinese variants, and live
+  non-EN/FR speech on both translation providers. #78 remains open; see [coverage](language-coverage.md).
+- [ ] Test installed x64/ARM64 packages, including keyboard/Narrator, enlarged text,
+  unsupported selections, favourites/profile/history persistence, live audio, overlay and export.
+- [ ] Capture fresh packaged-app EN/FR/DE screenshots and complete native German review.
+- [ ] Run Windows App Certification Kit and check the public privacy policy.
+- [ ] Upload **Live.Translation_1.5.0.msixbundle** in Partner Center, apply prepared listing fields,
+  then submit and record certification/rollout. No Store submission has been made.
+
+### 1.5.0 artifact verification
+
+Installer workflow and bundle verification pending publication. Do not upload a previous
+version's bundle. GitHub publication does not establish live-provider acceptance or Store certification.
+
 ## Release 1.4.2 handoff
+
+Historical handoff; superseded by [1.5.0](#release-150-handoff).
 
 Next Store submission target: **1.4.2**, MSIX **1.4.2.0**, dated 21 September 2026.
 GitHub release: [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2).

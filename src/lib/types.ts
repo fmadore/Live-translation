@@ -12,7 +12,8 @@ export type AudioSource = 'microphone' | 'system' | 'both';
 export type Origin = 'microphone' | 'system';
 
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
-export type TargetLanguage = 'en' | 'fr';
+import { TARGET_LANGUAGES, type TargetLanguage, type DemoLanguage } from './languages';
+export type { TargetLanguage, DemoLanguage } from './languages';
 
 /** Caption backend. The commercial providers each have their own API key; `ondevice`
  *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs.
@@ -82,6 +83,8 @@ export type OutputMode = 'translate' | 'transcribe';
 
 /** Whether the F2 direction shortcut can act right now.
  *
+ *  F2 swaps the first two favourites in pin order (outside that pair, selects the first).
+ *  The caller uses nextFavourite: fewer than two pins or either unsupported is a no-op.
  *  Translation is the only mode with a direction to flip, and the target language is handed
  *  to the provider once at session start — so it cannot change while a session is running,
  *  and `locked` is true for the whole of one. Genuine live switching needs provider-aware
@@ -142,7 +145,7 @@ export interface StartOptions {
 	 *  Cloud engines still stream to the provider and bill normally. The built-in demo already
 	 *  has its own deterministic timeline and disables this separate rehearsal control. Per-launch only: it is never written to the options store, so it can never reach
 	 *  the persisted record. Keep in sync with `StartOptions` in `src-tauri/src/types.rs`. */
-	rehearsal?: TargetLanguage;
+	rehearsal?: DemoLanguage;
 }
 
 /** A caption update streamed from the active translation or subtitle session. */
@@ -407,7 +410,7 @@ export const SESSION_OPTIONS_KEY = 'session.options';
 // field is checked against its list. Keep these in step with the types.
 const AUDIO_SOURCES: readonly AudioSource[] = ['microphone', 'system', 'both'];
 const OUTPUT_MODES: readonly OutputMode[] = ['translate', 'transcribe'];
-const TARGET_LANGUAGES: readonly TargetLanguage[] = ['en', 'fr'];
+
 const PROVIDERS: readonly Provider[] = [
 	'gemini',
 	'gemini-transcribe',

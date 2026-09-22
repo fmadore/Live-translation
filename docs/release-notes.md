@@ -13,6 +13,11 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.5.0
+
+22 September 2026. [Release body](release-1.5.0.md) and
+[Store handoff](store-updates.md#release-150-handoff).
+
 ## v1.4.2
 
 GitHub release: [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2),
