@@ -2,10 +2,17 @@ import { matchesSession } from './historySearch';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
+import { tick } from 'svelte';
 import TranscriptHistory from './TranscriptHistory.svelte';
 import { locale } from './i18n';
 import { api } from './tauri';
-import { historyEnabled, historyError, sessionHistory, type SavedSession } from './history';
+import {
+	historyEnabled,
+	historyError,
+	historyRevision,
+	sessionHistory,
+	type SavedSession
+} from './history';
 import { transcript, clearTranscript } from './stores';
 
 vi.mock('./tauri', () => ({
@@ -118,6 +125,26 @@ it('copies and deletes a selected session only after confirmation', async () => 
 	expect(deletion).toHaveBeenCalledWith(saved.id);
 	deletion.mockRestore();
 	view.unmount();
+});
+
+// Every finalized line of a recording session lands as a history write. The open tab used to
+// re-list the whole folder for each one; it now catches up at most every five seconds.
+it('re-lists history at most every few seconds while writes keep landing', async () => {
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(api.listHistory).toHaveBeenCalledTimes(1));
+	vi.useFakeTimers();
+	try {
+		for (let write = 0; write < 5; write++) {
+			historyRevision.update((n) => n + 1);
+			await tick();
+		}
+		expect(api.listHistory).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(5000);
+		expect(api.listHistory).toHaveBeenCalledTimes(2);
+	} finally {
+		vi.useRealTimers();
+		view.unmount();
+	}
 });
 
 it('shows unreadable records and read errors instead of silently losing history', async () => {

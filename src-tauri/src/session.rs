@@ -87,6 +87,78 @@ fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
     Ok(())
 }
 
+/// The selected provider's endpoint and model, with any environment overrides applied.
+///
+/// Only the selected provider's variables are read, so a malformed override for one backend
+/// (say `MISTRAL_TARGET_STREAMING_DELAY_MS`) cannot stop another from starting.
+#[derive(Debug, PartialEq)]
+enum ProviderSettings {
+    Gemini {
+        host: String,
+        model: String,
+    },
+    GeminiTranscribe {
+        host: String,
+        model: String,
+    },
+    OpenAi {
+        host: String,
+        model: String,
+        transcribe_model: String,
+    },
+    Mistral {
+        host: String,
+        model: String,
+        delay_ms: u32,
+    },
+    OnDevice,
+}
+
+impl ProviderSettings {
+    fn resolve(provider: Provider) -> Result<Self> {
+        Self::resolve_with(provider, |name| std::env::var(name).ok())
+    }
+
+    fn resolve_with(provider: Provider, var: impl Fn(&str) -> Option<String>) -> Result<Self> {
+        let value = |name: &str, default: &str| var(name).unwrap_or_else(|| default.to_string());
+        // Pointing a client at another server is a development tool. In a release build a
+        // stray variable, or a `.env` in some parent directory, would otherwise be enough to
+        // send the operator's API key somewhere else.
+        let host = |name: &str, default: &str| {
+            if cfg!(debug_assertions) {
+                value(name, default)
+            } else {
+                default.to_string()
+            }
+        };
+        Ok(match provider {
+            Provider::Gemini => Self::Gemini {
+                host: host("GEMINI_WS_HOST", DEFAULT_HOST),
+                model: value("GEMINI_TRANSLATE_MODEL", DEFAULT_TRANSLATE_MODEL),
+            },
+            Provider::GeminiTranscribe => Self::GeminiTranscribe {
+                host: host("GEMINI_WS_HOST", DEFAULT_HOST),
+                model: value("GEMINI_TRANSCRIBE_MODEL", DEFAULT_TRANSCRIBE_MODEL),
+            },
+            Provider::OpenAi => Self::OpenAi {
+                host: host("OPENAI_WS_HOST", DEFAULT_OPENAI_HOST),
+                model: value("OPENAI_TRANSLATE_MODEL", DEFAULT_OPENAI_TRANSLATE_MODEL),
+                transcribe_model: value("OPENAI_TRANSCRIBE_MODEL", DEFAULT_OPENAI_TRANSCRIBE_MODEL),
+            },
+            Provider::Mistral => Self::Mistral {
+                host: host("MISTRAL_WS_HOST", DEFAULT_MISTRAL_HOST),
+                model: value("MISTRAL_TRANSCRIBE_MODEL", DEFAULT_MISTRAL_MODEL),
+                delay_ms: var("MISTRAL_TARGET_STREAMING_DELAY_MS")
+                    .map(|v| v.parse::<u32>())
+                    .transpose()
+                    .context("MISTRAL_TARGET_STREAMING_DELAY_MS must be an integer")?
+                    .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS),
+            },
+            Provider::OnDevice => Self::OnDevice,
+        })
+    }
+}
+
 /// Which failure this is, for a capture failure on one source.
 ///
 /// The microphone gets its own id on purpose. Under package identity Windows gates the
@@ -180,28 +252,7 @@ impl SessionManager {
         let target_rate = provider.input_sample_rate();
         let target_code = options.target_language.bcp47().to_string();
 
-        let gemini_host =
-            std::env::var("GEMINI_WS_HOST").unwrap_or_else(|_| DEFAULT_HOST.to_string());
-        let gemini_model = std::env::var("GEMINI_TRANSLATE_MODEL")
-            .unwrap_or_else(|_| DEFAULT_TRANSLATE_MODEL.to_string());
-        let gemini_transcribe_model = std::env::var("GEMINI_TRANSCRIBE_MODEL")
-            .unwrap_or_else(|_| DEFAULT_TRANSCRIBE_MODEL.to_string());
-        let openai_host =
-            std::env::var("OPENAI_WS_HOST").unwrap_or_else(|_| DEFAULT_OPENAI_HOST.to_string());
-        let openai_model = std::env::var("OPENAI_TRANSLATE_MODEL")
-            .unwrap_or_else(|_| DEFAULT_OPENAI_TRANSLATE_MODEL.to_string());
-        let openai_transcribe = std::env::var("OPENAI_TRANSCRIBE_MODEL")
-            .unwrap_or_else(|_| DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string());
-        let mistral_host =
-            std::env::var("MISTRAL_WS_HOST").unwrap_or_else(|_| DEFAULT_MISTRAL_HOST.to_string());
-        let mistral_model = std::env::var("MISTRAL_TRANSCRIBE_MODEL")
-            .unwrap_or_else(|_| DEFAULT_MISTRAL_MODEL.to_string());
-        let mistral_delay = std::env::var("MISTRAL_TARGET_STREAMING_DELAY_MS")
-            .ok()
-            .map(|value| value.parse::<u32>())
-            .transpose()
-            .context("MISTRAL_TARGET_STREAMING_DELAY_MS must be an integer")?
-            .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS);
+        let settings = ProviderSettings::resolve(provider)?;
 
         // One clock for the session, copied into every source, so the microphone and system
         // timelines agree in a transcript that interleaves them. See `timing::SessionClock`.
@@ -306,12 +357,12 @@ impl SessionManager {
             }
 
             let client_app = app.clone();
-            match provider {
-                Provider::Gemini => {
+            match &settings {
+                ProviderSettings::Gemini { host, model } => {
                     let config = GeminiConfig {
                         api_key: api_key.clone(),
-                        model: gemini_model.clone(),
-                        host: gemini_host.clone(),
+                        model: model.clone(),
+                        host: host.clone(),
                         target_language_code: target_code.clone(),
                         origin,
                     };
@@ -323,11 +374,11 @@ impl SessionManager {
                         clock,
                     )));
                 }
-                Provider::GeminiTranscribe => {
+                ProviderSettings::GeminiTranscribe { host, model } => {
                     let config = GeminiTranscribeConfig {
                         api_key: api_key.clone(),
-                        model: gemini_transcribe_model.clone(),
-                        host: gemini_host.clone(),
+                        model: model.clone(),
+                        host: host.clone(),
                         origin,
                     };
                     client_tasks.push(tauri::async_runtime::spawn(run_session(
@@ -338,12 +389,16 @@ impl SessionManager {
                         clock,
                     )));
                 }
-                Provider::OpenAi => {
+                ProviderSettings::OpenAi {
+                    host,
+                    model,
+                    transcribe_model,
+                } => {
                     let config = OpenAiConfig {
                         api_key: api_key.clone(),
-                        model: openai_model.clone(),
-                        transcribe_model: openai_transcribe.clone(),
-                        host: openai_host.clone(),
+                        model: model.clone(),
+                        transcribe_model: transcribe_model.clone(),
+                        host: host.clone(),
                         target_language_code: target_code.clone(),
                         origin,
                     };
@@ -355,12 +410,16 @@ impl SessionManager {
                         clock,
                     )));
                 }
-                Provider::Mistral => {
+                ProviderSettings::Mistral {
+                    host,
+                    model,
+                    delay_ms,
+                } => {
                     let config = MistralConfig {
                         api_key: api_key.clone(),
-                        model: mistral_model.clone(),
-                        host: mistral_host.clone(),
-                        target_streaming_delay_ms: mistral_delay,
+                        model: model.clone(),
+                        host: host.clone(),
+                        target_streaming_delay_ms: *delay_ms,
                         origin,
                         received_delta: false,
                     };
@@ -372,7 +431,7 @@ impl SessionManager {
                         clock,
                     )));
                 }
-                Provider::OnDevice => {
+                ProviderSettings::OnDevice => {
                     let config = OnDeviceConfig {
                         origin,
                         language: options.target_language.try_into()?,
@@ -683,5 +742,44 @@ mod tests {
                 !translates
             );
         }
+    }
+
+    #[test]
+    fn another_providers_malformed_override_does_not_block_a_session() {
+        let env =
+            |name: &str| (name == "MISTRAL_TARGET_STREAMING_DELAY_MS").then(|| "soon".to_string());
+        assert!(ProviderSettings::resolve_with(Provider::Gemini, env).is_ok());
+        assert!(ProviderSettings::resolve_with(Provider::Mistral, env).is_err());
+    }
+
+    #[test]
+    fn model_overrides_apply_and_defaults_fill_the_rest() {
+        let env = |name: &str| (name == "OPENAI_TRANSLATE_MODEL").then(|| "pinned".to_string());
+        let ProviderSettings::OpenAi {
+            model,
+            transcribe_model,
+            ..
+        } = ProviderSettings::resolve_with(Provider::OpenAi, env).unwrap()
+        else {
+            panic!("wrong provider settings")
+        };
+        assert_eq!(model, "pinned");
+        assert_eq!(transcribe_model, DEFAULT_OPENAI_TRANSCRIBE_MODEL);
+    }
+
+    #[test]
+    fn host_overrides_are_honoured_only_in_debug_builds() {
+        let env = |name: &str| (name == "GEMINI_WS_HOST").then(|| "localhost:9000".to_string());
+        let ProviderSettings::Gemini { host, .. } =
+            ProviderSettings::resolve_with(Provider::Gemini, env).unwrap()
+        else {
+            panic!("wrong provider settings")
+        };
+        let expected = if cfg!(debug_assertions) {
+            "localhost:9000"
+        } else {
+            DEFAULT_HOST
+        };
+        assert_eq!(host, expected);
     }
 }

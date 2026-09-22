@@ -100,13 +100,15 @@ export function createHistoryCoordinator(
 	}
 	function persist() {
 		if (!enabled() || !active?.lines.length || deleted.has(active.id)) return;
-		const snapshot = { ...active, lines: [...active.lines] };
+		const session = active;
 		const version = ++revision;
+		// The snapshot is taken when the job runs, not when it is queued: a newer append for
+		// the same session supersedes this job, and a superseded job should cost nothing.
+		// Shallow is enough, because `append` replaces `lines` rather than mutating it.
 		queue = queue
 			.then(async () => {
-				if (deleted.has(snapshot.id) || (active?.id === snapshot.id && version !== revision))
-					return;
-				await write(snapshot);
+				if (deleted.has(session.id) || (active?.id === session.id && version !== revision)) return;
+				await write({ ...session });
 			})
 			.catch(onError);
 	}

@@ -82,7 +82,10 @@ fn assert_webview_runtime() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Load .env for development (GEMINI_API_KEY etc.); ignored if absent.
+    // Load .env for development (GEMINI_API_KEY etc.); ignored if absent. Debug builds only:
+    // `dotenv` searches the working directory and every parent, and an installed app should
+    // not pick up whatever `.env` happens to sit above wherever it was launched from.
+    #[cfg(debug_assertions)]
     let _ = dotenvy::dotenv();
 
     tracing_subscriber::fmt()
@@ -112,7 +115,6 @@ pub fn run() {
             commands::set_api_key,
             commands::clear_api_key,
             commands::ondevice_readiness,
-            commands::prepare_ondevice_model,
             commands::start_session,
             commands::stop_session,
             commands::start_audio_test,

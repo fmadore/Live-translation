@@ -88,7 +88,6 @@ export function applyStatus(u: StatusUpdate) {
 			});
 			if (!get(isRunning)) {
 				sessionStartedAt.set(null);
-				latestCaption.set(null);
 			}
 		} else if (get(sessionStartedAt) === null) {
 			// Starting a replacement first drains the old backend session, whose Idle
@@ -103,7 +102,6 @@ export function applyStatus(u: StatusUpdate) {
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
-		latestCaption.set(null);
 		currentCaptions.set({});
 		sessionStartedAt.set(null);
 	}
@@ -117,7 +115,14 @@ export function applyStatus(u: StatusUpdate) {
 export const activityTimes = writable<Partial<Record<Origin, { audio: number; caption: number }>>>(
 	{}
 );
+// Notes arrive with every meter reading (20 Hz per source) and every caption, but they feed
+// labels with a three-second threshold. One note per half-second is indistinguishable there,
+// and keeps the store and the component reading it from updating dozens of times a second.
+const ACTIVITY_RESOLUTION_MS = 500;
+
 export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Date.now()) {
+	const last = get(activityTimes)[origin]?.[kind] ?? 0;
+	if (last > 0 && now >= last && now - last < ACTIVITY_RESOLUTION_MS) return;
 	activityTimes.update((value) => ({
 		...value,
 		[origin]: { audio: 0, caption: 0, ...value[origin], [kind]: now }
@@ -144,9 +149,6 @@ options.subscribe((v) => {
 });
 
 // ---- Captions & transcript --------------------------------------------------
-
-// Latest caption (any origin), for the operator monitor.
-export const latestCaption = writable<Caption | null>(null);
 
 // The turn currently on screen for each origin, so the operator can show both speakers at
 // once. Key insertion order is kept in least-recently-updated order, which is the order the
@@ -207,7 +209,6 @@ function commit(c: Caption) {
 
 export function pushCaption(c: Caption) {
 	noteActivity(c.origin, 'caption');
-	latestCaption.set(c);
 	// Re-insert this origin last so the object's key order tracks recency.
 	currentCaptions.update((m) => {
 		const next: Partial<Record<Origin, Caption>> = {};
@@ -249,7 +250,6 @@ export function beginSession(sessionOptions = get(options)) {
 	originStates.set({});
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
-	latestCaption.set(null);
 	currentCaptions.set({});
 	sessionStartedAt.set(Date.now());
 }
@@ -260,7 +260,6 @@ export function beginSession(sessionOptions = get(options)) {
 export function clearTranscript() {
 	transcriptTimeOffset = 0;
 	transcript.set([]);
-	latestCaption.set(null);
 	currentCaptions.set({});
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');

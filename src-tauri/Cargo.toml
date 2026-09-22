@@ -12,9 +12,11 @@ readme = "../README.md"
 publish = false
 
 [lib]
-# Tauri's mobile/desktop entrypoint lives in the lib; main.rs is a thin shim.
+# Tauri's entrypoint lives in the lib; main.rs is a thin shim. Only `rlib`: the template's
+# `staticlib` and `cdylib` exist for iOS/Android, and on this Windows-only app each one was a
+# further full LTO link per release build, producing a DLL and a 150 MB `.lib` nothing used.
 name = "live_translation_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

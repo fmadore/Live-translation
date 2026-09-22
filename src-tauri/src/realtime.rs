@@ -415,8 +415,10 @@ fn handle_socket_message<P: RealtimeProtocol>(
 ) -> MessageOutcome {
     match message {
         Message::Text(text) => proto.handle_message(app, &text, acc),
-        Message::Binary(bytes) => String::from_utf8(bytes.to_vec())
-            .map(|text| proto.handle_message(app, &text, acc))
+        // Parsed in place: Gemini sends its JSON as binary frames, and Live Translate's carry
+        // the (discarded) output audio, so copying each frame first was the larger cost.
+        Message::Binary(bytes) => std::str::from_utf8(&bytes)
+            .map(|text| proto.handle_message(app, text, acc))
             .unwrap_or_default(),
         Message::Close(_) => MessageOutcome::control(MessageControl::Reconnect),
         _ => MessageOutcome::default(),
@@ -500,8 +502,8 @@ pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator, 
         events::CAPTION,
         Caption {
             turn_id: acc.id,
-            text: acc.translated.clone(),
-            source_text: acc.source.clone(),
+            text: &acc.translated,
+            source_text: &acc.source,
             final_,
             origin,
             start_ms,

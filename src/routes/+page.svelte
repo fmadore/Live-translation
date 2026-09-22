@@ -84,6 +84,8 @@
 	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
 	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
 	import ModalPrompt from '$lib/ModalPrompt.svelte';
+	import Field from '$lib/ui/Field.svelte';
+	import Select from '$lib/ui/Select.svelte';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
@@ -236,8 +238,6 @@
 		void preflight.refreshLocalReadiness();
 		void loadRecovery();
 		overlay.initialize();
-		// Sync the overlay to the operator's current caption size and language on load.
-		overlay.pushOverlayConfig({ locale: $locale });
 
 		const unlisteners: Array<Promise<() => void>> = [
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
@@ -469,17 +469,15 @@
 	const idBase = $props.id();
 	const localeHeadingId = `${idBase}-locale`;
 
-	// The overlay is a separate webview, so the operator's language choice is pushed to it the
-	// same way the caption size is. Skipped in a browser preview, which has no second window.
-	$effect(() => {
-		const chosen = $locale;
-		if (browserMode) return;
-		overlay.pushOverlayConfig({ locale: chosen });
-	});
-
+	// The overlay is a separate webview, so the operator's interface language and the audience's
+	// caption language are pushed to it the same way the caption size is — on load, which also
+	// syncs the rest of the appearance, and on every change. One effect, so load sends one
+	// config rather than one per language. Skipped in a browser preview, which has no second
+	// window.
 	const captionLanguage = $derived(captionLanguageOf($options));
 	$effect(() => {
-		if (!browserMode) overlay.pushOverlayConfig({ captionLanguage });
+		const config = { locale: $locale, captionLanguage };
+		if (!browserMode) overlay.pushOverlayConfig(config);
 	});
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
@@ -1124,9 +1122,8 @@
 					</p>
 
 					{#if usesMic && $options.provider !== 'ondevice'}
-						<div class="select-row">
-							<select
-								aria-label={$t.rail.micDevice}
+						<Field label={$t.rail.micDevice}>
+							<Select
 								disabled={controlsLocked}
 								value={$options.micDeviceId ?? ''}
 								onchange={(e) => {
@@ -1147,19 +1144,8 @@
 										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
 									</option>
 								{/each}
-							</select>
-							<svg
-								class="chevron"
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-							>
-						</div>
+							</Select>
+						</Field>
 					{/if}
 
 					{#if usesSystem && $options.provider !== 'ondevice'}
@@ -1932,9 +1918,11 @@
 	}
 	/* The same measure the rail has as a column, so a stacked rail keeps the proportions the
 	   cards were drawn at instead of stretching a two-line description across the window.
-	   Never binds in the two-column layout, where the rail is exactly this wide. */
-	.rail > * {
-		max-width: 23.75em;
+	   Never binds in the two-column layout, where the rail is exactly this wide. Global, so
+	   that a child component's root element (MeetingProfiles) is capped too, and in rem, so
+	   a child that sets a smaller font size is not capped narrower than its siblings. */
+	.rail > :global(*) {
+		max-width: 23.75rem;
 	}
 	.stage {
 		padding: 1.875rem 2.375rem 2rem;
@@ -2151,41 +2139,6 @@
 		font-weight: 600;
 	}
 
-	.select-row {
-		position: relative;
-		display: flex;
-		align-items: center;
-		padding: 0.625rem 0.75rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		margin-top: 2px;
-	}
-	.select-row select {
-		appearance: none;
-		width: 100%;
-		border: 0;
-		background: transparent;
-		color: var(--text-soft);
-		font-size: var(--type-12-5);
-		line-height: 1;
-		padding: 0 20px 0 0;
-	}
-	.select-row select:focus-visible {
-		outline: 2px solid var(--accent-border);
-		outline-offset: 4px;
-		border-radius: 3px;
-	}
-	.select-row select option {
-		background: var(--panel-2);
-		color: var(--text);
-	}
-	.chevron {
-		position: absolute;
-		right: 12px;
-		color: var(--muted-2);
-		pointer-events: none;
-	}
 	.meters {
 		display: flex;
 		flex-direction: column;

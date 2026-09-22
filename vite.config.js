@@ -5,8 +5,23 @@ import { defineConfig } from 'vitest/config';
 // Tauri expects a fixed dev port and looks for VITE_/TAURI_ env vars.
 const host = process.env.TAURI_DEV_HOST;
 
+// Fontsource lists a `.woff` fallback after every `.woff2`. WebView2 always takes the `.woff2`,
+// so the fallbacks were never loaded, yet each one was still bundled into the app — about
+// 350 KB. Dropping them from the CSS before Vite resolves its URLs keeps them out of the build.
+/** @returns {import('vite').Plugin} */
+function woff2Only() {
+	return {
+		name: 'woff2-only',
+		enforce: 'pre',
+		transform(code, id) {
+			if (!/[\\/]@fontsource[\\/].+\.css$/.test(id)) return;
+			return code.replace(/,\s*url\([^)]+\.woff\)\s*format\('woff'\)/g, '');
+		}
+	};
+}
+
 export default defineConfig({
-	plugins: [sveltekit()],
+	plugins: [woff2Only(), sveltekit()],
 
 	// Vite options tailored for Tauri development.
 	clearScreen: false,

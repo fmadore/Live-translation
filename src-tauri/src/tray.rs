@@ -64,6 +64,26 @@ struct Items {
     status: MenuItem<Wry>,
     overlay: MenuItem<Wry>,
     stop: MenuItem<Wry>,
+    written: Written,
+}
+
+/// What was last written onto each item. While a session runs the front-end pushes every
+/// second, because the status line carries the elapsed time, but the other labels have not
+/// changed; each write is a native menu call, so only the ones that differ are made.
+#[derive(Default)]
+struct Written {
+    open: String,
+    quit: String,
+    stop: String,
+    status: String,
+    overlay: String,
+    stop_enabled: Option<bool>,
+}
+
+fn write_text(item: &MenuItem<Wry>, written: &mut String, text: &str) {
+    if written != text && item.set_text(text).is_ok() {
+        *written = text.to_string();
+    }
 }
 
 impl TrayMenu {
@@ -73,30 +93,37 @@ impl TrayMenu {
 
     /// Write the front-end's view of the world onto the menu.
     fn apply(&self, session_active: bool, overlay_visible: bool, labels: Option<TrayLabels>) {
-        let guard = self.items.lock().unwrap_or_else(|e| e.into_inner());
-        let Some(items) = guard.as_ref() else {
+        let mut guard = self.items.lock().unwrap_or_else(|e| e.into_inner());
+        let Some(items) = guard.as_mut() else {
             return;
         };
+        let written = &mut items.written;
         if let Some(labels) = labels {
-            let _ = items.open.set_text(labels.open);
-            let _ = items.quit.set_text(labels.quit);
-            let _ = items.stop.set_text(labels.stop);
-            let _ = items.status.set_text(labels.status);
-            let _ = items.overlay.set_text(if overlay_visible {
+            write_text(&items.open, &mut written.open, &labels.open);
+            write_text(&items.quit, &mut written.quit, &labels.quit);
+            write_text(&items.stop, &mut written.stop, &labels.stop);
+            write_text(&items.status, &mut written.status, &labels.status);
+            let overlay = if overlay_visible {
                 labels.hide
             } else {
                 labels.show
-            });
+            };
+            write_text(&items.overlay, &mut written.overlay, &overlay);
         } else {
-            let _ = items.overlay.set_text(if overlay_visible {
+            let overlay = if overlay_visible {
                 "Hide caption overlay"
             } else {
                 "Show caption overlay"
-            });
+            };
+            write_text(&items.overlay, &mut written.overlay, overlay);
         }
         // Disabled rather than hidden: an operator glancing at the menu should be able to
         // tell "no session running" from "this build has no Stop".
-        let _ = items.stop.set_enabled(session_active);
+        if written.stop_enabled != Some(session_active)
+            && items.stop.set_enabled(session_active).is_ok()
+        {
+            written.stop_enabled = Some(session_active);
+        }
     }
 }
 
@@ -119,6 +146,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         status: status.clone(),
         overlay: overlay.clone(),
         stop: stop.clone(),
+        written: Written::default(),
     });
 
     let mut builder = TrayIconBuilder::with_id("main")
@@ -196,8 +224,12 @@ fn request_quit(app: &AppHandle) {
 
 /// Push the front-end's session and overlay state onto the menu. Called whenever either
 /// changes, and once on mount, so the menu cannot describe a state the app has left.
+///
+/// Synchronous on purpose: Tauri runs sync commands on the main thread, which is where menu
+/// items live, so each write is made directly rather than as a blocking round trip from a
+/// worker thread.
 #[tauri::command]
-pub async fn set_tray_state(
+pub fn set_tray_state(
     tray: tauri::State<'_, TrayMenu>,
     session_active: bool,
     overlay_visible: bool,
