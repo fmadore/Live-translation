@@ -22,9 +22,9 @@ speculative interim text, including all-filler empty results. Impeccable visual 
 fixed long history-title overflow and date-picker icon contrast.
 
 See the [release handoff](docs/store-updates.md#release-151-handoff) for verified
-checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.5.1, which
-supersedes unsubmitted 1.5.0; the last documented Store release is 1.2.4, with no claim of a
-new Partner Center submission. Citation metadata identifies 1.5.1, dated 23 September 2026.
+checks and remaining native/package acceptance. **1.5.1 is live in the Microsoft Store**
+(confirmed 23 September 2026), replacing 1.2.4; 1.3.0 through 1.5.0 were never submitted.
+Citation metadata identifies 1.5.1, dated 23 September 2026.
 
 **1.5.0 adds searchable caption languages and favourites (#78).** Provider support, persisted
 targets, F2, demo/rehearsal types and RTL captions are reconciled. Live acceptance is still

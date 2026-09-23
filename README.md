@@ -58,6 +58,7 @@ Live-provider and packaged-app acceptance are still pending; see the verificatio
 ## Release status
 
 **Latest GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).**
+**Microsoft Store: 1.5.1**, live since 23 September 2026.
 See [what changed in 1.5.1](docs/release-1.5.1.md) and the
 [release handoff](docs/store-updates.md#release-151-handoff).
 
@@ -110,7 +111,7 @@ checks, capture behavior and keyboard shortcuts are unchanged.
 
 ## Version 1.4.1 interface update
 
-The next Store submission target is **1.5.1**. Settings now has Captions, Reading,
+**1.5.1** is now live in the Microsoft Store. Settings now has Captions, Reading,
 Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
 view, presets and previews stay visible, and the tray follows the interface language.
 See the [current release handoff](docs/store-updates.md#release-151-handoff) for native testing and

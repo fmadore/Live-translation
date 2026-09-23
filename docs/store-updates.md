@@ -11,9 +11,9 @@ packages are built.
 
 ## Release 1.5.1 handoff
 
-Next Store submission target: **1.5.1**, MSIX **1.5.1.0**, dated 23 September 2026.
-GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).
-This supersedes unsubmitted 1.5.0. The last documented Store release remains 1.2.4.
+**1.5.1 is live in the Microsoft Store**, MSIX **1.5.1.0**, as the maintainer confirmed on
+23 September 2026. GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).
+It replaces 1.2.4 as the Store version; 1.3.0 through 1.5.0 were never submitted.
 
 A maintenance release from batches 1–2 of the [22 September app review](app-review-2026-09-22.md)
 ([#86](https://github.com/fmadore/Live-translation/pull/86)). It sends providers a cleaner
@@ -53,8 +53,11 @@ Package note: keeping panic unwinding (review item D10) grows the executable fro
   providers. #78 remains open; see [coverage](language-coverage.md).
 - [ ] Capture fresh packaged-app EN/FR/DE screenshots and complete native German review.
 - [ ] Run Windows App Certification Kit and check the public privacy policy.
-- [ ] Upload **Live.Translation_1.5.1.msixbundle** in Partner Center, paste the 1.5.1 "What's
-  new" text, then submit and record certification/rollout. No Store submission has been made.
+- [x] Submit 1.5.1 through Partner Center and pass certification. **Live in the Store**
+  (confirmed 23 September 2026).
+
+The unchecked items above were not recorded as done before submission. They stay open as
+checks against the Store build.
 
 ### 1.5.1 artifact verification
 
@@ -76,7 +79,8 @@ The bundle and both embedded package manifests report **1.5.1.0**. The packages 
 and publisher display name `FMadore`. They declare only `runFullTrust` and `microphone`, carry
 no signature (the Store signs accepted packages), and each includes nonempty English (665,006
 bytes) and French (743,246 bytes) rehearsal WAV fixtures. This verifies packaging, not
-installed-app operation or Store certification. No Partner Center submission has been made.
+installed-app operation or Store certification. 1.5.1 was then submitted through Partner Center
+and is live; see above.
 
 ## Release 1.5.0 handoff
 
