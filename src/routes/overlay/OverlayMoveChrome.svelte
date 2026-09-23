@@ -239,7 +239,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1.7;
-		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
+		/* The dim end of the shared text ramp (--text-muted); spelled out because this window
 		   paints over an unknown desktop and does not inherit the operator's surfaces. */
 		color: #848c99;
 		white-space: nowrap;

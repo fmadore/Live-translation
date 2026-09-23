@@ -183,7 +183,7 @@
 		display: grid;
 		gap: 0.5rem;
 		font-size: var(--type-small);
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.appearance-layout {
 		display: grid;
@@ -215,7 +215,7 @@
 	.colour-choice {
 		width: 2rem;
 		height: 2rem;
-		border: 1px solid var(--border-hover);
+		border: 1px solid var(--line-hover);
 		border-radius: var(--radius-control);
 		forced-color-adjust: none;
 	}
@@ -234,7 +234,7 @@
 	.stepper-label {
 		font-size: var(--type-small);
 		line-height: 1;
-		color: var(--muted);
+		color: var(--text-muted);
 		flex: 1;
 	}
 	.stepper-value {
@@ -251,15 +251,15 @@
 		width: 30px;
 		height: 30px;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		color: var(--text-soft);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
+		color: var(--text-secondary);
 		font-size: var(--type-label);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.step:hover {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.colour-row {
 		display: grid;
@@ -274,24 +274,24 @@
 		gap: 0.5rem;
 		padding: 0.5rem 0.625rem;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		cursor: pointer;
 	}
 	.swatch:hover {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.swatch-label {
 		font-size: var(--type-small);
 		line-height: 1.2;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.swatch input[type='color'] {
 		flex: 0 0 auto;
 		width: 26px;
 		height: 20px;
 		padding: 0;
-		border: 1px solid var(--border-hover);
+		border: 1px solid var(--line-hover);
 		border-radius: 5px;
 		background: none;
 		cursor: pointer;
@@ -315,12 +315,12 @@
 		font-size: var(--type-small);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--text-dim);
+		color: var(--text-secondary);
 	}
 	.contrast-note {
 		font-size: var(--type-caption);
 		line-height: 1.45;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	.contrast.warn .contrast-ratio {
 		color: var(--warn);
@@ -332,16 +332,16 @@
 		align-self: flex-start;
 		padding: 0.375rem 0.625rem;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		background: transparent;
-		color: var(--muted);
+		color: var(--text-muted);
 		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.reset:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text-soft);
+		border-color: var(--line-hover);
+		color: var(--text-secondary);
 	}
 	.reset:disabled {
 		opacity: 0.45;

@@ -67,10 +67,10 @@
 	.presets button {
 		flex: 1;
 		padding: 0.625rem;
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
-		background: var(--panel-2);
-		color: var(--text-soft);
+		background: var(--surface-1);
+		color: var(--text-secondary);
 		font-size: var(--type-small);
 	}
 	.presets button:hover {
@@ -80,7 +80,7 @@
 	p {
 		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.preview {
 		padding: 1rem;

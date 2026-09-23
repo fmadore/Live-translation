@@ -63,7 +63,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.375rem;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--line-strong);
 		padding-bottom: 0.75rem;
 	}
 	.tabs button {
@@ -72,7 +72,7 @@
 		border: 1px solid transparent;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--muted);
+		color: var(--text-muted);
 		font-size: var(--type-small);
 	}
 	.tabs button[aria-selected='true'] {
@@ -81,7 +81,7 @@
 		border-color: var(--accent-border);
 	}
 	.tabs button:hover {
-		color: var(--text);
+		color: var(--text-body);
 	}
 	@media (forced-colors: active) {
 		.tabs button[aria-selected='true'] {

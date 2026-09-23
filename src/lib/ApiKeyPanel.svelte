@@ -160,7 +160,7 @@
 	code {
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
-		color: var(--text-dim);
+		color: var(--text-secondary);
 	}
 	a {
 		color: var(--accent-soft);
@@ -182,13 +182,13 @@
 		border-radius: var(--radius-control);
 	}
 	button.ghost {
-		color: var(--text-soft);
-		border: 1px solid var(--border);
+		color: var(--text-secondary);
+		border: 1px solid var(--line-strong);
 		background: transparent;
 	}
 	button.ghost:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	button.save {
 		border: 0;
@@ -205,9 +205,9 @@
 		   it holds rather than in pixels that stop matching it. */
 		width: 13.75em;
 		max-width: 100%;
-		background: var(--panel-2);
-		border: 1px solid var(--border);
-		color: var(--text);
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
+		color: var(--text-body);
 		border-radius: var(--radius-control);
 		padding: 7px 10px;
 		font-size: var(--type-small);

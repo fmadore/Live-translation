@@ -44,7 +44,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.625rem;
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--line-strong);
 	}
 	.device-recovery p {
 		flex-basis: 100%;

@@ -88,10 +88,10 @@
 		border: 0;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	button:hover {
-		background: var(--surface-3);
+		background: var(--surface-2);
 	}
 	.native-picker {
 		position: absolute;

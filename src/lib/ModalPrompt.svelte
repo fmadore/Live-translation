@@ -156,8 +156,8 @@
 		gap: 14px;
 		padding: 24px;
 		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: var(--panel);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 	}
 	/* 832px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
@@ -198,10 +198,10 @@
 		border: none;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.dismiss:hover {
-		background: var(--surface-3);
+		background: var(--surface-2);
 		color: var(--text-bright);
 	}
 	.dismiss:focus-visible {
@@ -214,12 +214,12 @@
 		margin: 0;
 		font-size: var(--type-body);
 		line-height: 1.6;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		text-wrap: pretty;
 	}
 	.prompt :global(p.note) {
 		font-size: var(--type-small);
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.prompt :global(p.error) {
 		padding: 9px 11px;
@@ -247,13 +247,13 @@
 		line-height: 1;
 		padding: 10px 15px;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		background: transparent;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.prompt :global(.actions button:hover:not(:disabled)) {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	.prompt :global(.actions button.primary) {
 		flex: 1 1 auto;
@@ -263,8 +263,8 @@
 		border-color: var(--accent);
 	}
 	.prompt :global(.actions button.primary:hover:not(:disabled)) {
-		background: var(--accent-2);
-		border-color: var(--accent-2);
+		background: var(--accent-soft);
+		border-color: var(--accent-soft);
 	}
 	.prompt :global(.actions button.danger) {
 		color: var(--danger-soft);

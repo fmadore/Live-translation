@@ -27,14 +27,14 @@
 	kbd {
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
 		padding: 0.25rem 0.375rem;
 	}
 	.keys {
 		margin: 1rem 0;
 		font-size: var(--type-small);
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	h3 {
 		margin: 0;
@@ -43,7 +43,7 @@
 	}
 	p,
 	dd {
-		color: var(--muted);
+		color: var(--text-muted);
 		line-height: 1.5;
 	}
 	dd {

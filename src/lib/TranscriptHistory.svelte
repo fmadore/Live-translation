@@ -327,7 +327,7 @@
 		line-height: 1.5;
 	}
 	.sessions :global(.session span) {
-		color: var(--muted);
+		color: var(--text-muted);
 		font-size: var(--type-caption);
 	}
 	.detail {
@@ -351,7 +351,7 @@
 	.hint,
 	.source,
 	.notice {
-		color: var(--muted);
+		color: var(--text-muted);
 		font-size: var(--type-small);
 		line-height: 1.5;
 		margin: 0;
@@ -362,7 +362,7 @@
 		overflow: auto;
 		overflow-wrap: anywhere;
 		margin-top: 1rem;
-		border-top: 1px solid var(--hairline);
+		border-top: 1px solid var(--line);
 		font-size: var(--type-body);
 		line-height: 1.6;
 	}

@@ -62,7 +62,7 @@
 		line-height: 1;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		/* Last resort, not the plan: the column above is sized to hold the labels we ship, and
 		   this only decides what a longer one does. Breaking mid-word is ugly — but a label
 		   drawn across the level meter is worse, and silent, which is how the German one got
@@ -70,15 +70,12 @@
 		   hyphenation dictionary the WebView may not have, so it fails to exactly this. */
 		overflow-wrap: break-word;
 	}
-	.meter.active .label {
-		color: var(--muted);
-	}
 	.track {
 		position: relative;
 		height: 8px;
 		border-radius: 3px;
-		background: #1a1e25;
-		border: 1px solid var(--border-2);
+		background: var(--surface-2);
+		border: 1px solid var(--line);
 		overflow: hidden;
 	}
 	.meter.active .track {
@@ -108,7 +105,7 @@
 		top: 0;
 		bottom: 0;
 		width: 2px;
-		background: var(--text);
+		background: var(--text-body);
 		opacity: 0.7;
 	}
 	/* Segment ticks, drawn over the fill so the meter reads as discrete steps. */

@@ -75,6 +75,6 @@
 		margin: 0 0 0.5rem;
 		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 </style>

@@ -159,12 +159,12 @@
 					cx="9"
 					cy="6"
 					r="2"
-					fill="var(--panel-2)"
-				/><circle cx="15" cy="12" r="2" fill="var(--panel-2)" /><circle
+					fill="var(--surface-1)"
+				/><circle cx="15" cy="12" r="2" fill="var(--surface-1)" /><circle
 					cx="9"
 					cy="18"
 					r="2"
-					fill="var(--panel-2)"
+					fill="var(--surface-1)"
 				/></svg
 			>
 		</ToolButton>
@@ -281,9 +281,9 @@
 	.profiles {
 		min-width: 0;
 		font-size: var(--type-small);
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		padding-bottom: 1rem;
-		border-bottom: 1px solid var(--hairline);
+		border-bottom: 1px solid var(--line);
 	}
 	.picker {
 		display: grid;
@@ -305,7 +305,7 @@
 		padding: 0;
 	}
 	p {
-		color: var(--muted);
+		color: var(--text-muted);
 		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
@@ -316,7 +316,7 @@
 	}
 	li {
 		padding: 0.75rem 0;
-		border-bottom: 1px solid var(--hairline);
+		border-bottom: 1px solid var(--line);
 		margin-bottom: 0.75rem;
 		overflow-wrap: anywhere;
 	}

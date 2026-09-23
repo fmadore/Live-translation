@@ -69,8 +69,8 @@
 <style>
 	.session-controls {
 		padding: 0.75rem 1.375rem;
-		border-bottom: 1px solid var(--border);
-		background: var(--panel);
+		border-bottom: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: stretch;
@@ -132,9 +132,9 @@
 		gap: 8px;
 		padding: 13px 18px;
 		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		background: transparent;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
@@ -142,8 +142,8 @@
 		flex: 0 0 auto;
 	}
 	.rehearse:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 
 	/* Gradients are not recoloured by the forced palette, so the button would keep its mint

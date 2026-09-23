@@ -230,7 +230,7 @@
 		gap: 12px;
 		margin-top: 22px;
 		padding-top: 18px;
-		border-top: 1px solid var(--hairline);
+		border-top: 1px solid var(--line);
 		/* The stage is a scrolling flex column; keep the block at its natural height there. */
 		flex: 0 0 auto;
 	}
@@ -243,7 +243,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
 	}
 	.spacer {
@@ -253,33 +253,33 @@
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		padding: 7px 11px;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		background: transparent;
 	}
 	select {
 		font: inherit;
 		font-size: var(--type-small);
-		color: var(--text);
-		background: var(--bg);
-		border: 1px solid var(--border);
+		color: var(--text-body);
+		background: var(--surface-0);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
 		padding: 6px;
 		max-width: 100%;
 	}
 	button.ghost:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	button.ghost.quiet {
-		color: var(--muted-2);
+		color: var(--text-muted);
 		border-color: transparent;
 	}
 	button.ghost.quiet:hover:not(:disabled) {
 		border-color: transparent;
-		color: var(--text);
+		color: var(--text-body);
 	}
 	.state {
 		font-size: var(--type-caption);
@@ -316,7 +316,7 @@
 		margin: 0;
 		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		word-break: break-word;
 	}
 	.warn {
@@ -344,14 +344,14 @@
 	.recovery-title {
 		display: block;
 		font-size: var(--type-small);
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.recovery-note {
 		display: block;
 		margin-top: 3px;
 		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 	.log {
@@ -379,17 +379,18 @@
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 	}
+	/* The same identity as the live turns above: blue is the room, and only the room. The
+	   remote side is the default speaker, so its marker stays neutral. */
 	.origin-microphone .side {
-		color: var(--muted-3);
+		color: var(--room-soft);
 	}
-	/* Dimmer than --room-soft: in the log the label is a marker, not a heading. */
 	.origin-system .side {
-		color: #6b8fd6;
+		color: var(--text-muted);
 	}
 	.text {
 		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 </style>

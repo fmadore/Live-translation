@@ -327,8 +327,8 @@
 
 	.tile,
 	.engine {
-		border: 1px solid var(--border);
-		background: var(--panel-2);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		text-align: left;
 		color: inherit;
 	}
@@ -339,7 +339,7 @@
 	}
 	.tile:hover:not(:disabled),
 	.engine:hover:not(:disabled) {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.tile.selected:hover:not(:disabled),
 	.engine.selected:hover:not(:disabled) {
@@ -358,7 +358,7 @@
 		gap: 7px;
 		padding: 12px 6px 10px;
 		border-radius: var(--radius-card);
-		color: var(--muted);
+		color: var(--text-muted);
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
@@ -403,21 +403,18 @@
 		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.engine.selected .engine-name {
-		color: var(--text);
+		color: var(--text-body);
 		font-weight: 600;
 	}
 	.engine-model {
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1.2;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		overflow-wrap: anywhere;
-	}
-	.engine.selected .engine-model {
-		color: var(--muted-2);
 	}
 	.engine-rate {
 		margin-left: auto;
@@ -425,17 +422,16 @@
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--muted);
+		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.engine.selected .engine-rate {
 		color: var(--accent-soft);
 	}
-	/* One step brighter than the rest of the dim ramp: the rate sits on the selected engine's
-	   mint wash, which costs it enough contrast to drop "/hr" under 4.5:1 at --muted-3. */
+	/* The unit stays grey when the selected engine turns its rate mint. */
 	.engine-rate .unit {
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 
 	@media (forced-colors: active) {

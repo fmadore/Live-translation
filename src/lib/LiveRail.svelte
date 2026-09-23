@@ -209,8 +209,8 @@
 	.chip {
 		padding: 9px 11px;
 		border-radius: var(--radius-control);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
+		background: var(--surface-1);
+		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
@@ -222,26 +222,26 @@
 		line-height: 1;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.chip-value {
 		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1.1;
-		color: #dfe3e9;
+		color: var(--text-body);
 	}
 	.rail-note {
 		margin: 0;
 		font-size: var(--type-small);
 		line-height: 1.4;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 
 	.cost-card {
 		padding: 14px 15px;
 		border-radius: var(--radius-card);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
+		background: var(--surface-1);
+		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
 		gap: 12px;
@@ -261,7 +261,7 @@
 		font-size: var(--type-heading);
 		font-weight: 500;
 		line-height: 1;
-		color: #dfe3e9;
+		color: var(--text-body);
 		font-variant-numeric: tabular-nums;
 	}
 	.figure-value.mint {
@@ -273,13 +273,13 @@
 		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.cost-note {
 		margin: 0;
 		font-size: var(--type-caption);
 		line-height: 1.45;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 

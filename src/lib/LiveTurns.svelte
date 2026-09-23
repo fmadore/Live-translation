@@ -71,12 +71,12 @@
 	.stretch {
 		flex: 1;
 		height: 1px;
-		background: var(--hairline);
+		background: var(--line);
 	}
 	.stage-note {
 		font-size: var(--type-small);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.stage-hint {
 		margin-top: 24px;
@@ -94,7 +94,7 @@
 		grid-template-columns: 6em minmax(0, 1fr);
 		gap: 20px;
 		padding: 24px 0;
-		border-bottom: 1px solid var(--hairline);
+		border-bottom: 1px solid var(--line);
 	}
 	.turn-who {
 		display: flex;
@@ -124,7 +124,7 @@
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.turn-text {
 		display: flex;
@@ -136,7 +136,7 @@
 		margin: 0;
 		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted-2);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 	.turn-caption {
@@ -145,7 +145,7 @@
 		font-weight: 600;
 		line-height: 1.3;
 		letter-spacing: -0.015em;
-		color: var(--text-dim);
+		color: var(--text-secondary);
 		text-wrap: pretty;
 	}
 	.turn-caption.live {

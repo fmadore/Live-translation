@@ -165,14 +165,14 @@
 	.checklist {
 		flex: 0 0 auto;
 		margin-top: 26px;
-		border-top: 1px solid var(--hairline);
+		border-top: 1px solid var(--line);
 	}
 	.check-rate {
 		font-family: var(--font-mono);
 		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
 	}
 	.place {
@@ -193,15 +193,15 @@
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		padding: 7px 11px;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		background: transparent;
 	}
 	.adjust:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	/* Near the window's minimum height, tighten the vertical rhythm so the checklist and the
 	   launch notes still land above the fold. */

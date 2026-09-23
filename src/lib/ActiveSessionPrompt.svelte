@@ -49,6 +49,6 @@
 <style>
 	em {
 		font-style: normal;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 </style>

@@ -28,9 +28,9 @@
 		align-items: center;
 		gap: 0.5625rem;
 		padding: 0.6875rem 0.75rem;
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
-		background: var(--panel-2);
+		background: var(--surface-1);
 		text-align: left;
 		color: inherit;
 	}
@@ -39,7 +39,7 @@
 		background: var(--accent-bg);
 	}
 	.lang:hover:not(:disabled) {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.lang.selected:hover:not(:disabled) {
 		border-color: var(--accent);
@@ -49,7 +49,7 @@
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	.lang.selected .lang-code {
 		color: var(--accent-soft);
@@ -59,10 +59,10 @@
 		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.lang.selected .lang-name {
-		color: var(--text);
+		color: var(--text-body);
 		font-weight: 600;
 	}
 	@media (forced-colors: active) {

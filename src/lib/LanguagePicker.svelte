@@ -216,9 +216,9 @@
 		width: 100%;
 		min-width: 0;
 		padding: 0.7em;
-		color: var(--text);
-		background: var(--panel);
-		border: 1px solid var(--border);
+		color: var(--text-body);
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
 		border-radius: 6px;
 		font: inherit;
 	}
@@ -229,7 +229,7 @@
 		overflow-wrap: anywhere;
 	}
 	.hint {
-		color: var(--muted);
+		color: var(--text-muted);
 		/* Not the shared hint's 1.5: this one sits in the picker's own rhythm. */
 		line-height: inherit;
 	}
@@ -241,10 +241,10 @@
 		grid-template-columns: minmax(0, 1fr) 2.5em;
 		max-height: min(20em, 45vh);
 		overflow: auto;
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		border-radius: 6px;
-		background: var(--panel);
-		scrollbar-color: var(--muted) var(--panel);
+		background: var(--surface-1);
+		scrollbar-color: var(--text-muted) var(--surface-1);
 	}
 	[role='listbox'],
 	.pins {
@@ -263,8 +263,8 @@
 		height: 2.5em;
 		box-sizing: border-box;
 		font-size: var(--type-small);
-		color: var(--muted);
-		border-top: 1px solid var(--border);
+		color: var(--text-muted);
+		border-top: 1px solid var(--line-strong);
 	}
 	.option,
 	.pin-row {
@@ -293,7 +293,7 @@
 	}
 	.option.unsupported {
 		cursor: default;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	small {
 		display: block;
@@ -309,7 +309,7 @@
 		min-height: 3em;
 		background: transparent;
 		border: 0;
-		color: var(--text);
+		color: var(--text-body);
 		cursor: pointer;
 	}
 	.pin-row button:hover {

@@ -74,7 +74,7 @@
 		align-items: center;
 		gap: 14px;
 		padding: 15px 0;
-		border-bottom: 1px solid var(--hairline);
+		border-bottom: 1px solid var(--line);
 	}
 	.check-row.pending {
 		align-items: start;
@@ -106,7 +106,7 @@
 	}
 	.mark.neutral {
 		background: rgba(255, 255, 255, 0.05);
-		color: var(--muted);
+		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		font-weight: 500;
@@ -126,7 +126,7 @@
 	.check-desc {
 		font-size: var(--type-small);
 		line-height: 1.3;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	/* A pending row's sentence wraps around a link and a model id. */
 	.check-row.pending .check-desc {

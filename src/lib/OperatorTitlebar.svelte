@@ -84,8 +84,8 @@
 		gap: 10px;
 		min-height: 40px;
 		padding: 4px 14px;
-		background: #12151a;
-		border-bottom: 1px solid var(--hairline);
+		background: var(--surface-1);
+		border-bottom: 1px solid var(--line);
 	}
 	/* The only control in the titlebar, and the only one whose position never depends on what
 	   the session is doing. Icon-only, so its accessible name carries the whole label; the box
@@ -100,11 +100,11 @@
 		border-radius: var(--radius-control);
 		border: 1px solid transparent;
 		background: transparent;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	.gear:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	.brand {
 		width: 18px;
@@ -126,7 +126,7 @@
 	.context {
 		font-size: var(--type-small);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -159,14 +159,14 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.pill.neutral {
-		background: var(--surface-3);
-		border: 1px solid var(--border);
+		background: var(--surface-2);
+		border: 1px solid var(--line-strong);
 	}
 	.pill.neutral .pill-dot {
 		background: var(--faint);
 	}
 	.pill.neutral .pill-label {
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.pill.live {
 		background: var(--accent-bg);

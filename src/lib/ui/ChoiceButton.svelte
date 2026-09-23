@@ -47,9 +47,9 @@
 		align-items: flex-start;
 		gap: 0.6875rem;
 		padding: 0.75rem 0.8125rem;
-		border: 1px solid var(--border);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
-		background: var(--panel-2);
+		background: var(--surface-1);
 		width: 100%;
 		text-align: left;
 		color: inherit;
@@ -59,7 +59,7 @@
 		background: var(--accent-bg);
 	}
 	.card:hover:not(:disabled) {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.card.selected:hover:not(:disabled) {
 		border-color: var(--accent);
@@ -69,7 +69,7 @@
 		height: 30px;
 		border-radius: var(--radius-control);
 		background: rgba(255, 255, 255, 0.045);
-		color: var(--muted);
+		color: var(--text-muted);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -89,19 +89,16 @@
 		font-size: var(--type-label);
 		font-weight: 600;
 		line-height: 1.2;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.card.selected .card-title {
-		color: var(--text);
+		color: var(--text-body);
 	}
 	.card-desc {
 		font-size: var(--type-small);
 		line-height: 1.45;
-		color: var(--muted-2);
+		color: var(--text-muted);
 		text-wrap: pretty;
-	}
-	.card.selected .card-desc {
-		color: var(--muted);
 	}
 	.card-check {
 		color: var(--accent);

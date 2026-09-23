@@ -116,13 +116,13 @@
 	label {
 		display: grid;
 		gap: 0.4em;
-		color: var(--muted-2);
+		color: var(--text-muted);
 		font-size: var(--type-small);
 		min-width: 0;
 	}
 	.hint {
 		margin: 0;
-		color: var(--muted-2);
+		color: var(--text-muted);
 		font-size: var(--type-small);
 		line-height: 1.5;
 	}

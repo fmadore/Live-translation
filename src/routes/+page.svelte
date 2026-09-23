@@ -470,7 +470,7 @@
 	/* ---- Header ------------------------------------------------------------- */
 
 	.rule {
-		background: var(--hairline);
+		background: var(--line);
 	}
 	.rule.live {
 		background: #163027;
@@ -505,8 +505,8 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.25rem;
-		background: var(--panel);
-		border-bottom: 1px solid var(--hairline);
+		background: var(--surface-1);
+		border-bottom: 1px solid var(--line);
 	}
 	/* The same measure the rail has as a column, so a stacked rail keeps the proportions the
 	   cards were drawn at instead of stretching a two-line description across the window.
@@ -530,7 +530,7 @@
 		   checklist and the transcript scroll independently. */
 		.rail {
 			border-bottom: 0;
-			border-right: 1px solid var(--hairline);
+			border-right: 1px solid var(--line);
 			overflow-y: auto;
 		}
 		.stage {
@@ -551,19 +551,19 @@
 	/* ---- Stage -------------------------------------------------------------- */
 
 	.banner {
-		background: var(--panel-2);
-		border: 1px solid var(--border);
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
 		padding: 12px;
 		margin-bottom: 22px;
 		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.banner code {
 		font-family: var(--font-mono);
 		font-size: var(--type-small);
-		color: var(--text-dim);
+		color: var(--text-secondary);
 	}
 	.ready {
 		margin: 16px 0 0;
@@ -576,7 +576,7 @@
 		margin: 8px 0 0;
 		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted);
+		color: var(--text-muted);
 		max-width: 48ch;
 		text-wrap: pretty;
 	}
@@ -592,7 +592,7 @@
 	.rehearse-hint {
 		font-size: var(--type-small);
 		line-height: 1.45;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
 	}
@@ -600,7 +600,7 @@
 	.privacy {
 		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
 	}
