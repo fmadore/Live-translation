@@ -1801,9 +1801,6 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	.grow {
-		flex: 1;
-	}
 	.pill {
 		display: flex;
 		align-items: center;
@@ -1945,16 +1942,9 @@
 			overflow-y: auto;
 		}
 	}
-	.divider {
-		height: 1px;
-		background: var(--hairline);
-	}
 	/* Both columns scroll rather than compress: a flex column shrinks its children before the
 	   scrollbar appears, which would clip text on a short window. */
-	.divider,
 	.kicker,
-	.rail-head,
-	.rail-section,
 	.chips,
 	.rail-note,
 	.cost-card,
@@ -1969,67 +1959,6 @@
 	.turns,
 	.stage-hint {
 		flex: 0 0 auto;
-	}
-
-	/* ---- Rail shared -------------------------------------------------------- */
-
-	.rail-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.625rem;
-	}
-	.step-head,
-	.rail-head {
-		display: flex;
-		align-items: center;
-		gap: 0.5625rem;
-	}
-	.rail-icon {
-		color: var(--muted-3);
-		display: flex;
-	}
-	.step-no {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--accent);
-	}
-	/* Section labels are real headings (h1/h2) wherever they name a region, so Narrator's
-	   heading navigation walks the window; the class only has to undo the browser's own
-	   heading typography. */
-	.kicker {
-		margin: 0;
-		font-size: var(--type-10-5);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.15em;
-		text-transform: uppercase;
-		color: var(--muted-2);
-	}
-	.hint {
-		margin: 0;
-		font-size: var(--type-11-5);
-		line-height: 1.5;
-		color: var(--muted-2);
-	}
-	.inline-hint {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		line-height: 1.4;
-	}
-	.key {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-dim);
-		padding: 4px 6px;
-		border-radius: 5px;
-		border: 1px solid #2a2f38;
-		background: var(--surface-3);
-		white-space: nowrap;
 	}
 
 	/* ---- Selection cards ---------------------------------------------------- */
@@ -2333,70 +2262,6 @@
 		display: flex;
 		gap: 8px;
 	}
-	.tool {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.4375rem;
-		padding: 0.625rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		color: var(--text-soft);
-		font-size: var(--type-12);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.tool:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-	/* Standalone rather than one of a pair, so it fills the rail. */
-	.tool.wide {
-		width: 100%;
-	}
-	.pref {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 0.5625rem;
-		align-items: start;
-		cursor: pointer;
-	}
-	.pref:has(input:disabled) {
-		cursor: default;
-	}
-	.pref input {
-		margin: 2px 0 0;
-		accent-color: var(--accent);
-	}
-	.pref-title {
-		display: block;
-		font-size: var(--type-12);
-		line-height: 1.4;
-		color: var(--text-soft);
-		text-wrap: pretty;
-	}
-	.pref-note {
-		display: block;
-		margin-top: 3px;
-		font-size: var(--type-11-5);
-		line-height: 1.5;
-		color: var(--muted-3);
-		text-wrap: pretty;
-	}
-	.tool.on {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-		color: var(--accent-soft);
-	}
-	/* Captions are blanked — the amber tint says the room is currently seeing nothing. */
-	.tool.off {
-		border-color: var(--warn-border);
-		background: rgba(255, 180, 84, 0.08);
-		color: var(--warn-soft);
-	}
-
 	.stop {
 		display: flex;
 		align-items: center;

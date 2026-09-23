@@ -230,6 +230,8 @@
 	}
 	.hint {
 		color: var(--muted);
+		/* Not the shared hint's 1.5: this one sits in the picker's own rhythm. */
+		line-height: inherit;
 	}
 	.error {
 		color: var(--warn);

@@ -226,15 +226,6 @@
 	.kicker {
 		flex: 0 0 auto;
 	}
-	.kicker {
-		margin: 0;
-		font-size: var(--type-10-5);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.15em;
-		text-transform: uppercase;
-		color: var(--muted-2);
-	}
 	.stepper {
 		display: flex;
 		align-items: center;
