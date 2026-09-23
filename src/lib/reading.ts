@@ -1,4 +1,4 @@
-import type { Caption, Origin } from './types';
+import { ORIGINS, type Caption, type Origin } from './types';
 
 export type CaptionPace = 'immediate' | 'steady';
 export const HOLD_KEY = 'overlay.holdSeconds';
@@ -43,7 +43,7 @@ export function createCaptionPresenter(show: (caption: Caption) => void, pace: (
 			flush('system');
 		},
 		clear(origin?: Origin) {
-			for (const key of origin ? [origin] : (['microphone', 'system'] as const)) {
+			for (const key of origin ? [origin] : ORIGINS) {
 				clearTimeout(timers[key]);
 				delete timers[key];
 				delete pending[key];

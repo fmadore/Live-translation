@@ -1,15 +1,22 @@
 // Shared types between the operator window, the caption overlay, and the Rust core.
 // These mirror the serde structs in `src-tauri/src/types.rs` — keep them in sync.
 
-/** Which audio input(s) to translate or transcribe. */
 import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
+import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
 
-export type AudioSource = 'microphone' | 'system' | 'both';
+// Each union below is declared once, as a runtime list, and the type is derived from it.
+// Persisted values are untrusted input and are checked against these lists, and
+// `contract.test.ts` checks each list against the serde enum it mirrors.
+
+/** Which audio input(s) to translate or transcribe. */
+export const AUDIO_SOURCES = ['microphone', 'system', 'both'] as const;
+export type AudioSource = (typeof AUDIO_SOURCES)[number];
 
 /** A single capture source — the `origin` on captions, levels, and status updates. */
-export type Origin = 'microphone' | 'system';
+export const ORIGINS = ['microphone', 'system'] as const;
+export type Origin = (typeof ORIGINS)[number];
 
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
 import { TARGET_LANGUAGES, type TargetLanguage, type DemoLanguage } from './languages';
@@ -22,7 +29,8 @@ export type { TargetLanguage, DemoLanguage } from './languages';
  *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
  *  different modes at different rates, and `providerCanTranslate` has to stay a plain
  *  function of the provider. */
-export type Provider = 'gemini' | 'gemini-transcribe' | 'openai' | 'mistral' | 'ondevice';
+export const PROVIDERS = ['gemini', 'gemini-transcribe', 'openai', 'mistral', 'ondevice'] as const;
+export type Provider = (typeof PROVIDERS)[number];
 
 export interface OnDeviceReadiness {
 	ready: boolean;
@@ -79,7 +87,8 @@ export function providerDetectsLanguage(provider: Provider): boolean {
 }
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
-export type OutputMode = 'translate' | 'transcribe';
+export const OUTPUT_MODES = ['translate', 'transcribe'] as const;
+export type OutputMode = (typeof OUTPUT_MODES)[number];
 
 /** Whether the F2 direction shortcut can act right now.
  *
@@ -177,7 +186,8 @@ export interface AudioLevel {
 	peak: number;
 }
 
-export type SessionState = 'idle' | 'connecting' | 'running' | 'reconnecting' | 'error';
+export const SESSION_STATES = ['idle', 'connecting', 'running', 'reconnecting', 'error'] as const;
+export type SessionState = (typeof SESSION_STATES)[number];
 
 export interface StatusUpdate {
 	state: SessionState;
@@ -227,7 +237,7 @@ export interface OverlayConfig {
 	 *  origin labels. Pushed rather than read from storage: the two windows are separate
 	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
 	 *  language: that is `captionLanguage`, and the two are deliberately independent. */
-	locale?: 'en' | 'fr' | 'de';
+	locale?: Locale;
 	/** The language of the caption text itself, so the overlay can mark it up and a screen
 	 *  reader on the projected view pronounces it rather than reading French with English
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
@@ -274,7 +284,8 @@ export interface OverlayStateMsg {
  *  state that only the renderer holds. *Open* is absent on purpose: showing a window needs
  *  nothing from here, so the core does it itself and the menu keeps working even if this
  *  window is wedged. Mirrors `TrayCommand` in `src-tauri/src/tray.rs`. */
-export type TrayCommand = 'toggle-overlay' | 'stop-session' | 'quit';
+export const TRAY_COMMANDS = ['toggle-overlay', 'stop-session', 'quit'] as const;
+export type TrayCommand = (typeof TRAY_COMMANDS)[number];
 
 /** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
  *  Operator→overlay: overlayConfig. Overlay→operator: overlayState. */
@@ -405,19 +416,6 @@ export const DEFAULT_START_OPTIONS: StartOptions = {
 /** localStorage key for the operator's last setup, so the keyless default above is a first-run
  *  state rather than a reset on every launch. */
 export const SESSION_OPTIONS_KEY = 'session.options';
-
-// Runtime members of the unions declared above; persisted values are untrusted input, so each
-// field is checked against its list. Keep these in step with the types.
-const AUDIO_SOURCES: readonly AudioSource[] = ['microphone', 'system', 'both'];
-const OUTPUT_MODES: readonly OutputMode[] = ['translate', 'transcribe'];
-
-const PROVIDERS: readonly Provider[] = [
-	'gemini',
-	'gemini-transcribe',
-	'openai',
-	'mistral',
-	'ondevice'
-];
 
 function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
 	return typeof value === 'string' && (allowed as readonly string[]).includes(value)

@@ -2,7 +2,7 @@ import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { decodeRecovery } from './document';
 import { api } from './tauri';
-import type { StartOptions, TranscriptLine } from './types';
+import { OUTPUT_MODES, type StartOptions, type TranscriptLine } from './types';
 
 export const HISTORY_ENABLED_KEY = 'transcript.historyEnabled';
 export const historyEnabled = writable(
@@ -36,7 +36,7 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 			!recovered ||
 			s.id !== id ||
 			!/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(id) ||
-			!['translate', 'transcribe'].includes(s.mode) ||
+			!(OUTPUT_MODES as readonly string[]).includes(s.mode) ||
 			(s.sourceLanguage !== 'auto' && !isTargetLanguage(s.sourceLanguage)) ||
 			(s.targetLanguage !== null && !isTargetLanguage(s.targetLanguage)) ||
 			typeof s.startedAt !== 'string' ||
