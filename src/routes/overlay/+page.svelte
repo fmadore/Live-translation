@@ -1,71 +1,45 @@
 <script lang="ts">
-	import { isTargetLanguage } from '$lib/languages';
-	import {
-		createCaptionPresenter,
-		loadHoldSeconds,
-		loadPace,
-		holdSeconds,
-		type CaptionPace
-	} from '$lib/reading';
-	import { cleanSpeech, loadCleanSpeech } from '$lib/cleanSpeech';
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
-	import {
-		appendCaptionHistory,
-		loadCaptionLayout,
-		isCaptionLayout,
-		bottomCaptionHeight
-	} from '$lib/captionLayout';
-	import { api, on, isTauri } from '$lib/tauri';
-	import { isLocale, locale, t } from '$lib/i18n';
-	import type { Caption, Origin, TargetLanguage } from '$lib/types';
+	import OverlayMoveChrome from './OverlayMoveChrome.svelte';
+	import { createOverlayCaptions } from './overlayCaptions.svelte';
+	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
+	import { previewContent } from './overlayFixtures';
+	import { loadAppearance } from '$lib/appearance';
+	import { bottomCaptionHeight, isCaptionLayout } from '$lib/captionLayout';
 	import {
 		captionCssVars,
 		clampHex,
 		clampScrimOpacity,
 		DEFAULT_CAPTION_PALETTE,
-		loadCaptionPalette
+		type CaptionPalette
 	} from '$lib/captionColour';
-	import type { CaptionPalette } from '$lib/captionColour';
-	import { captionFaceStack, isCaptionFace, loadCaptionFace } from '$lib/captionFont';
-	import type { CaptionFaceId } from '$lib/captionFont';
-	import {
-		captionBudget,
-		clampOverlayFont,
-		clampOverlayWidth,
-		loadOverlayFont,
-		loadOverlayWidth,
-		OVERLAY_PLACED_KEY
-	} from '$lib/types';
+	import { captionFaceStack, isCaptionFace, type CaptionFaceId } from '$lib/captionFont';
+	import { isLocale, locale, t } from '$lib/i18n';
+	import { isTargetLanguage } from '$lib/languages';
+	import { api, on, isTauri } from '$lib/tauri';
+	import { clampOverlayFont, type Origin, type TargetLanguage } from '$lib/types';
 
-	// The overlay keeps only what it needs to render: one current turn per origin (mic and
-	// system turns have independent ids, so they must never share a slot) plus that origin's
-	// bounded recent context, so a taller region can retain several short turns.
-	let current = $state<Partial<Record<Origin, Caption>>>({});
-	let previous = $state<Partial<Record<Origin, string>>>({});
-	let history = $state<Partial<Record<Origin, string>>>({});
+	// The initial appearance comes from the shared localStorage keys (same origin as the
+	// operator), then the operator pushes live updates via the overlay-config event.
+	const initial = loadAppearance();
+	const captions = createOverlayCaptions({
+		layout: initial.layout,
+		hideFillers: initial.cleanSpeech,
+		hold: initial.hold,
+		pace: initial.pace,
+		width: initial.width
+	});
+	const placement = createOverlayPlacement();
 
-	// Stable render order: the remote speaker (system) above the room mic.
-	const ORIGIN_ORDER: Origin[] = ['system', 'microphone'];
-
-	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
-	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
-
-	// Initial size comes from the shared localStorage key (same origin as the operator),
-	// then the operator pushes live updates via the overlay-config event.
-	let fontSize = $state(loadOverlayFont());
-	let captionWidth = $state(loadOverlayWidth());
-	let readingHold = $state(loadHoldSeconds());
-	let pace = $state<CaptionPace>(loadPace());
-	let hideFillers = $state(loadCleanSpeech());
-	let captionLayout = $state(loadCaptionLayout());
+	let fontSize = $state(initial.fontSize);
 	let fontsLoaded = $state(0);
-	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
+	let captionFace = $state<CaptionFaceId>(initial.face);
 
 	// The ink and the scrim behind it. The overlay keeps the operator's three plain values and
 	// derives its own steps from them, rather than being handed a finished stylesheet — so the
 	// contrast readout on the control panel and the pixels here come out of one function.
-	let palette = $state<CaptionPalette>(loadCaptionPalette());
+	let palette = $state<CaptionPalette>(initial.palette);
 	const paletteVars = $derived(
 		Object.entries(captionCssVars(palette))
 			.map(([name, value]) => `${name}: ${value}`)
@@ -78,117 +52,24 @@
 	// — before the first push, and while a subtitle engine is detecting the spoken language.
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
 
-	// Move mode (operator-driven): click-through is off and the whole stage becomes a
-	// Tauri drag region so the window can be dragged/resized into place.
-	let interactive = $state(false);
+	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
+	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
 
-	// Live window size for the move-mode readout. The overlay window *is* the caption
-	// region, so its own viewport is the number the operator needs.
+	// Live window size, for the move-mode readout and the row heights. The overlay window *is*
+	// the caption region, so its own viewport is the number that matters.
 	let winW = $state(0);
 	let winH = $state(0);
 
-	// Where the window sat when move mode was entered, so Escape can undo the whole move.
-	// Physical pixels, straight off the window: restoring what was read needs no conversion.
-	// Not reactive — nothing renders it.
-	let entryGeometry: { x: number; y: number; width: number; height: number } | null = null;
-
-	// Auto-hide captions after the last update so the overlay never sits on a stale line
-	// over the slides. A finalized line gets a short reading pause; an in-progress line
-	// that stalls (no turn-complete arriving) clears a little sooner.
-
-	const INTERIM_HOLD_MS = 3000;
-	const clearTimers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
-
-	// Compact mode keeps captions subtitle-sized. A turn streams until it completes, which during
-	// continuous speech can run for many sentences, so render only the most recent slice of
-	// the (still-growing) turn instead of the whole thing — otherwise it fills the screen.
-	// The budget follows the measure, so the block stays the same number of lines however
-	// wide the operator sets the caption; see `captionBudget`.
-	const maxChars = $derived(captionBudget(captionWidth));
-
-	/** Keep the last `limit` characters, cutting on a word boundary. */
-	function tail(text: string, limit: number): string {
-		const t = text.replace(/\s+/g, ' ').trim();
-		if (t.length <= limit) return t;
-		let cut = t.length - limit;
-		// Don't start mid-word: jump to the next space if it's close.
-		const sp = t.indexOf(' ', cut);
-		if (sp !== -1 && sp - cut < 24) cut = sp + 1;
-		return '… ' + t.slice(cut);
-	}
-
-	// A speaker's previous turn and current turn are usually one continuous sentence, so they
-	// render as one block of running text at one size: the tail of the finished turn (dimmed)
-	// flowing straight into the live one. They share the character budget, so the block never
-	// grows past a caption's worth — as the new turn streams in, the old text is pushed out.
-	// Only the space left over by the current turn is spent on the lead-in, and once the
-	// current turn fills the budget the previous one is gone entirely.
-	// Fixed, unlike the budget above: this asks "is the leftover room worth anything to a
-	// reader", and a readable fragment of a previous sentence is the same amount of text in a
-	// narrow region as in a wide one.
-	const MIN_LEAD_CHARS = 40;
-
-	// The context before each origin's current turn, derived apart from `lines` so it is
-	// cleaned when a turn joins it rather than on every caption. Stable reading's history is
-	// stored already cleaned — see `joinHistory` — and is shown as it is.
-	const contextLeads = $derived(
-		Object.fromEntries(
-			ORIGIN_ORDER.map((origin) => {
-				const context = history[origin] ?? '';
-				return [origin, captionLayout === 'fit' && hideFillers ? cleanSpeech(context) : context];
-			})
-		) as Record<Origin, string>
-	);
-
-	const lines = $derived(
-		ORIGIN_ORDER.flatMap((origin) => {
-			const caption = current[origin];
-			if (!caption) return [];
-			const text =
-				captionLayout !== 'compact'
-					? captionLayout === 'stable'
-						? caption.text
-						: caption.text.slice(-12000)
-					: tail(caption.text, maxChars);
-			const room = maxChars - text.length;
-			const lead =
-				captionLayout !== 'compact'
-					? contextLeads[origin]
-					: room >= MIN_LEAD_CHARS
-						? tail(previous[origin] ?? '', room)
-						: '';
-			return [
-				{
-					origin,
-					lead: captionLayout === 'compact' && hideFillers ? cleanSpeech(lead) : lead,
-					text: hideFillers ? cleanSpeech(text, caption.final) : text,
-					interim: !caption.final
-				}
-			];
-		})
-	);
-
-	/** Add a finished turn to an origin's reading context. Stable reading cleans the turn once,
-	 *  here, so its history is exactly the text on screen: the overlay trims it at rendered line
-	 *  starts (`trimStable`), and a later filler toggle then applies to new turns rather than
-	 *  re-wrapping every line already read. */
-	function joinHistory(origin: Origin, turn: string): string {
-		if (captionLayout !== 'stable') return appendCaptionHistory(history[origin] ?? '', turn);
-		return `${history[origin] ?? ''} ${hideFillers ? cleanSpeech(turn) : turn}`;
-	}
-
-	function trimStable(origin: Origin, chars: number) {
-		history[origin] = (history[origin] ?? '').slice(chars);
-	}
-
-	// A single speaker needs no label — the row is unambiguous, and the label would only
-	// steal width from the caption. Labels appear exactly when both origins are on screen.
+	const lines = $derived(captions.lines);
+	const layout = $derived(captions.layout);
+	// A single speaker needs no label — the row is unambiguous, and the label would only steal
+	// width from the caption. Labels appear exactly when both origins are on screen.
 	const showLabels = $derived(lines.length > 1);
 	const sidePadding = $derived(
-		captionLayout !== 'compact' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
+		layout !== 'compact' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
 	);
-	const topPadding = $derived(captionLayout !== 'compact' ? 16 : winH * 0.09);
-	const bottomPadding = $derived(captionLayout !== 'compact' ? 16 : winH * 0.06);
+	const topPadding = $derived(layout !== 'compact' ? 16 : winH * 0.09);
+	const bottomPadding = $derived(layout !== 'compact' ? 16 : winH * 0.06);
 	const rowHeight = $derived(
 		Math.max(
 			0,
@@ -196,21 +77,6 @@
 				Math.max(1, lines.length)
 		)
 	);
-
-	function scheduleExpiry(c: Caption) {
-		// Always re-arm this origin's auto-hide: even when a turn ends on an interim
-		// update and no turn-complete ever arrives, the line must disappear on its own.
-		clearTimeout(clearTimers[c.origin]);
-		clearTimers[c.origin] = setTimeout(
-			() => {
-				if (captionLayout === 'stable') return;
-				delete current[c.origin];
-				delete previous[c.origin];
-				delete history[c.origin];
-			},
-			c.final ? readingHold * 1000 : INTERIM_HOLD_MS
-		);
-	}
 
 	onMount(() => {
 		const measure = () => {
@@ -226,114 +92,33 @@
 			fontsLoaded += 1;
 		};
 		document.fonts.addEventListener('loadingdone', fontsChanged);
+		window.addEventListener('resize', measure);
 		const cleanup = () => {
 			mounted = false;
 			window.removeEventListener('resize', measure);
 			document.fonts.removeEventListener('loadingdone', fontsChanged);
-			for (const timer of Object.values(clearTimers)) clearTimeout(timer);
+			captions.dispose();
 		};
-		window.addEventListener('resize', measure);
 
 		if (!isTauri()) {
-			// Demo content so the overlay can be previewed in a browser: both origins visible
-			// (so the labels show), one finalized line and one live turn carrying a lead-in.
-			previous.system =
-				'Bienvenue à cette démonstration des sous-titres. Pendant une réunion, les phrases récentes restent disponibles pour suivre la discussion. Agrandissez la fenêtre pour afficher davantage de contexte, ou réduisez-la pour ne garder que les mots les plus récents. La taille des caractères reste celle que vous avez choisie.';
-			history.system = previous.system;
-			current.system = {
-				turnId: 1,
-				text: 'Les sous-titres utilisent la largeur disponible et le texte revient à la ligne lorsque la fenêtre devient plus étroite.',
-				sourceText: '',
-				final: false,
-				origin: 'system',
-				startMs: 0,
-				endMs: 0
-			};
-			current.microphone = {
-				turnId: 1,
-				text: 'This is the room microphone. Its captions remain separate from the remote speaker above. Resize the overlay to see more of this conversation while keeping the newest words visible. Both speakers share the available height, and their labels identify where the audio comes from.',
-				sourceText: '',
-				final: true,
-				origin: 'microphone',
-				startMs: 0,
-				endMs: 0
-			};
-			// Browser-only visual fixtures for font fallback and bidirectional layout QA.
-			// These are labelled preview text, never live-provider verification.
-			const previewLanguage = new URLSearchParams(window.location.search).get('language');
-			const samples: Record<string, string> = {
-				ja: '字幕の表示テストです。会議の参加者が会話を理解できるように、日本語の文字と句読点を確認します。',
-				ar: 'هذه معاينة لاختبار عرض الترجمة العربية. نتحقق من وضوح الحروف واتجاه النص من اليمين إلى اليسار، مع الأرقام 123.',
-				he: 'זוהי תצוגה מקדימה לבדיקת כתוביות בעברית וכיוון הטקסט מימין לשמאל.',
-				fa: 'این پیش‌نمایش برای بررسی نمایش زیرنویس فارسی و جهت متن از راست به چپ است.',
-				ur: 'یہ اردو ذیلی عنوانات اور دائیں سے بائیں متن کی سمت جانچنے کا پیش منظر ہے۔'
-			};
-			if (isTargetLanguage(previewLanguage) && samples[previewLanguage]) {
-				captionLanguage = previewLanguage;
-				current = { microphone: { ...current.microphone, text: samples[previewLanguage] } };
-				previous = {};
-				history = {};
-			}
+			// A browser preview has no core: show labelled demo content instead.
+			const preview = previewContent(new URLSearchParams(window.location.search).get('language'));
+			captions.show(preview);
+			if (preview.language) captionLanguage = preview.language;
 			return cleanup;
 		}
 
-		const presenter = createCaptionPresenter(
-			(c) => {
-				const cur = current[c.origin];
-				// A caption for a new turn of this origin: keep the finished text as the dimmed
-				// lead-in to the fresh one. A turn can end without ever being flagged final, so
-				// this keys off the turn id changing rather than on `cur.final`.
-				if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
-					previous[c.origin] = cur.text;
-					history[c.origin] = joinHistory(c.origin, cur.text);
-				}
-				current[c.origin] = c;
-				scheduleExpiry(c);
-			},
-			() => pace
-		);
-
-		const unlistenCaption = on.caption((c) => presenter.push(c));
-		const unlistenStatus = on.status((status) => {
-			if (status.state === 'idle' || status.state === 'error') {
-				if (!status.origin && captionLayout !== 'stable') presenter.flush();
-				presenter.clear(status.origin);
-			}
-			if (captionLayout === 'stable' && status.state === 'idle' && !status.origin) {
-				current = {};
-				previous = {};
-				history = {};
-				for (const timer of Object.values(clearTimers)) clearTimeout(timer);
-			}
-		});
-
+		const unlistenCaption = on.caption((c) => captions.push(c));
+		const unlistenStatus = on.status((status) => captions.status(status));
 		const unlistenConfig = on.overlayConfig((cfg) => {
-			if (typeof cfg.holdSeconds === 'number') {
-				readingHold = holdSeconds(cfg.holdSeconds);
-				for (const c of Object.values(current)) if (c) scheduleExpiry(c);
-			}
-			if (cfg.pace === 'steady' || cfg.pace === 'immediate') {
-				pace = cfg.pace;
-				presenter.flush();
-			}
-			if (typeof cfg.cleanSpeech === 'boolean') hideFillers = cfg.cleanSpeech;
-			if (isCaptionLayout(cfg.captionLayout) && cfg.captionLayout !== captionLayout) {
-				captionLayout = cfg.captionLayout;
-				if (captionLayout !== 'stable') {
-					for (const c of Object.values(current)) if (c) scheduleExpiry(c);
-					for (const origin of ORIGIN_ORDER)
-						history[origin] = appendCaptionHistory('', history[origin] ?? '');
-				} else if (hideFillers) {
-					// Stable reading keeps its history cleaned; context carried over from another
-					// layout is cleaned once, on the way in.
-					for (const origin of ORIGIN_ORDER)
-						if (history[origin]) history[origin] = cleanSpeech(history[origin]);
-				}
-			}
+			if (typeof cfg.holdSeconds === 'number') captions.setHold(cfg.holdSeconds);
+			if (cfg.pace === 'steady' || cfg.pace === 'immediate') captions.setPace(cfg.pace);
+			if (typeof cfg.cleanSpeech === 'boolean') captions.setHideFillers(cfg.cleanSpeech);
+			if (isCaptionLayout(cfg.captionLayout)) captions.setLayout(cfg.captionLayout);
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
 			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
-				captionWidth = clampOverlayWidth(cfg.captionWidth as number);
+				captions.setWidth(cfg.captionWidth as number);
 			// An id, not a stack: what arrives over the event is checked against the faces this
 			// build knows, so nothing here can put an arbitrary `font-family` on the screen an
 			// audience is reading.
@@ -351,15 +136,10 @@
 			// Unconditional, unlike the rest: an absent caption language is a real answer
 			// ("nobody knows"), so it has to be able to clear one that was set before.
 			captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
-			if (typeof cfg.interactive === 'boolean') {
-				// Entering move mode: record the rect first, so Escape has something to restore.
-				if (cfg.interactive && !interactive) void snapshotGeometry();
-				interactive = cfg.interactive;
-			}
+			if (typeof cfg.interactive === 'boolean') placement.setInteractive(cfg.interactive);
 		});
 
 		return () => {
-			presenter.clear();
 			cleanup();
 			void unlistenCaption.then((f) => f());
 			void unlistenStatus.then((f) => f());
@@ -375,148 +155,29 @@
 		void api.emitOverlayState({ fontSize });
 	}
 
-	/** Remember the current window rect so a cancelled move can be undone. */
-	async function snapshotGeometry() {
-		if (!isTauri()) {
-			entryGeometry = null;
+	/** Reset an enlarged reading region to a shallow subtitle strip along the bottom. */
+	function snapToBottom() {
+		void placement.snapToBottom(bottomCaptionHeight(fontSize, lines.length, layout));
+	}
+
+	function onKeyDown(e: KeyboardEvent) {
+		const command = overlayKeyCommand(
+			{
+				key: e.key,
+				shiftKey: e.shiftKey,
+				onButton: e.target instanceof HTMLElement && e.target.tagName === 'BUTTON'
+			},
+			placement.interactive
+		);
+		if (!command) return;
+		if (command.kind === 'bump') {
+			bump(command.delta);
 			return;
 		}
-		try {
-			const { getCurrentWindow } = await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			// `setPosition` takes the outer position and `setSize` the inner size, so read the
-			// pair that can be handed straight back to them.
-			const pos = await win.outerPosition();
-			const size = await win.innerSize();
-			entryGeometry = { x: pos.x, y: pos.y, width: size.width, height: size.height };
-		} catch (err) {
-			console.error('Could not record the overlay geometry', err);
-			entryGeometry = null;
-		}
-	}
-
-	/** Arrow-key nudge, in whole physical pixels — finer than a mouse drag can manage. */
-	async function nudge(dx: number, dy: number) {
-		if (!isTauri()) return;
-		try {
-			const { getCurrentWindow, PhysicalPosition } = await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			const pos = await win.outerPosition();
-			await win.setPosition(new PhysicalPosition(pos.x + dx, pos.y + dy));
-		} catch (err) {
-			console.error('Nudge failed', err);
-		}
-	}
-
-	/** Stretch the region across the presentation display, sitting on the bottom margin. */
-	async function snapToBottom() {
-		if (!isTauri()) return;
-		try {
-			const { getCurrentWindow, currentMonitor, LogicalSize, LogicalPosition } =
-				await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			const monitor = await currentMonitor();
-			if (!monitor) return;
-			// Monitor geometry is physical; window setters take logical pixels.
-			const bounds = monitor.size.toLogical(monitor.scaleFactor);
-			const corner = monitor.position.toLogical(monitor.scaleFactor);
-			// Reset an enlarged reading region to a shallow subtitle strip.
-			const height = Math.min(
-				bottomCaptionHeight(fontSize, lines.length, captionLayout),
-				Math.max(1, bounds.height - 80)
-			);
-			await win.setSize(new LogicalSize(Math.round(bounds.width - 96), Math.round(height)));
-			await win.setPosition(
-				new LogicalPosition(
-					Math.round(corner.x + 48),
-					Math.round(corner.y + bounds.height - height - 40)
-				)
-			);
-		} catch (err) {
-			console.error('Snap to bottom failed', err);
-		}
-	}
-
-	/** Leave move mode: click-through back on, and both windows told the region is placed. */
-	async function lockIntoPlace() {
-		try {
-			// Also re-enables no-activate on the Rust side, so raising can't steal focus.
-			await api.setOverlayClickThrough(true);
-		} catch (err) {
-			console.error('Failed to restore overlay click-through', err);
-		}
-		entryGeometry = null;
-		interactive = false;
-		localStorage.setItem(OVERLAY_PLACED_KEY, 'true');
-		void api.emitOverlayState({ interactive: false, placed: true });
-	}
-
-	/** Escape: put the window back where move mode found it and leave without placing it. */
-	async function cancelMove() {
-		const geo = entryGeometry;
-		if (geo && isTauri()) {
-			try {
-				const { getCurrentWindow, PhysicalPosition, PhysicalSize } =
-					await import('@tauri-apps/api/window');
-				const win = getCurrentWindow();
-				await win.setSize(new PhysicalSize(geo.width, geo.height));
-				await win.setPosition(new PhysicalPosition(geo.x, geo.y));
-			} catch (err) {
-				// A failed restore must not trap the operator in move mode — carry on and exit.
-				console.error('Could not restore the overlay geometry', err);
-			}
-		}
-		try {
-			await api.setOverlayClickThrough(true);
-		} catch (err) {
-			console.error('Failed to restore overlay click-through', err);
-		}
-		entryGeometry = null;
-		interactive = false;
-		// No `placed`: the move was abandoned, so the pre-flight check must still ask for it.
-		void api.emitOverlayState({ interactive: false });
-	}
-
-	// The overlay only has a keyboard in move mode, and that is exactly when it may be
-	// covering the operator window's own "Done moving" button (issue #11) — so both ways out
-	// have to be reachable from here. The +/− size keys stay live in either mode.
-	function onKeyDown(e: KeyboardEvent) {
-		if (e.key === '+' || e.key === '=') bump(2);
-		if (e.key === '-') bump(-2);
-		if (!interactive) return;
-
-		// A focused toolbar button already answers Enter itself; hijacking it would run the
-		// button and the shortcut at once.
-		const onButton = e.target instanceof HTMLElement && e.target.tagName === 'BUTTON';
-		const step = e.shiftKey ? 10 : 1;
-
-		switch (e.key) {
-			case 'Enter':
-				if (onButton) return;
-				e.preventDefault();
-				void lockIntoPlace();
-				return;
-			case 'Escape':
-				e.preventDefault();
-				void cancelMove();
-				return;
-			case 'ArrowLeft':
-				e.preventDefault();
-				void nudge(-step, 0);
-				return;
-			case 'ArrowRight':
-				e.preventDefault();
-				void nudge(step, 0);
-				return;
-			case 'ArrowUp':
-				e.preventDefault();
-				void nudge(0, -step);
-				return;
-			case 'ArrowDown':
-				e.preventDefault();
-				void nudge(0, step);
-				return;
-		}
+		e.preventDefault();
+		if (command.kind === 'lock') void placement.lock();
+		else if (command.kind === 'cancel') void placement.cancel();
+		else void placement.nudge(command.dx, command.dy);
 	}
 </script>
 
@@ -524,87 +185,23 @@
 
 <div
 	class="stage"
-	class:interactive
-	class:stable={captionLayout === 'stable'}
-	class:fit={captionLayout !== 'compact'}
-	data-tauri-drag-region={interactive || undefined}
-	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --measure: {captionWidth}ch; --caption-face: {captionFaceStack(
+	class:interactive={placement.interactive}
+	class:stable={layout === 'stable'}
+	class:fit={layout !== 'compact'}
+	data-tauri-drag-region={placement.interactive || undefined}
+	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"
 >
-	{#if interactive}
-		<!-- The overlay window *is* the caption region, so the placement chrome hugs the
-		     window edges rather than being drawn inside a larger screen. Everything here is
-		     pointer-events:none except the toolbar, so the stage behind stays the drag region. -->
-		<div class="region" aria-hidden="true">
-			<span class="handle tl"></span>
-			<span class="handle tr"></span>
-			<span class="handle bl"></span>
-			<span class="handle br"></span>
-			<span class="edge top"></span>
-			<span class="edge bottom"></span>
-		</div>
-
-		<!-- Dropped in a short region: there the chrome fills the window and the placeholder
-		     would run under the toolbar, which reads worse than no placeholder at all. -->
-		{#if winH >= 340}
-			<p class="placeholder">{$t.overlay.placeholder(fontSize)}</p>
-		{/if}
-
-		<div class="chrome">
-			<div class="drag-pill">
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-					<circle cx="9" cy="6" r="1.6" />
-					<circle cx="15" cy="6" r="1.6" />
-					<circle cx="9" cy="12" r="1.6" />
-					<circle cx="15" cy="12" r="1.6" />
-					<circle cx="9" cy="18" r="1.6" />
-					<circle cx="15" cy="18" r="1.6" />
-				</svg>
-				<span class="drag-label">{$t.overlay.dragToPlace}</span>
-				<span class="drag-size">{winW} × {winH}</span>
-			</div>
-
-			<div class="toolbar">
-				<div class="mode">
-					<span class="mode-title">{$t.overlay.moveMode}</span>
-					<span class="mode-sub">{$t.overlay.paused}</span>
-					<!-- The operator's own controls can be hidden under this window, so the way
-					     out has to be printed where the operator is already looking. -->
-					<span class="keys">
-						<kbd>{$t.overlay.keyEnter}</kbd>
-						{$t.overlay.keysLocks} · <kbd>{$t.overlay.keyEscape}</kbd>
-						{$t.overlay.keysCancels} · <kbd>{$t.overlay.keyArrows}</kbd>
-						{$t.overlay.keysNudge}
-					</span>
-				</div>
-				<span class="divider"></span>
-				<div class="size">
-					<span class="size-label">{$t.overlay.size}</span>
-					<button class="step" onclick={() => bump(-2)} aria-label={$t.overlay.smaller}>−</button>
-					<span class="size-value">{fontSize}</span>
-					<button class="step" onclick={() => bump(2)} aria-label={$t.overlay.larger}>+</button>
-				</div>
-				<span class="divider"></span>
-				<button class="ghost" onclick={snapToBottom}>{$t.overlay.snapToBottom}</button>
-				<button class="primary" onclick={lockIntoPlace}>
-					<svg
-						width="13"
-						height="13"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						aria-hidden="true"
-					>
-						<rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
-						<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
-					</svg>
-					{$t.overlay.lock}
-				</button>
-			</div>
-		</div>
+	{#if placement.interactive}
+		<OverlayMoveChrome
+			{fontSize}
+			width={winW}
+			height={winH}
+			onBump={bump}
+			onSnap={snapToBottom}
+			onLock={() => void placement.lock()}
+		/>
 	{:else if lines.length > 0}
 		<!-- Painted only while there is something to read: with no captions the window must
 		     paint nothing at all, or it would veil the presenter's slides. -->
@@ -615,8 +212,8 @@
 					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
 					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
 					<OverlayCaptionLine
-						stable={captionLayout === 'stable'}
-						onTrim={(chars) => trimStable(line.origin, chars)}
+						stable={layout === 'stable'}
+						onTrim={(chars) => captions.trimStable(line.origin, chars)}
 						lead={line.lead}
 						text={line.text}
 						interim={line.interim}
@@ -653,8 +250,6 @@
 		pointer-events: auto;
 		cursor: move;
 	}
-
-	/* ---- Audience view ---------------------------------------------------- */
 
 	/* The backing fade is the container's own background, so it is exactly as tall as the
 	   captions plus the padded fade-out above them — a light veil the slide shows through,
@@ -709,259 +304,14 @@
 		text-transform: uppercase;
 		color: var(--caption-ink-label);
 	}
-	/* ---- Move mode -------------------------------------------------------- */
-
-	.region {
-		position: absolute;
-		inset: 0;
-		border: 2px solid #5ad1a0;
-		background: rgba(90, 209, 160, 0.07);
-		pointer-events: none;
-	}
-	/* Affordances only: the resize itself is the OS window edge-drag. */
-	.handle {
-		position: absolute;
-		width: 11px;
-		height: 11px;
-		border-radius: 3px;
-		background: #5ad1a0;
-	}
-	.handle.tl {
-		left: 3px;
-		top: 3px;
-	}
-	.handle.tr {
-		right: 3px;
-		top: 3px;
-	}
-	.handle.bl {
-		left: 3px;
-		bottom: 3px;
-	}
-	.handle.br {
-		right: 3px;
-		bottom: 3px;
-	}
-	.edge {
-		position: absolute;
-		left: 50%;
-		transform: translateX(-50%);
-		width: 34px;
-		height: 9px;
-		border-radius: 3px;
-		background: rgba(90, 209, 160, 0.55);
-	}
-	.edge.top {
-		top: 3px;
-	}
-	.edge.bottom {
-		bottom: 3px;
-	}
-	/* Stands in for a caption while the region is being placed, so it previews the chosen
-	   face and size together — which is the moment an operator can still act on either. */
-	.placeholder {
-		position: absolute;
-		inset: 0;
-		font-family: var(--caption-face);
-		display: grid;
-		place-items: center;
-		margin: 0;
-		padding: 0 34px;
-		font-weight: 600;
-		/* Never larger than the caption it stands in for, and never so large it wraps to
-		   nothing in a short region. */
-		font-size: min(34px, var(--fs));
-		line-height: 1.3;
-		text-align: center;
-		text-wrap: pretty;
-		color: rgba(255, 255, 255, 0.55);
-		pointer-events: none;
-	}
-
-	/* The pill and toolbar float just inside the top edge: in the real window there is no
-	   surrounding screen to hang them on. */
-	.chrome {
-		position: absolute;
-		top: 14px;
-		left: 50%;
-		transform: translateX(-50%);
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 12px;
-		pointer-events: none;
-	}
-	/* Stays transparent to the pointer so dragging it drags the window (the stage below
-	   carries data-tauri-drag-region). */
-	.drag-pill {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		padding: 6px 12px;
-		border-radius: 8px;
-		background: #5ad1a0;
-		color: #05271b;
-		pointer-events: none;
-	}
-	.drag-label {
-		font-weight: 600;
-		font-size: var(--type-12);
-		line-height: 1;
-	}
-	.drag-size {
-		font-family: var(--font-mono);
-		font-weight: 500;
-		font-size: var(--type-11-5);
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-		opacity: 0.72;
-	}
-
-	.toolbar {
-		display: flex;
-		align-items: center;
-		gap: 14px;
-		padding: 12px 14px;
-		border: 1px solid #2f3540;
-		border-radius: 14px;
-		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
-		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. */
-		background: rgba(14, 17, 20, 0.96);
-		box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
-		color: #e9ebef;
-		/* Clickable while the rest of the stage drags the window. */
-		pointer-events: auto;
-		cursor: default;
-	}
-	.mode {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		padding-right: 4px;
-	}
-	.mode-title {
-		font-weight: 600;
-		font-size: var(--type-10-5);
-		line-height: 1;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: #ffb454;
-	}
-	.mode-sub {
-		font-size: var(--type-11-5);
-		line-height: 1;
-		color: #8b93a1;
-	}
-	.keys {
-		margin-top: 3px;
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		line-height: 1.7;
-		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
-		   paints over an unknown desktop and does not inherit the operator's surfaces. */
-		color: #848c99;
-		white-space: nowrap;
-	}
-	.keys kbd {
-		padding: 3px 5px;
-		border: 1px solid #2a2f38;
-		border-radius: 5px;
-		background: #191d23;
-		font-family: inherit;
-		font-weight: 500;
-		font-size: inherit;
-		color: #b9c0ca;
-	}
-	.divider {
-		width: 1px;
-		height: 30px;
-		background: #2a2f38;
-	}
-	.size {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	}
-	.size-label {
-		font-size: var(--type-11-5);
-		line-height: 1;
-		color: #8b93a1;
-	}
-	.size-value {
-		min-width: 24px;
-		font-family: var(--font-mono);
-		font-weight: 500;
-		font-size: var(--type-12-5);
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-		text-align: center;
-	}
-	.step {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		border: 1px solid #2a2f38;
-		border-radius: 7px;
-		background: #171b21;
-		color: #c3c9d2;
-		font-weight: 500;
-		font-size: var(--type-13);
-		line-height: 1;
-	}
-	.step:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
-	}
-	.ghost {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 9px 13px;
-		border: 1px solid #2a2f38;
-		border-radius: 9px;
-		background: #171b21;
-		color: #c3c9d2;
-		font-weight: 500;
-		font-size: var(--type-12);
-		line-height: 1;
-	}
-	.ghost:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
-	}
-	.primary {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 15px;
-		border: 0;
-		border-radius: 9px;
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: #05271b;
-		font-weight: 600;
-		font-size: var(--type-12-5);
-		line-height: 1;
-	}
-	.primary:hover {
-		filter: brightness(1.06);
-	}
 
 	/* Windows contrast themes. The audience view opts out entirely: these captions are the
 	   content being projected into a room, not application chrome, and repainting them in the
 	   operator's system palette would put system-coloured text over a scrim built for white.
-	   The move-mode chrome, which is chrome, keeps the system palette — it only has to drop the
-	   gradient the forced palette would not have recoloured. */
+	   The move-mode chrome keeps its own rules; see OverlayMoveChrome. */
 	@media (forced-colors: active) {
-		.captions,
-		.placeholder,
-		.region,
-		.handle,
-		.edge {
+		.captions {
 			forced-color-adjust: none;
-		}
-		.primary {
-			background-image: none;
 		}
 	}
 </style>

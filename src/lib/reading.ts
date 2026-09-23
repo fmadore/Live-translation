@@ -1,21 +1,21 @@
-import type { Caption, Origin } from './types';
+import { readStored } from './persisted';
+import { ORIGINS, type Caption, type Origin } from './types';
 
 export type CaptionPace = 'immediate' | 'steady';
 export const HOLD_KEY = 'overlay.holdSeconds';
 export const PACE_KEY = 'overlay.pace';
+export const DEFAULT_HOLD_SECONDS = 4;
 export function holdSeconds(value: unknown): number {
 	return typeof value === 'number' && Number.isFinite(value)
 		? Math.max(2, Math.min(30, Math.round(value)))
-		: 4;
+		: DEFAULT_HOLD_SECONDS;
 }
 export function loadHoldSeconds(): number {
-	const value = typeof localStorage !== 'undefined' ? localStorage.getItem(HOLD_KEY) : null;
-	return value === null ? 4 : holdSeconds(Number(value));
+	const value = readStored(HOLD_KEY);
+	return value === null ? DEFAULT_HOLD_SECONDS : holdSeconds(Number(value));
 }
 export function loadPace(): CaptionPace {
-	return typeof localStorage !== 'undefined' && localStorage.getItem(PACE_KEY) === 'steady'
-		? 'steady'
-		: 'immediate';
+	return readStored(PACE_KEY) === 'steady' ? 'steady' : 'immediate';
 }
 
 /** Throttle rather than debounce: continuous speech must still appear every 450ms.
@@ -43,7 +43,7 @@ export function createCaptionPresenter(show: (caption: Caption) => void, pace: (
 			flush('system');
 		},
 		clear(origin?: Origin) {
-			for (const key of origin ? [origin] : (['microphone', 'system'] as const)) {
+			for (const key of origin ? [origin] : ORIGINS) {
 				clearTimeout(timers[key]);
 				delete timers[key];
 				delete pending[key];

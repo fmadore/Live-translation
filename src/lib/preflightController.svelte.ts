@@ -272,3 +272,4 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 		dispose
 	};
 }
+export type PreflightController = ReturnType<typeof createPreflightController>;

@@ -1,7 +1,9 @@
+import { readFlag } from './persisted';
+
 export const CLEAN_SPEECH_KEY = 'overlay.cleanSpeech';
 
 export function loadCleanSpeech(): boolean {
-	return typeof localStorage !== 'undefined' && localStorage.getItem(CLEAN_SPEECH_KEY) === 'true';
+	return readFlag(CLEAN_SPEECH_KEY);
 }
 
 /** Display-only. Exact hesitation tokens, never substrings or meaningful discourse words.

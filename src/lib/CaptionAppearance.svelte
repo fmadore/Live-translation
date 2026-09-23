@@ -3,24 +3,15 @@
 	import Select from './ui/Select.svelte';
 	import { t, localeTag } from './i18n';
 	import {
-		overlayHoldSeconds,
-		overlayPace,
+		appearance,
 		overlayFontSize,
-		overlayCaptionWidth,
-		overlayCaptionLayout,
-		overlayCleanSpeech,
 		overlayCaptionFace,
 		overlayPalette,
 		overlayContrast
 	} from './stores';
-	import {
-		CAPTION_CONTRAST_TARGET,
-		DEFAULT_CAPTION_PALETTE,
-		SCRIM_OPACITY_MIN,
-		SCRIM_OPACITY_MAX
-	} from './captionColour';
-	import { DEFAULT_OVERLAY_FONT, DEFAULT_OVERLAY_WIDTH } from './types';
-	import { DEFAULT_CAPTION_FACE, captionFaceStack } from './captionFont';
+	import { DEFAULT_APPEARANCE, sameAppearance } from './appearance';
+	import { CAPTION_CONTRAST_TARGET, SCRIM_OPACITY_MIN, SCRIM_OPACITY_MAX } from './captionColour';
+	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
 	import type { OverlayController } from './overlayController.svelte';
 	let {
@@ -34,18 +25,7 @@
 	 *  Drives the reset button's disabled state, so the control also answers the question
 	 *  "have I changed anything?" — which is the one an operator has after an hour of
 	 *  adjusting and no memory of where they started. */
-	const overlayAtDefaults = $derived(
-		$overlayHoldSeconds === 4 &&
-			$overlayPace === 'immediate' &&
-			$overlayCaptionLayout === 'fit' &&
-			!$overlayCleanSpeech &&
-			$overlayFontSize === DEFAULT_OVERLAY_FONT &&
-			$overlayCaptionWidth === DEFAULT_OVERLAY_WIDTH &&
-			$overlayCaptionFace === DEFAULT_CAPTION_FACE &&
-			$overlayPalette.text === DEFAULT_CAPTION_PALETTE.text &&
-			$overlayPalette.scrim === DEFAULT_CAPTION_PALETTE.scrim &&
-			$overlayPalette.scrimOpacity === DEFAULT_CAPTION_PALETTE.scrimOpacity
-	);
+	const overlayAtDefaults = $derived(sameAppearance($appearance, DEFAULT_APPEARANCE));
 
 	/** The achieved ratio, written the way the interface language writes numbers — 5.7 in
 	 *  English, 5,7 in French. */
@@ -245,15 +225,6 @@
 	}
 	.kicker {
 		flex: 0 0 auto;
-	}
-	.kicker {
-		margin: 0;
-		font-size: var(--type-10-5);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.15em;
-		text-transform: uppercase;
-		color: var(--muted-2);
 	}
 	.stepper {
 		display: flex;

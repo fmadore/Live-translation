@@ -1,5 +1,8 @@
+import { readStored } from './persisted';
+
 export type CaptionLayout = 'fit' | 'compact' | 'stable';
 export const CAPTION_LAYOUT_KEY = 'overlay.captionLayout';
+export const DEFAULT_CAPTION_LAYOUT: CaptionLayout = 'fit';
 
 /** Bottom alignment is a subtitle strip; manually resizing still permits more context. */
 export function bottomCaptionHeight(
@@ -17,9 +20,8 @@ export function isCaptionLayout(value: unknown): value is CaptionLayout {
 }
 
 export function loadCaptionLayout(): CaptionLayout {
-	if (typeof localStorage === 'undefined') return 'fit';
-	const value = localStorage.getItem(CAPTION_LAYOUT_KEY);
-	return isCaptionLayout(value) ? value : 'fit';
+	const value = readStored(CAPTION_LAYOUT_KEY);
+	return isCaptionLayout(value) ? value : DEFAULT_CAPTION_LAYOUT;
 }
 
 /** Bounded reading context, separate from the full session transcript. */

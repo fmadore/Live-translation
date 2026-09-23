@@ -9,9 +9,8 @@ import { de } from './de';
 import { en, type Messages } from './en';
 import { fr } from './fr';
 
-export type Locale = 'en' | 'fr' | 'de';
-
-export const LOCALES: Locale[] = ['en', 'fr', 'de'];
+export const LOCALES = ['en', 'fr', 'de'] as const;
+export type Locale = (typeof LOCALES)[number];
 
 const CATALOGS: Record<Locale, Messages> = { en, fr, de };
 
@@ -30,7 +29,7 @@ export const LOCALE_KEY = 'ui.locale';
  *  handed over the config event. Re-listing the locales there is how `de` came close to being
  *  pushed to a window that would have kept rendering English. */
 export function isLocale(value: string | null | undefined): value is Locale {
-	return typeof value === 'string' && (LOCALES as string[]).includes(value);
+	return typeof value === 'string' && (LOCALES as readonly string[]).includes(value);
 }
 
 /**

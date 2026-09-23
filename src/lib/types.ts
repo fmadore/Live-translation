@@ -1,15 +1,23 @@
 // Shared types between the operator window, the caption overlay, and the Rust core.
 // These mirror the serde structs in `src-tauri/src/types.rs` — keep them in sync.
 
-/** Which audio input(s) to translate or transcribe. */
 import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
+import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
+import { readStored } from './persisted';
 
-export type AudioSource = 'microphone' | 'system' | 'both';
+// Each union below is declared once, as a runtime list, and the type is derived from it.
+// Persisted values are untrusted input and are checked against these lists, and
+// `contract.test.ts` checks each list against the serde enum it mirrors.
+
+/** Which audio input(s) to translate or transcribe. */
+export const AUDIO_SOURCES = ['microphone', 'system', 'both'] as const;
+export type AudioSource = (typeof AUDIO_SOURCES)[number];
 
 /** A single capture source — the `origin` on captions, levels, and status updates. */
-export type Origin = 'microphone' | 'system';
+export const ORIGINS = ['microphone', 'system'] as const;
+export type Origin = (typeof ORIGINS)[number];
 
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
 import { TARGET_LANGUAGES, type TargetLanguage, type DemoLanguage } from './languages';
@@ -22,7 +30,8 @@ export type { TargetLanguage, DemoLanguage } from './languages';
  *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
  *  different modes at different rates, and `providerCanTranslate` has to stay a plain
  *  function of the provider. */
-export type Provider = 'gemini' | 'gemini-transcribe' | 'openai' | 'mistral' | 'ondevice';
+export const PROVIDERS = ['gemini', 'gemini-transcribe', 'openai', 'mistral', 'ondevice'] as const;
+export type Provider = (typeof PROVIDERS)[number];
 
 export interface OnDeviceReadiness {
 	ready: boolean;
@@ -79,7 +88,8 @@ export function providerDetectsLanguage(provider: Provider): boolean {
 }
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
-export type OutputMode = 'translate' | 'transcribe';
+export const OUTPUT_MODES = ['translate', 'transcribe'] as const;
+export type OutputMode = (typeof OUTPUT_MODES)[number];
 
 /** Whether the F2 direction shortcut can act right now.
  *
@@ -177,12 +187,14 @@ export interface AudioLevel {
 	peak: number;
 }
 
-export type SessionState = 'idle' | 'connecting' | 'running' | 'reconnecting' | 'error';
+export const SESSION_STATES = ['idle', 'connecting', 'running', 'reconnecting', 'error'] as const;
+export type SessionState = (typeof SESSION_STATES)[number];
 
 export interface StatusUpdate {
 	state: SessionState;
-	/** Human-readable detail for the operator (e.g. reconnect reason). */
-	message?: string;
+	/** Why the state changed. The core sends a structured error the interface words (see
+	 *  `describeError`); plain text is accepted for messages made in the interface. */
+	message?: AppError | string;
 	/** Which source this update is about; absent means the whole session (e.g. stop). */
 	origin?: Origin;
 }
@@ -227,7 +239,7 @@ export interface OverlayConfig {
 	 *  origin labels. Pushed rather than read from storage: the two windows are separate
 	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
 	 *  language: that is `captionLanguage`, and the two are deliberately independent. */
-	locale?: 'en' | 'fr' | 'de';
+	locale?: Locale;
 	/** The language of the caption text itself, so the overlay can mark it up and a screen
 	 *  reader on the projected view pronounces it rather than reading French with English
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
@@ -274,7 +286,8 @@ export interface OverlayStateMsg {
  *  state that only the renderer holds. *Open* is absent on purpose: showing a window needs
  *  nothing from here, so the core does it itself and the menu keeps working even if this
  *  window is wedged. Mirrors `TrayCommand` in `src-tauri/src/tray.rs`. */
-export type TrayCommand = 'toggle-overlay' | 'stop-session' | 'quit';
+export const TRAY_COMMANDS = ['toggle-overlay', 'stop-session', 'quit'] as const;
+export type TrayCommand = (typeof TRAY_COMMANDS)[number];
 
 /** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
  *  Operator→overlay: overlayConfig. Overlay→operator: overlayState. */
@@ -304,8 +317,7 @@ export function clampOverlayFont(size: number): number {
 
 /** Read the persisted overlay font size (shared by both windows via localStorage). */
 export function loadOverlayFont(): number {
-	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
-	const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
+	const v = Number(readStored(OVERLAY_FONT_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
 }
 
@@ -333,8 +345,7 @@ export function clampOverlayWidth(width: number): number {
 }
 
 export function loadOverlayWidth(): number {
-	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_WIDTH;
-	const v = Number(localStorage.getItem(OVERLAY_WIDTH_KEY));
+	const v = Number(readStored(OVERLAY_WIDTH_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayWidth(v) : DEFAULT_OVERLAY_WIDTH;
 }
 
@@ -357,19 +368,9 @@ export function captionBudget(width: number): number {
  *  restart instead of asking the operator to position the overlay again. */
 export const OVERLAY_PLACED_KEY = 'overlay.placed';
 
-export function loadOverlayPlaced(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
-}
-
 /** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
  *  privacy-first default: nothing is written to disk unless the operator asks for it. */
 export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
-
-export function loadRecoveryEnabled(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(RECOVERY_ENABLED_KEY) === 'true';
-}
 
 /** Whether closing the operator window leaves the app running in the tray.
  *
@@ -378,19 +379,9 @@ export function loadRecoveryEnabled(): boolean {
  *  is a thing you opt into. */
 export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
 
-export function loadCloseToTray(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(CLOSE_TO_TRAY_KEY) === 'true';
-}
-
 /** Set once the operator has been told, in as many words, that closing the window is no
  *  longer quitting. Persisted so it is said the first time and never again. */
 export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
-
-export function loadTrayHideExplained(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(TRAY_HIDE_EXPLAINED_KEY) === 'true';
-}
 
 /** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,
  *  or API key and is transparently identified as a demonstration. */
@@ -406,19 +397,6 @@ export const DEFAULT_START_OPTIONS: StartOptions = {
  *  state rather than a reset on every launch. */
 export const SESSION_OPTIONS_KEY = 'session.options';
 
-// Runtime members of the unions declared above; persisted values are untrusted input, so each
-// field is checked against its list. Keep these in step with the types.
-const AUDIO_SOURCES: readonly AudioSource[] = ['microphone', 'system', 'both'];
-const OUTPUT_MODES: readonly OutputMode[] = ['translate', 'transcribe'];
-
-const PROVIDERS: readonly Provider[] = [
-	'gemini',
-	'gemini-transcribe',
-	'openai',
-	'mistral',
-	'ondevice'
-];
-
 function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
 	return typeof value === 'string' && (allowed as readonly string[]).includes(value)
 		? (value as T)
@@ -433,8 +411,7 @@ function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback
  *  so `rehearsal` (never persisted, and meaningless outside the launch that asked for it) can
  *  never come back out of localStorage. */
 export function loadStartOptions(): StartOptions {
-	if (typeof localStorage === 'undefined') return { ...DEFAULT_START_OPTIONS };
-	const raw = localStorage.getItem(SESSION_OPTIONS_KEY);
+	const raw = readStored(SESSION_OPTIONS_KEY);
 	if (!raw) return { ...DEFAULT_START_OPTIONS };
 	let parsed: unknown;
 	try {

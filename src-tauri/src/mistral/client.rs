@@ -5,14 +5,13 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tauri::AppHandle;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    emit_caption, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -76,12 +75,7 @@ impl RealtimeProtocol for MistralConfig {
         ])
     }
 
-    fn handle_message(
-        &mut self,
-        app: &AppHandle,
-        text: &str,
-        acc: &mut TurnAccumulator,
-    ) -> MessageOutcome {
+    fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
         let event: ServerEvent = match serde_json::from_str(text) {
             Ok(event) => event,
             Err(error) => {
@@ -99,8 +93,7 @@ impl RealtimeProtocol for MistralConfig {
                 if let Some(delta) = event.text.as_deref().filter(|delta| !delta.is_empty()) {
                     self.received_delta = true;
                     acc.translated.push_str(delta);
-                    emit_caption(app, self.origin, acc, false);
-                    return MessageOutcome::activity();
+                    return MessageOutcome::activity(CaptionUpdate::Interim);
                 }
             }
             "transcription.done" => {
@@ -111,11 +104,16 @@ impl RealtimeProtocol for MistralConfig {
                         acc.translated = full_text;
                     }
                 }
-                if !acc.is_empty() {
-                    emit_caption(app, self.origin, acc, true);
-                    acc.next_turn();
-                }
-                return MessageOutcome::control(MessageControl::Closed);
+                let caption = if acc.is_empty() {
+                    CaptionUpdate::None
+                } else {
+                    CaptionUpdate::Final
+                };
+                return MessageOutcome {
+                    caption,
+                    control: MessageControl::Closed,
+                    ..MessageOutcome::default()
+                };
             }
             "error" => {
                 return MessageOutcome::control(MessageControl::Fatal(
@@ -133,5 +131,88 @@ impl RealtimeProtocol for MistralConfig {
 
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::realtime::test_support::{Emitted, Harness};
+
+    fn harness() -> Harness<MistralConfig> {
+        Harness::new(MistralConfig {
+            api_key: String::new(),
+            model: DEFAULT_MISTRAL_MODEL.to_string(),
+            host: DEFAULT_MISTRAL_HOST.to_string(),
+            target_streaming_delay_ms: DEFAULT_TARGET_STREAMING_DELAY_MS,
+            origin: Origin::Microphone,
+            received_delta: false,
+        })
+    }
+
+    #[test]
+    fn deltas_are_interim_activity() {
+        let mut h = harness();
+        let outcome = h.send(r#"{"type":"transcription.text.delta","text":"Hello "}"#);
+        assert_eq!(outcome.caption, CaptionUpdate::Interim);
+        assert!(outcome.transcript_activity);
+        h.send(r#"{"type":"transcription.text.delta","text":""}"#);
+        h.send(r#"{"type":"transcription.text.delta","text":"world"}"#);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "Hello ", ""),
+                Emitted::interim(0, "Hello world", ""),
+            ]
+        );
+    }
+
+    /// `done` repeats the whole session. After deltas, idle finalization has already
+    /// committed those turns, so replaying `done.text` would print every line twice.
+    #[test]
+    fn done_after_deltas_does_not_replay_the_session() {
+        let mut h = harness();
+        h.send(r#"{"type":"transcription.text.delta","text":"First line."}"#);
+        h.finalize_idle();
+        let outcome = h.send(r#"{"type":"transcription.done","text":"First line."}"#);
+        assert!(matches!(outcome.control, MessageControl::Closed));
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "First line.", ""),
+                Emitted::final_(0, "First line.", ""),
+            ]
+        );
+    }
+
+    #[test]
+    fn done_without_deltas_supplies_the_whole_transcript() {
+        let mut h = harness();
+        h.send(r#"{"type":"session.created"}"#);
+        h.send(r#"{"type":"transcription.done","text":"Only the summary."}"#);
+        assert_eq!(h.captions, [Emitted::final_(0, "Only the summary.", "")]);
+    }
+
+    #[test]
+    fn a_new_session_forgets_earlier_deltas() {
+        let mut h = harness();
+        h.send(r#"{"type":"transcription.text.delta","text":"Before reconnect"}"#);
+        h.finalize_idle();
+        h.send(r#"{"type":"session.updated"}"#);
+        h.send(r#"{"type":"transcription.done","text":"After reconnect"}"#);
+        assert_eq!(
+            h.captions.last(),
+            Some(&Emitted::final_(1, "After reconnect", ""))
+        );
+    }
+
+    #[test]
+    fn errors_are_fatal() {
+        let mut h = harness();
+        assert!(matches!(
+            h.send(r#"{"type":"error","error":{"message":"invalid key"}}"#)
+                .control,
+            MessageControl::Fatal(_)
+        ));
     }
 }

@@ -2,11 +2,9 @@
 	import { t } from './i18n';
 	import { originStates, activityTimes, options, sessionStartedAt } from './stores';
 	import { activity } from './liveActivity';
-	import type { Origin } from './types';
+	import { ORIGINS } from './types';
 	let { now, microphone, system }: { now: number; microphone: boolean; system: boolean } = $props();
-	const sources = $derived(
-		(['microphone', 'system'] as Origin[]).filter((o) => (o === 'microphone' ? microphone : system))
-	);
+	const sources = $derived(ORIGINS.filter((o) => (o === 'microphone' ? microphone : system)));
 </script>
 
 <div class="activity" role="status" aria-label={$t.usability.activity}>

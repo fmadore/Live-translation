@@ -307,12 +307,11 @@ describe('values that come back from disk', () => {
 // actually painting from these values — a colour written back into the stylesheet would be
 // invisible to every test here, which is precisely how the failures in #24 arrived.
 describe('the overlay stylesheet', () => {
-	const CSS = readFileSync(new URL('../routes/overlay/+page.svelte', import.meta.url), 'utf8');
-	const line = readFileSync(
-		new URL('../routes/overlay/OverlayCaptionLine.svelte', import.meta.url),
-		'utf8'
-	);
-	const style = CSS.slice(CSS.indexOf('<style>')) + line.slice(line.indexOf('<style>'));
+	// Every file that paints part of the overlay window.
+	const style = ['+page.svelte', 'OverlayCaptionLine.svelte', 'OverlayMoveChrome.svelte']
+		.map((file) => readFileSync(new URL(`../routes/overlay/${file}`, import.meta.url), 'utf8'))
+		.map((source) => source.slice(source.indexOf('<style>')))
+		.join('\n');
 
 	it('paints every caption step from the palette', () => {
 		for (const name of [

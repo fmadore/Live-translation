@@ -1,22 +1,32 @@
 <script lang="ts">
-	import LanguagePicker from '$lib/LanguagePicker.svelte';
-	import { languageName, supportsLanguage, nextFavourite, type DemoLanguage } from '$lib/languages';
-	import { languageFavourites } from '$lib/stores';
-	import ReadingPreferences from '$lib/ReadingPreferences.svelte';
-	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
-	import LiveActivity from '$lib/LiveActivity.svelte';
-	import KeyboardHelp from '$lib/KeyboardHelp.svelte';
-	import { shortcut } from '$lib/shortcuts';
-	import { overlayFontSize, noteActivity } from '$lib/stores';
 	import { onMount } from 'svelte';
-	import SystemCapturePicker from '$lib/SystemCapturePicker.svelte';
+	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
+	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
+	import SessionControls from '$lib/SessionControls.svelte';
+	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
+	import LiveTurns from '$lib/LiveTurns.svelte';
+	import LiveRail from '$lib/LiveRail.svelte';
+	import SetupSheet from '$lib/SetupSheet.svelte';
+	import PreflightChecklist from '$lib/PreflightChecklist.svelte';
+	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
+	import SettingsDialog, { type SettingsTab } from '$lib/SettingsDialog.svelte';
+	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
+	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
+	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
+	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
 	import { createPreflightController } from '$lib/preflightController.svelte';
 	import { createQuitController } from '$lib/quitController.svelte';
 	import { createOverlayController } from '$lib/overlayController.svelte';
-	import CaptionAppearance from '$lib/CaptionAppearance.svelte';
-	import { get } from 'svelte/store';
-	import { api, on, isTauri } from '$lib/tauri';
-	import { asStatus, describeError, isAppError } from '$lib/errors';
+	import { createSessionClock } from '$lib/sessionClock.svelte';
+	import { createSessionController } from '$lib/sessionController';
+	import { createSetupActions } from '$lib/setupActions';
+	import { createDeviceFailure } from '$lib/deviceFailure.svelte';
+	import { createRecoveryOffer } from '$lib/recoveryOffer.svelte';
+	import { syncNative } from '$lib/nativeSync.svelte';
+	import { languageName, supportsLanguage, type DemoLanguage } from '$lib/languages';
+	import { shortcut } from '$lib/shortcuts';
+	import { on, isTauri } from '$lib/tauri';
+	import { describeError } from '$lib/errors';
 	import {
 		sessionState,
 		isRunning,
@@ -24,68 +34,18 @@
 		applyStatus,
 		hasKey,
 		options,
-		currentCaptions,
 		transcript,
-		transcriptDirty,
 		recoveryEnabled,
-		restoreTranscript,
-		closeToTray,
-		micLevel,
-		systemLevel,
-		overlayPlaced,
+		overlayFontSize,
+		noteActivity,
 		sessionStartedAt,
 		pushCaption
 	} from '$lib/stores';
-	import { decodeRecovery, shouldGuardClose, type RecoverySnapshot } from '$lib/document';
-	import { recovery, startRecoverySpool } from '$lib/recovery';
-	import { createSessionController } from '$lib/sessionController';
 	import { followTextScale } from '$lib/textScale';
-	import type {
-		AudioSource,
-		Caption,
-		Origin,
-		OutputMode,
-		Provider,
-		SessionState,
-		TargetLanguage
-	} from '$lib/types';
-	import {
-		canFlipDirection,
-		captionLanguageOf,
-		describeReadiness,
-		providerCanTranslate,
-		providerDetectsLanguage,
-		providerRequiresKey
-	} from '$lib/types';
-	import {
-		PROVIDER_META,
-		estimateSessionCost,
-		formatUsd,
-		modelLabel,
-		rateParts,
-		rateText
-	} from '$lib/providers';
-	import {
-		formatDateTime,
-		localeTag,
-		LOCALE_NAMES,
-		LOCALES,
-		locale,
-		setLocale,
-		t
-	} from '$lib/i18n';
-	import LevelMeter from '$lib/LevelMeter.svelte';
-	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
-	import TranscriptHistory from '$lib/TranscriptHistory.svelte';
 	import { historyEnabled } from '$lib/history';
-	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
-	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
-	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
-	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
-	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
-	import ModalPrompt from '$lib/ModalPrompt.svelte';
-	import Field from '$lib/ui/Field.svelte';
-	import Select from '$lib/ui/Select.svelte';
+	import { providerRequiresKey } from '$lib/types';
+	import type { SessionState } from '$lib/types';
+	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
@@ -103,44 +63,17 @@
 	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
 	const preflight = createPreflightController(
 		!browserMode,
-		() => controlsLocked || failedDevice !== null || retryingDevice
+		() => controlsLocked || device.failed !== null || device.retrying
 	);
-	let failedDevice = $state<Origin | null>(null);
-	let retryingDevice = $state(false);
+	const device = createDeviceFailure({
+		stop: () => session.stop(),
+		start: (selected) => session.start(selected),
+		refreshApplications: () => preflight.refreshApplications()
+	});
 	$effect(() => {
 		if (!controlsLocked && !preflight.audioTesting && !preflight.audioTestBusy)
 			preflight.validateSelection();
 	});
-	async function reselectApplication() {
-		await session.stop();
-		if ($isRunning) return;
-		failedDevice = null;
-		$options = { ...$options, systemCapture: { kind: 'application', process: null } };
-		await preflight.refreshApplications();
-	}
-	async function retryDevice(fallback: boolean) {
-		if (!failedDevice || retryingDevice) return;
-		retryingDevice = true;
-		const affected = failedDevice;
-		// Snapshot before stopping: idle validation must not change an explicit Retry
-		// into an implicit fallback if the chosen endpoint is still absent.
-		const selected = { ...$options };
-		try {
-			await session.stop();
-			if ($isRunning) return;
-			if (fallback) {
-				if (affected === 'microphone') {
-					selected.micDeviceId = null;
-					selected.micDeviceName = null;
-				} else selected.systemDeviceId = null;
-			}
-			$options = selected;
-			failedDevice = null;
-			await session.start(selected);
-		} finally {
-			retryingDevice = false;
-		}
-	}
 
 	// The keyless demonstration is always bundled and ready. A commercial
 	// provider starts NOT ready: clearing the flag on the switch itself closes the
@@ -151,37 +84,8 @@
 		hasKey.set(needsKey ? false : (preflight.localReadiness?.ready ?? false));
 	});
 
-	const meta = $derived(PROVIDER_META[$options.provider]);
-	// Each mode is served by exactly two backends; step 04 lists the pair for the current one.
-	const modeProviders = $derived<Provider[]>(
-		$options.mode === 'translate'
-			? ['gemini', 'openai']
-			: ['mistral', 'gemini-transcribe', 'ondevice']
-	);
-
-	// ---- Session clock ---------------------------------------------------------
-	// Ticks only while a session is open; the effect's teardown stops it on stop/unmount.
-	let clock = $state(Date.now());
-	$effect(() => {
-		if (!$isRunning) return;
-		clock = Date.now();
-		const id = setInterval(() => (clock = Date.now()), 1000);
-		return () => clearInterval(id);
-	});
-	const elapsedMs = $derived(
-		$sessionStartedAt === null ? 0 : Math.max(0, clock - $sessionStartedAt)
-	);
-
-	function formatElapsed(ms: number): string {
-		const total = Math.floor(ms / 1000);
-		const pad = (n: number) => String(n).padStart(2, '0');
-		const seconds = total % 60;
-		const minutes = Math.floor(total / 60) % 60;
-		const hours = Math.floor(total / 3600);
-		return hours > 0
-			? `${hours}:${pad(minutes)}:${pad(seconds)}`
-			: `${pad(minutes)}:${pad(seconds)}`;
-	}
+	// Ticks only while a session is open.
+	const clock = createSessionClock();
 
 	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
 	// instead of live audio. It only ever reaches the backend as one extra field on the start
@@ -195,48 +99,13 @@
 	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
 	const usesMic = $derived(!rehearsing && $options.source !== 'system');
 	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
-	// The tick means "this source has been heard", not "we are listening now". The old check
-	// asked the second question from a screen where the answer was always no, because levels
-	// only flow once capture is running.
-	const audioVerified = $derived(
-		$options.provider === 'ondevice' ||
-			((!usesMic || preflight.micVerified) && (!usesSystem || preflight.systemVerified))
-	);
-	// Live view for the duration of a test.
-	const audioHearing = $derived(
-		(!usesMic || preflight.micSignal) && (!usesSystem || preflight.systemSignal)
-	);
-
-	// Which of the four things is under test: the room mic, system loopback, both, or the
-	// bundled sample. One key, used for the row title and both tenses of the description.
-	const audioSubject = $derived<'microphone' | 'system' | 'both' | 'demo'>(
-		$options.provider === 'ondevice'
-			? 'demo'
-			: $options.source === 'system'
-				? 'system'
-				: $options.source === 'microphone'
-					? 'microphone'
-					: 'both'
-	);
-	const audioTitle = $derived($t.preflight.audio.title[audioSubject]);
-	const audioCheckDesc = $derived(
-		$options.provider === 'ondevice'
-			? $t.preflight.audio.heard.demo
-			: preflight.audioTesting
-				? audioHearing
-					? $t.preflight.audio.hearing[audioSubject]
-					: $t.preflight.audio.listening
-				: audioVerified
-					? $t.preflight.audio.heard[audioSubject]
-					: $t.preflight.audio.unchecked
-	);
 
 	onMount(() => {
 		if (browserMode) return;
 
 		void preflight.refresh();
 		void preflight.refreshLocalReadiness();
-		void loadRecovery();
+		void recoveryOffer.load();
 		overlay.initialize();
 
 		const unlisteners: Array<Promise<() => void>> = [
@@ -251,14 +120,7 @@
 			}),
 			on.status((s) => {
 				applyStatus(s);
-				if (
-					s.state === 'error' &&
-					isAppError(s.message) &&
-					['error.micCapture', 'error.micStream', 'error.systemCapture'].includes(s.message.id)
-				) {
-					failedDevice =
-						s.origin ?? (s.message.id === 'error.systemCapture' ? 'system' : 'microphone');
-				}
+				device.noteStatus(s);
 			}),
 			on.devicesChanged(() => void preflight.refresh()),
 			// A test is not a session, so it reports on its own channel and never touches the
@@ -286,82 +148,11 @@
 	// The transcript is a document with a saved state, not a scrolling side effect: it is
 	// never truncated, closing the window with unsaved lines asks first, and — only if the
 	// operator opts in — a local spool covers the crash the prompt cannot.
+	const recoveryOffer = createRecoveryOffer();
 
-	/** How often the opt-in spool is refreshed while captions are arriving. Long enough that a
-	 *  busy session is not writing constantly, short enough that a crash costs a sentence. */
-
-	let recovered = $state<{ snapshot: RecoverySnapshot; path: string } | null>(null);
-
-	// Keep the core's guard current. While it and the tray preference are both false a close
-	// is not intercepted at all, so a wedged renderer cannot produce an unclosable window.
-	$effect(() => {
-		if (browserMode) return;
-		void api.setCloseGuard(shouldGuardClose($transcriptDirty, $isRunning)).catch(() => {});
-	});
-
-	// The tray preference is a standing setting rather than something session state decides,
-	// so the core tracks it separately.
-	$effect(() => {
-		if (browserMode) return;
-		void api.setCloseToTray($closeToTray).catch(() => {});
-	});
-
-	// The tray menu must never describe a state the app has left: pushed on every change, and
-	// once on mount.
-	$effect(() => {
-		if (browserMode) return;
-		void api
-			.setTrayState($isRunning, overlay.overlayVisible, {
-				open: $t.design.trayOpen,
-				quit: $t.design.trayQuit,
-				stop: $t.design.trayStop,
-				show: $t.design.trayShow,
-				hide: $t.design.trayHide,
-				status: `${stateLabel[$sessionState]}${$isRunning ? ' · ' + formatElapsed(elapsedMs) : ''}`
-			})
-			.catch(() => {});
-	});
-
-	// ---- Recovery spool ---------------------------------------------------------
-
-	$effect(() => {
-		if (browserMode || !$recoveryEnabled) return;
-		return startRecoverySpool(
-			() => (get(transcriptDirty) ? get(transcript) : null),
-			(error) => statusMessage.set(get(t).error.recoveryWrite(String(error)))
-		);
-	});
-
-	async function loadRecovery() {
-		try {
-			const stored = await recovery.read();
-			if (!stored) return;
-			const snapshot = decodeRecovery(stored.contents);
-			if (!snapshot) {
-				// Truncated mid-write, or hand-edited. There is nothing to offer, and leaving it
-				// would strand caption text on disk that no prompt will ever clear.
-				await recovery.clear();
-				return;
-			}
-			recovered = { snapshot, path: stored.path };
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		}
-	}
-
-	/** Answer the recovery offer. Either answer retires the spool — the operator has now
-	 *  decided, and a file nobody chose to keep must not survive the decision. */
-	async function answerRecovery(restore: boolean) {
-		const found = recovered;
-		recovered = null;
-		if (!found) return;
-		if (restore) restoreTranscript(found.snapshot.lines);
-		try {
-			await recovery.clear();
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		}
-	}
+	// The close guard, tray state, recovery spool and the overlay's languages follow this
+	// window's state.
+	syncNative({ desktop: !browserMode, overlay, clock });
 
 	// ---- Launching --------------------------------------------------------------
 	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
@@ -399,7 +190,7 @@
 			return;
 		}
 		rehearsing = rehearsal !== undefined;
-		failedDevice = null;
+		device.clear();
 		const started = await session.start(
 			rehearsal === undefined ? $options : { ...$options, rehearsal }
 		);
@@ -411,84 +202,19 @@
 
 	const stop = () => session.stop();
 
-	function setSource(s: AudioSource) {
-		if (controlsLocked) return;
-		if ($options.provider === 'ondevice' && s !== 'microphone') return;
-		if (s !== $options.source) preflight.invalidateAudioTest();
-		$options = { ...$options, source: s };
-	}
-
-	function setTarget(t: TargetLanguage) {
-		if (controlsLocked) return;
-		// Translation picks the language the room reads; the built-in demo picks its script.
-		// The subtitle engines auto-detect, so they have nothing to set.
-		if ($options.mode !== 'translate' && $options.provider !== 'ondevice') return;
-		$options = { ...$options, targetLanguage: t };
-	}
-
-	function setProvider(p: Provider) {
-		if (controlsLocked || p === $options.provider) return;
-		// Each mode accepts only the backends that can serve it.
-		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
-		preflight.invalidateAudioTest();
-		$options = {
-			...$options,
-			provider: p,
-			...(p === 'ondevice' ? { source: 'microphone' as const, micDeviceName: null } : {})
-		};
-		if (p !== 'ondevice') void preflight.refresh();
-	}
-
-	function setMode(mode: OutputMode) {
-		if (controlsLocked || mode === $options.mode) return;
-		preflight.invalidateAudioTest();
-		$options = {
-			...$options,
-			mode,
-			provider: mode === 'transcribe' ? 'ondevice' : 'gemini',
-			...(mode === 'transcribe' ? { source: 'microphone' as const, micDeviceName: null } : {})
-		};
-	}
-
-	// Quick flip of the caption language — handy when speakers alternate.
-	function flipDirection() {
-		if (!canFlipDirection($options.mode, controlsLocked)) return;
-		const next = nextFavourite($options.targetLanguage, $languageFavourites, $options.provider);
-		if (next) setTarget(next);
-	}
-
-	/** The settings panel. Everything in it is persisted and applies live, so there is no
-	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
-	let settingsOpen = $state(false);
-	let settingsTab = $state<'captions' | 'reading' | 'history' | 'app'>('captions');
-
-	// Names the interface-language group for a screen reader; the heading is the only thing
-	// that says what those two buttons are choosing between.
-	// One `$props.id()` per component is all Svelte allows, so the second id is a suffix of
-	// the first. Both are unique to this instance, which is all either needs to be.
-	const idBase = $props.id();
-	const localeHeadingId = `${idBase}-locale`;
-
-	// The overlay is a separate webview, so the operator's interface language and the audience's
-	// caption language are pushed to it the same way the caption size is — on load, which also
-	// syncs the rest of the appearance, and on every change. One effect, so load sends one
-	// config rather than one per language. Skipped in a browser preview, which has no second
-	// window.
-	const captionLanguage = $derived(captionLanguageOf($options));
-	$effect(() => {
-		const config = { locale: $locale, captionLanguage };
-		if (!browserMode) overlay.pushOverlayConfig(config);
+	const actions = createSetupActions({
+		locked: () => controlsLocked,
+		invalidateAudioTest: () => preflight.invalidateAudioTest(),
+		refreshDevices: () => void preflight.refresh()
 	});
+
+	let settingsOpen = $state(false);
+	let settingsTab = $state<SettingsTab>('captions');
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
 	// the technical detail. Derived rather than stored, so switching language re-words a
 	// message that is already on screen.
 	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
-
-	// The demo row's sentence. The core names the readiness state and the catalog words it, so
-	// this re-words itself when the interface language changes rather than freezing whatever
-	// was true at check time.
-	const demoRowText = $derived(describeReadiness(preflight.localReadiness, $t));
 
 	// ---- Display labels ---------------------------------------------------------
 	//
@@ -497,22 +223,11 @@
 
 	const stateLabel = $derived<Record<SessionState, string>>($t.state);
 
-	// Not from the catalog: these are CSS class names, not words.
-	const stateTone: Record<SessionState, string> = {
-		idle: 'neutral',
-		connecting: 'warn',
-		running: 'live',
-		reconnecting: 'warn',
-		error: 'bad'
-	};
-
 	// What a screen reader hears when the session changes state. Deliberately separate from the
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.
 	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
 
-	const modeLabel = $derived<Record<OutputMode, string>>($t.mode);
-	const sourceLabel = $derived<Record<AudioSource, string>>($t.source);
 	const languageError = $derived(
 		supportsLanguage($options.provider, $options.targetLanguage)
 			? ''
@@ -520,33 +235,6 @@
 					$t.engine[$options.provider],
 					languageName($options.targetLanguage, $locale)
 				)
-	);
-	const engineLabel = $derived<Record<Provider, string>>($t.engine);
-	const costNote = $derived<Record<Provider, string>>($t.provider.costNote);
-	const vendorLabel = $derived<Record<Provider, string>>($t.provider.vendor);
-
-	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
-	const roomReadsLabel = $derived(
-		providerDetectsLanguage($options.provider)
-			? $t.language.auto
-			: languageName($options.targetLanguage, $locale)
-	);
-
-	// Step 03 asks which language to render into, which demo script to play, or nothing when
-	// the backend detects the spoken language itself.
-	const languageStepTitle = $derived(
-		$options.mode === 'translate'
-			? $t.rail.step.roomReads
-			: $options.provider === 'ondevice'
-				? $t.rail.step.demoLanguage
-				: $t.rail.step.spokenLanguage
-	);
-
-	// The two speakers currently on screen, least-recently-updated first (newest at the bottom).
-	const liveTurns = $derived(
-		(Object.keys($currentCaptions) as Origin[])
-			.map((origin) => ({ origin, caption: $currentCaptions[origin] }))
-			.filter((t): t is { origin: Origin; caption: Caption } => t.caption !== undefined)
 	);
 </script>
 
@@ -562,7 +250,7 @@
 		);
 		if (!command) return;
 		e.preventDefault();
-		if (command === 'direction') flipDirection();
+		if (command === 'direction') actions.flipDirection();
 		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
 		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
@@ -573,122 +261,12 @@
 	}}
 />
 
-{#snippet appPreferences()}
-	<!-- What belongs to the app rather than to a session: neither of these touches capture, so
-	     both stay usable mid-session. They used to be rendered into the rail and the pre-flight
-	     sheet; they live in the settings panel now, which is the point of having one. -->
-	<div class="divider"></div>
-	<!-- The interface language, not the caption language. -->
-	<div class="rail-section">
-		<h2 class="kicker" id={localeHeadingId}>{$t.locale.label}</h2>
-		<!-- Buttons rather than a select: with a handful of interface languages, both choices
-		     fit on screen and the switch costs one click instead of two. Built from LOCALES so
-		     a third language needs no markup, and grouped under the heading because two
-		     `aria-pressed` buttons on their own do not say what they are two of. -->
-		<div class="locale-cards" role="group" aria-labelledby={localeHeadingId}>
-			{#each LOCALES as code (code)}
-				<button
-					class="lang"
-					class:selected={$locale === code}
-					aria-pressed={$locale === code}
-					onclick={() => setLocale(code)}
-				>
-					<span class="lang-code">{code.toUpperCase()}</span>
-					<span class="lang-name">{LOCALE_NAMES[code]}</span>
-				</button>
-			{/each}
-		</div>
-		<p class="hint">{$t.locale.note}</p>
-	</div>
-
-	<div class="divider"></div>
-	<div class="rail-section">
-		<h2 class="kicker">{$t.window.heading}</h2>
-		<button class="tool wide" disabled={browserMode} onclick={quit.hideWindow}>
-			<svg
-				width="13"
-				height="13"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.7"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-				><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg
-			>
-			{$t.window.minimizeToTray}
-		</button>
-		<label class="pref">
-			<input
-				type="checkbox"
-				checked={$closeToTray}
-				disabled={browserMode}
-				onchange={(e) => closeToTray.set(e.currentTarget.checked)}
-			/>
-			<span>
-				<span class="pref-title">{$t.window.keepRunning}</span>
-				<span class="pref-note">
-					{browserMode ? $t.window.needsDesktop : $t.window.keepRunningNote}
-				</span>
-			</span>
-		</label>
-	</div>
-{/snippet}
-
-<div class="app" class:device-error={failedDevice !== null}>
-	<header class="titlebar">
-		<span class="brand" aria-hidden="true">
-			<svg
-				width="11"
-				height="11"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="#06261b"
-				stroke-width="2.4"
-				stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
-			>
-		</span>
-		<h1 class="app-name">{$t.app.name}</h1>
-		<span class="context">{$t.app.tagline}</span>
-		<span class="grow"></span>
-		<div class="pill {stateTone[$sessionState]}">
-			<span class="pill-dot" aria-hidden="true"></span>
-			<span class="pill-label"
-				>{$sessionState === 'running' && $options.provider === 'ondevice'
-					? $t.state.demo
-					: stateLabel[$sessionState]}</span
-			>
-			{#if $isRunning && $sessionStartedAt !== null}
-				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
-			{/if}
-		</div>
-		<!-- Persistent access to caption, reading, history and app preferences. -->
-		<button
-			class="gear"
-			aria-haspopup="dialog"
-			aria-expanded={settingsOpen}
-			aria-label={$t.settings.openLabel}
-			onclick={() => (settingsOpen = true)}
-		>
-			<svg
-				width="15"
-				height="15"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.7"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="3" />
-				<path
-					d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-				/>
-			</svg>
-		</button>
-	</header>
+<div class="app" class:device-error={device.failed !== null}>
+	<OperatorTitlebar
+		elapsed={clock.elapsed}
+		{settingsOpen}
+		onOpenSettings={() => (settingsOpen = true)}
+	/>
 
 	<!-- The two regions that speak for the session. Neither holds anything that changes on a
 	     timer, so they announce on real changes only, and both are in the DOM from the first
@@ -696,93 +274,37 @@
 	     visible copies of this text below are `aria-hidden`, so nothing is announced twice. -->
 	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
 	<p class="sr-only" role="status">{statusText}</p>
-	{#if failedDevice}
-		<section class="device-recovery" aria-label={$t.devices.retry}>
-			<p class="hint">
-				<strong>{failedDevice === 'microphone' ? $t.source.microphone : $t.source.system}</strong>: {failedDevice ===
-					'system' && $options.systemCapture?.kind === 'application'
-					? $t.applications.recovery
-					: $t.devices.recovery}
-			</p>
-			<button
-				class="tool"
-				disabled={$sessionBusy || retryingDevice}
-				onclick={() => retryDevice(false)}>{$t.devices.retry}</button
-			>
-			<button
-				class="tool"
-				disabled={$sessionBusy || retryingDevice}
-				onclick={failedDevice === 'system' && $options.systemCapture?.kind === 'application'
-					? reselectApplication
-					: () => retryDevice(true)}
-				>{failedDevice === 'system' && $options.systemCapture?.kind === 'application'
-					? $t.applications.reselect
-					: $t.devices.fallback}</button
-			>
-		</section>
+	{#if device.failed}
+		<DeviceRecoveryBanner
+			failed={device.failed}
+			busy={$sessionBusy || device.retrying}
+			onRetry={() => device.retry(false)}
+			onFallback={() => device.retry(true)}
+			onReselect={device.reselectApplication}
+		/>
 	{/if}
 
 	<div class="rule" class:live={$isRunning}>
 		{#if $isRunning}<span class="sweep"></span>{/if}
 	</div>
 
-	<div class="session-controls">
-		{#if $isRunning}
-			<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-					><rect x="6" y="6" width="12" height="12" rx="2" /></svg
-				>
-				{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
-			</button>
-		{:else}
-			<button
-				class="start"
-				disabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					profileBusy ||
-					$sessionBusy ||
-					!preflight.applicationReady($options)}
-				aria-busy={$sessionBusy}
-				onclick={start}
-			>
-				<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
-				>
-				{$sessionBusy
-					? $t.preflight.start.starting
-					: $options.mode === 'translate'
-						? $t.preflight.start.translate
-						: $options.provider === 'ondevice'
-							? $t.preflight.start.demo
-							: $t.preflight.start.subtitles}
-			</button><button
-				class="rehearse"
-				aria-describedby="rehearse-hint"
-				disabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					$sessionBusy ||
-					$options.provider === 'ondevice'}
-				onclick={rehearse}
-			>
-				<svg
-					width="13"
-					height="13"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-					><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
-				>
-				{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
-			</button>
-		{/if}
-		<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
-	</div>
+	<SessionControls
+		busy={$sessionBusy}
+		startDisabled={!!languageError ||
+			!$hasKey ||
+			browserMode ||
+			profileBusy ||
+			$sessionBusy ||
+			!preflight.applicationReady($options)}
+		rehearseDisabled={!!languageError ||
+			!$hasKey ||
+			browserMode ||
+			$sessionBusy ||
+			$options.provider === 'ondevice'}
+		onStart={start}
+		onRehearse={rehearse}
+		onStop={stop}
+	/>
 
 	<div class="body">
 		<aside class="rail">
@@ -799,471 +321,17 @@
 				/>
 			{/if}
 			{#if $isRunning}
-				<!-- ---- Running: the setup sheet collapses to what it locked in ---- -->
-				<div class="rail-head">
-					<span class="rail-icon" aria-hidden="true">
-						<svg
-							width="13"
-							height="13"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.8"
-							stroke-linecap="round"
-							><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path
-								d="M8 10.5V8a4 4 0 0 1 8 0v2.5"
-							/></svg
-						>
-					</span>
-					<h2 class="kicker">{$t.rail.locked}</h2>
-				</div>
-
-				<div class="chips">
-					<div class="chip">
-						<span class="chip-label">{$t.rail.chip.mode}</span>
-						<span class="chip-value">{modeLabel[$options.mode]}</span>
-					</div>
-					<div class="chip">
-						<span class="chip-label">{$t.rail.chip.source}</span>
-						<span class="chip-value"
-							>{$options.provider === 'ondevice'
-								? $t.source.demo
-								: rehearsing
-									? $t.source.sample
-									: sourceLabel[$options.source]}</span
-						>
-					</div>
-					<div class="chip">
-						<span class="chip-label">{$t.rail.chip.roomReads}</span>
-						<span class="chip-value">{roomReadsLabel}</span>
-					</div>
-					<div class="chip">
-						<span class="chip-label">{$t.rail.chip.engine}</span>
-						<span class="chip-value">{engineLabel[$options.provider]}</span>
-					</div>
-				</div>
-
-				<p class="rail-note">
-					<!-- The target language is fixed at session start (the backend takes it once),
-					     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
-					{#if $options.provider === 'ondevice'}
-						<span>{$t.rail.demoNote}</span>
-					{:else if rehearsing}
-						<span>{$t.rail.rehearsalNote}</span>
-					{/if}
-					<span>{$t.rail.lockedNote}</span>
-				</p>
-
-				<div class="divider"></div>
-
-				<div class="rail-section">
-					<h2 class="kicker">{$t.rail.arriving}</h2>
-					<LiveActivity now={clock} microphone={usesMic} system={usesSystem} />
-					{#if usesMic}
-						<LevelMeter
-							level={$micLevel}
-							label={$options.provider === 'ondevice'
-								? $t.stage.origin.demo
-								: $t.stage.origin.microphone}
-							active
-						/>
-					{/if}
-					{#if usesSystem}
-						<LevelMeter level={$systemLevel} label={$t.stage.origin.system} active />
-					{/if}
-				</div>
-
-				<div class="cost-card">
-					<div class="cost-figures">
-						{#if $options.provider !== 'ondevice'}
-							<div class="figure">
-								<span class="chip-label">{$t.cost.estimate}</span>
-								<span class="figure-value mint">
-									{formatUsd(
-										estimateSessionCost(
-											$options.provider,
-											elapsedMs,
-											$options.source === 'both' ? 2 : 1
-										)
-									)}
-								</span>
-							</div>
-							{#if $options.source === 'both'}
-								<span class="cost-tag">{$t.cost.twoSources}</span>
-							{/if}
-						{/if}
-					</div>
-					<p class="cost-note">{costNote[$options.provider]}</p>
-				</div>
-
-				<div class="divider"></div>
-
-				<div class="rail-section">
-					<CaptionAppearance heading={$t.overlayControls.heading} {overlay} compact />
-					<div class="overlay-actions">
-						<!-- Both labels are a single verb on screen, which is all the space allows and
-						     all a sighted operator needs beside the "Overlay" heading. The accessible
-						     name says what is being moved or hidden, because a screen reader can arrive
-						     at the button without the heading. -->
-						<button
-							class="tool"
-							class:on={overlay.moveOverlay}
-							aria-pressed={overlay.moveOverlay}
-							aria-label={overlay.moveOverlay
-								? $t.overlayControls.moveDoneLabel
-								: $t.overlayControls.moveLabel}
-							onclick={overlay.toggleMoveOverlay}
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path
-									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-								/></svg
-							>
-							{overlay.moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
-						</button>
-						<button
-							class="tool"
-							class:off={!overlay.overlayVisible}
-							aria-label={overlay.overlayVisible
-								? $t.overlayControls.hideLabel
-								: $t.overlayControls.showLabel}
-							onclick={overlay.toggleOverlayVisible}
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								aria-hidden="true"
-							>
-								<rect x="2.5" y="4.5" width="19" height="13" rx="2" /><path d="M9 20.5h6" />
-								{#if overlay.overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
-							</svg>
-							{overlay.overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
-						</button>
-					</div>
-				</div>
-
-				<span class="grow"></span>
+				<LiveRail {overlay} {clock} {rehearsing} {usesMic} {usesSystem} />
 			{:else}
-				<!-- ---- Idle: the numbered setup sheet ---- -->
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">01</span>
-						<h2 class="kicker">{$t.rail.step.whatToShow}</h2>
-					</div>
-					<button
-						class="card"
-						class:selected={$options.mode === 'translate'}
-						disabled={controlsLocked}
-						aria-pressed={$options.mode === 'translate'}
-						onclick={() => setMode('translate')}
-					>
-						<span class="card-icon" aria-hidden="true">
-							<svg
-								width="17"
-								height="17"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg
-							>
-						</span>
-						<span class="card-body">
-							<span class="card-title">{$t.rail.translate.title}</span>
-							<span class="card-desc">{$t.rail.translate.desc}</span>
-						</span>
-						{#if $options.mode === 'translate'}
-							<span class="card-check" aria-hidden="true">
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.2"
-									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{/if}
-					</button>
-					<button
-						class="card"
-						class:selected={$options.mode === 'transcribe'}
-						disabled={controlsLocked}
-						aria-pressed={$options.mode === 'transcribe'}
-						onclick={() => setMode('transcribe')}
-					>
-						<span class="card-icon" aria-hidden="true">
-							<svg
-								width="17"
-								height="17"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg
-							>
-						</span>
-						<span class="card-body">
-							<span class="card-title">{$t.rail.transcribe.title}</span>
-							<span class="card-desc">{$t.rail.transcribe.desc}</span>
-						</span>
-						{#if $options.mode === 'transcribe'}
-							<span class="card-check" aria-hidden="true">
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.2"
-									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{/if}
-					</button>
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">02</span>
-						<h2 class="kicker">{$t.rail.step.whereFrom}</h2>
-					</div>
-					<div class="tiles">
-						<button
-							class="tile"
-							class:selected={$options.source === 'microphone'}
-							disabled={controlsLocked}
-							aria-pressed={$options.source === 'microphone'}
-							onclick={() => setSource('microphone')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								aria-hidden="true"
-								><rect x="9" y="2.5" width="6" height="11" rx="3" /><path
-									d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
-								/><path d="M12 18v3.5" /></svg
-							>
-							<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span
-							>
-						</button>
-						<button
-							class="tile"
-							class:selected={$options.source === 'system'}
-							disabled={controlsLocked || $options.provider === 'ondevice'}
-							aria-pressed={$options.source === 'system'}
-							onclick={() => setSource('system')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path
-									d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6"
-								/></svg
-							>
-							<span>{$t.source.system}</span>
-						</button>
-						<button
-							class="tile"
-							class:selected={$options.source === 'both'}
-							disabled={controlsLocked || $options.provider === 'ondevice'}
-							aria-pressed={$options.source === 'both'}
-							onclick={() => setSource('both')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg
-							>
-							<span>{$t.source.both}</span>
-						</button>
-					</div>
-					<p class="hint">
-						{$options.provider === 'ondevice'
-							? $t.rail.demoSourceHint
-							: $options.systemCapture?.kind === 'application' && usesSystem
-								? $t.applications.hint
-								: $t.rail.sourceHint}
-					</p>
-
-					{#if usesMic && $options.provider !== 'ondevice'}
-						<Field label={$t.rail.micDevice}>
-							<Select
-								disabled={controlsLocked}
-								value={$options.micDeviceId ?? ''}
-								onchange={(e) => {
-									preflight.invalidateAudioTest();
-									$options = {
-										...$options,
-										micDeviceId: e.currentTarget.value || null,
-										micDeviceName: null
-									};
-								}}
-							>
-								<option value="">{$t.rail.systemDefault}</option>
-								{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
-									<option value={$options.micDeviceId}>{$t.devices.missing}</option>
-								{/if}
-								{#each preflight.microphones as dev (dev.id)}
-									<option value={dev.id}>
-										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
-									</option>
-								{/each}
-							</Select>
-						</Field>
-					{/if}
-
-					{#if usesSystem && $options.provider !== 'ondevice'}
-						<SystemCapturePicker
-							locked={controlsLocked}
-							outputs={preflight.outputs}
-							applications={preflight.applications}
-							supported={preflight.applicationCaptureSupported}
-							refreshing={preflight.refreshingApplications}
-							refresh={preflight.refreshApplications}
-							changed={preflight.invalidateAudioTest}
-						/>
-					{/if}
-					{#if $options.provider !== 'ondevice'}
-						<button
-							class="tool"
-							disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
-							aria-busy={preflight.refreshing || preflight.refreshingApplications}
-							onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
-						>
-							{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
-						</button>
-					{/if}
-					<div class="meters">
-						{#if usesMic}
-							<LevelMeter
-								level={$micLevel}
-								label={$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}
-							/>
-						{/if}
-						{#if usesSystem}
-							<LevelMeter level={$systemLevel} label={$t.stage.origin.system} />
-						{/if}
-					</div>
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">03</span>
-						<h2 class="kicker">{languageStepTitle}</h2>
-					</div>
-					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
-						<p class="hint">{$t.rail.autoDetectHint(engineLabel[$options.provider])}</p>
-					{:else if $options.mode === 'translate'}
-						<LanguagePicker
-							value={$options.targetLanguage}
-							provider={$options.provider}
-							favourites={$languageFavourites}
-							disabled={controlsLocked}
-							error={languageError}
-							onchange={setTarget}
-							onpin={(code) =>
-								languageFavourites.update((pins) =>
-									pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
-								)}
-						/>
-						<p class="hint inline-hint">
-							<span>{$t.rail.flipHint}</span><span class="key">{$t.rail.flipKey}</span>
-						</p>
-					{:else}
-						{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
-						<div class="lang-cards">
-							<button
-								class="lang"
-								class:selected={$options.targetLanguage === 'en'}
-								disabled={controlsLocked}
-								aria-pressed={$options.targetLanguage === 'en'}
-								onclick={() => setTarget('en')}
-							>
-								<span class="lang-code">EN</span>
-								<span class="lang-name">{languageName('en', $locale)}</span>
-							</button>
-							<button
-								class="lang"
-								class:selected={$options.targetLanguage === 'fr'}
-								disabled={controlsLocked}
-								aria-pressed={$options.targetLanguage === 'fr'}
-								onclick={() => setTarget('fr')}
-							>
-								<span class="lang-code">FR</span>
-								<span class="lang-name">{languageName('fr', $locale)}</span>
-							</button>
-						</div>
-						<p class="hint">{$t.rail.demoLanguageHint}</p>
-					{/if}
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">04</span>
-						<h2 class="kicker">{$t.rail.step.engine}</h2>
-					</div>
-					<div class="engines">
-						{#each modeProviders as id (id)}
-							{@const p = PROVIDER_META[id]}
-							{@const rate = rateParts(p, $t)}
-							<button
-								class="engine"
-								class:selected={$options.provider === id}
-								disabled={controlsLocked}
-								aria-pressed={$options.provider === id}
-								onclick={() => setProvider(id)}
-							>
-								<span class="engine-body">
-									<span class="engine-name">{vendorLabel[id]}</span>
-									<span class="engine-model">{modelLabel(p, $t)}</span
-									>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
-										>{/if}
-								</span>
-								<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>
-							</button>
-						{/each}
-					</div>
-				</section>
+				<SetupSheet
+					{actions}
+					{preflight}
+					locked={controlsLocked}
+					{browserMode}
+					{usesMic}
+					{usesSystem}
+					{languageError}
+				/>
 			{/if}
 		</aside>
 
@@ -1277,50 +345,7 @@
 			{/if}
 
 			{#if $isRunning}
-				<div class="stage-head">
-					<h2 class="kicker">{$t.stage.onScreen}</h2>
-					<span class="stretch"></span>
-					<span class="stage-note">
-						{liveTurns.length > 1 ? $t.stage.twoSpeakers : $t.stage.newestLast}
-					</span>
-				</div>
-
-				{#if liveTurns.length}
-					<div class="turns">
-						{#each liveTurns as turn (turn.origin)}
-							<article class="turn">
-								<div class="turn-who">
-									<span class="origin-chip {turn.origin}">
-										{$options.provider === 'ondevice'
-											? $t.stage.origin.demo
-											: $t.stage.origin[turn.origin]}
-									</span>
-									<span class="origin-sub">
-										{$options.provider === 'ondevice'
-											? $t.stage.originSub.demo
-											: $t.stage.originSub[turn.origin]}
-									</span>
-								</div>
-								<div class="turn-text">
-									{#if turn.caption.sourceText}
-										<p class="turn-source">{turn.caption.sourceText}</p>
-									{/if}
-									<p class="turn-caption" class:live={!turn.caption.final}>
-										{turn.caption.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
-									</p>
-								</div>
-							</article>
-						{/each}
-					</div>
-				{:else}
-					<p class="hint stage-hint">
-						{$options.mode === 'translate'
-							? $t.stage.waitingTranslation
-							: $options.provider === 'ondevice'
-								? $t.stage.waitingDemo
-								: $t.stage.waitingSubtitles}
-					</p>
-				{/if}
+				<LiveTurns />
 
 				{#if $statusMessage}
 					<p class="status-msg" aria-hidden="true">{statusText}</p>
@@ -1338,158 +363,14 @@
 				<h2 class="ready">{$t.preflight.heading}</h2>
 				<p class="intro">{$t.preflight.intro}</p>
 
-				<div class="checklist">
-					{#if !needsKey}
-						<div class="check-row">
-							{#if preflight.localReadiness?.ready}
-								<span class="mark ok" aria-hidden="true">
-									<svg
-										width="12"
-										height="12"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2.6"
-										stroke-linecap="round"
-										aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-									>
-								</span>
-							{:else}
-								<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-							{/if}
-							<div class="check-body">
-								<span class="check-title">{$t.preflight.demoRow.title}</span>
-								<span class="check-desc" class:warn={!preflight.localReadiness?.ready}>
-									{demoRowText}
-								</span>
-							</div>
-							<span></span>
-						</div>
-					{:else if !browserMode}
-						<ApiKeyPanel
-							provider={$options.provider}
-							locked={controlsLocked}
-							onAvailability={(provider, available) => {
-								if ($options.provider === provider) $hasKey = available;
-							}}
-							onError={(message) => statusMessage.set(message)}
-						/>
-					{/if}
-
-					<div class="check-row">
-						{#if audioVerified}
-							<span class="mark ok" aria-hidden="true">
-								<svg
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.6"
-									stroke-linecap="round"
-									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{:else}
-							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-						{/if}
-						<div class="check-body">
-							<span class="check-title">{audioTitle}</span>
-							<span class="check-desc" class:warn={preflight.audioTesting && !audioHearing}>
-								{audioCheckDesc}
-							</span>
-						</div>
-						<!-- The demo opens no device, so there is nothing to test. Otherwise the row keeps
-						     the button in both states: re-checking after moving a cable or switching the
-						     room mic is exactly when an operator needs it. -->
-						{#if $options.provider === 'ondevice' || browserMode}
-							<span></span>
-						{:else if preflight.audioTesting}
-							<button
-								class="adjust"
-								disabled={preflight.audioTestBusy}
-								aria-busy={preflight.audioTestBusy}
-								onclick={preflight.stopAudioTest}
-							>
-								{$t.preflight.audio.stopTest}
-							</button>
-						{:else}
-							<button
-								class="place"
-								disabled={preflight.audioTestBusy ||
-									controlsLocked ||
-									!preflight.applicationReady($options)}
-								aria-busy={preflight.audioTestBusy}
-								onclick={preflight.startAudioTest}
-							>
-								{audioVerified ? $t.preflight.audio.retest : $t.preflight.audio.test}
-							</button>
-						{/if}
-					</div>
-
-					<div class="check-row">
-						{#if $overlayPlaced}
-							<span class="mark ok" aria-hidden="true">
-								<svg
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.6"
-									stroke-linecap="round"
-									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{:else}
-							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-						{/if}
-						<div class="check-body">
-							<span class="check-title">{$t.preflight.overlay.title}</span>
-							<span class="check-desc" class:warn={!$overlayPlaced}>
-								{$overlayPlaced ? $t.preflight.overlay.placed : $t.preflight.overlay.unplaced}
-							</span>
-						</div>
-						<!-- Placement is never final: re-entering move mode is the way to adjust
-						     position and caption size, so the row keeps a button in both states. -->
-						{#if $overlayPlaced}
-							<button
-								class="adjust"
-								aria-pressed={overlay.moveOverlay}
-								aria-label={overlay.moveOverlay
-									? $t.preflight.overlay.doneLabel
-									: $t.preflight.overlay.adjustLabel}
-								onclick={overlay.toggleMoveOverlay}
-							>
-								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
-							</button>
-						{:else}
-							<button
-								class="place"
-								aria-pressed={overlay.moveOverlay}
-								aria-label={overlay.moveOverlay
-									? $t.preflight.overlay.doneLabel
-									: $t.preflight.overlay.placeLabel}
-								onclick={overlay.toggleMoveOverlay}
-							>
-								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
-							</button>
-						{/if}
-					</div>
-
-					<div class="check-row">
-						<span class="mark neutral" aria-hidden="true">$</span>
-						<div class="check-body">
-							<span class="check-title">{$t.preflight.cost.title}</span>
-							<span class="check-desc">
-								{$options.provider === 'ondevice'
-									? $t.preflight.cost.free
-									: $t.preflight.cost.billed}
-							</span>
-						</div>
-						<span class="check-rate">{rateText(meta, $t)}</span>
-					</div>
-				</div>
+				<PreflightChecklist
+					{preflight}
+					{overlay}
+					{browserMode}
+					locked={controlsLocked}
+					{usesMic}
+					{usesSystem}
+				/>
 
 				<!-- Saved transcript follows the persistent session controls. -->
 				{#if $transcript.length > 0}
@@ -1518,7 +399,7 @@
 								: $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
 							? $t.preflight.privacy.demo
-							: $t.preflight.privacy.cloud(vendorLabel[$options.provider])}
+							: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
 					</span>
 				</div>
 			{/if}
@@ -1526,122 +407,25 @@
 	</div>
 </div>
 
-<!-- Settings. Modal for the focus handling rather than because it demands an answer, so
-     Escape and Close are the same harmless exit. It is deliberately reachable while a session
-     runs: the appearance controls in the rail and the ones in here are the same controls over
-     the same stores, and an operator who opens this mid-session to raise the caption size
-     should get exactly that. -->
 {#if settingsOpen}
-	<ModalPrompt
-		wide
-		stableHeight
-		title={$t.settings.heading}
-		dismissLabel={$t.settings.closeLabel}
-		onDismiss={() => (settingsOpen = false)}
-	>
-		<p class="hint">{$t.design.applies}</p>
-		<div class="settings-tabs" role="tablist" aria-label={$t.settings.heading}>
-			{#each ['captions', 'reading', 'history', 'app'] as tab, index}
-				<button
-					role="tab"
-					id={`settings-${tab}`}
-					aria-selected={settingsTab === tab}
-					aria-controls="settings-panel"
-					tabindex={settingsTab === tab ? 0 : -1}
-					onclick={() => (settingsTab = tab as typeof settingsTab)}
-					onkeydown={(e) => {
-						const tabs = ['captions', 'reading', 'history', 'app'] as const;
-						const next =
-							e.key === 'ArrowRight'
-								? (index + 1) % 4
-								: e.key === 'ArrowLeft'
-									? (index + 3) % 4
-									: e.key === 'Home'
-										? 0
-										: e.key === 'End'
-											? 3
-											: -1;
-						if (next >= 0) {
-							e.preventDefault();
-							settingsTab = tabs[next];
-							document.getElementById(`settings-${settingsTab}`)?.focus();
-						}
-					}}
-					>{tab === 'history'
-						? $t.history.heading
-						: $t.design[tab as 'captions' | 'reading' | 'app']}</button
-				>
-			{/each}
-		</div>
-		{#key settingsTab}
-			<div
-				class="settings"
-				id="settings-panel"
-				role="tabpanel"
-				aria-labelledby={`settings-${settingsTab}`}
-				tabindex="0"
-			>
-				{#if settingsTab === 'captions'}
-					<div class="rail-section">
-						<CaptionAppearance heading={$t.settings.appearance} {overlay} />
-						<p class="hint">{$t.settings.appearanceNote}</p>
-						<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
-				     whatever is chosen above. Same button and same labels as the pre-flight check,
-				     because it is the same thing being done. -->
-						<button
-							class="tool wide"
-							aria-pressed={overlay.moveOverlay}
-							disabled={browserMode}
-							aria-label={overlay.moveOverlay
-								? $t.preflight.overlay.doneLabel
-								: $overlayPlaced
-									? $t.preflight.overlay.adjustLabel
-									: $t.preflight.overlay.placeLabel}
-							onclick={overlay.toggleMoveOverlay}
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path
-									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-								/></svg
-							>
-							{overlay.moveOverlay
-								? $t.preflight.overlay.done
-								: $overlayPlaced
-									? $t.preflight.overlay.adjust
-									: $t.preflight.overlay.place}
-						</button>
-					</div>
-				{:else if settingsTab === 'reading'}
-					<ReadingPreferences {overlay} />
-				{:else if settingsTab === 'history'}
-					<TranscriptHistory />
-				{:else}
-					{@render appPreferences()}
-					<KeyboardHelp />
-				{/if}
-			</div>
-		{/key}
-	</ModalPrompt>
+	<SettingsDialog
+		{overlay}
+		{browserMode}
+		bind:tab={settingsTab}
+		onHideWindow={quit.hideWindow}
+		onClose={() => (settingsOpen = false)}
+	/>
 {/if}
 
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still
      be kept, and each has to be answered before the log underneath it changes again. -->
-{#if recovered}
+{#if recoveryOffer.offer}
 	<RecoveryPrompt
-		lines={recovered.snapshot.lines.length}
-		savedAt={formatDateTime(recovered.snapshot.savedAt, $localeTag)}
-		path={recovered.path}
-		onRestore={() => void answerRecovery(true)}
-		onDelete={() => void answerRecovery(false)}
+		lines={recoveryOffer.offer.snapshot.lines.length}
+		savedAt={formatDateTime(recoveryOffer.offer.snapshot.savedAt, $localeTag)}
+		path={recoveryOffer.offer.path}
+		onRestore={() => void recoveryOffer.answer(true)}
+		onDelete={() => void recoveryOffer.answer(false)}
 	/>
 {/if}
 
@@ -1651,7 +435,7 @@
 
 {#if quit.sessionPrompt}
 	<ActiveSessionPrompt
-		elapsed={formatElapsed(elapsedMs)}
+		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
@@ -1668,49 +452,6 @@
 {/if}
 
 <style>
-	.start-key {
-		align-self: center;
-	}
-	.settings-tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-		border-bottom: 1px solid var(--border);
-		padding-bottom: 0.75rem;
-	}
-	.settings-tabs button {
-		flex: 1;
-		padding: 0.75rem;
-		border: 1px solid transparent;
-		border-radius: var(--radius-control);
-		background: transparent;
-		color: var(--muted);
-		font-size: var(--type-12);
-	}
-	.settings-tabs button[aria-selected='true'] {
-		background: var(--accent-bg);
-		color: var(--accent-soft);
-		border-color: var(--accent-border);
-	}
-	.settings-tabs button:hover {
-		color: var(--text);
-	}
-	@media (forced-colors: active) {
-		.settings-tabs button[aria-selected='true'] {
-			outline: 2px solid Highlight;
-		}
-	}
-
-	.device-recovery {
-		padding: 0.75rem 1.25rem;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.625rem;
-		border-bottom: 1px solid var(--border);
-	}
-	.device-recovery p {
-		flex-basis: 100%;
-	}
 	.app {
 		height: 100vh;
 		display: grid;
@@ -1727,155 +468,6 @@
 	}
 
 	/* ---- Header ------------------------------------------------------------- */
-
-	.titlebar {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-height: 40px;
-		padding: 4px 14px;
-		background: #12151a;
-		border-bottom: 1px solid var(--hairline);
-	}
-	/* The only control in the titlebar, and the only one whose position never depends on what
-	   the session is doing. Icon-only, so its accessible name carries the whole label; the box
-	   is padded out to a real target rather than left the size of the glyph. */
-	.gear {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-		width: 28px;
-		height: 28px;
-		border-radius: var(--radius-control);
-		border: 1px solid transparent;
-		background: transparent;
-		color: var(--muted-2);
-	}
-	.gear:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-
-	/* The panel is a column of the same `.rail-section` blocks the rail is built from, so all
-	   it contributes is the rhythm between them. */
-	.settings {
-		display: flex;
-		flex-direction: column;
-		gap: 0.875rem;
-		flex: 1 0 0;
-		min-height: 0;
-		overflow-y: auto;
-		scrollbar-gutter: stable;
-		padding: 3px;
-	}
-	.settings > :global(*) {
-		flex-shrink: 0;
-	}
-	.settings .tool:disabled {
-		opacity: 0.45;
-		cursor: default;
-	}
-	.brand {
-		width: 18px;
-		height: 18px;
-		border-radius: 5px;
-		background: linear-gradient(150deg, #5ad1a0, #2f8f6b);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-	}
-	/* The window's one h1: every other heading in either column sits under it. */
-	.app-name {
-		margin: 0;
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.context {
-		font-size: var(--type-12);
-		line-height: 1;
-		color: var(--muted-3);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.grow {
-		flex: 1;
-	}
-	.pill {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		padding: 4px 10px 4px 8px;
-		border-radius: 20px;
-		flex: 0 0 auto;
-	}
-	.pill-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-	}
-	.pill-label {
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-	}
-	.pill-time {
-		font-family: var(--font-mono);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-	}
-	.pill.neutral {
-		background: var(--surface-3);
-		border: 1px solid var(--border);
-	}
-	.pill.neutral .pill-dot {
-		background: var(--faint);
-	}
-	.pill.neutral .pill-label {
-		color: var(--muted);
-	}
-	.pill.live {
-		background: var(--accent-bg);
-		border: 1px solid var(--accent-border);
-	}
-	.pill.live .pill-dot {
-		background: var(--accent);
-		box-shadow: 0 0 8px var(--accent);
-		animation: breathe 2.4s ease-in-out infinite;
-	}
-	.pill.live .pill-label,
-	.pill.live .pill-time {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-	.pill.warn {
-		background: var(--warn-bg);
-		border: 1px solid var(--warn-border);
-	}
-	.pill.warn .pill-dot {
-		background: var(--warn);
-		animation: breathe 2.4s ease-in-out infinite;
-	}
-	.pill.warn .pill-label {
-		color: var(--warn-soft);
-	}
-	.pill.bad {
-		background: var(--danger-bg);
-		border: 1px solid var(--danger-border);
-	}
-	.pill.bad .pill-dot {
-		background: var(--danger);
-	}
-	.pill.bad .pill-label {
-		color: var(--danger-soft);
-	}
 
 	.rule {
 		background: var(--hairline);
@@ -1945,475 +537,15 @@
 			overflow-y: auto;
 		}
 	}
-	.divider {
-		height: 1px;
-		background: var(--hairline);
-	}
 	/* Both columns scroll rather than compress: a flex column shrinks its children before the
 	   scrollbar appears, which would clip text on a short window. */
-	.divider,
 	.kicker,
-	.rail-head,
-	.rail-section,
-	.chips,
-	.rail-note,
-	.cost-card,
-	.stop,
 	.banner,
 	.ready,
 	.intro,
-	.checklist,
 	.status-msg,
-	.launch,
-	.stage-head,
-	.turns,
-	.stage-hint {
+	.launch {
 		flex: 0 0 auto;
-	}
-
-	/* ---- Rail shared -------------------------------------------------------- */
-
-	.rail-section {
-		display: flex;
-		flex-direction: column;
-		gap: 0.625rem;
-	}
-	.step-head,
-	.rail-head {
-		display: flex;
-		align-items: center;
-		gap: 0.5625rem;
-	}
-	.rail-icon {
-		color: var(--muted-3);
-		display: flex;
-	}
-	.step-no {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--accent);
-	}
-	/* Section labels are real headings (h1/h2) wherever they name a region, so Narrator's
-	   heading navigation walks the window; the class only has to undo the browser's own
-	   heading typography. */
-	.kicker {
-		margin: 0;
-		font-size: var(--type-10-5);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.15em;
-		text-transform: uppercase;
-		color: var(--muted-2);
-	}
-	.hint {
-		margin: 0;
-		font-size: var(--type-11-5);
-		line-height: 1.5;
-		color: var(--muted-2);
-	}
-	.inline-hint {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		line-height: 1.4;
-	}
-	.key {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-dim);
-		padding: 4px 6px;
-		border-radius: 5px;
-		border: 1px solid #2a2f38;
-		background: var(--surface-3);
-		white-space: nowrap;
-	}
-
-	/* ---- Selection cards ---------------------------------------------------- */
-
-	.card,
-	.tile,
-	.lang,
-	.engine {
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		text-align: left;
-		color: inherit;
-	}
-	.card.selected,
-	.tile.selected,
-	.lang.selected,
-	.engine.selected {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-	}
-	.card:hover:not(:disabled),
-	.tile:hover:not(:disabled),
-	.lang:hover:not(:disabled),
-	.engine:hover:not(:disabled) {
-		border-color: var(--border-hover);
-	}
-	.card.selected:hover:not(:disabled),
-	.tile.selected:hover:not(:disabled),
-	.lang.selected:hover:not(:disabled),
-	.engine.selected:hover:not(:disabled) {
-		border-color: var(--accent);
-	}
-
-	.card {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.6875rem;
-		padding: 0.75rem 0.8125rem;
-		border-radius: var(--radius-card);
-		width: 100%;
-	}
-	.card-icon {
-		width: 30px;
-		height: 30px;
-		border-radius: var(--radius-control);
-		background: rgba(255, 255, 255, 0.045);
-		color: var(--muted);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-	}
-	.card.selected .card-icon {
-		background: var(--accent-chip-bg);
-		color: var(--accent-soft);
-	}
-	.card-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.card-title {
-		font-size: var(--type-13-5);
-		font-weight: 600;
-		line-height: 1.2;
-		color: var(--text-soft);
-	}
-	.card.selected .card-title {
-		color: var(--text);
-	}
-	.card-desc {
-		font-size: var(--type-11-5);
-		line-height: 1.45;
-		color: var(--muted-2);
-		text-wrap: pretty;
-	}
-	.card.selected .card-desc {
-		color: var(--muted);
-	}
-	.card-check {
-		color: var(--accent);
-		margin-left: auto;
-		flex: 0 0 auto;
-		display: flex;
-	}
-
-	.tiles {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 8px;
-	}
-	.tile {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 7px;
-		padding: 12px 6px 10px;
-		border-radius: var(--radius-card);
-		color: var(--muted);
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.tile.selected {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-
-	.meters {
-		display: flex;
-		flex-direction: column;
-		gap: 9px;
-		margin-top: 6px;
-	}
-
-	.lang-cards {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
-	}
-	/* Same cards, but sized from however many interface languages there are rather than from
-	   the two the caption step happens to offer. */
-	.locale-cards {
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		gap: 0.5rem;
-	}
-	.lang {
-		display: flex;
-		align-items: center;
-		gap: 0.5625rem;
-		padding: 0.6875rem 0.75rem;
-		border-radius: var(--radius-card);
-	}
-	.lang-code {
-		font-family: var(--font-mono);
-		font-size: var(--type-12);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--muted-2);
-	}
-	.lang.selected .lang-code {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-	.lang-name {
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-	}
-	.lang.selected .lang-name {
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	.engines {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.engine {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 11px 13px;
-		border-radius: var(--radius-card);
-	}
-	.engine-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.engine-name {
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-	}
-	.engine.selected .engine-name {
-		color: var(--text);
-		font-weight: 600;
-	}
-	.engine-model {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		line-height: 1.2;
-		color: var(--muted-3);
-		overflow-wrap: anywhere;
-	}
-	.engine.selected .engine-model {
-		color: var(--muted-2);
-	}
-	.engine-rate {
-		margin-left: auto;
-		font-family: var(--font-mono);
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-	}
-	.engine.selected .engine-rate {
-		color: var(--accent-soft);
-	}
-	/* One step brighter than the rest of the dim ramp: the rate sits on the selected engine's
-	   mint wash, which costs it enough contrast to drop "/hr" under 4.5:1 at --muted-3. */
-	.engine-rate .unit {
-		color: var(--muted-2);
-	}
-
-	/* ---- Rail, running ------------------------------------------------------ */
-
-	.chips {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 8px;
-	}
-	.chip {
-		padding: 9px 11px;
-		border-radius: var(--radius-control);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		min-width: 0;
-	}
-	.chip-label {
-		font-size: var(--type-9-5);
-		font-weight: 500;
-		line-height: 1;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: var(--muted-3);
-	}
-	.chip-value {
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1.1;
-		color: #dfe3e9;
-	}
-	.rail-note {
-		margin: 0;
-		font-size: var(--type-11-5);
-		line-height: 1.4;
-		color: var(--muted-3);
-	}
-
-	.cost-card {
-		padding: 14px 15px;
-		border-radius: var(--radius-card);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
-	.cost-figures {
-		display: flex;
-		align-items: baseline;
-		gap: 18px;
-	}
-	.figure {
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-	}
-	.figure-value {
-		font-family: var(--font-mono);
-		font-size: var(--type-21);
-		font-weight: 500;
-		line-height: 1;
-		color: #dfe3e9;
-		font-variant-numeric: tabular-nums;
-	}
-	.figure-value.mint {
-		color: var(--accent-soft);
-	}
-	.cost-tag {
-		margin-left: auto;
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--muted-3);
-	}
-	.cost-note {
-		margin: 0;
-		font-size: var(--type-11);
-		line-height: 1.45;
-		color: var(--muted-3);
-		text-wrap: pretty;
-	}
-
-	.overlay-actions {
-		display: flex;
-		gap: 8px;
-	}
-	.tool {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.4375rem;
-		padding: 0.625rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		color: var(--text-soft);
-		font-size: var(--type-12);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.tool:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-	/* Standalone rather than one of a pair, so it fills the rail. */
-	.tool.wide {
-		width: 100%;
-	}
-	.pref {
-		display: grid;
-		grid-template-columns: auto 1fr;
-		gap: 0.5625rem;
-		align-items: start;
-		cursor: pointer;
-	}
-	.pref:has(input:disabled) {
-		cursor: default;
-	}
-	.pref input {
-		margin: 2px 0 0;
-		accent-color: var(--accent);
-	}
-	.pref-title {
-		display: block;
-		font-size: var(--type-12);
-		line-height: 1.4;
-		color: var(--text-soft);
-		text-wrap: pretty;
-	}
-	.pref-note {
-		display: block;
-		margin-top: 3px;
-		font-size: var(--type-11-5);
-		line-height: 1.5;
-		color: var(--muted-3);
-		text-wrap: pretty;
-	}
-	.tool.on {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-		color: var(--accent-soft);
-	}
-	/* Captions are blanked — the amber tint says the room is currently seeing nothing. */
-	.tool.off {
-		border-color: var(--warn-border);
-		background: rgba(255, 180, 84, 0.08);
-		color: var(--warn-soft);
-	}
-
-	.stop {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 10px;
-		padding: 14px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--danger-border);
-		background: var(--danger-bg);
-		color: var(--danger-soft);
-		font-size: var(--type-14);
-		font-weight: 600;
-		line-height: 1;
-	}
-	.stop:hover:not(:disabled) {
-		background: rgba(255, 92, 92, 0.18);
-		color: #ffb3b3;
 	}
 
 	/* ---- Stage -------------------------------------------------------------- */
@@ -2449,104 +581,6 @@
 		text-wrap: pretty;
 	}
 
-	.checklist {
-		margin-top: 26px;
-		border-top: 1px solid var(--hairline);
-	}
-	.check-row {
-		display: grid;
-		grid-template-columns: 24px 1fr auto;
-		align-items: center;
-		gap: 14px;
-		padding: 15px 0;
-		border-bottom: 1px solid var(--hairline);
-	}
-	.mark {
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.mark.ok {
-		background: var(--accent-chip-bg);
-		color: var(--accent);
-	}
-	.mark.wait {
-		background: var(--warn-bg);
-		color: var(--warn);
-	}
-	.mark.wait .dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: currentColor;
-	}
-	.mark.neutral {
-		background: rgba(255, 255, 255, 0.05);
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.check-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.check-title {
-		font-size: var(--type-13-5);
-		font-weight: 500;
-		line-height: 1.2;
-	}
-	.check-desc {
-		font-size: var(--type-12);
-		line-height: 1.3;
-		color: var(--muted-2);
-	}
-	.check-desc.warn {
-		color: var(--warn);
-	}
-	.check-rate {
-		font-family: var(--font-mono);
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-		font-variant-numeric: tabular-nums;
-	}
-	.place {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--warn-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--warn-border);
-		background: rgba(255, 180, 84, 0.08);
-	}
-	.place:hover {
-		background: var(--warn-bg);
-	}
-	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
-	.adjust {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: transparent;
-	}
-	.adjust:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-
 	/* Keep actions aligned and let supporting text use the available reading width. */
 	.launch {
 		display: flex;
@@ -2554,62 +588,6 @@
 		align-items: flex-start;
 		gap: 12px;
 		margin-top: 30px;
-	}
-	.session-controls {
-		padding: 0.75rem 1.375rem;
-		border-bottom: 1px solid var(--border);
-		background: var(--panel);
-		display: flex;
-		flex-wrap: wrap;
-		align-items: stretch;
-		gap: 12px;
-	}
-	.session-controls .start,
-	.session-controls .stop {
-		min-width: min(15rem, 100%);
-		justify-content: center;
-	}
-	.start {
-		display: flex;
-		align-items: center;
-		gap: 11px;
-		padding: 15px 24px;
-		border: 0;
-		border-radius: var(--radius-card);
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: var(--on-accent);
-		font-size: var(--type-15-5);
-		font-weight: 600;
-		line-height: 1;
-		box-shadow: 0 12px 30px -12px rgba(90, 209, 160, 0.65);
-		flex: 0 0 auto;
-	}
-	.start:hover:not(:disabled) {
-		filter: brightness(1.06);
-	}
-	.start:disabled {
-		box-shadow: none;
-	}
-	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
-	   the thing the operator came to press. */
-	.rehearse {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 13px 18px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--text-soft);
-		font-size: var(--type-13);
-		font-weight: 500;
-		line-height: 1;
-		white-space: nowrap;
-		flex: 0 0 auto;
-	}
-	.rehearse:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
 	}
 	.rehearse-hint {
 		font-size: var(--type-11-5);
@@ -2633,104 +611,6 @@
 		color: var(--warn);
 	}
 
-	.stage-head {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	.stretch {
-		flex: 1;
-		height: 1px;
-		background: var(--hairline);
-	}
-	.stage-note {
-		font-size: var(--type-11-5);
-		line-height: 1;
-		color: var(--muted-3);
-	}
-	.stage-hint {
-		margin-top: 24px;
-		font-size: var(--type-13-5);
-	}
-	.turns {
-		display: flex;
-		flex-direction: column;
-		margin-top: 8px;
-	}
-	.turn {
-		display: grid;
-		/* 96px at 100%; in `em` so the origin chip and its timestamp keep their gutter
-		   instead of wrapping into the caption when the text grows. */
-		grid-template-columns: 6em minmax(0, 1fr);
-		gap: 20px;
-		padding: 24px 0;
-		border-bottom: 1px solid var(--hairline);
-	}
-	.turn-who {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding-top: 4px;
-	}
-	.origin-chip {
-		align-self: flex-start;
-		font-size: var(--type-10);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		padding: 5px 8px;
-		border-radius: 5px;
-	}
-	.origin-chip.system {
-		color: var(--accent-soft);
-		background: var(--accent-chip-bg);
-	}
-	.origin-chip.microphone {
-		color: var(--room-soft);
-		background: var(--room-bg);
-	}
-	.origin-sub {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		line-height: 1;
-		color: var(--muted-3);
-	}
-	.turn-text {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		max-width: 60ch;
-	}
-	.turn-source {
-		margin: 0;
-		font-size: var(--type-13);
-		line-height: 1.5;
-		color: var(--muted-2);
-		text-wrap: pretty;
-	}
-	.turn-caption {
-		margin: 0;
-		font-size: var(--type-29);
-		font-weight: 600;
-		line-height: 1.3;
-		letter-spacing: -0.015em;
-		color: var(--text-dim);
-		text-wrap: pretty;
-	}
-	.turn-caption.live {
-		color: var(--text-bright);
-	}
-	.caret {
-		display: inline-block;
-		width: 3px;
-		height: 0.9em;
-		background: var(--accent);
-		margin-left: 6px;
-		vertical-align: -2px;
-		animation: blink 1.1s steps(1) infinite;
-	}
-
 	/* Near the window's minimum height, tighten the vertical rhythm so the pre-flight checklist
 	   and the Start button still land above the fold. */
 	@media (max-height: 740px) {
@@ -2746,21 +626,13 @@
 			margin-top: 10px;
 			font-size: var(--type-24);
 		}
-		.checklist {
-			margin-top: 18px;
-		}
-		.check-row {
-			padding: 12px 0;
-		}
 		.launch {
 			margin-top: 22px;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.sweep,
-		.pill-dot,
-		.caret {
+		.sweep {
 			animation: none;
 		}
 	}
@@ -2768,32 +640,4 @@
 	/* Windows contrast themes. A contrast theme replaces every colour this window chose, so
 	   anything it says in colour alone has to be said again in a way the theme keeps.
 	   Everything else is deliberately left to the system palette. */
-	@media (forced-colors: active) {
-		/* The one place in this window that must keep its own colours: the swatch *is* the
-		   value. A contrast theme repainting it would leave the operator choosing a caption
-		   colour they cannot see. The label and the reading beside it are repainted as
-		   normal, which is what a contrast theme is for. */
-		/* Selection is a mint border and a mint wash, and both flatten to the same
-		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
-		.card.selected,
-		.tile.selected,
-		.lang.selected,
-		.engine.selected {
-			outline: 2px solid Highlight;
-			outline-offset: -2px;
-		}
-		/* Gradients are not recoloured by the forced palette, so the button would keep its
-		   mint fill under system-coloured text. Drop it and let the theme paint the button. */
-		.start {
-			background-image: none;
-		}
-		/* Live/idle/error is a dot colour plus a word; only the word survives, so the dot
-		   stops pretending to carry state and the pill keeps a visible edge. */
-		.pill {
-			border: 1px solid CanvasText;
-		}
-		.pill-dot {
-			display: none;
-		}
-	}
 </style>

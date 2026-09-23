@@ -5,7 +5,7 @@
 // Issue #25: the log used to be capped at 1,000 lines and silently truncated, and nothing
 // on screen distinguished a saved transcript from one that only existed in memory.
 
-import type { Origin, TranscriptLine } from './types';
+import { ORIGINS, type Origin, type TranscriptLine } from './types';
 
 /** Id meaning "nothing has been saved yet". Line ids start at 1. */
 export const NOTHING_SAVED = 0;
@@ -50,8 +50,6 @@ export interface RecoverySnapshot {
 	/** Same order as the store: newest first. */
 	lines: TranscriptLine[];
 }
-
-const ORIGINS: readonly Origin[] = ['microphone', 'system'];
 
 /** Serialize the log for the recovery file. Only the caption's own fields are written. */
 export function encodeRecovery(newestFirst: TranscriptLine[], savedAt: Date): string {

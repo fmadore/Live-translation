@@ -1,30 +1,21 @@
-import { holdSeconds, type CaptionPace } from './reading';
+import type { CaptionPace } from './reading';
 import type { CaptionLayout } from './captionLayout';
 import { get } from 'svelte/store';
 import { api } from './tauri';
 import { asStatus } from './errors';
 import {
+	appearance,
+	applyAppearance,
 	options,
-	overlayHoldSeconds,
-	overlayPace,
 	overlayFontSize,
-	overlayCaptionWidth,
-	overlayCaptionLayout,
-	overlayCleanSpeech,
 	overlayCaptionFace,
 	overlayPalette,
 	overlayPlaced,
 	statusMessage
 } from './stores';
-import {
-	captionLanguageOf,
-	clampOverlayFont,
-	clampOverlayWidth,
-	DEFAULT_OVERLAY_FONT,
-	DEFAULT_OVERLAY_WIDTH
-} from './types';
+import { captionLanguageOf, clampOverlayFont } from './types';
 import type { OverlayConfig, OverlayStateMsg } from './types';
-import { clampHex, clampScrimOpacity, DEFAULT_CAPTION_PALETTE } from './captionColour';
+import { DEFAULT_APPEARANCE, toOverlayConfig, type Appearance } from './appearance';
 import type { CaptionPalette } from './captionColour';
 import {
 	availableCaptionFaces,
@@ -51,54 +42,33 @@ export function createOverlayController(port = api) {
 	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
 		void api
 			.setOverlayConfig({
-				holdSeconds: get(overlayHoldSeconds),
-				pace: get(overlayPace),
-				fontSize: get(overlayFontSize),
-				captionWidth: get(overlayCaptionWidth),
-				captionLayout: get(overlayCaptionLayout),
-				cleanSpeech: get(overlayCleanSpeech),
-				captionFace: get(overlayCaptionFace),
-				captionColour: get(overlayPalette).text,
-				scrimColour: get(overlayPalette).scrim,
-				scrimOpacity: get(overlayPalette).scrimOpacity,
+				...toOverlayConfig(get(appearance)),
 				captionLanguage: captionLanguage(),
 				...extra
 			})
 			.catch((e) => statusMessage.set(asStatus(e)));
 	}
 
-	// Caption size: update the store (persists) and push it live to the overlay.
-	function setFont(size: number) {
-		overlayFontSize.set(clampOverlayFont(size));
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	// Caption measure: how long a line is allowed to run before it wraps. Same shape as the
-	// size control, and the same live push.
-	function setCaptionLayout(layout: CaptionLayout) {
-		overlayCaptionLayout.set(layout);
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	function setCaptionWidth(width: number) {
-		overlayCaptionWidth.set(clampOverlayWidth(width));
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	/** Change part of the palette. Clamped here as well as on the way in to the overlay: the
+	/** Change part of the appearance: update the stores (which persist) and push the whole of
+	 *  it live to the overlay. Normalized here as well as on the way in to the overlay: the
 	 *  operator window is where the contrast readout is computed, and a readout describing a
-	 *  colour the overlay would refuse to paint would be worse than no readout. */
-	function setPalette(patch: Partial<CaptionPalette>) {
-		overlayPalette.update((current) => {
-			const next = { ...current, ...patch };
-			return {
-				text: clampHex(next.text, DEFAULT_CAPTION_PALETTE.text),
-				scrim: clampHex(next.scrim, DEFAULT_CAPTION_PALETTE.scrim),
-				scrimOpacity: clampScrimOpacity(next.scrimOpacity)
-			};
-		});
+	 *  colour the overlay would refuse to paint would be worse than no readout.
+	 *
+	 *  Move mode is carried through: the operator is usually looking at the overlay while
+	 *  choosing, and a push that dropped it would snap the window back to click-through
+	 *  mid-adjustment. */
+	function setAppearance(patch: Partial<Appearance>) {
+		applyAppearance({ ...get(appearance), ...patch });
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
+
+	const setFont = (fontSize: number) => setAppearance({ fontSize });
+	const setCaptionLayout = (layout: CaptionLayout) => setAppearance({ layout });
+	/** Caption measure: how long a Compact line is allowed to run before it wraps. */
+	const setCaptionWidth = (width: number) => setAppearance({ width });
+	const setCaptionFace = (face: CaptionFaceId) => setAppearance({ face });
+	const setPalette = (patch: Partial<CaptionPalette>) =>
+		setAppearance({ palette: { ...get(overlayPalette), ...patch } });
 
 	/** Put the overlay's whole appearance back to what it ships with.
 	 *
@@ -108,23 +78,7 @@ export function createOverlayController(port = api) {
 	 *  deliberately untouched — that is where the window sits on the projector, it took a walk
 	 *  across the room to get right, and nothing here is a reason to lose it. */
 	function resetOverlayAppearance() {
-		overlayHoldSeconds.set(4);
-		overlayPace.set('immediate');
-		overlayCaptionLayout.set('fit');
-		overlayCleanSpeech.set(false);
-		overlayFontSize.set(DEFAULT_OVERLAY_FONT);
-		overlayCaptionWidth.set(DEFAULT_OVERLAY_WIDTH);
-		overlayCaptionFace.set(DEFAULT_CAPTION_FACE);
-		overlayPalette.set({ ...DEFAULT_CAPTION_PALETTE });
-		pushOverlayConfig({ interactive: moveOverlay });
-	}
-
-	function setCaptionFace(id: CaptionFaceId) {
-		overlayCaptionFace.set(id);
-		// Carrying move mode through, like the size and the measure: the operator is usually
-		// looking at the overlay while choosing, and a push that dropped it would snap the
-		// window back to click-through mid-adjustment.
-		pushOverlayConfig({ interactive: moveOverlay });
+		setAppearance(DEFAULT_APPEARANCE);
 	}
 
 	// Move mode: the overlay is click-through while captioning; this flips it into an
@@ -191,21 +145,13 @@ export function createOverlayController(port = api) {
 		initialize,
 		applyState,
 		pushOverlayConfig,
-		setHoldSeconds(value: number) {
-			overlayHoldSeconds.set(holdSeconds(value));
-			pushOverlayConfig({ interactive: moveOverlay });
-		},
-		setPace(value: CaptionPace) {
-			overlayPace.set(value);
-			pushOverlayConfig({ interactive: moveOverlay });
-		},
+		setAppearance,
+		setHoldSeconds: (hold: number) => setAppearance({ hold }),
+		setPace: (pace: CaptionPace) => setAppearance({ pace }),
 		setFont,
 		setCaptionWidth,
 		setCaptionLayout,
-		setCleanSpeech(enabled: boolean) {
-			overlayCleanSpeech.set(enabled);
-			pushOverlayConfig({ interactive: moveOverlay });
-		},
+		setCleanSpeech: (cleanSpeech: boolean) => setAppearance({ cleanSpeech }),
 		setPalette,
 		resetOverlayAppearance,
 		setCaptionFace,

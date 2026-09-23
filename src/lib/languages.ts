@@ -3,7 +3,9 @@ import { TARGET_LANGUAGES, type TargetLanguage } from './languageCodes';
 import type { Provider } from './types';
 
 export { TARGET_LANGUAGES, type TargetLanguage };
-export type DemoLanguage = 'en' | 'fr';
+/** Languages with bundled demo scripts and rehearsal recordings. Mirrors `DemoLanguage`. */
+export const DEMO_LANGUAGES = ['en', 'fr'] as const;
+export type DemoLanguage = (typeof DEMO_LANGUAGES)[number];
 export const LANGUAGE_FAVOURITES_KEY = 'language.favourites';
 export const DEFAULT_FAVOURITES: TargetLanguage[] = ['en', 'fr'];
 

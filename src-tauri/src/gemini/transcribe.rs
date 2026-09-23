@@ -8,7 +8,6 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tauri::AppHandle;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
@@ -16,7 +15,7 @@ use super::protocol::{
     RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
 };
 use crate::realtime::{
-    emit_caption, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -78,12 +77,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
         Ok(vec![AUDIO_STREAM_END.to_string()])
     }
 
-    fn handle_message(
-        &mut self,
-        app: &AppHandle,
-        text: &str,
-        acc: &mut TurnAccumulator,
-    ) -> MessageOutcome {
+    fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
         let msg: ServerMessage = match serde_json::from_str(text) {
             Ok(m) => m,
             Err(e) => {
@@ -111,17 +105,13 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
             return MessageOutcome::default();
         };
 
-        if let Some(finalized) = apply_transcription(&content, acc) {
-            // Empty finalized captions retract speculative text in both windows and the
-            // pending transcript. Never archive an all-filler interim as confirmed speech.
-            emit_caption(app, self.origin, acc, finalized);
-            if finalized {
-                acc.next_turn();
-            }
-            return MessageOutcome::activity();
+        // Empty finalized captions retract speculative text in both windows and the pending
+        // transcript. Never archive an all-filler interim as confirmed speech.
+        match apply_transcription(&content, acc) {
+            Some(true) => MessageOutcome::activity(CaptionUpdate::Final),
+            Some(false) => MessageOutcome::activity(CaptionUpdate::Interim),
+            None => MessageOutcome::default(),
         }
-
-        MessageOutcome::default()
     }
 
     fn finalize_after(&self) -> Option<Duration> {
@@ -182,6 +172,36 @@ mod smart_tests {
             assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
             assert!(acc.is_empty());
         }
+    }
+
+    #[test]
+    fn interims_revise_the_segment_and_a_final_closes_it() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        let mut h = Harness::new(GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        });
+        assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
+        h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hel"}}}"#);
+        h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hello there"}}}"#);
+        let last = h.send(r#"{"serverContent":{"inputTranscription":{"text":"Hello there."}}}"#);
+        assert!(last.transcript_activity);
+        // A segment close with nothing pending is not a caption.
+        h.send(r#"{"serverContent":{"generationComplete":true}}"#);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "Hel", ""),
+                Emitted::interim(0, "Hello there", ""),
+                Emitted::final_(0, "Hello there.", ""),
+            ]
+        );
+        assert!(matches!(
+            h.send(r#"{"goAway":{}}"#).control,
+            MessageControl::Reconnect
+        ));
     }
 }
 

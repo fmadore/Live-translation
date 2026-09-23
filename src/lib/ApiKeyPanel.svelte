@@ -4,6 +4,7 @@
 	import { asStatus, type AppError } from './errors';
 	import { PROVIDER_META } from './providers';
 	import { providerKeyName } from './types';
+	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import type { Provider } from './types';
 
 	interface Props {
@@ -87,143 +88,75 @@
 	}
 </script>
 
-<div class="row" class:pending={!available || editing}>
-	{#if available && !editing}
-		<span class="mark ok" aria-hidden="true">
-			<svg
-				width="12"
-				height="12"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2.6"
-				stroke-linecap="round"
-				aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-			>
-		</span>
-		<div class="body">
-			<span class="title">{$t.key.title(keyName)}</span>
-			<span class="desc">{$t.key.saved}</span>
-		</div>
-		<div class="actions">
-			<button
-				class="ghost"
-				disabled={locked}
-				onclick={() => {
-					editing = true;
-					apiKeyInput = '';
-				}}
-			>
-				{$t.key.replace}
-			</button>
-			<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
-		</div>
-	{:else}
-		<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-		<div class="body">
-			<label class="title" for={fieldId}>{$t.key.title(keyName)}</label>
-			<span class="desc" id={descId}>
-				{$t.key.desc.before}
-				<code>{meta.modelId}</code>{$t.key.desc.after}
-				{#if meta.keyUrl}
-					<a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">
-						{$t.key.getKey}<span class="sr-only">{$t.key.opensInBrowser}</span>
-					</a>
-				{/if}
-			</span>
-		</div>
-		<div class="actions">
-			<input
-				id={fieldId}
-				type="password"
-				placeholder={$t.key.placeholder(keyName)}
-				aria-describedby={descId}
-				autocomplete="off"
-				autocapitalize="off"
-				autocorrect="off"
-				spellcheck="false"
-				bind:value={apiKeyInput}
-				disabled={locked}
-				onkeydown={(event) => event.key === 'Enter' && void saveKey()}
-			/>
-			<button
-				class="save"
-				disabled={locked || saving || !apiKeyInput.trim()}
-				aria-busy={saving}
-				onclick={saveKey}
-			>
-				{saving ? $t.key.saving : $t.key.save}
-			</button>
-			{#if available}
+{#if available && !editing}
+	<ChecklistRow status="ok" title={$t.key.title(keyName)} desc={$t.key.saved}>
+		{#snippet action()}
+			<div class="actions">
 				<button
 					class="ghost"
+					disabled={locked}
 					onclick={() => {
-						editing = false;
+						editing = true;
 						apiKeyInput = '';
 					}}
 				>
-					{$t.key.cancel}
+					{$t.key.replace}
 				</button>
+				<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
+			</div>
+		{/snippet}
+	</ChecklistRow>
+{:else}
+	<ChecklistRow status="wait" pending title={$t.key.title(keyName)} titleFor={fieldId} {descId}>
+		{#snippet description()}
+			{$t.key.desc.before}
+			<code>{meta.modelId}</code>{$t.key.desc.after}
+			{#if meta.keyUrl}
+				<a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">
+					{$t.key.getKey}<span class="sr-only">{$t.key.opensInBrowser}</span>
+				</a>
 			{/if}
-		</div>
-	{/if}
-</div>
+		{/snippet}
+		{#snippet action()}
+			<div class="actions">
+				<input
+					id={fieldId}
+					type="password"
+					placeholder={$t.key.placeholder(keyName)}
+					aria-describedby={descId}
+					autocomplete="off"
+					autocapitalize="off"
+					autocorrect="off"
+					spellcheck="false"
+					bind:value={apiKeyInput}
+					disabled={locked}
+					onkeydown={(event) => event.key === 'Enter' && void saveKey()}
+				/>
+				<button
+					class="save"
+					disabled={locked || saving || !apiKeyInput.trim()}
+					aria-busy={saving}
+					onclick={saveKey}
+				>
+					{saving ? $t.key.saving : $t.key.save}
+				</button>
+				{#if available}
+					<button
+						class="ghost"
+						onclick={() => {
+							editing = false;
+							apiKeyInput = '';
+						}}
+					>
+						{$t.key.cancel}
+					</button>
+				{/if}
+			</div>
+		{/snippet}
+	</ChecklistRow>
+{/if}
 
 <style>
-	.row {
-		display: grid;
-		grid-template-columns: 24px 1fr auto;
-		align-items: center;
-		gap: 14px;
-		padding: 15px 0;
-		border-bottom: 1px solid var(--hairline);
-	}
-	/* While a key is being entered the description wraps to two lines, so the row's parts
-	   align to the top rather than to a shifting centre. */
-	.row.pending {
-		align-items: start;
-	}
-	.mark {
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.row.pending .mark {
-		margin-top: 3px;
-	}
-	.mark.ok {
-		background: var(--accent-chip-bg);
-		color: var(--accent);
-	}
-	.mark.wait {
-		background: var(--warn-bg);
-		color: var(--warn);
-	}
-	.mark .dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: currentColor;
-	}
-	.body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.title {
-		font-size: var(--type-13-5);
-		font-weight: 500;
-		line-height: 1.2;
-	}
-	.desc {
-		font-size: var(--type-12);
-		line-height: 1.35;
-		color: var(--muted-2);
-	}
 	code {
 		font-family: var(--font-mono);
 		font-size: var(--type-11);
@@ -283,11 +216,5 @@
 	   because on a dark panel a border tint alone is not a focus indicator. */
 	input:focus {
 		border-color: var(--accent-border);
-	}
-	/* Matches the tightened checklist rhythm the stage adopts on a short window. */
-	@media (max-height: 740px) {
-		.row {
-			padding: 12px 0;
-		}
 	}
 </style>

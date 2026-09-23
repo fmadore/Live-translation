@@ -20,13 +20,9 @@ import type {
 } from './types';
 import {
 	CLOSE_TO_TRAY_KEY,
-	loadCloseToTray,
 	loadOverlayFont,
 	loadOverlayWidth,
-	loadOverlayPlaced,
-	loadRecoveryEnabled,
 	loadStartOptions,
-	loadTrayHideExplained,
 	OVERLAY_FONT_KEY,
 	OVERLAY_WIDTH_KEY,
 	OVERLAY_PLACED_KEY,
@@ -45,6 +41,8 @@ import type { CaptionPalette } from './captionColour';
 import { CAPTION_FACE_KEY, loadCaptionFace } from './captionFont';
 import type { CaptionFaceId } from './captionFont';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
+import { persisted, persistedFlag, persistedWith, writeStored } from './persisted';
+import { normalizeAppearance, type Appearance } from './appearance';
 
 // ---- Session status --------------------------------------------------------
 // Up to four backend tasks (two captures + two clients in "Both" mode) report status
@@ -146,22 +144,19 @@ export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Da
 export const hasKey = writable<boolean>(false);
 
 // Persisted to localStorage: the keyless built-in demo applies to a first run only, and a
-// configured operator's setup survives a restart.
-export const options = writable<StartOptions>(loadStartOptions());
-
-options.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') {
-		localStorage.setItem(
-			SESSION_OPTIONS_KEY,
-			JSON.stringify({
-				...v,
-				...(v.systemCapture?.kind === 'application'
-					? { systemCapture: { kind: 'application', process: null } }
-					: {})
-			})
-		);
-	}
-});
+// configured operator's setup survives a restart. A chosen application is stored without its
+// process: a process id means nothing after a restart.
+export const options = persistedWith<StartOptions>(loadStartOptions, (v) =>
+	writeStored(
+		SESSION_OPTIONS_KEY,
+		JSON.stringify({
+			...v,
+			...(v.systemCapture?.kind === 'application'
+				? { systemCapture: { kind: 'application', process: null } }
+				: {})
+		})
+	)
+);
 
 // ---- Captions & transcript --------------------------------------------------
 
@@ -301,42 +296,25 @@ export function restoreTranscript(lines: TranscriptLine[]) {
 // ---- Overlay font size ------------------------------------------------------
 // Persisted to localStorage so both windows share the same default.
 
-export const overlayFontSize = writable<number>(loadOverlayFont());
+export const overlayFontSize = persisted<number>(OVERLAY_FONT_KEY, loadOverlayFont);
 
-/** How wide a caption line may run, in `ch`. Persisted like the font size, and shared with
- *  the overlay window through the same localStorage origin. */
-export const overlayCaptionLayout = writable<CaptionLayout>(loadCaptionLayout());
-overlayCaptionLayout.subscribe((value) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(CAPTION_LAYOUT_KEY, value);
-});
+/** Fit window, Compact or Stable reading. Shared with the overlay window through the same
+ *  localStorage origin. */
+export const overlayCaptionLayout = persisted<CaptionLayout>(CAPTION_LAYOUT_KEY, loadCaptionLayout);
 
-export const overlayCaptionWidth = writable<number>(loadOverlayWidth());
-
-overlayCaptionWidth.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_WIDTH_KEY, String(v));
-});
-
-overlayFontSize.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_FONT_KEY, String(v));
-});
+/** How wide a caption line may run, in `ch`. Persisted like the font size. */
+export const overlayCaptionWidth = persisted<number>(OVERLAY_WIDTH_KEY, loadOverlayWidth);
 
 /** The caption typeface. Persisted and shared the same way; the id is validated on read, so
  *  a hand-edited or stale value falls back to the bundled default rather than to nothing. */
-export const overlayCaptionFace = writable<CaptionFaceId>(loadCaptionFace());
-
-overlayCaptionFace.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(CAPTION_FACE_KEY, v);
-});
+export const overlayCaptionFace = persisted<CaptionFaceId>(CAPTION_FACE_KEY, loadCaptionFace);
 
 /** The caption ink and the scrim behind it, as one store: they are chosen together and judged
  *  together, and a contrast reading of half a palette would mean nothing. */
-export const overlayPalette = writable<CaptionPalette>(loadCaptionPalette());
-
-overlayPalette.subscribe((p) => {
-	if (typeof localStorage === 'undefined') return;
-	localStorage.setItem(CAPTION_TEXT_KEY, p.text);
-	localStorage.setItem(CAPTION_SCRIM_KEY, p.scrim);
-	localStorage.setItem(CAPTION_SCRIM_OPACITY_KEY, String(p.scrimOpacity));
+export const overlayPalette = persistedWith<CaptionPalette>(loadCaptionPalette, (p) => {
+	writeStored(CAPTION_TEXT_KEY, p.text);
+	writeStored(CAPTION_SCRIM_KEY, p.scrim);
+	writeStored(CAPTION_SCRIM_OPACITY_KEY, String(p.scrimOpacity));
 });
 
 /** What the palette actually achieves on a projector, recomputed as it changes. Derived
@@ -345,69 +323,76 @@ export const overlayContrast = derived(overlayPalette, ($p) => captionContrast($
 
 // Whether the caption region has been positioned on the presentation display; persisted so
 // the pre-flight check survives a restart.
-export const overlayPlaced = writable<boolean>(loadOverlayPlaced());
-
-overlayPlaced.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(OVERLAY_PLACED_KEY, String(v));
-});
+export const overlayPlaced = persistedFlag(OVERLAY_PLACED_KEY);
 
 // ---- Crash recovery ----------------------------------------------------------
 // Off until the operator asks for it: writing captions to disk on a timer is exactly what
 // the privacy policy promises the app does not do by default. Persisted so a room that
 // wants the safety net does not have to re-enable it before every event.
 
-export const recoveryEnabled = writable<boolean>(loadRecoveryEnabled());
-
-recoveryEnabled.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(RECOVERY_ENABLED_KEY, String(v));
-});
+export const recoveryEnabled = persistedFlag(RECOVERY_ENABLED_KEY);
 
 // ---- Window and tray ----------------------------------------------------------
 // Off by default, so a fresh install keeps ordinary Windows semantics: the X closes the app.
 // Staying alive after being closed is a thing an operator opts into, usually once, for a room
 // where the window is in the way but the session must not stop.
 
-export const closeToTray = writable<boolean>(loadCloseToTray());
-
-closeToTray.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(CLOSE_TO_TRAY_KEY, String(v));
-});
+export const closeToTray = persistedFlag(CLOSE_TO_TRAY_KEY);
 
 /** Whether the operator has already been told that closing no longer quits. */
-export const trayHideExplained = writable<boolean>(loadTrayHideExplained());
-
-trayHideExplained.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') {
-		localStorage.setItem(TRAY_HIDE_EXPLAINED_KEY, String(v));
-	}
-});
+export const trayHideExplained = persistedFlag(TRAY_HIDE_EXPLAINED_KEY);
 
 // ---- Audio levels ------------------------------------------------------------
 
 export const micLevel = writable<AudioLevel>({ source: 'microphone', rms: 0, peak: 0 });
 export const systemLevel = writable<AudioLevel>({ source: 'system', rms: 0, peak: 0 });
 
-export const overlayCleanSpeech = writable(loadCleanSpeech());
-overlayCleanSpeech.subscribe((value) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(CLEAN_SPEECH_KEY, String(value));
-});
-
-export const overlayHoldSeconds = writable(loadHoldSeconds());
-export const overlayPace = writable<CaptionPace>(loadPace());
-overlayHoldSeconds.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(HOLD_KEY, String(v));
-});
-overlayPace.subscribe((v) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(PACE_KEY, v);
-});
+export const overlayCleanSpeech = persisted(CLEAN_SPEECH_KEY, loadCleanSpeech);
+export const overlayHoldSeconds = persisted(HOLD_KEY, loadHoldSeconds);
+export const overlayPace = persisted<CaptionPace>(PACE_KEY, loadPace);
 
 /** Operator preference, deliberately outside StartOptions and IPC. */
-export const languageFavourites = writable(loadLanguageFavourites());
-languageFavourites.subscribe((codes) => {
-	try {
-		if (typeof localStorage !== 'undefined')
-			localStorage.setItem(LANGUAGE_FAVOURITES_KEY, JSON.stringify(codes));
-	} catch {
-		/* Preferences remain usable when storage is unavailable. */
-	}
-});
+export const languageFavourites = persistedWith(
+	() => loadLanguageFavourites(),
+	(codes) => writeStored(LANGUAGE_FAVOURITES_KEY, JSON.stringify(codes))
+);
+
+// ---- Appearance as a whole ---------------------------------------------------------
+
+/** The eight appearance stores as one value, for saving, comparing and pushing. */
+export const appearance = derived(
+	[
+		overlayFontSize,
+		overlayCaptionWidth,
+		overlayCaptionLayout,
+		overlayCaptionFace,
+		overlayPalette,
+		overlayCleanSpeech,
+		overlayHoldSeconds,
+		overlayPace
+	],
+	([fontSize, width, layout, face, palette, cleanSpeech, hold, pace]): Appearance => ({
+		fontSize,
+		width,
+		layout,
+		face,
+		palette,
+		cleanSpeech,
+		hold,
+		pace
+	})
+);
+
+/** Set every appearance store from one value, normalized first so nothing out of range is
+ *  stored or shown in the operator window's readouts. */
+export function applyAppearance(value: Appearance) {
+	const a = normalizeAppearance(value);
+	overlayFontSize.set(a.fontSize);
+	overlayCaptionWidth.set(a.width);
+	overlayCaptionLayout.set(a.layout);
+	overlayCaptionFace.set(a.face);
+	overlayPalette.set(a.palette);
+	overlayCleanSpeech.set(a.cleanSpeech);
+	overlayHoldSeconds.set(a.hold);
+	overlayPace.set(a.pace);
+}
