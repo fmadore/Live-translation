@@ -3,6 +3,8 @@
 	import LevelMeter from './LevelMeter.svelte';
 	import SystemCapturePicker from './SystemCapturePicker.svelte';
 	import ChoiceButton from './ui/ChoiceButton.svelte';
+	import Kbd from './ui/Kbd.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import Field from './ui/Field.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
 	import Select from './ui/Select.svelte';
@@ -217,14 +219,13 @@
 		/>
 	{/if}
 	{#if $options.provider !== 'ondevice'}
-		<button
-			class="tool"
+		<ToolButton
 			disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
 			aria-busy={preflight.refreshing || preflight.refreshingApplications}
 			onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
 		>
 			{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
-		</button>
+		</ToolButton>
 	{/if}
 	<div class="meters">
 		{#if usesMic}
@@ -262,7 +263,7 @@
 				)}
 		/>
 		<p class="hint inline-hint">
-			<span>{$t.rail.flipHint}</span><span class="key">{$t.rail.flipKey}</span>
+			<span>{$t.rail.flipHint}</span><Kbd command="direction" />
 		</p>
 	{:else}
 		{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
@@ -327,8 +328,8 @@
 
 	.tile,
 	.engine {
-		border: 1px solid var(--border);
-		background: var(--panel-2);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		text-align: left;
 		color: inherit;
 	}
@@ -339,7 +340,7 @@
 	}
 	.tile:hover:not(:disabled),
 	.engine:hover:not(:disabled) {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.tile.selected:hover:not(:disabled),
 	.engine.selected:hover:not(:disabled) {
@@ -349,17 +350,17 @@
 	.tiles {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.tile {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 7px;
-		padding: 12px 6px 10px;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-1) var(--space-2);
 		border-radius: var(--radius-card);
-		color: var(--muted);
-		font-size: var(--type-11-5);
+		color: var(--text-muted);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -371,71 +372,67 @@
 	.meters {
 		display: flex;
 		flex-direction: column;
-		gap: 9px;
-		margin-top: 6px;
+		gap: var(--space-2);
+		margin-top: var(--space-2);
 	}
 
 	.lang-cards {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.engines {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.engine {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 11px 13px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border-radius: var(--radius-card);
 	}
 	.engine-body {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.engine-name {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	.engine.selected .engine-name {
-		color: var(--text);
+		color: var(--text-body);
 		font-weight: 600;
 	}
 	.engine-model {
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1.2;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		overflow-wrap: anywhere;
-	}
-	.engine.selected .engine-model {
-		color: var(--muted-2);
 	}
 	.engine-rate {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--muted);
+		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
 	.engine.selected .engine-rate {
 		color: var(--accent-soft);
 	}
-	/* One step brighter than the rest of the dim ramp: the rate sits on the selected engine's
-	   mint wash, which costs it enough contrast to drop "/hr" under 4.5:1 at --muted-3. */
+	/* The unit stays grey when the selected engine turns its rate mint. */
 	.engine-rate .unit {
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 
 	@media (forced-colors: active) {

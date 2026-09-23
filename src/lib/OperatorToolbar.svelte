@@ -1,17 +1,24 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { t } from './i18n';
 	import { isRunning, options, sessionStartedAt, sessionState } from './stores';
 	import type { SessionState } from './types';
 
+	/** The window's one bar: the session's actions on the left, its state and the settings on
+	 *  the right. Windows already prints the app's name in the frame above it, so this bar spends
+	 *  its width on the controls instead. */
 	let {
 		elapsed,
 		settingsOpen,
-		onOpenSettings
+		onOpenSettings,
+		actions
 	}: {
 		/** The running session's clock, already formatted. */
 		elapsed: string;
 		settingsOpen: boolean;
 		onOpenSettings: () => void;
+		/** Start and Rehearse, or Stop: in the same bar as the status they change. */
+		actions: Snippet;
 	} = $props();
 
 	// Not from the catalog: these are CSS class names, not words.
@@ -24,21 +31,22 @@
 	};
 </script>
 
-<header class="titlebar">
+<header class="toolbar">
 	<span class="brand" aria-hidden="true">
 		<svg
-			width="11"
-			height="11"
+			width="14"
+			height="14"
 			viewBox="0 0 24 24"
 			fill="none"
-			stroke="#06261b"
+			stroke="currentColor"
 			stroke-width="2.4"
 			stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
 		>
 	</span>
-	<h1 class="app-name">{$t.app.name}</h1>
-	<span class="context">{$t.app.tagline}</span>
-	<span class="grow"></span>
+	<!-- The window's one h1, which every heading in either column sits under. The frame
+	     already shows the name, so it is here for heading navigation only. -->
+	<h1 class="sr-only">{$t.app.name}</h1>
+	{@render actions()}
 	<div class="pill {stateTone[$sessionState]}">
 		<span class="pill-dot" aria-hidden="true"></span>
 		<span class="pill-label"
@@ -78,65 +86,54 @@
 </header>
 
 <style>
-	.titlebar {
+	/* Sized by its content, not a slot: at 225% the buttons are twice as tall, and when the
+	   bar no longer fits on one line it wraps, keeping the status and the gear at the right. */
+	.toolbar {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 10px;
-		min-height: 40px;
-		padding: 4px 14px;
-		background: #12151a;
-		border-bottom: 1px solid var(--hairline);
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-5);
+		background: var(--surface-1);
 	}
-	/* The only control in the titlebar, and the only one whose position never depends on what
-	   the session is doing. Icon-only, so its accessible name carries the whole label; the box
-	   is padded out to a real target rather than left the size of the glyph. */
+	/* The one control in the bar whose position never depends on what the session is doing.
+	   Icon-only, so its accessible name carries the whole label; the box is padded out to a
+	   real target rather than left the size of the glyph. */
 	.gear {
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
-		width: 28px;
-		height: 28px;
+		width: 2rem;
+		height: 2rem;
 		border-radius: var(--radius-control);
 		border: 1px solid transparent;
 		background: transparent;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	.gear:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	.brand {
-		width: 18px;
-		height: 18px;
-		border-radius: 5px;
-		background: linear-gradient(150deg, #5ad1a0, #2f8f6b);
+		width: 1.5rem;
+		height: 1.5rem;
+		border-radius: var(--radius-control);
+		background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+		color: var(--on-accent);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
 	}
-	/* The window's one h1: every other heading in either column sits under it. */
-	.app-name {
-		margin: 0;
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.context {
-		font-size: var(--type-12);
-		line-height: 1;
-		color: var(--muted-3);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
+	/* Pushed to the far end, and kept there with the gear when the bar wraps. */
 	.pill {
 		display: flex;
 		align-items: center;
-		gap: 7px;
-		padding: 4px 10px 4px 8px;
-		border-radius: 20px;
+		margin-left: auto;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-2);
+		border-radius: var(--radius-pill);
 		flex: 0 0 auto;
 	}
 	.pill-dot {
@@ -145,7 +142,7 @@
 		border-radius: 50%;
 	}
 	.pill-label {
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.06em;
@@ -153,20 +150,20 @@
 	}
 	.pill-time {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 	}
 	.pill.neutral {
-		background: var(--surface-3);
-		border: 1px solid var(--border);
+		background: var(--surface-2);
+		border: 1px solid var(--line-strong);
 	}
 	.pill.neutral .pill-dot {
 		background: var(--faint);
 	}
 	.pill.neutral .pill-label {
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.pill.live {
 		background: var(--accent-bg);

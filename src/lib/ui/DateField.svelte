@@ -74,7 +74,7 @@
 	}
 	.date-control > input[type='text'] {
 		width: 100%;
-		padding-right: 2.75rem;
+		padding-right: calc(2.5rem + var(--space-1));
 	}
 	button {
 		position: absolute;
@@ -88,10 +88,10 @@
 		border: 0;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	button:hover {
-		background: var(--surface-3);
+		background: var(--surface-2);
 	}
 	.native-picker {
 		position: absolute;
@@ -104,6 +104,6 @@
 	}
 	.date-error {
 		color: var(--danger-soft);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 	}
 </style>

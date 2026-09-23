@@ -66,51 +66,51 @@
 	.stage-head {
 		display: flex;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.stretch {
 		flex: 1;
 		height: 1px;
-		background: var(--hairline);
+		background: var(--line);
 	}
 	.stage-note {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.stage-hint {
-		margin-top: 24px;
-		font-size: var(--type-13-5);
+		margin-top: var(--space-5);
+		font-size: var(--type-body);
 	}
 	.turns {
 		display: flex;
 		flex-direction: column;
-		margin-top: 8px;
+		margin-top: var(--space-2);
 	}
 	.turn {
 		display: grid;
 		/* 96px at 100%; in `em` so the origin chip and its timestamp keep their gutter
 		   instead of wrapping into the caption when the text grows. */
 		grid-template-columns: 6em minmax(0, 1fr);
-		gap: 20px;
-		padding: 24px 0;
-		border-bottom: 1px solid var(--hairline);
+		gap: var(--space-4);
+		padding: var(--space-5) 0;
+		border-bottom: 1px solid var(--line);
 	}
 	.turn-who {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
-		padding-top: 4px;
+		gap: var(--space-2);
+		padding-top: var(--space-1);
 	}
 	.origin-chip {
 		align-self: flex-start;
-		font-size: var(--type-10);
+		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
-		padding: 5px 8px;
-		border-radius: 5px;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-sm);
 	}
 	.origin-chip.system {
 		color: var(--accent-soft);
@@ -122,30 +122,30 @@
 	}
 	.origin-sub {
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.turn-text {
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-2);
 		max-width: 60ch;
 	}
 	.turn-source {
 		margin: 0;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted-2);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 	.turn-caption {
 		margin: 0;
-		font-size: var(--type-29);
+		font-size: var(--type-display);
 		font-weight: 600;
 		line-height: 1.3;
 		letter-spacing: -0.015em;
-		color: var(--text-dim);
+		color: var(--text-secondary);
 		text-wrap: pretty;
 	}
 	.turn-caption.live {
@@ -156,7 +156,7 @@
 		width: 3px;
 		height: 0.9em;
 		background: var(--accent);
-		margin-left: 6px;
+		margin-left: var(--space-2);
 		vertical-align: -2px;
 		animation: blink 1.1s steps(1) infinite;
 	}

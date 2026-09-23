@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { t } from './i18n';
+	import ToolButton from './ui/ToolButton.svelte';
+	import { ariaKeyShortcut, keyLabel } from './shortcuts';
 	import { isRunning, options } from './stores';
 
 	let {
@@ -18,20 +20,43 @@
 		onRehearse: () => void;
 		onStop: () => void;
 	} = $props();
+
+	// The same key starts and stops, so both buttons carry it. Printed inside the button rather
+	// than beside it, where it read as a third button; announced through `aria-keyshortcuts`,
+	// so the printed copy stays out of the accessible name.
+	const keys = $derived(keyLabel('toggleSession', $t.keys));
+	const ariaKeys = ariaKeyShortcut('toggleSession');
 </script>
 
-<!-- Start and Stop share one persistent bar below the header, so they stay in the same place
-     while setup, captions and transcripts scroll underneath. -->
+<!-- Start and Stop live in the window's one bar, so they stay in the same place while setup,
+     captions and transcripts scroll underneath. -->
 <div class="session-controls">
 	{#if $isRunning}
-		<button class="stop" disabled={busy} aria-busy={busy} onclick={onStop}>
+		<ToolButton
+			variant="danger"
+			size="lg"
+			class="stop"
+			disabled={busy}
+			aria-busy={busy}
+			aria-keyshortcuts={ariaKeys}
+			onclick={onStop}
+		>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 				><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 			>
 			{busy ? $t.rail.stopping : $t.rail.stop}
-		</button>
+			<span class="shortcut" aria-hidden="true">{keys}</span>
+		</ToolButton>
 	{:else}
-		<button class="start" disabled={startDisabled} aria-busy={busy} onclick={onStart}>
+		<ToolButton
+			variant="primary"
+			size="lg"
+			class="start"
+			disabled={startDisabled}
+			aria-busy={busy}
+			aria-keyshortcuts={ariaKeys}
+			onclick={onStart}
+		>
 			<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 				><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 			>
@@ -42,8 +67,11 @@
 					: $options.provider === 'ondevice'
 						? $t.preflight.start.demo
 						: $t.preflight.start.subtitles}
-		</button><button
-			class="rehearse"
+			<span class="shortcut" aria-hidden="true">{keys}</span>
+		</ToolButton>
+		<ToolButton
+			variant="ghost"
+			size="lg"
 			aria-describedby="rehearse-hint"
 			disabled={rehearseDisabled}
 			onclick={onRehearse}
@@ -61,96 +89,33 @@
 				><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
 			>
 			{busy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
-		</button>
+		</ToolButton>
 	{/if}
-	<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
 </div>
 
 <style>
+	/* The buttons are items of the bar itself, so a narrow bar wraps between them rather than
+	   around the pair. */
 	.session-controls {
-		padding: 0.75rem 1.375rem;
-		border-bottom: 1px solid var(--border);
-		background: var(--panel);
-		display: flex;
-		flex-wrap: wrap;
-		align-items: stretch;
-		gap: 12px;
+		display: contents;
 	}
-	.session-controls .start,
-	.session-controls .stop {
-		min-width: min(15rem, 100%);
-		justify-content: center;
-	}
-	.start-key {
-		align-self: center;
-	}
-	.start {
-		display: flex;
-		align-items: center;
-		gap: 11px;
-		padding: 15px 24px;
-		border: 0;
-		border-radius: var(--radius-card);
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: var(--on-accent);
-		font-size: var(--type-15-5);
-		font-weight: 600;
-		line-height: 1;
-		box-shadow: 0 12px 30px -12px rgba(90, 209, 160, 0.65);
-		flex: 0 0 auto;
-	}
-	.start:hover:not(:disabled) {
-		filter: brightness(1.06);
-	}
-	.start:disabled {
-		box-shadow: none;
-	}
-	.stop {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 10px;
-		padding: 14px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--danger-border);
-		background: var(--danger-bg);
-		color: var(--danger-soft);
-		font-size: var(--type-14);
-		font-weight: 600;
-		line-height: 1;
-		flex: 0 0 auto;
-	}
-	.stop:hover:not(:disabled) {
-		background: rgba(255, 92, 92, 0.18);
-		color: #ffb3b3;
-	}
-	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
-	   the thing the operator came to press. */
-	.rehearse {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 13px 18px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--text-soft);
-		font-size: var(--type-13);
+	/* The key as secondary text: the button's own colour and face, set off by a hairline of
+	   that colour so it reads as a note on the action rather than part of its name. */
+	.shortcut {
+		margin-left: var(--space-1);
+		padding-left: var(--space-2);
+		border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+		font-family: var(--font-mono);
+		font-size: var(--type-caption);
 		font-weight: 500;
-		line-height: 1;
 		white-space: nowrap;
-		flex: 0 0 auto;
 	}
-	.rehearse:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-
-	/* Gradients are not recoloured by the forced palette, so the button would keep its mint
-	   fill under system-coloured text. Drop it and let the theme paint the button. */
-	@media (forced-colors: active) {
-		.start {
-			background-image: none;
+	/* Once the bar can no longer hold it on one line — a narrow window, or a large Windows text
+	   size, since the query is in `em` — the printed key goes and the buttons keep their room.
+	   It is still announced, and still listed under Settings → App → Keyboard shortcuts. */
+	@container window (max-width: 48em) {
+		.shortcut {
+			display: none;
 		}
 	}
 </style>

@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
 import { expect, it, vi } from 'vitest';
-import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, waitFor, within } from '@testing-library/svelte';
 import ReadingPreferences from './ReadingPreferences.svelte';
 import CaptionPreview from './CaptionPreview.svelte';
 import CaptionAppearance from './CaptionAppearance.svelte';
@@ -108,5 +108,26 @@ it('updates reading preferences, previews presets, and resets the complete appea
 	expect(get(overlayHoldSeconds)).toBe(4);
 	expect(get(overlayPace)).toBe('immediate');
 	presets.unmount();
+	view.unmount();
+});
+
+// The quick-pick swatches used to be named by their hex value, so a screen reader read out
+// "#fff0b3"; they are named colours now, and choosing one is announced as the pressed state.
+it('names the colour swatches and marks the chosen one as pressed', async () => {
+	const overlay = createOverlayController({
+		...api,
+		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
+	});
+	const view = render(CaptionAppearance, { heading: 'Settings', overlay, compact: true });
+	const text = view.getByRole('group', { name: 'Caption colour' });
+	const mint = within(text).getByRole('button', { name: 'Mint' });
+	expect(within(text).queryByRole('button', { name: /^#/ })).toBeNull();
+	await fireEvent.click(mint);
+	await waitFor(() => expect(mint).toHaveAttribute('aria-pressed', 'true'));
+	expect(within(text).getByRole('button', { name: 'White' })).toHaveAttribute(
+		'aria-pressed',
+		'false'
+	);
+	overlay.resetOverlayAppearance();
 	view.unmount();
 });

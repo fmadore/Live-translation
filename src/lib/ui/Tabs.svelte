@@ -62,18 +62,18 @@
 	.tabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.375rem;
-		border-bottom: 1px solid var(--border);
-		padding-bottom: 0.75rem;
+		gap: var(--space-1);
+		border-bottom: 1px solid var(--line-strong);
+		padding-bottom: var(--space-3);
 	}
 	.tabs button {
 		flex: 1;
-		padding: 0.75rem;
+		padding: var(--space-3);
 		border: 1px solid transparent;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--muted);
-		font-size: var(--type-12);
+		color: var(--text-muted);
+		font-size: var(--type-small);
 	}
 	.tabs button[aria-selected='true'] {
 		background: var(--accent-bg);
@@ -81,7 +81,7 @@
 		border-color: var(--accent-border);
 	}
 	.tabs button:hover {
-		color: var(--text);
+		color: var(--text-body);
 	}
 	@media (forced-colors: active) {
 		.tabs button[aria-selected='true'] {

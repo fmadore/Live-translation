@@ -69,12 +69,12 @@
 <style>
 	.reading {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	p {
-		margin: 0 0 0.5rem;
-		font-size: var(--type-12);
+		margin: 0 0 var(--space-2);
+		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 </style>

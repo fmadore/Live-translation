@@ -120,8 +120,17 @@ export const fr: Messages = {
 	// The product's own name is not translated — the Store lists it in English, and inventing a
 	// French one would give the same app a third name. The line under it is prose, so it is.
 	app: {
-		name: 'Live Translation & Subtitles',
-		tagline: 'Traduction et sous-titrage en temps réel'
+		name: 'Live Translation & Subtitles'
+	},
+
+	keys: {
+		ctrl: 'Ctrl',
+		shift: 'Maj',
+		space: 'Espace',
+		o: 'O',
+		up: '↑',
+		down: '↓',
+		f2: 'F2'
 	},
 
 	state: {
@@ -291,7 +300,6 @@ export const fr: Messages = {
 		autoDetectHint: (engine: string) =>
 			`${engine} détecte lui-même la langue parlée et écrit les sous-titres dans cette même langue. Aucune langue cible n’est nécessaire.`,
 		flipHint: 'Permuter les deux premiers favoris avant de démarrer avec',
-		flipKey: 'F2',
 		demoLanguageHint:
 			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.'
 	},
@@ -351,6 +359,16 @@ export const fr: Messages = {
 		faceDefault: (label: string) => `${label} (par défaut)`,
 		captionColour: 'Couleur des sous-titres',
 		scrimColour: 'Couleur du fond',
+		swatch: {
+			white: 'Blanc',
+			paleYellow: 'Jaune pâle',
+			mint: 'Menthe',
+			paleBlue: 'Bleu pâle',
+			charcoal: 'Anthracite',
+			black: 'Noir',
+			green: 'Vert foncé',
+			navy: 'Bleu marine'
+		},
 		scrimOpacity: 'Intensité du fond',
 		weakerScrim: 'Fond plus discret derrière les sous-titres',
 		strongerScrim: 'Fond plus marqué derrière les sous-titres',

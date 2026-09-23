@@ -126,8 +126,9 @@
 <section class="profiles" aria-label={$t.usability.profiles}>
 	<div class="picker">
 		<Field label={$t.usability.profiles}>
+			<!-- Named by the visible field label, so what a voice-control user reads on screen is
+			     what the control answers to (WCAG 2.5.3). -->
 			<Select
-				aria-label={$t.usability.chooseProfile}
 				bind:value={selected}
 				disabled={locked || busy}
 				onchange={() => {
@@ -159,12 +160,12 @@
 					cx="9"
 					cy="6"
 					r="2"
-					fill="var(--panel-2)"
-				/><circle cx="15" cy="12" r="2" fill="var(--panel-2)" /><circle
+					fill="var(--surface-1)"
+				/><circle cx="15" cy="12" r="2" fill="var(--surface-1)" /><circle
 					cx="9"
 					cy="18"
 					r="2"
-					fill="var(--panel-2)"
+					fill="var(--surface-1)"
 				/></svg
 			>
 		</ToolButton>
@@ -280,16 +281,16 @@
 <style>
 	.profiles {
 		min-width: 0;
-		font-size: var(--type-12);
-		color: var(--text-soft);
-		padding-bottom: 1rem;
-		border-bottom: 1px solid var(--hairline);
+		font-size: var(--type-small);
+		color: var(--text-secondary);
+		padding-bottom: var(--space-4);
+		border-bottom: 1px solid var(--line);
 	}
 	.picker {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: stretch;
-		gap: 0.5rem 0.625rem;
+		gap: var(--space-2) var(--space-2);
 	}
 	.picker :global(.ui-field) {
 		display: contents;
@@ -305,7 +306,7 @@
 		padding: 0;
 	}
 	p {
-		color: var(--muted);
+		color: var(--text-muted);
 		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
@@ -315,22 +316,22 @@
 		padding: 0;
 	}
 	li {
-		padding: 0.75rem 0;
-		border-bottom: 1px solid var(--hairline);
-		margin-bottom: 0.75rem;
+		padding: var(--space-3) 0;
+		border-bottom: 1px solid var(--line);
+		margin-bottom: var(--space-3);
 		overflow-wrap: anywhere;
 	}
 	.summary {
-		margin: 0.375rem 0 0.625rem;
+		margin: var(--space-2) 0 var(--space-3);
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	form {
 		display: grid;
-		gap: 0.625rem;
-		margin-top: 0.75rem;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
 	}
 </style>

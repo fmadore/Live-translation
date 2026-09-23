@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from './i18n';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { options } from './stores';
 	import type { Origin } from './types';
 
@@ -32,21 +33,24 @@
 			? $t.applications.recovery
 			: $t.devices.recovery}
 	</p>
-	<button class="tool" disabled={busy} onclick={onRetry}>{$t.devices.retry}</button>
-	<button class="tool" disabled={busy} onclick={application ? onReselect : onFallback}
-		>{application ? $t.applications.reselect : $t.devices.fallback}</button
+	<ToolButton disabled={busy} onclick={onRetry}>{$t.devices.retry}</ToolButton>
+	<ToolButton disabled={busy} onclick={application ? onReselect : onFallback}
+		>{application ? $t.applications.reselect : $t.devices.fallback}</ToolButton
 	>
 </section>
 
 <style>
 	.device-recovery {
-		padding: 0.75rem 1.25rem;
+		padding: var(--space-3) var(--space-5);
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.625rem;
-		border-bottom: 1px solid var(--border);
+		gap: var(--space-2);
+		border-bottom: 1px solid var(--line-strong);
 	}
 	.device-recovery p {
 		flex-basis: 100%;
+	}
+	.device-recovery > :global(.ui-tool) {
+		flex: 1;
 	}
 </style>

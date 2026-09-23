@@ -56,6 +56,29 @@ export const DEFAULT_CAPTION_PALETTE: CaptionPalette = {
 	scrimOpacity: 0.72
 };
 
+/** A quick pick beside the free colour inputs. Named, so a screen reader says "Mint" where it
+ *  used to read out "#7fdcb6"; the name is a key into `$t.overlayControls.swatch`. */
+export interface Swatch {
+	name: 'white' | 'paleYellow' | 'mint' | 'paleBlue' | 'charcoal' | 'black' | 'green' | 'navy';
+	hex: string;
+}
+
+export const TEXT_SWATCHES: readonly Swatch[] = [
+	{ name: 'white', hex: '#ffffff' },
+	{ name: 'paleYellow', hex: '#fff0b3' },
+	{ name: 'mint', hex: '#7fdcb6' },
+	{ name: 'paleBlue', hex: '#b9d5ff' },
+	{ name: 'charcoal', hex: '#111419' }
+];
+
+export const SCRIM_SWATCHES: readonly Swatch[] = [
+	{ name: 'black', hex: '#000000' },
+	{ name: 'charcoal', hex: '#111419' },
+	{ name: 'green', hex: '#172b24' },
+	{ name: 'navy', hex: '#18263c' },
+	{ name: 'white', hex: '#ffffff' }
+];
+
 export const CAPTION_TEXT_KEY = 'overlay.captionColour';
 export const CAPTION_SCRIM_KEY = 'overlay.scrimColour';
 export const CAPTION_SCRIM_OPACITY_KEY = 'overlay.scrimOpacity';

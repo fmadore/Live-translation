@@ -28,11 +28,11 @@
 
 <style>
 	.activity {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 	}
 	p {
-		margin: 0.5rem 0;
+		margin: var(--space-2) 0;
 	}
 </style>

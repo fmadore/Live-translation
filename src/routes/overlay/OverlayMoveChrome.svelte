@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/i18n';
+	import ToolButton from '$lib/ui/ToolButton.svelte';
 
 	/** Move mode's placement chrome. The overlay window *is* the caption region, so the chrome
 	 *  hugs the window edges rather than being drawn inside a larger screen. Everything here is
@@ -72,8 +73,8 @@
 			<button class="step" onclick={() => onBump(2)} aria-label={$t.overlay.larger}>+</button>
 		</div>
 		<span class="divider"></span>
-		<button class="ghost" onclick={onSnap}>{$t.overlay.snapToBottom}</button>
-		<button class="primary" onclick={onLock}>
+		<ToolButton onclick={onSnap}>{$t.overlay.snapToBottom}</ToolButton>
+		<ToolButton variant="primary" onclick={onLock}>
 			<svg
 				width="13"
 				height="13"
@@ -88,7 +89,7 @@
 				<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
 			</svg>
 			{$t.overlay.lock}
-		</button>
+		</ToolButton>
 	</div>
 </div>
 
@@ -96,8 +97,8 @@
 	.region {
 		position: absolute;
 		inset: 0;
-		border: 2px solid #5ad1a0;
-		background: rgba(90, 209, 160, 0.07);
+		border: 2px solid var(--accent);
+		background: var(--accent-bg);
 		pointer-events: none;
 	}
 	/* Affordances only: the resize itself is the OS window edge-drag. */
@@ -105,8 +106,8 @@
 		position: absolute;
 		width: 11px;
 		height: 11px;
-		border-radius: 3px;
-		background: #5ad1a0;
+		border-radius: var(--radius-sm);
+		background: var(--accent);
 	}
 	.handle.tl {
 		left: 3px;
@@ -130,8 +131,8 @@
 		transform: translateX(-50%);
 		width: 34px;
 		height: 9px;
-		border-radius: 3px;
-		background: rgba(90, 209, 160, 0.55);
+		border-radius: var(--radius-sm);
+		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 	.edge.top {
 		top: 3px;
@@ -148,7 +149,7 @@
 		display: grid;
 		place-items: center;
 		margin: 0;
-		padding: 0 34px;
+		padding: 0 var(--space-6);
 		font-weight: 600;
 		/* Never larger than the caption it stands in for, and never so large it wraps to
 		   nothing in a short region. */
@@ -170,7 +171,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 		pointer-events: none;
 	}
 	/* Stays transparent to the pointer so dragging it drags the window (the stage below
@@ -178,22 +179,22 @@
 	.drag-pill {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 6px 12px;
-		border-radius: 8px;
-		background: #5ad1a0;
-		color: #05271b;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-control);
+		background: var(--accent);
+		color: var(--on-accent);
 		pointer-events: none;
 	}
 	.drag-label {
 		font-weight: 600;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
 	}
 	.drag-size {
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		opacity: 0.72;
@@ -202,15 +203,17 @@
 	.toolbar {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 12px 14px;
-		border: 1px solid #2f3540;
-		border-radius: 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
+		border: 1px solid var(--line-hover);
+		border-radius: var(--radius-card);
 		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
-		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. */
-		background: rgba(14, 17, 20, 0.96);
+		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. At
+		   0.96 the panel over white stays darker than --surface-2, so every text level that
+		   passes there passes here; `palette.test.ts` holds it to that. */
+		background: color-mix(in srgb, var(--surface-0) 96%, transparent);
 		box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
-		color: #e9ebef;
+		color: var(--text-body);
 		/* Clickable while the rest of the stage drags the window. */
 		pointer-events: auto;
 		cursor: default;
@@ -218,62 +221,60 @@
 	.mode {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
-		padding-right: 4px;
+		gap: var(--space-1);
+		padding-right: var(--space-1);
 	}
 	.mode-title {
 		font-weight: 600;
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
-		color: #ffb454;
+		color: var(--warn);
 	}
 	.mode-sub {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
-		color: #8b93a1;
+		color: var(--text-muted);
 	}
 	.keys {
-		margin-top: 3px;
+		margin-top: var(--space-1);
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1.7;
-		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
-		   paints over an unknown desktop and does not inherit the operator's surfaces. */
-		color: #848c99;
+		color: var(--text-muted);
 		white-space: nowrap;
 	}
 	.keys kbd {
-		padding: 3px 5px;
-		border: 1px solid #2a2f38;
-		border-radius: 5px;
-		background: #191d23;
+		padding: var(--space-1) var(--space-1);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
+		background: var(--surface-2);
 		font-family: inherit;
 		font-weight: 500;
 		font-size: inherit;
-		color: #b9c0ca;
+		color: var(--text-secondary);
 	}
 	.divider {
 		width: 1px;
 		height: 30px;
-		background: #2a2f38;
+		background: var(--line-strong);
 	}
 	.size {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.size-label {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
-		color: #8b93a1;
+		color: var(--text-muted);
 	}
 	.size-value {
 		min-width: 24px;
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		text-align: center;
@@ -281,66 +282,30 @@
 	.step {
 		display: grid;
 		place-items: center;
-		width: 28px;
-		height: 28px;
-		border: 1px solid #2a2f38;
-		border-radius: 7px;
-		background: #171b21;
-		color: #c3c9d2;
+		width: 2rem;
+		height: 2rem;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-control);
+		background: var(--surface-2);
+		color: var(--text-secondary);
 		font-weight: 500;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1;
 	}
 	.step:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
-	}
-	.ghost {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 9px 13px;
-		border: 1px solid #2a2f38;
-		border-radius: 9px;
-		background: #171b21;
-		color: #c3c9d2;
-		font-weight: 500;
-		font-size: var(--type-12);
-		line-height: 1;
-	}
-	.ghost:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
-	}
-	.primary {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 15px;
-		border: 0;
-		border-radius: 9px;
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: #05271b;
-		font-weight: 600;
-		font-size: var(--type-12-5);
-		line-height: 1;
-	}
-	.primary:hover {
-		filter: brightness(1.06);
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 
 	/* Windows contrast themes. The placement preview keeps its own colours, like the audience
-	   view it stands for; the toolbar, which is chrome, keeps the system palette and only drops
-	   the gradient the forced palette would not have recoloured. */
+	   view it stands for; the toolbar, which is chrome, keeps the system palette (Lock drops its
+	   gradient in `app.css`, with every other primary). */
 	@media (forced-colors: active) {
 		.placeholder,
 		.region,
 		.handle,
 		.edge {
 			forced-color-adjust: none;
-		}
-		.primary {
-			background-image: none;
 		}
 	}
 </style>

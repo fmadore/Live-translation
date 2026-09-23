@@ -72,9 +72,9 @@
 		display: grid;
 		grid-template-columns: 24px 1fr auto;
 		align-items: center;
-		gap: 14px;
-		padding: 15px 0;
-		border-bottom: 1px solid var(--hairline);
+		gap: var(--space-3);
+		padding: var(--space-4) 0;
+		border-bottom: 1px solid var(--line);
 	}
 	.check-row.pending {
 		align-items: start;
@@ -106,27 +106,27 @@
 	}
 	.mark.neutral {
 		background: rgba(255, 255, 255, 0.05);
-		color: var(--muted);
+		color: var(--text-muted);
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.check-body {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.check-title {
-		font-size: var(--type-13-5);
+		font-size: var(--type-label);
 		font-weight: 500;
 		line-height: 1.2;
 	}
 	.check-desc {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.3;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	/* A pending row's sentence wraps around a link and a model id. */
 	.check-row.pending .check-desc {
@@ -138,7 +138,7 @@
 	/* The tighter checklist rhythm the stage adopts near the window's minimum height. */
 	@media (max-height: 740px) {
 		.check-row {
-			padding: 12px 0;
+			padding: var(--space-3) 0;
 		}
 	}
 </style>

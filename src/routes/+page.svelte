@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
-	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
+	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
 	import SessionControls from '$lib/SessionControls.svelte';
 	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
 	import LiveTurns from '$lib/LiveTurns.svelte';
@@ -262,11 +262,35 @@
 />
 
 <div class="app" class:device-error={device.failed !== null}>
-	<OperatorTitlebar
+	<OperatorToolbar
 		elapsed={clock.elapsed}
 		{settingsOpen}
 		onOpenSettings={() => (settingsOpen = true)}
-	/>
+	>
+		{#snippet actions()}
+			<SessionControls
+				busy={$sessionBusy}
+				startDisabled={!!languageError ||
+					!$hasKey ||
+					browserMode ||
+					profileBusy ||
+					$sessionBusy ||
+					!preflight.applicationReady($options)}
+				rehearseDisabled={!!languageError ||
+					!$hasKey ||
+					browserMode ||
+					$sessionBusy ||
+					$options.provider === 'ondevice'}
+				onStart={start}
+				onRehearse={rehearse}
+				onStop={stop}
+			/>
+		{/snippet}
+	</OperatorToolbar>
+
+	<div class="rule" class:live={$isRunning}>
+		{#if $isRunning}<span class="sweep"></span>{/if}
+	</div>
 
 	<!-- The two regions that speak for the session. Neither holds anything that changes on a
 	     timer, so they announce on real changes only, and both are in the DOM from the first
@@ -283,28 +307,6 @@
 			onReselect={device.reselectApplication}
 		/>
 	{/if}
-
-	<div class="rule" class:live={$isRunning}>
-		{#if $isRunning}<span class="sweep"></span>{/if}
-	</div>
-
-	<SessionControls
-		busy={$sessionBusy}
-		startDisabled={!!languageError ||
-			!$hasKey ||
-			browserMode ||
-			profileBusy ||
-			$sessionBusy ||
-			!preflight.applicationReady($options)}
-		rehearseDisabled={!!languageError ||
-			!$hasKey ||
-			browserMode ||
-			$sessionBusy ||
-			$options.provider === 'ondevice'}
-		onStart={start}
-		onRehearse={rehearse}
-		onStop={stop}
-	/>
 
 	<div class="body">
 		<aside class="rail">
@@ -455,25 +457,25 @@
 	.app {
 		height: 100vh;
 		display: grid;
-		/* The title bar sizes to its own text rather than to a slot: at 225% its label is
-		   28px tall and a fixed 40px row would crop it. */
-		grid-template-rows: auto 2px auto minmax(0, 1fr);
+		/* The bar sizes to its own content rather than to a slot: at 225% its buttons are twice
+		   as tall, and a narrow window wraps it onto a second line. */
+		grid-template-rows: auto 2px minmax(0, 1fr);
 		background: var(--surface-0);
 		/* The query container for the column rule below. Its `em` is the scaled root, which
 		   is what lets a text-size change move the breakpoint. */
 		container: window / inline-size;
 	}
 	.app.device-error {
-		grid-template-rows: auto auto 2px auto minmax(0, 1fr);
+		grid-template-rows: auto 2px auto minmax(0, 1fr);
 	}
 
 	/* ---- Header ------------------------------------------------------------- */
 
 	.rule {
-		background: var(--hairline);
+		background: var(--line);
 	}
 	.rule.live {
-		background: #163027;
+		background: var(--accent-chip-bg);
 		position: relative;
 		overflow: hidden;
 	}
@@ -501,12 +503,12 @@
 	.rail {
 		/* rem, not px: at 225% the type doubles, and a fixed 20px gap leaves a section
 		   heading touching the paragraph above it. Same numbers at 100%. */
-		padding: 1.375rem 1.375rem 1.625rem;
+		padding: var(--space-5) var(--space-5) var(--space-5);
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
-		background: var(--panel);
-		border-bottom: 1px solid var(--hairline);
+		gap: var(--space-4);
+		background: var(--surface-1);
+		border-bottom: 1px solid var(--line);
 	}
 	/* The same measure the rail has as a column, so a stacked rail keeps the proportions the
 	   cards were drawn at instead of stretching a two-line description across the window.
@@ -517,7 +519,7 @@
 		max-width: 23.75rem;
 	}
 	.stage {
-		padding: 1.875rem 2.375rem 2rem;
+		padding: var(--space-6) var(--space-6) var(--space-6);
 		display: flex;
 		flex-direction: column;
 	}
@@ -530,7 +532,7 @@
 		   checklist and the transcript scroll independently. */
 		.rail {
 			border-bottom: 0;
-			border-right: 1px solid var(--hairline);
+			border-right: 1px solid var(--line);
 			overflow-y: auto;
 		}
 		.stage {
@@ -551,32 +553,32 @@
 	/* ---- Stage -------------------------------------------------------------- */
 
 	.banner {
-		background: var(--panel-2);
-		border: 1px solid var(--border);
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
-		padding: 12px;
-		margin-bottom: 22px;
-		font-size: var(--type-13);
+		padding: var(--space-3);
+		margin-bottom: var(--space-5);
+		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.banner code {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
-		color: var(--text-dim);
+		font-size: var(--type-small);
+		color: var(--text-secondary);
 	}
 	.ready {
-		margin: 16px 0 0;
-		font-size: var(--type-27);
+		margin: var(--space-4) 0 0;
+		font-size: var(--type-display);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.02em;
 	}
 	.intro {
-		margin: 8px 0 0;
-		font-size: var(--type-13-5);
+		margin: var(--space-2) 0 0;
+		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted);
+		color: var(--text-muted);
 		max-width: 48ch;
 		text-wrap: pretty;
 	}
@@ -586,27 +588,27 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 12px;
-		margin-top: 30px;
+		gap: var(--space-3);
+		margin-top: var(--space-6);
 	}
 	.rehearse-hint {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.45;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
 	}
 
 	.privacy {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.5;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
 	}
 	.status-msg {
-		margin: 16px 0 0;
-		font-size: var(--type-13);
+		margin: var(--space-4) 0 0;
+		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--warn);
 	}
@@ -615,19 +617,19 @@
 	   and the Start button still land above the fold. */
 	@media (max-height: 740px) {
 		.rail {
-			padding: 1.125rem 1.375rem 1.25rem;
-			gap: 1rem;
+			padding: var(--space-4) var(--space-5) var(--space-5);
+			gap: var(--space-4);
 		}
 		.stage {
-			padding-top: 1.375rem;
-			padding-bottom: 1.375rem;
+			padding-top: var(--space-5);
+			padding-bottom: var(--space-5);
 		}
 		.ready {
-			margin-top: 10px;
-			font-size: var(--type-24);
+			margin-top: var(--space-3);
+			font-size: var(--type-heading);
 		}
 		.launch {
-			margin-top: 22px;
+			margin-top: var(--space-5);
 		}
 	}
 

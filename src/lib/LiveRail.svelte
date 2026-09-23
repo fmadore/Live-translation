@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CaptionAppearance from './CaptionAppearance.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
 	import { languageName } from './languages';
@@ -138,9 +139,7 @@
 		     all a sighted operator needs beside the "Overlay" heading. The accessible
 		     name says what is being moved or hidden, because a screen reader can arrive
 		     at the button without the heading. -->
-		<button
-			class="tool"
-			class:on={overlay.moveOverlay}
+		<ToolButton
 			aria-pressed={overlay.moveOverlay}
 			aria-label={overlay.moveOverlay
 				? $t.overlayControls.moveDoneLabel
@@ -162,10 +161,9 @@
 				/></svg
 			>
 			{overlay.moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
-		</button>
-		<button
-			class="tool"
-			class:off={!overlay.overlayVisible}
+		</ToolButton>
+		<ToolButton
+			variant={overlay.overlayVisible ? 'default' : 'warn'}
 			aria-label={overlay.overlayVisible
 				? $t.overlayControls.hideLabel
 				: $t.overlayControls.showLabel}
@@ -185,7 +183,7 @@
 				{#if overlay.overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
 			</svg>
 			{overlay.overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
-		</button>
+		</ToolButton>
 	</div>
 </div>
 
@@ -204,64 +202,64 @@
 	.chips {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip {
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
+		background: var(--surface-1);
+		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.chip-label {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.chip-value {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1.1;
-		color: #dfe3e9;
+		color: var(--text-body);
 	}
 	.rail-note {
 		margin: 0;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.4;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 
 	.cost-card {
-		padding: 14px 15px;
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--radius-card);
-		background: var(--panel-2);
-		border: 1px solid var(--border-2);
+		background: var(--surface-1);
+		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.cost-figures {
 		display: flex;
 		align-items: baseline;
-		gap: 18px;
+		gap: var(--space-4);
 	}
 	.figure {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
+		gap: var(--space-1);
 	}
 	.figure-value {
 		font-family: var(--font-mono);
-		font-size: var(--type-21);
+		font-size: var(--type-heading);
 		font-weight: 500;
 		line-height: 1;
-		color: #dfe3e9;
+		color: var(--text-body);
 		font-variant-numeric: tabular-nums;
 	}
 	.figure-value.mint {
@@ -270,21 +268,24 @@
 	.cost-tag {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.cost-note {
 		margin: 0;
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1.45;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 
 	.overlay-actions {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
+	}
+	.overlay-actions > :global(.ui-tool) {
+		flex: 1;
 	}
 </style>

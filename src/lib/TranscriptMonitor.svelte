@@ -14,6 +14,7 @@
 	import { saveTranscriptDocument } from './saveDocument';
 	import { groupTranscript, hasTranscriptTiming, type TranscriptFormat } from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
+	import ToolButton from './ui/ToolButton.svelte';
 
 	interface Props {
 		mode: OutputMode;
@@ -134,22 +135,23 @@
 			<option value="vtt">WebVTT (.vtt)</option>
 			<option value="srt">SubRip (.srt)</option>
 		</select>
-		<button
-			class="ghost"
+		<ToolButton
+			variant="ghost"
+			size="sm"
 			disabled={!desktop || !transcript.length || saving || missingTiming}
 			aria-busy={saving}
 			onclick={() => save(exportFormat)}
 		>
 			{$t.transcript.saveAs}
-		</button>
-		<button
-			class="ghost quiet"
-			class:confirming={confirmingClear}
+		</ToolButton>
+		<ToolButton
+			variant={confirmingClear ? 'danger' : 'ghost'}
+			size="sm"
 			disabled={!transcript.length || saving}
 			onclick={clear}
 		>
 			{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
-		</button>
+		</ToolButton>
 	</div>
 	{#if missingTiming && transcript.length}<p class="hint" role="status">
 			{$t.transcript.noTiming}
@@ -193,9 +195,15 @@
 			</ul>
 		</div>
 		{#if !following}
-			<button class="ghost jump-latest" aria-controls={logId} onclick={jumpToLatest}>
+			<ToolButton
+				variant="ghost"
+				size="sm"
+				class="jump-latest"
+				aria-controls={logId}
+				onclick={jumpToLatest}
+			>
 				{$t.transcript.jumpToLatest}
-			</button>
+			</ToolButton>
 		{/if}
 	{:else}
 		<p class="hint">
@@ -220,75 +228,56 @@
 </section>
 
 <style>
-	.jump-latest {
+	.monitor :global(.jump-latest) {
 		align-self: flex-end;
 		white-space: normal;
 	}
 	.monitor {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		margin-top: 22px;
-		padding-top: 18px;
-		border-top: 1px solid var(--hairline);
+		gap: var(--space-3);
+		margin-top: var(--space-5);
+		padding-top: var(--space-4);
+		border-top: 1px solid var(--line);
 		/* The stage is a scrolling flex column; keep the block at its natural height there. */
 		flex: 0 0 auto;
 	}
+	/* Wraps rather than squeezing its buttons below their labels at a large text size. */
 	.head {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.count {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		font-variant-numeric: tabular-nums;
 	}
 	.spacer {
 		flex: 1;
 	}
-	button.ghost {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: transparent;
-	}
 	select {
 		font: inherit;
-		font-size: var(--type-11-5);
-		color: var(--text);
-		background: var(--bg);
-		border: 1px solid var(--border);
+		min-height: 2rem;
+		font-size: var(--type-small);
+		color: var(--text-body);
+		background: var(--surface-0);
+		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
-		padding: 6px;
+		padding: var(--space-1);
 		max-width: 100%;
 	}
-	button.ghost:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-	button.ghost.quiet {
-		color: var(--muted-2);
-		border-color: transparent;
-	}
-	button.ghost.quiet:hover:not(:disabled) {
-		border-color: transparent;
-		color: var(--text);
-	}
 	.state {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		padding: 4px 7px;
-		border-radius: 5px;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-sm);
 		color: var(--accent-soft);
 		background: var(--accent-chip-bg);
 	}
@@ -296,13 +285,9 @@
 		color: var(--warn-soft);
 		background: var(--warn-bg);
 	}
-	button.ghost.quiet.confirming {
-		color: var(--danger-soft);
-		border-color: var(--danger-border);
-	}
 	.saved {
 		margin: 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--accent-soft);
 		word-break: break-all;
 	}
@@ -310,30 +295,30 @@
 	.saved code,
 	.hint code {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 	}
 	.hint {
 		margin: 0;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		word-break: break-word;
 	}
 	.warn {
 		margin: 0;
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--warn-border);
 		background: var(--warn-bg);
 		color: var(--warn-soft);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.55;
 		text-wrap: pretty;
 	}
 	.recovery {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 9px;
+		gap: var(--space-2);
 		align-items: start;
 		cursor: pointer;
 	}
@@ -343,15 +328,15 @@
 	}
 	.recovery-title {
 		display: block;
-		font-size: var(--type-12);
-		color: var(--text-soft);
+		font-size: var(--type-small);
+		color: var(--text-secondary);
 	}
 	.recovery-note {
 		display: block;
-		margin-top: 3px;
-		font-size: var(--type-11-5);
+		margin-top: var(--space-1);
+		font-size: var(--type-small);
 		line-height: 1.5;
-		color: var(--muted-3);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 	.log {
@@ -360,7 +345,7 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-2);
 	}
 	.log-scroll {
 		/* 180px at 100% — about six rows, in `em` so it stays about six rows. */
@@ -370,26 +355,27 @@
 	.log li {
 		display: grid;
 		grid-template-columns: 4.25em 1fr;
-		gap: 14px;
+		gap: var(--space-3);
 	}
 	.side {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1.6;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
 	}
+	/* The same identity as the live turns above: blue is the room, and only the room. The
+	   remote side is the default speaker, so its marker stays neutral. */
 	.origin-microphone .side {
-		color: var(--muted-3);
+		color: var(--room-soft);
 	}
-	/* Dimmer than --room-soft: in the log the label is a marker, not a heading. */
 	.origin-system .side {
-		color: #6b8fd6;
+		color: var(--text-muted);
 	}
 	.text {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.55;
-		color: var(--muted);
+		color: var(--text-muted);
 		text-wrap: pretty;
 	}
 </style>

@@ -33,13 +33,37 @@ function declarations(): Array<{ file: string; value: string }> {
 	);
 }
 
+/** The whole ramp: a role for each kind of text, and the size it renders at at 100%. */
+const RAMP = {
+	caption: 11,
+	small: 12,
+	body: 13,
+	label: 14,
+	title: 17,
+	heading: 21,
+	display: 27
+};
+
+/** A declaration that takes its size from the ramp. */
+const ROLE = new RegExp(`^(var\\(--type-(${Object.keys(RAMP).join('|')})\\)|inherit)$`);
+
 describe('the type scale', () => {
 	it('is declared once, in app.css, and every step is a multiple of the factor', () => {
 		const steps = [
-			...APP_CSS.matchAll(/--type-[\w-]+:\s*calc\(([\d.]+)px \* var\(--text-scale\)\);/g)
+			...APP_CSS.matchAll(/--type-([\w-]+):\s*calc\(([\d.]+)px \* var\(--text-scale\)\);/g)
 		];
-		expect(steps.length).toBeGreaterThan(0);
-		for (const [, px] of steps) expect(Number(px)).toBeGreaterThan(0);
+		expect(Object.fromEntries(steps.map(([, role, px]) => [role, Number(px)]))).toEqual(RAMP);
+	});
+
+	// The old ramp had sixteen steps, four of which rendered the same 11px and three pairs of
+	// which were half a pixel apart. A step nobody can tell from its neighbour is not
+	// hierarchy, so the ramp keeps at least a pixel between any two.
+	it('keeps every step visibly apart from the next', () => {
+		const sizes = Object.values(RAMP).sort((a, b) => a - b);
+		for (let i = 1; i < sizes.length; i++) {
+			expect(sizes[i] - sizes[i - 1]).toBeGreaterThanOrEqual(1);
+			expect(Number.isInteger(sizes[i])).toBe(true);
+		}
 	});
 
 	it('carries the factor into the root font size, so em-based layout follows the text', () => {
@@ -58,7 +82,19 @@ describe('the type scale', () => {
 		const used = declarations().filter(({ file }) => !file.startsWith('routes/overlay/'));
 		expect(used.length).toBeGreaterThan(0);
 		for (const { file, value } of used) {
-			expect(value, `${file} declares ${value}`).toMatch(/var\(--type-[\w-]+\)|inherit/);
+			expect(value, `${file} declares ${value}`).toMatch(ROLE);
+		}
+	});
+
+	// The overlay's move-mode chrome is operator interface, not caption, so it takes its
+	// sizes from the same ramp; only the caption rules there are expressions over `--fs`.
+	it('is what the overlay chrome uses too', () => {
+		const chrome = declarations().filter(
+			({ file, value }) => file.startsWith('routes/overlay/') && !value.includes('--fs')
+		);
+		expect(chrome.length).toBeGreaterThan(0);
+		for (const { file, value } of chrome) {
+			expect(value, `${file} declares ${value}`).toMatch(ROLE);
 		}
 	});
 });

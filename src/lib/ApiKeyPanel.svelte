@@ -5,6 +5,7 @@
 	import { PROVIDER_META } from './providers';
 	import { providerKeyName } from './types';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import type { Provider } from './types';
 
 	interface Props {
@@ -92,8 +93,9 @@
 	<ChecklistRow status="ok" title={$t.key.title(keyName)} desc={$t.key.saved}>
 		{#snippet action()}
 			<div class="actions">
-				<button
-					class="ghost"
+				<ToolButton
+					variant="ghost"
+					size="sm"
 					disabled={locked}
 					onclick={() => {
 						editing = true;
@@ -101,8 +103,10 @@
 					}}
 				>
 					{$t.key.replace}
-				</button>
-				<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
+				</ToolButton>
+				<ToolButton variant="ghost" size="sm" disabled={locked} onclick={clearKey}
+					>{$t.key.remove}</ToolButton
+				>
 			</div>
 		{/snippet}
 	</ChecklistRow>
@@ -132,24 +136,26 @@
 					disabled={locked}
 					onkeydown={(event) => event.key === 'Enter' && void saveKey()}
 				/>
-				<button
-					class="save"
+				<ToolButton
+					variant="primary"
+					size="sm"
 					disabled={locked || saving || !apiKeyInput.trim()}
 					aria-busy={saving}
 					onclick={saveKey}
 				>
 					{saving ? $t.key.saving : $t.key.save}
-				</button>
+				</ToolButton>
 				{#if available}
-					<button
-						class="ghost"
+					<ToolButton
+						variant="ghost"
+						size="sm"
 						onclick={() => {
 							editing = false;
 							apiKeyInput = '';
 						}}
 					>
 						{$t.key.cancel}
-					</button>
+					</ToolButton>
 				{/if}
 			</div>
 		{/snippet}
@@ -159,8 +165,8 @@
 <style>
 	code {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
-		color: var(--text-dim);
+		font-size: var(--type-caption);
+		color: var(--text-secondary);
 	}
 	a {
 		color: var(--accent-soft);
@@ -172,45 +178,20 @@
 	.actions {
 		display: flex;
 		align-items: center;
-		gap: 8px;
-	}
-	button {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-	}
-	button.ghost {
-		color: var(--text-soft);
-		border: 1px solid var(--border);
-		background: transparent;
-	}
-	button.ghost:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-	button.save {
-		border: 0;
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: var(--on-accent);
-		font-weight: 600;
-		padding: 8px 13px;
-	}
-	button.save:hover:not(:disabled) {
-		filter: brightness(1.06);
+		gap: var(--space-2);
 	}
 	input {
 		/* 220px at 100%. A key is a long opaque string, so the field is sized in the text
 		   it holds rather than in pixels that stop matching it. */
 		width: 13.75em;
 		max-width: 100%;
-		background: var(--panel-2);
-		border: 1px solid var(--border);
-		color: var(--text);
+		min-height: 2rem;
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
+		color: var(--text-body);
 		border-radius: var(--radius-control);
-		padding: 7px 10px;
-		font-size: var(--type-12-5);
+		padding: var(--space-2) var(--space-2);
+		font-size: var(--type-small);
 	}
 	/* The mint border says "this field is where you are typing"; the ring from app.css stays,
 	   because on a dark panel a border tint alone is not a focus indicator. */

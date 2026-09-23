@@ -215,21 +215,21 @@
 	input {
 		width: 100%;
 		min-width: 0;
-		padding: 0.7em;
-		color: var(--text);
-		background: var(--panel);
-		border: 1px solid var(--border);
-		border-radius: 6px;
+		padding: var(--space-3);
+		color: var(--text-body);
+		background: var(--surface-1);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-control);
 		font: inherit;
 	}
 	.hint,
 	.error {
-		margin: 0.5em 0;
-		font-size: var(--type-12);
+		margin: var(--space-2) 0;
+		font-size: var(--type-small);
 		overflow-wrap: anywhere;
 	}
 	.hint {
-		color: var(--muted);
+		color: var(--text-muted);
 		/* Not the shared hint's 1.5: this one sits in the picker's own rhythm. */
 		line-height: inherit;
 	}
@@ -241,10 +241,10 @@
 		grid-template-columns: minmax(0, 1fr) 2.5em;
 		max-height: min(20em, 45vh);
 		overflow: auto;
-		border: 1px solid var(--border);
-		border-radius: 6px;
-		background: var(--panel);
-		scrollbar-color: var(--muted) var(--panel);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-control);
+		background: var(--surface-1);
+		scrollbar-color: var(--text-muted) var(--surface-1);
 	}
 	[role='listbox'],
 	.pins {
@@ -259,12 +259,12 @@
 		grid-column: 2;
 	}
 	.group {
-		padding: 0.5em;
+		padding: var(--space-2);
 		height: 2.5em;
 		box-sizing: border-box;
-		font-size: var(--type-12);
-		color: var(--muted);
-		border-top: 1px solid var(--border);
+		font-size: var(--type-small);
+		color: var(--text-muted);
+		border-top: 1px solid var(--line-strong);
 	}
 	.option,
 	.pin-row {
@@ -275,13 +275,13 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		padding: 0.6em;
+		padding: var(--space-2);
 		cursor: pointer;
 		overflow-wrap: anywhere;
 	}
 	.option b {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.option.active {
 		background: var(--accent-bg);
@@ -293,11 +293,11 @@
 	}
 	.option.unsupported {
 		cursor: default;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	small {
 		display: block;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.pin-row {
 		display: flex;
@@ -309,7 +309,7 @@
 		min-height: 3em;
 		background: transparent;
 		border: 0;
-		color: var(--text);
+		color: var(--text-body);
 		cursor: pointer;
 	}
 	.pin-row button:hover {

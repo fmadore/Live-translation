@@ -130,11 +130,18 @@ failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
 controllers expose reactive getters and explicit actions; they do not subscribe globally
 when imported. Page teardown disposes the preflight timers and capture test.
 
-The page renders `OperatorTitlebar`, `SessionControls`, `DeviceRecoveryBanner`, `SetupSheet`
-or `LiveRail`, `PreflightChecklist` or `LiveTurns`, and `SettingsDialog`, over the primitives
-in `src/lib/ui/` (`Tabs`, `ChecklistRow`, `ChoiceButton`, `LanguageCard`, `Select`, `Field`).
-Classes they share (`kicker`, `hint`, `divider`, `tool`, `pref`, `rail-section`) are global in
-`app.css`. `CaptionAppearance.svelte` renders the same appearance controls in the live rail
+The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
+its actions), `DeviceRecoveryBanner`, `SetupSheet` or `LiveRail`, `PreflightChecklist` or
+`LiveTurns`, and `SettingsDialog`, over the primitives in `src/lib/ui/` (`ToolButton`, `Kbd`,
+`Tabs`, `ChecklistRow`, `ChoiceButton`, `LanguageCard`, `Select`, `Field`). Every button is a
+`ToolButton` (`variant` default, primary, ghost, danger or warn; `size` sm, md or lg), drawn
+once under `.ui-tool` in `app.css`. Classes the components share (`kicker`, `hint`,
+`divider`, `pref`, `rail-section`) are global there too. `app.css` is also the only place a
+design value is written: colours (three surfaces, three lines, four text levels, the accent,
+warning, danger and room families), seven type roles, a six-step `rem` spacing scale and four
+radii. `palette.test.ts`, `typeScale.test.ts` and `spacing.test.ts` read the component
+stylesheets and fail on a value that bypasses them. `shortcuts.ts` holds the one table of
+shortcuts that the listener, `aria-keyshortcuts` and the printed key caps all read. `CaptionAppearance.svelte` renders the same appearance controls in the live rail
 and settings dialog, sharing persisted stores while keeping each contrast description's
 accessible ID unique.
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CaptionPreview from './CaptionPreview.svelte';
 	import Select from './ui/Select.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t, localeTag } from './i18n';
 	import {
 		appearance,
@@ -10,7 +11,13 @@
 		overlayContrast
 	} from './stores';
 	import { DEFAULT_APPEARANCE, sameAppearance } from './appearance';
-	import { CAPTION_CONTRAST_TARGET, SCRIM_OPACITY_MIN, SCRIM_OPACITY_MAX } from './captionColour';
+	import {
+		CAPTION_CONTRAST_TARGET,
+		SCRIM_OPACITY_MIN,
+		SCRIM_OPACITY_MAX,
+		SCRIM_SWATCHES,
+		TEXT_SWATCHES
+	} from './captionColour';
 	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
 	import type { OverlayController } from './overlayController.svelte';
@@ -100,14 +107,14 @@
 							: $t.overlayControls.scrimColour}</span
 					>
 					<div class="swatches">
-						{#each role === 'text' ? ['#ffffff', '#fff0b3', '#7fdcb6', '#b9d5ff', '#111419'] : ['#000000', '#111419', '#172b24', '#18263c', '#ffffff'] as colour}
+						{#each role === 'text' ? TEXT_SWATCHES : SCRIM_SWATCHES as swatch (swatch.hex)}
 							<button
 								class="colour-choice"
-								style:background={colour}
-								aria-label={colour}
+								style:background={swatch.hex}
+								aria-label={$t.overlayControls.swatch[swatch.name]}
 								aria-pressed={(role === 'text' ? $overlayPalette.text : $overlayPalette.scrim) ===
-									colour}
-								onclick={() => overlay.setPalette({ [role]: colour })}
+									swatch.hex}
+								onclick={() => overlay.setPalette({ [role]: swatch.hex })}
 							></button>
 						{/each}
 					</div>
@@ -166,14 +173,15 @@
 			</span>
 		</p>
 
-		<button
-			class="reset"
+		<ToolButton
+			variant="ghost"
+			size="sm"
 			disabled={overlayAtDefaults}
 			onclick={overlay.resetOverlayAppearance}
 			aria-label={$t.overlayControls.resetLabel}
 		>
 			{$t.overlayControls.reset}
-		</button>
+		</ToolButton>
 	</div>
 	{#if !compact}<CaptionPreview {overlay} />{/if}
 </div>
@@ -181,14 +189,14 @@
 <style>
 	.face-label {
 		display: grid;
-		gap: 0.5rem;
-		font-size: var(--type-12);
-		color: var(--muted);
+		gap: var(--space-2);
+		font-size: var(--type-small);
+		color: var(--text-muted);
 	}
 	.appearance-layout {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		gap: 1.5rem;
+		gap: var(--space-5);
 		align-items: start;
 	}
 	.appearance-layout.compact {
@@ -196,32 +204,41 @@
 	}
 	.appearance-controls {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
-	@media (max-width: 760px) {
+	/* The controls and the preview share a row until the settings dialog is too narrow for
+	   both. Asked of the dialog (ModalPrompt's `dialog` container) in `em`, so it follows the
+	   operator's text size; a viewport query in px fired at the wrong width at 225%. In the
+	   rail there is no such container, and `compact` already stacks them. */
+	@container dialog (max-width: 40em) {
 		.appearance-layout {
 			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 	.palette-options {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.swatches {
 		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.5rem;
+		gap: var(--space-2);
+		margin-top: var(--space-2);
 	}
 	.colour-choice {
 		width: 2rem;
 		height: 2rem;
-		border: 1px solid var(--border-hover);
+		border: 1px solid var(--line-hover);
 		border-radius: var(--radius-control);
 		forced-color-adjust: none;
 	}
+	/* Chosen is drawn inside the swatch — a mint ring, parted from the colour by a dark one so it
+	   shows on white and on black alike — and never outside it, where the focus ring goes. The
+	   two used to be the same outline, so a keyboard operator could not tell which swatch was
+	   chosen and which was merely focused. */
 	.colour-choice[aria-pressed='true'] {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
+		box-shadow:
+			inset 0 0 0 2px var(--accent-soft),
+			inset 0 0 0 4px var(--surface-0);
 	}
 	.kicker {
 		flex: 0 0 auto;
@@ -229,17 +246,17 @@
 	.stepper {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-2);
 	}
 	.stepper-label {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
-		color: var(--muted);
+		color: var(--text-muted);
 		flex: 1;
 	}
 	.stepper-value {
 		font-family: var(--font-mono);
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		/* Two mono digits, so the buttons either side stop moving as the number changes. */
@@ -248,51 +265,51 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.step {
-		width: 30px;
-		height: 30px;
+		width: 2rem;
+		height: 2rem;
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		color: var(--text-soft);
-		font-size: var(--type-14);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
+		color: var(--text-secondary);
+		font-size: var(--type-label);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.step:hover {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.colour-row {
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.swatch {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0.5rem 0.625rem;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-2);
 		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		cursor: pointer;
 	}
 	.swatch:hover {
-		border-color: var(--border-hover);
+		border-color: var(--line-hover);
 	}
 	.swatch-label {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.2;
-		color: var(--muted);
+		color: var(--text-muted);
 	}
 	.swatch input[type='color'] {
 		flex: 0 0 auto;
 		width: 26px;
 		height: 20px;
 		padding: 0;
-		border: 1px solid var(--border-hover);
-		border-radius: 5px;
+		border: 1px solid var(--line-hover);
+		border-radius: var(--radius-sm);
 		background: none;
 		cursor: pointer;
 	}
@@ -301,51 +318,32 @@
 	}
 	.swatch input[type='color']::-webkit-color-swatch {
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 	}
 	.contrast {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		gap: 0.375rem;
+		gap: var(--space-1);
 		margin: 0;
 	}
 	.contrast-ratio {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		color: var(--text-dim);
+		color: var(--text-secondary);
 	}
 	.contrast-note {
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1.45;
-		color: var(--muted-2);
+		color: var(--text-muted);
 	}
 	.contrast.warn .contrast-ratio {
 		color: var(--warn);
 	}
 	.contrast.warn .contrast-note {
 		color: var(--warn-soft);
-	}
-	.reset {
-		align-self: flex-start;
-		padding: 0.375rem 0.625rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--muted);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.reset:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text-soft);
-	}
-	.reset:disabled {
-		opacity: 0.45;
-		cursor: default;
 	}
 	@media (forced-colors: active) {
 		.swatch input[type='color'] {

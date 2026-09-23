@@ -142,22 +142,24 @@
 		z-index: 50;
 		display: grid;
 		place-items: center;
-		padding: 24px;
+		padding: var(--space-5);
 		background: rgba(8, 9, 11, 0.78);
 	}
 	.prompt {
 		/* 460px at 100%. In `em` because what makes this readable is its measure, and a
 		   fixed pixel box at 225% is two words a line. */
 		width: min(28.75em, 100%);
+		/* The panels inside ask this box, not the window, how much room they have. */
+		container: dialog / inline-size;
 		max-height: 100%;
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 24px;
+		gap: var(--space-3);
+		padding: var(--space-5);
 		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: var(--panel);
+		border: 1px solid var(--line-strong);
+		background: var(--surface-1);
 		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 	}
 	/* 832px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
@@ -175,12 +177,12 @@
 	.header {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	h2 {
 		flex: 1;
 		margin: 0;
-		font-size: var(--type-17);
+		font-size: var(--type-title);
 		font-weight: 600;
 		line-height: 1.35;
 		color: var(--text-bright);
@@ -190,93 +192,55 @@
 		flex: none;
 		display: grid;
 		place-items: center;
-		width: 28px;
-		height: 28px;
+		width: 2rem;
+		height: 2rem;
 		/* Pull it into the corner without inflating the header row. */
 		margin: -4px -6px 0 0;
 		padding: 0;
 		border: none;
 		border-radius: var(--radius-control);
 		background: transparent;
-		color: var(--muted-3);
+		color: var(--text-muted);
 	}
 	.dismiss:hover {
-		background: var(--surface-3);
+		background: var(--surface-2);
 		color: var(--text-bright);
-	}
-	.dismiss:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
 	}
 
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
 	.prompt :global(p) {
 		margin: 0;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.6;
-		color: var(--text-soft);
+		color: var(--text-secondary);
 		text-wrap: pretty;
 	}
 	.prompt :global(p.note) {
-		font-size: var(--type-11-5);
-		color: var(--muted-3);
+		font-size: var(--type-small);
+		color: var(--text-muted);
 	}
 	.prompt :global(p.error) {
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		word-break: break-word;
 	}
 	.prompt :global(code) {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		word-break: break-all;
 	}
 	.prompt :global(.actions) {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 9px;
+		gap: var(--space-2);
 		margin-top: 2px;
 	}
-	.prompt :global(.actions button) {
-		font-size: var(--type-13);
-		font-weight: 500;
-		line-height: 1;
-		padding: 10px 15px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--text-soft);
-	}
-	.prompt :global(.actions button:hover:not(:disabled)) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-	.prompt :global(.actions button.primary) {
+	/* The answers are ToolButtons; the safe one takes the spare width. */
+	.prompt :global(.actions .primary) {
 		flex: 1 1 auto;
-		font-weight: 600;
-		color: var(--on-accent);
-		background: var(--accent);
-		border-color: var(--accent);
-	}
-	.prompt :global(.actions button.primary:hover:not(:disabled)) {
-		background: var(--accent-2);
-		border-color: var(--accent-2);
-	}
-	.prompt :global(.actions button.danger) {
-		color: var(--danger-soft);
-		border-color: var(--danger-border);
-	}
-	.prompt :global(.actions button.danger:hover:not(:disabled)) {
-		background: var(--danger-bg);
-		border-color: var(--danger);
-		color: var(--danger-soft);
-	}
-	.prompt :global(.actions button:focus-visible) {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
 	}
 </style>

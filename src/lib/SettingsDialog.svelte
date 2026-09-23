@@ -6,6 +6,7 @@
 	import ModalPrompt from './ModalPrompt.svelte';
 	import Tabs from './ui/Tabs.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import CaptionAppearance from './CaptionAppearance.svelte';
 	import ReadingPreferences from './ReadingPreferences.svelte';
 	import TranscriptHistory from './TranscriptHistory.svelte';
@@ -79,8 +80,8 @@
 					<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 					     whatever is chosen above. Same button and same labels as the pre-flight
 					     check, because it is the same thing being done. -->
-					<button
-						class="tool wide"
+					<ToolButton
+						wide
 						aria-pressed={overlay.moveOverlay}
 						disabled={browserMode}
 						aria-label={overlay.moveOverlay
@@ -109,7 +110,7 @@
 							: $overlayPlaced
 								? $t.preflight.overlay.adjust
 								: $t.preflight.overlay.place}
-					</button>
+					</ToolButton>
 				</div>
 			{:else if tab === 'reading'}
 				<ReadingPreferences {overlay} />
@@ -143,7 +144,7 @@
 				<div class="divider"></div>
 				<div class="rail-section">
 					<h2 class="kicker">{$t.window.heading}</h2>
-					<button class="tool wide" disabled={browserMode} onclick={onHideWindow}>
+					<ToolButton wide disabled={browserMode} onclick={onHideWindow}>
 						<svg
 							width="13"
 							height="13"
@@ -159,7 +160,7 @@
 							/></svg
 						>
 						{$t.window.minimizeToTray}
-					</button>
+					</ToolButton>
 					<label class="pref">
 						<input
 							type="checkbox"
@@ -187,19 +188,15 @@
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 0.875rem;
+		gap: var(--space-3);
 		flex: 1 0 0;
 		min-height: 0;
 		overflow-y: auto;
 		scrollbar-gutter: stable;
-		padding: 3px;
+		padding: var(--space-1);
 	}
 	.settings > :global(*) {
 		flex-shrink: 0;
-	}
-	.settings .tool:disabled {
-		opacity: 0.45;
-		cursor: default;
 	}
 	.kicker {
 		flex: 0 0 auto;
@@ -211,6 +208,6 @@
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 </style>

@@ -1,32 +1,40 @@
-/* Design tokens for both windows. The legacy names (--bg … --warn) stay defined because
-   existing components reference them; they are remapped onto the new palette rather than
-   removed. Mint is the primary/live identity; blue is reserved for the room speaker. */
+/* Design tokens for both windows, one name per colour: the near-duplicates and the aliases
+   the palette used to carry are gone, and the contrast checks in `src/lib/palette.test.ts`
+   read these values directly. Mint is the primary/live identity; blue is reserved for the
+   room speaker. */
 
 :root {
+	color-scheme: dark;
+
+	/* Spacing: one 4px scale, in `rem` so the space around text grows with the operator's Windows
+	   text size the way the text does. Every padding, margin and gap in the operator window
+	   is one of these; what is left in pixels is an optical nudge (a checkbox lined up with
+	   its label) or the overlay's caption layout, which the fitting code measures. */
+	--space-1: 0.25rem; /* 4px at 100% */
+	--space-2: 0.5rem; /* 8px */
+	--space-3: 0.75rem; /* 12px */
+	--space-4: 1rem; /* 16px */
+	--space-5: 1.5rem; /* 24px */
+	--space-6: 2rem; /* 32px */
+
+	/* Radii: small marks (chips, key caps, meter tracks), controls, cards and panels, and the
+	   fully rounded status pill. Circles stay 50%. */
+	--radius-sm: 4px;
 	--radius-control: 8px;
 	--radius-card: 11px;
-	color-scheme: dark;
-	/* Legacy names, remapped to the new palette. */
-	--bg: #08090b;
-	--panel: #111419;
-	--panel-2: #14171c;
-	--border: #262b33;
-	--text: #e9ebef;
-	--muted: #8b93a1;
-	--accent: #5ad1a0;
-	--accent-2: #7fdcb6;
-	--danger: #ff5c5c;
-	--warn: #ffb454;
+	--radius-pill: 999px;
 
-	/* Surfaces. --bg is the deepest ground; --surface-0 is the window/frame surface. */
+	/* Surfaces, deepest first: the window ground, the panels and cards laid on it, and the
+	   raised marks on a panel (a key cap, a neutral pill, a hovered icon button). */
 	--surface-0: #0e1013;
-	--surface-3: #191d23;
+	--surface-1: #111419;
+	--surface-2: #191d23;
 
-	/* Lines. --hairline for section dividers and row borders, --border-2 for subtle card
-	   borders, --border-hover for interactive elements under the pointer. */
-	--hairline: #1f242b;
-	--border-2: #22262e;
-	--border-hover: #3a4150;
+	/* Lines: dividers and quiet card edges, the edge of a control, and that edge under the
+	   pointer. */
+	--line: #1f242b;
+	--line-strong: #262b33;
+	--line-hover: #3a4150;
 
 	/* Room speaker identity — never used for "live" or primary actions. */
 	--room: #4f8cff;
@@ -34,37 +42,48 @@
 	--room-bg: rgba(79, 140, 255, 0.14);
 
 	/* Primary (mint). --on-accent is the only text colour legible on a filled accent. */
+	--accent: #5ad1a0;
 	--accent-soft: #7fdcb6;
+	/* The darker end of the primary button's fill; --on-accent reads at 6.5:1 on it. */
+	--accent-deep: #43b989;
+	--accent-fill: linear-gradient(var(--accent), var(--accent-deep));
 	--on-accent: #05271b;
 	--accent-border: rgba(90, 209, 160, 0.42);
 	--accent-bg: rgba(90, 209, 160, 0.075);
 	--accent-chip-bg: rgba(90, 209, 160, 0.14);
 
 	/* Attention. */
+	--warn: #ffb454;
 	--warn-bg: rgba(255, 180, 84, 0.14);
+	/* A lighter amber for a control that still needs pressing, and for the overlay switch while
+	   the room is seeing nothing. */
+	--warn-tint: rgba(255, 180, 84, 0.08);
 	--warn-border: rgba(255, 180, 84, 0.4);
 	--warn-soft: #ffd39a;
 
 	/* Stop / failure. */
+	--danger: #ff5c5c;
 	--danger-bg: rgba(255, 92, 92, 0.1);
 	--danger-border: rgba(255, 92, 92, 0.45);
 	--danger-soft: #ff8f8f;
 
-	/* Text ramp, brightest to faintest. Every step down to --muted-3 clears 4.5:1 against
-	   every surface it is used on (darkest is --surface-3): --muted-2 4.99, --muted-3 4.53.
-	   --faint no longer carries text — it is the idle status dot, where the 3:1 non-text
-	   target applies (3.54 on --surface-3). Anything dimmer than --muted-3 that has to be
-	   read is a bug, not a style choice. */
+	/* Text, four levels: headings and the live caption, body text, secondary text and
+	   control labels, and muted hints and metadata. Each is far enough from the next to read
+	   as a different level. The muted step is the floor: it clears 4.5:1 on every surface
+	   (5.47 on --surface-2) and on every tinted wash a line of text sits on (4.53 on the
+	   amber one), so no component needs a brighter grey to stay legible on a chip. --faint
+	   carries no text — it is the idle status dot, where the 3:1 non-text target applies
+	   (3.54 on --surface-2). Anything dimmer than --text-muted that has to be read is a bug,
+	   not a style choice. */
 	--text-bright: #f2f4f7;
-	--text-soft: #c3c9d2;
-	--text-dim: #b9c0ca;
-	--muted-2: #848c99;
-	--muted-3: #7d858f;
+	--text-body: #e9ebef;
+	--text-secondary: #c3c9d2;
+	--text-muted: #8b93a1;
 	--faint: #6b7382;
 
-	/* Focus. One ring for both windows: 11:1 on every panel, and thick enough to survive a
-	   contrast theme, where it is re-declared as the system Highlight colour. */
-	--focus: #7fdcb6;
+	/* Focus. One ring for both windows: 10:1 or better on every surface, and thick enough to
+	   survive a contrast theme, where it is re-declared as the system Highlight colour. */
+	--focus: var(--accent-soft);
 	--focus-width: 2px;
 	--focus-offset: 2px;
 
@@ -76,30 +95,20 @@
 	   Every size below is a multiple of it, so moving the slider moves the whole window. */
 	--text-scale: 1;
 
-	/* Type ramp. These are the only font sizes in the app: no component may declare a bare
-	   px size, because a px size is one the operator's Windows text setting cannot reach.
-	   `src/lib/typeScale.test.ts` fails if one appears.
-
-	   Named after the pixels they render at when the slider is at 100%, because that is what
-	   they are — the ramp was tuned against this window's density, and a role name would
-	   claim an abstraction the values do not have. `--fs` is something else entirely: the
-	   overlay's caption size, which the operator sets for the room. */
-	--type-9-5: calc(11px * var(--text-scale));
-	--type-10: calc(11px * var(--text-scale));
-	--type-10-5: calc(11px * var(--text-scale));
-	--type-11: calc(11px * var(--text-scale));
-	--type-11-5: calc(11.5px * var(--text-scale));
-	--type-12: calc(12px * var(--text-scale));
-	--type-12-5: calc(12.5px * var(--text-scale));
-	--type-13: calc(13px * var(--text-scale));
-	--type-13-5: calc(13.5px * var(--text-scale));
-	--type-14: calc(14px * var(--text-scale));
-	--type-15-5: calc(15.5px * var(--text-scale));
-	--type-17: calc(17px * var(--text-scale));
-	--type-21: calc(21px * var(--text-scale));
-	--type-24: calc(24px * var(--text-scale));
-	--type-27: calc(27px * var(--text-scale));
-	--type-29: calc(29px * var(--text-scale));
+	/* Type ramp: seven roles, and the only font sizes in the app. No component may declare a
+	   bare px size, because a px size is one the operator's Windows text setting cannot
+	   reach, and none may use a size outside these seven; `src/lib/typeScale.test.ts` fails
+	   on either. Each step is at least a pixel from its neighbour, so a difference in size
+	   is one a reader can see — half-pixel pairs read as inconsistency, not hierarchy. The
+	   comments give what each renders at with the slider at 100%. `--fs` is something else
+	   entirely: the overlay's caption size, which the operator sets for the room. */
+	--type-caption: calc(11px * var(--text-scale)); /* kickers, chips, key caps, metadata */
+	--type-small: calc(12px * var(--text-scale)); /* hints, notes, form controls */
+	--type-body: calc(13px * var(--text-scale)); /* paragraphs, names, values */
+	--type-label: calc(14px * var(--text-scale)); /* item titles, session actions */
+	--type-title: calc(17px * var(--text-scale)); /* dialog titles */
+	--type-heading: calc(21px * var(--text-scale)); /* figures, the compact stage heading */
+	--type-display: calc(27px * var(--text-scale)); /* the stage heading, live captions */
 
 	/* The root size does the other half of the job. It carries the scale into every `em` the
 	   layout is expressed in — the rail's width, the gutters that have to hold text, and the
@@ -128,8 +137,8 @@ body {
 }
 
 body {
-	background: var(--bg);
-	color: var(--text);
+	background: var(--surface-0);
+	color: var(--text-body);
 }
 
 button {
@@ -245,42 +254,118 @@ input[type='checkbox']:focus-visible {
 	color: var(--text-bright);
 }
 * {
-	scrollbar-color: var(--border-hover) var(--surface-0);
+	scrollbar-color: var(--line-hover) var(--surface-0);
 	scrollbar-width: thin;
 }
 input {
 	caret-color: var(--accent);
 }
-.ui-tool,
-.ui-field input {
-	border: 1px solid var(--border);
-	border-radius: var(--radius-control);
-	background: var(--panel-2);
-	color: var(--text-soft);
-	padding: 0.625rem 0.75rem;
-	font-size: var(--type-12);
+/* ---- Buttons ------------------------------------------------------------------------
+   One button for both windows, drawn by `ui/ToolButton.svelte`: a variant says what the
+   action is, a size says where it sits. There used to be three mint primaries, three
+   identical ghosts and two disabled opacities; there is one of each now.
+
+   - default: a filled secondary action — the rail's tools, the history and profile actions;
+   - primary: the one filled mint action a screen or a dialog exists for;
+   - ghost:   an unfilled action beside content, or the quiet companion of a primary;
+   - danger:  an action that destroys something;
+   - warn:    an action that still needs doing (placing the overlay, testing the audio).
+
+   `sm` sits inside a row of content, `md` is the default, `lg` is a session action or a
+   dialog's answer: 32, 36 and 40px tall at 100%, every one a comfortable pointer target in a
+   mouse-first window, and form fields match the middle size. */
+.ui-tool {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
 	min-width: 0;
 	max-width: 100%;
+	min-height: 2.25rem;
+	padding: var(--space-2) var(--space-3);
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-control);
+	background: var(--surface-1);
+	color: var(--text-secondary);
+	font-size: var(--type-small);
+	font-weight: 500;
+	line-height: 1;
 }
 .ui-tool:hover:not(:disabled) {
-	border-color: var(--border-hover);
-	color: var(--text);
+	border-color: var(--line-hover);
+	color: var(--text-body);
 }
+.ui-tool.sm {
+	min-height: 2rem;
+	padding: var(--space-1) var(--space-3);
+}
+.ui-tool.lg {
+	min-height: 2.5rem;
+	gap: var(--space-2);
+	padding: var(--space-2) var(--space-5);
+	font-size: var(--type-label);
+	font-weight: 600;
+}
+.ui-tool.wide {
+	width: 100%;
+}
+.ui-tool.ghost {
+	background: transparent;
+}
+.ui-tool.primary {
+	border-color: transparent;
+	background: var(--accent-fill);
+	color: var(--on-accent);
+	font-weight: 600;
+}
+.ui-tool.primary:hover:not(:disabled) {
+	border-color: transparent;
+	color: var(--on-accent);
+	filter: brightness(1.06);
+}
+.ui-tool.danger {
+	border-color: var(--danger-border);
+	background: var(--danger-bg);
+	color: var(--danger-soft);
+}
+.ui-tool.danger:hover:not(:disabled) {
+	border-color: var(--danger);
+	background: color-mix(in srgb, var(--danger) 18%, transparent);
+	color: var(--danger-soft);
+}
+.ui-tool.warn {
+	border-color: var(--warn-border);
+	background: var(--warn-tint);
+	color: var(--warn-soft);
+}
+.ui-tool.warn:hover:not(:disabled) {
+	border-color: var(--warn);
+	background: var(--warn-bg);
+	color: var(--warn-soft);
+}
+/* A toggle that is on: move mode, a chosen preset, the selected history session. */
 .ui-tool[aria-pressed='true'] {
 	border-color: var(--accent-border);
 	background: var(--accent-bg);
 	color: var(--accent-soft);
 }
-.ui-tool.danger {
-	color: var(--danger-soft);
-	border-color: var(--danger-border);
+.ui-field input {
+	border: 1px solid var(--line-strong);
+	border-radius: var(--radius-control);
+	background: var(--surface-1);
+	color: var(--text-secondary);
+	padding: var(--space-2) var(--space-3);
+	min-height: 2.25rem;
+	font-size: var(--type-small);
+	min-width: 0;
+	max-width: 100%;
 }
 .ui-field {
 	display: grid;
-	gap: 0.5rem;
+	gap: var(--space-2);
 	min-width: 0;
-	font-size: var(--type-12);
-	color: var(--text-soft);
+	font-size: var(--type-small);
+	color: var(--text-secondary);
 }
 .ui-select {
 	position: relative;
@@ -292,12 +377,13 @@ input {
 	appearance: none;
 	width: 100%;
 	min-width: 0;
-	padding: 0.625rem 2rem 0.625rem 0.75rem;
-	border: 1px solid var(--border);
+	padding: var(--space-2) var(--space-6) var(--space-2) var(--space-3);
+	min-height: 2.25rem;
+	border: 1px solid var(--line-strong);
 	border-radius: var(--radius-control);
-	background: var(--panel-2);
-	color: var(--text-soft);
-	font-size: var(--type-12-5);
+	background: var(--surface-1);
+	color: var(--text-secondary);
+	font-size: var(--type-small);
 }
 .ui-select svg {
 	position: absolute;
@@ -305,14 +391,14 @@ input {
 	top: 50%;
 	transform: translateY(-50%);
 	pointer-events: none;
-	color: var(--muted);
+	color: var(--text-muted);
 }
 .ui-pref {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: 0.625rem;
-	color: var(--text-soft);
-	font-size: var(--type-12);
+	gap: var(--space-2);
+	color: var(--text-secondary);
+	font-size: var(--type-small);
 	line-height: 1.5;
 }
 .ui-pref input {
@@ -321,16 +407,16 @@ input {
 }
 .ui-pref small {
 	display: block;
-	color: var(--muted);
-	font-size: var(--type-11-5);
-	margin-top: 0.25rem;
+	color: var(--text-muted);
+	font-size: var(--type-small);
+	margin-top: var(--space-1);
 }
 .ui-stepper {
 	display: flex;
-	gap: 0.625rem;
+	gap: var(--space-2);
 	align-items: center;
-	font-size: var(--type-12);
-	color: var(--text-soft);
+	font-size: var(--type-small);
+	color: var(--text-secondary);
 }
 .ui-stepper > span {
 	flex: 1;
@@ -341,13 +427,15 @@ input {
 	font-family: var(--font-mono);
 	font-variant-numeric: tabular-nums;
 }
-.ui-stepper .ui-tool {
-	padding: 0.375rem 0.625rem;
-}
 @media (forced-colors: active) {
 	.ui-tool[aria-pressed='true'] {
 		outline: 2px solid Highlight;
 		outline-offset: -2px;
+	}
+	/* Gradients are not recoloured by the forced palette, so a primary would keep its mint
+	   fill under system-coloured text. Drop it and let the theme paint the button. */
+	.ui-tool.primary {
+		background-image: none;
 	}
 }
 
@@ -361,42 +449,43 @@ input {
 .divider {
 	flex: 0 0 auto;
 	height: 1px;
-	background: var(--hairline);
+	background: var(--line);
 }
 /* Section labels are real headings (h1/h2) wherever they name a region, so Narrator's heading
    navigation walks the window; the class only has to undo the browser's own heading
    typography. */
 .kicker {
 	margin: 0;
-	font-size: var(--type-10-5);
+	font-size: var(--type-caption);
 	font-weight: 600;
 	line-height: 1;
 	letter-spacing: 0.15em;
 	text-transform: uppercase;
-	color: var(--muted-2);
+	color: var(--text-muted);
 }
 .hint {
 	margin: 0;
-	font-size: var(--type-11-5);
+	font-size: var(--type-small);
 	line-height: 1.5;
-	color: var(--muted-2);
+	color: var(--text-muted);
 }
 .inline-hint {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--space-2);
 	line-height: 1.4;
 }
-.key {
+/* A key cap (`ui/Kbd.svelte`): one look for every shortcut the window prints. */
+.ui-kbd {
 	font-family: var(--font-mono);
-	font-size: var(--type-10-5);
+	font-size: var(--type-caption);
 	font-weight: 500;
 	line-height: 1;
-	color: var(--text-dim);
-	padding: 4px 6px;
-	border-radius: 5px;
-	border: 1px solid #2a2f38;
-	background: var(--surface-3);
+	color: var(--text-secondary);
+	padding: var(--space-1) var(--space-2);
+	border-radius: var(--radius-sm);
+	border: 1px solid var(--line-strong);
+	background: var(--surface-2);
 	white-space: nowrap;
 }
 
@@ -405,70 +494,34 @@ input {
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
-	gap: 0.625rem;
+	gap: var(--space-2);
 }
 .step-head,
 .rail-head {
 	display: flex;
 	align-items: center;
-	gap: 0.5625rem;
+	gap: var(--space-2);
 }
 .rail-head {
 	flex: 0 0 auto;
 }
 .rail-icon {
-	color: var(--muted-3);
+	color: var(--text-muted);
 	display: flex;
 }
 .step-no {
 	font-family: var(--font-mono);
-	font-size: var(--type-10-5);
+	font-size: var(--type-caption);
 	font-weight: 500;
 	line-height: 1;
 	color: var(--accent);
-}
-
-/* Secondary actions in the rail and the settings panel. */
-.tool {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 0.4375rem;
-	padding: 0.625rem;
-	border-radius: var(--radius-control);
-	border: 1px solid var(--border);
-	background: var(--panel-2);
-	color: var(--text-soft);
-	font-size: var(--type-12);
-	font-weight: 500;
-	line-height: 1;
-}
-.tool:hover:not(:disabled) {
-	border-color: var(--border-hover);
-	color: var(--text);
-}
-/* Standalone rather than one of a pair, so it fills its column. */
-.tool.wide {
-	width: 100%;
-}
-.tool.on {
-	border-color: var(--accent-border);
-	background: var(--accent-bg);
-	color: var(--accent-soft);
-}
-/* Captions are blanked — the amber tint says the room is currently seeing nothing. */
-.tool.off {
-	border-color: var(--warn-border);
-	background: rgba(255, 180, 84, 0.08);
-	color: var(--warn-soft);
 }
 
 /* A checkbox preference with a title and a note under it. */
 .pref {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	gap: 0.5625rem;
+	gap: var(--space-2);
 	align-items: start;
 	cursor: pointer;
 }
@@ -481,16 +534,16 @@ input {
 }
 .pref-title {
 	display: block;
-	font-size: var(--type-12);
+	font-size: var(--type-small);
 	line-height: 1.4;
-	color: var(--text-soft);
+	color: var(--text-secondary);
 	text-wrap: pretty;
 }
 .pref-note {
 	display: block;
-	margin-top: 3px;
-	font-size: var(--type-11-5);
+	margin-top: var(--space-1);
+	font-size: var(--type-small);
 	line-height: 1.5;
-	color: var(--muted-3);
+	color: var(--text-muted);
 	text-wrap: pretty;
 }

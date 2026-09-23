@@ -110,20 +110,20 @@
 <style>
 	.capture-picker {
 		display: grid;
-		gap: 0.6em;
+		gap: var(--space-2);
 		min-width: 0;
 	}
 	label {
 		display: grid;
-		gap: 0.4em;
-		color: var(--muted-2);
-		font-size: var(--type-12);
+		gap: var(--space-1);
+		color: var(--text-muted);
+		font-size: var(--type-small);
 		min-width: 0;
 	}
 	.hint {
 		margin: 0;
-		color: var(--muted-2);
-		font-size: var(--type-12);
+		color: var(--text-muted);
+		font-size: var(--type-small);
 		line-height: 1.5;
 	}
 </style>
