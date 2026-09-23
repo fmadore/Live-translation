@@ -282,8 +282,8 @@
 	.step {
 		display: grid;
 		place-items: center;
-		width: 28px;
-		height: 28px;
+		width: 2rem;
+		height: 2rem;
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
 		background: var(--surface-2);

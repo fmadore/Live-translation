@@ -359,6 +359,16 @@ export const fr: Messages = {
 		faceDefault: (label: string) => `${label} (par défaut)`,
 		captionColour: 'Couleur des sous-titres',
 		scrimColour: 'Couleur du fond',
+		swatch: {
+			white: 'Blanc',
+			paleYellow: 'Jaune pâle',
+			mint: 'Menthe',
+			paleBlue: 'Bleu pâle',
+			charcoal: 'Anthracite',
+			black: 'Noir',
+			green: 'Vert foncé',
+			navy: 'Bleu marine'
+		},
 		scrimOpacity: 'Intensité du fond',
 		weakerScrim: 'Fond plus discret derrière les sous-titres',
 		strongerScrim: 'Fond plus marqué derrière les sous-titres',

@@ -70,3 +70,13 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	await waitFor(() => expect(JSON.parse(localStorage.getItem(PROFILES_KEY)!)).toHaveLength(0));
 	view.unmount();
 });
+
+// WCAG 2.5.3: the picker's visible label is "Meeting profiles", and it used to be named
+// "Choose a profile" instead, so "click Meeting profiles" in voice control found nothing.
+it('names the profile picker by its visible label', () => {
+	const view = render(MeetingProfiles, {
+		props: { locked: false, overlay: createOverlayController(), onLoaded: vi.fn(), onBusy: vi.fn() }
+	});
+	expect(view.getByRole('combobox')).toHaveAccessibleName(/^Meeting profiles/);
+	view.unmount();
+});

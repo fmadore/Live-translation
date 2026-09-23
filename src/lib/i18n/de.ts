@@ -356,6 +356,16 @@ export const de: Messages = {
 		faceDefault: (label: string) => `${label} (Standard)`,
 		captionColour: 'Untertitelfarbe',
 		scrimColour: 'Hintergrundfarbe',
+		swatch: {
+			white: 'Weiß',
+			paleYellow: 'Hellgelb',
+			mint: 'Mint',
+			paleBlue: 'Hellblau',
+			charcoal: 'Anthrazit',
+			black: 'Schwarz',
+			green: 'Dunkelgrün',
+			navy: 'Marineblau'
+		},
 		scrimOpacity: 'Hintergrundstärke',
 		weakerScrim: 'Schwächerer Hintergrund hinter den Untertiteln',
 		strongerScrim: 'Stärkerer Hintergrund hinter den Untertiteln',

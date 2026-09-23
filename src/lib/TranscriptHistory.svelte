@@ -369,7 +369,8 @@
 	.saved-text p {
 		margin: var(--space-3) 0;
 	}
-	@media (max-width: 720px) {
+	/* Asked of the settings dialog, in `em`, for the same reason as the appearance layout. */
+	@container dialog (max-width: 40em) {
 		.filters {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}

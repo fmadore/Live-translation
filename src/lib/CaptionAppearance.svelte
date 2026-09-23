@@ -11,7 +11,13 @@
 		overlayContrast
 	} from './stores';
 	import { DEFAULT_APPEARANCE, sameAppearance } from './appearance';
-	import { CAPTION_CONTRAST_TARGET, SCRIM_OPACITY_MIN, SCRIM_OPACITY_MAX } from './captionColour';
+	import {
+		CAPTION_CONTRAST_TARGET,
+		SCRIM_OPACITY_MIN,
+		SCRIM_OPACITY_MAX,
+		SCRIM_SWATCHES,
+		TEXT_SWATCHES
+	} from './captionColour';
 	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
 	import type { OverlayController } from './overlayController.svelte';
@@ -101,14 +107,14 @@
 							: $t.overlayControls.scrimColour}</span
 					>
 					<div class="swatches">
-						{#each role === 'text' ? ['#ffffff', '#fff0b3', '#7fdcb6', '#b9d5ff', '#111419'] : ['#000000', '#111419', '#172b24', '#18263c', '#ffffff'] as colour}
+						{#each role === 'text' ? TEXT_SWATCHES : SCRIM_SWATCHES as swatch (swatch.hex)}
 							<button
 								class="colour-choice"
-								style:background={colour}
-								aria-label={colour}
+								style:background={swatch.hex}
+								aria-label={$t.overlayControls.swatch[swatch.name]}
 								aria-pressed={(role === 'text' ? $overlayPalette.text : $overlayPalette.scrim) ===
-									colour}
-								onclick={() => overlay.setPalette({ [role]: colour })}
+									swatch.hex}
+								onclick={() => overlay.setPalette({ [role]: swatch.hex })}
 							></button>
 						{/each}
 					</div>
@@ -200,7 +206,11 @@
 		display: grid;
 		gap: var(--space-3);
 	}
-	@media (max-width: 760px) {
+	/* The controls and the preview share a row until the settings dialog is too narrow for
+	   both. Asked of the dialog (ModalPrompt's `dialog` container) in `em`, so it follows the
+	   operator's text size; a viewport query in px fired at the wrong width at 225%. In the
+	   rail there is no such container, and `compact` already stacks them. */
+	@container dialog (max-width: 40em) {
 		.appearance-layout {
 			grid-template-columns: minmax(0, 1fr);
 		}
@@ -221,9 +231,14 @@
 		border-radius: var(--radius-control);
 		forced-color-adjust: none;
 	}
+	/* Chosen is drawn inside the swatch — a mint ring, parted from the colour by a dark one so it
+	   shows on white and on black alike — and never outside it, where the focus ring goes. The
+	   two used to be the same outline, so a keyboard operator could not tell which swatch was
+	   chosen and which was merely focused. */
 	.colour-choice[aria-pressed='true'] {
-		outline: 2px solid var(--focus);
-		outline-offset: 2px;
+		box-shadow:
+			inset 0 0 0 2px var(--accent-soft),
+			inset 0 0 0 4px var(--surface-0);
 	}
 	.kicker {
 		flex: 0 0 auto;
@@ -250,8 +265,8 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.step {
-		width: 30px;
-		height: 30px;
+		width: 2rem;
+		height: 2rem;
 		border-radius: var(--radius-control);
 		border: 1px solid var(--line-strong);
 		background: var(--surface-1);

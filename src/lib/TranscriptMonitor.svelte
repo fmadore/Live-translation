@@ -261,6 +261,7 @@
 	}
 	select {
 		font: inherit;
+		min-height: 2rem;
 		font-size: var(--type-small);
 		color: var(--text-body);
 		background: var(--surface-0);

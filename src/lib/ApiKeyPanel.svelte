@@ -185,6 +185,7 @@
 		   it holds rather than in pixels that stop matching it. */
 		width: 13.75em;
 		max-width: 100%;
+		min-height: 2rem;
 		background: var(--surface-1);
 		border: 1px solid var(--line-strong);
 		color: var(--text-body);

@@ -149,6 +149,8 @@
 		/* 460px at 100%. In `em` because what makes this readable is its measure, and a
 		   fixed pixel box at 225% is two words a line. */
 		width: min(28.75em, 100%);
+		/* The panels inside ask this box, not the window, how much room they have. */
+		container: dialog / inline-size;
 		max-height: 100%;
 		overflow-y: auto;
 		display: flex;
@@ -190,8 +192,8 @@
 		flex: none;
 		display: grid;
 		place-items: center;
-		width: 28px;
-		height: 28px;
+		width: 2rem;
+		height: 2rem;
 		/* Pull it into the corner without inflating the header row. */
 		margin: -4px -6px 0 0;
 		padding: 0;

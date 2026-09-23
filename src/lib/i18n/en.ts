@@ -348,6 +348,17 @@ export const en = {
 		faceDefault: (label: string) => `${label} (default)`,
 		captionColour: 'Caption colour',
 		scrimColour: 'Backing colour',
+		// The quick-pick colours, named for a screen reader.
+		swatch: {
+			white: 'White',
+			paleYellow: 'Pale yellow',
+			mint: 'Mint',
+			paleBlue: 'Pale blue',
+			charcoal: 'Charcoal',
+			black: 'Black',
+			green: 'Dark green',
+			navy: 'Navy'
+		},
 		scrimOpacity: 'Backing strength',
 		weakerScrim: 'Weaker backing behind the captions',
 		strongerScrim: 'Stronger backing behind the captions',

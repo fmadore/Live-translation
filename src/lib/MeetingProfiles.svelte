@@ -126,8 +126,9 @@
 <section class="profiles" aria-label={$t.usability.profiles}>
 	<div class="picker">
 		<Field label={$t.usability.profiles}>
+			<!-- Named by the visible field label, so what a voice-control user reads on screen is
+			     what the control answers to (WCAG 2.5.3). -->
 			<Select
-				aria-label={$t.usability.chooseProfile}
 				bind:value={selected}
 				disabled={locked || busy}
 				onchange={() => {
