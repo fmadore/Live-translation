@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { get } from 'svelte/store';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
 	import SessionControls from '$lib/SessionControls.svelte';
@@ -21,10 +20,13 @@
 	import { createSessionClock } from '$lib/sessionClock.svelte';
 	import { createSessionController } from '$lib/sessionController';
 	import { createSetupActions } from '$lib/setupActions';
+	import { createDeviceFailure } from '$lib/deviceFailure.svelte';
+	import { createRecoveryOffer } from '$lib/recoveryOffer.svelte';
+	import { syncNative } from '$lib/nativeSync.svelte';
 	import { languageName, supportsLanguage, type DemoLanguage } from '$lib/languages';
 	import { shortcut } from '$lib/shortcuts';
-	import { api, on, isTauri } from '$lib/tauri';
-	import { asStatus, describeError, isAppError } from '$lib/errors';
+	import { on, isTauri } from '$lib/tauri';
+	import { describeError } from '$lib/errors';
 	import {
 		sessionState,
 		isRunning,
@@ -33,21 +35,16 @@
 		hasKey,
 		options,
 		transcript,
-		transcriptDirty,
 		recoveryEnabled,
-		restoreTranscript,
-		closeToTray,
 		overlayFontSize,
 		noteActivity,
 		sessionStartedAt,
 		pushCaption
 	} from '$lib/stores';
-	import { decodeRecovery, shouldGuardClose, type RecoverySnapshot } from '$lib/document';
-	import { recovery, startRecoverySpool } from '$lib/recovery';
 	import { followTextScale } from '$lib/textScale';
 	import { historyEnabled } from '$lib/history';
-	import { captionLanguageOf, providerRequiresKey } from '$lib/types';
-	import type { Origin, Provider, SessionState } from '$lib/types';
+	import { providerRequiresKey } from '$lib/types';
+	import type { SessionState } from '$lib/types';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
@@ -66,44 +63,17 @@
 	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
 	const preflight = createPreflightController(
 		!browserMode,
-		() => controlsLocked || failedDevice !== null || retryingDevice
+		() => controlsLocked || device.failed !== null || device.retrying
 	);
-	let failedDevice = $state<Origin | null>(null);
-	let retryingDevice = $state(false);
+	const device = createDeviceFailure({
+		stop: () => session.stop(),
+		start: (selected) => session.start(selected),
+		refreshApplications: () => preflight.refreshApplications()
+	});
 	$effect(() => {
 		if (!controlsLocked && !preflight.audioTesting && !preflight.audioTestBusy)
 			preflight.validateSelection();
 	});
-	async function reselectApplication() {
-		await session.stop();
-		if ($isRunning) return;
-		failedDevice = null;
-		$options = { ...$options, systemCapture: { kind: 'application', process: null } };
-		await preflight.refreshApplications();
-	}
-	async function retryDevice(fallback: boolean) {
-		if (!failedDevice || retryingDevice) return;
-		retryingDevice = true;
-		const affected = failedDevice;
-		// Snapshot before stopping: idle validation must not change an explicit Retry
-		// into an implicit fallback if the chosen endpoint is still absent.
-		const selected = { ...$options };
-		try {
-			await session.stop();
-			if ($isRunning) return;
-			if (fallback) {
-				if (affected === 'microphone') {
-					selected.micDeviceId = null;
-					selected.micDeviceName = null;
-				} else selected.systemDeviceId = null;
-			}
-			$options = selected;
-			failedDevice = null;
-			await session.start(selected);
-		} finally {
-			retryingDevice = false;
-		}
-	}
 
 	// The keyless demonstration is always bundled and ready. A commercial
 	// provider starts NOT ready: clearing the flag on the switch itself closes the
@@ -135,7 +105,7 @@
 
 		void preflight.refresh();
 		void preflight.refreshLocalReadiness();
-		void loadRecovery();
+		void recoveryOffer.load();
 		overlay.initialize();
 
 		const unlisteners: Array<Promise<() => void>> = [
@@ -150,14 +120,7 @@
 			}),
 			on.status((s) => {
 				applyStatus(s);
-				if (
-					s.state === 'error' &&
-					isAppError(s.message) &&
-					['error.micCapture', 'error.micStream', 'error.systemCapture'].includes(s.message.id)
-				) {
-					failedDevice =
-						s.origin ?? (s.message.id === 'error.systemCapture' ? 'system' : 'microphone');
-				}
+				device.noteStatus(s);
 			}),
 			on.devicesChanged(() => void preflight.refresh()),
 			// A test is not a session, so it reports on its own channel and never touches the
@@ -185,82 +148,11 @@
 	// The transcript is a document with a saved state, not a scrolling side effect: it is
 	// never truncated, closing the window with unsaved lines asks first, and — only if the
 	// operator opts in — a local spool covers the crash the prompt cannot.
+	const recoveryOffer = createRecoveryOffer();
 
-	/** How often the opt-in spool is refreshed while captions are arriving. Long enough that a
-	 *  busy session is not writing constantly, short enough that a crash costs a sentence. */
-
-	let recovered = $state<{ snapshot: RecoverySnapshot; path: string } | null>(null);
-
-	// Keep the core's guard current. While it and the tray preference are both false a close
-	// is not intercepted at all, so a wedged renderer cannot produce an unclosable window.
-	$effect(() => {
-		if (browserMode) return;
-		void api.setCloseGuard(shouldGuardClose($transcriptDirty, $isRunning)).catch(() => {});
-	});
-
-	// The tray preference is a standing setting rather than something session state decides,
-	// so the core tracks it separately.
-	$effect(() => {
-		if (browserMode) return;
-		void api.setCloseToTray($closeToTray).catch(() => {});
-	});
-
-	// The tray menu must never describe a state the app has left: pushed on every change, and
-	// once on mount.
-	$effect(() => {
-		if (browserMode) return;
-		void api
-			.setTrayState($isRunning, overlay.overlayVisible, {
-				open: $t.design.trayOpen,
-				quit: $t.design.trayQuit,
-				stop: $t.design.trayStop,
-				show: $t.design.trayShow,
-				hide: $t.design.trayHide,
-				status: `${stateLabel[$sessionState]}${$isRunning ? ' · ' + clock.elapsed : ''}`
-			})
-			.catch(() => {});
-	});
-
-	// ---- Recovery spool ---------------------------------------------------------
-
-	$effect(() => {
-		if (browserMode || !$recoveryEnabled) return;
-		return startRecoverySpool(
-			() => (get(transcriptDirty) ? get(transcript) : null),
-			(error) => statusMessage.set(get(t).error.recoveryWrite(String(error)))
-		);
-	});
-
-	async function loadRecovery() {
-		try {
-			const stored = await recovery.read();
-			if (!stored) return;
-			const snapshot = decodeRecovery(stored.contents);
-			if (!snapshot) {
-				// Truncated mid-write, or hand-edited. There is nothing to offer, and leaving it
-				// would strand caption text on disk that no prompt will ever clear.
-				await recovery.clear();
-				return;
-			}
-			recovered = { snapshot, path: stored.path };
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		}
-	}
-
-	/** Answer the recovery offer. Either answer retires the spool — the operator has now
-	 *  decided, and a file nobody chose to keep must not survive the decision. */
-	async function answerRecovery(restore: boolean) {
-		const found = recovered;
-		recovered = null;
-		if (!found) return;
-		if (restore) restoreTranscript(found.snapshot.lines);
-		try {
-			await recovery.clear();
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		}
-	}
+	// The close guard, tray state, recovery spool and the overlay's languages follow this
+	// window's state.
+	syncNative({ desktop: !browserMode, overlay, clock });
 
 	// ---- Launching --------------------------------------------------------------
 	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
@@ -298,7 +190,7 @@
 			return;
 		}
 		rehearsing = rehearsal !== undefined;
-		failedDevice = null;
+		device.clear();
 		const started = await session.start(
 			rehearsal === undefined ? $options : { ...$options, rehearsal }
 		);
@@ -318,17 +210,6 @@
 
 	let settingsOpen = $state(false);
 	let settingsTab = $state<SettingsTab>('captions');
-
-	// The overlay is a separate webview, so the operator's interface language and the audience's
-	// caption language are pushed to it the same way the caption size is — on load, which also
-	// syncs the rest of the appearance, and on every change. One effect, so load sends one
-	// config rather than one per language. Skipped in a browser preview, which has no second
-	// window.
-	const captionLanguage = $derived(captionLanguageOf($options));
-	$effect(() => {
-		const config = { locale: $locale, captionLanguage };
-		if (!browserMode) overlay.pushOverlayConfig(config);
-	});
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
 	// the technical detail. Derived rather than stored, so switching language re-words a
@@ -380,7 +261,7 @@
 	}}
 />
 
-<div class="app" class:device-error={failedDevice !== null}>
+<div class="app" class:device-error={device.failed !== null}>
 	<OperatorTitlebar
 		elapsed={clock.elapsed}
 		{settingsOpen}
@@ -393,13 +274,13 @@
 	     visible copies of this text below are `aria-hidden`, so nothing is announced twice. -->
 	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
 	<p class="sr-only" role="status">{statusText}</p>
-	{#if failedDevice}
+	{#if device.failed}
 		<DeviceRecoveryBanner
-			failed={failedDevice}
-			busy={$sessionBusy || retryingDevice}
-			onRetry={() => retryDevice(false)}
-			onFallback={() => retryDevice(true)}
-			onReselect={reselectApplication}
+			failed={device.failed}
+			busy={$sessionBusy || device.retrying}
+			onRetry={() => device.retry(false)}
+			onFallback={() => device.retry(true)}
+			onReselect={device.reselectApplication}
 		/>
 	{/if}
 
@@ -538,13 +419,13 @@
 
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still
      be kept, and each has to be answered before the log underneath it changes again. -->
-{#if recovered}
+{#if recoveryOffer.offer}
 	<RecoveryPrompt
-		lines={recovered.snapshot.lines.length}
-		savedAt={formatDateTime(recovered.snapshot.savedAt, $localeTag)}
-		path={recovered.path}
-		onRestore={() => void answerRecovery(true)}
-		onDelete={() => void answerRecovery(false)}
+		lines={recoveryOffer.offer.snapshot.lines.length}
+		savedAt={formatDateTime(recoveryOffer.offer.snapshot.savedAt, $localeTag)}
+		path={recoveryOffer.offer.path}
+		onRestore={() => void recoveryOffer.answer(true)}
+		onDelete={() => void recoveryOffer.answer(false)}
 	/>
 {/if}
 

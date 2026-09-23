@@ -192,8 +192,9 @@ export type SessionState = (typeof SESSION_STATES)[number];
 
 export interface StatusUpdate {
 	state: SessionState;
-	/** Human-readable detail for the operator (e.g. reconnect reason). */
-	message?: string;
+	/** Why the state changed. The core sends a structured error the interface words (see
+	 *  `describeError`); plain text is accepted for messages made in the interface. */
+	message?: AppError | string;
 	/** Which source this update is about; absent means the whole session (e.g. stop). */
 	origin?: Origin;
 }
