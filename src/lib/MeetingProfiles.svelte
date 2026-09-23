@@ -11,17 +11,8 @@
 	import { validateDevices } from './audioDevices';
 	import { captionLanguageOf, normalizeStartOptions } from './types';
 	import { PROFILES_KEY, decodeProfiles, type MeetingProfile } from './profiles';
-	import {
-		options,
-		overlayFontSize,
-		overlayCaptionWidth,
-		overlayCaptionLayout,
-		overlayCaptionFace,
-		overlayPalette,
-		overlayCleanSpeech,
-		overlayHoldSeconds,
-		overlayPace
-	} from './stores';
+	import { appearance, applyAppearance, options } from './stores';
+	import { normalizeAppearance } from './appearance';
 	import type { OverlayController } from './overlayController.svelte';
 	let {
 		locked,
@@ -73,16 +64,8 @@
 				id: crypto.randomUUID(),
 				name: name.trim().slice(0, 80),
 				options: normalizeStartOptions(get(options)),
-				appearance: {
-					fontSize: get(overlayFontSize),
-					width: get(overlayCaptionWidth),
-					layout: get(overlayCaptionLayout),
-					face: get(overlayCaptionFace),
-					palette: { ...get(overlayPalette) },
-					cleanSpeech: get(overlayCleanSpeech),
-					hold: get(overlayHoldSeconds),
-					pace: get(overlayPace)
-				},
+				// A normalized copy, so the profile never shares the live palette object.
+				appearance: normalizeAppearance(get(appearance)),
 				placement: isTauri() ? await api.getOverlayPlacement() : null
 			};
 			persist([...profiles, profile]);
@@ -101,16 +84,8 @@
 			const saved = normalizeStartOptions(profile.options);
 			const checked = validateDevices(saved, mics, outputs);
 			if (profile.placement) await api.setOverlayPlacement(profile.placement);
-			const a = profile.appearance;
 			options.set(checked);
-			overlayFontSize.set(a.fontSize);
-			overlayCaptionWidth.set(a.width);
-			overlayCaptionLayout.set(a.layout);
-			overlayCaptionFace.set(a.face);
-			overlayPalette.set({ ...a.palette });
-			overlayCleanSpeech.set(a.cleanSpeech);
-			overlayHoldSeconds.set(a.hold);
-			overlayPace.set(a.pace);
+			applyAppearance(profile.appearance);
 			overlay.initialize();
 			overlay.pushOverlayConfig({ interactive: overlay.moveOverlay });
 			await onLoaded();

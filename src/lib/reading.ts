@@ -4,14 +4,15 @@ import { ORIGINS, type Caption, type Origin } from './types';
 export type CaptionPace = 'immediate' | 'steady';
 export const HOLD_KEY = 'overlay.holdSeconds';
 export const PACE_KEY = 'overlay.pace';
+export const DEFAULT_HOLD_SECONDS = 4;
 export function holdSeconds(value: unknown): number {
 	return typeof value === 'number' && Number.isFinite(value)
 		? Math.max(2, Math.min(30, Math.round(value)))
-		: 4;
+		: DEFAULT_HOLD_SECONDS;
 }
 export function loadHoldSeconds(): number {
 	const value = readStored(HOLD_KEY);
-	return value === null ? 4 : holdSeconds(Number(value));
+	return value === null ? DEFAULT_HOLD_SECONDS : holdSeconds(Number(value));
 }
 export function loadPace(): CaptionPace {
 	return readStored(PACE_KEY) === 'steady' ? 'steady' : 'immediate';

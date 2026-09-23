@@ -42,6 +42,7 @@ import { CAPTION_FACE_KEY, loadCaptionFace } from './captionFont';
 import type { CaptionFaceId } from './captionFont';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 import { persisted, persistedFlag, persistedWith, writeStored } from './persisted';
+import { normalizeAppearance, type Appearance } from './appearance';
 
 // ---- Session status --------------------------------------------------------
 // Up to four backend tasks (two captures + two clients in "Both" mode) report status
@@ -355,3 +356,43 @@ export const languageFavourites = persistedWith(
 	() => loadLanguageFavourites(),
 	(codes) => writeStored(LANGUAGE_FAVOURITES_KEY, JSON.stringify(codes))
 );
+
+// ---- Appearance as a whole ---------------------------------------------------------
+
+/** The eight appearance stores as one value, for saving, comparing and pushing. */
+export const appearance = derived(
+	[
+		overlayFontSize,
+		overlayCaptionWidth,
+		overlayCaptionLayout,
+		overlayCaptionFace,
+		overlayPalette,
+		overlayCleanSpeech,
+		overlayHoldSeconds,
+		overlayPace
+	],
+	([fontSize, width, layout, face, palette, cleanSpeech, hold, pace]): Appearance => ({
+		fontSize,
+		width,
+		layout,
+		face,
+		palette,
+		cleanSpeech,
+		hold,
+		pace
+	})
+);
+
+/** Set every appearance store from one value, normalized first so nothing out of range is
+ *  stored or shown in the operator window's readouts. */
+export function applyAppearance(value: Appearance) {
+	const a = normalizeAppearance(value);
+	overlayFontSize.set(a.fontSize);
+	overlayCaptionWidth.set(a.width);
+	overlayCaptionLayout.set(a.layout);
+	overlayCaptionFace.set(a.face);
+	overlayPalette.set(a.palette);
+	overlayCleanSpeech.set(a.cleanSpeech);
+	overlayHoldSeconds.set(a.hold);
+	overlayPace.set(a.pace);
+}

@@ -1,18 +1,7 @@
-import {
-	normalizeStartOptions,
-	clampOverlayFont,
-	clampOverlayWidth,
-	type StartOptions
-} from './types';
-import { isCaptionLayout, type CaptionLayout } from './captionLayout';
-import { isCaptionFace, type CaptionFaceId } from './captionFont';
-import {
-	clampHex,
-	clampScrimOpacity,
-	DEFAULT_CAPTION_PALETTE,
-	type CaptionPalette
-} from './captionColour';
-import { holdSeconds, type CaptionPace } from './reading';
+import { normalizeAppearance, type Appearance } from './appearance';
+import { normalizeStartOptions, type StartOptions } from './types';
+
+export { normalizeAppearance, type Appearance };
 export const PROFILES_KEY = 'meeting.profiles';
 export interface Placement {
 	x: number;
@@ -20,45 +9,12 @@ export interface Placement {
 	width: number;
 	height: number;
 }
-export interface Appearance {
-	fontSize: number;
-	width: number;
-	layout: CaptionLayout;
-	face: CaptionFaceId;
-	palette: CaptionPalette;
-	cleanSpeech: boolean;
-	hold: number;
-	pace: CaptionPace;
-}
 export interface MeetingProfile {
 	id: string;
 	name: string;
 	options: StartOptions;
 	appearance: Appearance;
 	placement: Placement | null;
-}
-export function normalizeAppearance(value: unknown): Appearance {
-	const a = (value && typeof value === 'object' ? value : {}) as Partial<Appearance>;
-	return {
-		fontSize:
-			typeof a.fontSize === 'number' && Number.isFinite(a.fontSize)
-				? clampOverlayFont(a.fontSize)
-				: 38,
-		width:
-			typeof a.width === 'number' && Number.isFinite(a.width) ? clampOverlayWidth(a.width) : 30,
-		layout: isCaptionLayout(a.layout) ? a.layout : 'fit',
-		face: isCaptionFace(a.face) ? a.face : 'archivo',
-		palette: {
-			text: clampHex(a.palette?.text, DEFAULT_CAPTION_PALETTE.text),
-			scrim: clampHex(a.palette?.scrim, DEFAULT_CAPTION_PALETTE.scrim),
-			scrimOpacity: clampScrimOpacity(
-				a.palette?.scrimOpacity ?? DEFAULT_CAPTION_PALETTE.scrimOpacity
-			)
-		},
-		cleanSpeech: a.cleanSpeech === true,
-		hold: holdSeconds(a.hold),
-		pace: a.pace === 'steady' ? 'steady' : 'immediate'
-	};
 }
 export function decodeProfiles(raw: string | null): MeetingProfile[] {
 	try {

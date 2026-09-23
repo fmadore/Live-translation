@@ -1,21 +1,11 @@
 <script lang="ts">
 	import { isTargetLanguage } from '$lib/languages';
-	import {
-		createCaptionPresenter,
-		loadHoldSeconds,
-		loadPace,
-		holdSeconds,
-		type CaptionPace
-	} from '$lib/reading';
-	import { cleanSpeech, loadCleanSpeech } from '$lib/cleanSpeech';
+	import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
+	import { cleanSpeech } from '$lib/cleanSpeech';
+	import { loadAppearance } from '$lib/appearance';
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
-	import {
-		appendCaptionHistory,
-		loadCaptionLayout,
-		isCaptionLayout,
-		bottomCaptionHeight
-	} from '$lib/captionLayout';
+	import { appendCaptionHistory, isCaptionLayout, bottomCaptionHeight } from '$lib/captionLayout';
 	import { api, on, isTauri } from '$lib/tauri';
 	import { isLocale, locale, t } from '$lib/i18n';
 	import type { Caption, Origin, TargetLanguage } from '$lib/types';
@@ -23,18 +13,15 @@
 		captionCssVars,
 		clampHex,
 		clampScrimOpacity,
-		DEFAULT_CAPTION_PALETTE,
-		loadCaptionPalette
+		DEFAULT_CAPTION_PALETTE
 	} from '$lib/captionColour';
 	import type { CaptionPalette } from '$lib/captionColour';
-	import { captionFaceStack, isCaptionFace, loadCaptionFace } from '$lib/captionFont';
+	import { captionFaceStack, isCaptionFace } from '$lib/captionFont';
 	import type { CaptionFaceId } from '$lib/captionFont';
 	import {
 		captionBudget,
 		clampOverlayFont,
 		clampOverlayWidth,
-		loadOverlayFont,
-		loadOverlayWidth,
 		OVERLAY_PLACED_KEY
 	} from '$lib/types';
 
@@ -51,21 +38,22 @@
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
 	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
 
-	// Initial size comes from the shared localStorage key (same origin as the operator),
-	// then the operator pushes live updates via the overlay-config event.
-	let fontSize = $state(loadOverlayFont());
-	let captionWidth = $state(loadOverlayWidth());
-	let readingHold = $state(loadHoldSeconds());
-	let pace = $state<CaptionPace>(loadPace());
-	let hideFillers = $state(loadCleanSpeech());
-	let captionLayout = $state(loadCaptionLayout());
+	// The initial appearance comes from the shared localStorage keys (same origin as the
+	// operator), then the operator pushes live updates via the overlay-config event.
+	const initial = loadAppearance();
+	let fontSize = $state(initial.fontSize);
+	let captionWidth = $state(initial.width);
+	let readingHold = $state(initial.hold);
+	let pace = $state<CaptionPace>(initial.pace);
+	let hideFillers = $state(initial.cleanSpeech);
+	let captionLayout = $state(initial.layout);
 	let fontsLoaded = $state(0);
-	let captionFace = $state<CaptionFaceId>(loadCaptionFace());
+	let captionFace = $state<CaptionFaceId>(initial.face);
 
 	// The ink and the scrim behind it. The overlay keeps the operator's three plain values and
 	// derives its own steps from them, rather than being handed a finished stylesheet — so the
 	// contrast readout on the control panel and the pixels here come out of one function.
-	let palette = $state<CaptionPalette>(loadCaptionPalette());
+	let palette = $state<CaptionPalette>(initial.palette);
 	const paletteVars = $derived(
 		Object.entries(captionCssVars(palette))
 			.map(([name, value]) => `${name}: ${value}`)
