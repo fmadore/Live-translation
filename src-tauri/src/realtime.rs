@@ -75,35 +75,55 @@ pub enum MessageControl {
     Closed,
 }
 
+/// What a provider message did to the current turn. The runner turns this into a caption
+/// event, so handlers only update the accumulator and never need an `AppHandle`.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum CaptionUpdate {
+    #[default]
+    None,
+    /// The turn changed and is still open.
+    Interim,
+    /// The turn is complete: emit it as final, then start the next one.
+    Final,
+}
+
 #[derive(Debug, Default)]
 pub struct MessageOutcome {
+    pub caption: CaptionUpdate,
     pub transcript_activity: bool,
     pub setup_complete: bool,
     pub control: MessageControl,
 }
 
 impl MessageOutcome {
-    pub fn activity() -> Self {
+    pub fn caption(caption: CaptionUpdate) -> Self {
         Self {
+            caption,
+            ..Self::default()
+        }
+    }
+
+    /// A caption update that also counts as target-text activity, which restarts the
+    /// provider's idle-finalize timer.
+    pub fn activity(caption: CaptionUpdate) -> Self {
+        Self {
+            caption,
             transcript_activity: true,
-            setup_complete: false,
-            control: MessageControl::Continue,
+            ..Self::default()
         }
     }
 
     pub fn setup_complete() -> Self {
         Self {
-            transcript_activity: false,
             setup_complete: true,
-            control: MessageControl::Continue,
+            ..Self::default()
         }
     }
 
     pub fn control(control: MessageControl) -> Self {
         Self {
-            transcript_activity: false,
-            setup_complete: false,
             control,
+            ..Self::default()
         }
     }
 }
@@ -127,12 +147,9 @@ pub trait RealtimeProtocol {
         Ok(Vec::new())
     }
 
-    fn handle_message(
-        &mut self,
-        app: &AppHandle,
-        text: &str,
-        acc: &mut TurnAccumulator,
-    ) -> MessageOutcome;
+    /// Parse one server message into `acc`. Pure: the runner emits whatever caption the
+    /// returned outcome asks for, and advances the turn after a final one.
+    fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome;
 
     fn finalize_after(&self) -> Option<Duration> {
         None
@@ -413,15 +430,36 @@ fn handle_socket_message<P: RealtimeProtocol>(
     message: Message,
     acc: &mut TurnAccumulator,
 ) -> MessageOutcome {
-    match message {
-        Message::Text(text) => proto.handle_message(app, &text, acc),
+    let outcome = match message {
+        Message::Text(text) => proto.handle_message(&text, acc),
         // Parsed in place: Gemini sends its JSON as binary frames, and Live Translate's carry
         // the (discarded) output audio, so copying each frame first was the larger cost.
         Message::Binary(bytes) => std::str::from_utf8(&bytes)
-            .map(|text| proto.handle_message(app, text, acc))
+            .map(|text| proto.handle_message(text, acc))
             .unwrap_or_default(),
         Message::Close(_) => MessageOutcome::control(MessageControl::Reconnect),
         _ => MessageOutcome::default(),
+    };
+    apply_caption(outcome.caption, acc, |acc, final_| {
+        emit_caption(app, proto.origin(), acc, final_);
+    });
+    outcome
+}
+
+/// Emit what a handler asked for, then advance past a final turn. Split out from the socket
+/// path so tests can drive handlers through exactly the sequence the runner uses.
+fn apply_caption(
+    update: CaptionUpdate,
+    acc: &mut TurnAccumulator,
+    emit: impl FnOnce(&mut TurnAccumulator, bool),
+) {
+    match update {
+        CaptionUpdate::None => {}
+        CaptionUpdate::Interim => emit(acc, false),
+        CaptionUpdate::Final => {
+            emit(acc, true);
+            acc.next_turn();
+        }
     }
 }
 
@@ -494,7 +532,8 @@ fn fatal_handshake_rejection(error: &anyhow::Error) -> Option<u16> {
 /// between two people speaking belongs to neither subtitle. A turn that arrives complete in
 /// one message therefore has `start_ms == end_ms`, which is the truth about that caption —
 /// giving a cue a minimum on-screen duration is a decision for whatever renders it, not
-/// something to bury in the timestamp.
+/// something to bury in the timestamp. Public for the built-in demo, which scripts its own
+/// timeline rather than parsing a provider.
 pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator, final_: bool) {
     let end_ms = acc.clock.elapsed_ms();
     let start_ms = *acc.started_ms.get_or_insert(end_ms);
@@ -521,6 +560,79 @@ fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, 
             origin: Some(origin),
         },
     );
+}
+
+/// Drives a provider's `handle_message` the way the runner does, recording captions instead
+/// of emitting them, so each wire format can be tested without an `AppHandle` or a socket.
+#[cfg(test)]
+pub(crate) mod test_support {
+    use super::*;
+
+    /// One caption event as the runner would have emitted it.
+    #[derive(Debug, PartialEq, Eq)]
+    pub struct Emitted {
+        pub turn_id: u64,
+        pub text: String,
+        pub source_text: String,
+        pub final_: bool,
+    }
+
+    impl Emitted {
+        pub fn interim(turn_id: u64, text: &str, source_text: &str) -> Self {
+            Self::new(turn_id, text, source_text, false)
+        }
+
+        pub fn final_(turn_id: u64, text: &str, source_text: &str) -> Self {
+            Self::new(turn_id, text, source_text, true)
+        }
+
+        fn new(turn_id: u64, text: &str, source_text: &str, final_: bool) -> Self {
+            Self {
+                turn_id,
+                text: text.to_string(),
+                source_text: source_text.to_string(),
+                final_,
+            }
+        }
+
+        fn of(acc: &TurnAccumulator, final_: bool) -> Self {
+            Self::new(acc.id, &acc.translated, &acc.source, final_)
+        }
+    }
+
+    pub struct Harness<P> {
+        pub proto: P,
+        pub acc: TurnAccumulator,
+        pub captions: Vec<Emitted>,
+    }
+
+    impl<P: RealtimeProtocol> Harness<P> {
+        pub fn new(proto: P) -> Self {
+            Self {
+                proto,
+                acc: TurnAccumulator::new(SessionClock::start()),
+                captions: Vec::new(),
+            }
+        }
+
+        /// One server frame, through the same caption path as `handle_socket_message`.
+        pub fn send(&mut self, frame: &str) -> MessageOutcome {
+            let outcome = self.proto.handle_message(frame, &mut self.acc);
+            let captions = &mut self.captions;
+            apply_caption(outcome.caption, &mut self.acc, |acc, final_| {
+                captions.push(Emitted::of(acc, final_));
+            });
+            outcome
+        }
+
+        /// The runner's idle timer firing, as `finalize_accumulator` handles it.
+        pub fn finalize_idle(&mut self) {
+            if !self.acc.is_empty() {
+                self.captions.push(Emitted::of(&self.acc, true));
+                self.acc.next_turn();
+            }
+        }
+    }
 }
 
 #[cfg(test)]

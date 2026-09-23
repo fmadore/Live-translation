@@ -10,14 +10,13 @@
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use tauri::AppHandle;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    emit_caption, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -82,12 +81,7 @@ impl RealtimeProtocol for OpenAiConfig {
         Ok(vec![r#"{"type":"session.close"}"#.to_string()])
     }
 
-    fn handle_message(
-        &mut self,
-        app: &AppHandle,
-        text: &str,
-        acc: &mut TurnAccumulator,
-    ) -> MessageOutcome {
+    fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
         let ev: ServerEvent = match serde_json::from_str(text) {
             Ok(e) => e,
             Err(e) => {
@@ -111,16 +105,14 @@ impl RealtimeProtocol for OpenAiConfig {
         if kind.ends_with("input_transcript.delta") {
             if let Some(t) = ev.payload() {
                 acc.source.push_str(t);
-                emit_caption(app, self.origin, acc, false);
                 // Source transcription may lead translated output by a noticeable amount;
                 // only target-text activity should start the caption-finalize timer.
-                return MessageOutcome::default();
+                return MessageOutcome::caption(CaptionUpdate::Interim);
             }
         } else if kind.ends_with("output_transcript.delta") {
             if let Some(t) = ev.payload() {
                 acc.translated.push_str(t);
-                emit_caption(app, self.origin, acc, false);
-                return MessageOutcome::activity();
+                return MessageOutcome::activity(CaptionUpdate::Interim);
             }
         } else if kind.ends_with("output_transcript.done")
             || kind.ends_with("output_transcript.completed")
@@ -132,8 +124,7 @@ impl RealtimeProtocol for OpenAiConfig {
                         acc.translated.push_str(t);
                     }
                 }
-                emit_caption(app, self.origin, acc, true);
-                acc.next_turn();
+                return MessageOutcome::caption(CaptionUpdate::Final);
             }
         }
 
@@ -142,5 +133,83 @@ impl RealtimeProtocol for OpenAiConfig {
 
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::realtime::test_support::{Emitted, Harness};
+
+    fn harness() -> Harness<OpenAiConfig> {
+        Harness::new(OpenAiConfig {
+            api_key: String::new(),
+            model: DEFAULT_OPENAI_TRANSLATE_MODEL.to_string(),
+            transcribe_model: DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string(),
+            host: DEFAULT_OPENAI_HOST.to_string(),
+            target_language_code: "en".to_string(),
+            origin: Origin::System,
+        })
+    }
+
+    #[test]
+    fn only_translated_text_restarts_the_finalize_timer() {
+        let mut h = harness();
+        let source = h.send(r#"{"type":"session.input_transcript.delta","delta":"Bonjour"}"#);
+        assert_eq!(source.caption, CaptionUpdate::Interim);
+        assert!(!source.transcript_activity);
+
+        let target = h.send(r#"{"type":"session.output_transcript.delta","delta":"Hello"}"#);
+        assert_eq!(target.caption, CaptionUpdate::Interim);
+        assert!(target.transcript_activity);
+
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "", "Bonjour"),
+                Emitted::interim(0, "Hello", "Bonjour"),
+            ]
+        );
+    }
+
+    #[test]
+    fn an_explicit_done_finalizes_and_fills_a_missing_translation() {
+        let mut h = harness();
+        h.send(r#"{"type":"session.input_transcript.delta","delta":"Merci"}"#);
+        h.send(r#"{"type":"session.output_transcript.done","transcript":"Thank you"}"#);
+        h.send(r#"{"type":"session.output_transcript.delta","delta":"Next"}"#);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "", "Merci"),
+                Emitted::final_(0, "Thank you", "Merci"),
+                Emitted::interim(1, "Next", ""),
+            ]
+        );
+    }
+
+    #[test]
+    fn done_keeps_streamed_text_and_ignores_an_empty_turn() {
+        let mut h = harness();
+        h.send(r#"{"type":"session.output_transcript.done","transcript":"stray"}"#);
+        assert!(h.captions.is_empty(), "nothing to finalize yet");
+
+        h.send(r#"{"type":"session.output_transcript.delta","delta":"Streamed"}"#);
+        h.send(r#"{"type":"session.output_transcript.completed","transcript":"Different"}"#);
+        assert_eq!(h.captions[1], Emitted::final_(0, "Streamed", ""));
+    }
+
+    #[test]
+    fn close_and_error_events_end_the_connection() {
+        let mut h = harness();
+        assert!(matches!(
+            h.send(r#"{"type":"session.closed"}"#).control,
+            MessageControl::Closed
+        ));
+        assert!(matches!(
+            h.send(r#"{"type":"error","error":{"message":"quota"}}"#)
+                .control,
+            MessageControl::Fatal(_)
+        ));
     }
 }
