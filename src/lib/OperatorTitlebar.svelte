@@ -31,7 +31,7 @@
 			height="11"
 			viewBox="0 0 24 24"
 			fill="none"
-			stroke="#06261b"
+			stroke="currentColor"
 			stroke-width="2.4"
 			stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
 		>
@@ -110,7 +110,8 @@
 		width: 18px;
 		height: 18px;
 		border-radius: 5px;
-		background: linear-gradient(150deg, #5ad1a0, #2f8f6b);
+		background: linear-gradient(150deg, var(--accent), var(--accent-deep));
+		color: var(--on-accent);
 		display: flex;
 		align-items: center;
 		justify-content: center;

@@ -91,7 +91,7 @@
 		padding: 15px 24px;
 		border: 0;
 		border-radius: var(--radius-card);
-		background: linear-gradient(#5ad1a0, #43b989);
+		background: var(--accent-fill);
 		color: var(--on-accent);
 		font-size: var(--type-label);
 		font-weight: 600;
@@ -122,7 +122,6 @@
 	}
 	.stop:hover:not(:disabled) {
 		background: rgba(255, 92, 92, 0.18);
-		color: #ffb3b3;
 	}
 	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
 	   the thing the operator came to press. */

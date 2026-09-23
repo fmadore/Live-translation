@@ -192,7 +192,7 @@
 	}
 	button.save {
 		border: 0;
-		background: linear-gradient(#5ad1a0, #43b989);
+		background: var(--accent-fill);
 		color: var(--on-accent);
 		font-weight: 600;
 		padding: 8px 13px;

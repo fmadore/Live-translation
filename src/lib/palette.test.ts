@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Issue #24. The contrast failures this guards against were not written deliberately — they
@@ -147,8 +148,74 @@ describe('the palette', () => {
 	});
 
 	// --on-accent is the one colour that is read on a filled mint button rather than on a
-	// surface, so it is checked against the accent instead.
-	it('keeps the filled-button label legible on the accent it sits on', () => {
-		expect(contrast(tokens['--on-accent'], tokens['--accent'])).toBeGreaterThanOrEqual(4.5);
+	// surface, so it is checked against both ends of the fill instead.
+	it('keeps the filled-button label legible across the fill it sits on', () => {
+		for (const end of ['--accent', '--accent-deep']) {
+			expect(contrast(tokens['--on-accent'], tokens[end]), end).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+});
+
+// The checks above only mean something while components paint from the tokens. The overlay's
+// move-mode chrome once spelled out 27 hex values, ten of them copies of tokens, where none of
+// these checks could see them; this is what keeps that from coming back.
+describe('the component stylesheets', () => {
+	const SRC = join(process.cwd(), 'src');
+	const walk = (dir: string): string[] =>
+		readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+			const path = join(dir, entry.name);
+			if (entry.isDirectory()) return walk(path);
+			return entry.name.endsWith('.svelte') ? [path] : [];
+		});
+	const files = walk(SRC).map((path) => {
+		const source = readFileSync(path, 'utf8');
+		return {
+			file: path.slice(SRC.length + 1).replace(/\\/g, '/'),
+			style: source.includes('<style') ? source.slice(source.indexOf('<style')) : ''
+		};
+	});
+
+	/** Literals that are content rather than interface: stand-ins for what the room sees. */
+	const CONTENT: Record<string, string[]> = {
+		// A dark and a bright slide behind the caption sample.
+		'lib/CaptionPreview.svelte': ['#111', '#fff'],
+		// The sample caption that stands in for the audience view while it is being placed.
+		'routes/overlay/OverlayMoveChrome.svelte': ['rgba(255, 255, 255, 0.55)']
+	};
+
+	it('paint with tokens rather than hex literals', () => {
+		expect(files.length).toBeGreaterThan(20);
+		for (const { file, style } of files) {
+			const literals = (style.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).filter(
+				(hex) => !CONTENT[file]?.includes(hex)
+			);
+			expect(literals, file).toEqual([]);
+		}
+	});
+
+	// Text is where contrast is judged, so a text colour has to be a token (or a keyword a
+	// contrast theme supplies), never a colour function the checks above cannot read.
+	it('take every text colour from the palette', () => {
+		for (const { file, style } of files) {
+			for (const [, value] of style.matchAll(/(?<![\w-])color:\s*([^;]+);/g)) {
+				if (CONTENT[file]?.includes(value.trim())) continue;
+				expect(value.trim(), file).toMatch(/^(var\(--[\w-]+\)|[a-zA-Z]+)$/);
+			}
+		}
+	});
+
+	// The overlay toolbar is painted over a slide nobody controls. Its panel is the ground
+	// colour, nearly opaque; over a white slide it must still be no brighter than the raised
+	// surface, because that is the brightest ground the text checks above have cleared.
+	it('keeps the overlay toolbar at least as dark as --surface-2 over a white slide', () => {
+		const tokens = palette();
+		const chrome = files.find(({ file }) => file.endsWith('OverlayMoveChrome.svelte'))!.style;
+		const match = chrome.match(
+			/background: color-mix\(in srgb, var\(--surface-0\) ([\d.]+)%, transparent\);/
+		);
+		expect(match, 'the toolbar panel is --surface-0 mixed with transparency').not.toBeNull();
+		const white = { rgb: [255, 255, 255], alpha: 1 - Number(match![1]) / 100 };
+		const panel = over(white, tokens['--surface-0']);
+		expect(luminance(panel)).toBeLessThanOrEqual(luminance(tokens['--surface-2']));
 	});
 });

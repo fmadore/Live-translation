@@ -28,6 +28,9 @@
 	/* Primary (mint). --on-accent is the only text colour legible on a filled accent. */
 	--accent: #5ad1a0;
 	--accent-soft: #7fdcb6;
+	/* The darker end of the primary button's fill; --on-accent reads at 6.5:1 on it. */
+	--accent-deep: #43b989;
+	--accent-fill: linear-gradient(var(--accent), var(--accent-deep));
 	--on-accent: #05271b;
 	--accent-border: rgba(90, 209, 160, 0.42);
 	--accent-bg: rgba(90, 209, 160, 0.075);

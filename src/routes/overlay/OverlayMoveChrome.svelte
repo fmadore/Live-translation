@@ -96,8 +96,8 @@
 	.region {
 		position: absolute;
 		inset: 0;
-		border: 2px solid #5ad1a0;
-		background: rgba(90, 209, 160, 0.07);
+		border: 2px solid var(--accent);
+		background: var(--accent-bg);
 		pointer-events: none;
 	}
 	/* Affordances only: the resize itself is the OS window edge-drag. */
@@ -106,7 +106,7 @@
 		width: 11px;
 		height: 11px;
 		border-radius: 3px;
-		background: #5ad1a0;
+		background: var(--accent);
 	}
 	.handle.tl {
 		left: 3px;
@@ -131,7 +131,7 @@
 		width: 34px;
 		height: 9px;
 		border-radius: 3px;
-		background: rgba(90, 209, 160, 0.55);
+		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 	.edge.top {
 		top: 3px;
@@ -181,8 +181,8 @@
 		gap: 10px;
 		padding: 6px 12px;
 		border-radius: 8px;
-		background: #5ad1a0;
-		color: #05271b;
+		background: var(--accent);
+		color: var(--on-accent);
 		pointer-events: none;
 	}
 	.drag-label {
@@ -204,13 +204,15 @@
 		align-items: center;
 		gap: 14px;
 		padding: 12px 14px;
-		border: 1px solid #2f3540;
+		border: 1px solid var(--line-hover);
 		border-radius: 14px;
 		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
-		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. */
-		background: rgba(14, 17, 20, 0.96);
+		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. At
+		   0.96 the panel over white stays darker than --surface-2, so every text level that
+		   passes there passes here; `palette.test.ts` holds it to that. */
+		background: color-mix(in srgb, var(--surface-0) 96%, transparent);
 		box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
-		color: #e9ebef;
+		color: var(--text-body);
 		/* Clickable while the rest of the stage drags the window. */
 		pointer-events: auto;
 		cursor: default;
@@ -227,37 +229,35 @@
 		line-height: 1;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
-		color: #ffb454;
+		color: var(--warn);
 	}
 	.mode-sub {
 		font-size: var(--type-small);
 		line-height: 1;
-		color: #8b93a1;
+		color: var(--text-muted);
 	}
 	.keys {
 		margin-top: 3px;
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1.7;
-		/* The dim end of the shared text ramp (--text-muted); spelled out because this window
-		   paints over an unknown desktop and does not inherit the operator's surfaces. */
-		color: #848c99;
+		color: var(--text-muted);
 		white-space: nowrap;
 	}
 	.keys kbd {
 		padding: 3px 5px;
-		border: 1px solid #2a2f38;
+		border: 1px solid var(--line-strong);
 		border-radius: 5px;
-		background: #191d23;
+		background: var(--surface-2);
 		font-family: inherit;
 		font-weight: 500;
 		font-size: inherit;
-		color: #b9c0ca;
+		color: var(--text-secondary);
 	}
 	.divider {
 		width: 1px;
 		height: 30px;
-		background: #2a2f38;
+		background: var(--line-strong);
 	}
 	.size {
 		display: flex;
@@ -267,7 +267,7 @@
 	.size-label {
 		font-size: var(--type-small);
 		line-height: 1;
-		color: #8b93a1;
+		color: var(--text-muted);
 	}
 	.size-value {
 		min-width: 24px;
@@ -283,34 +283,34 @@
 		place-items: center;
 		width: 28px;
 		height: 28px;
-		border: 1px solid #2a2f38;
+		border: 1px solid var(--line-strong);
 		border-radius: 7px;
-		background: #171b21;
-		color: #c3c9d2;
+		background: var(--surface-2);
+		color: var(--text-secondary);
 		font-weight: 500;
 		font-size: var(--type-body);
 		line-height: 1;
 	}
 	.step:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	.ghost {
 		display: flex;
 		align-items: center;
 		gap: 8px;
 		padding: 9px 13px;
-		border: 1px solid #2a2f38;
+		border: 1px solid var(--line-strong);
 		border-radius: 9px;
-		background: #171b21;
-		color: #c3c9d2;
+		background: var(--surface-2);
+		color: var(--text-secondary);
 		font-weight: 500;
 		font-size: var(--type-small);
 		line-height: 1;
 	}
 	.ghost:hover {
-		border-color: #3a4150;
-		color: #e9ebef;
+		border-color: var(--line-hover);
+		color: var(--text-body);
 	}
 	.primary {
 		display: flex;
@@ -319,8 +319,8 @@
 		padding: 10px 15px;
 		border: 0;
 		border-radius: 9px;
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: #05271b;
+		background: var(--accent-fill);
+		color: var(--on-accent);
 		font-weight: 600;
 		font-size: var(--type-body);
 		line-height: 1;

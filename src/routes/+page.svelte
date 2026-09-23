@@ -473,7 +473,7 @@
 		background: var(--line);
 	}
 	.rule.live {
-		background: #163027;
+		background: var(--accent-chip-bg);
 		position: relative;
 		overflow: hidden;
 	}

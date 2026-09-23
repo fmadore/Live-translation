@@ -170,7 +170,7 @@
 		height: 0.86em;
 		margin-inline-start: 10px;
 		vertical-align: -1px;
-		background: #5ad1a0;
+		background: var(--accent);
 		animation: blink 1.1s steps(1) infinite;
 	}
 </style>
