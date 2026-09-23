@@ -11,6 +11,11 @@
 	import { createPreflightController } from '$lib/preflightController.svelte';
 	import { createQuitController } from '$lib/quitController.svelte';
 	import { createOverlayController } from '$lib/overlayController.svelte';
+	import { createSessionClock } from '$lib/sessionClock.svelte';
+	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
+	import SessionControls from '$lib/SessionControls.svelte';
+	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
+	import LiveTurns from '$lib/LiveTurns.svelte';
 	import CaptionAppearance from '$lib/CaptionAppearance.svelte';
 	import { get } from 'svelte/store';
 	import { api, on, isTauri } from '$lib/tauri';
@@ -148,29 +153,8 @@
 			: ['mistral', 'gemini-transcribe', 'ondevice']
 	);
 
-	// ---- Session clock ---------------------------------------------------------
-	// Ticks only while a session is open; the effect's teardown stops it on stop/unmount.
-	let clock = $state(Date.now());
-	$effect(() => {
-		if (!$isRunning) return;
-		clock = Date.now();
-		const id = setInterval(() => (clock = Date.now()), 1000);
-		return () => clearInterval(id);
-	});
-	const elapsedMs = $derived(
-		$sessionStartedAt === null ? 0 : Math.max(0, clock - $sessionStartedAt)
-	);
-
-	function formatElapsed(ms: number): string {
-		const total = Math.floor(ms / 1000);
-		const pad = (n: number) => String(n).padStart(2, '0');
-		const seconds = total % 60;
-		const minutes = Math.floor(total / 60) % 60;
-		const hours = Math.floor(total / 3600);
-		return hours > 0
-			? `${hours}:${pad(minutes)}:${pad(seconds)}`
-			: `${pad(minutes)}:${pad(seconds)}`;
-	}
+	// Ticks only while a session is open.
+	const clock = createSessionClock();
 
 	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
 	// instead of live audio. It only ever reaches the backend as one extra field on the start
@@ -306,7 +290,7 @@
 				stop: $t.design.trayStop,
 				show: $t.design.trayShow,
 				hide: $t.design.trayHide,
-				status: `${stateLabel[$sessionState]}${$isRunning ? ' · ' + formatElapsed(elapsedMs) : ''}`
+				status: `${stateLabel[$sessionState]}${$isRunning ? ' · ' + clock.elapsed : ''}`
 			})
 			.catch(() => {});
 	});
@@ -477,15 +461,6 @@
 
 	const stateLabel = $derived<Record<SessionState, string>>($t.state);
 
-	// Not from the catalog: these are CSS class names, not words.
-	const stateTone: Record<SessionState, string> = {
-		idle: 'neutral',
-		connecting: 'warn',
-		running: 'live',
-		reconnecting: 'warn',
-		error: 'bad'
-	};
-
 	// What a screen reader hears when the session changes state. Deliberately separate from the
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.
@@ -521,13 +496,6 @@
 				? $t.rail.step.demoLanguage
 				: $t.rail.step.spokenLanguage
 	);
-
-	// The two speakers currently on screen, least-recently-updated first (newest at the bottom).
-	const liveTurns = $derived(
-		(Object.keys($currentCaptions) as Origin[])
-			.map((origin) => ({ origin, caption: $currentCaptions[origin] }))
-			.filter((t): t is { origin: Origin; caption: Caption } => t.caption !== undefined)
-	);
 </script>
 
 <svelte:window
@@ -554,58 +522,11 @@
 />
 
 <div class="app" class:device-error={failedDevice !== null}>
-	<header class="titlebar">
-		<span class="brand" aria-hidden="true">
-			<svg
-				width="11"
-				height="11"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="#06261b"
-				stroke-width="2.4"
-				stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
-			>
-		</span>
-		<h1 class="app-name">{$t.app.name}</h1>
-		<span class="context">{$t.app.tagline}</span>
-		<span class="grow"></span>
-		<div class="pill {stateTone[$sessionState]}">
-			<span class="pill-dot" aria-hidden="true"></span>
-			<span class="pill-label"
-				>{$sessionState === 'running' && $options.provider === 'ondevice'
-					? $t.state.demo
-					: stateLabel[$sessionState]}</span
-			>
-			{#if $isRunning && $sessionStartedAt !== null}
-				<span class="pill-time">{formatElapsed(elapsedMs)}</span>
-			{/if}
-		</div>
-		<!-- Persistent access to caption, reading, history and app preferences. -->
-		<button
-			class="gear"
-			aria-haspopup="dialog"
-			aria-expanded={settingsOpen}
-			aria-label={$t.settings.openLabel}
-			onclick={() => (settingsOpen = true)}
-		>
-			<svg
-				width="15"
-				height="15"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.7"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-			>
-				<circle cx="12" cy="12" r="3" />
-				<path
-					d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-				/>
-			</svg>
-		</button>
-	</header>
+	<OperatorTitlebar
+		elapsed={clock.elapsed}
+		{settingsOpen}
+		onOpenSettings={() => (settingsOpen = true)}
+	/>
 
 	<!-- The two regions that speak for the session. Neither holds anything that changes on a
 	     timer, so they announce on real changes only, and both are in the DOM from the first
@@ -614,92 +535,36 @@
 	<p class="sr-only" role="status">{stateAnnouncement[$sessionState]}</p>
 	<p class="sr-only" role="status">{statusText}</p>
 	{#if failedDevice}
-		<section class="device-recovery" aria-label={$t.devices.retry}>
-			<p class="hint">
-				<strong>{failedDevice === 'microphone' ? $t.source.microphone : $t.source.system}</strong>: {failedDevice ===
-					'system' && $options.systemCapture?.kind === 'application'
-					? $t.applications.recovery
-					: $t.devices.recovery}
-			</p>
-			<button
-				class="tool"
-				disabled={$sessionBusy || retryingDevice}
-				onclick={() => retryDevice(false)}>{$t.devices.retry}</button
-			>
-			<button
-				class="tool"
-				disabled={$sessionBusy || retryingDevice}
-				onclick={failedDevice === 'system' && $options.systemCapture?.kind === 'application'
-					? reselectApplication
-					: () => retryDevice(true)}
-				>{failedDevice === 'system' && $options.systemCapture?.kind === 'application'
-					? $t.applications.reselect
-					: $t.devices.fallback}</button
-			>
-		</section>
+		<DeviceRecoveryBanner
+			failed={failedDevice}
+			busy={$sessionBusy || retryingDevice}
+			onRetry={() => retryDevice(false)}
+			onFallback={() => retryDevice(true)}
+			onReselect={reselectApplication}
+		/>
 	{/if}
 
 	<div class="rule" class:live={$isRunning}>
 		{#if $isRunning}<span class="sweep"></span>{/if}
 	</div>
 
-	<div class="session-controls">
-		{#if $isRunning}
-			<button class="stop" disabled={$sessionBusy} aria-busy={$sessionBusy} onclick={stop}>
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-					><rect x="6" y="6" width="12" height="12" rx="2" /></svg
-				>
-				{$sessionBusy ? $t.rail.stopping : $t.rail.stop}
-			</button>
-		{:else}
-			<button
-				class="start"
-				disabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					profileBusy ||
-					$sessionBusy ||
-					!preflight.applicationReady($options)}
-				aria-busy={$sessionBusy}
-				onclick={start}
-			>
-				<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
-				>
-				{$sessionBusy
-					? $t.preflight.start.starting
-					: $options.mode === 'translate'
-						? $t.preflight.start.translate
-						: $options.provider === 'ondevice'
-							? $t.preflight.start.demo
-							: $t.preflight.start.subtitles}
-			</button><button
-				class="rehearse"
-				aria-describedby="rehearse-hint"
-				disabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					$sessionBusy ||
-					$options.provider === 'ondevice'}
-				onclick={rehearse}
-			>
-				<svg
-					width="13"
-					height="13"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					aria-hidden="true"
-					><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
-				>
-				{$sessionBusy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
-			</button>
-		{/if}
-		<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
-	</div>
+	<SessionControls
+		busy={$sessionBusy}
+		startDisabled={!!languageError ||
+			!$hasKey ||
+			browserMode ||
+			profileBusy ||
+			$sessionBusy ||
+			!preflight.applicationReady($options)}
+		rehearseDisabled={!!languageError ||
+			!$hasKey ||
+			browserMode ||
+			$sessionBusy ||
+			$options.provider === 'ondevice'}
+		onStart={start}
+		onRehearse={rehearse}
+		onStop={stop}
+	/>
 
 	<div class="body">
 		<aside class="rail">
@@ -775,7 +640,7 @@
 
 				<div class="rail-section">
 					<h2 class="kicker">{$t.rail.arriving}</h2>
-					<LiveActivity now={clock} microphone={usesMic} system={usesSystem} />
+					<LiveActivity now={clock.now} microphone={usesMic} system={usesSystem} />
 					{#if usesMic}
 						<LevelMeter
 							level={$micLevel}
@@ -799,7 +664,7 @@
 									{formatUsd(
 										estimateSessionCost(
 											$options.provider,
-											elapsedMs,
+											clock.elapsedMs,
 											$options.source === 'both' ? 2 : 1
 										)
 									)}
@@ -1194,50 +1059,7 @@
 			{/if}
 
 			{#if $isRunning}
-				<div class="stage-head">
-					<h2 class="kicker">{$t.stage.onScreen}</h2>
-					<span class="stretch"></span>
-					<span class="stage-note">
-						{liveTurns.length > 1 ? $t.stage.twoSpeakers : $t.stage.newestLast}
-					</span>
-				</div>
-
-				{#if liveTurns.length}
-					<div class="turns">
-						{#each liveTurns as turn (turn.origin)}
-							<article class="turn">
-								<div class="turn-who">
-									<span class="origin-chip {turn.origin}">
-										{$options.provider === 'ondevice'
-											? $t.stage.origin.demo
-											: $t.stage.origin[turn.origin]}
-									</span>
-									<span class="origin-sub">
-										{$options.provider === 'ondevice'
-											? $t.stage.originSub.demo
-											: $t.stage.originSub[turn.origin]}
-									</span>
-								</div>
-								<div class="turn-text">
-									{#if turn.caption.sourceText}
-										<p class="turn-source">{turn.caption.sourceText}</p>
-									{/if}
-									<p class="turn-caption" class:live={!turn.caption.final}>
-										{turn.caption.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
-									</p>
-								</div>
-							</article>
-						{/each}
-					</div>
-				{:else}
-					<p class="hint stage-hint">
-						{$options.mode === 'translate'
-							? $t.stage.waitingTranslation
-							: $options.provider === 'ondevice'
-								? $t.stage.waitingDemo
-								: $t.stage.waitingSubtitles}
-					</p>
-				{/if}
+				<LiveTurns />
 
 				{#if $statusMessage}
 					<p class="status-msg" aria-hidden="true">{statusText}</p>
@@ -1471,7 +1293,7 @@
 
 {#if quit.sessionPrompt}
 	<ActiveSessionPrompt
-		elapsed={formatElapsed(elapsedMs)}
+		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
@@ -1488,20 +1310,6 @@
 {/if}
 
 <style>
-	.start-key {
-		align-self: center;
-	}
-
-	.device-recovery {
-		padding: 0.75rem 1.25rem;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.625rem;
-		border-bottom: 1px solid var(--border);
-	}
-	.device-recovery p {
-		flex-basis: 100%;
-	}
 	.app {
 		height: 100vh;
 		display: grid;
@@ -1518,133 +1326,6 @@
 	}
 
 	/* ---- Header ------------------------------------------------------------- */
-
-	.titlebar {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		min-height: 40px;
-		padding: 4px 14px;
-		background: #12151a;
-		border-bottom: 1px solid var(--hairline);
-	}
-	/* The only control in the titlebar, and the only one whose position never depends on what
-	   the session is doing. Icon-only, so its accessible name carries the whole label; the box
-	   is padded out to a real target rather than left the size of the glyph. */
-	.gear {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-		width: 28px;
-		height: 28px;
-		border-radius: var(--radius-control);
-		border: 1px solid transparent;
-		background: transparent;
-		color: var(--muted-2);
-	}
-	.gear:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-
-	.brand {
-		width: 18px;
-		height: 18px;
-		border-radius: 5px;
-		background: linear-gradient(150deg, #5ad1a0, #2f8f6b);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-	}
-	/* The window's one h1: every other heading in either column sits under it. */
-	.app-name {
-		margin: 0;
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.context {
-		font-size: var(--type-12);
-		line-height: 1;
-		color: var(--muted-3);
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.pill {
-		display: flex;
-		align-items: center;
-		gap: 7px;
-		padding: 4px 10px 4px 8px;
-		border-radius: 20px;
-		flex: 0 0 auto;
-	}
-	.pill-dot {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
-	}
-	.pill-label {
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-	}
-	.pill-time {
-		font-family: var(--font-mono);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-	}
-	.pill.neutral {
-		background: var(--surface-3);
-		border: 1px solid var(--border);
-	}
-	.pill.neutral .pill-dot {
-		background: var(--faint);
-	}
-	.pill.neutral .pill-label {
-		color: var(--muted);
-	}
-	.pill.live {
-		background: var(--accent-bg);
-		border: 1px solid var(--accent-border);
-	}
-	.pill.live .pill-dot {
-		background: var(--accent);
-		box-shadow: 0 0 8px var(--accent);
-		animation: breathe 2.4s ease-in-out infinite;
-	}
-	.pill.live .pill-label,
-	.pill.live .pill-time {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-	.pill.warn {
-		background: var(--warn-bg);
-		border: 1px solid var(--warn-border);
-	}
-	.pill.warn .pill-dot {
-		background: var(--warn);
-		animation: breathe 2.4s ease-in-out infinite;
-	}
-	.pill.warn .pill-label {
-		color: var(--warn-soft);
-	}
-	.pill.bad {
-		background: var(--danger-bg);
-		border: 1px solid var(--danger-border);
-	}
-	.pill.bad .pill-dot {
-		background: var(--danger);
-	}
-	.pill.bad .pill-label {
-		color: var(--danger-soft);
-	}
 
 	.rule {
 		background: var(--hairline);
@@ -1720,16 +1401,12 @@
 	.chips,
 	.rail-note,
 	.cost-card,
-	.stop,
 	.banner,
 	.ready,
 	.intro,
 	.checklist,
 	.status-msg,
-	.launch,
-	.stage-head,
-	.turns,
-	.stage-hint {
+	.launch {
 		flex: 0 0 auto;
 	}
 
@@ -2026,24 +1703,6 @@
 		display: flex;
 		gap: 8px;
 	}
-	.stop {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 10px;
-		padding: 14px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--danger-border);
-		background: var(--danger-bg);
-		color: var(--danger-soft);
-		font-size: var(--type-14);
-		font-weight: 600;
-		line-height: 1;
-	}
-	.stop:hover:not(:disabled) {
-		background: rgba(255, 92, 92, 0.18);
-		color: #ffb3b3;
-	}
 
 	/* ---- Stage -------------------------------------------------------------- */
 
@@ -2184,62 +1843,6 @@
 		gap: 12px;
 		margin-top: 30px;
 	}
-	.session-controls {
-		padding: 0.75rem 1.375rem;
-		border-bottom: 1px solid var(--border);
-		background: var(--panel);
-		display: flex;
-		flex-wrap: wrap;
-		align-items: stretch;
-		gap: 12px;
-	}
-	.session-controls .start,
-	.session-controls .stop {
-		min-width: min(15rem, 100%);
-		justify-content: center;
-	}
-	.start {
-		display: flex;
-		align-items: center;
-		gap: 11px;
-		padding: 15px 24px;
-		border: 0;
-		border-radius: var(--radius-card);
-		background: linear-gradient(#5ad1a0, #43b989);
-		color: var(--on-accent);
-		font-size: var(--type-15-5);
-		font-weight: 600;
-		line-height: 1;
-		box-shadow: 0 12px 30px -12px rgba(90, 209, 160, 0.65);
-		flex: 0 0 auto;
-	}
-	.start:hover:not(:disabled) {
-		filter: brightness(1.06);
-	}
-	.start:disabled {
-		box-shadow: none;
-	}
-	/* Quiet companion to Start: same row, none of the weight — a rehearsal is a dry run, not
-	   the thing the operator came to press. */
-	.rehearse {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 13px 18px;
-		border-radius: var(--radius-card);
-		border: 1px solid var(--border);
-		background: transparent;
-		color: var(--text-soft);
-		font-size: var(--type-13);
-		font-weight: 500;
-		line-height: 1;
-		white-space: nowrap;
-		flex: 0 0 auto;
-	}
-	.rehearse:hover:not(:disabled) {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
 	.rehearse-hint {
 		font-size: var(--type-11-5);
 		line-height: 1.45;
@@ -2260,104 +1863,6 @@
 		font-size: var(--type-13);
 		line-height: 1.5;
 		color: var(--warn);
-	}
-
-	.stage-head {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-	.stretch {
-		flex: 1;
-		height: 1px;
-		background: var(--hairline);
-	}
-	.stage-note {
-		font-size: var(--type-11-5);
-		line-height: 1;
-		color: var(--muted-3);
-	}
-	.stage-hint {
-		margin-top: 24px;
-		font-size: var(--type-13-5);
-	}
-	.turns {
-		display: flex;
-		flex-direction: column;
-		margin-top: 8px;
-	}
-	.turn {
-		display: grid;
-		/* 96px at 100%; in `em` so the origin chip and its timestamp keep their gutter
-		   instead of wrapping into the caption when the text grows. */
-		grid-template-columns: 6em minmax(0, 1fr);
-		gap: 20px;
-		padding: 24px 0;
-		border-bottom: 1px solid var(--hairline);
-	}
-	.turn-who {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding-top: 4px;
-	}
-	.origin-chip {
-		align-self: flex-start;
-		font-size: var(--type-10);
-		font-weight: 600;
-		line-height: 1;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		padding: 5px 8px;
-		border-radius: 5px;
-	}
-	.origin-chip.system {
-		color: var(--accent-soft);
-		background: var(--accent-chip-bg);
-	}
-	.origin-chip.microphone {
-		color: var(--room-soft);
-		background: var(--room-bg);
-	}
-	.origin-sub {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		line-height: 1;
-		color: var(--muted-3);
-	}
-	.turn-text {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		max-width: 60ch;
-	}
-	.turn-source {
-		margin: 0;
-		font-size: var(--type-13);
-		line-height: 1.5;
-		color: var(--muted-2);
-		text-wrap: pretty;
-	}
-	.turn-caption {
-		margin: 0;
-		font-size: var(--type-29);
-		font-weight: 600;
-		line-height: 1.3;
-		letter-spacing: -0.015em;
-		color: var(--text-dim);
-		text-wrap: pretty;
-	}
-	.turn-caption.live {
-		color: var(--text-bright);
-	}
-	.caret {
-		display: inline-block;
-		width: 3px;
-		height: 0.9em;
-		background: var(--accent);
-		margin-left: 6px;
-		vertical-align: -2px;
-		animation: blink 1.1s steps(1) infinite;
 	}
 
 	/* Near the window's minimum height, tighten the vertical rhythm so the pre-flight checklist
@@ -2387,9 +1892,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
-		.sweep,
-		.pill-dot,
-		.caret {
+		.sweep {
 			animation: none;
 		}
 	}
@@ -2410,19 +1913,6 @@
 		.engine.selected {
 			outline: 2px solid Highlight;
 			outline-offset: -2px;
-		}
-		/* Gradients are not recoloured by the forced palette, so the button would keep its
-		   mint fill under system-coloured text. Drop it and let the theme paint the button. */
-		.start {
-			background-image: none;
-		}
-		/* Live/idle/error is a dot colour plus a word; only the word survives, so the dot
-		   stops pretending to carry state and the pill keeps a visible edge. */
-		.pill {
-			border: 1px solid CanvasText;
-		}
-		.pill-dot {
-			display: none;
 		}
 	}
 </style>
