@@ -341,6 +341,27 @@ export const de: Messages = {
 		stable: 'Ruhiger Lesemodus',
 		cleanSpeech: 'Fülllaute ausblenden',
 		cleanSpeechHint: 'Nur in der Einblendung. Das Transkript behält den Originaltext.',
+		fillerWords: {
+			heading: 'Auszublendende Wörter',
+			hint: 'Ein Wort aus der Liste wird überall ausgeblendet, wo es für sich steht, unabhängig von seiner Bedeutung. Wörter wie „also“, „halt“ oder „so“ tragen oft Bedeutung; wer sie hinzufügt, kann echten Inhalt entfernen.',
+			empty: 'Die Liste ist leer, daher wird nichts ausgeblendet.',
+			add: 'Wort hinzufügen',
+			addButton: 'Hinzufügen',
+			remove: (word: string) => `„${word}“ entfernen`,
+			reset: 'Standardwörter wiederherstellen',
+			added: (word: string) => `„${word}“ hinzugefügt.`,
+			removed: (word: string) => `„${word}“ entfernt.`,
+			restored: 'Standardwörter wiederhergestellt.',
+			problem: {
+				phrase: 'Fügen Sie jeweils ein Wort hinzu. Wortgruppen werden nicht unterstützt.',
+				characters:
+					'Verwenden Sie Buchstaben und Ziffern. Bindestriche und Apostrophe dürfen nur Wortteile verbinden.',
+				length: (max: number) => `Ein Wort darf höchstens ${max} Zeichen lang sein.`,
+				duplicate: (word: string) => `„${word}“ steht bereits in der Liste.`,
+				full: (max: number) =>
+					`Die Liste fasst höchstens ${max} Wörter. Entfernen Sie zuerst eines.`
+			}
+		},
 
 		heading: 'Overlay',
 		captionSize: 'Untertitelgröße',

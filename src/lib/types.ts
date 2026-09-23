@@ -221,6 +221,10 @@ export interface OverlayConfig {
 	/** How wide a caption line may run, as a typographic measure in `ch`. */
 	captionWidth?: number;
 	cleanSpeech?: boolean;
+	/** The words Hide filler words removes. Not part of the appearance — a profile or a reset
+	 *  leaves it alone — but pushed with it, so a reloaded overlay is never left on a stale
+	 *  list. Validated again on arrival; see `normalizeFillerWords`. */
+	fillerWords?: string[];
 	captionLayout?: import('./captionLayout').CaptionLayout;
 	/** The caption ink and the scrim behind it. Sent as three plain values rather than as a
 	 *  computed stylesheet: the overlay derives its own steps and its own gradient from them,

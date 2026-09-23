@@ -344,6 +344,26 @@ export const fr: Messages = {
 		cleanSpeech: 'Masquer les hésitations',
 		cleanSpeechHint:
 			'Uniquement dans la superposition. La transcription conserve le texte original.',
+		fillerWords: {
+			heading: 'Mots à masquer',
+			hint: 'Un mot de la liste est masqué partout où il apparaît seul, quel que soit son sens. Des mots comme « alors », « bon » ou « genre » portent souvent du sens : les ajouter peut supprimer du contenu réel.',
+			empty: 'La liste est vide : rien n’est masqué.',
+			add: 'Ajouter un mot',
+			addButton: 'Ajouter',
+			remove: (word: string) => `Retirer « ${word} »`,
+			reset: 'Rétablir les mots par défaut',
+			added: (word: string) => `« ${word} » ajouté.`,
+			removed: (word: string) => `« ${word} » retiré.`,
+			restored: 'Mots par défaut rétablis.',
+			problem: {
+				phrase: 'Ajoutez un mot à la fois. Les expressions ne sont pas prises en charge.',
+				characters:
+					'Utilisez des lettres et des chiffres. Un trait d’union ou une apostrophe ne peut que relier les parties d’un mot.',
+				length: (max: number) => `Un mot peut compter au plus ${max} caractères.`,
+				duplicate: (word: string) => `« ${word} » figure déjà dans la liste.`,
+				full: (max: number) => `La liste contient au plus ${max} mots. Retirez-en un d’abord.`
+			}
+		},
 
 		heading: 'Surimpression',
 		captionSize: 'Taille des sous-titres',

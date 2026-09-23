@@ -35,7 +35,8 @@ profiles sit above setup with aligned controls, and history uses a list/detail v
 Presets, swatches, localized tray labels and EN/FR/DE date fields complete the UI audit.
 The final frontend suite has 337 passing tests. Store acceptance remains pending.
 
-The customizable filter list remains open in [#85](https://github.com/fmadore/Live-translation/issues/85).
+The customizable filter list ([#85](https://github.com/fmadore/Live-translation/issues/85)) is
+implemented on `main` for the next release; see [the word list](docs/caption-layout.md#the-word-list).
 No new scroll-back or return-to-live controls are included in this update.
 
 **1.4.2 keeps session controls visible.** Start and Stop share a persistent top bar;

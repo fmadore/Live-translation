@@ -131,8 +131,8 @@ Operator-window shortcuts: **Ctrl+Shift+Space** starts/stops, **Ctrl+Shift+O** s
 overlay, and **Ctrl+Shift+Up/Down** changes caption size. They do not intercept text fields or
 dialogs. **F2** continues to switch translation direction while stopped.
 Gemini Smart transcription now treats final results as authoritative, including empty results
-that retract speculative filler text. The local overlay filter remains optional and separate.
-A custom word list is still planned in [#85](https://github.com/fmadore/Live-translation/issues/85).
+that retract speculative filler text. The local overlay filter remains optional and separate;
+its word list can be edited in Settings → Reading ([#85](https://github.com/fmadore/Live-translation/issues/85)).
 See [meeting profiles and live controls](docs/usability.md) for behavior and verification.
 
 ## Architecture
@@ -304,7 +304,8 @@ CI then combines into the multi-architecture bundle described in
    See [transcript history](docs/transcript-history.md).
 6. In **Settings → Reading**, choose **Stable reading** for top-left text that scrolls by whole
    lines. **Hide filler words** optionally cleans obvious hesitations in the overlay while
-   preserving the raw transcript. See [caption layout](docs/caption-layout.md).
+   preserving the raw transcript; add or remove words in the list under it. See
+   [caption layout](docs/caption-layout.md#the-word-list).
 7. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
    provider surfaces should be re-verified shortly beforehand.
 

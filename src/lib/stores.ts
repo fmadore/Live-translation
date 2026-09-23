@@ -1,7 +1,7 @@
 import { loadLanguageFavourites, LANGUAGE_FAVOURITES_KEY } from './languages';
 import { HOLD_KEY, PACE_KEY, loadHoldSeconds, loadPace, type CaptionPace } from './reading';
 import { sessionHistory } from './history';
-import { CLEAN_SPEECH_KEY, loadCleanSpeech } from './cleanSpeech';
+import { CLEAN_SPEECH_KEY, loadCleanSpeech, loadFillerWords, saveFillerWords } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
 import type { CaptionLayout } from './captionLayout';
 // Svelte stores shared across the operator window. The overlay window keeps its own
@@ -348,6 +348,12 @@ export const micLevel = writable<AudioLevel>({ source: 'microphone', rms: 0, pea
 export const systemLevel = writable<AudioLevel>({ source: 'system', rms: 0, peak: 0 });
 
 export const overlayCleanSpeech = persisted(CLEAN_SPEECH_KEY, loadCleanSpeech);
+/** The words Hide filler words removes. Outside `appearance` on purpose: a curated list is
+ *  not something a profile or Reset appearance should overwrite. It has its own reset. */
+export const overlayFillerWords = persistedWith<readonly string[]>(
+	loadFillerWords,
+	saveFillerWords
+);
 export const overlayHoldSeconds = persisted(HOLD_KEY, loadHoldSeconds);
 export const overlayPace = persisted<CaptionPace>(PACE_KEY, loadPace);
 
