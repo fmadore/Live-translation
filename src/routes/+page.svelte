@@ -55,7 +55,6 @@
 	import {
 		canFlipDirection,
 		captionLanguageOf,
-		describeReadiness,
 		providerCanTranslate,
 		providerDetectsLanguage,
 		providerRequiresKey
@@ -65,12 +64,11 @@
 		estimateSessionCost,
 		formatUsd,
 		modelLabel,
-		rateParts,
-		rateText
+		rateParts
 	} from '$lib/providers';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
-	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
+	import PreflightChecklist from '$lib/PreflightChecklist.svelte';
 	import { historyEnabled } from '$lib/history';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
 	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
@@ -145,7 +143,6 @@
 		hasKey.set(needsKey ? false : (preflight.localReadiness?.ready ?? false));
 	});
 
-	const meta = $derived(PROVIDER_META[$options.provider]);
 	// Each mode is served by exactly two backends; step 04 lists the pair for the current one.
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
@@ -168,41 +165,6 @@
 	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
 	const usesMic = $derived(!rehearsing && $options.source !== 'system');
 	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
-	// The tick means "this source has been heard", not "we are listening now". The old check
-	// asked the second question from a screen where the answer was always no, because levels
-	// only flow once capture is running.
-	const audioVerified = $derived(
-		$options.provider === 'ondevice' ||
-			((!usesMic || preflight.micVerified) && (!usesSystem || preflight.systemVerified))
-	);
-	// Live view for the duration of a test.
-	const audioHearing = $derived(
-		(!usesMic || preflight.micSignal) && (!usesSystem || preflight.systemSignal)
-	);
-
-	// Which of the four things is under test: the room mic, system loopback, both, or the
-	// bundled sample. One key, used for the row title and both tenses of the description.
-	const audioSubject = $derived<'microphone' | 'system' | 'both' | 'demo'>(
-		$options.provider === 'ondevice'
-			? 'demo'
-			: $options.source === 'system'
-				? 'system'
-				: $options.source === 'microphone'
-					? 'microphone'
-					: 'both'
-	);
-	const audioTitle = $derived($t.preflight.audio.title[audioSubject]);
-	const audioCheckDesc = $derived(
-		$options.provider === 'ondevice'
-			? $t.preflight.audio.heard.demo
-			: preflight.audioTesting
-				? audioHearing
-					? $t.preflight.audio.hearing[audioSubject]
-					: $t.preflight.audio.listening
-				: audioVerified
-					? $t.preflight.audio.heard[audioSubject]
-					: $t.preflight.audio.unchecked
-	);
 
 	onMount(() => {
 		if (browserMode) return;
@@ -448,11 +410,6 @@
 	// the technical detail. Derived rather than stored, so switching language re-words a
 	// message that is already on screen.
 	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
-
-	// The demo row's sentence. The core names the readiness state and the catalog words it, so
-	// this re-words itself when the interface language changes rather than freezing whatever
-	// was true at check time.
-	const demoRowText = $derived(describeReadiness(preflight.localReadiness, $t));
 
 	// ---- Display labels ---------------------------------------------------------
 	//
@@ -1077,158 +1034,14 @@
 				<h2 class="ready">{$t.preflight.heading}</h2>
 				<p class="intro">{$t.preflight.intro}</p>
 
-				<div class="checklist">
-					{#if !needsKey}
-						<div class="check-row">
-							{#if preflight.localReadiness?.ready}
-								<span class="mark ok" aria-hidden="true">
-									<svg
-										width="12"
-										height="12"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2.6"
-										stroke-linecap="round"
-										aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-									>
-								</span>
-							{:else}
-								<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-							{/if}
-							<div class="check-body">
-								<span class="check-title">{$t.preflight.demoRow.title}</span>
-								<span class="check-desc" class:warn={!preflight.localReadiness?.ready}>
-									{demoRowText}
-								</span>
-							</div>
-							<span></span>
-						</div>
-					{:else if !browserMode}
-						<ApiKeyPanel
-							provider={$options.provider}
-							locked={controlsLocked}
-							onAvailability={(provider, available) => {
-								if ($options.provider === provider) $hasKey = available;
-							}}
-							onError={(message) => statusMessage.set(message)}
-						/>
-					{/if}
-
-					<div class="check-row">
-						{#if audioVerified}
-							<span class="mark ok" aria-hidden="true">
-								<svg
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.6"
-									stroke-linecap="round"
-									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{:else}
-							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-						{/if}
-						<div class="check-body">
-							<span class="check-title">{audioTitle}</span>
-							<span class="check-desc" class:warn={preflight.audioTesting && !audioHearing}>
-								{audioCheckDesc}
-							</span>
-						</div>
-						<!-- The demo opens no device, so there is nothing to test. Otherwise the row keeps
-						     the button in both states: re-checking after moving a cable or switching the
-						     room mic is exactly when an operator needs it. -->
-						{#if $options.provider === 'ondevice' || browserMode}
-							<span></span>
-						{:else if preflight.audioTesting}
-							<button
-								class="adjust"
-								disabled={preflight.audioTestBusy}
-								aria-busy={preflight.audioTestBusy}
-								onclick={preflight.stopAudioTest}
-							>
-								{$t.preflight.audio.stopTest}
-							</button>
-						{:else}
-							<button
-								class="place"
-								disabled={preflight.audioTestBusy ||
-									controlsLocked ||
-									!preflight.applicationReady($options)}
-								aria-busy={preflight.audioTestBusy}
-								onclick={preflight.startAudioTest}
-							>
-								{audioVerified ? $t.preflight.audio.retest : $t.preflight.audio.test}
-							</button>
-						{/if}
-					</div>
-
-					<div class="check-row">
-						{#if $overlayPlaced}
-							<span class="mark ok" aria-hidden="true">
-								<svg
-									width="12"
-									height="12"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.6"
-									stroke-linecap="round"
-									aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{:else}
-							<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>
-						{/if}
-						<div class="check-body">
-							<span class="check-title">{$t.preflight.overlay.title}</span>
-							<span class="check-desc" class:warn={!$overlayPlaced}>
-								{$overlayPlaced ? $t.preflight.overlay.placed : $t.preflight.overlay.unplaced}
-							</span>
-						</div>
-						<!-- Placement is never final: re-entering move mode is the way to adjust
-						     position and caption size, so the row keeps a button in both states. -->
-						{#if $overlayPlaced}
-							<button
-								class="adjust"
-								aria-pressed={overlay.moveOverlay}
-								aria-label={overlay.moveOverlay
-									? $t.preflight.overlay.doneLabel
-									: $t.preflight.overlay.adjustLabel}
-								onclick={overlay.toggleMoveOverlay}
-							>
-								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.adjust}
-							</button>
-						{:else}
-							<button
-								class="place"
-								aria-pressed={overlay.moveOverlay}
-								aria-label={overlay.moveOverlay
-									? $t.preflight.overlay.doneLabel
-									: $t.preflight.overlay.placeLabel}
-								onclick={overlay.toggleMoveOverlay}
-							>
-								{overlay.moveOverlay ? $t.preflight.overlay.done : $t.preflight.overlay.place}
-							</button>
-						{/if}
-					</div>
-
-					<div class="check-row">
-						<span class="mark neutral" aria-hidden="true">$</span>
-						<div class="check-body">
-							<span class="check-title">{$t.preflight.cost.title}</span>
-							<span class="check-desc">
-								{$options.provider === 'ondevice'
-									? $t.preflight.cost.free
-									: $t.preflight.cost.billed}
-							</span>
-						</div>
-						<span class="check-rate">{rateText(meta, $t)}</span>
-					</div>
-				</div>
+				<PreflightChecklist
+					{preflight}
+					{overlay}
+					{browserMode}
+					locked={controlsLocked}
+					{usesMic}
+					{usesSystem}
+				/>
 
 				<!-- Saved transcript follows the persistent session controls. -->
 				{#if $transcript.length > 0}
@@ -1404,7 +1217,6 @@
 	.banner,
 	.ready,
 	.intro,
-	.checklist,
 	.status-msg,
 	.launch {
 		flex: 0 0 auto;
@@ -1737,104 +1549,6 @@
 		text-wrap: pretty;
 	}
 
-	.checklist {
-		margin-top: 26px;
-		border-top: 1px solid var(--hairline);
-	}
-	.check-row {
-		display: grid;
-		grid-template-columns: 24px 1fr auto;
-		align-items: center;
-		gap: 14px;
-		padding: 15px 0;
-		border-bottom: 1px solid var(--hairline);
-	}
-	.mark {
-		width: 20px;
-		height: 20px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-	.mark.ok {
-		background: var(--accent-chip-bg);
-		color: var(--accent);
-	}
-	.mark.wait {
-		background: var(--warn-bg);
-		color: var(--warn);
-	}
-	.mark.wait .dot {
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background: currentColor;
-	}
-	.mark.neutral {
-		background: rgba(255, 255, 255, 0.05);
-		color: var(--muted);
-		font-family: var(--font-mono);
-		font-size: var(--type-11);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.check-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.check-title {
-		font-size: var(--type-13-5);
-		font-weight: 500;
-		line-height: 1.2;
-	}
-	.check-desc {
-		font-size: var(--type-12);
-		line-height: 1.3;
-		color: var(--muted-2);
-	}
-	.check-desc.warn {
-		color: var(--warn);
-	}
-	.check-rate {
-		font-family: var(--font-mono);
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-		font-variant-numeric: tabular-nums;
-	}
-	.place {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--warn-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--warn-border);
-		background: rgba(255, 180, 84, 0.08);
-	}
-	.place:hover {
-		background: var(--warn-bg);
-	}
-	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
-	.adjust {
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: transparent;
-	}
-	.adjust:hover {
-		border-color: var(--border-hover);
-		color: var(--text);
-	}
-
 	/* Keep actions aligned and let supporting text use the available reading width. */
 	.launch {
 		display: flex;
@@ -1879,12 +1593,6 @@
 		.ready {
 			margin-top: 10px;
 			font-size: var(--type-24);
-		}
-		.checklist {
-			margin-top: 18px;
-		}
-		.check-row {
-			padding: 12px 0;
 		}
 		.launch {
 			margin-top: 22px;
