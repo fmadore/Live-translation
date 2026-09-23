@@ -2,10 +2,8 @@
 	import LanguagePicker from '$lib/LanguagePicker.svelte';
 	import { languageName, supportsLanguage, nextFavourite, type DemoLanguage } from '$lib/languages';
 	import { languageFavourites } from '$lib/stores';
-	import ReadingPreferences from '$lib/ReadingPreferences.svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import LiveActivity from '$lib/LiveActivity.svelte';
-	import KeyboardHelp from '$lib/KeyboardHelp.svelte';
 	import { shortcut } from '$lib/shortcuts';
 	import { overlayFontSize, noteActivity } from '$lib/stores';
 	import { onMount } from 'svelte';
@@ -65,25 +63,16 @@
 		rateParts,
 		rateText
 	} from '$lib/providers';
-	import {
-		formatDateTime,
-		localeTag,
-		LOCALE_NAMES,
-		LOCALES,
-		locale,
-		setLocale,
-		t
-	} from '$lib/i18n';
+	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 	import LevelMeter from '$lib/LevelMeter.svelte';
 	import ApiKeyPanel from '$lib/ApiKeyPanel.svelte';
-	import TranscriptHistory from '$lib/TranscriptHistory.svelte';
 	import { historyEnabled } from '$lib/history';
 	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
 	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
 	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
 	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
 	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
-	import ModalPrompt from '$lib/ModalPrompt.svelte';
+	import SettingsDialog, { type SettingsTab } from '$lib/SettingsDialog.svelte';
 	import Field from '$lib/ui/Field.svelte';
 	import Select from '$lib/ui/Select.svelte';
 
@@ -457,17 +446,8 @@
 		if (next) setTarget(next);
 	}
 
-	/** The settings panel. Everything in it is persisted and applies live, so there is no
-	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
 	let settingsOpen = $state(false);
-	let settingsTab = $state<'captions' | 'reading' | 'history' | 'app'>('captions');
-
-	// Names the interface-language group for a screen reader; the heading is the only thing
-	// that says what those two buttons are choosing between.
-	// One `$props.id()` per component is all Svelte allows, so the second id is a suffix of
-	// the first. Both are unique to this instance, which is all either needs to be.
-	const idBase = $props.id();
-	const localeHeadingId = `${idBase}-locale`;
+	let settingsTab = $state<SettingsTab>('captions');
 
 	// The overlay is a separate webview, so the operator's interface language and the audience's
 	// caption language are pushed to it the same way the caption size is — on load, which also
@@ -572,69 +552,6 @@
 		}
 	}}
 />
-
-{#snippet appPreferences()}
-	<!-- What belongs to the app rather than to a session: neither of these touches capture, so
-	     both stay usable mid-session. They used to be rendered into the rail and the pre-flight
-	     sheet; they live in the settings panel now, which is the point of having one. -->
-	<div class="divider"></div>
-	<!-- The interface language, not the caption language. -->
-	<div class="rail-section">
-		<h2 class="kicker" id={localeHeadingId}>{$t.locale.label}</h2>
-		<!-- Buttons rather than a select: with a handful of interface languages, both choices
-		     fit on screen and the switch costs one click instead of two. Built from LOCALES so
-		     a third language needs no markup, and grouped under the heading because two
-		     `aria-pressed` buttons on their own do not say what they are two of. -->
-		<div class="locale-cards" role="group" aria-labelledby={localeHeadingId}>
-			{#each LOCALES as code (code)}
-				<button
-					class="lang"
-					class:selected={$locale === code}
-					aria-pressed={$locale === code}
-					onclick={() => setLocale(code)}
-				>
-					<span class="lang-code">{code.toUpperCase()}</span>
-					<span class="lang-name">{LOCALE_NAMES[code]}</span>
-				</button>
-			{/each}
-		</div>
-		<p class="hint">{$t.locale.note}</p>
-	</div>
-
-	<div class="divider"></div>
-	<div class="rail-section">
-		<h2 class="kicker">{$t.window.heading}</h2>
-		<button class="tool wide" disabled={browserMode} onclick={quit.hideWindow}>
-			<svg
-				width="13"
-				height="13"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.7"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-				><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" /></svg
-			>
-			{$t.window.minimizeToTray}
-		</button>
-		<label class="pref">
-			<input
-				type="checkbox"
-				checked={$closeToTray}
-				disabled={browserMode}
-				onchange={(e) => closeToTray.set(e.currentTarget.checked)}
-			/>
-			<span>
-				<span class="pref-title">{$t.window.keepRunning}</span>
-				<span class="pref-note">
-					{browserMode ? $t.window.needsDesktop : $t.window.keepRunningNote}
-				</span>
-			</span>
-		</label>
-	</div>
-{/snippet}
 
 <div class="app" class:device-error={failedDevice !== null}>
 	<header class="titlebar">
@@ -1526,111 +1443,14 @@
 	</div>
 </div>
 
-<!-- Settings. Modal for the focus handling rather than because it demands an answer, so
-     Escape and Close are the same harmless exit. It is deliberately reachable while a session
-     runs: the appearance controls in the rail and the ones in here are the same controls over
-     the same stores, and an operator who opens this mid-session to raise the caption size
-     should get exactly that. -->
 {#if settingsOpen}
-	<ModalPrompt
-		wide
-		stableHeight
-		title={$t.settings.heading}
-		dismissLabel={$t.settings.closeLabel}
-		onDismiss={() => (settingsOpen = false)}
-	>
-		<p class="hint">{$t.design.applies}</p>
-		<div class="settings-tabs" role="tablist" aria-label={$t.settings.heading}>
-			{#each ['captions', 'reading', 'history', 'app'] as tab, index}
-				<button
-					role="tab"
-					id={`settings-${tab}`}
-					aria-selected={settingsTab === tab}
-					aria-controls="settings-panel"
-					tabindex={settingsTab === tab ? 0 : -1}
-					onclick={() => (settingsTab = tab as typeof settingsTab)}
-					onkeydown={(e) => {
-						const tabs = ['captions', 'reading', 'history', 'app'] as const;
-						const next =
-							e.key === 'ArrowRight'
-								? (index + 1) % 4
-								: e.key === 'ArrowLeft'
-									? (index + 3) % 4
-									: e.key === 'Home'
-										? 0
-										: e.key === 'End'
-											? 3
-											: -1;
-						if (next >= 0) {
-							e.preventDefault();
-							settingsTab = tabs[next];
-							document.getElementById(`settings-${settingsTab}`)?.focus();
-						}
-					}}
-					>{tab === 'history'
-						? $t.history.heading
-						: $t.design[tab as 'captions' | 'reading' | 'app']}</button
-				>
-			{/each}
-		</div>
-		{#key settingsTab}
-			<div
-				class="settings"
-				id="settings-panel"
-				role="tabpanel"
-				aria-labelledby={`settings-${settingsTab}`}
-				tabindex="0"
-			>
-				{#if settingsTab === 'captions'}
-					<div class="rail-section">
-						<CaptionAppearance heading={$t.settings.appearance} {overlay} />
-						<p class="hint">{$t.settings.appearanceNote}</p>
-						<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
-				     whatever is chosen above. Same button and same labels as the pre-flight check,
-				     because it is the same thing being done. -->
-						<button
-							class="tool wide"
-							aria-pressed={overlay.moveOverlay}
-							disabled={browserMode}
-							aria-label={overlay.moveOverlay
-								? $t.preflight.overlay.doneLabel
-								: $overlayPlaced
-									? $t.preflight.overlay.adjustLabel
-									: $t.preflight.overlay.placeLabel}
-							onclick={overlay.toggleMoveOverlay}
-						>
-							<svg
-								width="13"
-								height="13"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path
-									d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-								/></svg
-							>
-							{overlay.moveOverlay
-								? $t.preflight.overlay.done
-								: $overlayPlaced
-									? $t.preflight.overlay.adjust
-									: $t.preflight.overlay.place}
-						</button>
-					</div>
-				{:else if settingsTab === 'reading'}
-					<ReadingPreferences {overlay} />
-				{:else if settingsTab === 'history'}
-					<TranscriptHistory />
-				{:else}
-					{@render appPreferences()}
-					<KeyboardHelp />
-				{/if}
-			</div>
-		{/key}
-	</ModalPrompt>
+	<SettingsDialog
+		{overlay}
+		{browserMode}
+		bind:tab={settingsTab}
+		onHideWindow={quit.hideWindow}
+		onClose={() => (settingsOpen = false)}
+	/>
 {/if}
 
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still
@@ -1670,35 +1490,6 @@
 <style>
 	.start-key {
 		align-self: center;
-	}
-	.settings-tabs {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.375rem;
-		border-bottom: 1px solid var(--border);
-		padding-bottom: 0.75rem;
-	}
-	.settings-tabs button {
-		flex: 1;
-		padding: 0.75rem;
-		border: 1px solid transparent;
-		border-radius: var(--radius-control);
-		background: transparent;
-		color: var(--muted);
-		font-size: var(--type-12);
-	}
-	.settings-tabs button[aria-selected='true'] {
-		background: var(--accent-bg);
-		color: var(--accent-soft);
-		border-color: var(--accent-border);
-	}
-	.settings-tabs button:hover {
-		color: var(--text);
-	}
-	@media (forced-colors: active) {
-		.settings-tabs button[aria-selected='true'] {
-			outline: 2px solid Highlight;
-		}
 	}
 
 	.device-recovery {
@@ -1757,25 +1548,6 @@
 		color: var(--text);
 	}
 
-	/* The panel is a column of the same `.rail-section` blocks the rail is built from, so all
-	   it contributes is the rhythm between them. */
-	.settings {
-		display: flex;
-		flex-direction: column;
-		gap: 0.875rem;
-		flex: 1 0 0;
-		min-height: 0;
-		overflow-y: auto;
-		scrollbar-gutter: stable;
-		padding: 3px;
-	}
-	.settings > :global(*) {
-		flex-shrink: 0;
-	}
-	.settings .tool:disabled {
-		opacity: 0.45;
-		cursor: default;
-	}
 	.brand {
 		width: 18px;
 		height: 18px;
@@ -2078,14 +1850,6 @@
 	.lang-cards {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
-	}
-	/* Same cards, but sized from however many interface languages there are rather than from
-	   the two the caption step happens to offer. */
-	.locale-cards {
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
 		gap: 0.5rem;
 	}
 	.lang {
