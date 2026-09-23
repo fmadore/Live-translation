@@ -92,8 +92,8 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.625rem 1.375rem;
+		gap: var(--space-3);
+		padding: var(--space-2) var(--space-5);
 		background: var(--surface-1);
 	}
 	/* The one control in the bar whose position never depends on what the session is doing.
@@ -118,7 +118,7 @@
 	.brand {
 		width: 1.5rem;
 		height: 1.5rem;
-		border-radius: 6px;
+		border-radius: var(--radius-control);
 		background: linear-gradient(150deg, var(--accent), var(--accent-deep));
 		color: var(--on-accent);
 		display: flex;
@@ -131,9 +131,9 @@
 		display: flex;
 		align-items: center;
 		margin-left: auto;
-		gap: 7px;
-		padding: 4px 10px 4px 8px;
-		border-radius: 20px;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-2);
+		border-radius: var(--radius-pill);
 		flex: 0 0 auto;
 	}
 	.pill-dot {

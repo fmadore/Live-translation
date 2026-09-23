@@ -142,7 +142,7 @@
 		z-index: 50;
 		display: grid;
 		place-items: center;
-		padding: 24px;
+		padding: var(--space-5);
 		background: rgba(8, 9, 11, 0.78);
 	}
 	.prompt {
@@ -153,8 +153,8 @@
 		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
-		padding: 24px;
+		gap: var(--space-3);
+		padding: var(--space-5);
 		border-radius: var(--radius-card);
 		border: 1px solid var(--line-strong);
 		background: var(--surface-1);
@@ -175,7 +175,7 @@
 	.header {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	h2 {
 		flex: 1;
@@ -218,7 +218,7 @@
 		color: var(--text-muted);
 	}
 	.prompt :global(p.error) {
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
@@ -234,7 +234,7 @@
 	.prompt :global(.actions) {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 9px;
+		gap: var(--space-2);
 		margin-top: 2px;
 	}
 	/* The answers are ToolButtons; the safe one takes the spare width. */

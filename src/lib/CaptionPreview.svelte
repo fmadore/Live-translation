@@ -53,7 +53,7 @@
 	.presets {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.presets > :global(.ui-tool) {
 		flex: 1;
@@ -64,7 +64,7 @@
 		color: var(--text-muted);
 	}
 	.preview {
-		padding: 1rem;
+		padding: var(--space-4);
 	}
 	.preview {
 		background: #111;
@@ -77,7 +77,7 @@
 	.sample {
 		color: var(--caption-ink);
 		background: var(--caption-scrim-strong);
-		padding: 12px;
+		padding: var(--space-3);
 		line-height: 1.34;
 		font-weight: 600;
 		overflow-wrap: anywhere;

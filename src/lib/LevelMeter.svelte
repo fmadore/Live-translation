@@ -54,7 +54,7 @@
 		   German compound has nowhere to break and painted straight across the bar. */
 		grid-template-columns: 6.75em 1fr;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-2);
 	}
 	.label {
 		font-size: var(--type-caption);
@@ -73,7 +73,7 @@
 	.track {
 		position: relative;
 		height: 8px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--surface-2);
 		border: 1px solid var(--line);
 		overflow: hidden;

@@ -25,10 +25,10 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		align-items: baseline;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.keys {
-		margin: 1rem 0;
+		margin: var(--space-4) 0;
 		font-size: var(--type-small);
 		color: var(--text-secondary);
 	}
@@ -43,7 +43,7 @@
 		line-height: 1.5;
 	}
 	dd {
-		margin: 0.2rem 0 0.75rem;
+		margin: var(--space-1) 0 var(--space-3);
 	}
 	dt {
 		font-weight: 600;

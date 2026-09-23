@@ -235,17 +235,19 @@
 	.monitor {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
-		margin-top: 22px;
-		padding-top: 18px;
+		gap: var(--space-3);
+		margin-top: var(--space-5);
+		padding-top: var(--space-4);
 		border-top: 1px solid var(--line);
 		/* The stage is a scrolling flex column; keep the block at its natural height there. */
 		flex: 0 0 auto;
 	}
+	/* Wraps rather than squeezing its buttons below their labels at a large text size. */
 	.head {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.count {
 		font-family: var(--font-mono);
@@ -264,7 +266,7 @@
 		background: var(--surface-0);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
-		padding: 6px;
+		padding: var(--space-1);
 		max-width: 100%;
 	}
 	.state {
@@ -273,8 +275,8 @@
 		line-height: 1;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		padding: 4px 7px;
-		border-radius: 5px;
+		padding: var(--space-1) var(--space-2);
+		border-radius: var(--radius-sm);
 		color: var(--accent-soft);
 		background: var(--accent-chip-bg);
 	}
@@ -303,7 +305,7 @@
 	}
 	.warn {
 		margin: 0;
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--warn-border);
 		background: var(--warn-bg);
@@ -315,7 +317,7 @@
 	.recovery {
 		display: grid;
 		grid-template-columns: auto 1fr;
-		gap: 9px;
+		gap: var(--space-2);
 		align-items: start;
 		cursor: pointer;
 	}
@@ -330,7 +332,7 @@
 	}
 	.recovery-note {
 		display: block;
-		margin-top: 3px;
+		margin-top: var(--space-1);
 		font-size: var(--type-small);
 		line-height: 1.5;
 		color: var(--text-muted);
@@ -342,7 +344,7 @@
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: var(--space-2);
 	}
 	.log-scroll {
 		/* 180px at 100% — about six rows, in `em` so it stays about six rows. */
@@ -352,7 +354,7 @@
 	.log li {
 		display: grid;
 		grid-template-columns: 4.25em 1fr;
-		gap: 14px;
+		gap: var(--space-3);
 	}
 	.side {
 		font-size: var(--type-caption);

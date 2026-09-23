@@ -202,16 +202,16 @@
 	.chips {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.chip {
-		padding: 9px 11px;
+		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		background: var(--surface-1);
 		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.chip-label {
@@ -236,23 +236,23 @@
 	}
 
 	.cost-card {
-		padding: 14px 15px;
+		padding: var(--space-3) var(--space-4);
 		border-radius: var(--radius-card);
 		background: var(--surface-1);
 		border: 1px solid var(--line);
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: var(--space-3);
 	}
 	.cost-figures {
 		display: flex;
 		align-items: baseline;
-		gap: 18px;
+		gap: var(--space-4);
 	}
 	.figure {
 		display: flex;
 		flex-direction: column;
-		gap: 5px;
+		gap: var(--space-1);
 	}
 	.figure-value {
 		font-family: var(--font-mono);
@@ -283,7 +283,7 @@
 
 	.overlay-actions {
 		display: flex;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.overlay-actions > :global(.ui-tool) {
 		flex: 1;

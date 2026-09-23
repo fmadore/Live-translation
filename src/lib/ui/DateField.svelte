@@ -74,7 +74,7 @@
 	}
 	.date-control > input[type='text'] {
 		width: 100%;
-		padding-right: 2.75rem;
+		padding-right: calc(2.5rem + var(--space-1));
 	}
 	button {
 		position: absolute;

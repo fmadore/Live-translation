@@ -62,13 +62,13 @@
 	.tabs {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.375rem;
+		gap: var(--space-1);
 		border-bottom: 1px solid var(--line-strong);
-		padding-bottom: 0.75rem;
+		padding-bottom: var(--space-3);
 	}
 	.tabs button {
 		flex: 1;
-		padding: 0.75rem;
+		padding: var(--space-3);
 		border: 1px solid transparent;
 		border-radius: var(--radius-control);
 		background: transparent;

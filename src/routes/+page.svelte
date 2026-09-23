@@ -503,10 +503,10 @@
 	.rail {
 		/* rem, not px: at 225% the type doubles, and a fixed 20px gap leaves a section
 		   heading touching the paragraph above it. Same numbers at 100%. */
-		padding: 1.375rem 1.375rem 1.625rem;
+		padding: var(--space-5) var(--space-5) var(--space-5);
 		display: flex;
 		flex-direction: column;
-		gap: 1.25rem;
+		gap: var(--space-4);
 		background: var(--surface-1);
 		border-bottom: 1px solid var(--line);
 	}
@@ -519,7 +519,7 @@
 		max-width: 23.75rem;
 	}
 	.stage {
-		padding: 1.875rem 2.375rem 2rem;
+		padding: var(--space-6) var(--space-6) var(--space-6);
 		display: flex;
 		flex-direction: column;
 	}
@@ -556,8 +556,8 @@
 		background: var(--surface-1);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
-		padding: 12px;
-		margin-bottom: 22px;
+		padding: var(--space-3);
+		margin-bottom: var(--space-5);
 		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--text-muted);
@@ -568,14 +568,14 @@
 		color: var(--text-secondary);
 	}
 	.ready {
-		margin: 16px 0 0;
+		margin: var(--space-4) 0 0;
 		font-size: var(--type-display);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.02em;
 	}
 	.intro {
-		margin: 8px 0 0;
+		margin: var(--space-2) 0 0;
 		font-size: var(--type-body);
 		line-height: 1.55;
 		color: var(--text-muted);
@@ -588,8 +588,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		gap: 12px;
-		margin-top: 30px;
+		gap: var(--space-3);
+		margin-top: var(--space-6);
 	}
 	.rehearse-hint {
 		font-size: var(--type-small);
@@ -607,7 +607,7 @@
 		text-wrap: pretty;
 	}
 	.status-msg {
-		margin: 16px 0 0;
+		margin: var(--space-4) 0 0;
 		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--warn);
@@ -617,19 +617,19 @@
 	   and the Start button still land above the fold. */
 	@media (max-height: 740px) {
 		.rail {
-			padding: 1.125rem 1.375rem 1.25rem;
-			gap: 1rem;
+			padding: var(--space-4) var(--space-5) var(--space-5);
+			gap: var(--space-4);
 		}
 		.stage {
-			padding-top: 1.375rem;
-			padding-bottom: 1.375rem;
+			padding-top: var(--space-5);
+			padding-bottom: var(--space-5);
 		}
 		.ready {
-			margin-top: 10px;
+			margin-top: var(--space-3);
 			font-size: var(--type-heading);
 		}
 		.launch {
-			margin-top: 22px;
+			margin-top: var(--space-5);
 		}
 	}
 

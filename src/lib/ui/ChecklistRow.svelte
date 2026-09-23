@@ -72,8 +72,8 @@
 		display: grid;
 		grid-template-columns: 24px 1fr auto;
 		align-items: center;
-		gap: 14px;
-		padding: 15px 0;
+		gap: var(--space-3);
+		padding: var(--space-4) 0;
 		border-bottom: 1px solid var(--line);
 	}
 	.check-row.pending {
@@ -115,7 +115,7 @@
 	.check-body {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.check-title {
@@ -138,7 +138,7 @@
 	/* The tighter checklist rhythm the stage adopts near the window's minimum height. */
 	@media (max-height: 740px) {
 		.check-row {
-			padding: 12px 0;
+			padding: var(--space-3) 0;
 		}
 	}
 </style>

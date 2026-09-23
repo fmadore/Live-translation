@@ -33,6 +33,6 @@
 		color: var(--text-secondary);
 	}
 	p {
-		margin: 0.5rem 0;
+		margin: var(--space-2) 0;
 	}
 </style>

@@ -178,7 +178,7 @@
 	.actions {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	input {
 		/* 220px at 100%. A key is a long opaque string, so the field is sized in the text
@@ -189,7 +189,7 @@
 		border: 1px solid var(--line-strong);
 		color: var(--text-body);
 		border-radius: var(--radius-control);
-		padding: 7px 10px;
+		padding: var(--space-2) var(--space-2);
 		font-size: var(--type-small);
 	}
 	/* The mint border says "this field is where you are typing"; the ring from app.css stays,

@@ -350,14 +350,14 @@
 	.tiles {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.tile {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 7px;
-		padding: 12px 6px 10px;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-1) var(--space-2);
 		border-radius: var(--radius-card);
 		color: var(--text-muted);
 		font-size: var(--type-small);
@@ -372,32 +372,32 @@
 	.meters {
 		display: flex;
 		flex-direction: column;
-		gap: 9px;
-		margin-top: 6px;
+		gap: var(--space-2);
+		margin-top: var(--space-2);
 	}
 
 	.lang-cards {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 
 	.engines {
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.engine {
 		display: flex;
 		align-items: center;
-		gap: 12px;
-		padding: 11px 13px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border-radius: var(--radius-card);
 	}
 	.engine-body {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.engine-name {

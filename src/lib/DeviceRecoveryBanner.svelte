@@ -41,10 +41,10 @@
 
 <style>
 	.device-recovery {
-		padding: 0.75rem 1.25rem;
+		padding: var(--space-3) var(--space-5);
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.625rem;
+		gap: var(--space-2);
 		border-bottom: 1px solid var(--line-strong);
 	}
 	.device-recovery p {

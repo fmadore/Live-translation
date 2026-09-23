@@ -26,8 +26,8 @@
 	.lang {
 		display: flex;
 		align-items: center;
-		gap: 0.5625rem;
-		padding: 0.6875rem 0.75rem;
+		gap: var(--space-2);
+		padding: var(--space-3) var(--space-3);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
 		background: var(--surface-1);

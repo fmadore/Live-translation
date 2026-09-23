@@ -110,12 +110,12 @@
 <style>
 	.capture-picker {
 		display: grid;
-		gap: 0.6em;
+		gap: var(--space-2);
 		min-width: 0;
 	}
 	label {
 		display: grid;
-		gap: 0.4em;
+		gap: var(--space-1);
 		color: var(--text-muted);
 		font-size: var(--type-small);
 		min-width: 0;

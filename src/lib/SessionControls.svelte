@@ -102,8 +102,8 @@
 	/* The key as secondary text: the button's own colour and face, set off by a hairline of
 	   that colour so it reads as a note on the action rather than part of its name. */
 	.shortcut {
-		margin-left: 0.25rem;
-		padding-left: 0.625rem;
+		margin-left: var(--space-1);
+		padding-left: var(--space-2);
 		border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent);
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);

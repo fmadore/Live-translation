@@ -293,18 +293,18 @@
 <style>
 	.history {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 		min-width: 0;
 	}
 	.filters {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 0.625rem;
+		gap: var(--space-2);
 	}
 	.history-browser {
 		display: grid;
 		grid-template-columns: minmax(11rem, 0.8fr) minmax(0, 1.4fr);
-		gap: 1.25rem;
+		gap: var(--space-4);
 		align-items: start;
 	}
 	.sessions {
@@ -315,12 +315,12 @@
 		overflow: auto;
 	}
 	li {
-		margin-bottom: 0.5rem;
+		margin-bottom: var(--space-2);
 	}
 	.sessions :global(.session) {
 		display: flex;
 		flex-direction: column;
-		gap: 0.375rem;
+		gap: var(--space-1);
 		width: 100%;
 		text-align: left;
 		overflow-wrap: anywhere;
@@ -335,13 +335,13 @@
 	}
 	form {
 		display: grid;
-		gap: 0.625rem;
-		margin-bottom: 0.75rem;
+		gap: var(--space-2);
+		margin-bottom: var(--space-3);
 	}
 	.actions {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		align-items: center;
 	}
 	.actions :global(.ui-select) {
@@ -361,13 +361,13 @@
 		max-height: 24rem;
 		overflow: auto;
 		overflow-wrap: anywhere;
-		margin-top: 1rem;
+		margin-top: var(--space-4);
 		border-top: 1px solid var(--line);
 		font-size: var(--type-body);
 		line-height: 1.6;
 	}
 	.saved-text p {
-		margin: 0.75rem 0;
+		margin: var(--space-3) 0;
 	}
 	@media (max-width: 720px) {
 		.filters {

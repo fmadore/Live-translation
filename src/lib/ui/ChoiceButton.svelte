@@ -45,8 +45,8 @@
 	.card {
 		display: flex;
 		align-items: flex-start;
-		gap: 0.6875rem;
-		padding: 0.75rem 0.8125rem;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-card);
 		background: var(--surface-1);
@@ -82,7 +82,7 @@
 	.card-body {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
+		gap: var(--space-1);
 		min-width: 0;
 	}
 	.card-title {

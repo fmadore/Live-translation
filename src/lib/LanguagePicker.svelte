@@ -215,16 +215,16 @@
 	input {
 		width: 100%;
 		min-width: 0;
-		padding: 0.7em;
+		padding: var(--space-3);
 		color: var(--text-body);
 		background: var(--surface-1);
 		border: 1px solid var(--line-strong);
-		border-radius: 6px;
+		border-radius: var(--radius-control);
 		font: inherit;
 	}
 	.hint,
 	.error {
-		margin: 0.5em 0;
+		margin: var(--space-2) 0;
 		font-size: var(--type-small);
 		overflow-wrap: anywhere;
 	}
@@ -242,7 +242,7 @@
 		max-height: min(20em, 45vh);
 		overflow: auto;
 		border: 1px solid var(--line-strong);
-		border-radius: 6px;
+		border-radius: var(--radius-control);
 		background: var(--surface-1);
 		scrollbar-color: var(--text-muted) var(--surface-1);
 	}
@@ -259,7 +259,7 @@
 		grid-column: 2;
 	}
 	.group {
-		padding: 0.5em;
+		padding: var(--space-2);
 		height: 2.5em;
 		box-sizing: border-box;
 		font-size: var(--type-small);
@@ -275,7 +275,7 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		padding: 0.6em;
+		padding: var(--space-2);
 		cursor: pointer;
 		overflow-wrap: anywhere;
 	}

@@ -183,14 +183,14 @@
 <style>
 	.face-label {
 		display: grid;
-		gap: 0.5rem;
+		gap: var(--space-2);
 		font-size: var(--type-small);
 		color: var(--text-muted);
 	}
 	.appearance-layout {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-		gap: 1.5rem;
+		gap: var(--space-5);
 		align-items: start;
 	}
 	.appearance-layout.compact {
@@ -198,7 +198,7 @@
 	}
 	.appearance-controls {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	@media (max-width: 760px) {
 		.appearance-layout {
@@ -207,12 +207,12 @@
 	}
 	.palette-options {
 		display: grid;
-		gap: 0.75rem;
+		gap: var(--space-3);
 	}
 	.swatches {
 		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.5rem;
+		gap: var(--space-2);
+		margin-top: var(--space-2);
 	}
 	.colour-choice {
 		width: 2rem;
@@ -231,7 +231,7 @@
 	.stepper {
 		display: flex;
 		align-items: center;
-		gap: 10px;
+		gap: var(--space-2);
 	}
 	.stepper-label {
 		font-size: var(--type-small);
@@ -267,14 +267,14 @@
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 	.swatch {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
-		padding: 0.5rem 0.625rem;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-2);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--line-strong);
 		background: var(--surface-1);
@@ -294,7 +294,7 @@
 		height: 20px;
 		padding: 0;
 		border: 1px solid var(--line-hover);
-		border-radius: 5px;
+		border-radius: var(--radius-sm);
 		background: none;
 		cursor: pointer;
 	}
@@ -303,13 +303,13 @@
 	}
 	.swatch input[type='color']::-webkit-color-swatch {
 		border: none;
-		border-radius: 4px;
+		border-radius: var(--radius-sm);
 	}
 	.contrast {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
-		gap: 0.375rem;
+		gap: var(--space-1);
 		margin: 0;
 	}
 	.contrast-ratio {

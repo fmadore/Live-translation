@@ -106,7 +106,7 @@
 		position: absolute;
 		width: 11px;
 		height: 11px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: var(--accent);
 	}
 	.handle.tl {
@@ -131,7 +131,7 @@
 		transform: translateX(-50%);
 		width: 34px;
 		height: 9px;
-		border-radius: 3px;
+		border-radius: var(--radius-sm);
 		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 	.edge.top {
@@ -149,7 +149,7 @@
 		display: grid;
 		place-items: center;
 		margin: 0;
-		padding: 0 34px;
+		padding: 0 var(--space-6);
 		font-weight: 600;
 		/* Never larger than the caption it stands in for, and never so large it wraps to
 		   nothing in a short region. */
@@ -171,7 +171,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 12px;
+		gap: var(--space-3);
 		pointer-events: none;
 	}
 	/* Stays transparent to the pointer so dragging it drags the window (the stage below
@@ -179,9 +179,9 @@
 	.drag-pill {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 6px 12px;
-		border-radius: 8px;
+		gap: var(--space-2);
+		padding: var(--space-1) var(--space-3);
+		border-radius: var(--radius-control);
 		background: var(--accent);
 		color: var(--on-accent);
 		pointer-events: none;
@@ -203,10 +203,10 @@
 	.toolbar {
 		display: flex;
 		align-items: center;
-		gap: 14px;
-		padding: 12px 14px;
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-3);
 		border: 1px solid var(--line-hover);
-		border-radius: 14px;
+		border-radius: var(--radius-card);
 		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
 		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. At
 		   0.96 the panel over white stays darker than --surface-2, so every text level that
@@ -221,8 +221,8 @@
 	.mode {
 		display: flex;
 		flex-direction: column;
-		gap: 3px;
-		padding-right: 4px;
+		gap: var(--space-1);
+		padding-right: var(--space-1);
 	}
 	.mode-title {
 		font-weight: 600;
@@ -238,7 +238,7 @@
 		color: var(--text-muted);
 	}
 	.keys {
-		margin-top: 3px;
+		margin-top: var(--space-1);
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
 		line-height: 1.7;
@@ -246,9 +246,9 @@
 		white-space: nowrap;
 	}
 	.keys kbd {
-		padding: 3px 5px;
+		padding: var(--space-1) var(--space-1);
 		border: 1px solid var(--line-strong);
-		border-radius: 5px;
+		border-radius: var(--radius-sm);
 		background: var(--surface-2);
 		font-family: inherit;
 		font-weight: 500;
@@ -263,7 +263,7 @@
 	.size {
 		display: flex;
 		align-items: center;
-		gap: 8px;
+		gap: var(--space-2);
 	}
 	.size-label {
 		font-size: var(--type-small);
@@ -285,7 +285,7 @@
 		width: 28px;
 		height: 28px;
 		border: 1px solid var(--line-strong);
-		border-radius: 7px;
+		border-radius: var(--radius-control);
 		background: var(--surface-2);
 		color: var(--text-secondary);
 		font-weight: 500;

@@ -168,7 +168,7 @@
 <style>
 	.checklist {
 		flex: 0 0 auto;
-		margin-top: 26px;
+		margin-top: var(--space-5);
 		border-top: 1px solid var(--line);
 	}
 	.check-rate {
@@ -183,7 +183,7 @@
 	   launch notes still land above the fold. */
 	@media (max-height: 740px) {
 		.checklist {
-			margin-top: 18px;
+			margin-top: var(--space-4);
 		}
 	}
 </style>

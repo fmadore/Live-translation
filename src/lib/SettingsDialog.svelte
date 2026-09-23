@@ -188,12 +188,12 @@
 	.settings {
 		display: flex;
 		flex-direction: column;
-		gap: 0.875rem;
+		gap: var(--space-3);
 		flex: 1 0 0;
 		min-height: 0;
 		overflow-y: auto;
 		scrollbar-gutter: stable;
-		padding: 3px;
+		padding: var(--space-1);
 	}
 	.settings > :global(*) {
 		flex-shrink: 0;
@@ -208,6 +208,6 @@
 		display: grid;
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
-		gap: 0.5rem;
+		gap: var(--space-2);
 	}
 </style>
