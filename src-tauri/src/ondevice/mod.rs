@@ -6,7 +6,6 @@
 //! a live provider. That makes first launch useful and testable on every supported Windows
 //! architecture without a microphone, language pack, network connection, or API key.
 
-use anyhow::Result;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::Receiver;
@@ -44,10 +43,6 @@ pub fn readiness(_app: &AppHandle) -> OnDeviceReadiness {
         state: "ready".into(),
         can_prepare: false,
     }
-}
-
-pub fn prepare() -> Result<()> {
-    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -231,11 +226,6 @@ mod tests {
                 crate::audio::fixture::load_fixture(&path).expect("packaged demo fixture");
             assert!(!samples.is_empty());
         }
-    }
-
-    #[test]
-    fn setup_is_always_a_no_op() {
-        assert!(prepare().is_ok());
     }
 
     // The readiness payload is named, not worded: anything prose-like here would reach a

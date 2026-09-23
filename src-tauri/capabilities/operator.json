@@ -13,7 +13,6 @@
     "allow-set-api-key",
     "allow-clear-api-key",
     "allow-ondevice-readiness",
-    "allow-prepare-ondevice-model",
     "allow-start-session",
     "allow-stop-session",
     "allow-start-audio-test",

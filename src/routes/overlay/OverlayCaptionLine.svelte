@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { captionDirection } from '$lib/languages';
-	import { fitCaptionTail } from '$lib/captionLayout';
+	import { firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
 	let {
 		stable = false,
 		lead,
@@ -8,7 +8,8 @@
 		interim,
 		height,
 		fontKey,
-		language
+		language,
+		onTrim
 	}: {
 		stable?: boolean;
 		lead: string;
@@ -17,6 +18,8 @@
 		height: number;
 		fontKey: string;
 		language: string;
+		/** Stable reading: drop this many characters from the start of `lead`. */
+		onTrim?: (chars: number) => void;
 	} = $props();
 	let fullHeight = $state(0);
 	let lineHeight = $state(1);
@@ -27,6 +30,43 @@
 	);
 	let width = $state(0);
 	let probe: HTMLParagraphElement;
+	let paragraph = $state<HTMLParagraphElement | null>(null);
+	// One string, so the stable paragraph is a single text node the trim below can measure.
+	const flow = $derived(`${lead}${lead && text ? ' ' : ''}${text}`);
+
+	// Stable reading is one paragraph holding the session's context, laid out again on every
+	// caption, so it cannot be allowed to grow for a whole event. Once it runs well past the
+	// viewport, everything above the last `KEEP_HIDDEN_LINES` hidden lines is handed back to be
+	// dropped. The cut is at a rendered line start, and text from a line start wraps exactly as
+	// it did, so no visible line moves. What is kept still covers a window resized far taller.
+	const TRIM_AFTER_LINES = 180;
+	const KEEP_HIDDEN_LINES = 60;
+	$effect(() => {
+		// Re-checked as the paragraph grows, but measured directly: the bound height lags a
+		// trim until its observer fires, and trimming against it would cut twice.
+		void fullHeight;
+		if (!stable || !onTrim || !paragraph || lineHeight <= 1) return;
+		const lines = Math.round(paragraph.getBoundingClientRect().height / lineHeight);
+		const hidden = lines - visibleRows;
+		if (hidden < TRIM_AFTER_LINES) return;
+		const node = Array.from(paragraph.childNodes).find(
+			(child): child is Text => child.nodeType === Node.TEXT_NODE
+		);
+		if (!node) return;
+		const top = paragraph.getBoundingClientRect().top;
+		const range = document.createRange();
+		const offset = firstOffsetOnLine(
+			node.length,
+			(i) => {
+				range.setStart(node, i);
+				range.setEnd(node, i + 1);
+				return Math.round((range.getBoundingClientRect().top - top) / lineHeight);
+			},
+			hidden - KEEP_HIDDEN_LINES
+		);
+		// Only the context is trimmed; a single turn longer than all of this stays whole.
+		if (offset > 0 && offset <= lead.length) onTrim(offset);
+	});
 	let fitted = $state('');
 	const normalizedText = $derived(text.replace(/\s+/g, ' ').trim());
 	const live = $derived(fitted.length <= normalizedText.length ? fitted : normalizedText);
@@ -67,10 +107,11 @@
 			<p
 				class="line"
 				lang={language}
+				bind:this={paragraph}
 				bind:clientHeight={fullHeight}
 				style:transform="translateY(-{scrollOffset}px)"
 			>
-				{lead}{lead && text ? ' ' : ''}{text}
+				{flow}
 			</p>
 		</div>
 	{:else}

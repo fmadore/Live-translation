@@ -21,7 +21,6 @@ pub const COMMANDS: &[&str] = &[
     "set_api_key",
     "clear_api_key",
     "ondevice_readiness",
-    "prepare_ondevice_model",
     "start_session",
     "stop_session",
     "start_audio_test",

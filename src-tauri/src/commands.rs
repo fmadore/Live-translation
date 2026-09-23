@@ -71,16 +71,6 @@ pub async fn ondevice_readiness(app: AppHandle) -> Result<OnDeviceReadiness, App
 }
 
 #[tauri::command]
-pub async fn prepare_ondevice_model(app: AppHandle) -> Result<OnDeviceReadiness, AppError> {
-    tauri::async_runtime::spawn_blocking(move || {
-        ondevice::prepare().map_err(|error| AppError::with(id::DEMO_UNAVAILABLE, error))?;
-        Ok(ondevice::readiness(&app))
-    })
-    .await
-    .map_err(|error| AppError::with(id::DEMO_UNAVAILABLE, error))?
-}
-
-#[tauri::command]
 pub async fn start_session(
     app: AppHandle,
     manager: State<'_, SessionManager>,

@@ -218,4 +218,39 @@ describe('session history', () => {
 		await s.history.retry();
 		expect(s.disk.size).toBe(2);
 	});
+	// Every finalized line used to rewrite the whole session file. A session's first line is
+	// still written at once; the rest coalesce into one write per interval.
+	it('coalesces appended lines into one write per interval', async () => {
+		vi.useFakeTimers();
+		try {
+			const s = setup();
+			s.history.begin(options, start, id);
+			s.history.append(line);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(s.port.writeHistory).toHaveBeenCalledTimes(1);
+			for (let n = 2; n <= 6; n++) s.history.append({ ...line, id: n });
+			await vi.advanceTimersByTimeAsync(4999);
+			expect(s.port.writeHistory).toHaveBeenCalledTimes(1);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(s.port.writeHistory).toHaveBeenCalledTimes(2);
+			expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(6);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+	it('writes lines waiting for the interval at once on flush, finish and a new session', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		s.history.append({ ...line, id: 2 });
+		await s.history.flush();
+		expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(2);
+		s.history.append({ ...line, id: 3 });
+		await s.history.finish();
+		expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(3);
+		s.history.append({ ...line, id: 4 });
+		s.history.begin(options, start, id2);
+		await s.history.flush();
+		expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(4);
+	});
 });

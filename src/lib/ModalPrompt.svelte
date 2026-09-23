@@ -1,3 +1,10 @@
+<script module lang="ts">
+	// Open dialogs, oldest first. Each one listens on the window, so only the newest may act on
+	// a key: a quit prompt can open over Settings, and with two listeners one Escape closed both
+	// while the two focus cycles pulled Tab back and forth until Discard was out of reach.
+	const openDialogs: symbol[] = [];
+</script>
+
 <script lang="ts">
 	// Shared modal chrome: the focus cycle, the Escape key and the return of focus to whatever
 	// opened it are written once here, because those are the parts an accessible dialog is
@@ -39,13 +46,18 @@
 	const titleId = $props.id();
 
 	let prompt = $state<HTMLDivElement | null>(null);
+	const token = Symbol('dialog');
 
 	// Answering the dialog puts focus back where it was taken from. Captured before the callers
 	// focus their own default button, which they do from their own `onMount`.
 	onMount(() => {
+		openDialogs.push(token);
 		const opener = document.activeElement as HTMLElement | null;
 		prompt?.querySelector<HTMLElement>('button, input, select')?.focus();
-		return () => opener?.focus?.();
+		return () => {
+			openDialogs.splice(openDialogs.indexOf(token), 1);
+			opener?.focus?.();
+		};
 	});
 
 	// `aria-modal` tells a screen reader to ignore what is behind the dialog, but nothing stops
@@ -61,6 +73,7 @@
 	}
 
 	function onKeydown(event: KeyboardEvent) {
+		if (openDialogs.at(-1) !== token) return;
 		if (event.key === 'Escape' && onDismiss) {
 			event.preventDefault();
 			onDismiss();
@@ -87,7 +100,7 @@
 	}
 </script>
 
-<svelte:window on:keydown={onKeydown} />
+<svelte:window onkeydown={onKeydown} />
 
 <div class="scrim">
 	<div

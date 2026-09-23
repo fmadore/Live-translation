@@ -68,17 +68,27 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 	}
 }
 
+/** Appended lines reach disk at most this often. Every finalized line used to rewrite the
+ *  whole session file — about half a gigabyte over a three-hour session — and the lines a
+ *  few seconds of delay holds back are written at once by finish, flush, retry and quit. */
+export const HISTORY_WRITE_INTERVAL_MS = 5000;
+
 /** Serialize writes and deletions. Pending snapshots coalesce, but every completed write
  * is atomic. A deleted active session stays deleted; the next Start gets a fresh UUID. */
 export function createHistoryCoordinator(
 	port: Pick<typeof api, 'writeHistory' | 'deleteHistory' | 'renameHistory'>,
 	enabled: () => boolean,
 	onError: (error: unknown) => void = () => {},
-	onSaved: (failed: boolean) => void = () => {}
+	onSaved: (failed: boolean) => void = () => {},
+	writeInterval = HISTORY_WRITE_INTERVAL_MS
 ) {
 	let active: SavedSession | null = null;
 	let queue = Promise.resolve();
 	let revision = 0;
+	// Appends write at once when the last append-triggered write is old enough — so a new
+	// session's first line appears promptly — and otherwise once, when the interval is up.
+	let lastAppendWrite = -Infinity;
+	let timer: ReturnType<typeof setTimeout> | undefined;
 	const deleted = new Set<string>();
 	const failed = new Map<string, SavedSession>();
 	const titles = new Map<string, string>();
@@ -100,18 +110,41 @@ export function createHistoryCoordinator(
 	}
 	function persist() {
 		if (!enabled() || !active?.lines.length || deleted.has(active.id)) return;
-		const snapshot = { ...active, lines: [...active.lines] };
+		const session = active;
 		const version = ++revision;
+		// The snapshot is taken when the job runs, not when it is queued: a newer append for
+		// the same session supersedes this job, and a superseded job should cost nothing.
+		// Shallow is enough, because `append` replaces `lines` rather than mutating it.
 		queue = queue
 			.then(async () => {
-				if (deleted.has(snapshot.id) || (active?.id === snapshot.id && version !== revision))
-					return;
-				await write(snapshot);
+				if (deleted.has(session.id) || (active?.id === session.id && version !== revision)) return;
+				await write({ ...session });
 			})
 			.catch(onError);
 	}
+	function writeAppends() {
+		timer = undefined;
+		lastAppendWrite = Date.now();
+		persist();
+	}
+	function scheduleAppends() {
+		if (timer !== undefined) return;
+		const wait = lastAppendWrite + writeInterval - Date.now();
+		if (wait <= 0) writeAppends();
+		else timer = setTimeout(writeAppends, wait);
+	}
+	/** Cancel a scheduled append write, reporting whether one was waiting. */
+	function cancelScheduled() {
+		if (timer === undefined) return false;
+		clearTimeout(timer);
+		timer = undefined;
+		return true;
+	}
 	return {
 		begin(options: StartOptions, now = new Date(), id = crypto.randomUUID()) {
+			// Lines still waiting belong to the session that is ending.
+			if (cancelScheduled()) persist();
+			lastAppendWrite = -Infinity;
 			active = {
 				version: 1,
 				id,
@@ -131,18 +164,22 @@ export function createHistoryCoordinator(
 			active.lines = [line, ...active.lines];
 			active.savedAt = now.toISOString();
 			active.durationMs = Math.max(0, now.getTime() - Date.parse(active.startedAt));
-			persist();
+			scheduleAppends();
 		},
 		finish(now = new Date()) {
+			const waiting = cancelScheduled();
 			if (active && active.endedAt === null) {
 				active.endedAt = now.toISOString();
 				active.savedAt = now.toISOString();
 				active.durationMs = Math.max(0, now.getTime() - Date.parse(active.startedAt));
 				persist();
+			} else if (waiting) {
+				persist();
 			}
 			return queue;
 		},
 		retry() {
+			cancelScheduled();
 			if (!enabled()) return queue;
 			queue = queue.then(async () => {
 				for (const snapshot of [...failed.values()]) await write(snapshot);
@@ -151,6 +188,7 @@ export function createHistoryCoordinator(
 			return queue;
 		},
 		flush() {
+			if (cancelScheduled()) persist();
 			return queue;
 		},
 		rename(session: SavedSession, value: string) {
@@ -168,6 +206,7 @@ export function createHistoryCoordinator(
 		},
 		delete(id: string) {
 			deleted.add(id);
+			if (active?.id === id) cancelScheduled();
 			const result = queue.then(async () => {
 				await port.deleteHistory(id);
 				failed.delete(id);

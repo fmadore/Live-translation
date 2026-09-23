@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	appendCaptionHistory,
+	firstOffsetOnLine,
 	fitCaptionTail,
 	isCaptionLayout,
 	bottomCaptionHeight
@@ -50,5 +51,28 @@ describe('caption fitting', () => {
 		expect(isCaptionLayout('fit')).toBe(true);
 		expect(isCaptionLayout('compact')).toBe(true);
 		expect(isCaptionLayout('wide')).toBe(false);
+	});
+});
+
+describe('stable reading trim point', () => {
+	// Ten characters to a line: offsets 0–9 on line 0, 10–19 on line 1, and so on.
+	const lineOf = (offset: number) => Math.floor(offset / 10);
+
+	it('finds the first character laid out on the requested line', () => {
+		expect(firstOffsetOnLine(95, lineOf, 3)).toBe(30);
+		expect(firstOffsetOnLine(95, lineOf, 9)).toBe(90);
+	});
+
+	it('cuts nothing when no text reaches that line, or line zero is asked for', () => {
+		expect(firstOffsetOnLine(95, lineOf, 10)).toBe(0);
+		expect(firstOffsetOnLine(95, lineOf, 0)).toBe(0);
+		expect(firstOffsetOnLine(0, lineOf, 1)).toBe(0);
+	});
+
+	it('handles lines of uneven length', () => {
+		const starts = [0, 4, 31, 32, 60];
+		const uneven = (offset: number) => starts.findLastIndex((start) => offset >= start);
+		expect(firstOffsetOnLine(80, uneven, 2)).toBe(31);
+		expect(firstOffsetOnLine(80, uneven, 3)).toBe(32);
 	});
 });

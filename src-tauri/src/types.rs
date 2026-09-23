@@ -177,12 +177,15 @@ pub struct StartOptions {
     pub rehearsal: Option<DemoLanguage>,
 }
 
+/// Borrows the turn's text rather than owning it: a caption is serialized the moment it is
+/// emitted, and an interim is emitted for every delta, so an owned copy of the whole turn so
+/// far would be made and thrown away each time.
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Caption {
+pub struct Caption<'a> {
     pub turn_id: u64,
-    pub text: String,
-    pub source_text: String,
+    pub text: &'a str,
+    pub source_text: &'a str,
     /// `final` is a Rust keyword; serde exposes it to JS under the real name.
     #[serde(rename = "final")]
     pub final_: bool,

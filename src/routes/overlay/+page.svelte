@@ -128,6 +128,18 @@
 	// narrow region as in a wide one.
 	const MIN_LEAD_CHARS = 40;
 
+	// The context before each origin's current turn, derived apart from `lines` so it is
+	// cleaned when a turn joins it rather than on every caption. Stable reading's history is
+	// stored already cleaned — see `joinHistory` — and is shown as it is.
+	const contextLeads = $derived(
+		Object.fromEntries(
+			ORIGIN_ORDER.map((origin) => {
+				const context = history[origin] ?? '';
+				return [origin, captionLayout === 'fit' && hideFillers ? cleanSpeech(context) : context];
+			})
+		) as Record<Origin, string>
+	);
+
 	const lines = $derived(
 		ORIGIN_ORDER.flatMap((origin) => {
 			const caption = current[origin];
@@ -141,20 +153,33 @@
 			const room = maxChars - text.length;
 			const lead =
 				captionLayout !== 'compact'
-					? (history[origin] ?? '')
+					? contextLeads[origin]
 					: room >= MIN_LEAD_CHARS
 						? tail(previous[origin] ?? '', room)
 						: '';
 			return [
 				{
 					origin,
-					lead: hideFillers ? cleanSpeech(lead) : lead,
+					lead: captionLayout === 'compact' && hideFillers ? cleanSpeech(lead) : lead,
 					text: hideFillers ? cleanSpeech(text, caption.final) : text,
 					interim: !caption.final
 				}
 			];
 		})
 	);
+
+	/** Add a finished turn to an origin's reading context. Stable reading cleans the turn once,
+	 *  here, so its history is exactly the text on screen: the overlay trims it at rendered line
+	 *  starts (`trimStable`), and a later filler toggle then applies to new turns rather than
+	 *  re-wrapping every line already read. */
+	function joinHistory(origin: Origin, turn: string): string {
+		if (captionLayout !== 'stable') return appendCaptionHistory(history[origin] ?? '', turn);
+		return `${history[origin] ?? ''} ${hideFillers ? cleanSpeech(turn) : turn}`;
+	}
+
+	function trimStable(origin: Origin, chars: number) {
+		history[origin] = (history[origin] ?? '').slice(chars);
+	}
 
 	// A single speaker needs no label — the row is unambiguous, and the label would only
 	// steal width from the caption. Labels appear exactly when both origins are on screen.
@@ -260,10 +285,7 @@
 				// this keys off the turn id changing rather than on `cur.final`.
 				if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
 					previous[c.origin] = cur.text;
-					history[c.origin] =
-						captionLayout === 'stable'
-							? `${history[c.origin] ?? ''} ${cur.text}`
-							: appendCaptionHistory(history[c.origin] ?? '', cur.text);
+					history[c.origin] = joinHistory(c.origin, cur.text);
 				}
 				current[c.origin] = c;
 				scheduleExpiry(c);
@@ -301,6 +323,11 @@
 					for (const c of Object.values(current)) if (c) scheduleExpiry(c);
 					for (const origin of ORIGIN_ORDER)
 						history[origin] = appendCaptionHistory('', history[origin] ?? '');
+				} else if (hideFillers) {
+					// Stable reading keeps its history cleaned; context carried over from another
+					// layout is cleaned once, on the way in.
+					for (const origin of ORIGIN_ORDER)
+						if (history[origin]) history[origin] = cleanSpeech(history[origin]);
 				}
 			}
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
@@ -589,6 +616,7 @@
 					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
 					<OverlayCaptionLine
 						stable={captionLayout === 'stable'}
+						onTrim={(chars) => trimStable(line.origin, chars)}
 						lead={line.lead}
 						text={line.text}
 						interim={line.interim}

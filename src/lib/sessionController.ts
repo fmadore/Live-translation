@@ -1,7 +1,12 @@
-import { sessionHistory } from './history';
 import { get, writable } from 'svelte/store';
 import { asStatus } from './errors';
-import { applyStatus, beginSession, flushTranscript, isRunning, statusMessage } from './stores';
+import {
+	applyStatus,
+	beginSession,
+	endTranscriptSession,
+	isRunning,
+	statusMessage
+} from './stores';
 import { api } from './tauri';
 import type { StartOptions } from './types';
 import { languageName, supportsLanguage } from './languages';
@@ -58,8 +63,7 @@ export function createSessionController(
 				await startup?.catch(() => {});
 				try {
 					await port.stopSession();
-					flushTranscript();
-					await sessionHistory.finish();
+					await endTranscriptSession();
 				} catch (error) {
 					statusMessage.set(asStatus(error));
 				} finally {

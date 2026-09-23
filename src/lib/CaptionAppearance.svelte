@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CaptionPreview from './CaptionPreview.svelte';
+	import Select from './ui/Select.svelte';
 	import { t, localeTag } from './i18n';
 	import {
 		overlayHoldSeconds,
@@ -91,33 +92,19 @@
 		</div>
 		<label class="face-label"
 			>{$t.overlayControls.captionFace}
-			<div class="select-row">
-				<select
-					aria-label={$t.overlayControls.captionFace}
-					value={$overlayCaptionFace}
-					onchange={(e) => overlay.setCaptionFace(e.currentTarget.value as CaptionFaceId)}
-				>
-					<!-- Each option is set in the face it names, so the list is its own preview.
-			     The names are proper nouns and stay untranslated; only the note on the
-			     bundled default says anything, and it is the one thing that needs to. -->
-					{#each overlay.captionFaces as face (face.id)}
-						<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
-							{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
-						</option>
-					{/each}
-				</select>
-				<svg
-					class="chevron"
-					width="12"
-					height="12"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					aria-hidden="true"><path d="M6 9.5l6 6 6-6" /></svg
-				>
-			</div>
+			<Select
+				value={$overlayCaptionFace}
+				onchange={(e) => overlay.setCaptionFace(e.currentTarget.value as CaptionFaceId)}
+			>
+				<!-- Each option is set in the face it names, so the list is its own preview.
+				     The names are proper nouns and stay untranslated; only the note on the
+				     bundled default says anything, and it is the one thing that needs to. -->
+				{#each overlay.captionFaces as face (face.id)}
+					<option value={face.id} style="font-family: {captionFaceStack(face.id)}">
+						{face.bundled ? $t.overlayControls.faceDefault(face.label) : face.label}
+					</option>
+				{/each}
+			</Select>
 		</label>
 		<div class="palette-options">
 			{#each ['text', 'scrim'] as role}
@@ -267,41 +254,6 @@
 		letter-spacing: 0.15em;
 		text-transform: uppercase;
 		color: var(--muted-2);
-	}
-	.select-row {
-		position: relative;
-		display: flex;
-		align-items: center;
-		padding: 0.625rem 0.75rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		margin-top: 2px;
-	}
-	.select-row select {
-		appearance: none;
-		width: 100%;
-		border: 0;
-		background: transparent;
-		color: var(--text-soft);
-		font-size: var(--type-12-5);
-		line-height: 1;
-		padding: 0 20px 0 0;
-	}
-	.select-row select:focus-visible {
-		outline: 2px solid var(--accent-border);
-		outline-offset: 4px;
-		border-radius: 3px;
-	}
-	.select-row select option {
-		background: var(--panel-2);
-		color: var(--text);
-	}
-	.chevron {
-		position: absolute;
-		right: 12px;
-		color: var(--muted-2);
-		pointer-events: none;
 	}
 	.stepper {
 		display: flex;

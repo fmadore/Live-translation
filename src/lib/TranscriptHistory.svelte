@@ -24,7 +24,6 @@
 		type TranscriptFormat
 	} from './transcript';
 	const desktop = isTauri();
-	const open = true;
 	let sessions = $state<{ id: string; session: SavedSession | null }[]>([]);
 	let selectedId = $state('');
 	let busy = $state(false);
@@ -77,14 +76,28 @@
 			if (current === request) error = String(e);
 		}
 	}
+	// A recording session writes history after every finalized line, and each write bumps the
+	// revision. Re-listing every stored session for each one made an open History tab reread
+	// the whole folder several times a minute, so the list catches up at most every few
+	// seconds. Rename, delete and the Refresh button still refresh at once.
+	const REFRESH_INTERVAL_MS = 5000;
+	let lastRefresh = 0;
+	let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 	onMount(() => () => {
 		request++;
+		clearTimeout(refreshTimer);
 	});
 	$effect(() => {
-		if (open) {
-			void $historyRevision;
+		void $historyRevision;
+		if (refreshTimer !== undefined) return;
+		const wait = lastRefresh + REFRESH_INTERVAL_MS - Date.now();
+		const run = () => {
+			refreshTimer = undefined;
+			lastRefresh = Date.now();
 			void refresh();
-		}
+		};
+		if (wait <= 0) run();
+		else refreshTimer = setTimeout(run, wait);
 	});
 
 	function content(session: SavedSession, format: TranscriptFormat) {
@@ -137,7 +150,7 @@
 	}
 </script>
 
-<section class="history" class:open aria-label={$t.history.heading}>
+<section class="history" aria-label={$t.history.heading}>
 	<Preference
 		label={$t.history.enable}
 		note={$t.history.privacy}
@@ -152,133 +165,127 @@
 			>{$t.history.retry}</ToolButton
 		>
 	{/if}
-	{#if open}
-		<ToolButton disabled={!desktop || busy} onclick={refresh}>{$t.history.refresh}</ToolButton>
-		{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
-		<div class="filters">
-			<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
-			<DateField label={$t.usability.from} bind:value={from} />
-			<DateField label={$t.usability.to} bind:value={to} />
-			<Field label={$t.usability.language}
-				><Select bind:value={language}
-					><option value="">{$t.usability.allLanguages}</option
-					>{#each TARGET_LANGUAGES as code}<option value={code}
-							>{languageName(code, $locale)}</option
-						>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
-				></Field
-			>
-		</div>
-		<ToolButton
-			disabled={!query && !from && !to && !language}
-			onclick={() => {
-				query = '';
-				from = '';
-				to = '';
-				language = '';
-			}}>{$t.design.clearFilters}</ToolButton
+	<ToolButton disabled={!desktop || busy} onclick={refresh}>{$t.history.refresh}</ToolButton>
+	{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
+	<div class="filters">
+		<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
+		<DateField label={$t.usability.from} bind:value={from} />
+		<DateField label={$t.usability.to} bind:value={to} />
+		<Field label={$t.usability.language}
+			><Select bind:value={language}
+				><option value="">{$t.usability.allLanguages}</option
+				>{#each TARGET_LANGUAGES as code}<option value={code}>{languageName(code, $locale)}</option
+					>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
+			></Field
 		>
-		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
-		<div class="history-browser">
-			<ul class="sessions">
-				{#each filtered as entry (entry.id)}
-					<li>
-						<ToolButton
-							class="session"
-							disabled={busy}
-							aria-pressed={selectedId === entry.id}
-							onclick={() => {
-								selectedId = entry.id;
-								title = entry.session?.title ?? '';
-								confirmDelete = '';
-								notice = '';
-							}}
-						>
-							{#if entry.session}
-								<strong
-									>{entry.session.title ||
-										formatDateTime(entry.session.startedAt, $localeTag)}</strong
-								>
-								{#if entry.session.title}<span
-										>{formatDateTime(entry.session.startedAt, $localeTag)}</span
-									>{/if}
-								<span
-									>{Math.floor(entry.session.durationMs / 60000)}:{String(
-										Math.floor(entry.session.durationMs / 1000) % 60
-									).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
-										? $t.history.auto
-										: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
-										$t.history.sameLanguage}</span
-								>
-								{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
-							{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
-						</ToolButton>
-					</li>
-				{/each}
-			</ul>
-			<div class="detail">
-				{#if selected}
-					<form
-						onsubmit={(e) => {
-							e.preventDefault();
-							void rename();
+	</div>
+	<ToolButton
+		disabled={!query && !from && !to && !language}
+		onclick={() => {
+			query = '';
+			from = '';
+			to = '';
+			language = '';
+		}}>{$t.design.clearFilters}</ToolButton
+	>
+	{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
+	<div class="history-browser">
+		<ul class="sessions">
+			{#each filtered as entry (entry.id)}
+				<li>
+					<ToolButton
+						class="session"
+						disabled={busy}
+						aria-pressed={selectedId === entry.id}
+						onclick={() => {
+							selectedId = entry.id;
+							title = entry.session?.title ?? '';
+							confirmDelete = '';
+							notice = '';
 						}}
 					>
-						<Field label={$t.usability.title}
-							><input maxlength="120" bind:value={title} disabled={busy} /></Field
-						>
-						<p class="hint">{$t.usability.titleHint}</p>
-						<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
-							>{$t.usability.saveTitle}</ToolButton
-						>
-					</form>
-					<div class="actions">
-						<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton
-						>
-						<Select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
-							<option value="markdown">Markdown (.md)</option><option value="text"
-								>{$t.transcript.plainText} (.txt)</option
+						{#if entry.session}
+							<strong
+								>{entry.session.title ||
+									formatDateTime(entry.session.startedAt, $localeTag)}</strong
 							>
-							<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
-						</Select>
-						<ToolButton
-							disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
-							onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
+							{#if entry.session.title}<span
+									>{formatDateTime(entry.session.startedAt, $localeTag)}</span
+								>{/if}
+							<span
+								>{Math.floor(entry.session.durationMs / 60000)}:{String(
+									Math.floor(entry.session.durationMs / 1000) % 60
+								).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
+									? $t.history.auto
+									: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
+									$t.history.sameLanguage}</span
+							>
+							{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
+						{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
+					</ToolButton>
+				</li>
+			{/each}
+		</ul>
+		<div class="detail">
+			{#if selected}
+				<form
+					onsubmit={(e) => {
+						e.preventDefault();
+						void rename();
+					}}
+				>
+					<Field label={$t.usability.title}
+						><input maxlength="120" bind:value={title} disabled={busy} /></Field
+					>
+					<p class="hint">{$t.usability.titleHint}</p>
+					<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
+						>{$t.usability.saveTitle}</ToolButton
+					>
+				</form>
+				<div class="actions">
+					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
+					<Select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
+						<option value="markdown">Markdown (.md)</option><option value="text"
+							>{$t.transcript.plainText} (.txt)</option
 						>
-						<ToolButton disabled={busy} onclick={() => remove(selectedId)}
-							>{confirmDelete === selectedId
-								? $t.history.confirmDelete
-								: $t.history.delete}</ToolButton
-						>
-						{#if confirmDelete === selectedId}<ToolButton
-								disabled={busy}
-								onclick={() => (confirmDelete = '')}>{$t.history.cancel}</ToolButton
-							>{/if}
-					</div>
-					{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
-							{$t.transcript.noTiming}
-						</p>{/if}
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
-					<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
-						{#each [...selected.lines].reverse() as line (line.id)}
-							<p><strong>{$t.transcript.side[line.origin]}</strong> {line.text}</p>
-							{#if line.sourceText}<p class="source">{line.sourceText}</p>{/if}
-						{/each}
-					</div>
-				{:else if selectedId}
-					<p class="hint">{$t.history.unreadable}</p>
-					<ToolButton class="danger" disabled={busy} onclick={() => remove(selectedId)}
+						<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
+					</Select>
+					<ToolButton
+						disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
+						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
+					>
+					<ToolButton disabled={busy} onclick={() => remove(selectedId)}
 						>{confirmDelete === selectedId
 							? $t.history.confirmDelete
 							: $t.history.delete}</ToolButton
 					>
-					{#if confirmDelete === selectedId}<ToolButton onclick={() => (confirmDelete = '')}
-							>{$t.history.cancel}</ToolButton
+					{#if confirmDelete === selectedId}<ToolButton
+							disabled={busy}
+							onclick={() => (confirmDelete = '')}>{$t.history.cancel}</ToolButton
 						>{/if}
-				{:else}<p class="hint">{$t.design.selectSession}</p>
-				{/if}
-			</div>
+				</div>
+				{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
+						{$t.transcript.noTiming}
+					</p>{/if}
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
+				<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
+					{#each [...selected.lines].reverse() as line (line.id)}
+						<p><strong>{$t.transcript.side[line.origin]}</strong> {line.text}</p>
+						{#if line.sourceText}<p class="source">{line.sourceText}</p>{/if}
+					{/each}
+				</div>
+			{:else if selectedId}
+				<p class="hint">{$t.history.unreadable}</p>
+				<ToolButton class="danger" disabled={busy} onclick={() => remove(selectedId)}
+					>{confirmDelete === selectedId ? $t.history.confirmDelete : $t.history.delete}</ToolButton
+				>
+				{#if confirmDelete === selectedId}<ToolButton onclick={() => (confirmDelete = '')}
+						>{$t.history.cancel}</ToolButton
+					>{/if}
+			{:else}<p class="hint">{$t.design.selectSession}</p>
+			{/if}
 		</div>
-	{/if}
+	</div>
 	{#if error}<p role="alert">{$t.history.failed} {error}</p>{/if}
 	<p class="notice" role="status">{notice}</p>
 </section>

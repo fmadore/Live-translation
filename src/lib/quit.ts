@@ -1,4 +1,3 @@
-import { sessionHistory } from './history';
 // Leaving the app, in the order the guarantees have to happen (issues #25 and #22): confirm
 // that a live session may end, stop capture, let the providers hand over their last turn,
 // finalize the document, and only then decide whether anything still has to be asked.
@@ -13,7 +12,8 @@ import { sessionHistory } from './history';
 import { get } from 'svelte/store';
 
 import type { CloseChoice } from './document';
-import { flushTranscript, isRunning, transcriptDirty } from './stores';
+import { sessionHistory } from './history';
+import { endTranscriptSession, isRunning, transcriptDirty } from './stores';
 import { saveTranscriptDocument } from './saveDocument';
 import { api } from './tauri';
 import { recovery } from './recovery';
@@ -84,8 +84,7 @@ export async function prepareClose(
 		await withTimeout(stopSession(), timeoutMs);
 	}
 	// A turn that never got an explicit turn-complete is still the operator's text.
-	flushTranscript();
-	await sessionHistory.finish();
+	await endTranscriptSession();
 
 	if (get(transcriptDirty)) return { endedSession, prompt: true };
 

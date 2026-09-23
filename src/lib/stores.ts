@@ -73,6 +73,12 @@ export const statusMessage = writable<string | AppError>('');
  *  running cost estimate. */
 export const sessionStartedAt = writable<number | null>(null);
 
+/** Whether a source of the current run has reported an active state since `beginSession`.
+ *  When a replacement starts, the drained session's Idle can arrive after `beginSession`;
+ *  the core stops the old run before starting the new one, so that stale Idle always comes
+ *  before this run's first active status — and must not be taken for this run ending. */
+let runHadActiveSource = false;
+
 /** Apply one status event from the Rust core. */
 export function applyStatus(u: StatusUpdate) {
 	if (u.origin) {
@@ -88,22 +94,29 @@ export function applyStatus(u: StatusUpdate) {
 			});
 			if (!get(isRunning)) {
 				sessionStartedAt.set(null);
-				latestCaption.set(null);
+				// Every source of this run has ended by itself — a provider failure, or a
+				// capture that died — with no Stop to close the record. Left open, it would be
+				// closed by the next Start or quit and claim all the time in between.
+				if (runHadActiveSource) {
+					runHadActiveSource = false;
+					void endTranscriptSession();
+				}
 			}
-		} else if (get(sessionStartedAt) === null) {
+		} else {
+			runHadActiveSource = true;
 			// Starting a replacement first drains the old backend session, whose Idle
 			// can arrive after beginSession. Its first active status starts the new clock.
-			sessionStartedAt.set(Date.now());
+			if (get(sessionStartedAt) === null) sessionStartedAt.set(Date.now());
 		}
 	} else if (u.state === 'idle') {
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
 		activityTimes.set({});
+		runHadActiveSource = false;
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
-		latestCaption.set(null);
 		currentCaptions.set({});
 		sessionStartedAt.set(null);
 	}
@@ -117,7 +130,14 @@ export function applyStatus(u: StatusUpdate) {
 export const activityTimes = writable<Partial<Record<Origin, { audio: number; caption: number }>>>(
 	{}
 );
+// Notes arrive with every meter reading (20 Hz per source) and every caption, but they feed
+// labels with a three-second threshold. One note per half-second is indistinguishable there,
+// and keeps the store and the component reading it from updating dozens of times a second.
+const ACTIVITY_RESOLUTION_MS = 500;
+
 export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Date.now()) {
+	const last = get(activityTimes)[origin]?.[kind] ?? 0;
+	if (last > 0 && now >= last && now - last < ACTIVITY_RESOLUTION_MS) return;
 	activityTimes.update((value) => ({
 		...value,
 		[origin]: { audio: 0, caption: 0, ...value[origin], [kind]: now }
@@ -144,9 +164,6 @@ options.subscribe((v) => {
 });
 
 // ---- Captions & transcript --------------------------------------------------
-
-// Latest caption (any origin), for the operator monitor.
-export const latestCaption = writable<Caption | null>(null);
 
 // The turn currently on screen for each origin, so the operator can show both speakers at
 // once. Key insertion order is kept in least-recently-updated order, which is the order the
@@ -207,7 +224,6 @@ function commit(c: Caption) {
 
 export function pushCaption(c: Caption) {
 	noteActivity(c.origin, 'caption');
-	latestCaption.set(c);
 	// Re-insert this origin last so the object's key order tracks recency.
 	currentCaptions.update((m) => {
 		const next: Partial<Record<Origin, Caption>> = {};
@@ -239,17 +255,23 @@ export function flushTranscript() {
 	}
 }
 
+/** End the run's document: commit in-flight lines, then close its history record. Safe to
+ *  call more than once — a finished record keeps its first end time. */
+export function endTranscriptSession(): Promise<void> {
+	flushTranscript();
+	return sessionHistory.finish();
+}
+
 /** Prepare the monitor for a new run without discarding already finalized transcript lines. */
 export function beginSession(sessionOptions = get(options)) {
-	flushTranscript();
-	void sessionHistory.finish();
+	void endTranscriptSession();
+	runHadActiveSource = false;
 	sessionHistory.begin(sessionOptions);
 	// Retried/new sessions append to one document without resetting its cue timeline.
 	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
 	originStates.set({});
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
-	latestCaption.set(null);
 	currentCaptions.set({});
 	sessionStartedAt.set(Date.now());
 }
@@ -260,7 +282,6 @@ export function beginSession(sessionOptions = get(options)) {
 export function clearTranscript() {
 	transcriptTimeOffset = 0;
 	transcript.set([]);
-	latestCaption.set(null);
 	currentCaptions.set({});
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');

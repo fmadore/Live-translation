@@ -52,3 +52,25 @@ export function fitCaptionTail(text: string, fits: (candidate: string) => boolea
 	const result = '… ' + chars.slice(low).join('');
 	return fits(result) ? result : '';
 }
+
+/**
+ * The first character offset that sits on rendered line `line` or below, given `lineOf`, the
+ * line each character is laid out on (never decreasing along the text). 0 when no character
+ * reaches that line. Stable reading cuts its context here: text that starts a line wraps
+ * from there exactly as it did before the cut, so no line after it moves.
+ */
+export function firstOffsetOnLine(
+	length: number,
+	lineOf: (offset: number) => number,
+	line: number
+): number {
+	if (line <= 0 || length === 0 || lineOf(length - 1) < line) return 0;
+	let low = 0;
+	let high = length - 1;
+	while (low < high) {
+		const mid = Math.floor((low + high) / 2);
+		if (lineOf(mid) >= line) high = mid;
+		else low = mid + 1;
+	}
+	return low;
+}
