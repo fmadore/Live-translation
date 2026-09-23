@@ -3,6 +3,7 @@
 	import LevelMeter from './LevelMeter.svelte';
 	import SystemCapturePicker from './SystemCapturePicker.svelte';
 	import ChoiceButton from './ui/ChoiceButton.svelte';
+	import Kbd from './ui/Kbd.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Field from './ui/Field.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
@@ -262,7 +263,7 @@
 				)}
 		/>
 		<p class="hint inline-hint">
-			<span>{$t.rail.flipHint}</span><span class="key">{$t.rail.flipKey}</span>
+			<span>{$t.rail.flipHint}</span><Kbd command="direction" />
 		</p>
 	{:else}
 		{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}

@@ -110,8 +110,19 @@ export const en = {
 	},
 
 	app: {
-		name: 'Live Translation & Subtitles',
-		tagline: 'Realtime translation & subtitles'
+		name: 'Live Translation & Subtitles'
+	},
+
+	// Key names as printed on this language's keyboards, joined with + the way Windows writes
+	// a key combination.
+	keys: {
+		ctrl: 'Ctrl',
+		shift: 'Shift',
+		space: 'Space',
+		o: 'O',
+		up: '↑',
+		down: '↓',
+		f2: 'F2'
 	},
 
 	state: {
@@ -279,7 +290,6 @@ export const en = {
 		autoDetectHint: (engine: string) =>
 			`${engine} auto-detects the spoken language and writes same-language subtitles. No translation target is needed.`,
 		flipHint: 'Swap the first two favourites before starting with',
-		flipKey: 'F2',
 		demoLanguageHint:
 			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.'
 	},

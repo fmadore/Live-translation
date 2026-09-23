@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
-	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
+	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
 	import SessionControls from '$lib/SessionControls.svelte';
 	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
 	import LiveTurns from '$lib/LiveTurns.svelte';
@@ -262,11 +262,35 @@
 />
 
 <div class="app" class:device-error={device.failed !== null}>
-	<OperatorTitlebar
+	<OperatorToolbar
 		elapsed={clock.elapsed}
 		{settingsOpen}
 		onOpenSettings={() => (settingsOpen = true)}
-	/>
+	>
+		{#snippet actions()}
+			<SessionControls
+				busy={$sessionBusy}
+				startDisabled={!!languageError ||
+					!$hasKey ||
+					browserMode ||
+					profileBusy ||
+					$sessionBusy ||
+					!preflight.applicationReady($options)}
+				rehearseDisabled={!!languageError ||
+					!$hasKey ||
+					browserMode ||
+					$sessionBusy ||
+					$options.provider === 'ondevice'}
+				onStart={start}
+				onRehearse={rehearse}
+				onStop={stop}
+			/>
+		{/snippet}
+	</OperatorToolbar>
+
+	<div class="rule" class:live={$isRunning}>
+		{#if $isRunning}<span class="sweep"></span>{/if}
+	</div>
 
 	<!-- The two regions that speak for the session. Neither holds anything that changes on a
 	     timer, so they announce on real changes only, and both are in the DOM from the first
@@ -283,28 +307,6 @@
 			onReselect={device.reselectApplication}
 		/>
 	{/if}
-
-	<div class="rule" class:live={$isRunning}>
-		{#if $isRunning}<span class="sweep"></span>{/if}
-	</div>
-
-	<SessionControls
-		busy={$sessionBusy}
-		startDisabled={!!languageError ||
-			!$hasKey ||
-			browserMode ||
-			profileBusy ||
-			$sessionBusy ||
-			!preflight.applicationReady($options)}
-		rehearseDisabled={!!languageError ||
-			!$hasKey ||
-			browserMode ||
-			$sessionBusy ||
-			$options.provider === 'ondevice'}
-		onStart={start}
-		onRehearse={rehearse}
-		onStop={stop}
-	/>
 
 	<div class="body">
 		<aside class="rail">
@@ -455,16 +457,16 @@
 	.app {
 		height: 100vh;
 		display: grid;
-		/* The title bar sizes to its own text rather than to a slot: at 225% its label is
-		   28px tall and a fixed 40px row would crop it. */
-		grid-template-rows: auto 2px auto minmax(0, 1fr);
+		/* The bar sizes to its own content rather than to a slot: at 225% its buttons are twice
+		   as tall, and a narrow window wraps it onto a second line. */
+		grid-template-rows: auto 2px minmax(0, 1fr);
 		background: var(--surface-0);
 		/* The query container for the column rule below. Its `em` is the scaled root, which
 		   is what lets a text-size change move the breakpoint. */
 		container: window / inline-size;
 	}
 	.app.device-error {
-		grid-template-rows: auto auto 2px auto minmax(0, 1fr);
+		grid-template-rows: auto 2px auto minmax(0, 1fr);
 	}
 
 	/* ---- Header ------------------------------------------------------------- */

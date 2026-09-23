@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from './i18n';
 	import ToolButton from './ui/ToolButton.svelte';
+	import { ariaKeyShortcut, keyLabel } from './shortcuts';
 	import { isRunning, options } from './stores';
 
 	let {
@@ -19,10 +20,16 @@
 		onRehearse: () => void;
 		onStop: () => void;
 	} = $props();
+
+	// The same key starts and stops, so both buttons carry it. Printed inside the button rather
+	// than beside it, where it read as a third button; announced through `aria-keyshortcuts`,
+	// so the printed copy stays out of the accessible name.
+	const keys = $derived(keyLabel('toggleSession', $t.keys));
+	const ariaKeys = ariaKeyShortcut('toggleSession');
 </script>
 
-<!-- Start and Stop share one persistent bar below the header, so they stay in the same place
-     while setup, captions and transcripts scroll underneath. -->
+<!-- Start and Stop live in the window's one bar, so they stay in the same place while setup,
+     captions and transcripts scroll underneath. -->
 <div class="session-controls">
 	{#if $isRunning}
 		<ToolButton
@@ -31,12 +38,14 @@
 			class="stop"
 			disabled={busy}
 			aria-busy={busy}
+			aria-keyshortcuts={ariaKeys}
 			onclick={onStop}
 		>
 			<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 				><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 			>
 			{busy ? $t.rail.stopping : $t.rail.stop}
+			<span class="shortcut" aria-hidden="true">{keys}</span>
 		</ToolButton>
 	{:else}
 		<ToolButton
@@ -45,6 +54,7 @@
 			class="start"
 			disabled={startDisabled}
 			aria-busy={busy}
+			aria-keyshortcuts={ariaKeys}
 			onclick={onStart}
 		>
 			<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
@@ -57,7 +67,9 @@
 					: $options.provider === 'ondevice'
 						? $t.preflight.start.demo
 						: $t.preflight.start.subtitles}
-		</ToolButton><ToolButton
+			<span class="shortcut" aria-hidden="true">{keys}</span>
+		</ToolButton>
+		<ToolButton
 			variant="ghost"
 			size="lg"
 			aria-describedby="rehearse-hint"
@@ -79,24 +91,31 @@
 			{busy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 		</ToolButton>
 	{/if}
-	<span class="key start-key" aria-hidden="true">Ctrl Shift Space</span>
 </div>
 
 <style>
+	/* The buttons are items of the bar itself, so a narrow bar wraps between them rather than
+	   around the pair. */
 	.session-controls {
-		padding: 0.75rem 1.375rem;
-		border-bottom: 1px solid var(--line-strong);
-		background: var(--surface-1);
-		display: flex;
-		flex-wrap: wrap;
-		align-items: stretch;
-		gap: 12px;
+		display: contents;
 	}
-	.session-controls :global(.start),
-	.session-controls :global(.stop) {
-		min-width: min(15rem, 100%);
+	/* The key as secondary text: the button's own colour and face, set off by a hairline of
+	   that colour so it reads as a note on the action rather than part of its name. */
+	.shortcut {
+		margin-left: 0.25rem;
+		padding-left: 0.625rem;
+		border-left: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+		font-family: var(--font-mono);
+		font-size: var(--type-caption);
+		font-weight: 500;
+		white-space: nowrap;
 	}
-	.start-key {
-		align-self: center;
+	/* Once the bar can no longer hold it on one line — a narrow window, or a large Windows text
+	   size, since the query is in `em` — the printed key goes and the buttons keep their room.
+	   It is still announced, and still listed under Settings → App → Keyboard shortcuts. */
+	@container window (max-width: 48em) {
+		.shortcut {
+			display: none;
+		}
 	}
 </style>

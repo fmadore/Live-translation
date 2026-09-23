@@ -118,8 +118,17 @@ export const de: Messages = {
 	},
 
 	app: {
-		name: 'Live Translation & Subtitles',
-		tagline: 'Übersetzung und Untertitel in Echtzeit'
+		name: 'Live Translation & Subtitles'
+	},
+
+	keys: {
+		ctrl: 'Strg',
+		shift: 'Umschalt',
+		space: 'Leertaste',
+		o: 'O',
+		up: '↑',
+		down: '↓',
+		f2: 'F2'
 	},
 
 	state: {
@@ -289,7 +298,6 @@ export const de: Messages = {
 		autoDetectHint: (engine: string) =>
 			`${engine} erkennt die gesprochene Sprache selbst und schreibt Untertitel in derselben Sprache. Eine Zielsprache ist nicht nötig.`,
 		flipHint: 'Vor dem Start die ersten beiden Favoriten tauschen mit',
-		flipKey: 'F2',
 		demoLanguageHint:
 			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.'
 	},
