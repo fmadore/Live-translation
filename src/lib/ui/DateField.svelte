@@ -104,6 +104,6 @@
 	}
 	.date-error {
 		color: var(--danger-soft);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 	}
 </style>

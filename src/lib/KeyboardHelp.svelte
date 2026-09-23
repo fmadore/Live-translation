@@ -26,19 +26,19 @@
 	}
 	kbd {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		border: 1px solid var(--border);
 		border-radius: var(--radius-control);
 		padding: 0.25rem 0.375rem;
 	}
 	.keys {
 		margin: 1rem 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--text-soft);
 	}
 	h3 {
 		margin: 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		font-weight: 600;
 	}
 	p,

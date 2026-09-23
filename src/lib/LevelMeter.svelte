@@ -57,7 +57,7 @@
 		gap: 10px;
 	}
 	.label {
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.1em;

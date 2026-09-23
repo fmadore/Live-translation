@@ -73,7 +73,7 @@
 		border-radius: var(--radius-control);
 		background: transparent;
 		color: var(--muted);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.tabs button[aria-selected='true'] {
 		background: var(--accent-bg);

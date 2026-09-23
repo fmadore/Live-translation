@@ -182,7 +182,7 @@
 	.face-label {
 		display: grid;
 		gap: 0.5rem;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--muted);
 	}
 	.appearance-layout {
@@ -232,14 +232,14 @@
 		gap: 10px;
 	}
 	.stepper-label {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
 		color: var(--muted);
 		flex: 1;
 	}
 	.stepper-value {
 		font-family: var(--font-mono);
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		/* Two mono digits, so the buttons either side stop moving as the number changes. */
@@ -254,7 +254,7 @@
 		border: 1px solid var(--border);
 		background: var(--panel-2);
 		color: var(--text-soft);
-		font-size: var(--type-14);
+		font-size: var(--type-label);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -282,7 +282,7 @@
 		border-color: var(--border-hover);
 	}
 	.swatch-label {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.2;
 		color: var(--muted);
 	}
@@ -312,13 +312,13 @@
 	}
 	.contrast-ratio {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
 		color: var(--text-dim);
 	}
 	.contrast-note {
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1.45;
 		color: var(--muted-2);
 	}
@@ -335,7 +335,7 @@
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--muted);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 	}

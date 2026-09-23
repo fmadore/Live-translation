@@ -556,25 +556,25 @@
 		border-radius: var(--radius-card);
 		padding: 12px;
 		margin-bottom: 22px;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--muted);
 	}
 	.banner code {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--text-dim);
 	}
 	.ready {
 		margin: 16px 0 0;
-		font-size: var(--type-27);
+		font-size: var(--type-display);
 		font-weight: 600;
 		line-height: 1.2;
 		letter-spacing: -0.02em;
 	}
 	.intro {
 		margin: 8px 0 0;
-		font-size: var(--type-13-5);
+		font-size: var(--type-body);
 		line-height: 1.55;
 		color: var(--muted);
 		max-width: 48ch;
@@ -590,7 +590,7 @@
 		margin-top: 30px;
 	}
 	.rehearse-hint {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.45;
 		color: var(--muted-3);
 		max-width: 72ch;
@@ -598,7 +598,7 @@
 	}
 
 	.privacy {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--muted-3);
 		max-width: 72ch;
@@ -606,7 +606,7 @@
 	}
 	.status-msg {
 		margin: 16px 0 0;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--warn);
 	}
@@ -624,7 +624,7 @@
 		}
 		.ready {
 			margin-top: 10px;
-			font-size: var(--type-24);
+			font-size: var(--type-heading);
 		}
 		.launch {
 			margin-top: 22px;

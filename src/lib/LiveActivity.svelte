@@ -28,7 +28,7 @@
 
 <style>
 	.activity {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.5;
 		color: var(--text-soft);
 	}

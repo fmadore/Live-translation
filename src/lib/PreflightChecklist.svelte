@@ -169,14 +169,14 @@
 	}
 	.check-rate {
 		font-family: var(--font-mono);
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
 		font-variant-numeric: tabular-nums;
 	}
 	.place {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--warn-soft);
@@ -190,7 +190,7 @@
 	}
 	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
 	.adjust {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);

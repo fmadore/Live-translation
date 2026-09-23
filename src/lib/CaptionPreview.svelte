@@ -71,14 +71,14 @@
 		border-radius: var(--radius-control);
 		background: var(--panel-2);
 		color: var(--text-soft);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.presets button:hover {
 		border-color: var(--accent-border);
 		color: var(--accent-soft);
 	}
 	p {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.5;
 		color: var(--muted);
 	}

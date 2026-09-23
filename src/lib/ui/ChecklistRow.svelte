@@ -108,7 +108,7 @@
 		background: rgba(255, 255, 255, 0.05);
 		color: var(--muted);
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -119,12 +119,12 @@
 		min-width: 0;
 	}
 	.check-title {
-		font-size: var(--type-13-5);
+		font-size: var(--type-label);
 		font-weight: 500;
 		line-height: 1.2;
 	}
 	.check-desc {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.3;
 		color: var(--muted-2);
 	}

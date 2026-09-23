@@ -93,7 +93,7 @@
 		border-radius: var(--radius-card);
 		background: linear-gradient(#5ad1a0, #43b989);
 		color: var(--on-accent);
-		font-size: var(--type-15-5);
+		font-size: var(--type-label);
 		font-weight: 600;
 		line-height: 1;
 		box-shadow: 0 12px 30px -12px rgba(90, 209, 160, 0.65);
@@ -115,7 +115,7 @@
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
-		font-size: var(--type-14);
+		font-size: var(--type-label);
 		font-weight: 600;
 		line-height: 1;
 		flex: 0 0 auto;
@@ -135,7 +135,7 @@
 		border: 1px solid var(--border);
 		background: transparent;
 		color: var(--text-soft);
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		white-space: nowrap;

@@ -225,7 +225,7 @@
 	.hint,
 	.error {
 		margin: 0.5em 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		overflow-wrap: anywhere;
 	}
 	.hint {
@@ -262,7 +262,7 @@
 		padding: 0.5em;
 		height: 2.5em;
 		box-sizing: border-box;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--muted);
 		border-top: 1px solid var(--border);
 	}
@@ -281,7 +281,7 @@
 	}
 	.option b {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.option.active {
 		background: var(--accent-bg);
@@ -297,7 +297,7 @@
 	}
 	small {
 		display: block;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 	}
 	.pin-row {
 		display: flex;

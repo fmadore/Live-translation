@@ -187,13 +187,13 @@
 	}
 	.drag-label {
 		font-weight: 600;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
 	}
 	.drag-size {
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		opacity: 0.72;
@@ -223,21 +223,21 @@
 	}
 	.mode-title {
 		font-weight: 600;
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1;
 		letter-spacing: 0.14em;
 		text-transform: uppercase;
 		color: #ffb454;
 	}
 	.mode-sub {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
 		color: #8b93a1;
 	}
 	.keys {
 		margin-top: 3px;
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1.7;
 		/* The dim end of the shared text ramp (--muted-2); spelled out because this window
 		   paints over an unknown desktop and does not inherit the operator's surfaces. */
@@ -265,7 +265,7 @@
 		gap: 8px;
 	}
 	.size-label {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
 		color: #8b93a1;
 	}
@@ -273,7 +273,7 @@
 		min-width: 24px;
 		font-family: var(--font-mono);
 		font-weight: 500;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1;
 		font-variant-numeric: tabular-nums;
 		text-align: center;
@@ -288,7 +288,7 @@
 		background: #171b21;
 		color: #c3c9d2;
 		font-weight: 500;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1;
 	}
 	.step:hover {
@@ -305,7 +305,7 @@
 		background: #171b21;
 		color: #c3c9d2;
 		font-weight: 500;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
 	}
 	.ghost:hover {
@@ -322,7 +322,7 @@
 		background: linear-gradient(#5ad1a0, #43b989);
 		color: #05271b;
 		font-weight: 600;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1;
 	}
 	.primary:hover {

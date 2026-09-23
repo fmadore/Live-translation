@@ -119,12 +119,12 @@
 	/* The window's one h1: every other heading in either column sits under it. */
 	.app-name {
 		margin: 0;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 	}
 	.context {
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1;
 		color: var(--muted-3);
 		white-space: nowrap;
@@ -145,7 +145,7 @@
 		border-radius: 50%;
 	}
 	.pill-label {
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.06em;
@@ -153,7 +153,7 @@
 	}
 	.pill-time {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		font-variant-numeric: tabular-nums;

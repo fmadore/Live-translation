@@ -159,7 +159,7 @@
 <style>
 	code {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		color: var(--text-dim);
 	}
 	a {
@@ -175,7 +175,7 @@
 		gap: 8px;
 	}
 	button {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		padding: 7px 11px;
@@ -210,7 +210,7 @@
 		color: var(--text);
 		border-radius: var(--radius-control);
 		padding: 7px 10px;
-		font-size: var(--type-12-5);
+		font-size: var(--type-small);
 	}
 	/* The mint border says "this field is where you are typing"; the ring from app.css stays,
 	   because on a dark panel a border tint alone is not a focus indicator. */

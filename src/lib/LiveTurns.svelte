@@ -74,13 +74,13 @@
 		background: var(--hairline);
 	}
 	.stage-note {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1;
 		color: var(--muted-3);
 	}
 	.stage-hint {
 		margin-top: 24px;
-		font-size: var(--type-13-5);
+		font-size: var(--type-body);
 	}
 	.turns {
 		display: flex;
@@ -104,7 +104,7 @@
 	}
 	.origin-chip {
 		align-self: flex-start;
-		font-size: var(--type-10);
+		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.14em;
@@ -122,7 +122,7 @@
 	}
 	.origin-sub {
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1;
 		color: var(--muted-3);
 	}
@@ -134,14 +134,14 @@
 	}
 	.turn-source {
 		margin: 0;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.5;
 		color: var(--muted-2);
 		text-wrap: pretty;
 	}
 	.turn-caption {
 		margin: 0;
-		font-size: var(--type-29);
+		font-size: var(--type-display);
 		font-weight: 600;
 		line-height: 1.3;
 		letter-spacing: -0.015em;

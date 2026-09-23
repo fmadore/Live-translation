@@ -46,7 +46,7 @@
 	}
 	.lang-code {
 		font-family: var(--font-mono);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted-2);
@@ -56,7 +56,7 @@
 		font-weight: 600;
 	}
 	.lang-name {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);

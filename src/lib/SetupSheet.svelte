@@ -359,7 +359,7 @@
 		padding: 12px 6px 10px;
 		border-radius: var(--radius-card);
 		color: var(--muted);
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 	}
@@ -400,7 +400,7 @@
 		min-width: 0;
 	}
 	.engine-name {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -411,7 +411,7 @@
 	}
 	.engine-model {
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		line-height: 1.2;
 		color: var(--muted-3);
 		overflow-wrap: anywhere;
@@ -422,7 +422,7 @@
 	.engine-rate {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted);

@@ -241,7 +241,7 @@
 	}
 	.count {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1;
 		color: var(--muted-3);
 		font-variant-numeric: tabular-nums;
@@ -250,7 +250,7 @@
 		flex: 1;
 	}
 	button.ghost {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--text-soft);
@@ -261,7 +261,7 @@
 	}
 	select {
 		font: inherit;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		color: var(--text);
 		background: var(--bg);
 		border: 1px solid var(--border);
@@ -282,7 +282,7 @@
 		color: var(--text);
 	}
 	.state {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
 		letter-spacing: 0.1em;
@@ -302,7 +302,7 @@
 	}
 	.saved {
 		margin: 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--accent-soft);
 		word-break: break-all;
 	}
@@ -310,11 +310,11 @@
 	.saved code,
 	.hint code {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 	}
 	.hint {
 		margin: 0;
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.55;
 		color: var(--muted-3);
 		word-break: break-word;
@@ -326,7 +326,7 @@
 		border: 1px solid var(--warn-border);
 		background: var(--warn-bg);
 		color: var(--warn-soft);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.55;
 		text-wrap: pretty;
 	}
@@ -343,13 +343,13 @@
 	}
 	.recovery-title {
 		display: block;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--text-soft);
 	}
 	.recovery-note {
 		display: block;
 		margin-top: 3px;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.5;
 		color: var(--muted-3);
 		text-wrap: pretty;
@@ -373,7 +373,7 @@
 		gap: 14px;
 	}
 	.side {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1.6;
 		letter-spacing: 0.12em;
@@ -387,7 +387,7 @@
 		color: #6b8fd6;
 	}
 	.text {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		line-height: 1.55;
 		color: var(--muted);
 		text-wrap: pretty;

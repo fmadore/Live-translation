@@ -86,7 +86,7 @@
 		min-width: 0;
 	}
 	.card-title {
-		font-size: var(--type-13-5);
+		font-size: var(--type-label);
 		font-weight: 600;
 		line-height: 1.2;
 		color: var(--text-soft);
@@ -95,7 +95,7 @@
 		color: var(--text);
 	}
 	.card-desc {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.45;
 		color: var(--muted-2);
 		text-wrap: pretty;

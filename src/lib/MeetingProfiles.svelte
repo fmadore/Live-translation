@@ -280,7 +280,7 @@
 <style>
 	.profiles {
 		min-width: 0;
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		color: var(--text-soft);
 		padding-bottom: 1rem;
 		border-bottom: 1px solid var(--hairline);

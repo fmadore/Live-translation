@@ -217,7 +217,7 @@
 		min-width: 0;
 	}
 	.chip-label {
-		font-size: var(--type-9-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		letter-spacing: 0.12em;
@@ -225,14 +225,14 @@
 		color: var(--muted-3);
 	}
 	.chip-value {
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1.1;
 		color: #dfe3e9;
 	}
 	.rail-note {
 		margin: 0;
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		line-height: 1.4;
 		color: var(--muted-3);
 	}
@@ -258,7 +258,7 @@
 	}
 	.figure-value {
 		font-family: var(--font-mono);
-		font-size: var(--type-21);
+		font-size: var(--type-heading);
 		font-weight: 500;
 		line-height: 1;
 		color: #dfe3e9;
@@ -270,14 +270,14 @@
 	.cost-tag {
 		margin-left: auto;
 		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
+		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
 		color: var(--muted-3);
 	}
 	.cost-note {
 		margin: 0;
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		line-height: 1.45;
 		color: var(--muted-3);
 		text-wrap: pretty;

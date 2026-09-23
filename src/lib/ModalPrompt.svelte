@@ -180,7 +180,7 @@
 	h2 {
 		flex: 1;
 		margin: 0;
-		font-size: var(--type-17);
+		font-size: var(--type-title);
 		font-weight: 600;
 		line-height: 1.35;
 		color: var(--text-bright);
@@ -212,13 +212,13 @@
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
 	.prompt :global(p) {
 		margin: 0;
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.6;
 		color: var(--text-soft);
 		text-wrap: pretty;
 	}
 	.prompt :global(p.note) {
-		font-size: var(--type-11-5);
+		font-size: var(--type-small);
 		color: var(--muted-3);
 	}
 	.prompt :global(p.error) {
@@ -227,12 +227,12 @@
 		border: 1px solid var(--danger-border);
 		background: var(--danger-bg);
 		color: var(--danger-soft);
-		font-size: var(--type-12-5);
+		font-size: var(--type-body);
 		word-break: break-word;
 	}
 	.prompt :global(code) {
 		font-family: var(--font-mono);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 		word-break: break-all;
 	}
 	.prompt :global(.actions) {
@@ -242,7 +242,7 @@
 		margin-top: 2px;
 	}
 	.prompt :global(.actions button) {
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		font-weight: 500;
 		line-height: 1;
 		padding: 10px 15px;

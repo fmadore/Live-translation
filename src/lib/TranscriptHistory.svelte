@@ -328,7 +328,7 @@
 	}
 	.sessions :global(.session span) {
 		color: var(--muted);
-		font-size: var(--type-11);
+		font-size: var(--type-caption);
 	}
 	.detail {
 		min-width: 0;
@@ -352,7 +352,7 @@
 	.source,
 	.notice {
 		color: var(--muted);
-		font-size: var(--type-12);
+		font-size: var(--type-small);
 		line-height: 1.5;
 		margin: 0;
 		overflow-wrap: anywhere;
@@ -363,7 +363,7 @@
 		overflow-wrap: anywhere;
 		margin-top: 1rem;
 		border-top: 1px solid var(--hairline);
-		font-size: var(--type-13);
+		font-size: var(--type-body);
 		line-height: 1.6;
 	}
 	.saved-text p {
