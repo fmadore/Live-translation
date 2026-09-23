@@ -10,6 +10,9 @@ commit log is one click away and nobody wants it twice.
 
 Written before tagging, pasted into the release GitHub creates. The
 [`Release installers`](../.github/workflows/release.yml) workflow does not fill the body in.
+Set it once the workflow has finished, so no build job recreates the release first:
+`gh release edit vX.Y.Z --notes-file <body>.md`. The v1.4.0–v1.5.1 bodies below were applied
+this way on 23 September 2026; earlier releases without prepared text here stay empty.
 
 ---
 

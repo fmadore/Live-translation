@@ -25,7 +25,7 @@ History saves at most every 5 seconds, and Stable reading's overlay context is b
 
 Package note: keeping panic unwinding (review item D10) grows the executable from 5.2 MB to
 9.2 MB; compressed, it grows by about 43%. Only `.woff2` fonts ship now, which saves about
-0.4 MB. The measured bundle size is recorded below once CI has built it.
+0.4 MB. Net, the Store bundle grows from 7.96 MB to 9.22 MB; see the verification below.
 
 - [x] Apply and merge review batches 1–2; CI green on Rust 1.98 (#86, merge `a276b68`).
 - [x] Synchronize manifests, lockfiles and citation metadata to 1.5.1.
@@ -35,8 +35,8 @@ Package note: keeping panic unwinding (review item D10) grows the executable fro
 - [x] **Before tagging:** a live session from a 48 kHz microphone or system source with at
   least one provider. The maintainer confirmed it on 23 September 2026. The rehearsal fixtures
   are 16 kHz and never pass through the new filter.
-- [ ] Tag `v1.5.1`; confirm release-commit CI and all installer/MSIX/bundle jobs.
-- [ ] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
+- [x] Tag `v1.5.1`; confirm release-commit CI and all installer/MSIX/bundle jobs.
+- [x] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
   embedded 1.5.1.0 manifests below.
 - [ ] Test installed x64/ARM64 packages:
   - quit prompt over Settings (Escape/Tab reach only the prompt; **Discard and close** is
@@ -58,7 +58,25 @@ Package note: keeping panic unwinding (review item D10) grows the executable fro
 
 ### 1.5.1 artifact verification
 
-Pending: filled in after `v1.5.1` is tagged and the `Release installers` workflow completes.
+Verified on 23 September 2026. Tag `v1.5.1` points to release commit `e6a4e18`.
+[Release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/35825869697)
+and [all installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/35825872669)
+passed. The release contains EXE, MSI, separate x64/ARM64 MSIX packages and the combined
+bundle. Its GitHub body is [release-1.5.1.md](release-1.5.1.md).
+
+Upload [Live.Translation_1.5.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.5.1/Live.Translation_1.5.1.msixbundle)
+after the remaining acceptance checks. Downloaded size: **9,222,548 bytes**, up from 7,960,437
+for 1.5.0 (+16%). That is the unwinding cost from D10: the packaged `live-translation.exe` is
+9,649,152 bytes on x64 and 8,565,760 bytes on ARM64. Local SHA-256 matches the GitHub asset
+digest: `3aad94e8b1f4a8f28cdc36f894b664b4add592bbd65a48719e8a6c940a8d204a`.
+
+The bundle and both embedded package manifests report **1.5.1.0**. The packages target
+**x64** and **arm64** (`Windows.Desktop`, MinVersion 10.0.17763.0), use identity
+`49346FMadore.LiveTranslationSubtitles`, publisher `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`
+and publisher display name `FMadore`. They declare only `runFullTrust` and `microphone`, carry
+no signature (the Store signs accepted packages), and each includes nonempty English (665,006
+bytes) and French (743,246 bytes) rehearsal WAV fixtures. This verifies packaging, not
+installed-app operation or Store certification. No Partner Center submission has been made.
 
 ## Release 1.5.0 handoff
 

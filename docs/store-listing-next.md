@@ -7,8 +7,9 @@ tracks checks, packages, screenshots, privacy publication and manual submission.
 The latest published GitHub release is [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).
 It supersedes 1.4.2 and 1.5.0, neither of which was submitted to the Store. The next
 submission should use 1.5.1 after native acceptance and release packaging. Expected artifact:
-**Live.Translation_1.5.1.msixbundle**, containing x64 and ARM64. Its manifests, Store identity
-and SHA-256 are recorded in the handoff once the release workflow has built it.
+**Live.Translation_1.5.1.msixbundle**, containing x64 and ARM64. The release workflow has
+completed, and the downloaded bundle's two 1.5.1.0 manifests, Store identity and SHA-256 are
+verified in the handoff.
 A local x64 installer is not the Store upload artifact.
 
 The 1.5.1 "What's new" blocks open with this release's fixes: speech detail in the audio sent

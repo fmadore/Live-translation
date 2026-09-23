@@ -2,9 +2,9 @@
 
 **Next submission: 1.5.1 (prepared, not submitted).** Use the x64 + ARM64
 `Live.Translation_1.5.1.msixbundle` after the remaining packaged checks pass. It supersedes
-the unsubmitted 1.5.0. The bundle and installers are published on the
-[GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) once the tag
-is built. The previous documented Store version is 1.2.4. See the
+the unsubmitted 1.5.0. The verified bundle and installers are available on the
+[GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1). The
+previous documented Store version is 1.2.4. See the
 [1.5.1 release handoff](store-updates.md#release-151-handoff) and
 [paste-ready EN/FR/DE fields](store-listing.md). The German listing is new and still needs
 native-language review and final-package screenshots.
