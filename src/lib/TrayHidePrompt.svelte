@@ -8,6 +8,7 @@
 	// message that has to land.
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 
 	interface Props {
@@ -37,10 +38,12 @@
 	</p>
 
 	<div class="actions">
-		<button class="primary" bind:this={hideEl} onclick={() => onChoice('hide')}>
+		<ToolButton variant="primary" size="lg" bind:element={hideEl} onclick={() => onChoice('hide')}>
 			{$t.prompt.trayHide.hide}
-		</button>
-		<button onclick={() => onChoice('quit')}>{$t.prompt.trayHide.quit}</button>
+		</ToolButton>
+		<ToolButton variant="ghost" size="lg" onclick={() => onChoice('quit')}
+			>{$t.prompt.trayHide.quit}</ToolButton
+		>
 	</div>
 </ModalPrompt>
 

@@ -4,6 +4,7 @@
 	// restoring replaces the log and a session started first would be overwritten.
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 
 	interface Props {
@@ -31,10 +32,12 @@
 	<p>{$t.prompt.recovery.body(lines, savedAt)}</p>
 
 	<div class="actions">
-		<button class="primary" bind:this={restoreEl} onclick={onRestore}>
+		<ToolButton variant="primary" size="lg" bind:element={restoreEl} onclick={onRestore}>
 			{$t.prompt.recovery.restore}
-		</button>
-		<button class="danger" onclick={onDelete}>{$t.prompt.recovery.delete}</button>
+		</ToolButton>
+		<ToolButton variant="danger" size="lg" onclick={onDelete}
+			>{$t.prompt.recovery.delete}</ToolButton
+		>
 	</div>
 	<p class="note">
 		{$t.prompt.recovery.noteBefore} <code>{path}</code>{$t.prompt.recovery.noteAfter}

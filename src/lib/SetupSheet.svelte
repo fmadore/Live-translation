@@ -3,6 +3,7 @@
 	import LevelMeter from './LevelMeter.svelte';
 	import SystemCapturePicker from './SystemCapturePicker.svelte';
 	import ChoiceButton from './ui/ChoiceButton.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import Field from './ui/Field.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
 	import Select from './ui/Select.svelte';
@@ -217,14 +218,13 @@
 		/>
 	{/if}
 	{#if $options.provider !== 'ondevice'}
-		<button
-			class="tool"
+		<ToolButton
 			disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
 			aria-busy={preflight.refreshing || preflight.refreshingApplications}
 			onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
 		>
 			{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
-		</button>
+		</ToolButton>
 	{/if}
 	<div class="meters">
 		{#if usesMic}

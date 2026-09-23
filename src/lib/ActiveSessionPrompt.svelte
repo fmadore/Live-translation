@@ -7,6 +7,7 @@
 	// nothing.
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 
 	interface Props {
@@ -39,10 +40,12 @@
 	{/if}
 
 	<div class="actions">
-		<button class="primary" bind:this={keepEl} onclick={() => onChoice(false)}>
+		<ToolButton variant="primary" size="lg" bind:element={keepEl} onclick={() => onChoice(false)}>
 			{$t.prompt.activeSession.keep}
-		</button>
-		<button class="danger" onclick={() => onChoice(true)}>{$t.prompt.activeSession.stop}</button>
+		</ToolButton>
+		<ToolButton variant="danger" size="lg" onclick={() => onChoice(true)}
+			>{$t.prompt.activeSession.stop}</ToolButton
+		>
 	</div>
 </ModalPrompt>
 

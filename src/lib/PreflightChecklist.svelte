@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ApiKeyPanel from './ApiKeyPanel.svelte';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { hasKey, options, overlayPlaced, statusMessage } from './stores';
 	import { PROVIDER_META, rateText } from './providers';
@@ -100,23 +101,25 @@
 			{#if $options.provider === 'ondevice' || browserMode}
 				<span></span>
 			{:else if preflight.audioTesting}
-				<button
-					class="adjust"
+				<ToolButton
+					variant="ghost"
+					size="sm"
 					disabled={preflight.audioTestBusy}
 					aria-busy={preflight.audioTestBusy}
 					onclick={preflight.stopAudioTest}
 				>
 					{$t.preflight.audio.stopTest}
-				</button>
+				</ToolButton>
 			{:else}
-				<button
-					class="place"
+				<ToolButton
+					variant="warn"
+					size="sm"
 					disabled={preflight.audioTestBusy || locked || !preflight.applicationReady($options)}
 					aria-busy={preflight.audioTestBusy}
 					onclick={preflight.startAudioTest}
 				>
 					{audioVerified ? $t.preflight.audio.retest : $t.preflight.audio.test}
-				</button>
+				</ToolButton>
 			{/if}
 		{/snippet}
 	</ChecklistRow>
@@ -130,8 +133,9 @@
 		{#snippet action()}
 			<!-- Placement is never final: re-entering move mode is the way to adjust position and
 			     caption size, so the row keeps a button in both states. -->
-			<button
-				class={$overlayPlaced ? 'adjust' : 'place'}
+			<ToolButton
+				variant={$overlayPlaced ? 'ghost' : 'warn'}
+				size="sm"
 				aria-pressed={overlay.moveOverlay}
 				aria-label={overlay.moveOverlay
 					? $t.preflight.overlay.doneLabel
@@ -145,7 +149,7 @@
 					: $overlayPlaced
 						? $t.preflight.overlay.adjust
 						: $t.preflight.overlay.place}
-			</button>
+			</ToolButton>
 		{/snippet}
 	</ChecklistRow>
 
@@ -174,34 +178,6 @@
 		line-height: 1;
 		color: var(--text-secondary);
 		font-variant-numeric: tabular-nums;
-	}
-	.place {
-		font-size: var(--type-small);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--warn-soft);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--warn-border);
-		background: rgba(255, 180, 84, 0.08);
-	}
-	.place:hover {
-		background: var(--warn-bg);
-	}
-	/* Quiet variant of .place for the already-placed row: same geometry, ghost colours. */
-	.adjust {
-		font-size: var(--type-small);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-secondary);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--line-strong);
-		background: transparent;
-	}
-	.adjust:hover {
-		border-color: var(--line-hover);
-		color: var(--text-body);
 	}
 	/* Near the window's minimum height, tighten the vertical rhythm so the checklist and the
 	   launch notes still land above the fold. */

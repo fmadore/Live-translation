@@ -5,6 +5,7 @@
 	import { PROVIDER_META } from './providers';
 	import { providerKeyName } from './types';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import type { Provider } from './types';
 
 	interface Props {
@@ -92,8 +93,9 @@
 	<ChecklistRow status="ok" title={$t.key.title(keyName)} desc={$t.key.saved}>
 		{#snippet action()}
 			<div class="actions">
-				<button
-					class="ghost"
+				<ToolButton
+					variant="ghost"
+					size="sm"
 					disabled={locked}
 					onclick={() => {
 						editing = true;
@@ -101,8 +103,10 @@
 					}}
 				>
 					{$t.key.replace}
-				</button>
-				<button class="ghost" disabled={locked} onclick={clearKey}>{$t.key.remove}</button>
+				</ToolButton>
+				<ToolButton variant="ghost" size="sm" disabled={locked} onclick={clearKey}
+					>{$t.key.remove}</ToolButton
+				>
 			</div>
 		{/snippet}
 	</ChecklistRow>
@@ -132,24 +136,26 @@
 					disabled={locked}
 					onkeydown={(event) => event.key === 'Enter' && void saveKey()}
 				/>
-				<button
-					class="save"
+				<ToolButton
+					variant="primary"
+					size="sm"
 					disabled={locked || saving || !apiKeyInput.trim()}
 					aria-busy={saving}
 					onclick={saveKey}
 				>
 					{saving ? $t.key.saving : $t.key.save}
-				</button>
+				</ToolButton>
 				{#if available}
-					<button
-						class="ghost"
+					<ToolButton
+						variant="ghost"
+						size="sm"
 						onclick={() => {
 							editing = false;
 							apiKeyInput = '';
 						}}
 					>
 						{$t.key.cancel}
-					</button>
+					</ToolButton>
 				{/if}
 			</div>
 		{/snippet}
@@ -173,32 +179,6 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-	}
-	button {
-		font-size: var(--type-small);
-		font-weight: 500;
-		line-height: 1;
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-	}
-	button.ghost {
-		color: var(--text-secondary);
-		border: 1px solid var(--line-strong);
-		background: transparent;
-	}
-	button.ghost:hover:not(:disabled) {
-		border-color: var(--line-hover);
-		color: var(--text-body);
-	}
-	button.save {
-		border: 0;
-		background: var(--accent-fill);
-		color: var(--on-accent);
-		font-weight: 600;
-		padding: 8px 13px;
-	}
-	button.save:hover:not(:disabled) {
-		filter: brightness(1.06);
 	}
 	input {
 		/* 220px at 100%. A key is a long opaque string, so the field is sized in the text

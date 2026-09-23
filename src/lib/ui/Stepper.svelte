@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ToolButton from './ToolButton.svelte';
 	let {
 		label,
 		value,
@@ -22,19 +23,17 @@
 
 <div class="ui-stepper" role="group" aria-label={label}>
 	<span>{label}</span>
-	<button
-		type="button"
-		class="ui-tool"
+	<ToolButton
+		size="sm"
 		disabled={disabled || value <= min}
 		aria-label={`${label} −`}
-		onclick={() => onchange(Math.max(min, value - step))}>−</button
+		onclick={() => onchange(Math.max(min, value - step))}>−</ToolButton
 	>
 	<output>{value} {unit}</output>
-	<button
-		type="button"
-		class="ui-tool"
+	<ToolButton
+		size="sm"
 		disabled={disabled || value >= max}
 		aria-label={`${label} +`}
-		onclick={() => onchange(Math.min(max, value + step))}>+</button
+		onclick={() => onchange(Math.min(max, value + step))}>+</ToolButton
 	>
 </div>

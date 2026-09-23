@@ -204,10 +204,6 @@
 		background: var(--surface-2);
 		color: var(--text-bright);
 	}
-	.dismiss:focus-visible {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
-	}
 
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
 	.prompt :global(p) {
@@ -241,42 +237,8 @@
 		gap: 9px;
 		margin-top: 2px;
 	}
-	.prompt :global(.actions button) {
-		font-size: var(--type-body);
-		font-weight: 500;
-		line-height: 1;
-		padding: 10px 15px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--line-strong);
-		background: transparent;
-		color: var(--text-secondary);
-	}
-	.prompt :global(.actions button:hover:not(:disabled)) {
-		border-color: var(--line-hover);
-		color: var(--text-body);
-	}
-	.prompt :global(.actions button.primary) {
+	/* The answers are ToolButtons; the safe one takes the spare width. */
+	.prompt :global(.actions .primary) {
 		flex: 1 1 auto;
-		font-weight: 600;
-		color: var(--on-accent);
-		background: var(--accent);
-		border-color: var(--accent);
-	}
-	.prompt :global(.actions button.primary:hover:not(:disabled)) {
-		background: var(--accent-soft);
-		border-color: var(--accent-soft);
-	}
-	.prompt :global(.actions button.danger) {
-		color: var(--danger-soft);
-		border-color: var(--danger-border);
-	}
-	.prompt :global(.actions button.danger:hover:not(:disabled)) {
-		background: var(--danger-bg);
-		border-color: var(--danger);
-		color: var(--danger-soft);
-	}
-	.prompt :global(.actions button:focus-visible) {
-		outline: 2px solid var(--accent);
-		outline-offset: 2px;
 	}
 </style>

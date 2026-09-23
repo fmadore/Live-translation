@@ -27,13 +27,14 @@ function palette(): Record<string, string> {
 	return out;
 }
 
-/** Every `--name: rgba(r, g, b, a)` in `:root`: the tinted washes chips and cards sit on. */
+/** Every `--name: rgba(r, g, b, a)` in `:root` other than a border: the tinted washes chips,
+ *  cards and buttons sit on. */
 function washes(): Record<string, { rgb: number[]; alpha: number }> {
 	const out: Record<string, { rgb: number[]; alpha: number }> = {};
 	for (const [, name, r, g, b, a] of ROOT.matchAll(
-		/(--[\w-]+-bg):\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)\s*;/g
+		/(--[\w-]+):\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)\s*;/g
 	)) {
-		out[name] = { rgb: [r, g, b].map(Number), alpha: Number(a) };
+		if (!name.endsWith('-border')) out[name] = { rgb: [r, g, b].map(Number), alpha: Number(a) };
 	}
 	return out;
 }

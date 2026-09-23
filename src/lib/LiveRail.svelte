@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CaptionAppearance from './CaptionAppearance.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
 	import { languageName } from './languages';
@@ -138,9 +139,7 @@
 		     all a sighted operator needs beside the "Overlay" heading. The accessible
 		     name says what is being moved or hidden, because a screen reader can arrive
 		     at the button without the heading. -->
-		<button
-			class="tool"
-			class:on={overlay.moveOverlay}
+		<ToolButton
 			aria-pressed={overlay.moveOverlay}
 			aria-label={overlay.moveOverlay
 				? $t.overlayControls.moveDoneLabel
@@ -162,10 +161,9 @@
 				/></svg
 			>
 			{overlay.moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
-		</button>
-		<button
-			class="tool"
-			class:off={!overlay.overlayVisible}
+		</ToolButton>
+		<ToolButton
+			variant={overlay.overlayVisible ? 'default' : 'warn'}
 			aria-label={overlay.overlayVisible
 				? $t.overlayControls.hideLabel
 				: $t.overlayControls.showLabel}
@@ -185,7 +183,7 @@
 				{#if overlay.overlayVisible}<path d="M3.5 20.5l17-17" />{/if}
 			</svg>
 			{overlay.overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
-		</button>
+		</ToolButton>
 	</div>
 </div>
 
@@ -286,5 +284,8 @@
 	.overlay-actions {
 		display: flex;
 		gap: 8px;
+	}
+	.overlay-actions > :global(.ui-tool) {
+		flex: 1;
 	}
 </style>

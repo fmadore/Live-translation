@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from './i18n';
+	import ToolButton from './ui/ToolButton.svelte';
 	import {
 		appearance,
 		overlayCaptionLayout,
@@ -23,9 +24,9 @@
 {#if part === 'presets'}
 	<div class="presets" role="group" aria-label={$t.usability.preset}>
 		{#each PRESET_IDS as id (id)}
-			<button
+			<ToolButton
 				aria-pressed={matchesPreset($appearance, id)}
-				onclick={() => overlay.setAppearance(PRESETS[id])}>{$t.usability[id]}</button
+				onclick={() => overlay.setAppearance(PRESETS[id])}>{$t.usability[id]}</ToolButton
 			>
 		{/each}
 	</div>
@@ -49,33 +50,13 @@
 {/if}
 
 <style>
-	.presets button[aria-pressed='true'] {
-		border-color: var(--accent-border);
-		color: var(--accent-soft);
-		background: var(--accent-bg);
-	}
-	@media (forced-colors: active) {
-		.presets button[aria-pressed='true'] {
-			outline: 2px solid Highlight;
-		}
-	}
 	.presets {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
-	.presets button {
+	.presets > :global(.ui-tool) {
 		flex: 1;
-		padding: 0.625rem;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-control);
-		background: var(--surface-1);
-		color: var(--text-secondary);
-		font-size: var(--type-small);
-	}
-	.presets button:hover {
-		border-color: var(--accent-border);
-		color: var(--accent-soft);
 	}
 	p {
 		font-size: var(--type-small);

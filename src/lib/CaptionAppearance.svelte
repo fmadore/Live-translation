@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CaptionPreview from './CaptionPreview.svelte';
 	import Select from './ui/Select.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t, localeTag } from './i18n';
 	import {
 		appearance,
@@ -166,14 +167,15 @@
 			</span>
 		</p>
 
-		<button
-			class="reset"
+		<ToolButton
+			variant="ghost"
+			size="sm"
 			disabled={overlayAtDefaults}
 			onclick={overlay.resetOverlayAppearance}
 			aria-label={$t.overlayControls.resetLabel}
 		>
 			{$t.overlayControls.reset}
-		</button>
+		</ToolButton>
 	</div>
 	{#if !compact}<CaptionPreview {overlay} />{/if}
 </div>
@@ -327,25 +329,6 @@
 	}
 	.contrast.warn .contrast-note {
 		color: var(--warn-soft);
-	}
-	.reset {
-		align-self: flex-start;
-		padding: 0.375rem 0.625rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--line-strong);
-		background: transparent;
-		color: var(--text-muted);
-		font-size: var(--type-caption);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.reset:hover:not(:disabled) {
-		border-color: var(--line-hover);
-		color: var(--text-secondary);
-	}
-	.reset:disabled {
-		opacity: 0.45;
-		cursor: default;
 	}
 	@media (forced-colors: active) {
 		.swatch input[type='color'] {

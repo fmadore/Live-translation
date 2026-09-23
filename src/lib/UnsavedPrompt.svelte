@@ -3,6 +3,7 @@
 	// operator closes the window with finalized captions that never reached disk (issue #25).
 
 	import ModalPrompt from './ModalPrompt.svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import type { CloseChoice } from './document';
 
@@ -41,13 +42,21 @@
 	{/if}
 
 	<div class="actions">
-		<button class="primary" bind:this={saveEl} disabled={saving} onclick={() => onChoice('save')}>
+		<ToolButton
+			variant="primary"
+			size="lg"
+			bind:element={saveEl}
+			disabled={saving}
+			onclick={() => onChoice('save')}
+		>
 			{saving ? $t.prompt.unsaved.saving : $t.prompt.unsaved.save}
-		</button>
-		<button class="danger" disabled={saving} onclick={() => onChoice('discard')}>
+		</ToolButton>
+		<ToolButton variant="danger" size="lg" disabled={saving} onclick={() => onChoice('discard')}>
 			{$t.prompt.unsaved.discard}
-		</button>
-		<button disabled={saving} onclick={() => onChoice('cancel')}>{$t.prompt.unsaved.cancel}</button>
+		</ToolButton>
+		<ToolButton variant="ghost" size="lg" disabled={saving} onclick={() => onChoice('cancel')}
+			>{$t.prompt.unsaved.cancel}</ToolButton
+		>
 	</div>
 	<p class="note">{$t.prompt.unsaved.note}</p>
 </ModalPrompt>

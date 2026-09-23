@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/i18n';
+	import ToolButton from '$lib/ui/ToolButton.svelte';
 
 	/** Move mode's placement chrome. The overlay window *is* the caption region, so the chrome
 	 *  hugs the window edges rather than being drawn inside a larger screen. Everything here is
@@ -72,8 +73,8 @@
 			<button class="step" onclick={() => onBump(2)} aria-label={$t.overlay.larger}>+</button>
 		</div>
 		<span class="divider"></span>
-		<button class="ghost" onclick={onSnap}>{$t.overlay.snapToBottom}</button>
-		<button class="primary" onclick={onLock}>
+		<ToolButton onclick={onSnap}>{$t.overlay.snapToBottom}</ToolButton>
+		<ToolButton variant="primary" onclick={onLock}>
 			<svg
 				width="13"
 				height="13"
@@ -88,7 +89,7 @@
 				<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
 			</svg>
 			{$t.overlay.lock}
-		</button>
+		</ToolButton>
 	</div>
 </div>
 
@@ -295,52 +296,16 @@
 		border-color: var(--line-hover);
 		color: var(--text-body);
 	}
-	.ghost {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 9px 13px;
-		border: 1px solid var(--line-strong);
-		border-radius: 9px;
-		background: var(--surface-2);
-		color: var(--text-secondary);
-		font-weight: 500;
-		font-size: var(--type-small);
-		line-height: 1;
-	}
-	.ghost:hover {
-		border-color: var(--line-hover);
-		color: var(--text-body);
-	}
-	.primary {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 15px;
-		border: 0;
-		border-radius: 9px;
-		background: var(--accent-fill);
-		color: var(--on-accent);
-		font-weight: 600;
-		font-size: var(--type-body);
-		line-height: 1;
-	}
-	.primary:hover {
-		filter: brightness(1.06);
-	}
 
 	/* Windows contrast themes. The placement preview keeps its own colours, like the audience
-	   view it stands for; the toolbar, which is chrome, keeps the system palette and only drops
-	   the gradient the forced palette would not have recoloured. */
+	   view it stands for; the toolbar, which is chrome, keeps the system palette (Lock drops its
+	   gradient in `app.css`, with every other primary). */
 	@media (forced-colors: active) {
 		.placeholder,
 		.region,
 		.handle,
 		.edge {
 			forced-color-adjust: none;
-		}
-		.primary {
-			background-image: none;
 		}
 	}
 </style>

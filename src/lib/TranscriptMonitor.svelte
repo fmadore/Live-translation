@@ -14,6 +14,7 @@
 	import { saveTranscriptDocument } from './saveDocument';
 	import { groupTranscript, hasTranscriptTiming, type TranscriptFormat } from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
+	import ToolButton from './ui/ToolButton.svelte';
 
 	interface Props {
 		mode: OutputMode;
@@ -134,22 +135,23 @@
 			<option value="vtt">WebVTT (.vtt)</option>
 			<option value="srt">SubRip (.srt)</option>
 		</select>
-		<button
-			class="ghost"
+		<ToolButton
+			variant="ghost"
+			size="sm"
 			disabled={!desktop || !transcript.length || saving || missingTiming}
 			aria-busy={saving}
 			onclick={() => save(exportFormat)}
 		>
 			{$t.transcript.saveAs}
-		</button>
-		<button
-			class="ghost quiet"
-			class:confirming={confirmingClear}
+		</ToolButton>
+		<ToolButton
+			variant={confirmingClear ? 'danger' : 'ghost'}
+			size="sm"
 			disabled={!transcript.length || saving}
 			onclick={clear}
 		>
 			{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
-		</button>
+		</ToolButton>
 	</div>
 	{#if missingTiming && transcript.length}<p class="hint" role="status">
 			{$t.transcript.noTiming}
@@ -193,9 +195,15 @@
 			</ul>
 		</div>
 		{#if !following}
-			<button class="ghost jump-latest" aria-controls={logId} onclick={jumpToLatest}>
+			<ToolButton
+				variant="ghost"
+				size="sm"
+				class="jump-latest"
+				aria-controls={logId}
+				onclick={jumpToLatest}
+			>
 				{$t.transcript.jumpToLatest}
-			</button>
+			</ToolButton>
 		{/if}
 	{:else}
 		<p class="hint">
@@ -220,7 +228,7 @@
 </section>
 
 <style>
-	.jump-latest {
+	.monitor :global(.jump-latest) {
 		align-self: flex-end;
 		white-space: normal;
 	}
@@ -249,16 +257,6 @@
 	.spacer {
 		flex: 1;
 	}
-	button.ghost {
-		font-size: var(--type-small);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-secondary);
-		padding: 7px 11px;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--line-strong);
-		background: transparent;
-	}
 	select {
 		font: inherit;
 		font-size: var(--type-small);
@@ -268,18 +266,6 @@
 		border-radius: var(--radius-control);
 		padding: 6px;
 		max-width: 100%;
-	}
-	button.ghost:hover:not(:disabled) {
-		border-color: var(--line-hover);
-		color: var(--text-body);
-	}
-	button.ghost.quiet {
-		color: var(--text-muted);
-		border-color: transparent;
-	}
-	button.ghost.quiet:hover:not(:disabled) {
-		border-color: transparent;
-		color: var(--text-body);
 	}
 	.state {
 		font-size: var(--type-caption);
@@ -295,10 +281,6 @@
 	.state.unsaved {
 		color: var(--warn-soft);
 		background: var(--warn-bg);
-	}
-	button.ghost.quiet.confirming {
-		color: var(--danger-soft);
-		border-color: var(--danger-border);
 	}
 	.saved {
 		margin: 0;
