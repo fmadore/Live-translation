@@ -25,7 +25,7 @@ record what changed and how it was verified.
 | D6 | Microphone and typeface selects use `ui/Select` | Done |
 | D9 | Rail width cap reaches child components | Done |
 | D3 (part) | Snapshot built in the queued job; history list refresh not per line | Done |
-| E1 | `crate-type = ["rlib"]` | Pending release-build check |
+| E1 | `crate-type = ["rlib"]` | Done |
 | E2 | Tray skips unchanged labels; command runs on the main thread | Done; desktop check pending |
 | E4 | Borrowed caption text; no copy of Gemini binary frames | Done |
 | E5 | Activity notes throttled per source | Done |
@@ -65,8 +65,10 @@ record what changed and how it was verified.
   new fake-timer test sends five writes in a burst and expects one re-list after 5 s; it fails
   with the throttle set to zero. The dead `open` constant and its wrapper block were removed.
   The write throttle and JSONL format stay in batch 2.
-- **E1** — `Cargo.toml` builds only `rlib`. The release-build timing and artefact check are
-  recorded below once complete.
+- **E1** — `Cargo.toml` builds only `rlib`. A `cargo build --release --locked` passed in
+  7 min 02 s and produced only `live-translation.exe` (5,178,368 bytes). The `.dll` and
+  152 MB `.lib` still in `target/release/deps` date from a 20 September build. The time is not
+  a before/after comparison, because dependencies were rebuilt in the same run.
 - **E2** — `tray.rs` remembers the text and enabled state last written to each item and skips
   unchanged writes. During a session this means one status write per second instead of six.
   `set_tray_state` is now a sync command: Tauri runs those on the main thread, and
@@ -100,7 +102,113 @@ Verification on 22 September 2026:
 | `cargo fmt --check` | Passed |
 | `cargo clippy --locked --all-targets --all-features -- -D warnings` | Passed |
 | `cargo test --locked --all-features` | 76 passed, 2 ignored (3 new, 1 removed with `prepare`) |
+| `cargo build --release --locked` | Passed; executable only, no library artefacts |
 | Browser preview (operator, EN, 1200 × 820 and stacked) | Selects, focus ring, rail widths, fonts and Escape verified; no console errors |
+
+The tray (E2) and the release-only `.env`/host behaviour (D5) are covered by compilation and
+unit tests only. They still need a desktop run.
+
+## Implementation tracker — batch 2
+
+Batch 1 was committed as `ea01dbf` on `review/2026-09-22`. Batch 2 covers audio and persistence.
+
+| Item | Change | Status |
+| --- | --- | --- |
+| D1 | Windowed-sinc anti-alias filter with frequency-response tests | Done; live listening check pending |
+| D3 | History writes from appends throttled; finish/flush write at once | Done |
+| D4 | Stable overlay history capped; cleaned lead derived separately | Done |
+| D7 | Sessions the core ends are finished in history | Done |
+| D10 | Keep unwinding in release so thread-failure paths work | Done (decided 23 September) |
+
+### Batch 2 implementation notes
+
+- **D1** — [`resample.rs`](../src-tauri/src/audio/resample.rs) now low-pass filters with a
+  Kaiser-windowed sinc designed at construction:
+  - cutoff 0.45 × and transition 0.11 × the output rate, sized for 60 dB;
+  - 99 taps for 48 → 16 kHz and 67 taps for 48 → 24 kHz;
+  - linear interpolation to the output rate is kept.
+
+  Only inputs that have an output are filtered, and at integer ratios only the sample the
+  output lands on. That is about 1.6 M multiply-adds per second at 48 → 16 kHz, spread over
+  eight accumulators so the dot product can vectorise. `LinearResampler` is renamed
+  `Resampler`.
+
+  Response measured through the Rust implementation, in dB:
+
+  | 48 → 16 kHz | 3 kHz | 4 kHz | 6 kHz | 7 kHz | 10 kHz | 12 kHz |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | Old one-pole cascade | −2.6 | −4.3 | −8.3 | −10.4 | −16.3 | −19.6 |
+  | New windowed sinc | 0.0 | 0.0 | 0.0 | −3.1 | −87.0 | −80.3 |
+
+  At 48 → 24 kHz it is flat to 9 kHz, −0.6 dB at 10 kHz, and ≤ −71 dB from 13 kHz. New tests
+  cover:
+  - passband level (±0.5 dB to 6 kHz at 16 kHz output, and to 9 kHz at 24 kHz);
+  - alias rejection (≤ −55 dB);
+  - 44.1 kHz input;
+  - DC gain;
+  - bit-identical output across block sizes and history compaction;
+  - unfiltered upsampling.
+
+  The test tone's phase is computed in f64, because an f32 phase adds noise near −55 dB.
+
+  The rehearsal fixtures are 16 kHz, so they never pass through the downsampler and cannot
+  serve as a before/after listening test. The effect on recognition accuracy still needs a
+  live 48 kHz session with a provider.
+- **D3** — `createHistoryCoordinator` writes a session's first appended line at once and then
+  at most one append-triggered write per `HISTORY_WRITE_INTERVAL_MS` (5 s). `finish`, `flush`,
+  `retry` and `begin` write anything waiting at once, and deleting the active session
+  cancels it. Quit already flushes. A fake-timer test checks that five appends coalesce into
+  one write after 5 s; it fails with the interval set to zero. A second test covers the
+  immediate writes. JSONL remains an option if full-file rewrites every 5 s ever matter.
+- **D4** — Stable reading's history is now trimmed only at a rendered line start.
+  [`OverlayCaptionLine.svelte`](../src/routes/overlay/OverlayCaptionLine.svelte) renders the
+  stable paragraph as one text node. Once more than 180 lines are hidden, it uses
+  `firstOffsetOnLine` (`captionLayout.ts`) to find the start of the line that leaves 60 hidden
+  lines, measured against the live layout, and hands that offset back. The overlay slices its
+  history there. Measuring the paragraph directly avoids a double trim before the bound
+  height catches up.
+
+  Two measurements in Chromium, in the overlay's own font, decided this design:
+  - Cutting 20,000 characters at a line start left all 80 remaining lines identical.
+  - A cut at an arbitrary word did **not** reliably re-synchronise. In 60 random cuts across
+    four width/size combinations, 6 never re-synchronised, one took 64 lines and several took
+    over 20. A plain character cap could therefore re-wrap the lines being read.
+
+  To make offsets map one-to-one, Stable reading now cleans each turn once as it joins the
+  history. A later filler toggle therefore applies to new turns rather than re-wrapping every
+  line already read; context carried in from another layout is cleaned on entry. Fit mode's
+  cleaned lead is a separate `$derived`, recomputed per turn instead of per caption. Tests
+  cover the offset search (including uneven lines) and the component's trim with a synthetic
+  layout, which fails with trimming disabled. The preview renders Stable as a single text node
+  with no console errors.
+- **D7** — `stores.ts` tracks whether a source of the current run has reported an active
+  state. When every source then ends on its own, `applyStatus` calls the new
+  `endTranscriptSession()` (flush + finish). The flag matters because a drained session's
+  Idle can arrive after `beginSession`. The core stops the old run before starting the new
+  one, so that stale Idle always precedes the new run's first active status and is ignored.
+  `sessionController.stop`, `prepareClose` and `beginSession` all use the same helper.
+  Two integration tests cover this: a failed run's record is closed, and a new run survives
+  the old run's late Idle. Each test fails when its half of the fix is disabled.
+- **D10** — Measured on the release build: dropping `panic = "abort"` grows
+  `live-translation.exe` from 5,178,368 to 9,228,288 bytes (+78%). Compressed with gzip -9 it
+  goes from 2.14 MB to 3.06 MB (+43%). That is far more than the review's "few percent"
+  estimate, so the decision went back to the maintainer. On 23 September they chose
+  resilience over size: `panic = "abort"` is removed, and a comment in `Cargo.toml` records
+  why and what it costs. The unwinding release build was the one measured above, and it
+  built and linked cleanly.
+
+Batch 2 verification on 22 September 2026:
+
+| Check | Result |
+| --- | --- |
+| `npm test` | 368 passed in 43 files (8 new) |
+| `npm run check` | 0 errors, 0 warnings |
+| `npm run format:check` | Passed |
+| `cargo fmt --check` | Passed |
+| `cargo clippy --locked --all-targets --all-features -- -D warnings` | Passed |
+| `cargo test --locked --all-features` | 80 passed, 2 ignored (5 new resampler tests, 1 replaced) |
+| Chromium line-wrap measurements | Line-start cut preserves every later line; word cuts do not reliably |
+| Browser preview (overlay, Fit and Stable) | Renders; no console errors |
 
 ## 1. Defects found while reviewing
 
@@ -117,7 +225,7 @@ These are behavioural problems, not style issues, so they go first.
 | D7 | Medium | **Sessions ended by the core are not finished in history.** `applyStatus` settles the clock when the last source ends ([`stores.ts:89-108`](../src/lib/stores.ts)) but never calls `sessionHistory.finish()`. After a provider failure, the next Start/Stop/quit stamps `endedAt`, which inflates the recorded duration. The end-of-session pair is also duplicated in `stores.ts`, `sessionController.ts` and `quit.ts`. | One `endTranscriptSession()` in `stores.ts`, called from all three places and when `isRunning` drops to false. Confirm the intended behaviour first. | S |
 | D8 | Low | **Transcript monitor state resets on Start/Stop.** `TranscriptMonitor` is mounted in two branches ([`+page.svelte:1345, 1510`](../src/routes/+page.svelte)), so the chosen export format and follow/scroll state are lost at every transition. | Hoist to one instance outside the `{#if $isRunning}` branch. | S |
 | D9 | Low | **Rail width cap misses child components** (verified). `.rail > *` ([`+page.svelte:1936`](../src/routes/+page.svelte)) is scoped. `MeetingProfiles` therefore stretches to full width in the stacked layout at larger Windows text sizes, while its siblings stay at 23.75 em. The same trap will catch every component extracted from the rail. | `.rail > :global(*)`. Do this before any extraction. | S |
-| D10 | Decision | **`panic = "abort"` disables the recovery paths the code relies on.** The `join().is_err()` handling ([`session.rs:551, 583`](../src-tauri/src/session.rs)), `JoinError` paths and poison recovery are dead in release. A panic in any capture/provider thread kills the process, and the transcript lives in the renderer (the recovery spool is off by default). | Drop `panic = "abort"` (≈ a few percent binary size, *estimate*), or keep it and document the trade-off. | S |
+| D10 | Decision | **`panic = "abort"` disables the recovery paths the code relies on.** The `join().is_err()` handling ([`session.rs:551, 583`](../src-tauri/src/session.rs)), `JoinError` paths and poison recovery are dead in release. A panic in any capture/provider thread kills the process, and the transcript lives in the renderer (the recovery spool is off by default). | Drop `panic = "abort"`, or keep it and document the trade-off. Measured cost of dropping it: +78% executable size (+43% compressed); see the batch 2 notes. | S |
 
 ## 2. Efficiency
 

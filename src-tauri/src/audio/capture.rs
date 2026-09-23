@@ -12,7 +12,7 @@ use cpal::SampleFormat;
 use tokio::sync::mpsc::{error::TrySendError, Sender};
 use tokio_util::sync::CancellationToken;
 
-use super::resample::{downmix_to_mono, f32_to_pcm16_le, LinearResampler};
+use super::resample::{downmix_to_mono, f32_to_pcm16_le, Resampler};
 use super::{chunk_samples, AudioChunk};
 use crate::types::{AudioDevice, AudioLevel, Origin};
 
@@ -261,7 +261,7 @@ pub struct CaptureState {
     origin: Origin,
     level_tx: Sender<AudioLevel>,
     chunk_tx: Sender<AudioChunk>,
-    resampler: LinearResampler,
+    resampler: Resampler,
     // Samples in one ~100 ms chunk at the target rate.
     chunk_len: usize,
     conv_buf: Vec<f32>,
@@ -289,7 +289,7 @@ impl CaptureState {
             origin,
             level_tx,
             chunk_tx,
-            resampler: LinearResampler::new(in_rate, target_rate),
+            resampler: Resampler::new(in_rate, target_rate),
             chunk_len,
             conv_buf: Vec::with_capacity(4096),
             mono_buf: Vec::with_capacity(4096),

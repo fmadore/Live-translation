@@ -82,5 +82,9 @@ custom-protocol = ["tauri/custom-protocol"]
 opt-level = "s"
 lto = true
 codegen-units = 1
-panic = "abort"
+# Unwinding is kept on purpose (no `panic = "abort"`). A panic in one capture thread or
+# provider task must end that source, not the process: `session.rs` joins capture threads
+# and awaits client tasks expecting a failed join, and the transcript lives in the renderer,
+# where an aborted process would take it with it. Measured cost: +78% executable size
+# (+43% compressed) — see docs/app-review-2026-09-22.md, D10.
 strip = true

@@ -73,6 +73,12 @@ export const statusMessage = writable<string | AppError>('');
  *  running cost estimate. */
 export const sessionStartedAt = writable<number | null>(null);
 
+/** Whether a source of the current run has reported an active state since `beginSession`.
+ *  When a replacement starts, the drained session's Idle can arrive after `beginSession`;
+ *  the core stops the old run before starting the new one, so that stale Idle always comes
+ *  before this run's first active status — and must not be taken for this run ending. */
+let runHadActiveSource = false;
+
 /** Apply one status event from the Rust core. */
 export function applyStatus(u: StatusUpdate) {
 	if (u.origin) {
@@ -88,17 +94,26 @@ export function applyStatus(u: StatusUpdate) {
 			});
 			if (!get(isRunning)) {
 				sessionStartedAt.set(null);
+				// Every source of this run has ended by itself — a provider failure, or a
+				// capture that died — with no Stop to close the record. Left open, it would be
+				// closed by the next Start or quit and claim all the time in between.
+				if (runHadActiveSource) {
+					runHadActiveSource = false;
+					void endTranscriptSession();
+				}
 			}
-		} else if (get(sessionStartedAt) === null) {
+		} else {
+			runHadActiveSource = true;
 			// Starting a replacement first drains the old backend session, whose Idle
 			// can arrive after beginSession. Its first active status starts the new clock.
-			sessionStartedAt.set(Date.now());
+			if (get(sessionStartedAt) === null) sessionStartedAt.set(Date.now());
 		}
 	} else if (u.state === 'idle') {
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
 		activityTimes.set({});
+		runHadActiveSource = false;
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 		systemLevel.set({ source: 'system', rms: 0, peak: 0 });
@@ -240,10 +255,17 @@ export function flushTranscript() {
 	}
 }
 
+/** End the run's document: commit in-flight lines, then close its history record. Safe to
+ *  call more than once — a finished record keeps its first end time. */
+export function endTranscriptSession(): Promise<void> {
+	flushTranscript();
+	return sessionHistory.finish();
+}
+
 /** Prepare the monitor for a new run without discarding already finalized transcript lines. */
 export function beginSession(sessionOptions = get(options)) {
-	flushTranscript();
-	void sessionHistory.finish();
+	void endTranscriptSession();
+	runHadActiveSource = false;
 	sessionHistory.begin(sessionOptions);
 	// Retried/new sessions append to one document without resetting its cue timeline.
 	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
