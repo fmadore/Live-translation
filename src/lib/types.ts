@@ -5,6 +5,7 @@ import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
 import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
+import { readStored } from './persisted';
 
 // Each union below is declared once, as a runtime list, and the type is derived from it.
 // Persisted values are untrusted input and are checked against these lists, and
@@ -315,8 +316,7 @@ export function clampOverlayFont(size: number): number {
 
 /** Read the persisted overlay font size (shared by both windows via localStorage). */
 export function loadOverlayFont(): number {
-	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_FONT;
-	const v = Number(localStorage.getItem(OVERLAY_FONT_KEY));
+	const v = Number(readStored(OVERLAY_FONT_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
 }
 
@@ -344,8 +344,7 @@ export function clampOverlayWidth(width: number): number {
 }
 
 export function loadOverlayWidth(): number {
-	if (typeof localStorage === 'undefined') return DEFAULT_OVERLAY_WIDTH;
-	const v = Number(localStorage.getItem(OVERLAY_WIDTH_KEY));
+	const v = Number(readStored(OVERLAY_WIDTH_KEY));
 	return Number.isFinite(v) && v > 0 ? clampOverlayWidth(v) : DEFAULT_OVERLAY_WIDTH;
 }
 
@@ -368,19 +367,9 @@ export function captionBudget(width: number): number {
  *  restart instead of asking the operator to position the overlay again. */
 export const OVERLAY_PLACED_KEY = 'overlay.placed';
 
-export function loadOverlayPlaced(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(OVERLAY_PLACED_KEY) === 'true';
-}
-
 /** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
  *  privacy-first default: nothing is written to disk unless the operator asks for it. */
 export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
-
-export function loadRecoveryEnabled(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(RECOVERY_ENABLED_KEY) === 'true';
-}
 
 /** Whether closing the operator window leaves the app running in the tray.
  *
@@ -389,19 +378,9 @@ export function loadRecoveryEnabled(): boolean {
  *  is a thing you opt into. */
 export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
 
-export function loadCloseToTray(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(CLOSE_TO_TRAY_KEY) === 'true';
-}
-
 /** Set once the operator has been told, in as many words, that closing the window is no
  *  longer quitting. Persisted so it is said the first time and never again. */
 export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
-
-export function loadTrayHideExplained(): boolean {
-	if (typeof localStorage === 'undefined') return false;
-	return localStorage.getItem(TRAY_HIDE_EXPLAINED_KEY) === 'true';
-}
 
 /** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,
  *  or API key and is transparently identified as a demonstration. */
@@ -431,8 +410,7 @@ function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback
  *  so `rehearsal` (never persisted, and meaningless outside the launch that asked for it) can
  *  never come back out of localStorage. */
 export function loadStartOptions(): StartOptions {
-	if (typeof localStorage === 'undefined') return { ...DEFAULT_START_OPTIONS };
-	const raw = localStorage.getItem(SESSION_OPTIONS_KEY);
+	const raw = readStored(SESSION_OPTIONS_KEY);
 	if (!raw) return { ...DEFAULT_START_OPTIONS };
 	let parsed: unknown;
 	try {

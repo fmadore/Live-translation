@@ -1,3 +1,4 @@
+import { readStored } from './persisted';
 import { ORIGINS, type Caption, type Origin } from './types';
 
 export type CaptionPace = 'immediate' | 'steady';
@@ -9,13 +10,11 @@ export function holdSeconds(value: unknown): number {
 		: 4;
 }
 export function loadHoldSeconds(): number {
-	const value = typeof localStorage !== 'undefined' ? localStorage.getItem(HOLD_KEY) : null;
+	const value = readStored(HOLD_KEY);
 	return value === null ? 4 : holdSeconds(Number(value));
 }
 export function loadPace(): CaptionPace {
-	return typeof localStorage !== 'undefined' && localStorage.getItem(PACE_KEY) === 'steady'
-		? 'steady'
-		: 'immediate';
+	return readStored(PACE_KEY) === 'steady' ? 'steady' : 'immediate';
 }
 
 /** Throttle rather than debounce: continuous speech must still appear every 450ms.

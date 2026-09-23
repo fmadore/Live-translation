@@ -36,6 +36,7 @@
  * everywhere else, and the one surface an audience reads from the back of a room is not the
  * place to hold less.
  */
+import { readStored } from './persisted';
 
 /** A caption colour scheme: what the operator can actually change. */
 export interface CaptionPalette {
@@ -362,12 +363,10 @@ export function captionCssVars(palette: CaptionPalette): CaptionCssVars {
 /** Read the persisted palette, validating every part. A corrupt value falls back to its own
  *  default rather than taking the whole palette down with it. */
 export function loadCaptionPalette(): CaptionPalette {
-	if (typeof localStorage === 'undefined') return { ...DEFAULT_CAPTION_PALETTE };
+	const opacity = readStored(CAPTION_SCRIM_OPACITY_KEY);
 	return {
-		text: clampHex(localStorage.getItem(CAPTION_TEXT_KEY), DEFAULT_CAPTION_PALETTE.text),
-		scrim: clampHex(localStorage.getItem(CAPTION_SCRIM_KEY), DEFAULT_CAPTION_PALETTE.scrim),
-		scrimOpacity: localStorage.getItem(CAPTION_SCRIM_OPACITY_KEY)
-			? clampScrimOpacity(localStorage.getItem(CAPTION_SCRIM_OPACITY_KEY))
-			: DEFAULT_CAPTION_PALETTE.scrimOpacity
+		text: clampHex(readStored(CAPTION_TEXT_KEY), DEFAULT_CAPTION_PALETTE.text),
+		scrim: clampHex(readStored(CAPTION_SCRIM_KEY), DEFAULT_CAPTION_PALETTE.scrim),
+		scrimOpacity: opacity ? clampScrimOpacity(opacity) : DEFAULT_CAPTION_PALETTE.scrimOpacity
 	};
 }

@@ -21,6 +21,7 @@
  * Every stack still ends in Archivo, which is bundled — so even a face that slips past the
  * probe degrades to the app's own type rather than to whatever the OS decides.
  */
+import { readStored } from './persisted';
 
 export type CaptionFaceId = 'archivo' | 'segoe' | 'verdana' | 'tahoma' | 'arial' | 'georgia';
 
@@ -83,8 +84,7 @@ export function captionFaceStack(id: unknown): string {
 
 /** Read the persisted face. Shared with the overlay through the same localStorage origin. */
 export function loadCaptionFace(): CaptionFaceId {
-	if (typeof localStorage === 'undefined') return DEFAULT_CAPTION_FACE;
-	const stored = localStorage.getItem(CAPTION_FACE_KEY);
+	const stored = readStored(CAPTION_FACE_KEY);
 	return isCaptionFace(stored) ? stored : DEFAULT_CAPTION_FACE;
 }
 

@@ -1,3 +1,5 @@
+import { readStored } from './persisted';
+
 export type CaptionLayout = 'fit' | 'compact' | 'stable';
 export const CAPTION_LAYOUT_KEY = 'overlay.captionLayout';
 
@@ -17,8 +19,7 @@ export function isCaptionLayout(value: unknown): value is CaptionLayout {
 }
 
 export function loadCaptionLayout(): CaptionLayout {
-	if (typeof localStorage === 'undefined') return 'fit';
-	const value = localStorage.getItem(CAPTION_LAYOUT_KEY);
+	const value = readStored(CAPTION_LAYOUT_KEY);
 	return isCaptionLayout(value) ? value : 'fit';
 }
 
