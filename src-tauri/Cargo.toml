@@ -1,6 +1,6 @@
 [package]
 name = "live-translation"
-version = "1.5.0"
+version = "1.5.1"
 description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2021"

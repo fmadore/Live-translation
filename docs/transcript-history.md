@@ -10,8 +10,16 @@ archive the transcript already in memory.
 Each Start creates a separate session. Finalized lines are progressively saved to a flushed,
 atomically replaced JSON file in
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`.
-Stop drains and saves trailing partial text before finishing the session. A crash leaves the
-last successfully saved snapshot available. Empty sessions create no file.
+The first line is written at once; after that, new lines are saved at most every 5 seconds
+rather than after every caption (1.5.1). Stop, quit, retry and the next Start write anything
+still waiting immediately. Stop drains and saves trailing partial text before finishing the
+session. A crash leaves the last successfully saved snapshot available, which can miss up to
+the last 5 seconds of lines. Empty sessions create no file.
+
+A session that ends by itself — every source stops, for example after a provider error — is
+finished at that moment, so its recorded duration does not run on until the next Start, Stop
+or quit. While the History tab is open during a session, its list refreshes at most every 5
+seconds; Refresh, rename and delete still update it immediately.
 
 The session list opens automatically and shows start date/time, duration, and known language information. Source
 speech is labelled auto-detected when the provider does not report its language. Demonstration

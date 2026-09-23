@@ -13,6 +13,12 @@ Written before tagging, pasted into the release GitHub creates. The
 
 ---
 
+## v1.5.1
+
+23 September 2026. [Release body](release-1.5.1.md) and
+[Store handoff](store-updates.md#release-151-handoff). Supersedes the unsubmitted 1.5.0 as the
+Store candidate.
+
 ## v1.5.0
 
 22 September 2026. [Release body](release-1.5.0.md) and

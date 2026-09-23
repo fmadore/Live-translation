@@ -1,6 +1,6 @@
 # Caption layout
 
-Current behavior through **1.4.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior through **1.5.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 
@@ -48,8 +48,11 @@ there is no continuous centering, animated scrolling, or moving caret. Earlier t
 the same colour so finishing a turn does not visually relocate the reading point.
 
 This mode retains the session's caption context in memory, including during pauses. Stop
-clears it. The two sources remain independent and share the window. Resizing, changing fonts,
-adding a second source, or provider corrections can still reflow text. The backing is even
+clears it. Since 1.5.1 the retained context is bounded: once 180 lines have scrolled out of
+view, the oldest are dropped at the start of a rendered line, keeping 60 hidden lines.
+Cutting only at a line start means no line already on screen re-wraps. The two sources
+remain independent and share the window. Resizing, changing fonts, adding a second source,
+or provider corrections can still reflow text. The backing is even
 across the reading area so top-aligned text is readable over light content. Fit window and
 Compact retain their existing alignment, colour treatment, and idle expiry.
 
@@ -61,6 +64,10 @@ and repairs adjacent punctuation. Meaningful words such as “so”, “well”,
 remain. Substrings, uppercase abbreviations, quoted tokens, and unfinished streamed tokens
 are preserved. This is a conservative text filter, not semantic speech analysis: it cannot
 reliably distinguish every intentional hesitation from other uses in every language.
+
+In Stable reading, each turn is cleaned once as it joins the retained context. Changing the
+option mid-session therefore applies to new captions, and the lines already read do not
+re-wrap (1.5.1). Fit window and Compact apply the change to the text on screen at once.
 
 The operator transcript, saved history, recovery copy, and exports retain the original text.
 No provider setting or additional request is involved. Both caption options persist across
@@ -91,7 +98,7 @@ Completed on 14 September 2026:
   **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
 
 The checks above are historical evidence for 1.2.4, not acceptance of the next package.
-For 1.4.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
+For 1.5.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
 
 | Check | Expected result |
 | --- | --- |
@@ -109,13 +116,14 @@ For 1.4.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
 | Placement and locking | Move/resize, Enter, Escape and click-through still work. |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
+| Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; toggling Hide filler words changes new captions only. |
 | English and French | Labels, keyboard access and layout choice work in both the rail and settings. |
 | Light/dark content | Current text and dimmed history remain readable over slides and video calls. |
 
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-141-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-151-handoff) for the remaining release gates.
 
 ## Reading pace and preview
 
@@ -124,7 +132,7 @@ New in **1.4.0**.
 Fit window and Compact keep finished captions for a configurable **2–30 seconds** (default
 4 seconds). This is a per-source reading pause after its latest completed caption, not a
 minimum display time that delays new speech. Unfinished, stalled text still expires after
-3 seconds. Stable reading retains its existing session-long context behavior.
+3 seconds. Stable reading retains its session-long context, bounded as described above.
 
 **Immediate** remains the default. **Steadier** presents the most recent interim hypothesis
 every 450 ms per source, without waiting indefinitely for silence. Final text and turn

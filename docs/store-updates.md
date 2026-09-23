@@ -9,7 +9,60 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.5.1 handoff
+
+Next Store submission target: **1.5.1**, MSIX **1.5.1.0**, dated 23 September 2026.
+GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).
+This supersedes unsubmitted 1.5.0. The last documented Store release remains 1.2.4.
+
+A maintenance release from batches 1–2 of the [22 September app review](app-review-2026-09-22.md)
+([#86](https://github.com/fmadore/Live-translation/pull/86)). It sends providers a cleaner
+downsampled signal and ignores `.env` and host overrides in release builds. A failing capture or
+provider thread now ends that source instead of the app. Stacked dialogs keep keyboard access.
+History saves at most every 5 seconds, and Stable reading's overlay context is bounded. All
+1.5.0 language, favourite and RTL features remain included.
+[Release notes](release-1.5.1.md) · [EN/FR/DE listing](store-listing.md).
+
+Package note: keeping panic unwinding (review item D10) grows the executable from 5.2 MB to
+9.2 MB; compressed, it grows by about 43%. Only `.woff2` fonts ship now, which saves about
+0.4 MB. The measured bundle size is recorded below once CI has built it.
+
+- [x] Apply and merge review batches 1–2; CI green on Rust 1.98 (#86, merge `a276b68`).
+- [x] Synchronize manifests, lockfiles and citation metadata to 1.5.1.
+- [x] Prepare GitHub release notes and EN/FR/DE Store "What's new" text.
+- [x] Local validation: 368 frontend tests, 80 Rust tests (2 ignored), type checks, production
+  build, formatting, catalog parity, `npm audit` (3 low, none moderate+) and Clippy on 1.98.1.
+- [x] **Before tagging:** a live session from a 48 kHz microphone or system source with at
+  least one provider. The maintainer confirmed it on 23 September 2026. The rehearsal fixtures
+  are 16 kHz and never pass through the new filter.
+- [ ] Tag `v1.5.1`; confirm release-commit CI and all installer/MSIX/bundle jobs.
+- [ ] Download the combined x64/ARM64 bundle; record its size, SHA-256, architectures and
+  embedded 1.5.1.0 manifests below.
+- [ ] Test installed x64/ARM64 packages:
+  - quit prompt over Settings (Escape/Tab reach only the prompt; **Discard and close** is
+    reachable by keyboard);
+  - tray labels and status during a session;
+  - the labelled microphone selector;
+  - history during and after a long session, including one ended by a provider error;
+  - Stable reading over a long session;
+  - a `GEMINI_WS_HOST` user environment variable pointing elsewhere is ignored, and Gemini
+    still connects;
+  - plus the 1.5.0 carry-overs: keyboard/Narrator, enlarged text, unsupported selections,
+    favourites/profile/history persistence, live audio, overlay and export.
+- [ ] Complete the OpenAI target-code probe and live non-EN/FR speech on both translation
+  providers. #78 remains open; see [coverage](language-coverage.md).
+- [ ] Capture fresh packaged-app EN/FR/DE screenshots and complete native German review.
+- [ ] Run Windows App Certification Kit and check the public privacy policy.
+- [ ] Upload **Live.Translation_1.5.1.msixbundle** in Partner Center, paste the 1.5.1 "What's
+  new" text, then submit and record certification/rollout. No Store submission has been made.
+
+### 1.5.1 artifact verification
+
+Pending: filled in after `v1.5.1` is tagged and the `Release installers` workflow completes.
+
 ## Release 1.5.0 handoff
+
+Historical handoff; superseded by [1.5.1](#release-151-handoff).
 
 Next Store submission target: **1.5.0**, MSIX **1.5.0.0**, dated 22 September 2026.
 GitHub release: [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0).

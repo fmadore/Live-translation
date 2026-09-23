@@ -13,7 +13,8 @@ built-in demo ───────────── deterministic caption + le
 ```
 
 1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
-   low-pass filters when downsampling, resamples to the provider rate, converts to mono PCM16,
+   applies a Kaiser-windowed sinc anti-alias filter when downsampling, resamples to the
+   provider rate by linear interpolation, converts to mono PCM16,
    and forms roughly 100 ms chunks. Realtime callbacks write only to bounded channels.
 2. **Provider sessions.** Gemini Live Translate and OpenAI produce translated captions;
    Mistral Voxtral and Gemini Transcribe Live produce same-language captions. One async client
@@ -131,8 +132,10 @@ before starting again, preserving the transcript. See the
 
 The renderer's history coordinator creates a UUID at each Start and accepts raw finalized
 lines directly from the transcript commit path, using session-relative cue timing. It queues
-and coalesces complete snapshots, waits for the queue at Stop/quit, retries failures, and orders
-deletion after any in-flight write. A tombstone prevents an active deleted session reappearing.
+and coalesces complete snapshots. It writes a session's first line at once and later appends
+at most every 5 seconds, writes anything waiting at Stop, quit, retry and the next Start,
+retries failures, and orders deletion after any in-flight write. A run whose sources all end
+by themselves finishes its history record. A tombstone prevents an active deleted session reappearing.
 The native history commands use the same flushed staging-and-replace operation as recovery,
 but write separate session files under app-local data/history. Only the operator has permission
 to list, save, rename or delete these files. UUID validation prevents renderer paths escaping the folder.
@@ -143,8 +146,11 @@ History opt-in is independent of crash recovery and defaults off. See [history](
 Stable reading retains session context per origin and renders it in a top-left viewport.
 Rendered height and line height determine whole-line scrolling; the viewport height is rounded
 down to complete lines. Font and resize changes trigger new measurements. A whole-session idle
-event clears this mode's context. Display-only filler cleanup runs before rendering and does
-not mutate caption events or transcript records.
+event clears this mode's context. The context is trimmed only at a rendered line start: once
+180 lines are hidden, the line component measures the live layout and hands back the offset
+that leaves 60, so no visible line re-wraps. Display-only filler cleanup runs before rendering
+and does not mutate caption events or transcript records. Stable reading cleans each turn once
+as it joins the context, so a mid-session toggle applies to new turns.
 
 The overlay route owns current and previous turns per origin, plus a bounded in-memory
 history (12,000 characters per origin). Fit window uses that recent context; Compact retains
@@ -211,8 +217,9 @@ devices.
 ## Security and privacy
 
 - The built-in demo opens no audio device, uses no network, and needs no credential.
-- Each optional provider key has a separate Windows Credential Manager entry, with `.env`
-  fallback for development.
+- Each optional provider key has a separate Windows Credential Manager entry, with an
+  environment-variable fallback. Only debug builds load `.env` or honour the `*_WS_HOST`
+  host overrides, so a stray file cannot redirect a key in a release build.
 - Keys never enter the Svelte renderer. Provider authentication happens in Rust.
 - The optional recovery spool is local-only, off by default, holds finalized caption text and
   nothing else, and is deleted as soon as the transcript is saved or discarded.
@@ -293,4 +300,7 @@ uses a native date input for the calendar button. Hidden picker inputs are exclu
 from the modal focus cycle. The popup's own language can depend on the host runtime.
 
 The frontend passes localized `TrayLabels` to `set_tray_state`; the Rust tray menu
-uses those labels and a disabled status item with elapsed session time.
+uses those labels and a disabled status item with elapsed session time. `set_tray_state` is a
+synchronous command, so it runs on the main thread. `tray.rs` remembers the text and enabled
+state last written to each item and skips unchanged writes; during a session that is one
+status write per second.

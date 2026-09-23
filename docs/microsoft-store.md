@@ -1,10 +1,11 @@
 # Microsoft Store submission
 
-**Next submission: 1.5.0 (prepared, not submitted).** Use the x64 + ARM64
-`Live.Translation_1.5.0.msixbundle` after the remaining packaged checks pass.
-The verified bundle and installers are available on the [GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0).
-The previous documented Store version is 1.2.4. See the
-[1.5.0 release handoff](store-updates.md#release-150-handoff) and
+**Next submission: 1.5.1 (prepared, not submitted).** Use the x64 + ARM64
+`Live.Translation_1.5.1.msixbundle` after the remaining packaged checks pass. It supersedes
+the unsubmitted 1.5.0. The bundle and installers are published on the
+[GitHub release](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) once the tag
+is built. The previous documented Store version is 1.2.4. See the
+[1.5.1 release handoff](store-updates.md#release-151-handoff) and
 [paste-ready EN/FR/DE fields](store-listing.md). The German listing is new and still needs
 native-language review and final-package screenshots.
 
@@ -76,7 +77,7 @@ build that failed on a machine configured differently from the developer's.
 
 - [ ] Version raised in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`,
   with the root app versions in both lockfiles synchronized. The prepared version is
-  `1.5.0` (`1.5.0.0` in MSIX); confirm it exceeds the published version before submission.
+  `1.5.1` (`1.5.1.0` in MSIX); confirm it exceeds the published version before submission.
 - [ ] The default Start action still needs no account, key, microphone, language pack or
   network, and still says so in the UI.
 - [ ] Nothing in the UI, listing, screenshots or privacy policy describes the bundled

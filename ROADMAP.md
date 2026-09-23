@@ -4,9 +4,14 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.5.0 release
+## Current status — 1.5.1 release
 
-The latest GitHub release is **v1.5.0** (22 September 2026). Version 1.3.0 delivered local
+The latest GitHub release is **v1.5.1** (23 September 2026). It is a maintenance release from
+batches 1–2 of the [22 September app review](docs/app-review-2026-09-22.md) (#86). It adds a
+windowed-sinc anti-alias filter and limits `.env` and host overrides to debug builds. Panic
+unwinding now stops a failing source from closing the app. Stacked-dialog keyboard handling,
+history write volume and the unbounded Stable context are also fixed. Batch 3 (structure)
+and batch 4 (design system) of that review remain open. Version 1.3.0 delivered local
 transcript history (#81), Stable reading (#79), overlay filler cleanup (#80), and the German
 interface. Those three issues are closed. Thanks to @valentinrabot for the meeting feedback.
 
@@ -16,10 +21,10 @@ per-source input status, and operator shortcuts. Gemini Smart final results now 
 speculative interim text, including all-filler empty results. Impeccable visual checks also
 fixed long history-title overflow and date-picker icon contrast.
 
-See the [release handoff](docs/store-updates.md#release-150-handoff) for verified
-checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.5.0; the last
-documented Store release is 1.2.4, with no claim of a new Partner Center submission.
-Citation metadata identifies 1.5.0, dated 22 September 2026.
+See the [release handoff](docs/store-updates.md#release-151-handoff) for verified
+checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.5.1, which
+supersedes unsubmitted 1.5.0; the last documented Store release is 1.2.4, with no claim of a
+new Partner Center submission. Citation metadata identifies 1.5.1, dated 23 September 2026.
 
 **1.5.0 adds searchable caption languages and favourites (#78).** Provider support, persisted
 targets, F2, demo/rehearsal types and RTL captions are reconciled. Live acceptance is still
@@ -151,7 +156,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.5.0 handoff](docs/store-updates.md#release-150-handoff) for the current checklist.
+Use the [1.5.1 handoff](docs/store-updates.md#release-151-handoff) for the current checklist.
 
 ## Research and unscheduled work
 

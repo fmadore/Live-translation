@@ -1,6 +1,7 @@
 # Caption language coverage (issue #78)
 
-This describes version 1.5.0. The older 1.4.2 installers have English/French caption buttons.
+This describes versions 1.5.0 and 1.5.1; 1.5.1 does not change language coverage. The older
+1.4.2 installers have English/French caption buttons.
 GitHub publication was requested with the live verification gaps below explicitly retained.
 
 | Engine | Caption language control |

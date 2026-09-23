@@ -7,7 +7,7 @@ question the repository can answer instead of one somebody has to remember.
 Both the English and French captures were refreshed during the September 2026
 installed-MSIX testing. On 8 September, the user confirmed that all screenshots
 had been updated for the 1.2.2 Store submission. The current sets contain five
-screenshots per language. They are historical captures, not ready for the 1.5.0 submission.
+screenshots per language. They are historical captures, not ready for the 1.5.1 submission.
 Re-capture the changed overlay and appearance controls in both languages from the final MSIX;
 review the idle, running and contrast captures against that package too.
 The unpackaged Local Test app does not replace MSIX screenshot verification.
@@ -88,3 +88,7 @@ and localized tray separately. Do not use browser-preview captures for the Store
 For 1.5.0 also capture the open searchable language selector with favourites and the
 provider-dependent language explanation. Use no visible API key or private transcript.
 Japanese/Arabic browser previews are layout checks, not substitutes for final MSIX captures.
+
+The 1.5.x notes above still apply to the 1.5.1 submission. 1.5.1 changes one visible control:
+the microphone selector in Setup now has a visible **Microphone device** label and the shared
+select style. Any capture that shows the microphone selector should come from the 1.5.1 MSIX.

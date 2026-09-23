@@ -1,7 +1,7 @@
 # Meeting profiles and live controls
 
 Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
-See the [release checklist](store-updates.md#release-142-handoff).
+See the [release checklist](store-updates.md#release-151-handoff).
 This update adds no new scroll-back or return-to-live controls.
 
 ## Session controls (1.4.2)

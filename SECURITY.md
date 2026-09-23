@@ -18,7 +18,8 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 - The webview runs under a restrictive CSP (`connect-src 'self'`); all provider WebSocket
   traffic originates from Rust, not the frontend.
 - `.env` is git-ignored and intended for development only. `.env.example` contains variable
-  names, never values.
+  names, never values. Since 1.5.1, only debug builds load `.env` or honour the `*_WS_HOST`
+  host overrides, so a stray `.env` cannot redirect a provider key in a release build.
 
 ## What leaves the machine
 

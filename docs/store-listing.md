@@ -1,12 +1,14 @@
-# Partner Center listing text — 1.5.0 prepared
+# Partner Center listing text — 1.5.1 prepared
 
-Prepared for **1.5.0** (MSIX **1.5.0.0**), not submitted to the Store. This supersedes the
-unsubmitted 1.4.2 listing. Complete the live-provider and final-package checks in
-[the 1.5.0 handoff](store-updates.md#release-150-handoff) before submission.
+Prepared for **1.5.1** (MSIX **1.5.1.0**), not submitted to the Store. This supersedes the
+unsubmitted 1.5.0 listing. Only the "What's new" blocks changed. 1.5.1 adds no features, so
+the descriptions, short descriptions, features and certification notes are unchanged from
+1.5.0. Complete the live-provider and final-package checks in
+[the 1.5.1 handoff](store-updates.md#release-151-handoff) before submission.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant
-field blocks. See the [release handoff](store-updates.md#release-150-handoff) for remaining checks.
+field blocks. See the [release handoff](store-updates.md#release-151-handoff) for remaining checks.
 
 ## English (United States)
 
@@ -67,11 +69,13 @@ Paste this into **Short description**:
 Built-in caption demo, plus live subtitles and multilingual translation from microphone or system audio with your own provider key. Language coverage depends on the engine.
 ```
 
-### What's new in this version — 1.5.0
+### What's new in this version — 1.5.1
 
 Paste after final packaged-app verification:
 
 ```text
+Version 1.5.1 keeps more speech detail in the audio sent to caption engines, keeps the app and its transcript open if one audio source fails, and saves history more lightly during long meetings. When a closing prompt opens over Settings, the keyboard now reaches its buttons.
+
 Find caption languages by name or code and pin favourites. Coverage depends on the engine: Gemini offers 78 translation targets, OpenAI 13. Unsupported choices stay visible with a reason and block Start. F2 swaps the first two supported favourites before starting. Demo scripts remain English/French; subtitle engines auto-detect.
 
 Arabic, Hebrew, Persian and Urdu captions support right-to-left reading. Language rows and stars are vertically centered. The English/French/German interface remains independent of caption language.
@@ -138,11 +142,13 @@ Collez ce texte dans **Description courte** :
 Démo intégrée, sous-titres et traduction multilingue du micro ou de l’audio système avec votre clé API. Les langues disponibles dépendent du moteur.
 ```
 
-### Nouveautés de cette version — 1.5.0
+### Nouveautés de cette version — 1.5.1
 
 Paste after final packaged-app verification:
 
 ```text
+La version 1.5.1 conserve davantage de détails de la parole dans l’audio envoyé aux moteurs de sous-titrage, garde l’application et sa transcription ouvertes si une source audio échoue et allège l’enregistrement de l’historique pendant les longues réunions. Quand une demande de fermeture s’ouvre par-dessus les Paramètres, le clavier atteint désormais ses boutons.
+
 Recherchez une langue par nom ou code et épinglez vos favoris. La couverture dépend du moteur : 78 langues cibles avec Gemini, 13 avec OpenAI. Un choix incompatible reste visible avec une explication et bloque le démarrage. F2 permute les deux premiers favoris compatibles avant de démarrer. La démo reste anglais/français ; les moteurs de sous-titrage détectent la langue.
 
 Les sous-titres arabes, hébreux, persans et ourdous se lisent de droite à gauche. Les langues et étoiles sont centrées verticalement. L’interface anglais/français/allemand reste indépendante.
@@ -216,13 +222,15 @@ Integrierte Demo, Live-Untertitel und mehrsprachige Übersetzung aus Mikrofon- o
 ```
 
 All three short descriptions are below the documented 270-character Partner Center cap.
-The counts above were refreshed for 1.5.0.
+The counts above were refreshed for 1.5.0 and are unchanged in 1.5.1. The 1.5.1 "What's new" blocks measure 1,047 (EN), 1,193 (FR) and 1,215 (DE) characters, within the 1,500-character limit.
 
-### Neuerungen in dieser Version — 1.5.0
+### Neuerungen in dieser Version — 1.5.1
 
 Paste after final packaged-app verification:
 
 ```text
+Version 1.5.1 bewahrt mehr Sprachdetails im Audio, das an die Untertitel-Engines gesendet wird, hält App und Transkript offen, wenn eine Audioquelle ausfällt, und speichert den Verlauf in langen Besprechungen sparsamer. Öffnet sich eine Schließen-Abfrage über den Einstellungen, erreicht die Tastatur jetzt ihre Schaltflächen.
+
 Untertitelsprachen nach Name oder Code suchen und als Favoriten anheften. Die Abdeckung hängt von der Engine ab: 78 Übersetzungsziele mit Gemini, 13 mit OpenAI. Nicht unterstützte Ziele bleiben mit Erklärung sichtbar und verhindern den Start. F2 tauscht vor dem Start die ersten beiden unterstützten Favoriten. Die Demo bleibt Englisch/Französisch; Untertitel-Engines erkennen die Sprache automatisch.
 
 Arabisch, Hebräisch, Persisch und Urdu unterstützen die Leserichtung von rechts nach links. Sprachzeilen und Sterne sind vertikal zentriert. Die deutsche, englische oder französische Oberfläche bleibt unabhängig.
@@ -230,7 +238,7 @@ Arabisch, Hebräisch, Persisch und Urdu unterstützen die Leserichtung von recht
 Enthalten sind auch lokale Besprechungsprofile, optionaler Transkriptverlauf mit Suche und Export, Lesevoreinstellungen, ruhigere Aktualisierungen und ständig erreichbare Start/Stopp-Tasten. Audio wird nicht gespeichert. Danke an @valentinrabot für das frühere Feedback.
 ```
 
-The interface language and caption language remain separate. This 1.5.0 listing includes
+The interface language and caption language remain separate. This 1.5.1 listing includes
 German among the translation targets. Publish that claim only with a build that contains #78
 and after its live acceptance checks pass.
 

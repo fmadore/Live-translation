@@ -30,7 +30,7 @@ contrast themes (see *Contrast themes* below).
 | Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. |
 | Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
-| Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. |
+| Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes (1.5.1). |
 | Motion | `prefers-reduced-motion` stops the sweep, the breathing status dot, the caret and the meter easing; a global safety net catches anything added later. |
 | Contrast themes | `forced-colors: active` blocks next to the styles they correct — selection outlines, dropped gradients, the meter fill, the status dot. |
 
@@ -50,7 +50,7 @@ contrast themes (see *Contrast themes* below).
   It is the same kind of guard for the same reason: the failure is invisible on a machine
   sitting at 100%. It also covers the clamp that stands between a settings event and every
   `calc()` in the stylesheet.
-- `npm test` also covers the modal Tab trap and the save announcement.
+- `npm test` also covers the modal Tab trap, stacked dialogs and the save announcement.
 - `npm run check` catches Svelte's own accessibility lints (missing labels, roles on the wrong
   element, click handlers without keyboard equivalents).
 

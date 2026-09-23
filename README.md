@@ -57,9 +57,16 @@ Live-provider and packaged-app acceptance are still pending; see the verificatio
 
 ## Release status
 
-**Latest GitHub release: [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0).**
-See [what changed in 1.5.0](docs/release-1.5.0.md) and the
-[release handoff](docs/store-updates.md#release-150-handoff).
+**Latest GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).**
+See [what changed in 1.5.1](docs/release-1.5.1.md) and the
+[release handoff](docs/store-updates.md#release-151-handoff).
+
+1.5.1 is a maintenance release from the [22 September app review](docs/app-review-2026-09-22.md).
+It keeps more speech detail when 44.1/48 kHz audio is downsampled for a provider. Release
+builds ignore `.env` and provider host overrides. A failing capture or provider thread ends
+that source instead of closing the app. A quit prompt over Settings keeps keyboard access.
+History saves at most every 5 seconds, and Stable reading's overlay context is bounded.
+[What changed in 1.5.0](docs/release-1.5.0.md) covers the caption-language features.
 
 Introduced in 1.3.0: Optional local transcript history saves finalized captions progressively
 and lets you reopen, copy, export or delete earlier sessions. Stable reading anchors captions
@@ -67,7 +74,7 @@ at the top left and advances by whole lines. Optional filler cleanup affects onl
 raw transcripts remain intact. The interface is available in English, French and German.
 
 See [transcript history](docs/transcript-history.md), [caption layout](docs/caption-layout.md),
-and the [current release handoff](docs/store-updates.md#release-150-handoff).
+and the [current release handoff](docs/store-updates.md#release-151-handoff).
 The GitHub release and prepared Store submission are separate: final packaged acceptance,
 fresh screenshots and Partner Center submission remain tracked in that handoff.
 
@@ -103,16 +110,16 @@ checks, capture behavior and keyboard shortcuts are unchanged.
 
 ## Version 1.4.1 interface update
 
-The next Store submission target is **1.5.0**. Settings now has Captions, Reading,
+The next Store submission target is **1.5.1**. Settings now has Captions, Reading,
 Transcript history and App tabs. Profiles sit above setup, saved sessions use a list/detail
 view, presets and previews stay visible, and the tray follows the interface language.
-See the [current release handoff](docs/store-updates.md#release-150-handoff) for native testing and
+See the [current release handoff](docs/store-updates.md#release-151-handoff) for native testing and
 packaging status. Version 1.4.1 is released on GitHub.
 
 ## Version 1.4.0 usability improvements
 
 Version 1.4.0 is released on GitHub. Installer availability and remaining native/Store checks
-are tracked in the [release handoff](docs/store-updates.md#release-150-handoff).
+are tracked in the [release handoff](docs/store-updates.md#release-151-handoff).
 
 Caption appearance now offers a 2–30 second reading pause for finished Fit/Compact captions,
 optional Steadier interim updates, and bright/dark previews with reading presets. Named meeting
@@ -232,7 +239,8 @@ npm run tauri dev
 
 The operator stores each provider key separately in Windows Credential Manager. For
 development, copy `.env.example` to an uncommitted `.env`
-and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`.
+and set `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `MISTRAL_API_KEY`. Only debug builds
+(`npm run tauri dev`) load `.env`; release builds ignore it.
 
 ### Testing
 

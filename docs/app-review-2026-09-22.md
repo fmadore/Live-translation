@@ -13,6 +13,13 @@ listed under R-refactors.
 The 5 September review ([archive](archive/app-review-2026-09-05.md)) closed its items. Nothing
 below repeats them.
 
+**Status (23 September 2026):** batches 1 and 2 were merged in
+[#86](https://github.com/fmadore/Live-translation/pull/86) as `a276b68` and ship in
+[1.5.1](release-1.5.1.md). CI's Rust 1.98 Clippy flagged the new resampler's `chunks_exact(8)`,
+which now uses `as_chunks::<8>()` (stable since the crate's 1.88 MSRV). Batches 3 and 4 are
+not started. The live D1 check passed before tagging; the desktop checks for D5 and E2 are
+in the [1.5.1 Store handoff](store-updates.md#release-151-handoff).
+
 ## Implementation tracker — batch 1
 
 Batch 1 is the quick, low-risk group from §6. Status is updated as each item lands; notes
@@ -114,7 +121,7 @@ Batch 1 was committed as `ea01dbf` on `review/2026-09-22`. Batch 2 covers audio 
 
 | Item | Change | Status |
 | --- | --- | --- |
-| D1 | Windowed-sinc anti-alias filter with frequency-response tests | Done; live listening check pending |
+| D1 | Windowed-sinc anti-alias filter with frequency-response tests | Done; live session checked 23 September |
 | D3 | History writes from appends throttled; finish/flush write at once | Done |
 | D4 | Stable overlay history capped; cleaned lead derived separately | Done |
 | D7 | Sessions the core ends are finished in history | Done |
