@@ -38,6 +38,15 @@ every gap where the socket was down. `realtime::emit_caption` is the one place i
 which is why five protocol implementations and the demonstration all produce timed captions
 without any of them knowing about a clock.
 
+Protocol handlers are pure: `handle_message` parses one server message into the turn
+accumulator and returns a `CaptionUpdate` (none, interim or final) with the connection
+control. The shared runner emits the caption and advances a finished turn, so each wire format
+is unit-tested without a socket or an `AppHandle` (`realtime::test_support`).
+`SessionManager::start` builds each source through `SessionBuilder`: a producer (the demo's
+own timeline, the rehearsal fixture or a `CaptureTarget` thread) and one client, spawned by
+`ProviderSettings::spawn_client`. The preflight test opens devices through the same
+`CaptureTarget`.
+
 ## The transcript document
 
 The transcript is an explicit document with a saved state, not a scrolling side effect.
@@ -111,14 +120,30 @@ The operator's `src/lib/sessionController.ts` serializes start/stop requests and
 failed startup's clock. A Stop requested during startup waits for startup to settle before
 stopping the core; repeated Stop requests share that operation.
 
-The operator page owns native event subscriptions and delegates their state to
-`preflightController.svelte.ts` (device readiness, signal expiry, audio tests),
-`quitController.svelte.ts` (tray and close prompts), and `overlayController.svelte.ts`
-(appearance and window commands). These controllers expose reactive getters and
-explicit actions; they do not subscribe globally when imported. Page teardown disposes
-the preflight timers and capture test. `CaptionAppearance.svelte` renders the same
-appearance controls in the live rail and settings dialog, sharing persisted stores
-while keeping each contrast description's accessible ID unique.
+The operator page owns native event subscriptions, layout, launch and shortcuts, and
+delegates state to controller modules: `preflightController.svelte.ts` (device readiness,
+signal expiry, audio tests), `quitController.svelte.ts` (tray and close prompts),
+`overlayController.svelte.ts` (appearance and window commands), `sessionClock.svelte.ts`,
+`setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
+failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
+`nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
+controllers expose reactive getters and explicit actions; they do not subscribe globally
+when imported. Page teardown disposes the preflight timers and capture test.
+
+The page renders `OperatorTitlebar`, `SessionControls`, `DeviceRecoveryBanner`, `SetupSheet`
+or `LiveRail`, `PreflightChecklist` or `LiveTurns`, and `SettingsDialog`, over the primitives
+in `src/lib/ui/` (`Tabs`, `ChecklistRow`, `ChoiceButton`, `LanguageCard`, `Select`, `Field`).
+Classes they share (`kicker`, `hint`, `divider`, `tool`, `pref`, `rail-section`) are global in
+`app.css`. `CaptionAppearance.svelte` renders the same appearance controls in the live rail
+and settings dialog, sharing persisted stores while keeping each contrast description's
+accessible ID unique.
+
+The eight appearance settings have one schema in `appearance.ts`: `DEFAULT_APPEARANCE`,
+`normalizeAppearance`, `toOverlayConfig` and the reading `PRESETS`. They persist one key each
+through `persisted.ts`, which reads and writes localStorage without ever throwing, and
+`stores.ts` exposes them together as `appearance` with `applyAppearance`. Names shared with
+the core (commands, events and the string values of serde enums) are checked against the
+Rust source by `contract.test.ts`.
 
 Audio device lists carry stable endpoint IDs. `audio/devices.rs` forwards Windows
 notifications through a bounded worker queue; COM callbacks never enumerate or emit
@@ -152,8 +177,10 @@ that leaves 60, so no visible line re-wraps. Display-only filler cleanup runs be
 and does not mutate caption events or transcript records. Stable reading cleans each turn once
 as it joins the context, so a mid-session toggle applies to new turns.
 
-The overlay route owns current and previous turns per origin, plus a bounded in-memory
-history (12,000 characters per origin). Fit window uses that recent context; Compact retains
+The overlay route's `overlayCaptions.svelte.ts` owns current and previous turns per origin,
+plus a bounded in-memory history (12,000 characters per origin), their expiry and the
+reading-pace presenter; `overlayPlacement.svelte.ts` owns move mode and its keys, and
+`OverlayMoveChrome.svelte` draws it. Fit window uses that recent context; Compact retains
 the previous-turn character budget and adjustable typographic width. The full operator
 transcript is independent and is not truncated when captions shrink or fade.
 

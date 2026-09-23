@@ -16,9 +16,10 @@ below repeats them.
 **Status (23 September 2026):** batches 1 and 2 were merged in
 [#86](https://github.com/fmadore/Live-translation/pull/86) as `a276b68` and ship in
 [1.5.1](release-1.5.1.md). CI's Rust 1.98 Clippy flagged the new resampler's `chunks_exact(8)`,
-which now uses `as_chunks::<8>()` (stable since the crate's 1.88 MSRV). Batches 3 and 4 are
-not started. The live D1 check passed before tagging; the desktop checks for D5 and E2 are
-in the [1.5.1 Store handoff](store-updates.md#release-151-handoff).
+which now uses `as_chunks::<8>()` (stable since the crate's 1.88 MSRV). Batch 3 is implemented
+on `review/2026-09-22-batch3` (tracker below); batch 4 is not started. The live D1 check passed
+before tagging; the desktop checks for D5 and E2 are in the
+[1.5.1 Store handoff](store-updates.md#release-151-handoff).
 
 ## Implementation tracker — batch 1
 
@@ -216,6 +217,96 @@ Batch 2 verification on 22 September 2026:
 | `cargo test --locked --all-features` | 80 passed, 2 ignored (5 new resampler tests, 1 replaced) |
 | Chromium line-wrap measurements | Line-start cut preserves every later line; word cuts do not reliably |
 | Browser preview (overlay, Fit and Stable) | Renders; no console errors |
+
+## Implementation tracker — batch 3
+
+Batch 3 is structure: R1, R2, R6, R7, R9, then R11 and R12 in the order given. It changes no
+behaviour except the two fixes noted under R6 and R9. Each item is its own commit on
+`review/2026-09-22-batch3`.
+
+| Item | Change | Status |
+| --- | --- | --- |
+| R1 | Pure provider handlers returning a `CaptionUpdate`; handler tests for all four providers | Done |
+| R2 | `SessionManager::start` split into shared capture, level, join and client helpers | Done; desktop run pending |
+| R9 | Contract tests for commands, events and serde enum values; unions declared once | Done |
+| R7 | One `persisted` helper and storage policy for every preference | Done |
+| R6 | One appearance schema, `PRESETS` table and `applyAppearance` | Done |
+| R11 | Operator page split into 10 components, 4 primitives and 5 script modules | Done |
+| R12 | Overlay route split into captions, placement, move chrome and fixtures | Done; move mode needs a desktop run |
+
+### Batch 3 implementation notes
+
+- **R1** — `RealtimeProtocol::handle_message` no longer takes an `AppHandle`. It fills the
+  turn accumulator and returns a `CaptionUpdate` (`None`, `Interim`, `Final`) in its
+  `MessageOutcome`; `handle_socket_message` emits it through `apply_caption` and advances a
+  final turn. A `test_support::Harness` drives a handler through that same path. Thirteen new
+  tests cover Gemini Translate, OpenAI, Mistral and Gemini Transcribe. Mistral's
+  done-after-deltas guard now has a test, and it fails with the guard removed. Interim
+  coalescing was left out: it would change caption timing, and testability did not need it.
+- **R2** — `start` is about 40 lines. It uses `validate_start`, `session_origins` /
+  `live_origins` and `CaptureTarget::run` (shared with the preflight probe). It also uses
+  `spawn_level_forwarder`, `join_threads`, `ProviderSettings::spawn_client` with a generic
+  `ClientIo::spawn_realtime`, and `SessionBuilder::add_source`. Three tests cover source order,
+  the rehearsal override and device-id-before-name selection.
+- **R9** — `contract.test.ts` checks that `tauri.ts` wraps exactly the commands in
+  `command_names.rs`. It checks that `EVT` matches the `events` module plus the two
+  webview-only overlay events. It also checks seven TS unions against their serde enums,
+  applying `rename` and `rename_all` as serde does. Each union is now one exported `as const`
+  list with the type derived from it; `document.ts`, `reading.ts`, `history.ts`,
+  `LiveActivity` and `OverlayConfig.locale` reuse the lists. Found while splitting the page
+  (R11): `StatusUpdate.message` was typed `string`, but the core sends an `AppError`. It is
+  now `AppError | string`.
+- **R7** — `persisted.ts` has `readStored`, `writeStored`, `readFlag`, `persisted`,
+  `persistedFlag` and `persistedWith`. None of them throws when storage is absent, blocked or
+  full. All 14 persisted stores use them, and so do the overlay's loaders. The four boolean
+  loaders that only `stores.ts` used are gone. Six tests.
+- **R6** — `appearance.ts` owns the eight settings. Presets now apply in one push instead of
+  four. Its tests found a real fault: High contrast asked for scrim opacity 1, the clamp
+  stored the 0.95 maximum, and the pressed check compared against 1, so the button never read
+  as pressed. The preset now names `SCRIM_OPACITY_MAX`. Twelve tests.
+- **R11** — The prerequisite shared classes moved to `app.css`. Then, in the review's order,
+  these came out of the page:
+  - `SettingsDialog` with `ui/Tabs`;
+  - `OperatorTitlebar`, `SessionControls`, `DeviceRecoveryBanner` and `LiveTurns`;
+  - `PreflightChecklist` with `ui/ChecklistRow`, which `ApiKeyPanel` now uses too;
+  - `LiveRail`;
+  - `SetupSheet` with `ui/ChoiceButton` and `ui/LanguageCard`.
+
+  The script modules are `sessionClock`, `setupActions`, `deviceFailure`, `recoveryOffer`
+  and `nativeSync`. The page went from 2,799 to 643 lines. The only visual change is the
+  saved-key sentence's line height, from 1.35 to 1.3.
+- **R12** — The overlay page went from 956 to 288 lines. `overlayCaptions.svelte.ts` holds
+  the caption state, expiry and presenter, and is testable without fonts or a
+  `ResizeObserver` (11 tests). `overlayPlacement.svelte.ts` holds move mode and a pure key map
+  (5 tests). `OverlayMoveChrome.svelte` and `overlayFixtures.ts` complete the split.
+  `captionColour.test.ts` reads all three stylesheets that paint the window.
+
+How the page split was checked: a browser-preview script captured the operator window before
+the split. It recorded normalized markup (attributes sorted, generated ids and scoping classes
+removed) and 24 computed properties of every element. It covered 12 states: idle demo,
+translate and subtitles; running with two speakers; and each settings tab. It drove the
+page's own stores. Every step was compared against that baseline. After each step the only
+differences were the renamed tab-list class, animation phase and hover state. The overlay
+preview was compared the same way: default content, and the Arabic and Japanese samples.
+Unused rules were removed by matching svelte-check's unused-selector report.
+
+Batch 3 verification on 23 September 2026:
+
+| Check | Result |
+| --- | --- |
+| `npm test` | 436 passed in 53 files (68 new) |
+| `npm run check` | 0 errors, 0 warnings |
+| `npm run format:check` | Passed |
+| `npm run build` | Passed |
+| `npm run check:languages` | Passed |
+| `cargo fmt --check` | Passed |
+| `cargo clippy --locked --all-targets --all-features -- -D warnings` (Rust 1.98.1) | Passed |
+| `cargo test --locked --all-features` | 96 passed, 2 ignored (16 new) |
+| Browser preview, operator window (12 states) and overlay (3 states) | Markup and computed styles identical to before the split |
+
+A desktop run should confirm a live session start/stop, rehearsal, the preflight audio test,
+device recovery and overlay move mode (lock, cancel, nudge, snap). These paths are covered by
+unit and component tests, but not in the native window.
 
 ## 1. Defects found while reviewing
 
