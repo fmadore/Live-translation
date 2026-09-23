@@ -9,7 +9,10 @@ installed-MSIX testing. On 8 September, the user confirmed that all screenshots
 had been updated for the 1.2.2 Store submission. The current sets contain five
 screenshots per language. They are historical captures, not ready for the 1.5.1 submission.
 Re-capture the changed overlay and appearance controls in both languages from the final MSIX;
-review the idle, running and contrast captures against that package too.
+review the idle, running and contrast captures against that package too. After batch 4 of the
+22 September 2026 review, every one of the five needs re-taking: the operator window now has a
+single toolbar in place of the title bar and the Start strip, and its greys, type sizes,
+spacing and buttons changed with the design-token consolidation.
 The unpackaged Local Test app does not replace MSIX screenshot verification.
 
 `de/` does not exist yet and should not be created until there is something true to put in it:
@@ -67,7 +70,7 @@ Store rules that decide how these are framed, not just whether they are accepted
   sits at the low end of the recommendation with room to grow.
 
 The French set is captured with the interface language set to French, which is a setting in the
-app rather than a Windows one: title bar → gear → **Langue de l'interface**. The whole run is
+app rather than a Windows one: toolbar → gear → **Langue de l'interface**. The whole run is
 captured that way, rather than one French frame inside an otherwise English set. The caption
 language is independent of the interface language — that is what screenshot 2's description
 says in both listings, since a set captured entirely in one language cannot show it.

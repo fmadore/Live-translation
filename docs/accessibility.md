@@ -16,8 +16,8 @@ contrast themes (see *Contrast themes* below).
 
 | Concern | Where it lives |
 | --- | --- |
-| Text contrast | `src/app.css` — one text ramp, every step of which clears 4.5:1 on every surface token. `--faint` carries no text; it is the idle status dot at the 3:1 non-text target. |
-| Text size | `src/app.css` — one type ramp, every step of which is a multiple of `--text-scale`. No component declares its own pixel size. |
+| Text contrast | `src/app.css` — four text levels (bright, body, secondary, muted), every one of which clears 4.5:1 on each of the three surfaces; the muted level also clears it on every tinted wash the stylesheet names. `--faint` carries no text; it is the idle status dot at the 3:1 non-text target. No component paints with a hex literal, so every colour on screen is one the checks have seen. |
+| Text size | `src/app.css` — seven type roles (caption 11, small 12, body 13, label 14, title 17, heading 21, display 27px at 100%), each a multiple of `--text-scale`. Spacing is a six-step `rem` scale, so the space around text grows with it too. No component declares its own pixel size or spacing. |
 | Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
 | Caption reflow | Fit window measures rendered text against the overlay width and height, preserving newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
@@ -26,20 +26,25 @@ contrast themes (see *Contrast themes* below).
 | Reaching the controls | The caption appearance controls used to exist only inside a running session, which put them behind starting one. They are one snippet rendered in two places now — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. |
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
-| Section structure | The window has one `h1` (its name, in the title bar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
+| Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
 | Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. |
 | Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
 | Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes (1.5.1). |
+| Shortcuts | One table in `src/lib/shortcuts.ts`: the listener matches it, `aria-keyshortcuts` on Start and Stop announces it, and the key caps print it in the interface language's key names (`Strg+Umschalt+Leertaste`). The printed copy inside a button is `aria-hidden`, so it never becomes part of the button's name. |
+| Targets and names | Every button is at least 32px tall at 100%. The colour swatches are named (Mint, Navy), not read out as hex, and a chosen swatch has its own inset ring rather than the focus ring's outline. The profile picker is named by its visible label (WCAG 2.5.3). |
 | Motion | `prefers-reduced-motion` stops the sweep, the breathing status dot, the caret and the meter easing; a global safety net catches anything added later. |
 | Contrast themes | `forced-colors: active` blocks next to the styles they correct — selection outlines, dropped gradients, the meter fill, the status dot. |
 
 ## What is checked automatically
 
 - `npm test` → `src/lib/palette.test.ts` reads the tokens out of `app.css` and fails if any
-  text token drops below 4.5:1 on any surface, or any non-text mark below 3:1. This is the
-  regression guard: the contrast failures that prompted issue #24 arrived one shade at a time,
-  and nothing could see them.
+  text token drops below 4.5:1 on any surface, if the muted level drops below it on any tinted
+  wash, or if any non-text mark drops below 3:1. It pins the ramps (four text levels, three
+  surfaces, three lines), and it reads every component stylesheet: a hex literal, or a text
+  colour that is not a token, fails it, and so does an overlay toolbar that a white slide
+  would lift above `--surface-2`. This is the regression guard: the contrast failures that
+  prompted issue #24 arrived one shade at a time, and nothing could see them.
 - `npm test` → `src/lib/captionColour.test.ts` is the same guard for the overlay, which
   `palette.test.ts` cannot reach because its colours are no longer in the stylesheet. It fails
   if the shipped default drops below 4.5:1 at any step over either slide, if the default stops
@@ -48,15 +53,19 @@ contrast themes (see *Contrast themes* below).
 - `npm test` → `src/lib/typeScale.test.ts` reads the same stylesheets and fails if any
   component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach.
   It is the same kind of guard for the same reason: the failure is invisible on a machine
-  sitting at 100%. It also covers the clamp that stands between a settings event and every
-  `calc()` in the stylesheet.
+  sitting at 100%. It also fails on a size outside the seven roles, and covers the clamp that
+  stands between a settings event and every `calc()` in the stylesheet.
+- `npm test` → `src/lib/spacing.test.ts` does the same for spacing and corners: every padding,
+  margin and gap is a `--space-*` step (or an optical nudge of a few pixels), and every radius
+  is a `--radius-*` token.
 - `npm test` also covers the modal Tab trap, stacked dialogs and the save announcement.
 - `npm run check` catches Svelte's own accessibility lints (missing labels, roles on the wrong
   element, click handlers without keyboard equivalents).
 
-Text on a **tinted wash** — a selected engine's mint background, a warning chip — composites
-two colours that the stylesheet never names together, so no static check can see it. That is
-measured against the rendered window instead:
+Text on a **tinted wash** that the stylesheet names (`--accent-bg`, `--warn-bg` and the rest)
+is checked by `palette.test.ts` for the muted level, which bounds every grey above it. Anything
+else composited — a coloured label on its own wash (amber on amber), or text over a gradient —
+is measured against the rendered window instead:
 
 ```bash
 npm run dev

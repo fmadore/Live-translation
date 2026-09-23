@@ -16,9 +16,10 @@ below repeats them.
 **Status (23 September 2026):** batches 1 and 2 were merged in
 [#86](https://github.com/fmadore/Live-translation/pull/86) as `a276b68` and ship in
 [1.5.1](release-1.5.1.md). CI's Rust 1.98 Clippy flagged the new resampler's `chunks_exact(8)`,
-which now uses `as_chunks::<8>()` (stable since the crate's 1.88 MSRV). Batch 3 is implemented
-on `review/2026-09-22-batch3` (tracker below); batch 4 is not started. The live D1 check passed
-before tagging; the desktop checks for D5 and E2 are in the
+which now uses `as_chunks::<8>()` (stable since the crate's 1.88 MSRV). Batch 3 was merged in
+[#87](https://github.com/fmadore/Live-translation/pull/87) as `fbaad4d`. Batch 4 is implemented
+on `review/2026-09-22-batch4` (tracker below). The live D1 check passed before tagging; the
+desktop checks for D5 and E2 are in the
 [1.5.1 Store handoff](store-updates.md#release-151-handoff).
 
 ## Implementation tracker — batch 1
@@ -307,6 +308,160 @@ Batch 3 verification on 23 September 2026:
 A desktop run should confirm a live session start/stop, rehearsal, the preflight audio test,
 device recovery and overlay move mode (lock, cancel, nudge, snap). These paths are covered by
 unit and component tests, but not in the native window.
+
+## Implementation tracker — batch 4
+
+Batch 4 is the design system: V1–V4 token consolidation, V5–V7 layout and buttons, then V8.
+Each item is its own commit on `review/2026-09-22-batch4`, except V5 and V6, which share the
+rewritten session controls. V7 went before V5, because the merged toolbar is built from its
+buttons, and V3 went last, once the markup it spaces had settled.
+
+| Item | Change | Status |
+| --- | --- | --- |
+| V1 | Seven type roles in place of sixteen pixel-named steps | Done |
+| V2 | Four text levels, three surfaces, three lines; legacy names removed | Done |
+| V4 | Overlay chrome on tokens; no hex literal in any component stylesheet | Done; move mode needs a desktop run |
+| V7 | One `ToolButton` with variants and sizes for every button | Done |
+| V5 | One toolbar in place of the title bar and the Start strip | Done; native frame needs a desktop run |
+| V6 | Shortcut table in `shortcuts.ts`; the key on Start and Stop, localised | Done |
+| V3 | `--space-1…6` and radius tokens across the operator window | Done |
+| V8 | Named swatches, 32px targets, dialog container queries, profile label | Done; store screenshots pending |
+
+### Batch 4 implementation notes
+
+- **V1** — `--type-caption` 11, `small` 12, `body` 13, `label` 14, `title` 17, `heading` 21
+  and `display` 27px at 100%. The four 11px steps became `caption`. Half-pixel sizes moved to
+  the role that names them, which is the next size up (11.5 → 12, 12.5 → 13, 13.5 → 14) with
+  four exceptions: the select and the key field are `small` like the other fields, and the
+  intro and stage hint are `body`. Start went from 15.5 to 14 to match Stop, the compact stage
+  heading from 24 to 21, and the live caption from 29 to 27. `typeScale.test.ts` pins the
+  ramp, keeps every step at least a pixel apart, and now covers the overlay's move-mode chrome.
+- **V2** — One scheme, one name per colour:
+  - surfaces: `--surface-0` (ground; was `--bg` and `--surface-0`), `--surface-1` (panels and
+    cards; was `--panel` and `--panel-2`) and `--surface-2` (raised; was `--surface-3`);
+  - lines: `--line` (was `--hairline` and `--border-2`), `--line-strong` (was `--border`) and
+    `--line-hover`;
+  - text: `--text-bright`, `--text-body` (was `--text`), `--text-secondary` (was `--text-soft`
+    and `--text-dim`) and `--text-muted` (was `--muted`, `--muted-2` and `--muted-3`);
+  - `--accent-2` is gone, and `--focus` is an alias of `--accent-soft`.
+
+  The muted level is `#8b93a1`, the brightest of the three it replaces. It is 5.47:1 on
+  `--surface-2` and 4.53:1 on the amber wash, where `#848c99` (4.14) and `#7d858f` (3.76)
+  failed. So former `--muted-3` text is 14 RGB steps brighter. Three selected-state rules
+  that only swapped one muted grey for another were removed. The remaining grey literals
+  (title bar, meter track, key-cap border, rail figures) now use tokens.
+
+  Found on the way: the transcript log painted "Remote" blue and "Room" grey. That is the
+  opposite of the live turns, and of the rule that blue is the room. Room is now
+  `--room-soft`, and Remote is muted. `palette.test.ts` resolves aliases, pins the ramps and
+  checks the muted level on every rgba wash over the ground and panel surfaces. Its mutation
+  checks fail on the old grey and on an added `--text-dim`.
+- **V4** — The move-mode region, pill and toolbar use tokens. The toolbar panel is
+  `color-mix(in srgb, var(--surface-0) 96%, transparent)`. The misleading "does not inherit
+  the operator's surfaces" comment is gone. The mint fill is one `--accent-fill` over
+  `--accent` and a new `--accent-deep`, and `--on-accent` is checked against both ends. The
+  brand mark, live rule and interim caret use tokens too. New guards in `palette.test.ts`:
+  - no component stylesheet contains a hex literal (the two sample-slide colours and the
+    placement sample caption are listed as content);
+  - every text colour is a token or a system keyword;
+  - the toolbar over a white slide stays darker than `--surface-2`, so the surface checks
+    cover it.
+
+  All three fail on the old chrome. Move mode cannot be reached in a browser, so the old and
+  new `OverlayMoveChrome` were mounted side by side in the dev page. Their computed styles
+  differed only in the collapsed greys, the toolbar edge (`#2f3540` → `--line-hover`) and
+  the button fill (`#171b21` → `--surface-2`).
+- **V7** — `ToolButton` takes `variant` (default, primary, ghost, danger, warn), `size` (sm,
+  md, lg), `wide`, and a bindable `element` for the prompts that focus their safe answer. The
+  look is written once under `.ui-tool`:
+  - primary is `--accent-fill` everywhere, including the dialogs, which had a flat accent;
+  - danger is a red tint that deepens on hover (an unfilled danger made the running Stop too
+    faint);
+  - warn is the amber call to action that the checklist and the hidden-overlay switch used;
+  - a pressed toggle is the accent wash;
+  - the rail's separate `.tool`, the two 0.45 disabled overrides and the local copies are gone.
+
+  Converted: Start, Stop, Rehearse, the four dialogs' answers, the key panel, the transcript's
+  Save as / Clear / Jump to latest, the checklist's test and placement buttons, Reset, the
+  caption presets, `Stepper`, the rail and settings tools, device recovery, and the overlay's
+  Snap and Lock. The transcript's borderless "quiet" Clear is now an ordinary ghost.
+- **V5** — `OperatorToolbar` is
+  `[brand] [Start] [Rehearse] … [status + elapsed] [gear]`. `SessionControls` is passed in
+  as a snippet, and its buttons are items of the bar, so a narrow bar wraps between them. The
+  pill's `margin-left: auto` keeps the status and gear at the right end. At 100% the chrome
+  above the stage went from about 113px to 60px (56px after V3), so the stage gains about
+  50px. The name stays as the window's `h1`, visually hidden, and the unused tagline was
+  removed from the catalogs.
+- **V6** — `SHORTCUT_KEYS` in `shortcuts.ts` is the one table: the listener matches it,
+  `ariaKeyShortcut` gives `aria-keyshortcuts`, and `keyLabel` prints it with `$t.keys`.
+  English shows `Ctrl+Shift+Space`, French `Ctrl+Maj+Espace` and German
+  `Strg+Umschalt+Leertaste`. Start and Stop carry the key as `aria-hidden` secondary text and
+  announce it through `aria-keyshortcuts`. An `em` container query (`48em`) drops the printed
+  copy when the bar would otherwise wrap. With it, the bar stays one 132px row at 225% in all
+  three languages at 1200 × 820; without it, German Start alone was 820px wide and the bar
+  took four rows. A `Kbd` primitive draws every key cap, the F2 hint and the Settings list read
+  the same table, and `rail.flipKey` is gone. Tests: the table round-trips through the
+  listener, and ARIA and localised labels are pinned. Component tests check that the key is
+  on Start and Stop but outside their names, and that the toolbar keeps one `h1`.
+- **V3** — `--space-1…6` is 4, 8, 12, 16, 24 and 32px at 100%, in `rem`. There are also
+  `--radius-sm` (chips, key caps, meter tracks) and `--radius-pill`. About 160 padding, margin
+  and gap declarations moved to the nearest step: ties round down for gaps and control padding,
+  and up for space between blocks. Every change is 6px or less, except the stage's left
+  gutter (38 → 32px). Control heights are `min-height`: 32, 36 and 40px for sm, md and lg
+  buttons, with fields at 36. Pixels remain only for optical nudges and for the overlay's
+  caption layout, which the fitting code measures. `spacing.test.ts` holds every padding,
+  margin, gap and radius to the scales. The overflow scan found the transcript header
+  squeezing its buttons at 225% in French and German, so the header now wraps.
+- **V8** —
+  - Swatches: `TEXT_SWATCHES` / `SCRIM_SWATCHES` are named from the catalog (Mint, Pale
+    yellow, Navy …) instead of read out as hex. A chosen swatch has an inset mint ring,
+    parted from the colour by a dark one, instead of an outline identical to the focus ring.
+  - Small targets: Reset and Move overlay reached 32px through V7. The appearance and overlay
+    steppers, the dialog close button, the transcript format select and the key field are
+    32px too.
+  - Dialog breakpoints: `ModalPrompt`'s box is a `dialog` inline-size container. The
+    appearance layout and the history filters ask it in `em` (40em), so they have two columns
+    at 100% and 150% and one at 225%.
+  - Label: the profile picker is named by its visible "Meeting profiles" label.
+  - Store screenshots: still to be re-captured from an MSIX. All five are now out of date; see
+    [store screenshots](store-screenshots/README.md).
+
+How batch 4 was checked: the batch 3 harness captured normalized markup and 30 computed
+properties of every element. It covered eight states (idle demo, translate and subtitles;
+running with two speakers; each settings tab) in English, French and German at 100% and
+225%, before any change. After each item, the diff against the previous step was grouped by
+property and by old → new value, and every pair had to be one the item intended. V1 was
+compared in all six language and scale combinations, the later token steps in English at
+100%:
+
+- V1 changed only font sizes and what follows from them;
+- V2 changed only the planned colour pairs;
+- V4 changed only the brand mark and the live rule in the operator window;
+- V3 changed only spacing and radii.
+
+V5–V8 changed structure, so their checks were targeted. The bar's geometry was measured in
+all three languages at 100% and 225%, and in English at 150%. Below the bar, the diff showed only the new key
+caps. An overflow scan found no clipped or off-screen text in the eight states × three
+languages at 100%, 150% and 225% at 1200 × 820, or at 100% and 225% at the 980 × 660 minimum
+window.
+
+Batch 4 verification on 23 September 2026:
+
+| Check | Result |
+| --- | --- |
+| `npm test` | 457 passed in 55 files (21 new) |
+| `npm run check` | 0 errors, 0 warnings |
+| `npm run format:check` | Passed |
+| `npm run build` | Passed |
+| `npm run check:languages` | Passed |
+| Rust | No changes in `src-tauri`; not re-run |
+| Browser preview, operator window (8 states × EN/FR/DE × 100%/225%) | Only intended properties changed at each step; no overflow at 100%, 150% or 225% |
+| Overlay move chrome, old and new mounted side by side | Only the planned colour changes |
+
+A desktop run should confirm the toolbar under the native frame and Narrator reading
+`aria-keyshortcuts` on Start and Stop. In a contrast theme, it should check the primary's
+dropped gradient, the danger tint and the swatch ring. It should also check move mode in the
+real overlay window. The five Store screenshots per language need re-capturing from the MSIX.
 
 ## 1. Defects found while reviewing
 
