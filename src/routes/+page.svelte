@@ -1,22 +1,28 @@
 <script lang="ts">
-	import LanguagePicker from '$lib/LanguagePicker.svelte';
-	import { languageName, supportsLanguage, nextFavourite, type DemoLanguage } from '$lib/languages';
-	import { languageFavourites } from '$lib/stores';
-	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
-	import { shortcut } from '$lib/shortcuts';
-	import { overlayFontSize, noteActivity } from '$lib/stores';
 	import { onMount } from 'svelte';
-	import SystemCapturePicker from '$lib/SystemCapturePicker.svelte';
-	import { createPreflightController } from '$lib/preflightController.svelte';
-	import { createQuitController } from '$lib/quitController.svelte';
-	import { createOverlayController } from '$lib/overlayController.svelte';
-	import { createSessionClock } from '$lib/sessionClock.svelte';
+	import { get } from 'svelte/store';
+	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorTitlebar from '$lib/OperatorTitlebar.svelte';
 	import SessionControls from '$lib/SessionControls.svelte';
 	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
 	import LiveTurns from '$lib/LiveTurns.svelte';
 	import LiveRail from '$lib/LiveRail.svelte';
-	import { get } from 'svelte/store';
+	import SetupSheet from '$lib/SetupSheet.svelte';
+	import PreflightChecklist from '$lib/PreflightChecklist.svelte';
+	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
+	import SettingsDialog, { type SettingsTab } from '$lib/SettingsDialog.svelte';
+	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
+	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
+	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
+	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
+	import { createPreflightController } from '$lib/preflightController.svelte';
+	import { createQuitController } from '$lib/quitController.svelte';
+	import { createOverlayController } from '$lib/overlayController.svelte';
+	import { createSessionClock } from '$lib/sessionClock.svelte';
+	import { createSessionController } from '$lib/sessionController';
+	import { createSetupActions } from '$lib/setupActions';
+	import { languageName, supportsLanguage, type DemoLanguage } from '$lib/languages';
+	import { shortcut } from '$lib/shortcuts';
 	import { api, on, isTauri } from '$lib/tauri';
 	import { asStatus, describeError, isAppError } from '$lib/errors';
 	import {
@@ -26,51 +32,23 @@
 		applyStatus,
 		hasKey,
 		options,
-		currentCaptions,
 		transcript,
 		transcriptDirty,
 		recoveryEnabled,
 		restoreTranscript,
 		closeToTray,
-		micLevel,
-		systemLevel,
-		overlayPlaced,
+		overlayFontSize,
+		noteActivity,
 		sessionStartedAt,
 		pushCaption
 	} from '$lib/stores';
 	import { decodeRecovery, shouldGuardClose, type RecoverySnapshot } from '$lib/document';
 	import { recovery, startRecoverySpool } from '$lib/recovery';
-	import { createSessionController } from '$lib/sessionController';
 	import { followTextScale } from '$lib/textScale';
-	import type {
-		AudioSource,
-		Caption,
-		Origin,
-		OutputMode,
-		Provider,
-		SessionState,
-		TargetLanguage
-	} from '$lib/types';
-	import {
-		canFlipDirection,
-		captionLanguageOf,
-		providerCanTranslate,
-		providerDetectsLanguage,
-		providerRequiresKey
-	} from '$lib/types';
-	import { PROVIDER_META, modelLabel, rateParts } from '$lib/providers';
-	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
-	import LevelMeter from '$lib/LevelMeter.svelte';
-	import PreflightChecklist from '$lib/PreflightChecklist.svelte';
 	import { historyEnabled } from '$lib/history';
-	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
-	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
-	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
-	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
-	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
-	import SettingsDialog, { type SettingsTab } from '$lib/SettingsDialog.svelte';
-	import Field from '$lib/ui/Field.svelte';
-	import Select from '$lib/ui/Select.svelte';
+	import { captionLanguageOf, providerRequiresKey } from '$lib/types';
+	import type { Origin, Provider, SessionState } from '$lib/types';
+	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
@@ -135,13 +113,6 @@
 	$effect(() => {
 		hasKey.set(needsKey ? false : (preflight.localReadiness?.ready ?? false));
 	});
-
-	// Each mode is served by exactly two backends; step 04 lists the pair for the current one.
-	const modeProviders = $derived<Provider[]>(
-		$options.mode === 'translate'
-			? ['gemini', 'openai']
-			: ['mistral', 'gemini-transcribe', 'ondevice']
-	);
 
 	// Ticks only while a session is open.
 	const clock = createSessionClock();
@@ -339,51 +310,11 @@
 
 	const stop = () => session.stop();
 
-	function setSource(s: AudioSource) {
-		if (controlsLocked) return;
-		if ($options.provider === 'ondevice' && s !== 'microphone') return;
-		if (s !== $options.source) preflight.invalidateAudioTest();
-		$options = { ...$options, source: s };
-	}
-
-	function setTarget(t: TargetLanguage) {
-		if (controlsLocked) return;
-		// Translation picks the language the room reads; the built-in demo picks its script.
-		// The subtitle engines auto-detect, so they have nothing to set.
-		if ($options.mode !== 'translate' && $options.provider !== 'ondevice') return;
-		$options = { ...$options, targetLanguage: t };
-	}
-
-	function setProvider(p: Provider) {
-		if (controlsLocked || p === $options.provider) return;
-		// Each mode accepts only the backends that can serve it.
-		if (providerCanTranslate(p) !== ($options.mode === 'translate')) return;
-		preflight.invalidateAudioTest();
-		$options = {
-			...$options,
-			provider: p,
-			...(p === 'ondevice' ? { source: 'microphone' as const, micDeviceName: null } : {})
-		};
-		if (p !== 'ondevice') void preflight.refresh();
-	}
-
-	function setMode(mode: OutputMode) {
-		if (controlsLocked || mode === $options.mode) return;
-		preflight.invalidateAudioTest();
-		$options = {
-			...$options,
-			mode,
-			provider: mode === 'transcribe' ? 'ondevice' : 'gemini',
-			...(mode === 'transcribe' ? { source: 'microphone' as const, micDeviceName: null } : {})
-		};
-	}
-
-	// Quick flip of the caption language — handy when speakers alternate.
-	function flipDirection() {
-		if (!canFlipDirection($options.mode, controlsLocked)) return;
-		const next = nextFavourite($options.targetLanguage, $languageFavourites, $options.provider);
-		if (next) setTarget(next);
-	}
+	const actions = createSetupActions({
+		locked: () => controlsLocked,
+		invalidateAudioTest: () => preflight.invalidateAudioTest(),
+		refreshDevices: () => void preflight.refresh()
+	});
 
 	let settingsOpen = $state(false);
 	let settingsTab = $state<SettingsTab>('captions');
@@ -424,18 +355,6 @@
 					languageName($options.targetLanguage, $locale)
 				)
 	);
-	const engineLabel = $derived<Record<Provider, string>>($t.engine);
-	const vendorLabel = $derived<Record<Provider, string>>($t.provider.vendor);
-
-	// Step 03 asks which language to render into, which demo script to play, or nothing when
-	// the backend detects the spoken language itself.
-	const languageStepTitle = $derived(
-		$options.mode === 'translate'
-			? $t.rail.step.roomReads
-			: $options.provider === 'ondevice'
-				? $t.rail.step.demoLanguage
-				: $t.rail.step.spokenLanguage
-	);
 </script>
 
 <svelte:window
@@ -450,7 +369,7 @@
 		);
 		if (!command) return;
 		e.preventDefault();
-		if (command === 'direction') flipDirection();
+		if (command === 'direction') actions.flipDirection();
 		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
 		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
@@ -523,312 +442,15 @@
 			{#if $isRunning}
 				<LiveRail {overlay} {clock} {rehearsing} {usesMic} {usesSystem} />
 			{:else}
-				<!-- ---- Idle: the numbered setup sheet ---- -->
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">01</span>
-						<h2 class="kicker">{$t.rail.step.whatToShow}</h2>
-					</div>
-					<button
-						class="card"
-						class:selected={$options.mode === 'translate'}
-						disabled={controlsLocked}
-						aria-pressed={$options.mode === 'translate'}
-						onclick={() => setMode('translate')}
-					>
-						<span class="card-icon" aria-hidden="true">
-							<svg
-								width="17"
-								height="17"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"
-								><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg
-							>
-						</span>
-						<span class="card-body">
-							<span class="card-title">{$t.rail.translate.title}</span>
-							<span class="card-desc">{$t.rail.translate.desc}</span>
-						</span>
-						{#if $options.mode === 'translate'}
-							<span class="card-check" aria-hidden="true">
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.2"
-									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{/if}
-					</button>
-					<button
-						class="card"
-						class:selected={$options.mode === 'transcribe'}
-						disabled={controlsLocked}
-						aria-pressed={$options.mode === 'transcribe'}
-						onclick={() => setMode('transcribe')}
-					>
-						<span class="card-icon" aria-hidden="true">
-							<svg
-								width="17"
-								height="17"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.7"
-								stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg
-							>
-						</span>
-						<span class="card-body">
-							<span class="card-title">{$t.rail.transcribe.title}</span>
-							<span class="card-desc">{$t.rail.transcribe.desc}</span>
-						</span>
-						{#if $options.mode === 'transcribe'}
-							<span class="card-check" aria-hidden="true">
-								<svg
-									width="16"
-									height="16"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2.2"
-									stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
-								>
-							</span>
-						{/if}
-					</button>
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">02</span>
-						<h2 class="kicker">{$t.rail.step.whereFrom}</h2>
-					</div>
-					<div class="tiles">
-						<button
-							class="tile"
-							class:selected={$options.source === 'microphone'}
-							disabled={controlsLocked}
-							aria-pressed={$options.source === 'microphone'}
-							onclick={() => setSource('microphone')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								aria-hidden="true"
-								><rect x="9" y="2.5" width="6" height="11" rx="3" /><path
-									d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
-								/><path d="M12 18v3.5" /></svg
-							>
-							<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span
-							>
-						</button>
-						<button
-							class="tile"
-							class:selected={$options.source === 'system'}
-							disabled={controlsLocked || $options.provider === 'ondevice'}
-							aria-pressed={$options.source === 'system'}
-							onclick={() => setSource('system')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								aria-hidden="true"
-								><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path
-									d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6"
-								/></svg
-							>
-							<span>{$t.source.system}</span>
-						</button>
-						<button
-							class="tile"
-							class:selected={$options.source === 'both'}
-							disabled={controlsLocked || $options.provider === 'ondevice'}
-							aria-pressed={$options.source === 'both'}
-							onclick={() => setSource('both')}
-						>
-							<svg
-								width="18"
-								height="18"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.6"
-								stroke-linecap="round"
-								aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg
-							>
-							<span>{$t.source.both}</span>
-						</button>
-					</div>
-					<p class="hint">
-						{$options.provider === 'ondevice'
-							? $t.rail.demoSourceHint
-							: $options.systemCapture?.kind === 'application' && usesSystem
-								? $t.applications.hint
-								: $t.rail.sourceHint}
-					</p>
-
-					{#if usesMic && $options.provider !== 'ondevice'}
-						<Field label={$t.rail.micDevice}>
-							<Select
-								disabled={controlsLocked}
-								value={$options.micDeviceId ?? ''}
-								onchange={(e) => {
-									preflight.invalidateAudioTest();
-									$options = {
-										...$options,
-										micDeviceId: e.currentTarget.value || null,
-										micDeviceName: null
-									};
-								}}
-							>
-								<option value="">{$t.rail.systemDefault}</option>
-								{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
-									<option value={$options.micDeviceId}>{$t.devices.missing}</option>
-								{/if}
-								{#each preflight.microphones as dev (dev.id)}
-									<option value={dev.id}>
-										{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
-									</option>
-								{/each}
-							</Select>
-						</Field>
-					{/if}
-
-					{#if usesSystem && $options.provider !== 'ondevice'}
-						<SystemCapturePicker
-							locked={controlsLocked}
-							outputs={preflight.outputs}
-							applications={preflight.applications}
-							supported={preflight.applicationCaptureSupported}
-							refreshing={preflight.refreshingApplications}
-							refresh={preflight.refreshApplications}
-							changed={preflight.invalidateAudioTest}
-						/>
-					{/if}
-					{#if $options.provider !== 'ondevice'}
-						<button
-							class="tool"
-							disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
-							aria-busy={preflight.refreshing || preflight.refreshingApplications}
-							onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
-						>
-							{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
-						</button>
-					{/if}
-					<div class="meters">
-						{#if usesMic}
-							<LevelMeter
-								level={$micLevel}
-								label={$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}
-							/>
-						{/if}
-						{#if usesSystem}
-							<LevelMeter level={$systemLevel} label={$t.stage.origin.system} />
-						{/if}
-					</div>
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">03</span>
-						<h2 class="kicker">{languageStepTitle}</h2>
-					</div>
-					{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
-						<p class="hint">{$t.rail.autoDetectHint(engineLabel[$options.provider])}</p>
-					{:else if $options.mode === 'translate'}
-						<LanguagePicker
-							value={$options.targetLanguage}
-							provider={$options.provider}
-							favourites={$languageFavourites}
-							disabled={controlsLocked}
-							error={languageError}
-							onchange={setTarget}
-							onpin={(code) =>
-								languageFavourites.update((pins) =>
-									pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
-								)}
-						/>
-						<p class="hint inline-hint">
-							<span>{$t.rail.flipHint}</span><span class="key">{$t.rail.flipKey}</span>
-						</p>
-					{:else}
-						{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
-						<div class="lang-cards">
-							<button
-								class="lang"
-								class:selected={$options.targetLanguage === 'en'}
-								disabled={controlsLocked}
-								aria-pressed={$options.targetLanguage === 'en'}
-								onclick={() => setTarget('en')}
-							>
-								<span class="lang-code">EN</span>
-								<span class="lang-name">{languageName('en', $locale)}</span>
-							</button>
-							<button
-								class="lang"
-								class:selected={$options.targetLanguage === 'fr'}
-								disabled={controlsLocked}
-								aria-pressed={$options.targetLanguage === 'fr'}
-								onclick={() => setTarget('fr')}
-							>
-								<span class="lang-code">FR</span>
-								<span class="lang-name">{languageName('fr', $locale)}</span>
-							</button>
-						</div>
-						<p class="hint">{$t.rail.demoLanguageHint}</p>
-					{/if}
-				</section>
-
-				<div class="divider"></div>
-
-				<section class="rail-section">
-					<div class="step-head">
-						<span class="step-no">04</span>
-						<h2 class="kicker">{$t.rail.step.engine}</h2>
-					</div>
-					<div class="engines">
-						{#each modeProviders as id (id)}
-							{@const p = PROVIDER_META[id]}
-							{@const rate = rateParts(p, $t)}
-							<button
-								class="engine"
-								class:selected={$options.provider === id}
-								disabled={controlsLocked}
-								aria-pressed={$options.provider === id}
-								onclick={() => setProvider(id)}
-							>
-								<span class="engine-body">
-									<span class="engine-name">{vendorLabel[id]}</span>
-									<span class="engine-model">{modelLabel(p, $t)}</span
-									>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
-										>{/if}
-								</span>
-								<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>
-							</button>
-						{/each}
-					</div>
-				</section>
+				<SetupSheet
+					{actions}
+					{preflight}
+					locked={controlsLocked}
+					{browserMode}
+					{usesMic}
+					{usesSystem}
+					{languageError}
+				/>
 			{/if}
 		</aside>
 
@@ -896,7 +518,7 @@
 								: $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
 							? $t.preflight.privacy.demo
-							: $t.preflight.privacy.cloud(vendorLabel[$options.provider])}
+							: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
 					</span>
 				</div>
 			{/if}
@@ -1045,211 +667,6 @@
 		flex: 0 0 auto;
 	}
 
-	/* ---- Selection cards ---------------------------------------------------- */
-
-	.card,
-	.tile,
-	.lang,
-	.engine {
-		border: 1px solid var(--border);
-		background: var(--panel-2);
-		text-align: left;
-		color: inherit;
-	}
-	.card.selected,
-	.tile.selected,
-	.lang.selected,
-	.engine.selected {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-	}
-	.card:hover:not(:disabled),
-	.tile:hover:not(:disabled),
-	.lang:hover:not(:disabled),
-	.engine:hover:not(:disabled) {
-		border-color: var(--border-hover);
-	}
-	.card.selected:hover:not(:disabled),
-	.tile.selected:hover:not(:disabled),
-	.lang.selected:hover:not(:disabled),
-	.engine.selected:hover:not(:disabled) {
-		border-color: var(--accent);
-	}
-
-	.card {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.6875rem;
-		padding: 0.75rem 0.8125rem;
-		border-radius: var(--radius-card);
-		width: 100%;
-	}
-	.card-icon {
-		width: 30px;
-		height: 30px;
-		border-radius: var(--radius-control);
-		background: rgba(255, 255, 255, 0.045);
-		color: var(--muted);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-	}
-	.card.selected .card-icon {
-		background: var(--accent-chip-bg);
-		color: var(--accent-soft);
-	}
-	.card-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.card-title {
-		font-size: var(--type-13-5);
-		font-weight: 600;
-		line-height: 1.2;
-		color: var(--text-soft);
-	}
-	.card.selected .card-title {
-		color: var(--text);
-	}
-	.card-desc {
-		font-size: var(--type-11-5);
-		line-height: 1.45;
-		color: var(--muted-2);
-		text-wrap: pretty;
-	}
-	.card.selected .card-desc {
-		color: var(--muted);
-	}
-	.card-check {
-		color: var(--accent);
-		margin-left: auto;
-		flex: 0 0 auto;
-		display: flex;
-	}
-
-	.tiles {
-		display: grid;
-		grid-template-columns: repeat(3, 1fr);
-		gap: 8px;
-	}
-	.tile {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 7px;
-		padding: 12px 6px 10px;
-		border-radius: var(--radius-card);
-		color: var(--muted);
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.tile.selected {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-
-	.meters {
-		display: flex;
-		flex-direction: column;
-		gap: 9px;
-		margin-top: 6px;
-	}
-
-	.lang-cards {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem;
-	}
-	.lang {
-		display: flex;
-		align-items: center;
-		gap: 0.5625rem;
-		padding: 0.6875rem 0.75rem;
-		border-radius: var(--radius-card);
-	}
-	.lang-code {
-		font-family: var(--font-mono);
-		font-size: var(--type-12);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--muted-2);
-	}
-	.lang.selected .lang-code {
-		color: var(--accent-soft);
-		font-weight: 600;
-	}
-	.lang-name {
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-	}
-	.lang.selected .lang-name {
-		color: var(--text);
-		font-weight: 600;
-	}
-
-	.engines {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.engine {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 11px 13px;
-		border-radius: var(--radius-card);
-	}
-	.engine-body {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-		min-width: 0;
-	}
-	.engine-name {
-		font-size: var(--type-12-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--text-soft);
-	}
-	.engine.selected .engine-name {
-		color: var(--text);
-		font-weight: 600;
-	}
-	.engine-model {
-		font-family: var(--font-mono);
-		font-size: var(--type-10-5);
-		line-height: 1.2;
-		color: var(--muted-3);
-		overflow-wrap: anywhere;
-	}
-	.engine.selected .engine-model {
-		color: var(--muted-2);
-	}
-	.engine-rate {
-		margin-left: auto;
-		font-family: var(--font-mono);
-		font-size: var(--type-11-5);
-		font-weight: 500;
-		line-height: 1;
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
-		white-space: nowrap;
-	}
-	.engine.selected .engine-rate {
-		color: var(--accent-soft);
-	}
-	/* One step brighter than the rest of the dim ramp: the rate sits on the selected engine's
-	   mint wash, which costs it enough contrast to drop "/hr" under 4.5:1 at --muted-3. */
-	.engine-rate .unit {
-		color: var(--muted-2);
-	}
-
 	/* ---- Stage -------------------------------------------------------------- */
 
 	.banner {
@@ -1342,19 +759,4 @@
 	/* Windows contrast themes. A contrast theme replaces every colour this window chose, so
 	   anything it says in colour alone has to be said again in a way the theme keeps.
 	   Everything else is deliberately left to the system palette. */
-	@media (forced-colors: active) {
-		/* The one place in this window that must keep its own colours: the swatch *is* the
-		   value. A contrast theme repainting it would leave the operator choosing a caption
-		   colour they cannot see. The label and the reading beside it are repainted as
-		   normal, which is what a contrast theme is for. */
-		/* Selection is a mint border and a mint wash, and both flatten to the same
-		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
-		.card.selected,
-		.tile.selected,
-		.lang.selected,
-		.engine.selected {
-			outline: 2px solid Highlight;
-			outline-offset: -2px;
-		}
-	}
 </style>
