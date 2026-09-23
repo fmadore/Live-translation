@@ -156,14 +156,9 @@ fn bessel_i0(x: f64) -> f64 {
 /// single running sum would have to be added in order.
 fn dot(a: &[f32], b: &[f32]) -> f32 {
     let mut lanes = [0.0f32; 8];
-    let (a_chunks, b_chunks) = (a.chunks_exact(8), b.chunks_exact(8));
-    let tail: f32 = a_chunks
-        .remainder()
-        .iter()
-        .zip(b_chunks.remainder())
-        .map(|(x, y)| x * y)
-        .sum();
-    for (x, y) in a_chunks.zip(b_chunks) {
+    let ((a_chunks, a_tail), (b_chunks, b_tail)) = (a.as_chunks::<8>(), b.as_chunks::<8>());
+    let tail: f32 = a_tail.iter().zip(b_tail).map(|(x, y)| x * y).sum();
+    for (x, y) in a_chunks.iter().zip(b_chunks) {
         for lane in 0..8 {
             lanes[lane] += x[lane] * y[lane];
         }
