@@ -4,14 +4,27 @@ export type CaptionLayout = 'fit' | 'compact' | 'stable';
 export const CAPTION_LAYOUT_KEY = 'overlay.captionLayout';
 export const DEFAULT_CAPTION_LAYOUT: CaptionLayout = 'fit';
 
-/** Bottom alignment is a subtitle strip; manually resizing still permits more context. */
+/** The original speech under a translation is set this much smaller than the caption. */
+export const ORIGINAL_SCALE = 0.6;
+/** Space between a caption and the original under it, in px. */
+export const ORIGINAL_GAP = 4;
+
+/** Height of `lines` lines of original speech under a caption set at `fontSize`. */
+export function originalHeight(fontSize: number, lines: number): number {
+	return lines * Math.ceil(ORIGINAL_SCALE * fontSize * 1.34);
+}
+
+/** Bottom alignment is a subtitle strip; manually resizing still permits more context. With
+ *  the original shown, each row also gets one line of it. */
 export function bottomCaptionHeight(
 	fontSize: number,
 	origins: number,
-	layout: CaptionLayout
+	layout: CaptionLayout,
+	original = false
 ): number {
 	const rows = Math.max(1, Math.min(2, origins));
-	const textHeight = 2 * fontSize * 1.34 * rows + 18 * (rows - 1);
+	const originalRow = original ? originalHeight(fontSize, 1) + ORIGINAL_GAP : 0;
+	const textHeight = (2 * fontSize * 1.34 + originalRow) * rows + 18 * (rows - 1);
 	return Math.max(160, Math.ceil(layout === 'compact' ? textHeight / 0.85 : textHeight + 32));
 }
 

@@ -26,7 +26,8 @@ function cueTime(ms: number, separator: string): string {
 function timedTranscript(
 	lines: TranscriptLine[],
 	format: 'vtt' | 'srt',
-	labels: TranscriptLabels
+	labels: TranscriptLabels,
+	original: boolean
 ): string {
 	if (!lines.length) return format === 'vtt' ? 'WEBVTT\n\n' : '';
 	if (!hasTranscriptTiming(lines)) throw new Error('Transcript has no valid cue timing');
@@ -41,10 +42,15 @@ function timedTranscript(
 			const end = Math.max(start + 1, line.endMs!);
 			const escape = (value: string) =>
 				value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-			const text = escape(line.text.trim().replace(/\s*\r?\n\s*/g, ' '));
+			const oneLine = (value: string) => escape(value.trim().replace(/\s*\r?\n\s*/g, ' '));
+			const text = oneLine(line.text);
 			const origin = escape(labels.origin[line.origin]);
 			const payload = format === 'vtt' ? `<v ${origin}>${text}</v>` : `[${origin}] ${text}`;
-			return `${i + 1}\n${cueTime(start, separator)} --> ${cueTime(end, separator)}\n${payload}\n`;
+			// The original speech as the cue's second line, in italics, the way bilingual
+			// subtitles are usually set. Both players and editors take `<i>` in either format.
+			const source = original ? oneLine(line.sourceText) : '';
+			const second = source ? `\n<i>${source}</i>` : '';
+			return `${i + 1}\n${cueTime(start, separator)} --> ${cueTime(end, separator)}\n${payload}${second}\n`;
 		});
 	return (format === 'vtt' ? 'WEBVTT\n\n' : '') + cues.join('\n');
 }
@@ -55,6 +61,8 @@ export interface TranscriptParagraph {
 	id: number;
 	origin: Origin;
 	text: string;
+	/** What was said before translation, joined the same way. Empty for subtitles. */
+	sourceText: string;
 }
 
 /** What the saved file calls each audio source, and what it calls itself. Passed in rather
@@ -63,6 +71,8 @@ export interface TranscriptParagraph {
 export interface TranscriptLabels {
 	title: string;
 	origin: Record<Origin, string>;
+	/** What introduces the original speech in a bilingual text or Markdown export. */
+	original: string;
 	/** BCP 47 tag for the header's timestamp. */
 	tag: string;
 }
@@ -71,8 +81,20 @@ export interface TranscriptLabels {
 export const DEFAULT_LABELS: TranscriptLabels = {
 	title: 'Live captions transcript',
 	origin: { microphone: 'Microphone', system: 'System' },
+	original: 'Original',
 	tag: 'en-GB'
 };
+
+export interface TranscriptOptions {
+	/** Write the original speech under each translation. Lines without any are unchanged. */
+	original?: boolean;
+}
+
+/** Whether any line carries original speech, which is what makes a bilingual export
+ *  possible: translation keeps it, same-language subtitles have none. */
+export function hasOriginalSpeech(lines: TranscriptLine[]): boolean {
+	return lines.some((line) => line.sourceText.trim() !== '');
+}
 
 /**
  * Turn the newest-first log into chronological paragraphs. A source change, five-second
@@ -85,6 +107,7 @@ export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagr
 	for (const line of [...newestFirst].reverse()) {
 		const text = line.text.trim();
 		if (!text) continue;
+		const sourceText = line.sourceText.trim();
 		const last = paragraphs[paragraphs.length - 1];
 		const pause =
 			line.startMs !== undefined &&
@@ -92,9 +115,16 @@ export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagr
 			(line.startMs - previousEnd >= 5000 || line.startMs < previousEnd);
 		// Keep complete caption lines together. Long individual turns remain intact;
 		// this bounds aggregation, never truncates the operator's text.
-		if (last && last.origin === line.origin && !pause && last.text.length + text.length + 1 <= 600)
+		if (
+			last &&
+			last.origin === line.origin &&
+			!pause &&
+			last.text.length + text.length + 1 <= 600
+		) {
 			last.text += ` ${text}`;
-		else paragraphs.push({ id: line.id, origin: line.origin, text });
+			if (sourceText)
+				last.sourceText = last.sourceText ? `${last.sourceText} ${sourceText}` : sourceText;
+		} else paragraphs.push({ id: line.id, origin: line.origin, text, sourceText });
 		previousEnd = line.endMs;
 	}
 	return paragraphs;
@@ -105,18 +135,33 @@ export function formatTranscript(
 	newestFirst: TranscriptLine[],
 	format: TranscriptFormat,
 	createdAt = new Date(),
-	labels: TranscriptLabels = DEFAULT_LABELS
+	labels: TranscriptLabels = DEFAULT_LABELS,
+	{ original = false }: TranscriptOptions = {}
 ): string {
-	if (format === 'srt' || format === 'vtt') return timedTranscript(newestFirst, format, labels);
+	if (format === 'srt' || format === 'vtt')
+		return timedTranscript(newestFirst, format, labels, original);
 	const paragraphs = groupTranscript(newestFirst);
+	const source = (p: TranscriptParagraph) => (original ? p.sourceText : '');
 
 	if (format === 'text') {
-		return paragraphs.map((p) => `${labels.origin[p.origin]}\n${p.text}\n`).join('\n');
+		return paragraphs
+			.map(
+				(p) =>
+					`${labels.origin[p.origin]}\n${p.text}\n` +
+					(source(p) ? `${labels.original}: ${source(p)}\n` : '')
+			)
+			.join('\n');
 	}
 
 	const stamp = createdAt.toLocaleString(labels.tag);
 	const header = `# ${labels.title}\n\n${stamp}\n`;
-	const body = paragraphs.map((p) => `\n**${labels.origin[p.origin]}**\n\n${p.text}\n`).join('');
+	const body = paragraphs
+		.map(
+			(p) =>
+				`\n**${labels.origin[p.origin]}**\n\n${p.text}\n` +
+				(source(p) ? `\n> *${labels.original}:* ${source(p)}\n` : '')
+		)
+		.join('');
 	return `${header}${body}`;
 }
 

@@ -344,6 +344,9 @@ export const fr: Messages = {
 		cleanSpeech: 'Masquer les hésitations',
 		cleanSpeechHint:
 			'Uniquement dans la superposition. La transcription conserve le texte original.',
+		showOriginal: 'Afficher la parole originale sous la traduction',
+		showOriginalHint:
+			'Une ligne plus petite sous chaque sous-titre traduit, pour qui suit la langue de l’orateur. Traduction uniquement ; pas en lecture stable.',
 		fillerWords: {
 			heading: 'Mots à masquer',
 			hint: 'Un mot de la liste est masqué partout où il apparaît seul, quel que soit son sens. Des mots comme « alors », « bon » ou « genre » portent souvent du sens : les ajouter peut supprimer du contenu réel.',
@@ -563,6 +566,7 @@ export const fr: Messages = {
 		saveAs: 'Enregistrer sous…',
 		format: 'Format d’export',
 		plainText: 'Texte brut',
+		includeOriginal: 'Inclure la parole originale',
 		noTiming:
 			'Cette transcription récupérée ne contient pas d’horodatage. Enregistrez-la en texte ou en Markdown.',
 		saveMarkdown: 'Enregistrer en Markdown',
@@ -595,6 +599,7 @@ export const fr: Messages = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Transcription des sous-titres en direct',
+		original: 'Original',
 		origin: {
 			microphone: 'Microphone',
 			system: 'Système'

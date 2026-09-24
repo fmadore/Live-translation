@@ -5,7 +5,7 @@
 import { get } from 'svelte/store';
 
 import { t } from './i18n';
-import { markTranscriptSaved, transcript } from './stores';
+import { exportOriginal, markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
 import { recovery } from './recovery';
 import { formatTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
@@ -26,11 +26,18 @@ export async function saveTranscriptDocument(
 	if (!lines.length) return '';
 	const messages = get(t);
 	const path = await api.saveTranscript(
-		formatTranscript(lines, format, now, {
-			title: messages.export.title,
-			origin: messages.export.origin,
-			tag: messages.locale.tag
-		}),
+		formatTranscript(
+			lines,
+			format,
+			now,
+			{
+				title: messages.export.title,
+				origin: messages.export.origin,
+				original: messages.export.original,
+				tag: messages.locale.tag
+			},
+			{ original: get(exportOriginal) }
+		),
 		transcriptFilename(now, format)
 	);
 	if (!path) return '';

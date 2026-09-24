@@ -50,7 +50,9 @@ export function previewContent(language: string | null): PreviewContent {
 			system: {
 				turnId: 1,
 				text: 'Les sous-titres utilisent la largeur disponible et le texte revient à la ligne lorsque la fenêtre devient plus étroite.',
-				sourceText: '',
+				// Shown under the caption when Show the original speech is on.
+				sourceText:
+					'Captions use the available width, and the text wraps to a new line when the window becomes narrower.',
 				final: false,
 				origin: 'system',
 				startMs: 0,

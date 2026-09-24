@@ -341,6 +341,9 @@ export const de: Messages = {
 		stable: 'Ruhiger Lesemodus',
 		cleanSpeech: 'Fülllaute ausblenden',
 		cleanSpeechHint: 'Nur in der Einblendung. Das Transkript behält den Originaltext.',
+		showOriginal: 'Originalwortlaut unter der Übersetzung zeigen',
+		showOriginalHint:
+			'Eine kleinere Zeile unter jeder übersetzten Untertitelzeile – für alle, die der Sprache der vortragenden Person folgen. Nur bei Übersetzung, nicht im ruhigen Lesemodus.',
 		fillerWords: {
 			heading: 'Auszublendende Wörter',
 			hint: 'Ein Wort aus der Liste wird überall ausgeblendet, wo es für sich steht, unabhängig von seiner Bedeutung. Wörter wie „also“, „halt“ oder „so“ tragen oft Bedeutung; wer sie hinzufügt, kann echten Inhalt entfernen.',
@@ -561,6 +564,7 @@ export const de: Messages = {
 		saveAs: 'Speichern unter…',
 		format: 'Exportformat',
 		plainText: 'Reiner Text',
+		includeOriginal: 'Originalwortlaut einschließen',
 		noTiming:
 			'Dieses wiederhergestellte Transkript hat keine Zeitangaben. Speichern Sie es als Text oder Markdown.',
 		saveMarkdown: 'Markdown speichern',
@@ -592,6 +596,7 @@ export const de: Messages = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Transkript der Live-Untertitel',
+		original: 'Original',
 		origin: {
 			microphone: 'Mikrofon',
 			system: 'System'

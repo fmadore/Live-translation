@@ -13,8 +13,14 @@ vi.mock('./tauri', () => ({
 }));
 
 const TranscriptMonitor = (await import('./TranscriptMonitor.svelte')).default;
-const { clearTranscript, recoveryEnabled, restoreTranscript, transcript, transcriptDirty } =
-	await import('./stores');
+const {
+	clearTranscript,
+	exportOriginal,
+	recoveryEnabled,
+	restoreTranscript,
+	transcript,
+	transcriptDirty
+} = await import('./stores');
 const { TRANSCRIPT_WARN_LINES } = await import('./document');
 import type { TranscriptLine } from './types';
 
@@ -219,13 +225,13 @@ describe('announcing a save', () => {
 describe('the recovery opt-in', () => {
 	it('is off unless the operator asks for it', () => {
 		const { getByRole } = mount(seed(1));
-		expect(getByRole('checkbox')).not.toBeChecked();
+		expect(getByRole('checkbox', { name: /recovery copy/ })).not.toBeChecked();
 	});
 
 	it('turns the spool on without touching disk itself', async () => {
 		const { getByRole } = mount(seed(1));
 
-		await fireEvent.click(getByRole('checkbox'));
+		await fireEvent.click(getByRole('checkbox', { name: /recovery copy/ }));
 
 		expect(get(recoveryEnabled)).toBe(true);
 		expect(mocks.clearRecovery).not.toHaveBeenCalled();
@@ -237,9 +243,27 @@ describe('the recovery opt-in', () => {
 		recoveryEnabled.set(true);
 		const { getByRole } = mount(seed(1));
 
-		await fireEvent.click(getByRole('checkbox'));
+		await fireEvent.click(getByRole('checkbox', { name: /recovery copy/ }));
 
 		expect(get(recoveryEnabled)).toBe(false);
 		await waitFor(() => expect(mocks.clearRecovery).toHaveBeenCalledTimes(1));
+	});
+});
+
+describe('the bilingual export option', () => {
+	it('is offered only when the lines carry original speech, and remembers the choice', async () => {
+		exportOriginal.set(false);
+		const { getByRole } = mount(seed(2));
+		const option = getByRole('checkbox', { name: 'Include original speech' });
+		expect(option).not.toBeChecked();
+		await fireEvent.click(option);
+		expect(get(exportOriginal)).toBe(true);
+		exportOriginal.set(false);
+	});
+
+	it('is not offered for subtitles, which have no separate original', () => {
+		const lines = seed(2).map((line) => ({ ...line, sourceText: '' }));
+		const { queryByRole } = mount(lines);
+		expect(queryByRole('checkbox', { name: 'Include original speech' })).toBeNull();
 	});
 });

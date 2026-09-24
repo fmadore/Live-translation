@@ -3,6 +3,7 @@
 	import { captionReach, firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
 	let {
 		stable = false,
+		muted = false,
 		lead,
 		text,
 		interim,
@@ -12,6 +13,8 @@
 		onTrim
 	}: {
 		stable?: boolean;
+		/** Secondary text — the original speech under a translation — in the dimmed ink. */
+		muted?: boolean;
 		lead: string;
 		text: string;
 		interim: boolean;
@@ -126,7 +129,7 @@
 		</div>
 	{:else}
 		<!-- prettier-ignore -->
-		<p class="line" lang={language} class:final={!interim}>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
+		<p class="line" lang={language} class:final={!interim} class:muted>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
 	{/if}
 </div>
 
@@ -173,6 +176,10 @@
 	}
 	.lead {
 		color: var(--caption-ink-lead);
+	}
+	.muted {
+		color: var(--caption-ink-lead);
+		font-weight: 500;
 	}
 	.caret {
 		display: inline-block;

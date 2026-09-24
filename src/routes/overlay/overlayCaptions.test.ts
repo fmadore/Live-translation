@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOverlayCaptions, tail, type ReadingSettings } from './overlayCaptions.svelte';
 import { DEFAULT_FILLER_WORDS } from '$lib/cleanSpeech';
-import type { Caption, Origin } from '$lib/types';
+import { captionBudget, type Caption, type Origin } from '$lib/types';
 
 const fit: ReadingSettings = {
 	layout: 'fit',
@@ -9,7 +9,8 @@ const fit: ReadingSettings = {
 	fillerWords: DEFAULT_FILLER_WORDS,
 	hold: 4,
 	pace: 'immediate',
-	width: 30
+	width: 30,
+	showOriginal: false
 };
 
 function caption(origin: Origin, turnId: number, text: string, final = true): Caption {
@@ -36,7 +37,7 @@ describe('overlay captions', () => {
 		c.push(caption('system', 1, 'First sentence.'));
 		c.push(caption('system', 2, 'Second', false));
 		expect(c.lines).toEqual([
-			{ origin: 'system', lead: 'First sentence.', text: 'Second', interim: true }
+			{ origin: 'system', lead: 'First sentence.', text: 'Second', interim: true, original: '' }
 		]);
 		c.dispose();
 	});
@@ -192,6 +193,30 @@ describe('overlay captions', () => {
 		expect(c.lines).toHaveLength(1);
 		vi.advanceTimersByTime(4000);
 		expect(c.lines).toEqual([]);
+		c.dispose();
+	});
+
+	it('shows the original speech under a translation only when asked, and never in Stable', () => {
+		const c = createOverlayCaptions(fit);
+		const translated = { ...caption('system', 1, 'We begin.'), sourceText: 'Nous commençons.' };
+		c.push(translated);
+		expect(c.lines[0].original).toBe('');
+		c.setShowOriginal(true);
+		expect(c.lines[0]).toMatchObject({ text: 'We begin.', original: 'Nous commençons.' });
+		c.setLayout('stable');
+		expect(c.lines[0].original).toBe('');
+		c.setLayout('compact');
+		c.push({ ...translated, turnId: 2, sourceText: 'mot '.repeat(200) });
+		expect(c.lines[0].original.startsWith('… ')).toBe(true);
+		// Compact's character budget, as the caption gets — not the whole 800 characters.
+		expect(c.lines[0].original.length).toBeLessThanOrEqual(captionBudget(fit.width) + 2);
+		c.dispose();
+	});
+
+	it('shows nothing extra for subtitles, which have no separate original', () => {
+		const c = createOverlayCaptions({ ...fit, showOriginal: true });
+		c.push(caption('microphone', 1, 'Same language.'));
+		expect(c.lines[0].original).toBe('');
 		c.dispose();
 	});
 

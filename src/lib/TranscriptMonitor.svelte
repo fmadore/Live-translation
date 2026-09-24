@@ -6,15 +6,22 @@
 	import { asStatus, type AppError } from './errors';
 	import {
 		clearTranscript as clearTranscriptStore,
+		exportOriginal,
 		recoveryEnabled,
 		savedPath,
 		transcriptDirty
 	} from './stores';
 	import { TRANSCRIPT_WARN_LINES } from './document';
 	import { saveTranscriptDocument } from './saveDocument';
-	import { groupTranscript, hasTranscriptTiming, type TranscriptFormat } from './transcript';
+	import {
+		groupTranscript,
+		hasOriginalSpeech,
+		hasTranscriptTiming,
+		type TranscriptFormat
+	} from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
 	import ToolButton from './ui/ToolButton.svelte';
+	import Preference from './ui/Preference.svelte';
 
 	interface Props {
 		mode: OutputMode;
@@ -29,6 +36,8 @@
 	let saving = $state(false);
 	let exportFormat = $state<TranscriptFormat>('markdown');
 	const timedExportAvailable = $derived(hasTranscriptTiming(transcript));
+	// Offered only when there is something to include: subtitles have no separate original.
+	const bilingual = $derived(hasOriginalSpeech(transcript));
 	const missingTiming = $derived(
 		(exportFormat === 'srt' || exportFormat === 'vtt') && !timedExportAvailable
 	);
@@ -135,6 +144,12 @@
 			<option value="vtt">WebVTT (.vtt)</option>
 			<option value="srt">SubRip (.srt)</option>
 		</select>
+		{#if bilingual}<Preference
+				label={$t.transcript.includeOriginal}
+				checked={$exportOriginal}
+				disabled={saving}
+				onchange={(value) => exportOriginal.set(value)}
+			/>{/if}
 		<ToolButton
 			variant="ghost"
 			size="sm"

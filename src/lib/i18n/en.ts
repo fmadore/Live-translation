@@ -333,6 +333,9 @@ export const en = {
 		stable: 'Stable reading',
 		cleanSpeech: 'Hide filler words',
 		cleanSpeechHint: 'Overlay only. The transcript keeps the original text.',
+		showOriginal: 'Show the original speech under translations',
+		showOriginalHint:
+			'A smaller line under each translated caption, for people following the speaker’s own language. Translation only; not in Stable reading.',
 		fillerWords: {
 			heading: 'Words to hide',
 			hint: 'A listed word is hidden wherever it stands on its own, whatever it means there. Words such as “like”, “well” or “so” often carry meaning, so adding them can remove real content.',
@@ -548,6 +551,7 @@ export const en = {
 		saveAs: 'Save as…',
 		format: 'Export format',
 		plainText: 'Plain text',
+		includeOriginal: 'Include original speech',
 		noTiming: 'This recovered transcript has no timing. Save it as text or Markdown.',
 		saveMarkdown: 'Save Markdown',
 		clear: 'Clear',
@@ -576,6 +580,7 @@ export const en = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Live captions transcript',
+		original: 'Original',
 		origin: {
 			microphone: 'Microphone',
 			system: 'System'

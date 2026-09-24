@@ -38,6 +38,9 @@ export interface CaptionLine {
 	lead: string;
 	text: string;
 	interim: boolean;
+	/** The turn's original speech, shown smaller under a translation. Empty when the option
+	 *  is off, in Stable reading, and for subtitles, which have no separate original. */
+	original: string;
 }
 
 export interface ReadingSettings {
@@ -50,6 +53,8 @@ export interface ReadingSettings {
 	pace: CaptionPace;
 	/** Compact line measure, in `ch`. */
 	width: number;
+	/** Show the original speech under each translated caption. */
+	showOriginal: boolean;
 }
 
 export function createOverlayCaptions(initial: ReadingSettings) {
@@ -62,6 +67,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	let hold = $state(initial.hold);
 	let pace = $state(initial.pace);
 	let width = $state(initial.width);
+	let showOriginal = $state(initial.showOriginal);
 	const timers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
 
 	// Compact keeps captions subtitle-sized. A turn streams until it completes, which during
@@ -148,12 +154,16 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 					: room >= MIN_LEAD_CHARS
 						? tail(previous[origin] ?? '', room)
 						: '';
+			// Stable reading is one flowing paragraph of context; a second, separately
+			// scrolling language under it would be two things to read at once.
+			const source = showOriginal && layout !== 'stable' ? caption.sourceText : '';
 			return [
 				{
 					origin,
 					lead: layout === 'compact' ? clean(lead) : lead,
 					text: clean(text, caption.final),
-					interim: !caption.final
+					interim: !caption.final,
+					original: clean(layout === 'compact' ? tail(source, maxChars) : source, caption.final)
 				}
 			];
 		})
@@ -202,6 +212,9 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		},
 		setFillerWords(words: readonly string[]) {
 			fillerWords = words;
+		},
+		setShowOriginal(show: boolean) {
+			showOriginal = show;
 		},
 		setLayout(next: CaptionLayout) {
 			if (next === layout) return;

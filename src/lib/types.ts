@@ -249,6 +249,8 @@ export interface OverlayConfig {
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
 	 *  `captionLanguageOf`, which is where the answer is worked out. */
 	captionLanguage?: TargetLanguage;
+	/** Show the original speech as a smaller line under each translated caption. */
+	showOriginal?: boolean;
 }
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */
@@ -375,6 +377,9 @@ export const OVERLAY_PLACED_KEY = 'overlay.placed';
 /** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
  *  privacy-first default: nothing is written to disk unless the operator asks for it. */
 export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
+
+/** Shared with the overlay, which reads it on load before the operator's first push. */
+export const SHOW_ORIGINAL_KEY = 'overlay.showOriginal';
 
 /** Whether closing the operator window leaves the app running in the tray.
  *

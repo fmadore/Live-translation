@@ -8,6 +8,14 @@ import {
 	bottomCaptionHeight
 } from './captionLayout';
 
+it('makes room for one line of original speech per row when it is shown', () => {
+	for (const sources of [1, 2]) {
+		const plain = bottomCaptionHeight(60, sources, 'fit');
+		const bilingual = bottomCaptionHeight(60, sources, 'fit', true);
+		expect(bilingual - plain).toBe(sources * (Math.ceil(0.6 * 60 * 1.34) + 4));
+	}
+});
+
 it('bottom-aligns to two lines per visible source instead of retaining a tall window', () => {
 	expect(bottomCaptionHeight(38, 0, 'fit')).toBe(160);
 	expect(bottomCaptionHeight(38, 1, 'fit')).toBe(160);

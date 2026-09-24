@@ -28,6 +28,7 @@ import {
 	OVERLAY_PLACED_KEY,
 	RECOVERY_ENABLED_KEY,
 	SESSION_OPTIONS_KEY,
+	SHOW_ORIGINAL_KEY,
 	TRAY_HIDE_EXPLAINED_KEY
 } from './types';
 import {
@@ -331,6 +332,17 @@ export const overlayPlaced = persistedFlag(OVERLAY_PLACED_KEY);
 // wants the safety net does not have to re-enable it before every event.
 
 export const recoveryEnabled = persistedFlag(RECOVERY_ENABLED_KEY);
+
+// ---- Bilingual output ----------------------------------------------------------
+// Translation keeps what was said before it was translated. Off by default, both of them:
+// a bilingual document or overlay is a choice, not something an existing room should find
+// changed after an update.
+
+/** Write the original speech under each translation in a saved transcript. */
+export const exportOriginal = persistedFlag('transcript.includeOriginal');
+
+/** Show the original speech as a smaller line under each translated caption. */
+export const overlayShowOriginal = persistedFlag(SHOW_ORIGINAL_KEY);
 
 // ---- Window and tray ----------------------------------------------------------
 // Off by default, so a fresh install keeps ordinary Windows semantics: the X closes the app.
