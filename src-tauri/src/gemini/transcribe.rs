@@ -91,9 +91,10 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
             return MessageOutcome::setup_complete();
         }
         // Live transcription sessions cap at 10 minutes, so a long room session reconnects
-        // several times an hour. `goAway` gets us moving before the socket actually drops.
+        // several times an hour. `goAway` gets us moving before the socket actually drops, and
+        // as a planned handover the runner reconnects at once rather than backing off.
         if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Reconnect);
+            return MessageOutcome::control(MessageControl::Handover);
         }
         if let Some(error) = msg.error {
             return MessageOutcome::control(MessageControl::Fatal(format!(
@@ -200,7 +201,7 @@ mod smart_tests {
         );
         assert!(matches!(
             h.send(r#"{"goAway":{}}"#).control,
-            MessageControl::Reconnect
+            MessageControl::Handover
         ));
     }
 }

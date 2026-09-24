@@ -71,6 +71,10 @@ pub enum MessageControl {
     #[default]
     Continue,
     Reconnect,
+    /// The provider announced that it is about to close a healthy connection (Gemini's
+    /// `goAway` ahead of its session cap). A planned move rather than a failure: reconnect at
+    /// once, without backoff, and send the audio that queued up while the new socket opened.
+    Handover,
     Fatal(String),
     Closed,
 }
@@ -159,6 +163,7 @@ pub trait RealtimeProtocol {
 enum RunEnd {
     Stopped,
     Reconnect,
+    Handover,
     Fatal(String),
 }
 
@@ -178,33 +183,39 @@ pub async fn run_session<P: RealtimeProtocol>(
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock);
     let mut terminal_error = None;
+    // Set when the last connection ended in a planned handover. The source stays Running
+    // through one, and what it queued meanwhile is live speech rather than a stall's backlog.
+    let mut handover = false;
 
     while !cancel.is_cancelled() {
-        emit_status(
-            &app,
-            if first {
-                SessionState::Connecting
-            } else {
-                SessionState::Reconnecting
-            },
-            None,
-            origin,
-        );
-
-        let mut dropped = 0usize;
-        while audio_rx.try_recv().is_ok() {
-            dropped += 1;
-        }
-        if dropped > 0 {
-            tracing::info!(
-                ?origin,
-                dropped,
-                "dropped stale audio chunks before connect"
+        if !handover {
+            emit_status(
+                &app,
+                if first {
+                    SessionState::Connecting
+                } else {
+                    SessionState::Reconnecting
+                },
+                None,
+                origin,
             );
+
+            let mut dropped = 0usize;
+            while audio_rx.try_recv().is_ok() {
+                dropped += 1;
+            }
+            if dropped > 0 {
+                tracing::info!(
+                    ?origin,
+                    dropped,
+                    "dropped stale audio chunks before connect"
+                );
+            }
         }
 
         let connected_at = Instant::now();
-        match connect_and_run(&app, &mut proto, &mut audio_rx, &cancel, &mut acc).await {
+        let catch_up = std::mem::take(&mut handover);
+        match connect_and_run(&app, &mut proto, &mut audio_rx, &cancel, &mut acc, catch_up).await {
             Ok(RunEnd::Stopped) => break,
             Ok(RunEnd::Fatal(message)) => {
                 tracing::error!(?origin, provider = P::NAME, %message, "provider stopped the session");
@@ -216,6 +227,15 @@ pub async fn run_session<P: RealtimeProtocol>(
             }
             Ok(RunEnd::Reconnect) => {
                 tracing::warn!(?origin, "{} stream closed; reconnecting", P::NAME);
+            }
+            Ok(RunEnd::Handover) => {
+                handover = planned_handover(connected_at.elapsed());
+                tracing::info!(
+                    ?origin,
+                    planned = handover,
+                    "{} asked to move the session; reconnecting",
+                    P::NAME
+                );
             }
             Err(error) => {
                 if let Some(status) = fatal_handshake_rejection(&error) {
@@ -242,6 +262,11 @@ pub async fn run_session<P: RealtimeProtocol>(
         }
         if connected_at.elapsed() >= STABLE_CONNECTION {
             backoff = INITIAL_BACKOFF;
+        }
+        // Waiting out a backoff here is what used to turn Gemini's ten-minute cap into a
+        // caption gap: every second of it was speech dropped before the next connect.
+        if handover {
+            continue;
         }
 
         // A small per-source offset prevents two failed "Both" sessions from reconnecting
@@ -274,6 +299,31 @@ pub async fn run_session<P: RealtimeProtocol>(
     tracing::info!(?origin, "{} session loop ended", P::NAME);
 }
 
+/// Whether a handover request is the planned move it claims to be. A provider that asks to
+/// move straight after accepting a connection is refusing it, and reconnecting at once would
+/// hammer it; that case keeps the ordinary backoff.
+fn planned_handover(uptime: Duration) -> bool {
+    uptime >= STABLE_CONNECTION
+}
+
+/// The chunk to send next, given the one just received. Normally a backlog that filled the
+/// queue is a network stall, so it is coalesced to the newest chunk rather than replayed late.
+/// While `catch_up` is set — straight after a planned handover — the backlog is at most the
+/// half-second the new socket took to open, so it is sent in order until the queue is empty.
+fn next_chunk(
+    mut chunk: AudioChunk,
+    audio_rx: &mut Receiver<AudioChunk>,
+    catch_up: &mut bool,
+) -> AudioChunk {
+    if !*catch_up && audio_rx.len() >= STALE_AUDIO_BACKLOG {
+        while let Ok(newer) = audio_rx.try_recv() {
+            chunk = newer;
+        }
+    }
+    *catch_up &= !audio_rx.is_empty();
+    chunk
+}
+
 fn finish_source(cancel: &CancellationToken, finalize: impl FnOnce(), report: impl FnOnce()) {
     cancel.cancel();
     finalize();
@@ -286,6 +336,7 @@ async fn connect_and_run<P: RealtimeProtocol>(
     audio_rx: &mut Receiver<AudioChunk>,
     cancel: &CancellationToken,
     acc: &mut TurnAccumulator,
+    mut catch_up: bool,
 ) -> Result<RunEnd> {
     let request = proto.connect_request()?;
     let connected = tokio::select! {
@@ -350,7 +401,7 @@ async fn connect_and_run<P: RealtimeProtocol>(
                 MessageControl::Continue if outcome.setup_complete => break,
                 MessageControl::Continue => {}
                 MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
-                MessageControl::Reconnect | MessageControl::Closed => {
+                MessageControl::Reconnect | MessageControl::Handover | MessageControl::Closed => {
                     return Ok(RunEnd::Fatal(format!(
                         "{} closed the connection before accepting session setup",
                         P::NAME
@@ -376,15 +427,8 @@ async fn connect_and_run<P: RealtimeProtocol>(
 
             maybe_chunk = audio_rx.recv() => {
                 match maybe_chunk {
-                    Some(mut chunk) => {
-                        // Preserve ordinary short scheduling backlogs. Only coalesce once
-                        // the bounded queue was effectively full, which indicates a real
-                        // network stall and avoids replaying stale live speech.
-                        if audio_rx.len() >= STALE_AUDIO_BACKLOG {
-                            while let Ok(newer) = audio_rx.try_recv() {
-                                chunk = newer;
-                            }
-                        }
+                    Some(chunk) => {
+                        let chunk = next_chunk(chunk, audio_rx, &mut catch_up);
                         let data = base64::engine::general_purpose::STANDARD.encode(&chunk.pcm_le);
                         write
                             .send(Message::Text(proto.audio_json(data)?.into()))
@@ -411,6 +455,7 @@ async fn connect_and_run<P: RealtimeProtocol>(
                 match outcome.control {
                     MessageControl::Continue => {}
                     MessageControl::Reconnect => return Ok(RunEnd::Reconnect),
+                    MessageControl::Handover => return Ok(RunEnd::Handover),
                     MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
                     MessageControl::Closed => return Ok(RunEnd::Stopped),
                 }
@@ -671,6 +716,52 @@ mod tests {
             let error = anyhow::Error::from(tungstenite::Error::Http(Box::new(response)));
             assert_eq!(fatal_handshake_rejection(&error), fatal.then_some(status));
         }
+    }
+
+    fn chunk(tag: u8) -> AudioChunk {
+        AudioChunk { pcm_le: vec![tag] }
+    }
+
+    #[test]
+    fn a_stall_backlog_is_coalesced_to_the_newest_chunk() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(8);
+        for tag in 1..=5 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let first = rx.try_recv().unwrap();
+        let mut catch_up = false;
+        assert_eq!(next_chunk(first, &mut rx, &mut catch_up).pcm_le, [5]);
+        assert!(rx.is_empty());
+    }
+
+    /// After a planned handover the queue is live speech from while the socket reopened, so
+    /// every chunk goes out in order — and once it drains, a later stall coalesces again.
+    #[test]
+    fn a_handover_backlog_is_sent_in_order_then_coalescing_resumes() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(8);
+        for tag in 1..=5 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let mut catch_up = true;
+        let mut sent = Vec::new();
+        while let Ok(first) = rx.try_recv() {
+            sent.push(next_chunk(first, &mut rx, &mut catch_up).pcm_le[0]);
+        }
+        assert_eq!(sent, [1, 2, 3, 4, 5]);
+        assert!(!catch_up);
+
+        for tag in 6..=10 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let first = rx.try_recv().unwrap();
+        assert_eq!(next_chunk(first, &mut rx, &mut catch_up).pcm_le, [10]);
+    }
+
+    #[test]
+    fn only_a_handover_after_a_stable_connection_skips_the_backoff() {
+        assert!(planned_handover(Duration::from_secs(600)));
+        assert!(planned_handover(STABLE_CONNECTION));
+        assert!(!planned_handover(Duration::from_secs(2)));
     }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
