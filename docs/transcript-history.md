@@ -38,6 +38,27 @@ There is no automatic expiry and no upload. Files are unencrypted local text. No
 device names or application identities are saved. History and the optional single recovery
 copy are independent. See [privacy](privacy.md).
 
+## File format
+
+Each session is one file under app-local data/history, named by its UUID. Since
+24 September 2026 the file is a log, one JSON record per line:
+
+1. a header — `version: 2`, the id, start time, mode, languages and title;
+2. one `{"line": …}` record per finalized line, oldest first;
+3. a progress record — `savedAt`, `durationMs`, `endedAt` — after each write;
+4. a `{"title": …}` record for each rename.
+
+The latest progress and title records win. The first write of a session, and any write after
+a failure, replaces the file whole through the flushed staging file as before; every later
+write goes through `append_history`, which adds only the lines that are new and flushes them.
+Appending never creates a file, so a log never starts without its header, and a record torn by
+a failed write is closed off with a newline before the next one; the reader skips it.
+
+The previous format rewrote the whole session object on every save. At about ten finalized
+lines a minute the 5-second write interval coalesced roughly one line per write, so a
+three-hour session rewrote and flushed about half a gigabyte. Files in that format are still
+read and renamed.
+
 ## Verification
 
 Automated coverage includes opt-in behavior, progressive writes, raw text preservation,

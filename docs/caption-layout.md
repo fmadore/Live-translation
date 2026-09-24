@@ -106,6 +106,36 @@ The operator transcript, saved history, recovery copy, and exports retain the or
 No provider setting or additional request is involved. The option and the list persist across
 relaunch and synchronize with the live controls.
 
+## Original speech under translations
+
+Settings → Reading → **Show the original speech under translations** adds a smaller (0.6×),
+dimmed line under each translated caption, for people following the speaker's own language.
+It is the current turn's source text, fitted by the same measured tail search as the caption,
+two lines when the row has room for them and one otherwise. It is left out of Stable reading —
+a second, separately scrolling language under one flowing paragraph would be two things to read
+at once — and subtitles have no separate original to show. Snap to bottom makes room for one
+line of it per row. Off by default. The browser preview shows it on the remote row when the
+setting is on.
+
+## Two caption languages
+
+With a second caption language (Step 03, translation only), each source gets a row per
+language, the first above the second, in the order remote-first, room-second. The labels
+become language codes — `FR`, `EN` — with the source name too when both sources are on
+screen; a name would crowd the caption at projector distance. Each row is marked up with its
+own language. The original speech, when shown, goes under the first language only: the second
+heard the same speech. Snap to bottom sizes the strip for up to four rows. `?language=bilingual`
+previews it in a browser.
+
+## Fitting cost
+
+Fit window hands the fitting search up to 12,000 characters of context, and every probe is a
+synchronous layout. The search now starts from the tail the region could possibly show
+(`captionReach`: two rows of slack, glyphs a fifth of the line height wide) and falls back to
+the whole text only if even that tail fits, so the result is unchanged. Measured in headless
+Chromium at 1500 px wide and 38 px with 12,000 characters of context, the median fit went from
+4.1 ms to 0.7 ms per caption per source. Line height is read once per font.
+
 ## Recent context and the transcript
 
 Fit window retains a bounded recent history in memory for each source. Completed text is

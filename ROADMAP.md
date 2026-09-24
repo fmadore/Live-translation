@@ -42,6 +42,20 @@ No new scroll-back or return-to-live controls are included in this update.
 **1.4.2 keeps session controls visible.** Start and Stop share a persistent top bar;
 setup and transcripts scroll underneath.
 
+**Next release, on `main` once merged: efficiency follow-up and three features.** Recorded in
+[the 24 September follow-up](docs/app-review-2026-09-22.md#follow-up--24-september-2026):
+
+- Gemini's `goAway` reconnects at once instead of backing off and dropping queued audio;
+  history appends new lines instead of rewriting the session file; overlay caption fitting
+  searches only the tail that could show (4.1 → 0.7 ms a caption in Chromium); device
+  presence is checked on change rather than polled; faster CI and component tests.
+- **Bilingual output** — the original speech under translations in exports and, optionally,
+  on the overlay.
+- **Pause** — keeps the session and transcript, disconnects the caption engine so nothing is
+  streamed or billed, and resumes with Ctrl+Shift+P or the button beside Stop.
+- **Two caption languages at once** — a second translation client per source, fed by the same
+  capture; both languages on the overlay, in the transcript and in the exports.
+
 ## Historical delivery context
 
 The sections below preserve earlier plans and acceptance criteria. They are not the current
@@ -168,9 +182,12 @@ Use the [1.5.1 handoff](docs/store-updates.md#release-151-handoff) for the curre
   clean x64 machine before it can be considered, and it cannot enter a Store build while the
   API is experimental.
 - [#12 — automatic FR ⇄ EN direction](https://github.com/fmadore/Live-translation/issues/12)
-  needs a measured provider-switching design before it becomes a release commitment.
+  needs a measured provider-switching design before it becomes a release commitment. Two
+  caption languages at once now covers the bilingual room differently: both directions run
+  side by side, at twice the cost, with no switching to get wrong.
 - Event glossary for names, institutions, acronyms, and specialist terminology.
-- Optional bilingual overlay with source text and translated text.
+- ~~Optional bilingual overlay with source text and translated text.~~ Implemented: Settings →
+  Reading → Show the original speech under translations.
 - Privacy-preserving diagnostic export: versions, devices, reconnects, queue drops, and sanitized
   errors, but never keys or audio.
 - Persist overlay position/size and add multi-monitor overlay presets.

@@ -108,6 +108,23 @@ capture threads, clears meters and current captions, and retains completed trans
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
 
+**Pause** is a `watch` channel per session: `pause_session` sets it, and every client holds a
+receiver. A connected client closes its provider connection through the same graceful close
+as Stop — so the last turn is flushed — reports `Paused`, and waits; on resume it connects
+afresh (`Connecting`, no backoff). A pause during a reconnect backoff ends the wait. Capture is
+untouched, so the meters keep running, and the demo's pacer holds between steps. The renderer
+counts paused time out of the running cost estimate.
+
+**Planned handovers.** Gemini's `goAway` returns `MessageControl::Handover`. After a
+connection that lasted at least `STABLE_CONNECTION`, the runner reconnects without backoff,
+keeps the source Running, and sends the audio queued meanwhile in order (`next_chunk`'s
+catch-up) rather than coalescing it as a stall's backlog.
+
+**Device presence.** Capture threads check that their endpoint still exists through
+`audio::devices::PresenceCheck`: at once when the device watcher reports a change, and
+otherwise on a fallback interval (5 s for the microphone's enumeration, 1 s for loopback's
+endpoint state), rather than polling on every wake.
+
 Terminal provider exits cancel their source, finalize the pending turn, and then publish
 their terminal status. Cancellation stays local to that source, preserving the other half
 of a Both session. Capture returns runtime errors to its owner: a live session reports a
@@ -168,10 +185,30 @@ and coalesces complete snapshots. It writes a session's first line at once and l
 at most every 5 seconds, writes anything waiting at Stop, quit, retry and the next Start,
 retries failures, and orders deletion after any in-flight write. A run whose sources all end
 by themselves finishes its history record. A tombstone prevents an active deleted session reappearing.
-The native history commands use the same flushed staging-and-replace operation as recovery,
-but write separate session files under app-local data/history. Only the operator has permission
+A session file is a log — a header, one record per finalized line, a progress record per
+write — so after the first write `append_history` adds only the new lines; the first write and
+any write after a failure replace the file whole with the same flushed staging-and-replace
+operation as recovery. Session files live under app-local data/history; see
+[the file format](transcript-history.md#file-format). Only the operator has permission
 to list, save, rename or delete these files. UUID validation prevents renderer paths escaping the folder.
 History opt-in is independent of crash recovery and defaults off. See [history](transcript-history.md).
+
+## Two caption languages
+
+`StartOptions.second_target_language` adds lane 1 beside the target's lane 0. `SessionBuilder`
+gives each source one client per lane; with two, the producer's channel goes to a relay
+(`relay_audio`) that copies each chunk to both clients' bounded queues without blocking, so no
+device is opened twice. Each lane client has a child of the source's token: one failing leaves
+the other captioning, and the relay cancels the source — stopping capture — once both have
+gone. `Caption` and `StatusUpdate` carry `lane`; a status with no lane (a capture failure)
+applies to every lane of its source.
+
+The renderer keys everything per stream by **track** (`Origin | "<origin>:1"`): current
+captions, pending turns, per-source state, the reading presenter and the overlay's context.
+Lane 0 keeps the bare origin as its key, so a one-language session is keyed exactly as before.
+Committed lines of a two-language run record `lane` and `language`; `groupTranscript` groups
+each lane on its own and merges the paragraphs by first line, and exports section or label by
+language.
 
 ## Responsive caption overlay
 

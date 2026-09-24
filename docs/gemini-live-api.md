@@ -180,12 +180,19 @@ that is a fair reason to prefer it for a speaker who does not pause much.
 > Live transcription sessions support continuous streaming for up to 10 minutes.
 
 Mistral Voxtral has no such limit, so this is the one operational difference between the two
-subtitle engines. A room session therefore reconnects several times an hour. Nothing special
-handles it: `goAway` (or the socket closing) returns the shared runner to its reconnect path,
-the in-flight turn is finalized into the transcript, and because the connection was stable for
-well over 30 seconds the backoff resets to one second. The cost is a roughly one- to
-two-second caption gap every ten minutes. Choose Voxtral for a session where that gap matters
-more than Gemini's language coverage.
+subtitle engines. A room session therefore reconnects several times an hour.
+
+`goAway` arrives before the cut, and both Gemini clients answer it with
+`MessageControl::Handover`: a planned move, not a failure. After a connection that lasted at
+least 30 seconds the runner finalizes the in-flight turn, keeps the source Running and
+reconnects at once — no backoff — then sends the up-to-half-second of audio that queued while
+the new socket opened, in order, instead of discarding it as a stall's backlog. Until
+24 September the runner treated `goAway` like a dropped socket: it waited out the one-second
+backoff (plus 173 ms on the system source) and dropped the queued audio, which is where most of
+the one- to two-second gap every ten minutes came from. What remains is the new connection's
+TLS handshake and setup round trip. A `goAway` straight after connecting still backs off, so a
+server refusing the session is never hammered. Opening the new socket before closing the old
+one would remove the gap entirely; the runner holds one socket per client today.
 
 Speaker diarization and word-level timestamps are not available over the Live API — they
 belong to the non-streaming `gemini-3.5-transcribe` model, which takes uploaded files rather

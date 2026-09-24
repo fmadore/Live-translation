@@ -27,6 +27,22 @@ one transcript are concatenated after its last cue; idle time between sessions i
 Older recovery files without timing remain exportable as Markdown/text, with timed export
 disabled and an explanation rather than guessed timestamps or silently omitted text.
 
+## Bilingual and two-language exports
+
+Translation keeps what was said before it was translated. When a transcript holds any such
+original speech, **Include original speech** appears beside the format selector (and in the
+history view); the quit prompt's save follows the same choice. Text puts `Original: …` under
+each paragraph, Markdown a `> *Original:* …` quote, and WebVTT and SubRip set the original as
+each cue's italic second line (`<i>…</i>`). Subtitles have no separate original, so the option
+is not offered for them. It is off by default.
+
+A session captioned in two languages records each line's language. Its paragraphs are grouped
+per language rather than alternating line by line; text and Markdown export one section per
+language, headed by its name; WebVTT and SubRip interleave both languages' cues by start time,
+each labelled with its source and language, which most players show as stacked bilingual
+subtitles. The original speech, when included, is written once, under the first language. A
+transcript in one language exports exactly as before.
+
 ## Verification
 
 Automated tests cover cancelled saves and quit, captions arriving during a save, atomic
