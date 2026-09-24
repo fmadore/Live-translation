@@ -9,6 +9,7 @@ import {
 	options,
 	overlayFontSize,
 	overlayCaptionFace,
+	overlayFillerWords,
 	overlayPalette,
 	overlayPlaced,
 	statusMessage
@@ -17,6 +18,7 @@ import { captionLanguageOf, clampOverlayFont } from './types';
 import type { OverlayConfig, OverlayStateMsg } from './types';
 import { DEFAULT_APPEARANCE, toOverlayConfig, type Appearance } from './appearance';
 import type { CaptionPalette } from './captionColour';
+import { normalizeFillerWords } from './cleanSpeech';
 import {
 	availableCaptionFaces,
 	CAPTION_FACES,
@@ -38,12 +40,14 @@ export function createOverlayController(port = api) {
 
 	// Every push carries the whole appearance, not the field that changed: the overlay is a
 	// separate webview that can be reloaded independently, and a partial config would leave
-	// it showing whatever it had before. One helper so no call site can forget a field.
+	// it showing whatever it had before. One helper so no call site can forget a field. The
+	// filler word list rides along for the same reason.
 	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
 		void api
 			.setOverlayConfig({
 				...toOverlayConfig(get(appearance)),
 				captionLanguage: captionLanguage(),
+				fillerWords: [...get(overlayFillerWords)],
 				...extra
 			})
 			.catch((e) => statusMessage.set(asStatus(e)));
@@ -69,6 +73,13 @@ export function createOverlayController(port = api) {
 	const setCaptionFace = (face: CaptionFaceId) => setAppearance({ face });
 	const setPalette = (patch: Partial<CaptionPalette>) =>
 		setAppearance({ palette: { ...get(overlayPalette), ...patch } });
+
+	/** Replace the words Hide filler words removes, and show the change live. Apart from
+	 *  `setAppearance` because the list is apart from the appearance: see `overlayFillerWords`. */
+	function setFillerWords(words: readonly string[]) {
+		overlayFillerWords.set(normalizeFillerWords(words));
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
 
 	/** Put the overlay's whole appearance back to what it ships with.
 	 *
@@ -152,6 +163,7 @@ export function createOverlayController(port = api) {
 		setCaptionWidth,
 		setCaptionLayout,
 		setCleanSpeech: (cleanSpeech: boolean) => setAppearance({ cleanSpeech }),
+		setFillerWords,
 		setPalette,
 		resetOverlayAppearance,
 		setCaptionFace,

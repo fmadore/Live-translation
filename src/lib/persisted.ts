@@ -25,6 +25,15 @@ export function writeStored(key: string, value: string): void {
 	}
 }
 
+/** Forget `key`, for a preference whose absence means "the default". A refusal is ignored. */
+export function removeStored(key: string): void {
+	try {
+		if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+	} catch {
+		/* Preferences remain usable when storage is unavailable. */
+	}
+}
+
 /** Stored flags are the string `'true'`; anything else, including nothing, is off. */
 export function readFlag(key: string): boolean {
 	return readStored(key) === 'true';

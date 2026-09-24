@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOverlayCaptions, tail, type ReadingSettings } from './overlayCaptions.svelte';
+import { DEFAULT_FILLER_WORDS } from '$lib/cleanSpeech';
 import type { Caption, Origin } from '$lib/types';
 
 const fit: ReadingSettings = {
 	layout: 'fit',
 	hideFillers: false,
+	fillerWords: DEFAULT_FILLER_WORDS,
 	hold: 4,
 	pace: 'immediate',
 	width: 30
@@ -103,6 +105,82 @@ describe('overlay captions', () => {
 		c.setHideFillers(false);
 		c.push(caption('system', 3, 'Third.'));
 		expect(c.lines[0].lead).toBe(' First. Second.');
+		c.dispose();
+	});
+
+	it('applies an edited word list to the captions on screen, in Fit window and Compact', () => {
+		for (const layout of ['fit', 'compact'] as const) {
+			const c = createOverlayCaptions({ ...fit, layout, hideFillers: true, width: 60 });
+			c.push(caption('system', 1, 'Bon, on commence, euh, maintenant.'));
+			c.push(caption('system', 2, 'Bah, la suite.', false));
+			expect(c.lines[0]).toMatchObject({
+				lead: 'Bon, on commence maintenant.',
+				text: 'Bah, la suite.'
+			});
+			c.setFillerWords(['bah', 'bon']);
+			expect(c.lines[0]).toMatchObject({
+				lead: 'On commence, euh, maintenant.',
+				text: 'La suite.'
+			});
+			c.setFillerWords([]);
+			expect(c.lines[0]).toMatchObject({
+				lead: 'Bon, on commence, euh, maintenant.',
+				text: 'Bah, la suite.'
+			});
+			c.dispose();
+		}
+	});
+
+	it('keeps an edited list for when Hide filler words is switched back on', () => {
+		const c = createOverlayCaptions(fit);
+		c.setFillerWords(['bah']);
+		c.push(caption('system', 1, 'Bah, um, yes.'));
+		expect(c.lines[0].text).toBe('Bah, um, yes.');
+		c.setHideFillers(true);
+		expect(c.lines[0].text).toBe('Um, yes.');
+		c.dispose();
+	});
+
+	it('applies an edited list to the live Stable turn without re-wrapping what was read', () => {
+		const c = createOverlayCaptions({ ...fit, layout: 'stable', hideFillers: true });
+		c.push(caption('system', 1, 'Bah, first.'));
+		c.push(caption('system', 2, 'Um, second.'));
+		expect(c.lines[0]).toMatchObject({ lead: ' Bah, first.', text: 'Second.' });
+		c.setFillerWords(['bah']);
+		expect(c.lines[0]).toMatchObject({ lead: ' Bah, first.', text: 'Um, second.' });
+		c.push(caption('system', 3, 'Bah, third.'));
+		expect(c.lines[0]).toMatchObject({ lead: ' Bah, first. Um, second.', text: 'Third.' });
+		c.dispose();
+	});
+
+	it('cleans a streaming word only once it is complete', () => {
+		const c = createOverlayCaptions({ ...fit, hideFillers: true, fillerWords: ['bah'] });
+		c.push(caption('system', 1, 'On verra, bah', false));
+		expect(c.lines[0].text).toBe('On verra, bah');
+		c.push(caption('system', 1, 'On verra, bahut', false));
+		expect(c.lines[0].text).toBe('On verra, bahut');
+		c.push(caption('system', 1, 'On verra, bah, demain', false));
+		expect(c.lines[0].text).toBe('On verra demain');
+		c.push(caption('system', 1, 'On verra, bah.'));
+		expect(c.lines[0].text).toBe('On verra.');
+		c.dispose();
+	});
+
+	it('cleans only the audience text of translations and subtitles, never the caption itself', () => {
+		const c = createOverlayCaptions({ ...fit, hideFillers: true });
+		const translation: Caption = {
+			...caption('system', 1, 'Um, we agree.'),
+			sourceText: 'Euh, nous sommes d’accord.'
+		};
+		const subtitle = caption('microphone', 1, 'Euh, bonjour.');
+		c.push(translation);
+		c.push(subtitle);
+		expect(c.lines.map((line) => line.text)).toEqual(['We agree.', 'Bonjour.']);
+		expect(translation).toMatchObject({
+			text: 'Um, we agree.',
+			sourceText: 'Euh, nous sommes d’accord.'
+		});
+		expect(subtitle.text).toBe('Euh, bonjour.');
 		c.dispose();
 	});
 

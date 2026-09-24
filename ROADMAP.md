@@ -22,9 +22,9 @@ speculative interim text, including all-filler empty results. Impeccable visual 
 fixed long history-title overflow and date-picker icon contrast.
 
 See the [release handoff](docs/store-updates.md#release-151-handoff) for verified
-checks and remaining native/package acceptance. EN/FR/DE Store copy targets 1.5.1, which
-supersedes unsubmitted 1.5.0; the last documented Store release is 1.2.4, with no claim of a
-new Partner Center submission. Citation metadata identifies 1.5.1, dated 23 September 2026.
+checks and remaining native/package acceptance. **1.5.1 is live in the Microsoft Store**
+(confirmed 23 September 2026), replacing 1.2.4; 1.3.0 through 1.5.0 were never submitted.
+Citation metadata identifies 1.5.1, dated 23 September 2026.
 
 **1.5.0 adds searchable caption languages and favourites (#78).** Provider support, persisted
 targets, F2, demo/rehearsal types and RTL captions are reconciled. Live acceptance is still
@@ -35,7 +35,8 @@ profiles sit above setup with aligned controls, and history uses a list/detail v
 Presets, swatches, localized tray labels and EN/FR/DE date fields complete the UI audit.
 The final frontend suite has 337 passing tests. Store acceptance remains pending.
 
-The customizable filter list remains open in [#85](https://github.com/fmadore/Live-translation/issues/85).
+The customizable filter list ([#85](https://github.com/fmadore/Live-translation/issues/85)) is
+implemented on `main` for the next release; see [the word list](docs/caption-layout.md#the-word-list).
 No new scroll-back or return-to-live controls are included in this update.
 
 **1.4.2 keeps session controls visible.** Start and Stop share a persistent top bar;

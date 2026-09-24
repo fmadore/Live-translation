@@ -6,6 +6,7 @@
 	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
 	import { previewContent } from './overlayFixtures';
 	import { loadAppearance } from '$lib/appearance';
+	import { loadFillerWords, normalizeFillerWords } from '$lib/cleanSpeech';
 	import { bottomCaptionHeight, isCaptionLayout } from '$lib/captionLayout';
 	import {
 		captionCssVars,
@@ -26,6 +27,7 @@
 	const captions = createOverlayCaptions({
 		layout: initial.layout,
 		hideFillers: initial.cleanSpeech,
+		fillerWords: loadFillerWords(),
 		hold: initial.hold,
 		pace: initial.pace,
 		width: initial.width
@@ -114,6 +116,8 @@
 			if (typeof cfg.holdSeconds === 'number') captions.setHold(cfg.holdSeconds);
 			if (cfg.pace === 'steady' || cfg.pace === 'immediate') captions.setPace(cfg.pace);
 			if (typeof cfg.cleanSpeech === 'boolean') captions.setHideFillers(cfg.cleanSpeech);
+			if (Array.isArray(cfg.fillerWords))
+				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
 			if (isCaptionLayout(cfg.captionLayout)) captions.setLayout(cfg.captionLayout);
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);

@@ -59,19 +59,52 @@ Compact retain their existing alignment, colour treatment, and idle expiry.
 ## Hide filler words
 
 **Hide filler words** is off by default ([issue #80](https://github.com/fmadore/Live-translation/issues/80)).
-It removes exact hesitation tokens `um`, `uh`, `erm`, `hmm`, `euh`, and `heu` from the overlay
-and repairs adjacent punctuation. Meaningful words such as “so”, “well”, “like”, and “oh”
-remain. Substrings, uppercase abbreviations, quoted tokens, and unfinished streamed tokens
-are preserved. This is a conservative text filter, not semantic speech analysis: it cannot
-reliably distinguish every intentional hesitation from other uses in every language.
+It removes listed words from the overlay and repairs the clause punctuation around them.
+The built-in list is the hesitation tokens `um`, `uh`, `erm`, `hmm`, `euh` and `heu`;
+meaningful words such as “so”, “well”, “like” and “oh” are not on it. Substrings, all-capital
+abbreviations, quoted words (including French « spaced » guillemets) and unfinished streamed
+tokens are preserved. This is a conservative text filter, not semantic speech analysis: it
+cannot reliably distinguish every intentional hesitation from other uses in every language.
+
+### The word list
+
+While the option is on, **Settings → Reading** shows the active list under it
+([issue #85](https://github.com/fmadore/Live-translation/issues/85)). Operators can remove any
+word, including the built-in ones, add words one at a time, and **Reset to defaults**. Each
+change reaches the overlay at once, without restarting the session.
+
+- **Whole words only.** A listed word matches only between spaces or punctuation, in any
+  script and without regard to case; `eh` never matches inside `ehé`. A listed word is removed
+  wherever it stands on its own, whatever it means there, which is why the interface warns
+  against ambiguous words such as “like”, “well” or “so”.
+- **One word per entry.** Entries are trimmed, and blank entries and duplicates (ignoring case)
+  are rejected. Letters, marks and digits may be joined by hyphens or apostrophes (`mm-hmm`,
+  `y'know`); either apostrophe or hyphen form in the captions matches. Phrases, patterns and
+  per-language lists are out of scope for now. The list holds up to 100 words of up to 40
+  characters.
+- **Languages written without spaces.** Chinese, Japanese and Thai captions rarely separate
+  words with spaces, so a listed word there is removed only when it stands alone between spaces
+  or the punctuation above.
+- **Storage.** Nothing is stored while the list is the built-in one, so existing users keep the
+  shipped behaviour. A customized list persists as JSON under `overlay.fillerWords`; an emptied
+  list persists as `[]`, stays empty after restart and removes nothing.
+
+The list is not part of the appearance. Reset appearance switches the option off but keeps the
+list, and meeting profiles do not store it.
+
+Punctuation and spacing that belong to the remaining text are left as the provider returned
+them; only the removed word and its adjacent commas, semicolons or colons go. French spacing
+before `?` and `!` therefore survives the filter.
 
 In Stable reading, each turn is cleaned once as it joins the retained context. Changing the
-option mid-session therefore applies to new captions, and the lines already read do not
-re-wrap (1.5.1). Fit window and Compact apply the change to the text on screen at once.
+option or the list mid-session therefore applies to the live turn and new captions, and the
+lines already read do not re-wrap (1.5.1). Fit window and Compact apply the change to the text
+on screen at once. Translation mode filters the translated text shown to the audience;
+subtitle mode filters the same-language text.
 
 The operator transcript, saved history, recovery copy, and exports retain the original text.
-No provider setting or additional request is involved. Both caption options persist across
-relaunch, synchronize with the live controls, and reset with the other appearance settings.
+No provider setting or additional request is involved. The option and the list persist across
+relaunch and synchronize with the live controls.
 
 ## Recent context and the transcript
 
@@ -116,7 +149,7 @@ For 1.5.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
 | Placement and locking | Move/resize, Enter, Escape and click-through still work. |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
-| Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; toggling Hide filler words changes new captions only. |
+| Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; changing Hide filler words or its word list changes the live turn and new captions only. |
 | English and French | Labels, keyboard access and layout choice work in both the rail and settings. |
 | Light/dark content | Current text and dimmed history remain readable over slides and video calls. |
 
@@ -141,7 +174,7 @@ changes presentation: it does not buffer audio, delay transcription storage or a
 
 **Settings → Captions** keeps presets and the appearance preview visible. It shows sample text at the selected font size over bright
 and dark slides. Standard, Large room and High contrast presets change appearance; the Reset
-button also restores the default reading pace, hold time and filler filter. The real overlay
+button also restores the default reading pace and hold time, and switches the filler filter off; the filler word list keeps its own reset. The real overlay
 may have different dimensions, so finish placement on the presentation display.
 
 Gemini subtitles already request Google's Smart transcription. The optional local filler

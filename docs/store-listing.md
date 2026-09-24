@@ -1,10 +1,10 @@
 # Partner Center listing text — 1.5.1 prepared
 
-Prepared for **1.5.1** (MSIX **1.5.1.0**), not submitted to the Store. This supersedes the
-unsubmitted 1.5.0 listing. Only the "What's new" blocks changed. 1.5.1 adds no features, so
+Prepared for **1.5.1** (MSIX **1.5.1.0**), which has been live in the Store since 23 September 2026.
+This superseded the unsubmitted 1.5.0 listing. Only the "What's new" blocks changed. 1.5.1 adds no features, so
 the descriptions, short descriptions, features and certification notes are unchanged from
-1.5.0. Complete the live-provider and final-package checks in
-[the 1.5.1 handoff](store-updates.md#release-151-handoff) before submission.
+1.5.0. The live-provider and final-package checks in
+[the 1.5.1 handoff](store-updates.md#release-151-handoff) remain open against the Store build.
 
 The German listing is new. Native-language review and final-package screenshots remain
 pending; see [Adding the German listing](#adding-the-german-listing). Paste only the relevant

@@ -82,8 +82,9 @@ Deletion is permanent and requires confirmation. Files are local, unencrypted, a
 automatically uploaded. There is no automatic expiry. An interrupted session remains readable
 through its last completed save. Clearing the recovery copy does not delete history.
 
-*Hide filler words* is an optional overlay display filter. Raw text in the transcript,
-history, recovery copy and exports remains unchanged. It introduces no network requests.
+*Hide filler words* is an optional overlay display filter. Its word list is edited by the
+operator and stored only on this device. Raw text in the transcript, history, recovery copy
+and exports remains unchanged. It introduces no network requests.
 
 ## API keys
 
@@ -96,7 +97,7 @@ copy, proxy, or store provider keys.
 
 The app locally stores ordinary interface preferences, including the last selected mode,
 provider, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
-compact line width, caption persistence and update pace, filler-word cleanup, whether transcript history or the optional recovery
+compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
 system capture uses an output or an application. The selected process identity is not

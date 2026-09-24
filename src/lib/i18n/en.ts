@@ -333,6 +333,26 @@ export const en = {
 		stable: 'Stable reading',
 		cleanSpeech: 'Hide filler words',
 		cleanSpeechHint: 'Overlay only. The transcript keeps the original text.',
+		fillerWords: {
+			heading: 'Words to hide',
+			hint: 'A listed word is hidden wherever it stands on its own, whatever it means there. Words such as “like”, “well” or “so” often carry meaning, so adding them can remove real content.',
+			empty: 'The list is empty, so nothing is hidden.',
+			add: 'Add a word',
+			addButton: 'Add',
+			remove: (word: string) => `Remove “${word}”`,
+			reset: 'Reset to defaults',
+			added: (word: string) => `“${word}” added.`,
+			removed: (word: string) => `“${word}” removed.`,
+			restored: 'Default words restored.',
+			problem: {
+				phrase: 'Add one word at a time. Phrases are not supported.',
+				characters:
+					'Use letters and numbers. Hyphens and apostrophes can only join parts of a word.',
+				length: (max: number) => `A word can be at most ${max} characters long.`,
+				duplicate: (word: string) => `“${word}” is already in the list.`,
+				full: (max: number) => `The list holds up to ${max} words. Remove one first.`
+			}
+		},
 
 		heading: 'Overlay',
 		captionSize: 'Caption size',

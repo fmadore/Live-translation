@@ -14,6 +14,7 @@
 	import Select from './ui/Select.svelte';
 	import Stepper from './ui/Stepper.svelte';
 	import Preference from './ui/Preference.svelte';
+	import FillerWordList from './FillerWordList.svelte';
 	let { overlay }: { overlay: OverlayController } = $props();
 </script>
 
@@ -63,6 +64,7 @@
 		checked={$overlayCleanSpeech}
 		onchange={overlay.setCleanSpeech}
 	/>
+	{#if $overlayCleanSpeech}<FillerWordList {overlay} />{/if}
 	{#if $options.provider === 'gemini-transcribe'}<p>{$t.usability.geminiSmart}</p>{/if}
 </div>
 

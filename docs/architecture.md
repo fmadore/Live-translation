@@ -181,8 +181,11 @@ down to complete lines. Font and resize changes trigger new measurements. A whol
 event clears this mode's context. The context is trimmed only at a rendered line start: once
 180 lines are hidden, the line component measures the live layout and hands back the offset
 that leaves 60, so no visible line re-wraps. Display-only filler cleanup runs before rendering
-and does not mutate caption events or transcript records. Stable reading cleans each turn once
-as it joins the context, so a mid-session toggle applies to new turns.
+and does not mutate caption events or transcript records. `cleanSpeech.ts` compiles the
+operator's word list into one whole-word matcher (`createFillerFilter`) and owns the list's
+validation and storage; the list travels in every `OverlayConfig` push beside the appearance
+but is not part of it. Stable reading cleans each turn once as it joins the context, so a
+mid-session change to the toggle or the list applies to the live turn and new turns.
 
 The overlay route's `overlayCaptions.svelte.ts` owns current and previous turns per origin,
 plus a bounded in-memory history (12,000 characters per origin), their expiry and the

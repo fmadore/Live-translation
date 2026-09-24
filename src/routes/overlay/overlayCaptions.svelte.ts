@@ -3,7 +3,7 @@
 // can be exercised without fonts, a ResizeObserver or a Tauri window.
 
 import { appendCaptionHistory, type CaptionLayout } from '$lib/captionLayout';
-import { cleanSpeech } from '$lib/cleanSpeech';
+import { createFillerFilter } from '$lib/cleanSpeech';
 import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
 import { captionBudget, clampOverlayWidth } from '$lib/types';
 import type { Caption, Origin, StatusUpdate } from '$lib/types';
@@ -43,6 +43,8 @@ export interface CaptionLine {
 export interface ReadingSettings {
 	layout: CaptionLayout;
 	hideFillers: boolean;
+	/** What Hide filler words removes; see `createFillerFilter`. */
+	fillerWords: readonly string[];
 	/** Seconds a finished Fit/Compact caption stays up. */
 	hold: number;
 	pace: CaptionPace;
@@ -56,6 +58,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	let history = $state<Partial<Record<Origin, string>>>({});
 	let layout = $state(initial.layout);
 	let hideFillers = $state(initial.hideFillers);
+	let fillerWords = $state.raw(initial.fillerWords);
 	let hold = $state(initial.hold);
 	let pace = $state(initial.pace);
 	let width = $state(initial.width);
@@ -67,13 +70,17 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	// however wide the operator sets it; see `captionBudget`.
 	const maxChars = $derived(captionBudget(width));
 
+	/** Display cleanup as it stands: the operator's words while Hide filler words is on, nothing
+	 *  otherwise. Compiled again only when either changes, not per caption. */
+	const clean = $derived(createFillerFilter(hideFillers ? fillerWords : []));
+
 	/** Add a finished turn to an origin's reading context. Stable reading cleans the turn once,
 	 *  here, so its history is exactly the text on screen: the overlay trims it at rendered
-	 *  line starts (`trimStable`), and a later filler toggle then applies to new turns rather
-	 *  than re-wrapping every line already read. */
+	 *  line starts (`trimStable`), and a later change to the toggle or the word list then
+	 *  applies to new turns rather than re-wrapping every line already read. */
 	function joinHistory(origin: Origin, turn: string): string {
 		if (layout !== 'stable') return appendCaptionHistory(history[origin] ?? '', turn);
-		return `${history[origin] ?? ''} ${hideFillers ? cleanSpeech(turn) : turn}`;
+		return `${history[origin] ?? ''} ${clean(turn)}`;
 	}
 
 	/** Auto-hide an origin's caption so the overlay never sits on a stale line over the
@@ -119,7 +126,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		Object.fromEntries(
 			ORIGIN_ORDER.map((origin) => {
 				const context = history[origin] ?? '';
-				return [origin, layout === 'fit' && hideFillers ? cleanSpeech(context) : context];
+				return [origin, layout === 'fit' ? clean(context) : context];
 			})
 		) as Record<Origin, string>
 	);
@@ -144,8 +151,8 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 			return [
 				{
 					origin,
-					lead: layout === 'compact' && hideFillers ? cleanSpeech(lead) : lead,
-					text: hideFillers ? cleanSpeech(text, caption.final) : text,
+					lead: layout === 'compact' ? clean(lead) : lead,
+					text: clean(text, caption.final),
 					interim: !caption.final
 				}
 			];
@@ -193,6 +200,9 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		setHideFillers(hide: boolean) {
 			hideFillers = hide;
 		},
+		setFillerWords(words: readonly string[]) {
+			fillerWords = words;
+		},
 		setLayout(next: CaptionLayout) {
 			if (next === layout) return;
 			layout = next;
@@ -200,11 +210,11 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 				rescheduleAll();
 				for (const origin of ORIGIN_ORDER)
 					history[origin] = appendCaptionHistory('', history[origin] ?? '');
-			} else if (hideFillers) {
+			} else {
 				// Stable reading keeps its history cleaned; context carried over from another
 				// layout is cleaned once, on the way in.
 				for (const origin of ORIGIN_ORDER)
-					if (history[origin]) history[origin] = cleanSpeech(history[origin]);
+					if (history[origin]) history[origin] = clean(history[origin]);
 			}
 		},
 		setWidth(ch: number) {

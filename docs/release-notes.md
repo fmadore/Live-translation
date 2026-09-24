@@ -19,8 +19,8 @@ this way on 23 September 2026; earlier releases without prepared text here stay 
 ## v1.5.1
 
 23 September 2026. [Release body](release-1.5.1.md) and
-[Store handoff](store-updates.md#release-151-handoff). Supersedes the unsubmitted 1.5.0 as the
-Store candidate.
+[Store handoff](store-updates.md#release-151-handoff). Superseded the unsubmitted 1.5.0 as the
+Store candidate, and has been live in the Microsoft Store since 23 September 2026.
 
 ## v1.5.0
 
