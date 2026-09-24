@@ -103,7 +103,7 @@ function timingOf(line: {
  * half an interval. Neither is a reason to throw away words the operator cannot get back —
  * the line returns without timing, and only the timed export is poorer for it.
  */
-function readLine(value: unknown): TranscriptLine | null {
+export function readLine(value: unknown): TranscriptLine | null {
 	if (typeof value !== 'object' || value === null) return null;
 	const line = value as Record<string, unknown>;
 	if (

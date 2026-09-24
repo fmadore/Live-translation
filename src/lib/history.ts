@@ -1,6 +1,6 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
-import { decodeRecovery } from './document';
+import { decodeRecovery, readLine } from './document';
 import { api } from './tauri';
 import { OUTPUT_MODES, type StartOptions, type TranscriptLine } from './types';
 
@@ -28,55 +28,161 @@ export interface SavedSession {
 	lines: TranscriptLine[];
 }
 
-export function decodeSession(raw: string, id: string): SavedSession | null {
+const SESSION_ID = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
+
+const isDate = (value: unknown): value is string =>
+	typeof value === 'string' && Number.isFinite(Date.parse(value));
+
+/** The checks every stored session passes, whichever format it was read from. */
+function checked(s: SavedSession, id: string): SavedSession | null {
+	const ids = s.lines.map((line) => line.id);
+	return s.id === id &&
+		SESSION_ID.test(id) &&
+		(OUTPUT_MODES as readonly string[]).includes(s.mode) &&
+		(s.sourceLanguage === 'auto' || isTargetLanguage(s.sourceLanguage)) &&
+		(s.targetLanguage === null || isTargetLanguage(s.targetLanguage)) &&
+		isDate(s.startedAt) &&
+		isDate(s.savedAt) &&
+		(s.endedAt === null || isDate(s.endedAt)) &&
+		Number.isFinite(s.durationMs) &&
+		s.durationMs >= 0 &&
+		ids.length > 0 &&
+		new Set(ids).size === ids.length &&
+		ids.every((n) => Number.isSafeInteger(n) && n >= 1)
+		? s
+		: null;
+}
+
+const cleanTitle = (title: unknown) =>
+	typeof title === 'string' ? title.trim().slice(0, 120) : undefined;
+
+// ---- Session log ------------------------------------------------------------------------
+// A session file is a log, one JSON record per line: a header naming the session, then each
+// finalized line as it is saved, with a progress record after every write. The file only
+// ever grows at its end, so a long session appends what is new instead of rewriting what is
+// already on disk. The latest progress and title records win.
+
+/** The log format's version. Version 1 was one JSON object, rewritten whole on every save;
+ *  those files are still read. */
+export const HISTORY_LOG_VERSION = 2;
+
+const record = (value: unknown) => `${JSON.stringify(value)}\n`;
+
+const lineRecords = (newestFirst: TranscriptLine[]) =>
+	newestFirst
+		.toReversed()
+		.map((line) => record({ line }))
+		.join('');
+
+const progressRecord = (s: SavedSession) =>
+	record({ savedAt: s.savedAt, durationMs: s.durationMs, endedAt: s.endedAt });
+
+/** A whole session as a log: its header, every line oldest first, and where it stands. */
+export function encodeSessionLog(s: SavedSession): string {
+	const header = {
+		version: HISTORY_LOG_VERSION,
+		id: s.id,
+		...(s.title === undefined ? {} : { title: s.title }),
+		startedAt: s.startedAt,
+		mode: s.mode,
+		sourceLanguage: s.sourceLanguage,
+		targetLanguage: s.targetLanguage
+	};
+	return record(header) + lineRecords(s.lines) + progressRecord(s);
+}
+
+/** What to add to a log that already holds the session's oldest `written` lines. */
+export function encodeSessionAppend(s: SavedSession, written: number): string {
+	return lineRecords(s.lines.slice(0, s.lines.length - written)) + progressRecord(s);
+}
+
+function decodeSessionLog(raw: string, id: string): SavedSession | null {
+	const records = raw.split('\n').flatMap((text) => {
+		if (!text.trim()) return [];
+		try {
+			const value: unknown = JSON.parse(text);
+			return typeof value === 'object' && value !== null ? [value as Record<string, unknown>] : [];
+		} catch {
+			// A record torn by a write that failed part-way. It held nothing the others lack.
+			return [];
+		}
+	});
+	const [head, ...rest] = records;
+	if (head?.version !== HISTORY_LOG_VERSION) return null;
+	const session = {
+		version: 1,
+		id: head.id,
+		title: cleanTitle(head.title),
+		startedAt: head.startedAt,
+		savedAt: head.startedAt,
+		endedAt: null,
+		durationMs: 0,
+		mode: head.mode,
+		sourceLanguage: head.sourceLanguage,
+		targetLanguage: head.targetLanguage,
+		lines: []
+	} as unknown as SavedSession;
+	const oldestFirst: TranscriptLine[] = [];
+	for (const r of rest) {
+		if ('line' in r) {
+			const line = readLine(r.line);
+			if (!line) return null;
+			oldestFirst.push(line);
+		} else if ('title' in r) {
+			session.title = cleanTitle(r.title);
+		} else if ('savedAt' in r) {
+			Object.assign(session, {
+				savedAt: r.savedAt,
+				durationMs: r.durationMs,
+				endedAt: r.endedAt ?? null
+			});
+		}
+	}
+	session.lines = oldestFirst.reverse();
+	return checked(session, id);
+}
+
+/** A session file written before the log format: one JSON object holding everything. */
+function decodeWholeSession(raw: string, id: string): SavedSession | null {
 	try {
 		const s = JSON.parse(raw);
 		const recovered = decodeRecovery(raw);
-		if (
-			!recovered ||
-			s.id !== id ||
-			!/^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(id) ||
-			!(OUTPUT_MODES as readonly string[]).includes(s.mode) ||
-			(s.sourceLanguage !== 'auto' && !isTargetLanguage(s.sourceLanguage)) ||
-			(s.targetLanguage !== null && !isTargetLanguage(s.targetLanguage)) ||
-			typeof s.startedAt !== 'string' ||
-			!Number.isFinite(Date.parse(s.startedAt)) ||
-			(s.endedAt !== null &&
-				(typeof s.endedAt !== 'string' || !Number.isFinite(Date.parse(s.endedAt)))) ||
-			!Number.isFinite(s.durationMs) ||
-			s.durationMs < 0 ||
-			recovered.lines.length !== s.lines.length ||
-			new Set(recovered.lines.map((line) => line.id)).size !== recovered.lines.length ||
-			recovered.lines.some((line) => !Number.isSafeInteger(line.id) || line.id < 1)
-		)
-			return null;
-		return {
-			version: 1,
-			id,
-			title: typeof s.title === 'string' ? s.title.trim().slice(0, 120) : undefined,
-			startedAt: s.startedAt,
-			savedAt: recovered.savedAt,
-			endedAt: s.endedAt,
-			durationMs: s.durationMs,
-			mode: s.mode,
-			sourceLanguage: s.sourceLanguage,
-			targetLanguage: s.targetLanguage,
-			lines: recovered.lines
-		};
+		if (!recovered || recovered.lines.length !== s.lines.length) return null;
+		return checked(
+			{
+				version: 1,
+				id: s.id,
+				title: cleanTitle(s.title),
+				startedAt: s.startedAt,
+				savedAt: recovered.savedAt,
+				endedAt: s.endedAt,
+				durationMs: s.durationMs,
+				mode: s.mode,
+				sourceLanguage: s.sourceLanguage,
+				targetLanguage: s.targetLanguage,
+				lines: recovered.lines
+			},
+			id
+		);
 	} catch {
 		return null;
 	}
 }
 
-/** Appended lines reach disk at most this often. Every finalized line used to rewrite the
- *  whole session file — about half a gigabyte over a three-hour session — and the lines a
- *  few seconds of delay holds back are written at once by finish, flush, retry and quit. */
+export function decodeSession(raw: string, id: string): SavedSession | null {
+	return decodeSessionLog(raw, id) ?? decodeWholeSession(raw, id);
+}
+
+/** Appended lines reach disk at most this often. The lines a few seconds of delay holds back
+ *  are written at once by finish, flush, retry and quit. */
 export const HISTORY_WRITE_INTERVAL_MS = 5000;
 
-/** Serialize writes and deletions. Pending snapshots coalesce, but every completed write
- * is atomic. A deleted active session stays deleted; the next Start gets a fresh UUID. */
+/** Serialize writes and deletions. Pending snapshots coalesce. A session's first write, and
+ * any write after a failure, replaces its file whole and atomically; later writes append only
+ * the lines that are new. A deleted active session stays deleted; the next Start gets a
+ * fresh UUID. */
 export function createHistoryCoordinator(
-	port: Pick<typeof api, 'writeHistory' | 'deleteHistory' | 'renameHistory'>,
+	port: Pick<typeof api, 'writeHistory' | 'appendHistory' | 'deleteHistory' | 'renameHistory'>,
 	enabled: () => boolean,
 	onError: (error: unknown) => void = () => {},
 	onSaved: (failed: boolean) => void = () => {},
@@ -92,18 +198,24 @@ export function createHistoryCoordinator(
 	const deleted = new Set<string>();
 	const failed = new Map<string, SavedSession>();
 	const titles = new Map<string, string>();
+	/** How many of each session's lines its file is known to hold. */
+	const written = new Map<string, number>();
 	async function write(snapshot: SavedSession) {
 		if (deleted.has(snapshot.id)) return;
+		const onDisk = written.get(snapshot.id);
 		try {
-			await port.writeHistory(
-				snapshot.id,
-				JSON.stringify(
-					titles.has(snapshot.id) ? { ...snapshot, title: titles.get(snapshot.id) } : snapshot
-				)
-			);
+			if (onDisk === undefined || onDisk > snapshot.lines.length) {
+				const title = titles.get(snapshot.id) ?? snapshot.title;
+				await port.writeHistory(snapshot.id, encodeSessionLog({ ...snapshot, title }));
+			} else {
+				await port.appendHistory(snapshot.id, encodeSessionAppend(snapshot, onDisk));
+			}
+			written.set(snapshot.id, snapshot.lines.length);
 			failed.delete(snapshot.id);
 			onSaved(failed.size > 0);
 		} catch (error) {
+			// What reached the file is uncertain now, so the next write replaces it whole.
+			written.delete(snapshot.id);
 			failed.set(snapshot.id, snapshot);
 			onError(error);
 		}
@@ -198,7 +310,13 @@ export function createHistoryCoordinator(
 			const result = queue.then(async () => {
 				if (deleted.has(session.id)) throw new Error('Session deleted');
 				// Rename the newest disk record, never the history view's possibly stale copy.
-				await port.renameHistory(session.id, title);
+				try {
+					await port.renameHistory(session.id, title);
+				} catch (error) {
+					// An append carries no title, so the next write has to be a whole one.
+					written.delete(session.id);
+					throw error;
+				}
 				onSaved(failed.size > 0);
 			});
 			queue = result.catch(onError);
@@ -206,6 +324,7 @@ export function createHistoryCoordinator(
 		},
 		delete(id: string) {
 			deleted.add(id);
+			written.delete(id);
 			if (active?.id === id) cancelScheduled();
 			const result = queue.then(async () => {
 				await port.deleteHistory(id);

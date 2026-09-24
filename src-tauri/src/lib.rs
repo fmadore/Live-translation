@@ -129,6 +129,7 @@ pub fn run() {
             recovery::read_recovery,
             recovery::clear_recovery,
             history::write_history,
+            history::append_history,
             history::list_history,
             history::delete_history,
             history::rename_history,

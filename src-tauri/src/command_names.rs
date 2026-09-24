@@ -35,6 +35,7 @@ pub const COMMANDS: &[&str] = &[
     "read_recovery",
     "clear_recovery",
     "write_history",
+    "append_history",
     "list_history",
     "delete_history",
     "rename_history",

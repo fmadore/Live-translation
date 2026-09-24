@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createHistoryCoordinator, decodeSession } from './history';
+import { createHistoryCoordinator, decodeSession, HISTORY_LOG_VERSION } from './history';
 import type { StartOptions, TranscriptLine } from './types';
 
 const options: StartOptions = {
@@ -20,16 +20,37 @@ const line: TranscriptLine = {
 	endMs: 1000
 };
 
+/** The session log's records, parsed. */
+const records = (raw: string) =>
+	raw
+		.split('\n')
+		.filter(Boolean)
+		.map((text) => JSON.parse(text));
+
+/** The same log with its header changed. */
+function withHeader(raw: string, patch: Record<string, unknown>) {
+	const [head, ...rest] = raw.split('\n');
+	return [JSON.stringify({ ...JSON.parse(head), ...patch }), ...rest].join('\n');
+}
+
 function setup(enabled = true) {
 	const disk = new Map<string, string>();
 	const port = {
+		// As `history.rs` does it: a log gains a title record, an older file is rewritten.
 		renameHistory: vi.fn(async (id: string, title: string) => {
 			const raw = disk.get(id);
 			if (!raw) throw new Error('missing');
-			disk.set(id, JSON.stringify({ ...JSON.parse(raw), title }));
+			if (records(raw)[0].version === HISTORY_LOG_VERSION)
+				disk.set(id, `${raw}${JSON.stringify({ title })}\n`);
+			else disk.set(id, JSON.stringify({ ...JSON.parse(raw), title }));
 		}),
 		writeHistory: vi.fn(async (id: string, raw: string) => {
 			disk.set(id, raw);
+		}),
+		appendHistory: vi.fn(async (id: string, raw: string) => {
+			const existing = disk.get(id);
+			if (existing === undefined) throw new Error('missing');
+			disk.set(id, existing + raw);
 		}),
 		deleteHistory: vi.fn(async (id: string) => {
 			disk.delete(id);
@@ -58,9 +79,9 @@ describe('session history', () => {
 			targetLanguage: 'ja',
 			lines: [{ text: '皆さん、こんにちは。' }]
 		});
-		const corrupt = JSON.parse(s.disk.get(id)!);
-		corrupt.targetLanguage = 'unknown';
-		expect(decodeSession(JSON.stringify(corrupt), id)).toBeNull();
+		expect(
+			decodeSession(withHeader(s.disk.get(id)!, { targetLanguage: 'unknown' }), id)
+		).toBeNull();
 	});
 	it('renames an older session from its latest disk record after another session starts', async () => {
 		const s = setup();
@@ -192,9 +213,11 @@ describe('session history', () => {
 		expect(decodeSession(raw, id2)).toBeNull();
 		for (const bad of [
 			'{',
-			JSON.stringify({ ...JSON.parse(raw), version: 9 }),
-			JSON.stringify({ ...JSON.parse(raw), durationMs: -1 }),
-			JSON.stringify({ ...JSON.parse(raw), lines: [null] })
+			withHeader(raw, { version: 9 }),
+			withHeader(raw, { mode: 'shouting' }),
+			`${raw}${JSON.stringify({ savedAt: '2026-09-19T10:00:00Z', durationMs: -1, endedAt: null })}\n`,
+			`${raw}${JSON.stringify({ line: null })}\n`,
+			`${raw}${JSON.stringify({ line })}\n`
 		])
 			expect(decodeSession(bad, id)).toBeNull();
 	});
@@ -224,15 +247,17 @@ describe('session history', () => {
 		vi.useFakeTimers();
 		try {
 			const s = setup();
+			const writes = () =>
+				s.port.writeHistory.mock.calls.length + s.port.appendHistory.mock.calls.length;
 			s.history.begin(options, start, id);
 			s.history.append(line);
 			await vi.advanceTimersByTimeAsync(0);
-			expect(s.port.writeHistory).toHaveBeenCalledTimes(1);
+			expect(writes()).toBe(1);
 			for (let n = 2; n <= 6; n++) s.history.append({ ...line, id: n });
 			await vi.advanceTimersByTimeAsync(4999);
-			expect(s.port.writeHistory).toHaveBeenCalledTimes(1);
+			expect(writes()).toBe(1);
 			await vi.advanceTimersByTimeAsync(1);
-			expect(s.port.writeHistory).toHaveBeenCalledTimes(2);
+			expect(writes()).toBe(2);
 			expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(6);
 		} finally {
 			vi.useRealTimers();
@@ -252,5 +277,69 @@ describe('session history', () => {
 		s.history.begin(options, start, id2);
 		await s.history.flush();
 		expect(decodeSession(s.disk.get(id)!, id)?.lines).toHaveLength(4);
+	});
+	// The file used to be rewritten whole on every save: about half a gigabyte over a
+	// three-hour session. Now only the first write carries what is already on disk.
+	it('appends only the lines that are new after the first write', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		s.history.append({ ...line, id: 2, text: 'Second' });
+		s.history.append({ ...line, id: 3, text: 'Third' });
+		await s.history.flush();
+		s.history.append({ ...line, id: 4, text: 'Fourth' });
+		await s.history.finish(new Date(+start + 60000));
+		expect(s.port.writeHistory).toHaveBeenCalledOnce();
+		const appended = s.port.appendHistory.mock.calls.map(([, raw]) =>
+			records(raw)
+				.filter((r) => 'line' in r)
+				.map((r) => r.line.id)
+		);
+		expect(appended).toEqual([[2, 3], [4]]);
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			endedAt: '2026-09-19T10:01:00.000Z',
+			durationMs: 60000,
+			lines: [{ id: 4 }, { id: 3 }, { id: 2 }, { id: 1 }]
+		});
+	});
+	it('rewrites the whole log after an append fails', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		s.port.appendHistory.mockRejectedValueOnce(new Error('disk full'));
+		s.history.append({ ...line, id: 2 });
+		await s.history.flush();
+		expect(s.error).toHaveBeenCalledOnce();
+		s.history.append({ ...line, id: 3 });
+		await s.history.finish();
+		expect(s.port.writeHistory).toHaveBeenCalledTimes(2);
+		expect(decodeSession(s.disk.get(id)!, id)?.lines.map((l) => l.id)).toEqual([3, 2, 1]);
+	});
+	it('reads a log whose last record was torn by a failed write', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		const torn = `${s.disk.get(id)!}{"line":{"id":2,"te`;
+		expect(decodeSession(torn, id)?.lines).toEqual([line]);
+	});
+	it('still reads a session saved as one JSON object before the log format', () => {
+		const legacy = JSON.stringify({
+			version: 1,
+			id,
+			title: 'Old meeting',
+			startedAt: start.toISOString(),
+			savedAt: start.toISOString(),
+			endedAt: null,
+			durationMs: 1000,
+			mode: 'translate',
+			sourceLanguage: 'auto',
+			targetLanguage: 'fr',
+			lines: [line]
+		});
+		expect(decodeSession(legacy, id)).toMatchObject({ title: 'Old meeting', lines: [line] });
+		expect(decodeSession(legacy, id2)).toBeNull();
 	});
 });

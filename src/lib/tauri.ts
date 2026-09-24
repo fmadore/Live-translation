@@ -52,6 +52,7 @@ export const api = {
 	setOverlayPlacement: (placement: import('./profiles').Placement) =>
 		invoke<void>('set_overlay_placement', { placement }),
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
+	appendHistory: (id: string, contents: string) => invoke<void>('append_history', { id, contents }),
 	listHistory: () => invoke<StoredRecovery[]>('list_history'),
 	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
