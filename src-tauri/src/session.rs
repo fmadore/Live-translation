@@ -524,8 +524,12 @@ impl SessionManager {
 
         let provider = options.provider;
         // The built-in demonstration is the one backend that starts with no credential.
+        // Credential Manager is a blocking call, and this holds the lifecycle lock: keep it off
+        // the async workers that are pumping the other windows' events meanwhile.
         let api_key = if provider.requires_api_key() {
-            secrets::resolve_api_key(provider)?
+            tauri::async_runtime::spawn_blocking(move || secrets::resolve_api_key(provider))
+                .await
+                .context("keychain lookup did not complete")??
         } else {
             String::new()
         };

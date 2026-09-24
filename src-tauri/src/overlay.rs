@@ -107,11 +107,14 @@ pub fn spawn_topmost_keeper(app: &AppHandle) {
             let Some(window) = app.get_webview_window(OVERLAY_LABEL) else {
                 break;
             };
-            // A hidden overlay has nothing to cover; skip the syscall entirely.
-            if !window.is_visible().unwrap_or(false) {
-                continue;
-            }
-            let _ = app.run_on_main_thread(move || raise(&window));
+            // One hop to the main thread per tick. The visibility check runs there too, where
+            // Tauri answers it inline instead of with a second blocking round trip. A hidden
+            // overlay has nothing to cover, so it skips the raise.
+            let _ = app.run_on_main_thread(move || {
+                if window.is_visible().unwrap_or(false) {
+                    raise(&window);
+                }
+            });
         }
     });
 }

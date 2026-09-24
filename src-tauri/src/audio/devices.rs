@@ -1,6 +1,49 @@
 //! Endpoint discovery and notification forwarding. COM callbacks only try-send a wakeup;
 //! enumeration and webview IPC never run on Windows' notification or audio callbacks.
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant};
+
 use crate::types::AudioDevice;
+
+/// Bumped each time Windows reports an endpoint change, after the watcher's debounce.
+static CHANGES: AtomicU64 = AtomicU64::new(0);
+
+// Only the Windows watcher reports changes; elsewhere the fallback interval does the work.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn note_change() {
+    CHANGES.fetch_add(1, Ordering::Relaxed);
+}
+
+/// Paces a capture thread's check that its endpoint still exists. The check runs straight
+/// after Windows reports a device change and otherwise every `fallback`, which covers a
+/// watcher that could not register. Before this, the microphone re-enumerated every input
+/// once a second and loopback asked for its endpoint's state on every audio wake.
+pub struct PresenceCheck {
+    seen: u64,
+    last: Instant,
+    fallback: Duration,
+}
+
+impl PresenceCheck {
+    pub fn new(fallback: Duration) -> Self {
+        Self {
+            seen: CHANGES.load(Ordering::Relaxed),
+            last: Instant::now(),
+            fallback,
+        }
+    }
+
+    /// Whether to check now. Answering yes starts the next interval.
+    pub fn due(&mut self) -> bool {
+        let changes = CHANGES.load(Ordering::Relaxed);
+        if changes == self.seen && self.last.elapsed() < self.fallback {
+            return false;
+        }
+        self.seen = changes;
+        self.last = Instant::now();
+        true
+    }
+}
 
 #[cfg(not(windows))]
 pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
@@ -117,6 +160,7 @@ pub fn watch(app: tauri::AppHandle) {
                 while rx.recv().is_ok() {
                     std::thread::sleep(std::time::Duration::from_millis(150));
                     while rx.try_recv().is_ok() {}
+                    note_change();
                     let _ = app.emit(crate::types::events::AUDIO_DEVICES_CHANGED, ());
                 }
                 Ok(())
@@ -127,5 +171,28 @@ pub fn watch(app: tauri::AppHandle) {
         });
     if let Err(error) = result {
         tracing::warn!("Audio-device watcher unavailable: {error}");
+    }
+}
+
+#[cfg(test)]
+mod presence_tests {
+    use super::*;
+
+    #[test]
+    fn a_device_change_makes_the_check_due_at_once_and_only_once() {
+        let mut check = PresenceCheck::new(Duration::from_secs(3600));
+        assert!(!check.due());
+        note_change();
+        assert!(check.due());
+        assert!(!check.due());
+    }
+
+    #[test]
+    fn the_fallback_interval_makes_the_check_due_without_a_change() {
+        let mut check = PresenceCheck::new(Duration::from_secs(5));
+        check.last -= Duration::from_secs(6);
+        check.seen = CHANGES.load(Ordering::Relaxed);
+        assert!(check.due());
+        assert!(!check.due());
     }
 }

@@ -12,9 +12,14 @@ use cpal::SampleFormat;
 use tokio::sync::mpsc::{error::TrySendError, Sender};
 use tokio_util::sync::CancellationToken;
 
+use super::devices::PresenceCheck;
 use super::resample::{downmix_to_mono, f32_to_pcm16_le, Resampler};
 use super::{chunk_samples, AudioChunk};
 use crate::types::{AudioDevice, AudioLevel, Origin};
+
+/// How often the microphone re-enumerates inputs when Windows has reported no change. A
+/// device change triggers the check at once; this only covers a watcher that failed.
+const MIC_PRESENCE_FALLBACK: Duration = Duration::from_secs(5);
 
 /// Distinguish a stream that failed while running from a device that could not open.
 #[derive(Debug)]
@@ -235,11 +240,10 @@ pub fn run_microphone(
     let pinned_id = device
         .id()
         .context("failed to identify active microphone")?;
-    let mut checked = Instant::now();
+    let mut presence = PresenceCheck::new(MIC_PRESENCE_FALLBACK);
     while !cancel.is_cancelled() {
         std::thread::sleep(Duration::from_millis(100));
-        if checked.elapsed() >= Duration::from_secs(1) {
-            checked = Instant::now();
+        if presence.due() {
             let available = cpal::default_host()
                 .input_devices()
                 .context("failed to check microphone availability")?
@@ -266,8 +270,8 @@ pub struct CaptureState {
     chunk_len: usize,
     conv_buf: Vec<f32>,
     mono_buf: Vec<f32>,
-    resampled: Vec<f32>,
-    // Accumulates resampled samples until we have a full ~100 ms chunk.
+    // Accumulates resampled samples until we have a full ~100 ms chunk. The resampler
+    // appends straight into it.
     pending: Vec<f32>,
     pending_start: usize,
     last_level: Instant,
@@ -293,7 +297,6 @@ impl CaptureState {
             chunk_len,
             conv_buf: Vec::with_capacity(4096),
             mono_buf: Vec::with_capacity(4096),
-            resampled: Vec::with_capacity(4096),
             pending: Vec::with_capacity(chunk_len * 2),
             pending_start: 0,
             last_level: Instant::now(),
@@ -337,9 +340,7 @@ impl CaptureState {
             return;
         }
 
-        self.resampled.clear();
-        self.resampler.process(&self.mono_buf, &mut self.resampled);
-        self.pending.extend_from_slice(&self.resampled);
+        self.resampler.process(&self.mono_buf, &mut self.pending);
 
         while self.pending.len() - self.pending_start >= self.chunk_len {
             let mut pcm = Vec::with_capacity(self.chunk_len * 2);
@@ -438,7 +439,6 @@ mod tests {
             state.push_samples(&samples, 1);
             assert_eq!(level_rx.try_recv().unwrap().rms, 0.25);
             assert!(state.pending.is_empty());
-            assert!(state.resampled.is_empty());
         }
     }
 
