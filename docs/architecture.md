@@ -181,8 +181,8 @@ before starting again, preserving the transcript. See the
 
 The renderer's history coordinator creates a UUID at each Start and accepts raw finalized
 lines directly from the transcript commit path, using session-relative cue timing. It queues
-and coalesces complete snapshots. It writes a session's first line at once and later appends
-at most every 5 seconds, writes anything waiting at Stop, quit, retry and the next Start,
+and coalesces writes, and remembers how many of each session's lines are already on disk. It
+writes a session's first line at once and later appends at most every 5 seconds, writes anything waiting at Stop, quit, retry and the next Start,
 retries failures, and orders deletion after any in-flight write. A run whose sources all end
 by themselves finishes its history record. A tombstone prevents an active deleted session reappearing.
 A session file is a log — a header, one record per finalized line, a progress record per
