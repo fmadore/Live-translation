@@ -15,6 +15,7 @@
     "allow-ondevice-readiness",
     "allow-start-session",
     "allow-stop-session",
+    "allow-pause-session",
     "allow-start-audio-test",
     "allow-stop-audio-test",
     "allow-set-overlay-click-through",

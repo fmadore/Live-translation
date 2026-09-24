@@ -7,6 +7,9 @@ import {
 	micLevel,
 	sessionStartedAt,
 	sessionState,
+	streamedMs,
+	pausedTime,
+	pauseRequested,
 	clearTranscript,
 	flushTranscript,
 	markTranscriptSaved,
@@ -264,4 +267,42 @@ it('retracts an empty Smart final instead of archiving its speculative filler', 
 	});
 	flushTranscript();
 	expect(get(transcript)).toEqual([]);
+});
+
+describe('a paused session', () => {
+	it('is still running, shows as paused, and is cleared with the run', () => {
+		beginSession();
+		pauseRequested.set(true);
+		applyStatus({ state: 'paused', origin: 'microphone' });
+		applyStatus({ state: 'paused', origin: 'system' });
+		expect(get(sessionState)).toBe('paused');
+		expect(get(isRunning)).toBe(true);
+		// One source reconnecting outranks the pause in the pill.
+		applyStatus({ state: 'reconnecting', origin: 'system' });
+		expect(get(sessionState)).toBe('reconnecting');
+		applyStatus({ state: 'idle' });
+		expect(get(isRunning)).toBe(false);
+		expect(get(pauseRequested)).toBe(false);
+	});
+
+	it('bills only the time that was not paused', () => {
+		expect(streamedMs(60_000, { totalMs: 0, since: null }, 0)).toBe(60_000);
+		expect(streamedMs(60_000, { totalMs: 20_000, since: null }, 0)).toBe(40_000);
+		// Paused ten seconds ago and still paused.
+		expect(streamedMs(60_000, { totalMs: 20_000, since: 90_000 }, 100_000)).toBe(30_000);
+		expect(streamedMs(5_000, { totalMs: 20_000, since: null }, 0)).toBe(0);
+	});
+
+	it('accumulates paused time as the session state enters and leaves Paused', () => {
+		beginSession();
+		applyStatus({ state: 'running', origin: 'microphone' });
+		expect(get(pausedTime)).toEqual({ totalMs: 0, since: null });
+		applyStatus({ state: 'paused', origin: 'microphone' });
+		expect(get(pausedTime).since).not.toBeNull();
+		applyStatus({ state: 'running', origin: 'microphone' });
+		expect(get(pausedTime).since).toBeNull();
+		expect(get(pausedTime).totalMs).toBeGreaterThanOrEqual(0);
+		beginSession();
+		expect(get(pausedTime)).toEqual({ totalMs: 0, since: null });
+	});
 });

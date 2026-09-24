@@ -5,7 +5,7 @@
 	import LiveActivity from './LiveActivity.svelte';
 	import { languageName } from './languages';
 	import { locale, t } from './i18n';
-	import { micLevel, options, systemLevel } from './stores';
+	import { micLevel, options, pauseRequested, systemLevel } from './stores';
 	import { estimateSessionCost, formatUsd } from './providers';
 	import { providerDetectsLanguage } from './types';
 	import type { OverlayController } from './overlayController.svelte';
@@ -82,6 +82,9 @@
 <p class="rail-note">
 	<!-- The target language is fixed at session start (the backend takes it once),
 	     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
+	{#if $pauseRequested}
+		<span>{$t.rail.pauseNote}</span>
+	{/if}
 	{#if $options.provider === 'ondevice'}
 		<span>{$t.rail.demoNote}</span>
 	{:else if rehearsing}
@@ -116,7 +119,7 @@
 					{formatUsd(
 						estimateSessionCost(
 							$options.provider,
-							clock.elapsedMs,
+							clock.streamedMs,
 							$options.source === 'both' ? 2 : 1
 						)
 					)}

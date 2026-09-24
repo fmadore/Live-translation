@@ -39,6 +39,7 @@
 		overlayFontSize,
 		noteActivity,
 		sessionStartedAt,
+		pauseRequested,
 		pushCaption
 	} from '$lib/stores';
 	import { followTextScale } from '$lib/textScale';
@@ -201,6 +202,7 @@
 	const rehearse = () => launch(fixtureLanguage);
 
 	const stop = () => session.stop();
+	const togglePause = () => void session.pause(!$pauseRequested);
 
 	const actions = createSetupActions({
 		locked: () => controlsLocked,
@@ -254,6 +256,7 @@
 		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
 		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
+		if (command === 'togglePause' && !browserMode && $isRunning && !$sessionBusy) togglePause();
 		if (command === 'toggleSession' && !browserMode && !profileBusy && !$sessionBusy) {
 			if ($isRunning) void stop();
 			else if ($hasKey && preflight.applicationReady($options)) void start();
@@ -281,9 +284,11 @@
 					browserMode ||
 					$sessionBusy ||
 					$options.provider === 'ondevice'}
+				paused={$pauseRequested}
 				onStart={start}
 				onRehearse={rehearse}
 				onStop={stop}
+				onPause={togglePause}
 			/>
 		{/snippet}
 	</OperatorToolbar>

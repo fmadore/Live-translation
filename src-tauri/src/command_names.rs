@@ -23,6 +23,7 @@ pub const COMMANDS: &[&str] = &[
     "ondevice_readiness",
     "start_session",
     "stop_session",
+    "pause_session",
     "start_audio_test",
     "stop_audio_test",
     "set_overlay_click_through",

@@ -14,7 +14,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
 use crate::errors::AppError;
-use crate::realtime::{emit_caption, TurnAccumulator};
+use crate::realtime::{emit_caption, wait_for_resume, PauseRx, TurnAccumulator};
 use crate::timing::SessionClock;
 use crate::types::{events, AudioLevel, DemoLanguage, Origin, SessionState, StatusUpdate};
 
@@ -107,11 +107,18 @@ pub async fn run_session(
     _audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
     clock: SessionClock,
+    pause: PauseRx,
 ) {
     let origin = config.origin;
     emit_status(&app, SessionState::Connecting, None, origin);
 
-    if cancellable_delay(&cancel, Duration::from_millis(250)).await {
+    let mut pacer = Pacer {
+        app: &app,
+        origin,
+        cancel: &cancel,
+        pause,
+    };
+    if pacer.delay(Duration::from_millis(250)).await {
         return;
     }
     emit_status(&app, SessionState::Running, None, origin);
@@ -123,7 +130,7 @@ pub async fn run_session(
         for line in script(config.language) {
             // Make the input indicator visibly active before the first words appear.
             for _ in 0..5 {
-                if emit_pulse(&app, origin, pulse_index, &cancel).await {
+                if emit_pulse(&mut pacer, pulse_index).await {
                     break 'session;
                 }
                 pulse_index += 1;
@@ -133,7 +140,7 @@ pub async fn run_session(
             emit_caption(&app, origin, &mut acc, false);
 
             for _ in 0..7 {
-                if emit_pulse(&app, origin, pulse_index, &cancel).await {
+                if emit_pulse(&mut pacer, pulse_index).await {
                     break 'session;
                 }
                 pulse_index += 1;
@@ -143,13 +150,13 @@ pub async fn run_session(
             emit_caption(&app, origin, &mut acc, true);
             acc.next_turn();
 
-            if cancellable_delay(&cancel, Duration::from_millis(350)).await {
+            if pacer.delay(Duration::from_millis(350)).await {
                 break 'session;
             }
         }
 
         // Keep the feature alive until Stop is clicked and make repeated cycles obvious.
-        if cancellable_delay(&cancel, Duration::from_millis(700)).await {
+        if pacer.delay(Duration::from_millis(700)).await {
             break;
         }
     }
@@ -164,29 +171,53 @@ pub async fn run_session(
     );
 }
 
-async fn emit_pulse(
-    app: &AppHandle,
-    origin: Origin,
-    pulse_index: usize,
-    cancel: &CancellationToken,
-) -> bool {
+async fn emit_pulse(pacer: &mut Pacer<'_>, pulse_index: usize) -> bool {
     const RMS: [f32; 8] = [0.08, 0.18, 0.31, 0.23, 0.42, 0.28, 0.15, 0.35];
     let rms = RMS[pulse_index % RMS.len()];
-    let _ = app.emit(
-        events::LEVEL,
-        AudioLevel {
-            source: origin,
-            rms,
-            peak: (rms + 0.19).min(0.92),
-        },
-    );
-    cancellable_delay(cancel, Duration::from_millis(120)).await
+    pacer.level(rms);
+    pacer.delay(Duration::from_millis(120)).await
 }
 
-async fn cancellable_delay(cancel: &CancellationToken, duration: Duration) -> bool {
-    tokio::select! {
-        _ = cancel.cancelled() => true,
-        _ = sleep(duration) => false,
+/// The demonstration's clock: every step waits here, so Stop and Pause both take effect
+/// between steps, exactly as they do for a live provider between messages.
+struct Pacer<'a> {
+    app: &'a AppHandle,
+    origin: Origin,
+    cancel: &'a CancellationToken,
+    pause: PauseRx,
+}
+
+impl Pacer<'_> {
+    fn level(&self, rms: f32) {
+        let _ = self.app.emit(
+            events::LEVEL,
+            AudioLevel {
+                source: self.origin,
+                rms,
+                peak: if rms > 0.0 {
+                    (rms + 0.19).min(0.92)
+                } else {
+                    0.0
+                },
+            },
+        );
+    }
+
+    /// Wait `duration`, holding first while paused. True when the session ended instead.
+    async fn delay(&mut self, duration: Duration) -> bool {
+        if *self.pause.borrow() {
+            // A paused demonstration hears nothing, like a paused live source sends nothing.
+            self.level(0.0);
+            emit_status(self.app, SessionState::Paused, None, self.origin);
+            if !wait_for_resume(&mut self.pause, self.cancel).await {
+                return true;
+            }
+            emit_status(self.app, SessionState::Running, None, self.origin);
+        }
+        tokio::select! {
+            _ = self.cancel.cancelled() => true,
+            _ = sleep(duration) => false,
+        }
     }
 }
 

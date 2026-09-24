@@ -1,6 +1,14 @@
 import type { SessionState } from './types';
 export type Activity =
-	'idle' | 'error' | 'connecting' | 'reconnecting' | 'captions' | 'audio' | 'listening' | 'stale';
+	| 'idle'
+	| 'error'
+	| 'connecting'
+	| 'reconnecting'
+	| 'paused'
+	| 'captions'
+	| 'audio'
+	| 'listening'
+	| 'stale';
 export function activity(
 	state: SessionState,
 	now: number,

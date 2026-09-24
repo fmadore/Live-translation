@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { createSessionController } from './sessionController';
-import { applyStatus, clearTranscript, options, sessionStartedAt, statusMessage } from './stores';
+import {
+	applyStatus,
+	clearTranscript,
+	options,
+	pauseRequested,
+	sessionStartedAt,
+	statusMessage
+} from './stores';
 import { locale } from './i18n';
 
 beforeEach(() => {
@@ -12,7 +19,11 @@ beforeEach(() => {
 describe('session coordination', () => {
 	it('blocks unsupported targets before IPC or starting a transcript, in every interface locale', async () => {
 		const startSession = vi.fn();
-		const controller = createSessionController({ startSession, stopSession: vi.fn() });
+		const controller = createSessionController({
+			startSession,
+			stopSession: vi.fn(),
+			pauseSession: vi.fn()
+		});
 		for (const language of ['en', 'fr', 'de'] as const) {
 			locale.set(language);
 			expect(
@@ -33,7 +44,8 @@ describe('session coordination', () => {
 	it('resets the clock when startup fails', async () => {
 		const controller = createSessionController({
 			startSession: vi.fn().mockRejectedValue(new Error('missing credential')),
-			stopSession: vi.fn()
+			stopSession: vi.fn(),
+			pauseSession: vi.fn()
 		});
 		expect(await controller.start(get(options))).toBe(false);
 		expect(get(sessionStartedAt)).toBeNull();
@@ -49,7 +61,11 @@ describe('session coordination', () => {
 			})
 		);
 		const stopSession = vi.fn().mockResolvedValue(undefined);
-		const controller = createSessionController({ startSession, stopSession });
+		const controller = createSessionController({
+			startSession,
+			stopSession,
+			pauseSession: vi.fn()
+		});
 		const starting = controller.start(get(options));
 		expect(await controller.start(get(options))).toBe(false);
 		const stopping = controller.stop();
@@ -61,5 +77,28 @@ describe('session coordination', () => {
 		expect(startSession).toHaveBeenCalledTimes(1);
 		expect(stopSession).toHaveBeenCalledTimes(1);
 		expect(get(controller.busy)).toBe(false);
+	});
+
+	it('pauses and resumes a running session, and ignores a pause with none running', async () => {
+		const pauseSession = vi.fn().mockResolvedValue(undefined);
+		const controller = createSessionController({
+			startSession: vi.fn(),
+			stopSession: vi.fn(),
+			pauseSession
+		});
+		await controller.pause(true);
+		expect(pauseSession).not.toHaveBeenCalled();
+
+		applyStatus({ state: 'running', origin: 'microphone' });
+		await controller.pause(true);
+		expect(pauseSession).toHaveBeenLastCalledWith(true);
+		expect(get(pauseRequested)).toBe(true);
+		await controller.pause(false);
+		expect(get(pauseRequested)).toBe(false);
+
+		pauseSession.mockRejectedValueOnce(new Error('gone'));
+		await controller.pause(true);
+		expect(get(pauseRequested)).toBe(false);
+		expect(get(statusMessage)).toBeTruthy();
 	});
 });

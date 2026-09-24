@@ -9,6 +9,7 @@ use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio_util::sync::CancellationToken;
 
@@ -30,7 +31,7 @@ use crate::openai::{
     OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
     DEFAULT_OPENAI_TRANSLATE_MODEL,
 };
-use crate::realtime::{run_session, RealtimeProtocol};
+use crate::realtime::{run_session, PauseRx, RealtimeProtocol};
 use crate::secrets;
 use crate::timing::SessionClock;
 use crate::types::{
@@ -68,6 +69,8 @@ struct ActiveTest {
 
 struct ActiveSession {
     cancel: CancellationToken,
+    /// Every client holds a receiver; see `SessionManager::set_paused`.
+    pause: watch::Sender<bool>,
     sources: Vec<CancellationToken>,
     capture_threads: Vec<JoinHandle<()>>,
     /// Timer-driven audio producers used by commercial-provider rehearsal playback.
@@ -343,6 +346,7 @@ struct ClientIo {
     audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
     clock: SessionClock,
+    pause: PauseRx,
 }
 
 impl ClientIo {
@@ -353,6 +357,7 @@ impl ClientIo {
             self.audio_rx,
             self.cancel,
             self.clock,
+            self.pause,
         ))
     }
 }
@@ -416,6 +421,7 @@ impl ProviderSettings {
                     io.audio_rx,
                     io.cancel,
                     io.clock,
+                    io.pause,
                 ))
             }
         })
@@ -448,6 +454,7 @@ impl SessionBuilder<'_> {
             audio_rx,
             cancel,
             clock: self.clock,
+            pause: self.session.pause.subscribe(),
         };
         let client = self
             .settings
@@ -551,6 +558,7 @@ impl SessionManager {
             level_tx: spawn_level_forwarder(app),
             session: ActiveSession {
                 cancel,
+                pause: watch::Sender::new(false),
                 sources: Vec::new(),
                 capture_threads: Vec::new(),
                 fixture_tasks: Vec::new(),
@@ -684,6 +692,20 @@ impl SessionManager {
             );
             tracing::info!("audio test stopped");
         }
+    }
+
+    /// Pause or resume the running session. While paused every client closes its provider
+    /// connection — so nothing is streamed or billed — and capture keeps metering, so the
+    /// operator can see when the room starts talking again. Not behind the lifecycle lock: a
+    /// pause is a signal to the clients, and must not wait out a start or stop.
+    pub fn set_paused(&self, paused: bool) -> Result<()> {
+        let active = lock(&self.active);
+        let session = active
+            .as_ref()
+            .filter(|session| session.sources.iter().any(|source| !source.is_cancelled()))
+            .context("No session is running")?;
+        session.pause.send_replace(paused);
+        Ok(())
     }
 
     pub async fn stop(&self, app: &AppHandle) {

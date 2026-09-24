@@ -187,7 +187,14 @@ export interface AudioLevel {
 	peak: number;
 }
 
-export const SESSION_STATES = ['idle', 'connecting', 'running', 'reconnecting', 'error'] as const;
+export const SESSION_STATES = [
+	'idle',
+	'connecting',
+	'running',
+	'reconnecting',
+	'paused',
+	'error'
+] as const;
 export type SessionState = (typeof SESSION_STATES)[number];
 
 export interface StatusUpdate {

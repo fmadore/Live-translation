@@ -5,6 +5,7 @@ import {
 	beginSession,
 	endTranscriptSession,
 	isRunning,
+	pauseRequested,
 	statusMessage
 } from './stores';
 import { api } from './tauri';
@@ -17,7 +18,8 @@ import { locale, t } from './i18n';
 export function createSessionController(
 	port = {
 		startSession: api.startSession,
-		stopSession: api.stopSession
+		stopSession: api.stopSession,
+		pauseSession: api.pauseSession
 	}
 ) {
 	const busy = writable(false);
@@ -53,6 +55,17 @@ export function createSessionController(
 			} finally {
 				operation = null;
 				if (!stopping) busy.set(false);
+			}
+		},
+		/** Pause or resume the running session. Ignored while a start or stop is under way:
+		 *  the session it would address is the one being replaced. */
+		async pause(paused: boolean): Promise<void> {
+			if (operation || stopping || !get(isRunning)) return;
+			try {
+				await port.pauseSession(paused);
+				pauseRequested.set(paused);
+			} catch (error) {
+				statusMessage.set(asStatus(error));
 			}
 		},
 		stop(): Promise<void> {

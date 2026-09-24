@@ -213,6 +213,9 @@ pub enum SessionState {
     Connecting,
     Running,
     Reconnecting,
+    /// The operator paused the session: capture and meters carry on, but the provider
+    /// connection is closed, so nothing is streamed or billed until it resumes.
+    Paused,
     Error,
 }
 

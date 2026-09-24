@@ -55,6 +55,8 @@ pub mod id {
     pub const DEMO_UNAVAILABLE: &str = "error.demoUnavailable";
     /// A session could not be started — bad options, no key, no device.
     pub const SESSION_START: &str = "error.sessionStart";
+    /// A pause or resume reached no running session.
+    pub const SESSION_PAUSE: &str = "error.sessionPause";
     /// The preflight level test could not open what it was asked to listen to.
     pub const AUDIO_TEST_START: &str = "error.audioTestStart";
     /// The overlay window refused a window-level change.

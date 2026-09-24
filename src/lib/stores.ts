@@ -52,16 +52,54 @@ import { normalizeAppearance, type Appearance } from './appearance';
 
 export const originStates = writable<Partial<Record<Origin, SessionState>>>({});
 
-const DISPLAY_PRIORITY: SessionState[] = ['error', 'reconnecting', 'connecting', 'running'];
+const DISPLAY_PRIORITY: SessionState[] = [
+	'error',
+	'reconnecting',
+	'connecting',
+	'paused',
+	'running'
+];
 
 export const sessionState = derived(originStates, (m): SessionState => {
 	const states = Object.values(m);
 	return DISPLAY_PRIORITY.find((s) => states.includes(s)) ?? 'idle';
 });
 
+// A paused session is still a session: Stop stays available and the setup stays locked.
 export const isRunning = derived(originStates, (m) =>
-	Object.values(m).some((s) => s === 'running' || s === 'reconnecting' || s === 'connecting')
+	Object.values(m).some(
+		(s) => s === 'running' || s === 'reconnecting' || s === 'connecting' || s === 'paused'
+	)
 );
+
+/** Whether the operator has paused the run: set when the core accepts the request, so the
+ *  button answers at once rather than when each source reports it. Cleared with the run. */
+export const pauseRequested = writable(false);
+
+/** Time the current run has spent paused, for the running cost estimate: nothing is streamed
+ *  while paused, so nothing is billed. `since` is set while a pause is under way. */
+export const pausedTime = writable<{ totalMs: number; since: number | null }>({
+	totalMs: 0,
+	since: null
+});
+
+sessionState.subscribe((state) => {
+	pausedTime.update((p) => {
+		if (state === 'paused') return p.since === null ? { ...p, since: Date.now() } : p;
+		if (p.since === null) return p;
+		return { totalMs: p.totalMs + Date.now() - p.since, since: null };
+	});
+});
+
+/** How much of `elapsedMs` was spent streaming, as of `now`. */
+export function streamedMs(
+	elapsedMs: number,
+	paused: { totalMs: number; since: number | null },
+	now: number
+): number {
+	const current = paused.since === null ? 0 : Math.max(0, now - paused.since);
+	return Math.max(0, elapsedMs - paused.totalMs - current);
+}
 
 // Either plain text or the core's structured error. Structured, because the sentence for an
 // id belongs to the interface language and is chosen where it is rendered — see
@@ -112,6 +150,7 @@ export function applyStatus(u: StatusUpdate) {
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
 		activityTimes.set({});
+		pauseRequested.set(false);
 		runHadActiveSource = false;
 		flushTranscript();
 		micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
@@ -266,6 +305,8 @@ export function beginSession(sessionOptions = get(options)) {
 	// Retried/new sessions append to one document without resetting its cue timeline.
 	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
 	originStates.set({});
+	pauseRequested.set(false);
+	pausedTime.set({ totalMs: 0, since: null });
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
 	currentCaptions.set({});

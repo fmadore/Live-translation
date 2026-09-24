@@ -88,6 +88,7 @@ export const en = {
 		shortcutOverlay: 'Show / hide overlay',
 		shortcutSize: 'Increase / decrease caption size',
 		shortcutDirection: 'Swap the first two favourites before starting with F2',
+		shortcutPause: 'Pause / resume captions',
 		listening: 'Listening — no recent audio signal',
 		audio: 'Receiving audio',
 		captions: 'Receiving captions',
@@ -95,6 +96,7 @@ export const en = {
 			'Audio is arriving, but no captions have arrived for 15 seconds. Check the provider and connection.',
 		connecting: 'Connecting…',
 		reconnecting: 'Reconnecting…',
+		paused: 'Paused — capture continues, nothing is sent',
 		error: 'Source stopped with an error',
 		idle: 'Source stopped',
 		activity: 'Live input status',
@@ -122,6 +124,7 @@ export const en = {
 		o: 'O',
 		up: '↑',
 		down: '↓',
+		p: 'P',
 		f2: 'F2'
 	},
 
@@ -130,6 +133,7 @@ export const en = {
 		connecting: 'Connecting',
 		running: 'Live',
 		reconnecting: 'Reconnecting',
+		paused: 'Paused',
 		error: 'Error',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
 		demo: 'Demo'
@@ -141,6 +145,7 @@ export const en = {
 		connecting: 'Connecting to the caption engine.',
 		running: 'Captions are live.',
 		reconnecting: 'Connection lost — reconnecting.',
+		paused: 'Captions paused. Nothing is being sent to the caption engine.',
 		error: 'Session error.'
 	},
 
@@ -258,6 +263,10 @@ export const en = {
 		arriving: 'Audio arriving',
 		stop: 'Stop captions',
 		stopping: 'Stopping…',
+		pause: 'Pause',
+		resume: 'Resume',
+		pauseNote:
+			'Paused: the caption engine is disconnected and nothing is billed. The meters keep showing the room.',
 
 		step: {
 			whatToShow: 'What to show',
@@ -670,6 +679,7 @@ export const en = {
 		keychain: 'Windows Credential Manager refused the request',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',
+		sessionPause: 'The session could not be paused or resumed',
 		audioTestStart: 'The audio test could not open that source',
 		overlayWindow: 'The overlay window did not respond',
 		transcriptDir: 'The transcript folder could not be created',

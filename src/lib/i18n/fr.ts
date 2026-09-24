@@ -96,6 +96,7 @@ export const fr: Messages = {
 		shortcutOverlay: 'Afficher / masquer la surimpression',
 		shortcutSize: 'Agrandir / réduire les sous-titres',
 		shortcutDirection: 'Permuter les deux premiers favoris avant de démarrer avec F2',
+		shortcutPause: 'Mettre en pause / reprendre les sous-titres',
 		listening: 'À l’écoute — aucun signal audio récent',
 		audio: 'Réception audio',
 		captions: 'Réception des sous-titres',
@@ -103,6 +104,7 @@ export const fr: Messages = {
 			'Le son arrive, mais aucun sous-titre depuis 15 secondes. Vérifiez le fournisseur et la connexion.',
 		connecting: 'Connexion…',
 		reconnecting: 'Reconnexion…',
+		paused: 'En pause — la capture continue, rien n’est envoyé',
 		error: 'Source arrêtée avec une erreur',
 		idle: 'Source arrêtée',
 		activity: 'État des entrées en direct',
@@ -130,6 +132,7 @@ export const fr: Messages = {
 		o: 'O',
 		up: '↑',
 		down: '↓',
+		p: 'P',
 		f2: 'F2'
 	},
 
@@ -138,6 +141,7 @@ export const fr: Messages = {
 		connecting: 'Connexion',
 		running: 'En direct',
 		reconnecting: 'Reconnexion',
+		paused: 'En pause',
 		error: 'Erreur',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
 		demo: 'Démo'
@@ -149,6 +153,7 @@ export const fr: Messages = {
 		connecting: 'Connexion au moteur de sous-titrage.',
 		running: 'Les sous-titres sont en direct.',
 		reconnecting: 'Connexion perdue — reconnexion en cours.',
+		paused: 'Sous-titres en pause. Rien n’est envoyé au moteur de sous-titrage.',
 		error: 'Erreur de session.'
 	},
 
@@ -268,6 +273,10 @@ export const fr: Messages = {
 		arriving: 'Audio entrant',
 		stop: 'Arrêter les sous-titres',
 		stopping: 'Arrêt…',
+		pause: 'Pause',
+		resume: 'Reprendre',
+		pauseNote:
+			'En pause : le moteur de sous-titrage est déconnecté et rien n’est facturé. Les vumètres continuent d’afficher la salle.',
 
 		step: {
 			whatToShow: 'Ce qu’il faut afficher',
@@ -692,6 +701,7 @@ export const fr: Messages = {
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',
+		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',
 		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
 		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
 		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',

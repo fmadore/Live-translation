@@ -8,17 +8,22 @@
 		busy,
 		startDisabled,
 		rehearseDisabled,
+		paused,
 		onStart,
 		onRehearse,
-		onStop
+		onStop,
+		onPause
 	}: {
 		/** A start or stop is in flight. */
 		busy: boolean;
 		startDisabled: boolean;
 		rehearseDisabled: boolean;
+		/** The running session is paused. */
+		paused: boolean;
 		onStart: () => void;
 		onRehearse: () => void;
 		onStop: () => void;
+		onPause: () => void;
 	} = $props();
 
 	// The same key starts and stops, so both buttons carry it. Printed inside the button rather
@@ -26,6 +31,7 @@
 	// so the printed copy stays out of the accessible name.
 	const keys = $derived(keyLabel('toggleSession', $t.keys));
 	const ariaKeys = ariaKeyShortcut('toggleSession');
+	const pauseKeys = $derived(keyLabel('togglePause', $t.keys));
 </script>
 
 <!-- Start and Stop live in the window's one bar, so they stay in the same place while setup,
@@ -46,6 +52,34 @@
 			>
 			{busy ? $t.rail.stopping : $t.rail.stop}
 			<span class="shortcut" aria-hidden="true">{keys}</span>
+		</ToolButton>
+		<!-- Pausing keeps the session, its clock and its transcript: only the caption engine is
+		     let go, so a coffee break or a video clip is not billed. -->
+		<ToolButton
+			variant={paused ? 'primary' : 'ghost'}
+			size="lg"
+			disabled={busy}
+			aria-pressed={paused}
+			aria-keyshortcuts={ariaKeyShortcut('togglePause')}
+			onclick={onPause}
+		>
+			{#if paused}
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+				>
+			{:else}
+				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+					><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect
+						x="14"
+						y="5"
+						width="4"
+						height="14"
+						rx="1.2"
+					/></svg
+				>
+			{/if}
+			{paused ? $t.rail.resume : $t.rail.pause}
+			<span class="shortcut" aria-hidden="true">{pauseKeys}</span>
 		</ToolButton>
 	{:else}
 		<ToolButton
