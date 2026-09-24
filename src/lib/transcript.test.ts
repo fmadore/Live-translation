@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatTranscript, groupTranscript, transcriptFilename } from './transcript';
+import {
+	DEFAULT_LABELS,
+	formatTranscript,
+	groupTranscript,
+	hasOriginalSpeech,
+	transcriptFilename
+} from './transcript';
 import type { TranscriptLine } from './types';
 
 describe('timed exports', () => {
@@ -81,9 +87,21 @@ describe('groupTranscript', () => {
 
 	it('orders lines chronologically and starts a paragraph on each source change', () => {
 		expect(groupTranscript(lines)).toEqual([
-			{ id: 1, origin: 'microphone', text: 'Ça fonctionne.' },
-			{ id: 2, origin: 'system', text: 'Les sous-titres apparaissent sous.' },
-			{ id: 3, origin: 'microphone', text: 'Les fenêtres, ceci est un peu problématique.' }
+			{ id: 1, origin: 'microphone', text: 'Ça fonctionne.', sourceText: '', lane: 0 },
+			{
+				id: 2,
+				origin: 'system',
+				text: 'Les sous-titres apparaissent sous.',
+				sourceText: '',
+				lane: 0
+			},
+			{
+				id: 3,
+				origin: 'microphone',
+				text: 'Les fenêtres, ceci est un peu problématique.',
+				sourceText: '',
+				lane: 0
+			}
 		]);
 	});
 
@@ -92,7 +110,9 @@ describe('groupTranscript', () => {
 			{ id: 2, text: '   ', sourceText: '', origin: 'system' },
 			{ id: 1, text: 'Bonjour', sourceText: '', origin: 'system' }
 		];
-		expect(groupTranscript(withBlank)).toEqual([{ id: 1, origin: 'system', text: 'Bonjour' }]);
+		expect(groupTranscript(withBlank)).toEqual([
+			{ id: 1, origin: 'system', text: 'Bonjour', sourceText: '', lane: 0 }
+		]);
 	});
 });
 
@@ -125,6 +145,7 @@ describe('formatTranscript', () => {
 		const result = formatTranscript(lines, 'markdown', new Date('2026-09-21T10:00:00Z'), {
 			title: 'Transcription des sous-titres',
 			origin: { microphone: 'Microphone', system: 'Audio du système' },
+			original: 'Original',
 			tag: 'fr-FR'
 		});
 
@@ -137,6 +158,7 @@ describe('formatTranscript', () => {
 		const result = formatTranscript(lines, 'text', new Date(), {
 			title: 'Transcription des sous-titres',
 			origin: { microphone: 'Micro', system: 'Système' },
+			original: 'Original',
 			tag: 'fr-FR'
 		});
 
@@ -150,5 +172,78 @@ describe('transcriptFilename', () => {
 		const date = new Date(2026, 8, 21, 9, 7, 5);
 		expect(transcriptFilename(date, 'text')).toBe('transcript-20260921-090705.txt');
 		expect(transcriptFilename(date, 'markdown')).toBe('transcript-20260921-090705.md');
+	});
+});
+
+describe('bilingual export', () => {
+	// Newest first, as the store holds them.
+	const translated: TranscriptLine[] = [
+		{
+			id: 2,
+			origin: 'microphone',
+			text: 'the colonial archive.',
+			sourceText: 'l’archive coloniale.',
+			startMs: 2000,
+			endMs: 3000
+		},
+		{
+			id: 1,
+			origin: 'microphone',
+			text: 'We begin with',
+			sourceText: 'Nous commençons par',
+			startMs: 0,
+			endMs: 1500
+		}
+	];
+	const at = new Date('2026-09-24T10:00:00Z');
+
+	it('joins the original speech into its paragraph alongside the translation', () => {
+		expect(groupTranscript(translated)).toEqual([
+			{
+				id: 1,
+				origin: 'microphone',
+				text: 'We begin with the colonial archive.',
+				sourceText: 'Nous commençons par l’archive coloniale.',
+				lane: 0
+			}
+		]);
+		expect(hasOriginalSpeech(translated)).toBe(true);
+		expect(hasOriginalSpeech(translated.map((line) => ({ ...line, sourceText: ' ' })))).toBe(false);
+	});
+
+	it('leaves every format unchanged unless asked', () => {
+		for (const format of ['markdown', 'text', 'vtt', 'srt'] as const)
+			expect(formatTranscript(translated, format, at)).not.toContain('Nous commençons');
+	});
+
+	it('puts the original under each paragraph in text and Markdown', () => {
+		const options = { original: true };
+		expect(formatTranscript(translated, 'text', at, DEFAULT_LABELS, options)).toBe(
+			'Microphone\nWe begin with the colonial archive.\n' +
+				'Original: Nous commençons par l’archive coloniale.\n'
+		);
+		expect(formatTranscript(translated, 'markdown', at, DEFAULT_LABELS, options)).toContain(
+			'\n**Microphone**\n\nWe begin with the colonial archive.\n\n' +
+				'> *Original:* Nous commençons par l’archive coloniale.\n'
+		);
+	});
+
+	it('sets the original as each cue’s italic second line in WebVTT and SubRip', () => {
+		const options = { original: true };
+		const vtt = formatTranscript(translated, 'vtt', at, DEFAULT_LABELS, options);
+		expect(vtt).toContain('<v Microphone>We begin with</v>\n<i>Nous commençons par</i>\n');
+		const srt = formatTranscript(translated, 'srt', at, DEFAULT_LABELS, options);
+		expect(srt).toContain(
+			'00:00:02,000 --> 00:00:03,000\n[Microphone] the colonial archive.\n<i>l’archive coloniale.</i>\n'
+		);
+		// A line with no original gains no empty italic line.
+		const bare = formatTranscript(
+			[{ ...translated[1], sourceText: '' }],
+			'srt',
+			at,
+			DEFAULT_LABELS,
+			options
+		);
+		expect(bare).not.toContain('<i>');
 	});
 });

@@ -82,6 +82,14 @@ pub async fn start_session(
         .map_err(|error| AppError::with(id::SESSION_START, format!("{error:#}")))
 }
 
+/// Pause or resume the running session; see `SessionManager::set_paused`.
+#[tauri::command]
+pub fn pause_session(manager: State<'_, SessionManager>, paused: bool) -> Result<(), AppError> {
+    manager
+        .set_paused(paused)
+        .map_err(|error| AppError::with(id::SESSION_PAUSE, format!("{error:#}")))
+}
+
 #[tauri::command]
 pub async fn stop_session(
     app: AppHandle,

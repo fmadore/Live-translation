@@ -61,6 +61,10 @@ export default defineConfig({
 				test: {
 					name: 'component',
 					environment: 'jsdom',
+					// One jsdom per worker instead of one per file, with each file still in its own
+					// VM context. It halves this project's time. The logic project stays isolated the
+					// ordinary way: sharing a context there lets `vi.mock` leak between files.
+					pool: 'vmThreads',
 					clearMocks: true,
 					include: ['src/**/*.svelte.test.ts'],
 					setupFiles: ['./vitest-setup-client.ts']

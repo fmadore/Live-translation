@@ -7,7 +7,14 @@
 	import { previewContent } from './overlayFixtures';
 	import { loadAppearance } from '$lib/appearance';
 	import { loadFillerWords, normalizeFillerWords } from '$lib/cleanSpeech';
-	import { bottomCaptionHeight, isCaptionLayout } from '$lib/captionLayout';
+	import {
+		bottomCaptionHeight,
+		isCaptionLayout,
+		ORIGINAL_GAP,
+		ORIGINAL_SCALE,
+		originalHeight
+	} from '$lib/captionLayout';
+	import { readFlag } from '$lib/persisted';
 	import {
 		captionCssVars,
 		clampHex,
@@ -19,7 +26,13 @@
 	import { isLocale, locale, t } from '$lib/i18n';
 	import { isTargetLanguage } from '$lib/languages';
 	import { api, on, isTauri } from '$lib/tauri';
-	import { clampOverlayFont, type Origin, type TargetLanguage } from '$lib/types';
+	import {
+		clampOverlayFont,
+		SHOW_ORIGINAL_KEY,
+		type Lane,
+		type Origin,
+		type TargetLanguage
+	} from '$lib/types';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
 	// operator), then the operator pushes live updates via the overlay-config event.
@@ -30,7 +43,8 @@
 		fillerWords: loadFillerWords(),
 		hold: initial.hold,
 		pace: initial.pace,
-		width: initial.width
+		width: initial.width,
+		showOriginal: readFlag(SHOW_ORIGINAL_KEY)
 	});
 	const placement = createOverlayPlacement();
 
@@ -53,6 +67,8 @@
 	// not. Only the operator window can work it out, so it is pushed. Undefined means unknown
 	// — before the first push, and while a subtitle engine is detecting the spoken language.
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
+	/** Lane 1's language, when the session captions in a second one. */
+	let secondCaptionLanguage = $state<TargetLanguage | undefined>(undefined);
 
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
 	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
@@ -65,8 +81,19 @@
 	const lines = $derived(captions.lines);
 	const layout = $derived(captions.layout);
 	// A single speaker needs no label — the row is unambiguous, and the label would only steal
-	// width from the caption. Labels appear exactly when both origins are on screen.
+	// width from the caption. Labels appear exactly when more than one row is on screen.
 	const showLabels = $derived(lines.length > 1);
+	// With two caption languages the rows say which language they are, as a code — at
+	// projector distance a name would crowd the caption — and the source too only when both
+	// sources are on screen.
+	const bilingualRows = $derived(lines.some((line) => line.lane === 1));
+	const bothSources = $derived(new Set(lines.map((line) => line.origin)).size > 1);
+	const rowLanguage = (lane: Lane) => (lane === 1 ? secondCaptionLanguage : captionLanguage);
+	function rowLabel(line: { origin: Origin; lane: Lane }): string {
+		if (!bilingualRows) return originLabel[line.origin];
+		const code = (rowLanguage(line.lane) ?? '').toUpperCase();
+		return bothSources ? `${originLabel[line.origin]} · ${code}` : code;
+	}
 	const sidePadding = $derived(
 		layout !== 'compact' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
 	);
@@ -79,6 +106,11 @@
 				Math.max(1, lines.length)
 		)
 	);
+	// The original takes two of its smaller lines when the row has room for them beside two
+	// caption lines, and one otherwise: it is there to follow along, not to be read in full.
+	const originalRows = $derived(rowHeight >= 4.5 * fontSize ? 2 : 1);
+	const originalRegion = $derived(originalHeight(fontSize, originalRows));
+	const showsOriginal = $derived(lines.some((line) => line.original));
 
 	onMount(() => {
 		const measure = () => {
@@ -107,6 +139,7 @@
 			const preview = previewContent(new URLSearchParams(window.location.search).get('language'));
 			captions.show(preview);
 			if (preview.language) captionLanguage = preview.language;
+			if (preview.secondLanguage) secondCaptionLanguage = preview.secondLanguage;
 			return cleanup;
 		}
 
@@ -118,6 +151,7 @@
 			if (typeof cfg.cleanSpeech === 'boolean') captions.setHideFillers(cfg.cleanSpeech);
 			if (Array.isArray(cfg.fillerWords))
 				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
+			if (typeof cfg.showOriginal === 'boolean') captions.setShowOriginal(cfg.showOriginal);
 			if (isCaptionLayout(cfg.captionLayout)) captions.setLayout(cfg.captionLayout);
 			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
 				fontSize = clampOverlayFont(cfg.fontSize);
@@ -140,6 +174,9 @@
 			// Unconditional, unlike the rest: an absent caption language is a real answer
 			// ("nobody knows"), so it has to be able to clear one that was set before.
 			captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
+			secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
+				? cfg.secondCaptionLanguage
+				: undefined;
 			if (typeof cfg.interactive === 'boolean') placement.setInteractive(cfg.interactive);
 		});
 
@@ -161,7 +198,7 @@
 
 	/** Reset an enlarged reading region to a shallow subtitle strip along the bottom. */
 	function snapToBottom() {
-		void placement.snapToBottom(bottomCaptionHeight(fontSize, lines.length, layout));
+		void placement.snapToBottom(bottomCaptionHeight(fontSize, lines.length, layout, showsOriginal));
 	}
 
 	function onKeyDown(e: KeyboardEvent) {
@@ -193,7 +230,7 @@
 	class:stable={layout === 'stable'}
 	class:fit={layout !== 'compact'}
 	data-tauri-drag-region={placement.interactive || undefined}
-	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
+	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"
 >
@@ -210,21 +247,38 @@
 		<!-- Painted only while there is something to read: with no captions the window must
 		     paint nothing at all, or it would veil the presenter's slides. -->
 		<div class="captions">
-			{#each lines as line (line.origin)}
+			{#each lines as line (line.track)}
 				<div class="row">
 					<!-- The label is interface-language text sitting beside caption-language text, and
 					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
-					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
-					<OverlayCaptionLine
-						stable={layout === 'stable'}
-						onTrim={(chars) => captions.trimStable(line.origin, chars)}
-						lead={line.lead}
-						text={line.text}
-						interim={line.interim}
-						height={rowHeight}
-						fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded}
-						language={captionLanguage ?? ''}
-					/>
+					{#if showLabels}<span class="origin">{rowLabel(line)}</span>{/if}
+					<div class="texts">
+						<OverlayCaptionLine
+							stable={layout === 'stable'}
+							onTrim={(chars) => captions.trimStable(line.track, chars)}
+							lead={line.lead}
+							text={line.text}
+							interim={line.interim}
+							height={line.original ? rowHeight - originalRegion - ORIGINAL_GAP : rowHeight}
+							fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded}
+							language={rowLanguage(line.lane) ?? ''}
+						/>
+						{#if line.original}
+							<!-- The speaker's language is whatever they spoke, which nobody has
+							     named: no `lang`, and the direction is left to the text. -->
+							<div class="original" style:margin-top="{ORIGINAL_GAP}px">
+								<OverlayCaptionLine
+									muted
+									lead=""
+									text={line.original}
+									interim={false}
+									height={originalRegion}
+									fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded + ':original'}
+									language=""
+								/>
+							</div>
+						{/if}
+					</div>
 				</div>
 			{/each}
 		</div>
@@ -297,6 +351,15 @@
 	}
 	.fit .row {
 		max-width: none;
+	}
+	.texts {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+	}
+	.original {
+		font-size: calc(var(--fs) * var(--original-scale));
 	}
 	.origin {
 		flex: 0 0 auto;

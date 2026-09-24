@@ -1,5 +1,5 @@
 import { fromStore } from 'svelte/store';
-import { isRunning, sessionStartedAt } from './stores';
+import { isRunning, pausedTime, sessionStartedAt, streamedMs } from './stores';
 
 /** `mm:ss`, or `h:mm:ss` once a session passes an hour. */
 export function formatElapsed(ms: number): string {
@@ -17,6 +17,7 @@ export function formatElapsed(ms: number): string {
 export function createSessionClock() {
 	const running = fromStore(isRunning);
 	const startedAt = fromStore(sessionStartedAt);
+	const paused = fromStore(pausedTime);
 	let now = $state(Date.now());
 	$effect(() => {
 		if (!running.current) return;
@@ -32,6 +33,10 @@ export function createSessionClock() {
 		},
 		get elapsedMs() {
 			return elapsedMs;
+		},
+		/** The part of the session that was not paused: what a provider bills. */
+		get streamedMs() {
+			return streamedMs(elapsedMs, paused.current, now);
 		},
 		get elapsed() {
 			return formatElapsed(elapsedMs);

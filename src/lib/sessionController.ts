@@ -5,10 +5,11 @@ import {
 	beginSession,
 	endTranscriptSession,
 	isRunning,
+	pauseRequested,
 	statusMessage
 } from './stores';
 import { api } from './tauri';
-import type { StartOptions } from './types';
+import { secondCaptionLanguageOf, type StartOptions } from './types';
 import { languageName, supportsLanguage } from './languages';
 import { locale, t } from './i18n';
 
@@ -17,7 +18,8 @@ import { locale, t } from './i18n';
 export function createSessionController(
 	port = {
 		startSession: api.startSession,
-		stopSession: api.stopSession
+		stopSession: api.stopSession,
+		pauseSession: api.pauseSession
 	}
 ) {
 	const busy = writable(false);
@@ -28,20 +30,27 @@ export function createSessionController(
 		busy,
 		async start(options: StartOptions): Promise<boolean> {
 			if (operation || stopping || get(isRunning)) return false;
-			if (!supportsLanguage(options.provider, options.targetLanguage)) {
+			const second = secondCaptionLanguageOf(options);
+			const unsupported = [options.targetLanguage, ...(second ? [second] : [])].find(
+				(code) => !supportsLanguage(options.provider, code)
+			);
+			if (unsupported) {
 				const messages = get(t);
 				statusMessage.set(
 					messages.language.unsupported(
 						messages.engine[options.provider],
-						languageName(options.targetLanguage, get(locale))
+						languageName(unsupported, get(locale))
 					)
 				);
 				return false;
 			}
 			busy.set(true);
 			statusMessage.set('');
-			beginSession(options);
-			const work = Promise.resolve().then(() => port.startSession(options));
+			// A second language chosen for translation stays in the saved setup when the mode
+			// changes, so switching back restores it; only a run that can use it sends it.
+			const run: StartOptions = { ...options, secondTargetLanguage: second ?? null };
+			beginSession(run);
+			const work = Promise.resolve().then(() => port.startSession(run));
 			operation = work;
 			try {
 				await work;
@@ -53,6 +62,17 @@ export function createSessionController(
 			} finally {
 				operation = null;
 				if (!stopping) busy.set(false);
+			}
+		},
+		/** Pause or resume the running session. Ignored while a start or stop is under way:
+		 *  the session it would address is the one being replaced. */
+		async pause(paused: boolean): Promise<void> {
+			if (operation || stopping || !get(isRunning)) return;
+			try {
+				await port.pauseSession(paused);
+				pauseRequested.set(paused);
+			} catch (error) {
+				statusMessage.set(asStatus(error));
 			}
 		},
 		stop(): Promise<void> {

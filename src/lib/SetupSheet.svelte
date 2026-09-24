@@ -8,11 +8,11 @@
 	import Field from './ui/Field.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
 	import Select from './ui/Select.svelte';
-	import { languageName } from './languages';
+	import { languageName, languageRows } from './languages';
 	import { locale, t } from './i18n';
 	import { languageFavourites, micLevel, options, systemLevel } from './stores';
 	import { PROVIDER_META, modelLabel, rateParts } from './providers';
-	import { providerDetectsLanguage, type Provider } from './types';
+	import { providerDetectsLanguage, type Provider, type TargetLanguage } from './types';
 	import type { PreflightController } from './preflightController.svelte';
 	import type { SetupActions } from './setupActions';
 
@@ -43,6 +43,17 @@
 		$options.mode === 'translate'
 			? ['gemini', 'openai']
 			: ['mistral', 'gemini-transcribe', 'ondevice']
+	);
+
+	// The second caption language: favourites first, then every language the engine offers,
+	// never the first language itself. A stored choice the engine does not offer stays listed,
+	// so the select shows it and the language error explains it rather than hiding it.
+	const secondChoices = $derived(
+		languageRows($options.provider, $languageFavourites, '', $locale).filter(
+			(row) =>
+				row.code !== $options.targetLanguage &&
+				(row.supported || row.code === $options.secondTargetLanguage)
+		)
 	);
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
@@ -265,6 +276,20 @@
 		<p class="hint inline-hint">
 			<span>{$t.rail.flipHint}</span><Kbd command="direction" />
 		</p>
+		<Field label={$t.language.second}>
+			<Select
+				value={$options.secondTargetLanguage ?? ''}
+				disabled={locked}
+				onchange={(e) =>
+					actions.setSecondTarget((e.currentTarget.value || null) as TargetLanguage | null)}
+			>
+				<option value="">{$t.language.secondNone}</option>
+				{#each secondChoices as row (row.code)}
+					<option value={row.code}>{row.name}</option>
+				{/each}
+			</Select>
+		</Field>
+		<p class="hint">{$t.language.secondHint}</p>
 	{:else}
 		{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
 		<div class="lang-cards">

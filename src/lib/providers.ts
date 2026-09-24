@@ -65,7 +65,12 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 
 /** Cost accrued so far, in USD. Per-stream providers bill once per open source, so "Both"
  *  doubles the rate; the built-in demonstration bills nothing. */
-export function estimateSessionCost(provider: Provider, elapsedMs: number, streams: 1 | 2): number {
+/** `streams` counts provider sessions: one per source, per caption language. */
+export function estimateSessionCost(
+	provider: Provider,
+	elapsedMs: number,
+	streams: number
+): number {
 	const meta = PROVIDER_META[provider];
 	const hours = elapsedMs / 3_600_000;
 	return meta.hourlyEstimate * hours * (meta.perStream ? streams : 1);

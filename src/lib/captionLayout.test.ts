@@ -1,11 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
 	appendCaptionHistory,
+	captionReach,
 	firstOffsetOnLine,
 	fitCaptionTail,
 	isCaptionLayout,
 	bottomCaptionHeight
 } from './captionLayout';
+
+it('makes room for one line of original speech per row when it is shown', () => {
+	for (const sources of [1, 2]) {
+		const plain = bottomCaptionHeight(60, sources, 'fit');
+		const bilingual = bottomCaptionHeight(60, sources, 'fit', true);
+		expect(bilingual - plain).toBe(sources * (Math.ceil(0.6 * 60 * 1.34) + 4));
+	}
+});
 
 it('bottom-aligns to two lines per visible source instead of retaining a tall window', () => {
 	expect(bottomCaptionHeight(38, 0, 'fit')).toBe(160);
@@ -40,6 +49,35 @@ describe('caption fitting', () => {
 	it('normalizes streaming whitespace and preserves Unicode when shortening a token', () => {
 		expect(fitCaptionTail(' bonjour\n le   monde ', () => true)).toBe('bonjour le monde');
 		expect(fitCaptionTail('😀😀😀😀😀😀', (s) => Array.from(s).length <= 4)).toBe('… 😀😀');
+	});
+	it('finds the same tail from a bounded search while laying out far less', () => {
+		const context = Array.from({ length: 2000 }, (_, i) => `word${i}`).join(' ');
+		const probes: number[] = [];
+		const fits = (s: string) => (probes.push(s.length), s.length <= 120);
+		const unbounded = fitCaptionTail(context, fits);
+		const widest = Math.max(...probes);
+		probes.length = 0;
+		expect(fitCaptionTail(context, fits, 400)).toBe(unbounded);
+		expect(Math.max(...probes)).toBeLessThanOrEqual(402);
+		expect(widest).toBeGreaterThan(10000);
+	});
+	it('falls back to the whole text when the bound was too tight', () => {
+		expect(fitCaptionTail(text, (s) => s.length <= 55, 10)).toBe(
+			fitCaptionTail(text, (s) => s.length <= 55)
+		);
+		expect(fitCaptionTail(text, () => true, 10)).toBe(text);
+		// No space to cut at (Japanese has none): the bound cannot apply.
+		expect(fitCaptionTail('あいうえおかきくけこ', (s) => Array.from(s).length <= 5, 3)).toBe(
+			'… くけこ'
+		);
+	});
+	it('bounds reach by the region, never below what it could show', () => {
+		expect(captionReach(0, 100, 50)).toBe(Infinity);
+		expect(captionReach(800, 100, 1)).toBe(Infinity);
+		// Two rows of 50px text, 800px wide: even 0.3em glyphs would give 107 a row.
+		const reach = captionReach(800, 100, 50);
+		expect(reach).toBeGreaterThan(2 * 107);
+		expect(reach).toBeLessThan(1000);
 	});
 	it('retains multiple recent turns with a bounded history', () => {
 		expect(appendCaptionHistory(appendCaptionHistory('', 'One.'), 'Two.')).toBe('One. Two.');

@@ -17,9 +17,11 @@
 		sessionHistory,
 		type SavedSession
 	} from './history';
+	import { exportOriginal } from './stores';
 	import {
 		formatTranscript,
 		transcriptFilename,
+		hasOriginalSpeech,
 		hasTranscriptTiming,
 		type TranscriptFormat
 	} from './transcript';
@@ -101,11 +103,19 @@
 	});
 
 	function content(session: SavedSession, format: TranscriptFormat) {
-		return formatTranscript(session.lines, format, new Date(session.startedAt), {
-			title: $t.export.title,
-			origin: $t.export.origin,
-			tag: $localeTag
-		});
+		return formatTranscript(
+			session.lines,
+			format,
+			new Date(session.startedAt),
+			{
+				title: $t.export.title,
+				origin: $t.export.origin,
+				original: $t.export.original,
+				language: (code) => languageName(code, $locale),
+				tag: $localeTag
+			},
+			{ original: $exportOriginal }
+		);
 	}
 	async function action(kind: 'copy' | 'export') {
 		if (!selected || busy) return;
@@ -264,6 +274,12 @@
 							onclick={() => (confirmDelete = '')}>{$t.history.cancel}</ToolButton
 						>{/if}
 				</div>
+				{#if hasOriginalSpeech(selected.lines)}<Preference
+						label={$t.transcript.includeOriginal}
+						checked={$exportOriginal}
+						disabled={busy}
+						onchange={(value) => exportOriginal.set(value)}
+					/>{/if}
 				{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
 						{$t.transcript.noTiming}
 					</p>{/if}

@@ -76,8 +76,9 @@ impl RealtimeProtocol for GeminiConfig {
             tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
             return MessageOutcome::setup_complete();
         }
+        // Live sessions are capped; `goAway` warns ahead of the cut, so move straight away.
         if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Reconnect);
+            return MessageOutcome::control(MessageControl::Handover);
         }
         if let Some(error) = msg.error {
             return MessageOutcome::control(MessageControl::Fatal(format!(
@@ -161,7 +162,7 @@ mod tests {
         assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
         assert!(matches!(
             h.send(r#"{"goAway":{"timeLeft":"10s"}}"#).control,
-            MessageControl::Reconnect
+            MessageControl::Handover
         ));
         assert!(matches!(
             h.send(r#"{"error":{"code":400,"message":"bad"}}"#).control,

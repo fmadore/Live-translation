@@ -12,6 +12,17 @@ or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and 
 transcript all remain below the session controls. Readiness gates and keyboard shortcuts
 are unchanged.
 
+## Pause
+
+**Pause**, beside Stop (or Ctrl+Shift+P), is for a coffee break or a video clip: it keeps the
+session, its clock and its transcript, and lets the caption engine go. Each provider
+connection is closed gracefully — the last turn is flushed into the transcript first — so
+nothing is streamed or billed while paused; **Resume** connects afresh. Capture and the level
+meters keep running, so the operator can see when the room is talking again. The status pill,
+the tray and the input status read *Paused*, the rail says the engine is disconnected, and the
+running cost estimate counts only streamed time. Hide overlay is unchanged: it blanks the
+captions but keeps streaming. The built-in demonstration holds between steps the same way.
+
 ## Meeting profiles
 
 Use the profile picker above step 01, then **Manage profiles**. Choose **Save current setup…**,
@@ -61,6 +72,7 @@ system-wide hotkeys and cannot control the app while another application is focu
 | Shortcut | Action |
 | --- | --- |
 | Ctrl+Shift+Space | Start / stop; respects the same readiness and busy gates as the buttons |
+| Ctrl+Shift+P | Pause / resume a running session |
 | Ctrl+Shift+O | Show / hide the overlay |
 | Ctrl+Shift+Up / Down | Increase / decrease caption size |
 | F2 | Switch translation direction while stopped |

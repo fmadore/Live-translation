@@ -88,6 +88,7 @@ export const en = {
 		shortcutOverlay: 'Show / hide overlay',
 		shortcutSize: 'Increase / decrease caption size',
 		shortcutDirection: 'Swap the first two favourites before starting with F2',
+		shortcutPause: 'Pause / resume captions',
 		listening: 'Listening — no recent audio signal',
 		audio: 'Receiving audio',
 		captions: 'Receiving captions',
@@ -95,6 +96,7 @@ export const en = {
 			'Audio is arriving, but no captions have arrived for 15 seconds. Check the provider and connection.',
 		connecting: 'Connecting…',
 		reconnecting: 'Reconnecting…',
+		paused: 'Paused — capture continues, nothing is sent',
 		error: 'Source stopped with an error',
 		idle: 'Source stopped',
 		activity: 'Live input status',
@@ -122,6 +124,7 @@ export const en = {
 		o: 'O',
 		up: '↑',
 		down: '↓',
+		p: 'P',
 		f2: 'F2'
 	},
 
@@ -130,6 +133,7 @@ export const en = {
 		connecting: 'Connecting',
 		running: 'Live',
 		reconnecting: 'Reconnecting',
+		paused: 'Paused',
 		error: 'Error',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
 		demo: 'Demo'
@@ -141,6 +145,7 @@ export const en = {
 		connecting: 'Connecting to the caption engine.',
 		running: 'Captions are live.',
 		reconnecting: 'Connection lost — reconnecting.',
+		paused: 'Captions paused. Nothing is being sent to the caption engine.',
 		error: 'Session error.'
 	},
 
@@ -172,6 +177,10 @@ export const en = {
 		favourites: 'Favourites',
 		all: 'All languages',
 		noMatches: 'No matching languages.',
+		second: 'Second caption language',
+		secondNone: 'None',
+		secondHint:
+			'Captions in both languages at once. Each source runs a second translation session, so this doubles the cost.',
 		pin: (language: string) => `Pin ${language}`,
 		unpin: (language: string) => `Unpin ${language}`,
 		unsupported: (engine: string, language: string) =>
@@ -213,6 +222,7 @@ export const en = {
 		free: 'Free',
 		elapsed: 'Elapsed',
 		streamed: 'Streamed',
+		twoLanguages: '×2 languages',
 		estimate: 'Est. cost',
 		twoSources: '×2 sources'
 	},
@@ -258,6 +268,10 @@ export const en = {
 		arriving: 'Audio arriving',
 		stop: 'Stop captions',
 		stopping: 'Stopping…',
+		pause: 'Pause',
+		resume: 'Resume',
+		pauseNote:
+			'Paused: the caption engine is disconnected and nothing is billed. The meters keep showing the room.',
 
 		step: {
 			whatToShow: 'What to show',
@@ -333,6 +347,9 @@ export const en = {
 		stable: 'Stable reading',
 		cleanSpeech: 'Hide filler words',
 		cleanSpeechHint: 'Overlay only. The transcript keeps the original text.',
+		showOriginal: 'Show the original speech under translations',
+		showOriginalHint:
+			'A smaller line under each translated caption, for people following the speaker’s own language. Translation only; not in Stable reading.',
 		fillerWords: {
 			heading: 'Words to hide',
 			hint: 'A listed word is hidden wherever it stands on its own, whatever it means there. Words such as “like”, “well” or “so” often carry meaning, so adding them can remove real content.',
@@ -548,6 +565,7 @@ export const en = {
 		saveAs: 'Save as…',
 		format: 'Export format',
 		plainText: 'Plain text',
+		includeOriginal: 'Include original speech',
 		noTiming: 'This recovered transcript has no timing. Save it as text or Markdown.',
 		saveMarkdown: 'Save Markdown',
 		clear: 'Clear',
@@ -576,6 +594,7 @@ export const en = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Live captions transcript',
+		original: 'Original',
 		origin: {
 			microphone: 'Microphone',
 			system: 'System'
@@ -665,6 +684,7 @@ export const en = {
 		keychain: 'Windows Credential Manager refused the request',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',
+		sessionPause: 'The session could not be paused or resumed',
 		audioTestStart: 'The audio test could not open that source',
 		overlayWindow: 'The overlay window did not respond',
 		transcriptDir: 'The transcript folder could not be created',

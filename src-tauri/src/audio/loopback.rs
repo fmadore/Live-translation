@@ -41,6 +41,7 @@ pub fn run_system_loopback(
 #[cfg(windows)]
 mod windows_impl {
     use std::collections::VecDeque;
+    use std::time::Duration;
 
     use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
@@ -48,6 +49,7 @@ mod windows_impl {
     use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
 
     use crate::audio::capture::CaptureState;
+    use crate::audio::devices::PresenceCheck;
     use crate::audio::AudioChunk;
     use crate::types::{AudioLevel, Origin};
 
@@ -158,16 +160,21 @@ mod windows_impl {
         let mut state = CaptureState::new(Origin::System, in_rate, target_rate, level_tx, chunk_tx);
         let mut raw: VecDeque<u8> = VecDeque::new();
         let mut frame: Vec<f32> = Vec::new();
+        // The loop wakes on every device period (~100 Hz); the endpoint's state only needs
+        // asking when Windows reports a change, or once a second in case it did not.
+        let mut presence = PresenceCheck::new(Duration::from_secs(1));
 
         while !cancel.is_cancelled() {
             // An endpoint can disappear without producing another audio event. Never reopen
             // the new default silently: this stream stays pinned to its original endpoint.
-            anyhow::ensure!(
-                device
-                    .as_ref()
-                    .is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
-                "selected output device disconnected or disabled"
-            );
+            if presence.due() {
+                anyhow::ensure!(
+                    device
+                        .as_ref()
+                        .is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
+                    "selected output device disconnected or disabled"
+                );
+            }
             anyhow::ensure!(
                 process.as_ref().is_none_or(|p| p.running()),
                 "selected application has closed; select it again"

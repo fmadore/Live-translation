@@ -1,7 +1,13 @@
 //! Opt-in session history, separate from the disposable recovery spool.
+//!
+//! A session file is a log: one JSON record per line, a header first and then finalized lines
+//! and progress records as they happen (the format is `src/lib/history.ts`'s, and opaque here).
+//! `write_history` replaces a whole file; `append_history` adds records to one, so a long
+//! session no longer rewrites everything it has already saved every few seconds. Files from
+//! before the log format are a single JSON object, and are still read and renamed.
 use crate::recovery::{remove_snapshot, replace_snapshot, StoredRecovery};
 use std::{
-    io::Write,
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::Mutex,
 };
@@ -45,6 +51,35 @@ pub async fn write_history(app: AppHandle, id: String, contents: String) -> Resu
     .map_err(|e| e.to_string())?
 }
 
+/// Add records to an existing session log and flush them. A missing file is an error rather
+/// than a new one, so a log never starts without its header: the renderer answers the error
+/// by writing the whole session. A record torn by an earlier failed write is closed off with
+/// a newline first, so it cannot swallow the next one.
+fn append_session(path: &Path, contents: &str) -> std::io::Result<()> {
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .append(true)
+        .open(path)?;
+    let mut last = [0u8; 1];
+    if file.seek(SeekFrom::End(-1)).is_ok() && file.read_exact(&mut last).is_ok() && last != *b"\n"
+    {
+        file.write_all(b"\n")?;
+    }
+    file.write_all(contents.as_bytes())?;
+    file.sync_data()
+}
+
+#[tauri::command]
+pub async fn append_history(app: AppHandle, id: String, contents: String) -> Result<(), String> {
+    let path = session_path(&directory(&app)?, &id)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        append_session(&path, &contents).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 fn read_sessions(dir: &Path) -> Result<Vec<StoredRecovery>, String> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
@@ -73,14 +108,29 @@ fn read_sessions(dir: &Path) -> Result<Vec<StoredRecovery>, String> {
     Ok(sessions)
 }
 
+/// The log format's version, as its header records it.
+const LOG_VERSION: u64 = 2;
+
+/// Whether a session file is a log, judged by its header record.
+fn is_log(raw: &[u8]) -> bool {
+    let header = raw.split(|&b| b == b'\n').next().unwrap_or_default();
+    serde_json::from_slice::<serde_json::Value>(header)
+        .is_ok_and(|record| record["version"] == LOG_VERSION)
+}
+
 fn rename_session(path: &Path, title: &str) -> Result<(), String> {
     let raw = std::fs::read(path).map_err(|e| e.to_string())?;
+    let title = title.trim().chars().take(120).collect::<String>();
+    // A log takes the rename as one more record; the latest title record wins when it is read.
+    if is_log(&raw) {
+        let mut record = serde_json::to_string(&serde_json::json!({ "title": title }))
+            .map_err(|e| e.to_string())?;
+        record.push('\n');
+        return append_session(path, &record).map_err(|e| e.to_string());
+    }
     let mut session: serde_json::Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
     let record = session.as_object_mut().ok_or("invalid session")?;
-    record.insert(
-        "title".into(),
-        title.trim().chars().take(120).collect::<String>().into(),
-    );
+    record.insert("title".into(), title.into());
     let contents = serde_json::to_vec(&session).map_err(|e| e.to_string())?;
     replace_snapshot(path, |f| f.write_all(&contents)).map_err(|e| e.to_string())
 }
@@ -145,6 +195,53 @@ mod tests {
         assert!(rename_session(&path, "gone").is_err());
         std::fs::remove_dir(dir).unwrap();
     }
+    fn temp_file(name: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "{name}-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ))
+    }
+
+    #[test]
+    fn appends_extend_a_log_and_never_create_one() {
+        let path = temp_file("history-append");
+        assert!(append_session(&path, "{\"line\":1}\n").is_err());
+        assert!(!path.exists());
+        std::fs::write(&path, "{\"version\":2}\n").unwrap();
+        append_session(&path, "{\"line\":1}\n").unwrap();
+        append_session(&path, "{\"line\":2}\n").unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            "{\"version\":2}\n{\"line\":1}\n{\"line\":2}\n"
+        );
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn a_torn_record_cannot_swallow_the_next_append() {
+        let path = temp_file("history-torn");
+        std::fs::write(&path, "{\"version\":2}\n{\"line\":").unwrap();
+        append_session(&path, "{\"line\":2}\n").unwrap();
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(contents.lines().last(), Some("{\"line\":2}"));
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn renaming_a_log_appends_a_title_record() {
+        let path = temp_file("history-rename-log");
+        std::fs::write(&path, "{\"version\":2,\"id\":\"x\"}\n{\"line\":{}}\n").unwrap();
+        rename_session(&path, "  Keynote ").unwrap();
+        let contents = std::fs::read_to_string(&path).unwrap();
+        assert_eq!(contents.lines().count(), 3);
+        assert_eq!(contents.lines().last(), Some("{\"title\":\"Keynote\"}"));
+        std::fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn history_survives_reopening_and_deletion_is_per_session() {
         let dir = std::env::temp_dir().join(format!(

@@ -463,6 +463,62 @@ A desktop run should confirm the toolbar under the native frame and Narrator rea
 dropped gradient, the danger tint and the swatch ring. It should also check move mode in the
 real overlay window. The five Store screenshots per language need re-capturing from the MSIX.
 
+## Follow-up — 24 September 2026
+
+After batch 4, a second pass looked for remaining efficiency work and for features operators
+would use. The maintainer chose the efficiency items, bilingual output, Pause and two caption
+languages at once; a glossary, a diagnostic export, a latency readout and meeting-platform
+integrations were declined. Each item is its own commit on `claude/refactor-efficiency-features-08q7az`.
+
+| Item | Change | Status |
+| --- | --- | --- |
+| New | Gemini `goAway` is a planned handover: no backoff, queued audio sent in order | Done; live check pending |
+| E9 | Device presence on change (fallback 5 s mic, 1 s loopback); keychain on the blocking pool; one main-thread hop per overlay raise; no `resampled` copy | Done; desktop run pending |
+| D3 (rest) | History is an append-only log after its first write | Done |
+| E3 | Fitting searches only the tail the region could show; line height read per font | Done |
+| E7 | Measured, not changed: see below | Closed |
+| E10 | Rust CI lane no longer waits for `frontend`; stale cache key renamed; `vmThreads` for component tests | Done |
+| Feature | Bilingual output: original speech in exports and under overlay captions | Done |
+| Feature | Pause: disconnect the caption engine, keep the session | Done; desktop run pending |
+| Feature | Two caption languages at once (lanes and tracks) | Done; live check pending |
+
+Notes:
+
+- **Handover.** Until now `goAway` took the dropped-socket path: at least one second of
+  backoff (plus 173 ms on the system source), then the queued audio was discarded, so every
+  Gemini session cap lost the speech in between. See
+  [the ten-minute cap](gemini-live-api.md#the-ten-minute-cap).
+- **History.** At about ten finalized lines a minute the 5 s interval from D3 coalesced about
+  one line per write, so a three-hour session still rewrote about half a gigabyte. The log
+  format is in [transcript history](transcript-history.md#file-format). The recovery spool,
+  which is off by default, still rewrites its snapshot every 8 s.
+- **E3.** Measured in headless Chromium 1500 px wide with two 38 px rows and 12,000 characters
+  of context: median fit 4.1 ms → 0.7 ms per caption per source, identical output.
+- **E7.** Appending a paragraph to a 3,000-paragraph log took 4.4 ms, 3.3 ms with
+  `content-visibility: auto`. It happens once per finalized line, so the saving did not
+  justify the scroll-position risk.
+- **E10.** `isolate: false` on the logic project was rejected: `quit.test.ts`'s module mocks
+  leak into other files. `vmThreads` on the component project took it from 19.2 s to 9.1 s;
+  `npm test` went from about 24 s to 14 s.
+
+Verification on 24 September 2026:
+
+| Check | Result |
+| --- | --- |
+| `npm test` | 531 passed in 57 files (494 before) |
+| `npm run check` | 0 errors, 0 warnings |
+| `npm run format:check` | Passed |
+| `npm run build` | Passed |
+| `npm run check:languages` | Passed |
+| `cargo fmt --check` | Passed |
+| `cargo clippy --locked --all-targets --all-features -- -D warnings` | Passed on Linux and for `x86_64-pc-windows-msvc` |
+| `cargo test --locked --all-features` | 105 passed, 2 ignored (93 before) |
+| Browser preview | Overlay with the original line, and `?language=bilingual`; setup sheet with a second language; no console errors |
+
+Not verified here, because they need Windows and real providers: a Gemini session past its
+cap (handover), Pause and Resume against each provider, a two-language session on each
+translation engine, loopback presence on unplugging an output, and the tray's Paused label.
+
 ## 1. Defects found while reviewing
 
 These are behavioural problems, not style issues, so they go first.

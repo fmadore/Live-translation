@@ -6,6 +6,7 @@
 // on screen distinguished a saved transcript from one that only existed in memory.
 
 import { ORIGINS, type Origin, type TranscriptLine } from './types';
+import { isTargetLanguage } from './languages';
 
 /** Id meaning "nothing has been saved yet". Line ids start at 1. */
 export const NOTHING_SAVED = 0;
@@ -61,6 +62,8 @@ export function encodeRecovery(newestFirst: TranscriptLine[], savedAt: Date): st
 			text: line.text,
 			sourceText: line.sourceText,
 			origin: line.origin,
+			...(line.lane ? { lane: line.lane } : {}),
+			...(line.language ? { language: line.language } : {}),
 			// Spread rather than assign: a line with no timing must not gain two `undefined`
 			// keys, which `JSON.stringify` drops anyway but which would make a round-trip
 			// comparison in a test misleadingly pass.
@@ -103,7 +106,7 @@ function timingOf(line: {
  * half an interval. Neither is a reason to throw away words the operator cannot get back —
  * the line returns without timing, and only the timed export is poorer for it.
  */
-function readLine(value: unknown): TranscriptLine | null {
+export function readLine(value: unknown): TranscriptLine | null {
 	if (typeof value !== 'object' || value === null) return null;
 	const line = value as Record<string, unknown>;
 	if (
@@ -121,6 +124,9 @@ function readLine(value: unknown): TranscriptLine | null {
 		text: line.text,
 		sourceText: line.sourceText,
 		origin: line.origin as Origin,
+		// Only the second language is marked; anything else reads as the first.
+		...(line.lane === 1 ? { lane: 1 as const } : {}),
+		...(isTargetLanguage(line.language) ? { language: line.language } : {}),
 		...timingOf(line)
 	};
 }

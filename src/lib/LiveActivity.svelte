@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from './i18n';
-	import { originStates, activityTimes, options, sessionStartedAt } from './stores';
+	import { originState, originStates, activityTimes, options, sessionStartedAt } from './stores';
 	import { activity } from './liveActivity';
 	import { ORIGINS } from './types';
 	let { now, microphone, system }: { now: number; microphone: boolean; system: boolean } = $props();
@@ -15,7 +15,7 @@
 			>
 			· {$t.usability[
 				activity(
-					$originStates[origin] ?? 'idle',
+					originState($originStates, origin),
 					now,
 					$sessionStartedAt ?? now,
 					$activityTimes[origin]?.audio ?? 0,

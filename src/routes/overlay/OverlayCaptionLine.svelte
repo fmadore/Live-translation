@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { captionDirection } from '$lib/languages';
-	import { firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
+	import { captionReach, firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
 	let {
 		stable = false,
+		muted = false,
 		lead,
 		text,
 		interim,
@@ -12,6 +13,8 @@
 		onTrim
 	}: {
 		stable?: boolean;
+		/** Secondary text — the original speech under a translation — in the dimmed ink. */
+		muted?: boolean;
 		lead: string;
 		text: string;
 		interim: boolean;
@@ -73,22 +76,32 @@
 	const prefix = $derived(
 		fitted.length > normalizedText.length ? fitted.slice(0, -normalizedText.length).trimEnd() : ''
 	);
+	// Read once per font rather than once per caption: a computed-style read after the probe's
+	// last layout forces style to be recalculated.
 	$effect(() => {
-		// Font loading and resizing must refit even when no new caption arrives.
 		void fontKey;
 		void language;
 		if (!probe || width <= 0) return;
 		lineHeight = parseFloat(getComputedStyle(probe).lineHeight) || 1;
-		if (stable) return;
-		fitted = fitCaptionTail(`${lead} ${text}`, (candidate) => {
-			probe.textContent = candidate;
-			if (interim) {
-				const caret = document.createElement('span');
-				caret.style.cssText = 'display:inline-block;width:14px;height:.86em;vertical-align:-1px';
-				probe.append(caret);
-			}
-			return probe.getBoundingClientRect().height <= height;
-		});
+	});
+	$effect(() => {
+		// Font loading and resizing must refit even when no new caption arrives.
+		void fontKey;
+		void language;
+		if (!probe || width <= 0 || stable) return;
+		fitted = fitCaptionTail(
+			`${lead} ${text}`,
+			(candidate) => {
+				probe.textContent = candidate;
+				if (interim) {
+					const caret = document.createElement('span');
+					caret.style.cssText = 'display:inline-block;width:14px;height:.86em;vertical-align:-1px';
+					probe.append(caret);
+				}
+				return probe.getBoundingClientRect().height <= height;
+			},
+			captionReach(width, height, lineHeight)
+		);
 		probe.textContent = '';
 	});
 </script>
@@ -116,7 +129,7 @@
 		</div>
 	{:else}
 		<!-- prettier-ignore -->
-		<p class="line" lang={language} class:final={!interim}>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
+		<p class="line" lang={language} class:final={!interim} class:muted>{#if prefix}<span class="lead">{prefix}</span>{' '}{/if}{live}{#if interim && fitted}<span class="caret"></span>{/if}</p>
 	{/if}
 </div>
 
@@ -163,6 +176,10 @@
 	}
 	.lead {
 		color: var(--caption-ink-lead);
+	}
+	.muted {
+		color: var(--caption-ink-lead);
+		font-weight: 500;
 	}
 	.caret {
 		display: inline-block;

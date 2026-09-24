@@ -6,7 +6,8 @@
 		overlayPace,
 		overlayCaptionLayout,
 		overlayCleanSpeech,
-		overlayCaptionWidth
+		overlayCaptionWidth,
+		overlayShowOriginal
 	} from './stores';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { CaptionLayout } from './captionLayout';
@@ -65,6 +66,12 @@
 		onchange={overlay.setCleanSpeech}
 	/>
 	{#if $overlayCleanSpeech}<FillerWordList {overlay} />{/if}
+	<Preference
+		label={$t.overlayControls.showOriginal}
+		note={$t.overlayControls.showOriginalHint}
+		checked={$overlayShowOriginal}
+		onchange={overlay.setShowOriginal}
+	/>
 	{#if $options.provider === 'gemini-transcribe'}<p>{$t.usability.geminiSmart}</p>{/if}
 </div>
 

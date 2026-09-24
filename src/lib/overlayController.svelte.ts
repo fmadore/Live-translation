@@ -12,9 +12,10 @@ import {
 	overlayFillerWords,
 	overlayPalette,
 	overlayPlaced,
+	overlayShowOriginal,
 	statusMessage
 } from './stores';
-import { captionLanguageOf, clampOverlayFont } from './types';
+import { captionLanguageOf, clampOverlayFont, secondCaptionLanguageOf } from './types';
 import type { OverlayConfig, OverlayStateMsg } from './types';
 import { DEFAULT_APPEARANCE, toOverlayConfig, type Appearance } from './appearance';
 import type { CaptionPalette } from './captionColour';
@@ -47,7 +48,9 @@ export function createOverlayController(port = api) {
 			.setOverlayConfig({
 				...toOverlayConfig(get(appearance)),
 				captionLanguage: captionLanguage(),
+				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
+				showOriginal: get(overlayShowOriginal),
 				...extra
 			})
 			.catch((e) => statusMessage.set(asStatus(e)));
@@ -78,6 +81,13 @@ export function createOverlayController(port = api) {
 	 *  `setAppearance` because the list is apart from the appearance: see `overlayFillerWords`. */
 	function setFillerWords(words: readonly string[]) {
 		overlayFillerWords.set(normalizeFillerWords(words));
+		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	/** Show or hide the original speech under translations. Outside the appearance, like the
+	 *  word list: it is about what the room reads, not how it looks. */
+	function setShowOriginal(show: boolean) {
+		overlayShowOriginal.set(show);
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
@@ -164,6 +174,7 @@ export function createOverlayController(port = api) {
 		setCaptionLayout,
 		setCleanSpeech: (cleanSpeech: boolean) => setAppearance({ cleanSpeech }),
 		setFillerWords,
+		setShowOriginal,
 		setPalette,
 		resetOverlayAppearance,
 		setCaptionFace,

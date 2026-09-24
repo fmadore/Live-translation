@@ -1,13 +1,15 @@
-export type Shortcut = 'toggleSession' | 'toggleOverlay' | 'larger' | 'smaller' | 'direction';
+export type Shortcut =
+	'toggleSession' | 'togglePause' | 'toggleOverlay' | 'larger' | 'smaller' | 'direction';
 
 /** A key as the interface names it. The words come from the catalog (`$t.keys`), because a
  *  German keyboard says Strg and a French one says Maj. */
-export type KeyName = 'ctrl' | 'shift' | 'space' | 'o' | 'up' | 'down' | 'f2';
+export type KeyName = 'ctrl' | 'shift' | 'space' | 'p' | 'o' | 'up' | 'down' | 'f2';
 
 /** Every shortcut, once: what the listener matches, what `aria-keyshortcuts` announces and
  *  what the window prints are all read from here, so the three cannot drift apart. */
 export const SHORTCUT_KEYS: Record<Shortcut, readonly KeyName[]> = {
 	toggleSession: ['ctrl', 'shift', 'space'],
+	togglePause: ['ctrl', 'shift', 'p'],
 	toggleOverlay: ['ctrl', 'shift', 'o'],
 	larger: ['ctrl', 'shift', 'up'],
 	smaller: ['ctrl', 'shift', 'down'],
@@ -22,6 +24,7 @@ const KEY: Record<
 	{ code: string; key?: string; aria: string }
 > = {
 	space: { code: 'Space', aria: 'Space' },
+	p: { code: 'KeyP', aria: 'P' },
 	o: { code: 'KeyO', aria: 'O' },
 	up: { code: 'ArrowUp', aria: 'ArrowUp' },
 	down: { code: 'ArrowDown', aria: 'ArrowDown' },

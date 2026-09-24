@@ -10,6 +10,7 @@ use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tauri::{AppHandle, Emitter};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Receiver;
+use tokio::sync::watch;
 use tokio_tungstenite::tungstenite::{self, handshake::client::Request, Message};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
@@ -31,8 +32,27 @@ const STALE_AUDIO_BACKLOG: usize = 4;
 
 type Socket = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
+/// Whether the operator has paused the session. One sender per session, a receiver per client.
+pub type PauseRx = watch::Receiver<bool>;
+
+/// Wait until the session is no longer paused. False when it ends first — stopped, or its
+/// pause sender dropped with the session.
+pub async fn wait_for_resume(pause: &mut PauseRx, cancel: &CancellationToken) -> bool {
+    loop {
+        if !*pause.borrow_and_update() {
+            return true;
+        }
+        tokio::select! {
+            _ = cancel.cancelled() => return false,
+            changed = pause.changed() => if changed.is_err() { return false; },
+        }
+    }
+}
+
 pub struct TurnAccumulator {
     pub id: u64,
+    /// The caption language this accumulator's captions are in; see `Caption::lane`.
+    pub lane: u8,
     pub source: String,
     pub translated: String,
     /// Shared with every other source in this session, so their captions land on one
@@ -47,6 +67,7 @@ impl TurnAccumulator {
     pub fn new(clock: SessionClock) -> Self {
         Self {
             id: 0,
+            lane: 0,
             source: String::new(),
             translated: String::new(),
             clock,
@@ -71,6 +92,10 @@ pub enum MessageControl {
     #[default]
     Continue,
     Reconnect,
+    /// The provider announced that it is about to close a healthy connection (Gemini's
+    /// `goAway` ahead of its session cap). A planned move rather than a failure: reconnect at
+    /// once, without backoff, and send the audio that queued up while the new socket opened.
+    Handover,
     Fatal(String),
     Closed,
 }
@@ -159,6 +184,9 @@ pub trait RealtimeProtocol {
 enum RunEnd {
     Stopped,
     Reconnect,
+    Handover,
+    /// The operator paused: the connection was closed gracefully, its last turn flushed.
+    Paused,
     Fatal(String),
 }
 
@@ -168,44 +196,79 @@ pub async fn run_session<P: RealtimeProtocol>(
     mut audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
     clock: SessionClock,
+    mut pause: PauseRx,
+    lane: u8,
 ) {
     // Aborting a client task must release its producer too. Normal terminal exits below
     // also finalize text before reporting that the source has ended.
     let _capture_guard = cancel.clone().drop_guard();
     let origin = proto.origin();
+    let to = Lane { origin, lane };
     let mut backoff = INITIAL_BACKOFF;
     let mut first = true;
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock);
+    acc.lane = lane;
     let mut terminal_error = None;
+    // Set when the last connection ended in a planned handover. The source stays Running
+    // through one, and what it queued meanwhile is live speech rather than a stall's backlog.
+    let mut handover = false;
+    // Set when the connection closed for a pause, so the next one is a fresh start rather
+    // than a recovery: no backoff, and Connecting rather than Reconnecting.
+    let mut resuming = false;
 
     while !cancel.is_cancelled() {
-        emit_status(
-            &app,
-            if first {
-                SessionState::Connecting
-            } else {
-                SessionState::Reconnecting
-            },
-            None,
-            origin,
-        );
-
-        let mut dropped = 0usize;
-        while audio_rx.try_recv().is_ok() {
-            dropped += 1;
+        // Paused before connecting: at the start, or after a connection closed for it.
+        if *pause.borrow() {
+            emit_status(&app, SessionState::Paused, None, to);
+            if !wait_for_resume(&mut pause, &cancel).await {
+                break;
+            }
+            resuming = true;
+            handover = false;
         }
-        if dropped > 0 {
-            tracing::info!(
-                ?origin,
-                dropped,
-                "dropped stale audio chunks before connect"
+        if !handover {
+            emit_status(
+                &app,
+                if first || std::mem::take(&mut resuming) {
+                    SessionState::Connecting
+                } else {
+                    SessionState::Reconnecting
+                },
+                None,
+                to,
             );
+
+            let mut dropped = 0usize;
+            while audio_rx.try_recv().is_ok() {
+                dropped += 1;
+            }
+            if dropped > 0 {
+                tracing::info!(
+                    ?origin,
+                    dropped,
+                    "dropped stale audio chunks before connect"
+                );
+            }
         }
 
         let connected_at = Instant::now();
-        match connect_and_run(&app, &mut proto, &mut audio_rx, &cancel, &mut acc).await {
+        let catch_up = std::mem::take(&mut handover);
+        let io = SocketIo {
+            app: &app,
+            audio_rx: &mut audio_rx,
+            cancel: &cancel,
+            pause: &mut pause,
+        };
+        let mut paused = false;
+        match connect_and_run(io, &mut proto, &mut acc, catch_up).await {
             Ok(RunEnd::Stopped) => break,
+            Ok(RunEnd::Paused) => {
+                tracing::info!(?origin, "{} paused; connection closed", P::NAME);
+                paused = true;
+                // Also covers a resume that arrived while the close was draining.
+                resuming = true;
+            }
             Ok(RunEnd::Fatal(message)) => {
                 tracing::error!(?origin, provider = P::NAME, %message, "provider stopped the session");
                 // The provider's own wording, which is not ours to translate; the interface
@@ -216,6 +279,15 @@ pub async fn run_session<P: RealtimeProtocol>(
             }
             Ok(RunEnd::Reconnect) => {
                 tracing::warn!(?origin, "{} stream closed; reconnecting", P::NAME);
+            }
+            Ok(RunEnd::Handover) => {
+                handover = planned_handover(connected_at.elapsed());
+                tracing::info!(
+                    ?origin,
+                    planned = handover,
+                    "{} asked to move the session; reconnecting",
+                    P::NAME
+                );
             }
             Err(error) => {
                 if let Some(status) = fatal_handshake_rejection(&error) {
@@ -230,7 +302,7 @@ pub async fn run_session<P: RealtimeProtocol>(
                     &app,
                     SessionState::Reconnecting,
                     Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
-                    origin,
+                    to,
                 );
             }
         }
@@ -243,6 +315,11 @@ pub async fn run_session<P: RealtimeProtocol>(
         if connected_at.elapsed() >= STABLE_CONNECTION {
             backoff = INITIAL_BACKOFF;
         }
+        // Waiting out a backoff here is what used to turn Gemini's ten-minute cap into a
+        // caption gap: every second of it was speech dropped before the next connect.
+        if handover || paused {
+            continue;
+        }
 
         // A small per-source offset prevents two failed "Both" sessions from reconnecting
         // in lock-step and producing synchronized request spikes.
@@ -250,9 +327,12 @@ pub async fn run_session<P: RealtimeProtocol>(
             Origin::Microphone => Duration::ZERO,
             Origin::System => Duration::from_millis(173),
         };
+        // A pause during the backoff ends the wait; the top of the loop then holds the
+        // source until it resumes, rather than reconnecting only to close again.
         tokio::select! {
             _ = cancel.cancelled() => break,
             _ = tokio::time::sleep(backoff + jitter) => {}
+            Ok(()) = pause.changed() => {}
         }
         backoff = (backoff * 2).min(MAX_BACKOFF);
     }
@@ -265,13 +345,38 @@ pub async fn run_session<P: RealtimeProtocol>(
         || finalize_accumulator(&app, origin, &mut acc),
         || {
             if let Some(error) = terminal_error {
-                emit_status(&app, SessionState::Error, Some(error), origin);
+                emit_status(&app, SessionState::Error, Some(error), to);
             } else if report_idle {
-                emit_status(&app, SessionState::Idle, None, origin);
+                emit_status(&app, SessionState::Idle, None, to);
             }
         },
     );
     tracing::info!(?origin, "{} session loop ended", P::NAME);
+}
+
+/// Whether a handover request is the planned move it claims to be. A provider that asks to
+/// move straight after accepting a connection is refusing it, and reconnecting at once would
+/// hammer it; that case keeps the ordinary backoff.
+fn planned_handover(uptime: Duration) -> bool {
+    uptime >= STABLE_CONNECTION
+}
+
+/// The chunk to send next, given the one just received. Normally a backlog that filled the
+/// queue is a network stall, so it is coalesced to the newest chunk rather than replayed late.
+/// While `catch_up` is set — straight after a planned handover — the backlog is at most the
+/// half-second the new socket took to open, so it is sent in order until the queue is empty.
+fn next_chunk(
+    mut chunk: AudioChunk,
+    audio_rx: &mut Receiver<AudioChunk>,
+    catch_up: &mut bool,
+) -> AudioChunk {
+    if !*catch_up && audio_rx.len() >= STALE_AUDIO_BACKLOG {
+        while let Ok(newer) = audio_rx.try_recv() {
+            chunk = newer;
+        }
+    }
+    *catch_up &= !audio_rx.is_empty();
+    chunk
 }
 
 fn finish_source(cancel: &CancellationToken, finalize: impl FnOnce(), report: impl FnOnce()) {
@@ -280,13 +385,26 @@ fn finish_source(cancel: &CancellationToken, finalize: impl FnOnce(), report: im
     report();
 }
 
+/// What one connection reads from and reports to, borrowed from `run_session` for its length.
+struct SocketIo<'a> {
+    app: &'a AppHandle,
+    audio_rx: &'a mut Receiver<AudioChunk>,
+    cancel: &'a CancellationToken,
+    pause: &'a mut PauseRx,
+}
+
 async fn connect_and_run<P: RealtimeProtocol>(
-    app: &AppHandle,
+    io: SocketIo<'_>,
     proto: &mut P,
-    audio_rx: &mut Receiver<AudioChunk>,
-    cancel: &CancellationToken,
     acc: &mut TurnAccumulator,
+    mut catch_up: bool,
 ) -> Result<RunEnd> {
+    let SocketIo {
+        app,
+        audio_rx,
+        cancel,
+        pause,
+    } = io;
     let request = proto.connect_request()?;
     let connected = tokio::select! {
         _ = cancel.cancelled() => return Ok(RunEnd::Stopped),
@@ -350,7 +468,7 @@ async fn connect_and_run<P: RealtimeProtocol>(
                 MessageControl::Continue if outcome.setup_complete => break,
                 MessageControl::Continue => {}
                 MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
-                MessageControl::Reconnect | MessageControl::Closed => {
+                MessageControl::Reconnect | MessageControl::Handover | MessageControl::Closed => {
                     return Ok(RunEnd::Fatal(format!(
                         "{} closed the connection before accepting session setup",
                         P::NAME
@@ -361,11 +479,25 @@ async fn connect_and_run<P: RealtimeProtocol>(
     }
 
     tracing::info!(?origin, "{} setup complete; streaming audio", P::NAME);
-    emit_status(app, SessionState::Running, None, origin);
+    emit_status(
+        app,
+        SessionState::Running,
+        None,
+        Lane {
+            origin,
+            lane: acc.lane,
+        },
+    );
 
     let finalize_after = proto.finalize_after();
     let finalize = tokio::time::sleep(IDLE);
     tokio::pin!(finalize);
+
+    // Paused while this connection was being set up.
+    if *pause.borrow_and_update() {
+        graceful_close(app, proto, &mut write, &mut read, acc).await;
+        return Ok(RunEnd::Paused);
+    }
 
     loop {
         tokio::select! {
@@ -374,17 +506,19 @@ async fn connect_and_run<P: RealtimeProtocol>(
                 return Ok(RunEnd::Stopped);
             }
 
+            // Closed rather than left idle: an open socket can still bill, some providers
+            // drop one that goes quiet, and Gemini's session cap keeps counting.
+            Ok(()) = pause.changed() => {
+                if *pause.borrow_and_update() {
+                    graceful_close(app, proto, &mut write, &mut read, acc).await;
+                    return Ok(RunEnd::Paused);
+                }
+            }
+
             maybe_chunk = audio_rx.recv() => {
                 match maybe_chunk {
-                    Some(mut chunk) => {
-                        // Preserve ordinary short scheduling backlogs. Only coalesce once
-                        // the bounded queue was effectively full, which indicates a real
-                        // network stall and avoids replaying stale live speech.
-                        if audio_rx.len() >= STALE_AUDIO_BACKLOG {
-                            while let Ok(newer) = audio_rx.try_recv() {
-                                chunk = newer;
-                            }
-                        }
+                    Some(chunk) => {
+                        let chunk = next_chunk(chunk, audio_rx, &mut catch_up);
                         let data = base64::engine::general_purpose::STANDARD.encode(&chunk.pcm_le);
                         write
                             .send(Message::Text(proto.audio_json(data)?.into()))
@@ -411,6 +545,7 @@ async fn connect_and_run<P: RealtimeProtocol>(
                 match outcome.control {
                     MessageControl::Continue => {}
                     MessageControl::Reconnect => return Ok(RunEnd::Reconnect),
+                    MessageControl::Handover => return Ok(RunEnd::Handover),
                     MessageControl::Fatal(message) => return Ok(RunEnd::Fatal(message)),
                     MessageControl::Closed => return Ok(RunEnd::Stopped),
                 }
@@ -545,21 +680,30 @@ pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator, 
             source_text: &acc.source,
             final_,
             origin,
+            lane: acc.lane,
             start_ms,
             end_ms,
         },
     );
 }
 
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, origin: Origin) {
+fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, to: Lane) {
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {
             state,
             message,
-            origin: Some(origin),
+            origin: Some(to.origin),
+            lane: Some(to.lane),
         },
     );
+}
+
+/// Where a client's statuses are addressed: its source, and its caption language there.
+#[derive(Clone, Copy)]
+struct Lane {
+    origin: Origin,
+    lane: u8,
 }
 
 /// Drives a provider's `handle_message` the way the runner does, recording captions instead
@@ -671,6 +815,82 @@ mod tests {
             let error = anyhow::Error::from(tungstenite::Error::Http(Box::new(response)));
             assert_eq!(fatal_handshake_rejection(&error), fatal.then_some(status));
         }
+    }
+
+    #[tokio::test]
+    async fn a_paused_source_waits_for_resume_or_for_the_session_to_end() {
+        let cancel = CancellationToken::new();
+
+        let (tx, mut rx) = watch::channel(false);
+        assert!(
+            wait_for_resume(&mut rx, &cancel).await,
+            "not paused: no wait"
+        );
+
+        tx.send_replace(true);
+        let resume = tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_millis(20)).await;
+            tx.send_replace(false);
+            tx
+        });
+        assert!(wait_for_resume(&mut rx, &cancel).await);
+        let tx = resume.await.unwrap();
+
+        // Stop while paused.
+        tx.send_replace(true);
+        cancel.cancel();
+        assert!(!wait_for_resume(&mut rx, &cancel).await);
+
+        // The session going away while paused ends the wait too.
+        let (tx, mut rx) = watch::channel(true);
+        drop(tx);
+        assert!(!wait_for_resume(&mut rx, &CancellationToken::new()).await);
+    }
+
+    fn chunk(tag: u8) -> AudioChunk {
+        AudioChunk { pcm_le: vec![tag] }
+    }
+
+    #[test]
+    fn a_stall_backlog_is_coalesced_to_the_newest_chunk() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(8);
+        for tag in 1..=5 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let first = rx.try_recv().unwrap();
+        let mut catch_up = false;
+        assert_eq!(next_chunk(first, &mut rx, &mut catch_up).pcm_le, [5]);
+        assert!(rx.is_empty());
+    }
+
+    /// After a planned handover the queue is live speech from while the socket reopened, so
+    /// every chunk goes out in order — and once it drains, a later stall coalesces again.
+    #[test]
+    fn a_handover_backlog_is_sent_in_order_then_coalescing_resumes() {
+        let (tx, mut rx) = tokio::sync::mpsc::channel(8);
+        for tag in 1..=5 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let mut catch_up = true;
+        let mut sent = Vec::new();
+        while let Ok(first) = rx.try_recv() {
+            sent.push(next_chunk(first, &mut rx, &mut catch_up).pcm_le[0]);
+        }
+        assert_eq!(sent, [1, 2, 3, 4, 5]);
+        assert!(!catch_up);
+
+        for tag in 6..=10 {
+            tx.try_send(chunk(tag)).unwrap();
+        }
+        let first = rx.try_recv().unwrap();
+        assert_eq!(next_chunk(first, &mut rx, &mut catch_up).pcm_le, [10]);
+    }
+
+    #[test]
+    fn only_a_handover_after_a_stable_connection_skips_the_backoff() {
+        assert!(planned_handover(Duration::from_secs(600)));
+        assert!(planned_handover(STABLE_CONNECTION));
+        assert!(!planned_handover(Duration::from_secs(2)));
     }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {

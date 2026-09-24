@@ -2,7 +2,7 @@
 // Labelled preview text for layout and font checks — never evidence of live-provider behaviour.
 
 import { isTargetLanguage } from '$lib/languages';
-import type { Caption, Origin, TargetLanguage } from '$lib/types';
+import type { Caption, TargetLanguage, Track } from '$lib/types';
 
 const REMOTE_EARLIER =
 	'Bienvenue à cette démonstration des sous-titres. Pendant une réunion, les phrases récentes restent disponibles pour suivre la discussion. Agrandissez la fenêtre pour afficher davantage de contexte, ou réduisez-la pour ne garder que les mots les plus récents. La taille des caractères reste celle que vous avez choisie.';
@@ -27,16 +27,43 @@ const SAMPLES: Partial<Record<TargetLanguage, string>> = {
 };
 
 export interface PreviewContent {
-	current: Partial<Record<Origin, Caption>>;
-	previous: Partial<Record<Origin, string>>;
-	history: Partial<Record<Origin, string>>;
+	current: Partial<Record<Track, Caption>>;
+	previous: Partial<Record<Track, string>>;
+	history: Partial<Record<Track, string>>;
 	/** The caption language, when a language sample was asked for. */
 	language?: TargetLanguage;
+	/** The second caption language, for the two-language sample. */
+	secondLanguage?: TargetLanguage;
+}
+
+/** One speaker captioned in two languages at once: `?language=bilingual`. */
+function bilingualPreview(): PreviewContent {
+	const turn = { turnId: 1, final: false, origin: 'microphone' as const, startMs: 0, endMs: 0 };
+	return {
+		current: {
+			microphone: {
+				...turn,
+				text: 'Les sous-titres paraissent dans les deux langues de la salle en même temps.',
+				sourceText: 'Captions appear in both of the room’s languages at the same time.'
+			},
+			'microphone:1': {
+				...turn,
+				lane: 1,
+				text: 'Captions appear in both of the room’s languages at the same time.',
+				sourceText: 'Captions appear in both of the room’s languages at the same time.'
+			}
+		},
+		previous: {},
+		history: {},
+		language: 'fr',
+		secondLanguage: 'en'
+	};
 }
 
 /** Both origins visible (so the labels show), one finalized line and one live turn carrying a
  *  lead-in — or, when `language` names a sample, that sample alone. */
 export function previewContent(language: string | null): PreviewContent {
+	if (language === 'bilingual') return bilingualPreview();
 	if (isTargetLanguage(language) && SAMPLES[language]) {
 		return {
 			current: { microphone: { ...ROOM, text: SAMPLES[language] } },
@@ -50,7 +77,9 @@ export function previewContent(language: string | null): PreviewContent {
 			system: {
 				turnId: 1,
 				text: 'Les sous-titres utilisent la largeur disponible et le texte revient à la ligne lorsque la fenêtre devient plus étroite.',
-				sourceText: '',
+				// Shown under the caption when Show the original speech is on.
+				sourceText:
+					'Captions use the available width, and the text wraps to a new line when the window becomes narrower.',
 				final: false,
 				origin: 'system',
 				startMs: 0,

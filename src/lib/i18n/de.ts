@@ -96,6 +96,7 @@ export const de: Messages = {
 		shortcutOverlay: 'Overlay ein- / ausblenden',
 		shortcutSize: 'Untertitel vergrößern / verkleinern',
 		shortcutDirection: 'Vor dem Start die ersten beiden Favoriten tauschen mit F2',
+		shortcutPause: 'Untertitel pausieren / fortsetzen',
 		listening: 'Bereit — kein aktuelles Audiosignal',
 		audio: 'Audio wird empfangen',
 		captions: 'Untertitel werden empfangen',
@@ -103,6 +104,7 @@ export const de: Messages = {
 			'Audio trifft ein, aber seit 15 Sekunden keine Untertitel. Anbieter und Verbindung prüfen.',
 		connecting: 'Verbindung wird hergestellt…',
 		reconnecting: 'Verbindung wird wiederhergestellt…',
+		paused: 'Pausiert – die Aufnahme läuft weiter, nichts wird gesendet',
 		error: 'Quelle mit Fehler gestoppt',
 		idle: 'Quelle gestoppt',
 		activity: 'Status der Live-Eingänge',
@@ -128,6 +130,7 @@ export const de: Messages = {
 		o: 'O',
 		up: '↑',
 		down: '↓',
+		p: 'P',
 		f2: 'F2'
 	},
 
@@ -136,6 +139,7 @@ export const de: Messages = {
 		connecting: 'Verbindet',
 		running: 'Live',
 		reconnecting: 'Neuverbindung',
+		paused: 'Pausiert',
 		error: 'Fehler',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
 		demo: 'Demo'
@@ -147,6 +151,7 @@ export const de: Messages = {
 		connecting: 'Verbindung zur Untertitel-Engine wird hergestellt.',
 		running: 'Untertitel sind live.',
 		reconnecting: 'Verbindung verloren – Neuverbindung läuft.',
+		paused: 'Untertitel pausiert. Es wird nichts an die Untertitel-Engine gesendet.',
 		error: 'Sitzungsfehler.'
 	},
 
@@ -178,6 +183,10 @@ export const de: Messages = {
 		favourites: 'Favoriten',
 		all: 'Alle Sprachen',
 		noMatches: 'Keine passenden Sprachen.',
+		second: 'Zweite Untertitelsprache',
+		secondNone: 'Keine',
+		secondHint:
+			'Untertitelt gleichzeitig in beiden Sprachen. Jede Quelle öffnet eine zweite Übersetzungssitzung – das verdoppelt die Kosten.',
 		pin: (language: string) => `Anheften: ${language}`,
 		unpin: (language: string) => `Lösen: ${language}`,
 		unsupported: (engine: string, language: string) =>
@@ -219,6 +228,7 @@ export const de: Messages = {
 		free: 'Kostenlos',
 		elapsed: 'Vergangen',
 		streamed: 'Übertragen',
+		twoLanguages: '×2 Sprachen',
 		estimate: 'Gesch. Kosten',
 		twoSources: '×2 Quellen'
 	},
@@ -266,6 +276,10 @@ export const de: Messages = {
 		arriving: 'Audio kommt an',
 		stop: 'Untertitel beenden',
 		stopping: 'Wird beendet…',
+		pause: 'Pausieren',
+		resume: 'Fortsetzen',
+		pauseNote:
+			'Pausiert: Die Untertitel-Engine ist getrennt, und es fallen keine Kosten an. Die Pegelanzeigen zeigen weiter den Raum.',
 
 		step: {
 			whatToShow: 'Was angezeigt wird',
@@ -341,6 +355,9 @@ export const de: Messages = {
 		stable: 'Ruhiger Lesemodus',
 		cleanSpeech: 'Fülllaute ausblenden',
 		cleanSpeechHint: 'Nur in der Einblendung. Das Transkript behält den Originaltext.',
+		showOriginal: 'Originalwortlaut unter der Übersetzung zeigen',
+		showOriginalHint:
+			'Eine kleinere Zeile unter jeder übersetzten Untertitelzeile – für alle, die der Sprache der vortragenden Person folgen. Nur bei Übersetzung, nicht im ruhigen Lesemodus.',
 		fillerWords: {
 			heading: 'Auszublendende Wörter',
 			hint: 'Ein Wort aus der Liste wird überall ausgeblendet, wo es für sich steht, unabhängig von seiner Bedeutung. Wörter wie „also“, „halt“ oder „so“ tragen oft Bedeutung; wer sie hinzufügt, kann echten Inhalt entfernen.',
@@ -561,6 +578,7 @@ export const de: Messages = {
 		saveAs: 'Speichern unter…',
 		format: 'Exportformat',
 		plainText: 'Reiner Text',
+		includeOriginal: 'Originalwortlaut einschließen',
 		noTiming:
 			'Dieses wiederhergestellte Transkript hat keine Zeitangaben. Speichern Sie es als Text oder Markdown.',
 		saveMarkdown: 'Markdown speichern',
@@ -592,6 +610,7 @@ export const de: Messages = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Transkript der Live-Untertitel',
+		original: 'Original',
 		origin: {
 			microphone: 'Mikrofon',
 			system: 'System'
@@ -681,6 +700,7 @@ export const de: Messages = {
 		keychain: 'Die Windows-Anmeldeinformationsverwaltung hat die Anfrage abgelehnt',
 		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',
 		sessionStart: 'Die Sitzung konnte nicht gestartet werden',
+		sessionPause: 'Die Sitzung konnte nicht pausiert oder fortgesetzt werden',
 		audioTestStart: 'Der Audiotest konnte diese Quelle nicht öffnen',
 		overlayWindow: 'Das Overlay-Fenster hat nicht reagiert',
 		transcriptDir: 'Der Transkriptordner konnte nicht erstellt werden',

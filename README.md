@@ -55,6 +55,20 @@ F2 swaps the first two favourites while stopped, only when both are supported. R
 recordings remain English/French. See [language coverage and verification](docs/language-coverage.md).
 Live-provider and packaged-app acceptance are still pending; see the verification notes above.
 
+## Bilingual rooms and breaks (next release)
+
+On `main` for the release after 1.5.1:
+
+- **Two caption languages at once.** Step 03 → *Second caption language* runs a second
+  translation session per source, fed by the same capture. The overlay shows a row per
+  language (labelled `FR`, `EN`, …), and the transcript and exports keep both, in sections
+  or as stacked bilingual subtitles. It doubles the cost, like captioning *Both* sources.
+- **Bilingual output.** *Include original speech* writes what was said before translation
+  under each paragraph or cue; Settings → Reading → *Show the original speech under
+  translations* adds it as a smaller line under the overlay captions.
+- **Pause** (beside Stop, or **Ctrl+Shift+P**) keeps the session, its clock and transcript,
+  and disconnects the caption engine, so a coffee break or a video clip is not billed.
+
 ## Release status
 
 **Latest GitHub release: [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1).**
@@ -211,7 +225,9 @@ finalizes on short pauses, so it produces shorter, more even lines. Both behavio
 measured rather than assumed — see [`docs/gemini-live-api.md`](docs/gemini-live-api.md).
 
 Selecting **Both** as the source doubles every figure — the pipeline opens one capture and
-one WebSocket session per origin.
+one WebSocket session per origin. A second caption language doubles it again: each source
+opens one translation session per language. **Pause** stops the meter, since nothing is
+streamed while paused, and the running estimate in the rail leaves paused time out.
 
 Scaled to the workshop, the programme's captionable sessions (panels, keynotes, discussions
 and plenaries — the Day 2 and Day 3 afternoons are excursions) total **18 hours**, or about
@@ -307,6 +323,10 @@ CI then combines into the multi-architecture bundle described in
    lines. **Hide filler words** optionally cleans obvious hesitations in the overlay while
    preserving the raw transcript; add or remove words in the list under it. See
    [caption layout](docs/caption-layout.md#the-word-list).
+   For a bilingual audience, choose a **Second caption language** in step 03, or turn on
+   **Show the original speech under translations**.
+   During a break or a video clip, **Pause** rather than Stop: the transcript and clock carry
+   on, and nothing is billed until **Resume**.
 7. Rehearse the real Zoom + room-microphone + projector chain before the event. The realtime
    provider surfaces should be re-verified shortly beforehand.
 

@@ -32,7 +32,24 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		// Translation picks the language the room reads; the built-in demo picks its script.
 		// The subtitle engines auto-detect, so they have nothing to set.
 		if (current.mode !== 'translate' && current.provider !== 'ondevice') return;
-		options.set({ ...current, targetLanguage });
+		// Choosing the second language as the first swaps the two, which is also what F2 does
+		// to a room captioned in both of its favourites.
+		const swap =
+			targetLanguage === current.secondTargetLanguage
+				? { secondTargetLanguage: current.targetLanguage }
+				: {};
+		options.set({ ...current, targetLanguage, ...swap });
+	}
+
+	/** Caption in a second language as well, or not (`null`). Translation only. */
+	function setSecondTarget(secondTargetLanguage: TargetLanguage | null) {
+		const current = get(options);
+		if (locked() || current.mode !== 'translate') return;
+		options.set({
+			...current,
+			secondTargetLanguage:
+				secondTargetLanguage === current.targetLanguage ? null : secondTargetLanguage
+		});
 	}
 
 	function setProvider(provider: Provider) {
@@ -69,6 +86,6 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		if (next) setTarget(next);
 	}
 
-	return { setSource, setTarget, setProvider, setMode, flipDirection };
+	return { setSource, setTarget, setSecondTarget, setProvider, setMode, flipDirection };
 }
 export type SetupActions = ReturnType<typeof createSetupActions>;

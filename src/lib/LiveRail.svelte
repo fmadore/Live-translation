@@ -5,9 +5,9 @@
 	import LiveActivity from './LiveActivity.svelte';
 	import { languageName } from './languages';
 	import { locale, t } from './i18n';
-	import { micLevel, options, systemLevel } from './stores';
+	import { micLevel, options, pauseRequested, systemLevel } from './stores';
 	import { estimateSessionCost, formatUsd } from './providers';
-	import { providerDetectsLanguage } from './types';
+	import { laneCount, providerDetectsLanguage, secondCaptionLanguageOf } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { SessionClock } from './sessionClock.svelte';
 
@@ -29,11 +29,16 @@
 	} = $props();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
+	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
 		providerDetectsLanguage($options.provider)
 			? $t.language.auto
-			: languageName($options.targetLanguage, $locale)
+			: [$options.targetLanguage, ...(second ? [second] : [])]
+					.map((code) => languageName(code, $locale))
+					.join(' + ')
 	);
+	// Every source streams once per caption language, and each stream is billed.
+	const streams = $derived(($options.source === 'both' ? 2 : 1) * laneCount($options));
 </script>
 
 <div class="rail-head">
@@ -82,6 +87,9 @@
 <p class="rail-note">
 	<!-- The target language is fixed at session start (the backend takes it once),
 	     so no mid-session F2 promise here — the idle sheet carries the F2 hint. -->
+	{#if $pauseRequested}
+		<span>{$t.rail.pauseNote}</span>
+	{/if}
 	{#if $options.provider === 'ondevice'}
 		<span>{$t.rail.demoNote}</span>
 	{:else if rehearsing}
@@ -113,17 +121,14 @@
 			<div class="figure">
 				<span class="chip-label">{$t.cost.estimate}</span>
 				<span class="figure-value mint">
-					{formatUsd(
-						estimateSessionCost(
-							$options.provider,
-							clock.elapsedMs,
-							$options.source === 'both' ? 2 : 1
-						)
-					)}
+					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams))}
 				</span>
 			</div>
 			{#if $options.source === 'both'}
 				<span class="cost-tag">{$t.cost.twoSources}</span>
+			{/if}
+			{#if second}
+				<span class="cost-tag">{$t.cost.twoLanguages}</span>
 			{/if}
 		{/if}
 	</div>

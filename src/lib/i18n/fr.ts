@@ -96,6 +96,7 @@ export const fr: Messages = {
 		shortcutOverlay: 'Afficher / masquer la surimpression',
 		shortcutSize: 'Agrandir / réduire les sous-titres',
 		shortcutDirection: 'Permuter les deux premiers favoris avant de démarrer avec F2',
+		shortcutPause: 'Mettre en pause / reprendre les sous-titres',
 		listening: 'À l’écoute — aucun signal audio récent',
 		audio: 'Réception audio',
 		captions: 'Réception des sous-titres',
@@ -103,6 +104,7 @@ export const fr: Messages = {
 			'Le son arrive, mais aucun sous-titre depuis 15 secondes. Vérifiez le fournisseur et la connexion.',
 		connecting: 'Connexion…',
 		reconnecting: 'Reconnexion…',
+		paused: 'En pause — la capture continue, rien n’est envoyé',
 		error: 'Source arrêtée avec une erreur',
 		idle: 'Source arrêtée',
 		activity: 'État des entrées en direct',
@@ -130,6 +132,7 @@ export const fr: Messages = {
 		o: 'O',
 		up: '↑',
 		down: '↓',
+		p: 'P',
 		f2: 'F2'
 	},
 
@@ -138,6 +141,7 @@ export const fr: Messages = {
 		connecting: 'Connexion',
 		running: 'En direct',
 		reconnecting: 'Reconnexion',
+		paused: 'En pause',
 		error: 'Erreur',
 		/** Shown in place of "Live" while the bundled demonstration is playing. */
 		demo: 'Démo'
@@ -149,6 +153,7 @@ export const fr: Messages = {
 		connecting: 'Connexion au moteur de sous-titrage.',
 		running: 'Les sous-titres sont en direct.',
 		reconnecting: 'Connexion perdue — reconnexion en cours.',
+		paused: 'Sous-titres en pause. Rien n’est envoyé au moteur de sous-titrage.',
 		error: 'Erreur de session.'
 	},
 
@@ -181,6 +186,10 @@ export const fr: Messages = {
 		favourites: 'Favoris',
 		all: 'Toutes les langues',
 		noMatches: 'Aucune langue correspondante.',
+		second: 'Deuxième langue de sous-titrage',
+		secondNone: 'Aucune',
+		secondHint:
+			'Sous-titre dans les deux langues à la fois. Chaque source ouvre une seconde session de traduction, ce qui double le coût.',
 		pin: (language: string) => `Épingler ${language}`,
 		unpin: (language: string) => `Désépingler ${language}`,
 		unsupported: (engine: string, language: string) =>
@@ -221,6 +230,7 @@ export const fr: Messages = {
 		free: 'Gratuit',
 		elapsed: 'Écoulé',
 		streamed: 'Transmis',
+		twoLanguages: '×2 langues',
 		estimate: 'Coût est.',
 		twoSources: '×2 sources'
 	},
@@ -268,6 +278,10 @@ export const fr: Messages = {
 		arriving: 'Audio entrant',
 		stop: 'Arrêter les sous-titres',
 		stopping: 'Arrêt…',
+		pause: 'Pause',
+		resume: 'Reprendre',
+		pauseNote:
+			'En pause : le moteur de sous-titrage est déconnecté et rien n’est facturé. Les vumètres continuent d’afficher la salle.',
 
 		step: {
 			whatToShow: 'Ce qu’il faut afficher',
@@ -344,6 +358,9 @@ export const fr: Messages = {
 		cleanSpeech: 'Masquer les hésitations',
 		cleanSpeechHint:
 			'Uniquement dans la superposition. La transcription conserve le texte original.',
+		showOriginal: 'Afficher la parole originale sous la traduction',
+		showOriginalHint:
+			'Une ligne plus petite sous chaque sous-titre traduit, pour qui suit la langue de l’orateur. Traduction uniquement ; pas en lecture stable.',
 		fillerWords: {
 			heading: 'Mots à masquer',
 			hint: 'Un mot de la liste est masqué partout où il apparaît seul, quel que soit son sens. Des mots comme « alors », « bon » ou « genre » portent souvent du sens : les ajouter peut supprimer du contenu réel.',
@@ -563,6 +580,7 @@ export const fr: Messages = {
 		saveAs: 'Enregistrer sous…',
 		format: 'Format d’export',
 		plainText: 'Texte brut',
+		includeOriginal: 'Inclure la parole originale',
 		noTiming:
 			'Cette transcription récupérée ne contient pas d’horodatage. Enregistrez-la en texte ou en Markdown.',
 		saveMarkdown: 'Enregistrer en Markdown',
@@ -595,6 +613,7 @@ export const fr: Messages = {
 	// the part of this app that leaves the machine.
 	export: {
 		title: 'Transcription des sous-titres en direct',
+		original: 'Original',
 		origin: {
 			microphone: 'Microphone',
 			system: 'Système'
@@ -687,6 +706,7 @@ export const fr: Messages = {
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',
+		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',
 		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
 		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
 		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',

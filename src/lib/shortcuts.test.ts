@@ -32,6 +32,7 @@ it('requires the modifier combination and suppresses repeat, dialogs and text ed
 describe('the shortcut table', () => {
 	const EVENT: Record<Exclude<KeyName, 'ctrl' | 'shift'>, KeyboardEventInit> = {
 		space: { code: 'Space' },
+		p: { code: 'KeyP' },
 		o: { code: 'KeyO' },
 		up: { code: 'ArrowUp' },
 		down: { code: 'ArrowDown' },

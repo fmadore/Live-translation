@@ -4,14 +4,28 @@ export type CaptionLayout = 'fit' | 'compact' | 'stable';
 export const CAPTION_LAYOUT_KEY = 'overlay.captionLayout';
 export const DEFAULT_CAPTION_LAYOUT: CaptionLayout = 'fit';
 
-/** Bottom alignment is a subtitle strip; manually resizing still permits more context. */
+/** The original speech under a translation is set this much smaller than the caption. */
+export const ORIGINAL_SCALE = 0.6;
+/** Space between a caption and the original under it, in px. */
+export const ORIGINAL_GAP = 4;
+
+/** Height of `lines` lines of original speech under a caption set at `fontSize`. */
+export function originalHeight(fontSize: number, lines: number): number {
+	return lines * Math.ceil(ORIGINAL_SCALE * fontSize * 1.34);
+}
+
+/** Bottom alignment is a subtitle strip; manually resizing still permits more context. With
+ *  the original shown, each row also gets one line of it. */
 export function bottomCaptionHeight(
 	fontSize: number,
 	origins: number,
-	layout: CaptionLayout
+	layout: CaptionLayout,
+	original = false
 ): number {
-	const rows = Math.max(1, Math.min(2, origins));
-	const textHeight = 2 * fontSize * 1.34 * rows + 18 * (rows - 1);
+	// Up to four rows: two sources, each in two caption languages.
+	const rows = Math.max(1, Math.min(4, origins));
+	const originalRow = original ? originalHeight(fontSize, 1) + ORIGINAL_GAP : 0;
+	const textHeight = (2 * fontSize * 1.34 + originalRow) * rows + 18 * (rows - 1);
 	return Math.max(160, Math.ceil(layout === 'compact' ? textHeight / 0.85 : textHeight + 32));
 }
 
@@ -29,11 +43,34 @@ export function appendCaptionHistory(history: string, text: string): string {
 	return `${history} ${text}`.replace(/\s+/g, ' ').trim().slice(-12000);
 }
 
-/** Keep the newest words using the actual rendered height, including the live caret. */
-export function fitCaptionTail(text: string, fits: (candidate: string) => boolean): string {
+/**
+ * Keep the newest words using the actual rendered height, including the live caret.
+ *
+ * Every call to `fits` is a synchronous layout, and in Fit window the text carries up to
+ * 12,000 characters of context, so the search used to begin by laying out a paragraph far
+ * larger than any window. `reach` is the caller's bound on how many characters the region
+ * could ever show: the search starts from that tail, and only if even the tail fits — the
+ * bound was too tight — does it fall back to the whole text. The result is the same either
+ * way; the bound only decides how much is laid out to find it.
+ */
+export function fitCaptionTail(
+	text: string,
+	fits: (candidate: string) => boolean,
+	reach = Infinity
+): string {
 	const normalized = text.replace(/\s+/g, ' ').trim();
-	if (!normalized || fits(normalized)) return normalized;
-	const words = normalized.split(' ');
+	if (!normalized) return normalized;
+	const cut = normalized.length > reach ? normalized.indexOf(' ', normalized.length - reach) : -1;
+	if (cut !== -1) {
+		const tail = normalized.slice(cut + 1);
+		if (!fits('… ' + tail)) return fitWords(tail.split(' '), fits);
+	}
+	if (fits(normalized)) return normalized;
+	return fitWords(normalized.split(' '), fits);
+}
+
+/** The newest words that fit behind an ellipsis, given that all of `words` do not. */
+function fitWords(words: string[], fits: (candidate: string) => boolean): string {
 	let low = 1;
 	let high = words.length;
 	while (low < high) {
@@ -53,6 +90,16 @@ export function fitCaptionTail(text: string, fits: (candidate: string) => boolea
 	}
 	const result = '… ' + chars.slice(low).join('');
 	return fits(result) ? result : '';
+}
+
+/**
+ * More characters than a `width` × `height` region could show at `lineHeight`: two rows of
+ * slack, and an average glyph a fifth of the line height wide — narrower than any caption
+ * face's average, so the figure only ever bounds the search in `fitCaptionTail`.
+ */
+export function captionReach(width: number, height: number, lineHeight: number): number {
+	if (width <= 0 || height <= 0 || lineHeight <= 1) return Infinity;
+	return Math.ceil(((Math.floor(height / lineHeight) + 2) * width) / (lineHeight * 0.2));
 }
 
 /**

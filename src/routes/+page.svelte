@@ -39,11 +39,12 @@
 		overlayFontSize,
 		noteActivity,
 		sessionStartedAt,
+		pauseRequested,
 		pushCaption
 	} from '$lib/stores';
 	import { followTextScale } from '$lib/textScale';
 	import { historyEnabled } from '$lib/history';
-	import { providerRequiresKey } from '$lib/types';
+	import { providerRequiresKey, secondCaptionLanguageOf } from '$lib/types';
 	import type { SessionState } from '$lib/types';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
@@ -201,6 +202,7 @@
 	const rehearse = () => launch(fixtureLanguage);
 
 	const stop = () => session.stop();
+	const togglePause = () => void session.pause(!$pauseRequested);
 
 	const actions = createSetupActions({
 		locked: () => controlsLocked,
@@ -228,14 +230,17 @@
 	// around a ticking clock announces the whole session state every second with it.
 	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
 
-	const languageError = $derived(
-		supportsLanguage($options.provider, $options.targetLanguage)
-			? ''
-			: $t.language.unsupported(
-					$t.engine[$options.provider],
-					languageName($options.targetLanguage, $locale)
-				)
-	);
+	// Either caption language can be one the engine does not offer — the second one too, after
+	// an engine change — and either blocks Start.
+	const languageError = $derived.by(() => {
+		const second = secondCaptionLanguageOf($options);
+		const unsupported = [$options.targetLanguage, ...(second ? [second] : [])].find(
+			(code) => !supportsLanguage($options.provider, code)
+		);
+		return unsupported
+			? $t.language.unsupported($t.engine[$options.provider], languageName(unsupported, $locale))
+			: '';
+	});
 </script>
 
 <svelte:window
@@ -254,6 +259,7 @@
 		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
 		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
+		if (command === 'togglePause' && !browserMode && $isRunning && !$sessionBusy) togglePause();
 		if (command === 'toggleSession' && !browserMode && !profileBusy && !$sessionBusy) {
 			if ($isRunning) void stop();
 			else if ($hasKey && preflight.applicationReady($options)) void start();
@@ -281,9 +287,11 @@
 					browserMode ||
 					$sessionBusy ||
 					$options.provider === 'ondevice'}
+				paused={$pauseRequested}
 				onStart={start}
 				onRehearse={rehearse}
 				onStop={stop}
+				onPause={togglePause}
 			/>
 		{/snippet}
 	</OperatorToolbar>

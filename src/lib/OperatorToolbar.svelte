@@ -27,6 +27,7 @@
 		connecting: 'warn',
 		running: 'live',
 		reconnecting: 'warn',
+		paused: 'warn',
 		error: 'bad'
 	};
 </script>

@@ -11,6 +11,8 @@
 	<dl>
 		<dt><Kbd command="toggleSession" /></dt>
 		<dd>{$t.usability.shortcutStart}</dd>
+		<dt><Kbd command="togglePause" /></dt>
+		<dd>{$t.usability.shortcutPause}</dd>
 		<dt><Kbd command="toggleOverlay" /></dt>
 		<dd>{$t.usability.shortcutOverlay}</dd>
 		<dt><Kbd command="larger" /> / <Kbd command="smaller" /></dt>

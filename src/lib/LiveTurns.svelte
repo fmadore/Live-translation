@@ -1,14 +1,32 @@
 <script lang="ts">
-	import { t } from './i18n';
+	import { locale, t } from './i18n';
+	import { languageName } from './languages';
 	import { currentCaptions, options } from './stores';
-	import type { Caption, Origin } from './types';
+	import {
+		laneCount,
+		laneLanguage,
+		trackLane,
+		trackOrigin,
+		type Caption,
+		type Origin,
+		type Track
+	} from './types';
 
-	// The two speakers currently on screen, least-recently-updated first (newest at the bottom).
+	type Turn = { track: Track; origin: Origin; caption: Caption };
+
+	// The speakers currently on screen, least-recently-updated first (newest at the bottom).
 	const liveTurns = $derived(
-		(Object.keys($currentCaptions) as Origin[])
-			.map((origin) => ({ origin, caption: $currentCaptions[origin] }))
-			.filter((turn): turn is { origin: Origin; caption: Caption } => turn.caption !== undefined)
+		(Object.keys($currentCaptions) as Track[])
+			.map((track) => ({ track, origin: trackOrigin(track), caption: $currentCaptions[track] }))
+			.filter((turn): turn is Turn => turn.caption !== undefined)
 	);
+	// With two caption languages each speaker appears twice, so each block says which language
+	// it is in; the original speech is shown once, on the first.
+	const dual = $derived(laneCount($options) === 2);
+	function laneName(track: Track): string {
+		const language = laneLanguage($options, trackLane(track));
+		return language ? languageName(language, $locale) : '';
+	}
 </script>
 
 <div class="stage-head">
@@ -21,20 +39,22 @@
 
 {#if liveTurns.length}
 	<div class="turns">
-		{#each liveTurns as turn (turn.origin)}
+		{#each liveTurns as turn (turn.track)}
 			<article class="turn">
 				<div class="turn-who">
 					<span class="origin-chip {turn.origin}">
 						{$options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin[turn.origin]}
 					</span>
 					<span class="origin-sub">
-						{$options.provider === 'ondevice'
-							? $t.stage.originSub.demo
-							: $t.stage.originSub[turn.origin]}
+						{dual
+							? laneName(turn.track)
+							: $options.provider === 'ondevice'
+								? $t.stage.originSub.demo
+								: $t.stage.originSub[turn.origin]}
 					</span>
 				</div>
 				<div class="turn-text">
-					{#if turn.caption.sourceText}
+					{#if turn.caption.sourceText && !(dual && trackLane(turn.track) === 1)}
 						<p class="turn-source">{turn.caption.sourceText}</p>
 					{/if}
 					<p class="turn-caption" class:live={!turn.caption.final}>
