@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { captionDirection } from '$lib/languages';
-	import { firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
+	import { captionReach, firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
 	let {
 		stable = false,
 		lead,
@@ -73,22 +73,32 @@
 	const prefix = $derived(
 		fitted.length > normalizedText.length ? fitted.slice(0, -normalizedText.length).trimEnd() : ''
 	);
+	// Read once per font rather than once per caption: a computed-style read after the probe's
+	// last layout forces style to be recalculated.
 	$effect(() => {
-		// Font loading and resizing must refit even when no new caption arrives.
 		void fontKey;
 		void language;
 		if (!probe || width <= 0) return;
 		lineHeight = parseFloat(getComputedStyle(probe).lineHeight) || 1;
-		if (stable) return;
-		fitted = fitCaptionTail(`${lead} ${text}`, (candidate) => {
-			probe.textContent = candidate;
-			if (interim) {
-				const caret = document.createElement('span');
-				caret.style.cssText = 'display:inline-block;width:14px;height:.86em;vertical-align:-1px';
-				probe.append(caret);
-			}
-			return probe.getBoundingClientRect().height <= height;
-		});
+	});
+	$effect(() => {
+		// Font loading and resizing must refit even when no new caption arrives.
+		void fontKey;
+		void language;
+		if (!probe || width <= 0 || stable) return;
+		fitted = fitCaptionTail(
+			`${lead} ${text}`,
+			(candidate) => {
+				probe.textContent = candidate;
+				if (interim) {
+					const caret = document.createElement('span');
+					caret.style.cssText = 'display:inline-block;width:14px;height:.86em;vertical-align:-1px';
+					probe.append(caret);
+				}
+				return probe.getBoundingClientRect().height <= height;
+			},
+			captionReach(width, height, lineHeight)
+		);
 		probe.textContent = '';
 	});
 </script>
