@@ -49,13 +49,14 @@ jobs:
         run: npm audit --audit-level=moderate
 
   rust:
-    needs: frontend
+    # No `needs: frontend`: this job builds the frontend it embeds itself, so waiting for the
+    # frontend checks only delayed the slow Windows lane.
     # The Windows lane is essential: the WASAPI loopback implementation is behind
     # cfg(windows), so an Ubuntu-only job never even compiles the event-day audio path.
     strategy:
       fail-fast: false
       matrix:
-        # Linux catches portable logic; Windows compiles WASAPI and Windows Speech bindings.
+        # Linux catches portable logic; Windows compiles WASAPI and the Win32/WinRT bindings.
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
@@ -90,7 +91,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: windows-speech-v1
+          prefix-key: rust-v2
 
       - name: rustfmt
         run: cargo fmt --check
