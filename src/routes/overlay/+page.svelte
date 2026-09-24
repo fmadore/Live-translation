@@ -29,6 +29,7 @@
 	import {
 		clampOverlayFont,
 		SHOW_ORIGINAL_KEY,
+		type Lane,
 		type Origin,
 		type TargetLanguage
 	} from '$lib/types';
@@ -66,6 +67,8 @@
 	// not. Only the operator window can work it out, so it is pushed. Undefined means unknown
 	// — before the first push, and while a subtitle engine is detecting the spoken language.
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
+	/** Lane 1's language, when the session captions in a second one. */
+	let secondCaptionLanguage = $state<TargetLanguage | undefined>(undefined);
 
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
 	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
@@ -78,8 +81,19 @@
 	const lines = $derived(captions.lines);
 	const layout = $derived(captions.layout);
 	// A single speaker needs no label — the row is unambiguous, and the label would only steal
-	// width from the caption. Labels appear exactly when both origins are on screen.
+	// width from the caption. Labels appear exactly when more than one row is on screen.
 	const showLabels = $derived(lines.length > 1);
+	// With two caption languages the rows say which language they are, as a code — at
+	// projector distance a name would crowd the caption — and the source too only when both
+	// sources are on screen.
+	const bilingualRows = $derived(lines.some((line) => line.lane === 1));
+	const bothSources = $derived(new Set(lines.map((line) => line.origin)).size > 1);
+	const rowLanguage = (lane: Lane) => (lane === 1 ? secondCaptionLanguage : captionLanguage);
+	function rowLabel(line: { origin: Origin; lane: Lane }): string {
+		if (!bilingualRows) return originLabel[line.origin];
+		const code = (rowLanguage(line.lane) ?? '').toUpperCase();
+		return bothSources ? `${originLabel[line.origin]} · ${code}` : code;
+	}
 	const sidePadding = $derived(
 		layout !== 'compact' ? Math.min(32, Math.max(12, winW * 0.025)) : winW * 0.065
 	);
@@ -125,6 +139,7 @@
 			const preview = previewContent(new URLSearchParams(window.location.search).get('language'));
 			captions.show(preview);
 			if (preview.language) captionLanguage = preview.language;
+			if (preview.secondLanguage) secondCaptionLanguage = preview.secondLanguage;
 			return cleanup;
 		}
 
@@ -159,6 +174,9 @@
 			// Unconditional, unlike the rest: an absent caption language is a real answer
 			// ("nobody knows"), so it has to be able to clear one that was set before.
 			captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
+			secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
+				? cfg.secondCaptionLanguage
+				: undefined;
 			if (typeof cfg.interactive === 'boolean') placement.setInteractive(cfg.interactive);
 		});
 
@@ -229,21 +247,21 @@
 		<!-- Painted only while there is something to read: with no captions the window must
 		     paint nothing at all, or it would veil the presenter's slides. -->
 		<div class="captions">
-			{#each lines as line (line.origin)}
+			{#each lines as line (line.track)}
 				<div class="row">
 					<!-- The label is interface-language text sitting beside caption-language text, and
 					     it inherits `<html lang>`, which is the interface language. Correct as it is. -->
-					{#if showLabels}<span class="origin">{originLabel[line.origin]}</span>{/if}
+					{#if showLabels}<span class="origin">{rowLabel(line)}</span>{/if}
 					<div class="texts">
 						<OverlayCaptionLine
 							stable={layout === 'stable'}
-							onTrim={(chars) => captions.trimStable(line.origin, chars)}
+							onTrim={(chars) => captions.trimStable(line.track, chars)}
 							lead={line.lead}
 							text={line.text}
 							interim={line.interim}
 							height={line.original ? rowHeight - originalRegion - ORIGINAL_GAP : rowHeight}
 							fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded}
-							language={captionLanguage ?? ''}
+							language={rowLanguage(line.lane) ?? ''}
 						/>
 						{#if line.original}
 							<!-- The speaker's language is whatever they spoke, which nobody has

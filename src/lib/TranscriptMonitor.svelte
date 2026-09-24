@@ -203,7 +203,11 @@
 			<ul class="log">
 				{#each paragraphs as paragraph (paragraph.id)}
 					<li class="origin-{paragraph.origin}">
-						<span class="side">{sideLabel[paragraph.origin]}</span>
+						<span class="side"
+							>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
+									>{paragraph.language}</span
+								>{/if}</span
+						>
 						<span class="text">{paragraph.text}</span>
 					</li>
 				{/each}
@@ -383,6 +387,13 @@
 	   remote side is the default speaker, so its marker stays neutral. */
 	.origin-microphone .side {
 		color: var(--room-soft);
+	}
+	/* With two caption languages the paragraphs alternate, so each names its language under
+	   the speaker, as a code: the column is too narrow for a name. */
+	.language {
+		display: block;
+		font-family: var(--font-mono);
+		color: var(--text-muted);
 	}
 	.origin-system .side {
 		color: var(--text-muted);

@@ -51,6 +51,8 @@ pub async fn wait_for_resume(pause: &mut PauseRx, cancel: &CancellationToken) ->
 
 pub struct TurnAccumulator {
     pub id: u64,
+    /// The caption language this accumulator's captions are in; see `Caption::lane`.
+    pub lane: u8,
     pub source: String,
     pub translated: String,
     /// Shared with every other source in this session, so their captions land on one
@@ -65,6 +67,7 @@ impl TurnAccumulator {
     pub fn new(clock: SessionClock) -> Self {
         Self {
             id: 0,
+            lane: 0,
             source: String::new(),
             translated: String::new(),
             clock,
@@ -194,15 +197,18 @@ pub async fn run_session<P: RealtimeProtocol>(
     cancel: CancellationToken,
     clock: SessionClock,
     mut pause: PauseRx,
+    lane: u8,
 ) {
     // Aborting a client task must release its producer too. Normal terminal exits below
     // also finalize text before reporting that the source has ended.
     let _capture_guard = cancel.clone().drop_guard();
     let origin = proto.origin();
+    let to = Lane { origin, lane };
     let mut backoff = INITIAL_BACKOFF;
     let mut first = true;
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock);
+    acc.lane = lane;
     let mut terminal_error = None;
     // Set when the last connection ended in a planned handover. The source stays Running
     // through one, and what it queued meanwhile is live speech rather than a stall's backlog.
@@ -214,7 +220,7 @@ pub async fn run_session<P: RealtimeProtocol>(
     while !cancel.is_cancelled() {
         // Paused before connecting: at the start, or after a connection closed for it.
         if *pause.borrow() {
-            emit_status(&app, SessionState::Paused, None, origin);
+            emit_status(&app, SessionState::Paused, None, to);
             if !wait_for_resume(&mut pause, &cancel).await {
                 break;
             }
@@ -230,7 +236,7 @@ pub async fn run_session<P: RealtimeProtocol>(
                     SessionState::Reconnecting
                 },
                 None,
-                origin,
+                to,
             );
 
             let mut dropped = 0usize;
@@ -296,7 +302,7 @@ pub async fn run_session<P: RealtimeProtocol>(
                     &app,
                     SessionState::Reconnecting,
                     Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
-                    origin,
+                    to,
                 );
             }
         }
@@ -339,9 +345,9 @@ pub async fn run_session<P: RealtimeProtocol>(
         || finalize_accumulator(&app, origin, &mut acc),
         || {
             if let Some(error) = terminal_error {
-                emit_status(&app, SessionState::Error, Some(error), origin);
+                emit_status(&app, SessionState::Error, Some(error), to);
             } else if report_idle {
-                emit_status(&app, SessionState::Idle, None, origin);
+                emit_status(&app, SessionState::Idle, None, to);
             }
         },
     );
@@ -473,7 +479,15 @@ async fn connect_and_run<P: RealtimeProtocol>(
     }
 
     tracing::info!(?origin, "{} setup complete; streaming audio", P::NAME);
-    emit_status(app, SessionState::Running, None, origin);
+    emit_status(
+        app,
+        SessionState::Running,
+        None,
+        Lane {
+            origin,
+            lane: acc.lane,
+        },
+    );
 
     let finalize_after = proto.finalize_after();
     let finalize = tokio::time::sleep(IDLE);
@@ -666,21 +680,30 @@ pub fn emit_caption(app: &AppHandle, origin: Origin, acc: &mut TurnAccumulator, 
             source_text: &acc.source,
             final_,
             origin,
+            lane: acc.lane,
             start_ms,
             end_ms,
         },
     );
 }
 
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, origin: Origin) {
+fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, to: Lane) {
     let _ = app.emit(
         events::STATUS,
         StatusUpdate {
             state,
             message,
-            origin: Some(origin),
+            origin: Some(to.origin),
+            lane: Some(to.lane),
         },
     );
+}
+
+/// Where a client's statuses are addressed: its source, and its caption language there.
+#[derive(Clone, Copy)]
+struct Lane {
+    origin: Origin,
+    lane: u8,
 }
 
 /// Drives a provider's `handle_message` the way the runner does, recording captions instead

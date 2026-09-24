@@ -183,6 +183,10 @@ export const de: Messages = {
 		favourites: 'Favoriten',
 		all: 'Alle Sprachen',
 		noMatches: 'Keine passenden Sprachen.',
+		second: 'Zweite Untertitelsprache',
+		secondNone: 'Keine',
+		secondHint:
+			'Untertitelt gleichzeitig in beiden Sprachen. Jede Quelle öffnet eine zweite Übersetzungssitzung – das verdoppelt die Kosten.',
 		pin: (language: string) => `Anheften: ${language}`,
 		unpin: (language: string) => `Lösen: ${language}`,
 		unsupported: (engine: string, language: string) =>
@@ -224,6 +228,7 @@ export const de: Messages = {
 		free: 'Kostenlos',
 		elapsed: 'Vergangen',
 		streamed: 'Übertragen',
+		twoLanguages: '×2 Sprachen',
 		estimate: 'Gesch. Kosten',
 		twoSources: '×2 Quellen'
 	},

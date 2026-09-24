@@ -44,7 +44,7 @@
 	} from '$lib/stores';
 	import { followTextScale } from '$lib/textScale';
 	import { historyEnabled } from '$lib/history';
-	import { providerRequiresKey } from '$lib/types';
+	import { providerRequiresKey, secondCaptionLanguageOf } from '$lib/types';
 	import type { SessionState } from '$lib/types';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
@@ -230,14 +230,17 @@
 	// around a ticking clock announces the whole session state every second with it.
 	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
 
-	const languageError = $derived(
-		supportsLanguage($options.provider, $options.targetLanguage)
-			? ''
-			: $t.language.unsupported(
-					$t.engine[$options.provider],
-					languageName($options.targetLanguage, $locale)
-				)
-	);
+	// Either caption language can be one the engine does not offer — the second one too, after
+	// an engine change — and either blocks Start.
+	const languageError = $derived.by(() => {
+		const second = secondCaptionLanguageOf($options);
+		const unsupported = [$options.targetLanguage, ...(second ? [second] : [])].find(
+			(code) => !supportsLanguage($options.provider, code)
+		);
+		return unsupported
+			? $t.language.unsupported($t.engine[$options.provider], languageName(unsupported, $locale))
+			: '';
+	});
 </script>
 
 <svelte:window

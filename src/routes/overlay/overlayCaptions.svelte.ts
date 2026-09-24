@@ -1,15 +1,19 @@
-// What the overlay shows: one current turn per origin, the finished turn before it, and that
-// origin's reading context, plus when each of them expires. Kept apart from the window so it
+// What the overlay shows: one current turn per track — a source in one caption language — the
+// finished turn before it, and that track's reading context, plus when each of them expires. Kept apart from the window so it
 // can be exercised without fonts, a ResizeObserver or a Tauri window.
 
 import { appendCaptionHistory, type CaptionLayout } from '$lib/captionLayout';
 import { createFillerFilter } from '$lib/cleanSpeech';
 import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
-import { captionBudget, clampOverlayWidth } from '$lib/types';
-import type { Caption, Origin, StatusUpdate } from '$lib/types';
-
-/** Stable render order: the remote speaker (system) above the room mic. */
-export const ORIGIN_ORDER: readonly Origin[] = ['system', 'microphone'];
+import {
+	captionBudget,
+	clampOverlayWidth,
+	TRACK_ORDER,
+	trackLane,
+	trackOf,
+	trackOrigin
+} from '$lib/types';
+import type { Caption, Lane, Origin, StatusUpdate, Track } from '$lib/types';
 
 /** An in-progress line that stalls (no turn-complete arriving) clears after this. */
 const INTERIM_HOLD_MS = 3000;
@@ -33,7 +37,10 @@ export function tail(text: string, limit: number): string {
 }
 
 export interface CaptionLine {
+	/** The source and caption language this row is. */
+	track: Track;
 	origin: Origin;
+	lane: Lane;
 	/** Earlier context, drawn dimmed ahead of the turn. */
 	lead: string;
 	text: string;
@@ -58,9 +65,11 @@ export interface ReadingSettings {
 }
 
 export function createOverlayCaptions(initial: ReadingSettings) {
-	let current = $state<Partial<Record<Origin, Caption>>>({});
-	let previous = $state<Partial<Record<Origin, string>>>({});
-	let history = $state<Partial<Record<Origin, string>>>({});
+	// All keyed by track: a source in one caption language. With one language that is the
+	// origin itself, so the fixtures and a single-language session read exactly as before.
+	let current = $state<Partial<Record<Track, Caption>>>({});
+	let previous = $state<Partial<Record<Track, string>>>({});
+	let history = $state<Partial<Record<Track, string>>>({});
 	let layout = $state(initial.layout);
 	let hideFillers = $state(initial.hideFillers);
 	let fillerWords = $state.raw(initial.fillerWords);
@@ -68,7 +77,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	let pace = $state(initial.pace);
 	let width = $state(initial.width);
 	let showOriginal = $state(initial.showOriginal);
-	const timers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
+	const timers: Partial<Record<Track, ReturnType<typeof setTimeout>>> = {};
 
 	// Compact keeps captions subtitle-sized. A turn streams until it completes, which during
 	// continuous speech can run for many sentences, so only the most recent slice of it is
@@ -84,22 +93,23 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	 *  here, so its history is exactly the text on screen: the overlay trims it at rendered
 	 *  line starts (`trimStable`), and a later change to the toggle or the word list then
 	 *  applies to new turns rather than re-wrapping every line already read. */
-	function joinHistory(origin: Origin, turn: string): string {
-		if (layout !== 'stable') return appendCaptionHistory(history[origin] ?? '', turn);
-		return `${history[origin] ?? ''} ${clean(turn)}`;
+	function joinHistory(track: Track, turn: string): string {
+		if (layout !== 'stable') return appendCaptionHistory(history[track] ?? '', turn);
+		return `${history[track] ?? ''} ${clean(turn)}`;
 	}
 
 	/** Auto-hide an origin's caption so the overlay never sits on a stale line over the
 	 *  slides. Always re-armed: even when a turn ends on an interim update and no
 	 *  turn-complete ever arrives, the line has to disappear on its own. */
 	function scheduleExpiry(c: Caption) {
-		clearTimeout(timers[c.origin]);
-		timers[c.origin] = setTimeout(
+		const track = trackOf(c.origin, c.lane);
+		clearTimeout(timers[track]);
+		timers[track] = setTimeout(
 			() => {
 				if (layout === 'stable') return;
-				delete current[c.origin];
-				delete previous[c.origin];
-				delete history[c.origin];
+				delete current[track];
+				delete previous[track];
+				delete history[track];
 			},
 			c.final ? hold * 1000 : INTERIM_HOLD_MS
 		);
@@ -111,15 +121,16 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 
 	const presenter = createCaptionPresenter(
 		(c) => {
-			const cur = current[c.origin];
-			// A caption for a new turn of this origin: keep the finished text as the dimmed
+			const track = trackOf(c.origin, c.lane);
+			const cur = current[track];
+			// A caption for a new turn of this track: keep the finished text as the dimmed
 			// lead-in to the fresh one. A turn can end without ever being flagged final, so this
 			// keys off the turn id changing rather than on `cur.final`.
 			if (cur && cur.turnId !== c.turnId && cur.text.trim()) {
-				previous[c.origin] = cur.text;
-				history[c.origin] = joinHistory(c.origin, cur.text);
+				previous[track] = cur.text;
+				history[track] = joinHistory(track, cur.text);
 			}
-			current[c.origin] = c;
+			current[track] = c;
 			scheduleExpiry(c);
 		},
 		() => pace
@@ -130,17 +141,18 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 	// already cleaned — see `joinHistory` — and is shown as it is.
 	const contextLeads = $derived(
 		Object.fromEntries(
-			ORIGIN_ORDER.map((origin) => {
-				const context = history[origin] ?? '';
-				return [origin, layout === 'fit' ? clean(context) : context];
+			TRACK_ORDER.map((track) => {
+				const context = history[track] ?? '';
+				return [track, layout === 'fit' ? clean(context) : context];
 			})
-		) as Record<Origin, string>
+		) as Record<Track, string>
 	);
 
 	const lines = $derived<CaptionLine[]>(
-		ORIGIN_ORDER.flatMap((origin) => {
-			const caption = current[origin];
+		TRACK_ORDER.flatMap((track) => {
+			const caption = current[track];
 			if (!caption) return [];
+			const lane = trackLane(track);
 			const text =
 				layout !== 'compact'
 					? layout === 'stable'
@@ -150,16 +162,19 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 			const room = maxChars - text.length;
 			const lead =
 				layout !== 'compact'
-					? contextLeads[origin]
+					? contextLeads[track]
 					: room >= MIN_LEAD_CHARS
-						? tail(previous[origin] ?? '', room)
+						? tail(previous[track] ?? '', room)
 						: '';
 			// Stable reading is one flowing paragraph of context; a second, separately
-			// scrolling language under it would be two things to read at once.
-			const source = showOriginal && layout !== 'stable' ? caption.sourceText : '';
+			// scrolling language under it would be two things to read at once. A second caption
+			// language heard the same speech, so the original goes under the first only.
+			const source = showOriginal && layout !== 'stable' && lane === 0 ? caption.sourceText : '';
 			return [
 				{
-					origin,
+					track,
+					origin: trackOrigin(track),
+					lane,
 					lead: layout === 'compact' ? clean(lead) : lead,
 					text: clean(text, caption.final),
 					interim: !caption.final,
@@ -195,7 +210,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		status(status: StatusUpdate) {
 			if (status.state === 'idle' || status.state === 'error') {
 				if (!status.origin && layout !== 'stable') presenter.flush();
-				presenter.clear(status.origin);
+				presenter.clear(status.origin, status.lane);
 			}
 			if (layout === 'stable' && status.state === 'idle' && !status.origin) clearAll();
 		},
@@ -221,13 +236,12 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 			layout = next;
 			if (layout !== 'stable') {
 				rescheduleAll();
-				for (const origin of ORIGIN_ORDER)
-					history[origin] = appendCaptionHistory('', history[origin] ?? '');
+				for (const track of TRACK_ORDER)
+					if (history[track]) history[track] = appendCaptionHistory('', history[track]);
 			} else {
 				// Stable reading keeps its history cleaned; context carried over from another
 				// layout is cleaned once, on the way in.
-				for (const origin of ORIGIN_ORDER)
-					if (history[origin]) history[origin] = clean(history[origin]);
+				for (const track of TRACK_ORDER) if (history[track]) history[track] = clean(history[track]);
 			}
 		},
 		setWidth(ch: number) {
@@ -235,8 +249,8 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		},
 		/** Drop the first `chars` characters of Stable reading's context, as measured at a
 		 *  rendered line start by the caption line. */
-		trimStable(origin: Origin, chars: number) {
-			history[origin] = (history[origin] ?? '').slice(chars);
+		trimStable(track: Track, chars: number) {
+			history[track] = (history[track] ?? '').slice(chars);
 		},
 		/** Show fixed content, for a browser preview with no core behind it. */
 		show(content: {

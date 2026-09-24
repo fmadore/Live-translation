@@ -4,7 +4,8 @@
 
 import { get } from 'svelte/store';
 
-import { t } from './i18n';
+import { locale, t } from './i18n';
+import { languageName } from './languages';
 import { exportOriginal, markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
 import { recovery } from './recovery';
@@ -34,6 +35,7 @@ export async function saveTranscriptDocument(
 				title: messages.export.title,
 				origin: messages.export.origin,
 				original: messages.export.original,
+				language: (code) => languageName(code, get(locale)),
 				tag: messages.locale.tag
 			},
 			{ original: get(exportOriginal) }

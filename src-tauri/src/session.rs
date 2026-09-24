@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{channel, error::TrySendError, Receiver, Sender};
 use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio_util::sync::CancellationToken;
@@ -75,6 +75,8 @@ struct ActiveSession {
     capture_threads: Vec<JoinHandle<()>>,
     /// Timer-driven audio producers used by commercial-provider rehearsal playback.
     fixture_tasks: Vec<AsyncJoinHandle<()>>,
+    /// With a second caption language, one relay per source copies its audio to both clients.
+    relay_tasks: Vec<AsyncJoinHandle<()>>,
     client_tasks: Vec<AsyncJoinHandle<()>>,
 }
 
@@ -200,6 +202,8 @@ fn report_source_failure(
             state: SessionState::Error,
             message: Some(message),
             origin: Some(origin),
+            // Every caption language this source fed ends with it.
+            lane: None,
         },
     );
 }
@@ -240,7 +244,53 @@ fn validate_start(options: &StartOptions) -> Result<()> {
     if options.provider == Provider::OnDevice && options.rehearsal.is_some() {
         anyhow::bail!("The built-in demonstration already uses bundled content")
     }
+    if let Some(second) = options.second_target_language {
+        anyhow::ensure!(
+            options.mode == OutputMode::Translate,
+            "A second caption language needs translation mode"
+        );
+        anyhow::ensure!(
+            second != options.target_language,
+            "The second caption language is the same as the first"
+        );
+        anyhow::ensure!(
+            second.supported_by(options.provider),
+            "{:?} does not support caption language {}",
+            options.provider,
+            second.bcp47()
+        );
+    }
     Ok(())
+}
+
+/// The languages a session captions in, lane order: the target, then the second one if any.
+fn caption_languages(options: &StartOptions) -> Vec<TargetLanguage> {
+    std::iter::once(options.target_language)
+        .chain(options.second_target_language)
+        .collect()
+}
+
+/// Copy one source's audio to each of its caption-language clients. Never blocks on either:
+/// a client that has fallen behind drops chunks on its own queue, as a lone client would at
+/// the producer's. Ends when the producer does, or once every client has gone — and then
+/// cancels the source, which stops its capture.
+async fn relay_audio(
+    mut input: Receiver<AudioChunk>,
+    outputs: Vec<Sender<AudioChunk>>,
+    source: CancellationToken,
+) {
+    let _stop_capture = source.drop_guard();
+    while let Some(chunk) = input.recv().await {
+        let mut open = 0;
+        for output in &outputs {
+            if !matches!(output.try_send(chunk.clone()), Err(TrySendError::Closed(_))) {
+                open += 1;
+            }
+        }
+        if open == 0 {
+            break;
+        }
+    }
 }
 
 /// The capture devices a source selection opens, in a stable order.
@@ -343,6 +393,8 @@ async fn join_threads(handles: Vec<JoinHandle<()>>, what: &'static str) {
 struct ClientIo {
     app: AppHandle,
     origin: Origin,
+    /// Which of the session's caption languages this client produces; see `Caption::lane`.
+    lane: u8,
     audio_rx: Receiver<AudioChunk>,
     cancel: CancellationToken,
     clock: SessionClock,
@@ -358,6 +410,7 @@ impl ClientIo {
             self.cancel,
             self.clock,
             self.pause,
+            self.lane,
         ))
     }
 }
@@ -448,17 +501,47 @@ impl SessionBuilder<'_> {
         self.session.sources.push(cancel.clone());
         self.spawn_producer(origin, audio_tx, &cancel)?;
 
+        let targets = caption_languages(self.options);
+        if targets.len() == 1 {
+            // One language: the client reads the producer directly and owns the source's
+            // token, so its end stops the capture, as it always has.
+            return self.add_client(origin, 0, targets[0], audio_rx, cancel);
+        }
+        // Two languages: each client gets its own copy of the audio and a child token, so
+        // one failing leaves the other captioning. The relay stops the capture when both
+        // have gone.
+        let mut outputs = Vec::with_capacity(targets.len());
+        for (lane, target) in (0u8..).zip(targets) {
+            let (lane_tx, lane_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
+            outputs.push(lane_tx);
+            self.add_client(origin, lane, target, lane_rx, cancel.child_token())?;
+        }
+        self.session
+            .relay_tasks
+            .push(tauri::async_runtime::spawn(relay_audio(
+                audio_rx, outputs, cancel,
+            )));
+        Ok(())
+    }
+
+    fn add_client(
+        &mut self,
+        origin: Origin,
+        lane: u8,
+        target: TargetLanguage,
+        audio_rx: Receiver<AudioChunk>,
+        cancel: CancellationToken,
+    ) -> Result<()> {
         let io = ClientIo {
             app: self.app.clone(),
             origin,
+            lane,
             audio_rx,
             cancel,
             clock: self.clock,
             pause: self.session.pause.subscribe(),
         };
-        let client = self
-            .settings
-            .spawn_client(io, &self.api_key, self.options.target_language)?;
+        let client = self.settings.spawn_client(io, &self.api_key, target)?;
         self.session.client_tasks.push(client);
         Ok(())
     }
@@ -562,6 +645,7 @@ impl SessionManager {
                 sources: Vec::new(),
                 capture_threads: Vec::new(),
                 fixture_tasks: Vec::new(),
+                relay_tasks: Vec::new(),
                 client_tasks: Vec::new(),
             },
         };
@@ -722,7 +806,16 @@ impl SessionManager {
             // Rehearsal playback holds the producer end of its audio channel, and the client
             // below only sees the stream end once that is dropped — so drain it here, in the
             // same place the capture threads are joined.
-            for result in join_all(session.fixture_tasks.iter_mut()).await {
+            // A relay ends once its producer has: the capture threads are joined and the
+            // rehearsal tasks are next, so this cannot wait on anything still running.
+            for result in join_all(
+                session
+                    .fixture_tasks
+                    .iter_mut()
+                    .chain(session.relay_tasks.iter_mut()),
+            )
+            .await
+            {
                 if let Err(error) = result {
                     tracing::warn!("rehearsal playback task failed: {error}");
                 }
@@ -748,6 +841,7 @@ impl SessionManager {
                     state: SessionState::Idle,
                     message: None,
                     origin: None,
+                    lane: None,
                 },
             );
             tracing::info!("session stopped");
@@ -822,6 +916,73 @@ mod tests {
             "rehearsal": rehearsal,
         }))
         .unwrap()
+    }
+
+    fn with_second(provider: &str, mode: &str, second: &str) -> StartOptions {
+        serde_json::from_value(serde_json::json!({
+            "source": "microphone",
+            "targetLanguage": "fr",
+            "provider": provider,
+            "mode": mode,
+            "secondTargetLanguage": second,
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn a_second_caption_language_is_a_second_lane_after_the_first() {
+        assert_eq!(
+            caption_languages(&options("microphone", None)),
+            [TargetLanguage::Fr]
+        );
+        let dual = with_second("gemini", "translate", "en");
+        assert_eq!(
+            caption_languages(&dual),
+            [TargetLanguage::Fr, TargetLanguage::En]
+        );
+        assert!(validate_start(&dual).is_ok());
+    }
+
+    #[test]
+    fn a_second_caption_language_must_be_a_different_supported_translation() {
+        assert!(validate_start(&with_second("gemini", "translate", "fr")).is_err());
+        assert!(validate_start(&with_second("mistral", "transcribe", "en")).is_err());
+        // Gemini offers Akan; OpenAI's thirteen targets do not include it.
+        assert!(validate_start(&with_second("gemini", "translate", "ak")).is_ok());
+        assert!(validate_start(&with_second("openai", "translate", "ak")).is_err());
+    }
+
+    fn chunk(tag: u8) -> AudioChunk {
+        AudioChunk { pcm_le: vec![tag] }
+    }
+
+    #[tokio::test]
+    async fn the_relay_copies_each_chunk_to_both_languages_and_outlives_one_of_them() {
+        let (input_tx, input_rx) = channel(8);
+        let (first_tx, mut first) = channel(8);
+        let (second_tx, second) = channel(8);
+        let source = CancellationToken::new();
+        let relay = tokio::spawn(relay_audio(
+            input_rx,
+            vec![first_tx, second_tx],
+            source.clone(),
+        ));
+
+        input_tx.send(chunk(1)).await.unwrap();
+        drop(second);
+        input_tx.send(chunk(2)).await.unwrap();
+        assert_eq!(first.recv().await.unwrap().pcm_le, [1]);
+        assert_eq!(first.recv().await.unwrap().pcm_le, [2]);
+        assert!(!source.is_cancelled(), "one language is still captioning");
+
+        // The last client gone: the relay ends and stops the capture.
+        drop(first);
+        input_tx.send(chunk(3)).await.unwrap();
+        tokio::time::timeout(Duration::from_secs(1), relay)
+            .await
+            .unwrap()
+            .unwrap();
+        assert!(source.is_cancelled());
     }
 
     #[test]

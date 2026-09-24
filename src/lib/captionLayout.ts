@@ -22,7 +22,8 @@ export function bottomCaptionHeight(
 	layout: CaptionLayout,
 	original = false
 ): number {
-	const rows = Math.max(1, Math.min(2, origins));
+	// Up to four rows: two sources, each in two caption languages.
+	const rows = Math.max(1, Math.min(4, origins));
 	const originalRow = original ? originalHeight(fontSize, 1) + ORIGINAL_GAP : 0;
 	const textHeight = (2 * fontSize * 1.34 + originalRow) * rows + 18 * (rows - 1);
 	return Math.max(160, Math.ceil(layout === 'compact' ? textHeight / 0.85 : textHeight + 32));

@@ -1,5 +1,14 @@
 import { readStored } from './persisted';
-import { ORIGINS, type Caption, type Origin } from './types';
+import {
+	TRACK_ORDER,
+	trackLane,
+	trackOf,
+	trackOrigin,
+	type Caption,
+	type Lane,
+	type Origin,
+	type Track
+} from './types';
 
 export type CaptionPace = 'immediate' | 'steady';
 export const HOLD_KEY = 'overlay.holdSeconds';
@@ -19,34 +28,37 @@ export function loadPace(): CaptionPace {
 }
 
 /** Throttle rather than debounce: continuous speech must still appear every 450ms.
- * Final text and turn transitions flush immediately; origins never share a timer. */
+ * Final text and turn transitions flush immediately; tracks never share a timer. */
 export function createCaptionPresenter(show: (caption: Caption) => void, pace: () => CaptionPace) {
-	const pending: Partial<Record<Origin, Caption>> = {};
-	const timers: Partial<Record<Origin, ReturnType<typeof setTimeout>>> = {};
-	function flush(origin: Origin) {
-		clearTimeout(timers[origin]);
-		delete timers[origin];
-		const caption = pending[origin];
-		delete pending[origin];
+	const pending: Partial<Record<Track, Caption>> = {};
+	const timers: Partial<Record<Track, ReturnType<typeof setTimeout>>> = {};
+	function flush(track: Track) {
+		clearTimeout(timers[track]);
+		delete timers[track];
+		const caption = pending[track];
+		delete pending[track];
 		if (caption) show(caption);
 	}
 	return {
 		push(caption: Caption) {
-			if (pending[caption.origin]?.turnId !== caption.turnId) flush(caption.origin);
-			pending[caption.origin] = caption;
-			if (pace() === 'immediate' || caption.final) flush(caption.origin);
-			else if (!timers[caption.origin])
-				timers[caption.origin] = setTimeout(() => flush(caption.origin), 450);
+			const track = trackOf(caption.origin, caption.lane);
+			if (pending[track]?.turnId !== caption.turnId) flush(track);
+			pending[track] = caption;
+			if (pace() === 'immediate' || caption.final) flush(track);
+			else if (!timers[track]) timers[track] = setTimeout(() => flush(track), 450);
 		},
 		flush() {
-			flush('microphone');
-			flush('system');
+			for (const track of TRACK_ORDER) flush(track);
 		},
-		clear(origin?: Origin) {
-			for (const key of origin ? [origin] : ORIGINS) {
-				clearTimeout(timers[key]);
-				delete timers[key];
-				delete pending[key];
+		/** Drop what is held for a source — one of its languages, or all of them — or for
+		 *  everything. */
+		clear(origin?: Origin, lane?: Lane) {
+			for (const track of TRACK_ORDER) {
+				if (origin && trackOrigin(track) !== origin) continue;
+				if (lane !== undefined && trackLane(track) !== lane) continue;
+				clearTimeout(timers[track]);
+				delete timers[track];
+				delete pending[track];
 			}
 		}
 	};

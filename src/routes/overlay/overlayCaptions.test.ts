@@ -37,7 +37,15 @@ describe('overlay captions', () => {
 		c.push(caption('system', 1, 'First sentence.'));
 		c.push(caption('system', 2, 'Second', false));
 		expect(c.lines).toEqual([
-			{ origin: 'system', lead: 'First sentence.', text: 'Second', interim: true, original: '' }
+			{
+				track: 'system',
+				origin: 'system',
+				lane: 0,
+				lead: 'First sentence.',
+				text: 'Second',
+				interim: true,
+				original: ''
+			}
 		]);
 		c.dispose();
 	});
@@ -217,6 +225,36 @@ describe('overlay captions', () => {
 		const c = createOverlayCaptions({ ...fit, showOriginal: true });
 		c.push(caption('microphone', 1, 'Same language.'));
 		expect(c.lines[0].original).toBe('');
+		c.dispose();
+	});
+
+	it('shows each caption language as its own row, the first above the second', () => {
+		const c = createOverlayCaptions({ ...fit, showOriginal: true });
+		const inEnglish = { ...caption('system', 1, 'Hello.'), lane: 1 as const, sourceText: 'Hallo.' };
+		const inFrench = { ...caption('system', 1, 'Bonjour.'), sourceText: 'Hallo.' };
+		c.push(inEnglish);
+		c.push(inFrench);
+		c.push(caption('microphone', 1, 'Room.'));
+		expect(c.lines.map((line) => [line.track, line.text])).toEqual([
+			['system', 'Bonjour.'],
+			['system:1', 'Hello.'],
+			['microphone', 'Room.']
+		]);
+		// The same speech under both would say it twice.
+		expect(c.lines.map((line) => line.original)).toEqual(['Hallo.', '', '']);
+		// One language's client ending clears only its own row.
+		c.status({ state: 'error', origin: 'system', lane: 1 });
+		c.push({ ...inEnglish, turnId: 2 });
+		c.dispose();
+	});
+
+	it('keeps each language’s lead-in to itself', () => {
+		const c = createOverlayCaptions(fit);
+		c.push(caption('system', 1, 'Premier.'));
+		c.push({ ...caption('system', 1, 'First.'), lane: 1 });
+		c.push(caption('system', 2, 'Suite', false));
+		c.push({ ...caption('system', 2, 'Next', false), lane: 1 });
+		expect(c.lines.map((line) => line.lead)).toEqual(['Premier.', 'First.']);
 		c.dispose();
 	});
 

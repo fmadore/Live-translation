@@ -5,7 +5,7 @@
 	import { t } from './i18n';
 	import { hasKey, options, overlayPlaced, statusMessage } from './stores';
 	import { PROVIDER_META, rateText } from './providers';
-	import { describeReadiness, providerRequiresKey } from './types';
+	import { describeReadiness, laneCount, providerRequiresKey } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { PreflightController } from './preflightController.svelte';
 
@@ -161,6 +161,8 @@
 	>
 		{#snippet action()}
 			<span class="check-rate">{rateText(PROVIDER_META[$options.provider], $t)}</span>
+			<!-- The rate is per stream, and a second caption language is a second stream. -->
+			{#if laneCount($options) === 2}<span class="check-tag">{$t.cost.twoLanguages}</span>{/if}
 		{/snippet}
 	</ChecklistRow>
 </div>
@@ -170,6 +172,11 @@
 		flex: 0 0 auto;
 		margin-top: var(--space-5);
 		border-top: 1px solid var(--line);
+	}
+	.check-tag {
+		font-size: var(--type-small);
+		color: var(--text-muted);
+		white-space: nowrap;
 	}
 	.check-rate {
 		font-family: var(--font-mono);

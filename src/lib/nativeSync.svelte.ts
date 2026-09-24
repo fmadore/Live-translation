@@ -16,7 +16,7 @@ import {
 	transcriptDirty
 } from './stores';
 import { api } from './tauri';
-import { captionLanguageOf } from './types';
+import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayController } from './overlayController.svelte';
 import type { SessionClock } from './sessionClock.svelte';
 
@@ -85,7 +85,12 @@ export function syncNative({
 	// sends one config rather than one per language. Derived, so a change to some other
 	// option (the audio source, say) does not push the whole appearance again.
 	const captionLanguage = $derived(captionLanguageOf(setup.current));
+	const secondCaptionLanguage = $derived(secondCaptionLanguageOf(setup.current));
 	$effect(() => {
-		overlay.pushOverlayConfig({ locale: interfaceLocale.current, captionLanguage });
+		overlay.pushOverlayConfig({
+			locale: interfaceLocale.current,
+			captionLanguage,
+			secondCaptionLanguage
+		});
 	});
 }

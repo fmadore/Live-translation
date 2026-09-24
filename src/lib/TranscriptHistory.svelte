@@ -111,6 +111,7 @@
 				title: $t.export.title,
 				origin: $t.export.origin,
 				original: $t.export.original,
+				language: (code) => languageName(code, $locale),
 				tag: $localeTag
 			},
 			{ original: $exportOriginal }

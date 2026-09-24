@@ -121,6 +121,61 @@ export function captionLanguageOf(
 	return undefined;
 }
 
+/** A second language only means something for translation, and only when it differs from
+ *  the first: this is the one place that decides, so the core, the overlay, the cost and the
+ *  labels cannot disagree about whether a run has one. */
+export function secondCaptionLanguageOf(
+	options: Pick<StartOptions, 'mode' | 'targetLanguage' | 'secondTargetLanguage'>
+): TargetLanguage | undefined {
+	const second = options.secondTargetLanguage;
+	return options.mode === 'translate' && second && second !== options.targetLanguage
+		? second
+		: undefined;
+}
+
+/** How many caption languages a run streams per source: each is its own provider session. */
+export function laneCount(
+	options: Pick<StartOptions, 'mode' | 'targetLanguage' | 'secondTargetLanguage'>
+): 1 | 2 {
+	return secondCaptionLanguageOf(options) ? 2 : 1;
+}
+
+// ---- Caption lanes and tracks ------------------------------------------------
+// A session captions in one language, or two: lane 0 is `targetLanguage`, lane 1
+// `secondTargetLanguage`. Each source's lanes are independent turn streams, so everything
+// keyed per stream is keyed by track — a source in one language.
+
+export const LANES = [0, 1] as const;
+export type Lane = (typeof LANES)[number];
+
+/** Lane 0 keeps the bare origin as its key, so a single-language session is keyed exactly as
+ *  it always was. */
+export type Track = Origin | `${Origin}:1`;
+
+export function trackOf(origin: Origin, lane: Lane | undefined = 0): Track {
+	return lane === 1 ? `${origin}:1` : origin;
+}
+
+export function trackOrigin(track: Track): Origin {
+	return (track.endsWith(':1') ? track.slice(0, -2) : track) as Origin;
+}
+
+export function trackLane(track: Track): Lane {
+	return track.endsWith(':1') ? 1 : 0;
+}
+
+/** The language a lane's captions are in, when the app knows it. */
+export function laneLanguage(
+	options: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage' | 'secondTargetLanguage'>,
+	lane: Lane
+): TargetLanguage | undefined {
+	return lane === 1 ? secondCaptionLanguageOf(options) : captionLanguageOf(options);
+}
+
+/** The overlay's order: the remote speaker above the room, and within each source its first
+ *  language above its second. */
+export const TRACK_ORDER: readonly Track[] = ['system', 'system:1', 'microphone', 'microphone:1'];
+
 export interface ProcessIdentity {
 	pid: number;
 	createdAt: string;
@@ -156,6 +211,9 @@ export interface StartOptions {
 	 *  has its own deterministic timeline and disables this separate rehearsal control. Per-launch only: it is never written to the options store, so it can never reach
 	 *  the persisted record. Keep in sync with `StartOptions` in `src-tauri/src/types.rs`. */
 	rehearsal?: DemoLanguage;
+	/** Caption in this language as well, from a second translation session per source (lane
+	 *  1). Translation only; null or absent for one language. See `secondCaptionLanguageOf`. */
+	secondTargetLanguage?: TargetLanguage | null;
 }
 
 /** A caption update streamed from the active translation or subtitle session. */
@@ -171,6 +229,9 @@ export interface Caption {
 	final: boolean;
 	/** Which source produced it, when running both streams. */
 	origin: Origin;
+	/** Which caption language: 0 for the target, 1 for the second one. Turn ids are per
+	 *  track, so key captions by (origin, lane, turnId). Absent means 0. */
+	lane?: Lane;
 	/** Milliseconds from the start of the session to this turn's first caption — the same
 	 *  value on every caption of the turn, so an interim and its final agree on where the
 	 *  cue begins. Stamped by the core; see `src-tauri/src/timing.rs`. */
@@ -204,6 +265,9 @@ export interface StatusUpdate {
 	message?: AppError | string;
 	/** Which source this update is about; absent means the whole session (e.g. stop). */
 	origin?: Origin;
+	/** Which caption language of that source; absent means all of them (a capture failure
+	 *  ends every language it fed). */
+	lane?: Lane;
 }
 
 /** Preflight level test. Deliberately not a `StatusUpdate`: a test is not a session and must
@@ -256,6 +320,9 @@ export interface OverlayConfig {
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
 	 *  `captionLanguageOf`, which is where the answer is worked out. */
 	captionLanguage?: TargetLanguage;
+	/** The language of lane 1's captions, when the session has a second one. Unconditional
+	 *  on arrival like `captionLanguage`: absent clears it. */
+	secondCaptionLanguage?: TargetLanguage;
 	/** Show the original speech as a smaller line under each translated caption. */
 	showOriginal?: boolean;
 }
@@ -267,6 +334,11 @@ export interface TranscriptLine {
 	text: string;
 	sourceText: string;
 	origin: Origin;
+	/** Which caption language, when the session had two; absent means the first. */
+	lane?: Lane;
+	/** The caption language itself, recorded for a session in two languages so a document that
+	 *  spans several runs still names each line's language correctly. */
+	language?: TargetLanguage;
 	/** The caption's interval, in ms since its session started. Optional because a recovery
 	 *  file written before timing existed has none, and a line restored from one is still a
 	 *  perfectly good caption — it just cannot be exported as a timed cue. Present or absent
@@ -453,6 +525,11 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
 		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
 		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null,
+		secondTargetLanguage:
+			typeof stored.secondTargetLanguage === 'string' &&
+			(TARGET_LANGUAGES as readonly string[]).includes(stored.secondTargetLanguage)
+				? (stored.secondTargetLanguage as TargetLanguage)
+				: null,
 		// Remember the privacy choice, never restore a PID across app launches.
 		...((stored.systemCapture as { kind?: string } | null)?.kind === 'application'
 			? { systemCapture: { kind: 'application' as const, process: null } }

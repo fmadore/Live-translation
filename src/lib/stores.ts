@@ -9,6 +9,7 @@ import type { CaptionLayout } from './captionLayout';
 
 import type { AppError } from './errors';
 import { writable, derived, get } from 'svelte/store';
+import { LANES, laneCount, laneLanguage, trackOf, trackOrigin } from './types';
 import type {
 	AudioLevel,
 	Caption,
@@ -16,6 +17,7 @@ import type {
 	SessionState,
 	StartOptions,
 	StatusUpdate,
+	Track,
 	TranscriptLine
 } from './types';
 import {
@@ -50,7 +52,21 @@ import { normalizeAppearance, type Appearance } from './appearance';
 // independently, so state is tracked per origin and aggregated for display: the worst
 // state wins, and the session counts as active while any source still is.
 
-export const originStates = writable<Partial<Record<Origin, SessionState>>>({});
+// Keyed by track — a source in one caption language — so a session captioning in two languages
+// reports each client separately. Lane 0 is the bare origin, so with one language this is the
+// per-origin map it always was.
+export const originStates = writable<Partial<Record<Track, SessionState>>>({});
+
+/** How one source is doing, across its caption languages: the worst of them. */
+export function originState(
+	states: Partial<Record<Track, SessionState>>,
+	origin: Origin
+): SessionState {
+	const mine = (Object.keys(states) as Track[])
+		.filter((track) => trackOrigin(track) === origin)
+		.map((track) => states[track]);
+	return DISPLAY_PRIORITY.find((s) => mine.includes(s)) ?? 'idle';
+}
 
 const DISPLAY_PRIORITY: SessionState[] = [
 	'error',
@@ -120,13 +136,26 @@ let runHadActiveSource = false;
 export function applyStatus(u: StatusUpdate) {
 	if (u.origin) {
 		const origin = u.origin;
-		originStates.update((m) => ({ ...m, [origin]: u.state }));
+		// A status with no lane is about the source itself — a capture failure — and so about
+		// every language it was feeding.
+		const known = get(originStates);
+		const tracks =
+			u.lane !== undefined
+				? [trackOf(origin, u.lane)]
+				: LANES.map((lane) => trackOf(origin, lane)).filter(
+						(track, lane) => lane === 0 || track in known
+					);
+		originStates.update((m) => {
+			const next = { ...m };
+			for (const track of tracks) next[track] = u.state;
+			return next;
+		});
 		if (u.state === 'error' || u.state === 'idle') {
 			const level = { source: origin, rms: 0, peak: 0 };
 			(origin === 'microphone' ? micLevel : systemLevel).set(level);
 			currentCaptions.update((m) => {
 				const next = { ...m };
-				delete next[origin];
+				for (const track of tracks) delete next[track];
 				return next;
 			});
 			if (!get(isRunning)) {
@@ -200,10 +229,10 @@ export const options = persistedWith<StartOptions>(loadStartOptions, (v) =>
 
 // ---- Captions & transcript --------------------------------------------------
 
-// The turn currently on screen for each origin, so the operator can show both speakers at
-// once. Key insertion order is kept in least-recently-updated order, which is the order the
-// stage renders the blocks in — newest at the bottom.
-export const currentCaptions = writable<Partial<Record<Origin, Caption>>>({});
+// The turn currently on screen for each track, so the operator can show both speakers — and
+// both languages — at once. Key insertion order is kept in least-recently-updated order,
+// which is the order the stage renders the blocks in — newest at the bottom.
+export const currentCaptions = writable<Partial<Record<Track, Caption>>>({});
 
 // The transcript log, most recent finalized line first.
 //
@@ -233,10 +262,10 @@ export function markTranscriptSaved(lines: TranscriptLine[], path: string) {
 	savedPath.set(path);
 }
 
-// Track the in-flight turn *per origin* so a transcript line is logged even when a stream
-// never emits an explicit turn-complete, and so mic and system turns (whose ids are
-// independent counters) never clobber each other in "Both" mode.
-const pending: Partial<Record<Origin, Caption>> = {};
+// Track the in-flight turn *per track* so a transcript line is logged even when a stream
+// never emits an explicit turn-complete, and so mic and system turns — and a source's two
+// languages — whose ids are independent counters never clobber each other.
+const pending: Partial<Record<Track, Caption>> = {};
 
 let nextLineId = 1;
 let transcriptTimeOffset = 0;
@@ -248,6 +277,9 @@ function commit(c: Caption) {
 		text: c.text.trim(),
 		sourceText: c.sourceText.trim(),
 		origin: c.origin,
+		...(c.lane ? { lane: c.lane } : {}),
+		// With two caption languages, each line says which it is in; see `TranscriptLine`.
+		...(laneCount(get(options)) === 2 ? { language: laneLanguage(get(options), c.lane ?? 0) } : {}),
 		// The committed caption's own interval: the turn's start, and the moment this text
 		// was the last thing the provider had to say about it.
 		startMs: c.startMs === undefined ? undefined : c.startMs + transcriptTimeOffset,
@@ -259,34 +291,35 @@ function commit(c: Caption) {
 
 export function pushCaption(c: Caption) {
 	noteActivity(c.origin, 'caption');
-	// Re-insert this origin last so the object's key order tracks recency.
+	const track = trackOf(c.origin, c.lane);
+	// Re-insert this track last so the object's key order tracks recency.
 	currentCaptions.update((m) => {
-		const next: Partial<Record<Origin, Caption>> = {};
-		for (const o of Object.keys(m) as Origin[]) if (o !== c.origin) next[o] = m[o];
-		next[c.origin] = c;
+		const next: Partial<Record<Track, Caption>> = {};
+		for (const t of Object.keys(m) as Track[]) if (t !== track) next[t] = m[t];
+		next[track] = c;
 		return next;
 	});
-	const prev = pending[c.origin];
-	// A new turn id means this origin's previous turn is done, even without an explicit
+	const prev = pending[track];
+	// A new turn id means this track's previous turn is done, even without an explicit
 	// turn-complete.
 	if (prev && prev.turnId !== c.turnId) {
 		commit(prev);
-		delete pending[c.origin];
+		delete pending[track];
 	}
 	if (c.final) {
 		commit(c);
-		delete pending[c.origin];
+		delete pending[track];
 	} else {
-		pending[c.origin] = c;
+		pending[track] = c;
 	}
 }
 
 /** Commit all in-flight lines (call when the session ends) so they aren't lost. */
 export function flushTranscript() {
-	for (const origin of Object.keys(pending) as Origin[]) {
-		const c = pending[origin];
+	for (const track of Object.keys(pending) as Track[]) {
+		const c = pending[track];
 		if (c) commit(c);
-		delete pending[origin];
+		delete pending[track];
 	}
 }
 
@@ -322,7 +355,7 @@ export function clearTranscript() {
 	currentCaptions.set({});
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');
-	for (const origin of Object.keys(pending) as Origin[]) delete pending[origin];
+	for (const track of Object.keys(pending) as Track[]) delete pending[track];
 }
 
 /** Replace the log with a recovered snapshot. The restored lines are unsaved by definition —

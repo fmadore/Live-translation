@@ -87,13 +87,20 @@ describe('groupTranscript', () => {
 
 	it('orders lines chronologically and starts a paragraph on each source change', () => {
 		expect(groupTranscript(lines)).toEqual([
-			{ id: 1, origin: 'microphone', text: 'Ça fonctionne.', sourceText: '' },
-			{ id: 2, origin: 'system', text: 'Les sous-titres apparaissent sous.', sourceText: '' },
+			{ id: 1, origin: 'microphone', text: 'Ça fonctionne.', sourceText: '', lane: 0 },
+			{
+				id: 2,
+				origin: 'system',
+				text: 'Les sous-titres apparaissent sous.',
+				sourceText: '',
+				lane: 0
+			},
 			{
 				id: 3,
 				origin: 'microphone',
 				text: 'Les fenêtres, ceci est un peu problématique.',
-				sourceText: ''
+				sourceText: '',
+				lane: 0
 			}
 		]);
 	});
@@ -104,7 +111,7 @@ describe('groupTranscript', () => {
 			{ id: 1, text: 'Bonjour', sourceText: '', origin: 'system' }
 		];
 		expect(groupTranscript(withBlank)).toEqual([
-			{ id: 1, origin: 'system', text: 'Bonjour', sourceText: '' }
+			{ id: 1, origin: 'system', text: 'Bonjour', sourceText: '', lane: 0 }
 		]);
 	});
 });
@@ -196,7 +203,8 @@ describe('bilingual export', () => {
 				id: 1,
 				origin: 'microphone',
 				text: 'We begin with the colonial archive.',
-				sourceText: 'Nous commençons par l’archive coloniale.'
+				sourceText: 'Nous commençons par l’archive coloniale.',
+				lane: 0
 			}
 		]);
 		expect(hasOriginalSpeech(translated)).toBe(true);

@@ -2,7 +2,12 @@ import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { decodeRecovery, readLine } from './document';
 import { api } from './tauri';
-import { OUTPUT_MODES, type StartOptions, type TranscriptLine } from './types';
+import {
+	OUTPUT_MODES,
+	secondCaptionLanguageOf,
+	type StartOptions,
+	type TranscriptLine
+} from './types';
 
 export const HISTORY_ENABLED_KEY = 'transcript.historyEnabled';
 export const historyEnabled = writable(
@@ -25,6 +30,8 @@ export interface SavedSession {
 	mode: 'translate' | 'transcribe';
 	sourceLanguage: 'auto' | TargetLanguage;
 	targetLanguage: TargetLanguage | null;
+	/** The second caption language, when the session had one; its lines carry `lane: 1`. */
+	secondTargetLanguage?: TargetLanguage | null;
 	lines: TranscriptLine[];
 }
 
@@ -41,6 +48,7 @@ function checked(s: SavedSession, id: string): SavedSession | null {
 		(OUTPUT_MODES as readonly string[]).includes(s.mode) &&
 		(s.sourceLanguage === 'auto' || isTargetLanguage(s.sourceLanguage)) &&
 		(s.targetLanguage === null || isTargetLanguage(s.targetLanguage)) &&
+		(s.secondTargetLanguage == null || isTargetLanguage(s.secondTargetLanguage)) &&
 		isDate(s.startedAt) &&
 		isDate(s.savedAt) &&
 		(s.endedAt === null || isDate(s.endedAt)) &&
@@ -86,7 +94,8 @@ export function encodeSessionLog(s: SavedSession): string {
 		startedAt: s.startedAt,
 		mode: s.mode,
 		sourceLanguage: s.sourceLanguage,
-		targetLanguage: s.targetLanguage
+		targetLanguage: s.targetLanguage,
+		...(s.secondTargetLanguage ? { secondTargetLanguage: s.secondTargetLanguage } : {})
 	};
 	return record(header) + lineRecords(s.lines) + progressRecord(s);
 }
@@ -120,6 +129,7 @@ function decodeSessionLog(raw: string, id: string): SavedSession | null {
 		mode: head.mode,
 		sourceLanguage: head.sourceLanguage,
 		targetLanguage: head.targetLanguage,
+		secondTargetLanguage: head.secondTargetLanguage ?? null,
 		lines: []
 	} as unknown as SavedSession;
 	const oldestFirst: TranscriptLine[] = [];
@@ -268,6 +278,7 @@ export function createHistoryCoordinator(
 				sourceLanguage:
 					options.rehearsal ?? (options.provider === 'ondevice' ? options.targetLanguage : 'auto'),
 				targetLanguage: options.mode === 'translate' ? options.targetLanguage : null,
+				secondTargetLanguage: secondCaptionLanguageOf(options) ?? null,
 				lines: []
 			};
 		},

@@ -177,6 +177,10 @@ export const en = {
 		favourites: 'Favourites',
 		all: 'All languages',
 		noMatches: 'No matching languages.',
+		second: 'Second caption language',
+		secondNone: 'None',
+		secondHint:
+			'Captions in both languages at once. Each source runs a second translation session, so this doubles the cost.',
 		pin: (language: string) => `Pin ${language}`,
 		unpin: (language: string) => `Unpin ${language}`,
 		unsupported: (engine: string, language: string) =>
@@ -218,6 +222,7 @@ export const en = {
 		free: 'Free',
 		elapsed: 'Elapsed',
 		streamed: 'Streamed',
+		twoLanguages: '×2 languages',
 		estimate: 'Est. cost',
 		twoSources: '×2 sources'
 	},

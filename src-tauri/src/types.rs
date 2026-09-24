@@ -175,6 +175,10 @@ pub struct StartOptions {
     /// See gate 2 in `docs/microsoft-store.md`.
     #[serde(default)]
     pub rehearsal: Option<DemoLanguage>,
+    /// Caption every source in a second language as well, from a second translation client
+    /// fed by the same capture — lane 1, beside `target_language` on lane 0. Translation only.
+    #[serde(default)]
+    pub second_target_language: Option<TargetLanguage>,
 }
 
 /// Borrows the turn's text rather than owning it: a caption is serialized the moment it is
@@ -190,6 +194,9 @@ pub struct Caption<'a> {
     #[serde(rename = "final")]
     pub final_: bool,
     pub origin: Origin,
+    /// Which of the session's caption languages this is: 0 for `target_language`, 1 for
+    /// `second_target_language`. A source's two lanes are independent turn streams.
+    pub lane: u8,
     /// When this turn first had text, in ms since the session started. Constant for every
     /// caption of a turn, so an interim and its final agree on where the cue begins.
     pub start_ms: u64,
@@ -232,6 +239,10 @@ pub struct StatusUpdate {
     /// each other.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origin: Option<Origin>,
+    /// Which caption language of that source; `None` means all of them — a capture failure
+    /// ends every lane it feeds.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lane: Option<u8>,
 }
 
 /// Level-only capture, started from the preflight so an operator can confirm the room

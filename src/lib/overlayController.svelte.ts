@@ -15,7 +15,7 @@ import {
 	overlayShowOriginal,
 	statusMessage
 } from './stores';
-import { captionLanguageOf, clampOverlayFont } from './types';
+import { captionLanguageOf, clampOverlayFont, secondCaptionLanguageOf } from './types';
 import type { OverlayConfig, OverlayStateMsg } from './types';
 import { DEFAULT_APPEARANCE, toOverlayConfig, type Appearance } from './appearance';
 import type { CaptionPalette } from './captionColour';
@@ -48,6 +48,7 @@ export function createOverlayController(port = api) {
 			.setOverlayConfig({
 				...toOverlayConfig(get(appearance)),
 				captionLanguage: captionLanguage(),
+				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
 				...extra

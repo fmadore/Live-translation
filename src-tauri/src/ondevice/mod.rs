@@ -228,6 +228,7 @@ fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, 
             state,
             message,
             origin: Some(origin),
+            lane: None,
         },
     );
 }
