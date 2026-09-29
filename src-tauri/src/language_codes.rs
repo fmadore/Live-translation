@@ -353,7 +353,7 @@ impl TargetLanguage {
                 Self::En
                     | Self::Fr
             ),
-            Provider::Mistral | Provider::GeminiTranscribe => true,
+            Provider::Mistral | Provider::GeminiTranscribe | Provider::Whisper => true,
         }
     }
 }

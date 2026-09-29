@@ -1,6 +1,6 @@
 //! Session orchestration: one bounded audio pipeline and realtime client per source.
 
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -17,6 +17,7 @@ use crate::audio::applications::SystemCapture;
 use crate::audio::capture::{run_microphone, MicrophoneRuntimeError};
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::loopback::run_system_loopback;
+use crate::audio::sink::AudioSink;
 use crate::audio::AudioChunk;
 use crate::errors::{id, AppError};
 use crate::gemini::{
@@ -38,6 +39,7 @@ use crate::types::{
     events, AudioLevel, AudioSource, AudioTestUpdate, Origin, OutputMode, Provider, SessionState,
     StartOptions, StatusUpdate, TargetLanguage,
 };
+use crate::whisper::{self, spool::Spool, LoadedModel, LocalSession};
 
 /// At most half a second of 100 ms chunks. The realtime consumer coalesces queued chunks
 /// to the newest one after a stall, favoring live latency over replaying stale speech.
@@ -58,6 +60,7 @@ pub struct SessionManager {
     /// Preflight level test. Shares `lifecycle` with the session, so the two can never be
     /// holding the same capture device at once.
     active_test: Mutex<Option<ActiveTest>>,
+    local_abort: Mutex<Option<CancellationToken>>,
 }
 
 /// Level-only capture started from the preflight. No client tasks and no fixture tasks by
@@ -69,6 +72,10 @@ struct ActiveTest {
 
 struct ActiveSession {
     cancel: CancellationToken,
+    local: bool,
+    failure: Arc<Mutex<Option<AppError>>>,
+    abort: CancellationToken,
+    origins: Vec<Origin>,
     /// Every client holds a receiver; see `SessionManager::set_paused`.
     pause: watch::Sender<bool>,
     sources: Vec<CancellationToken>,
@@ -119,6 +126,7 @@ enum ProviderSettings {
         delay_ms: u32,
     },
     OnDevice,
+    Whisper,
 }
 
 impl ProviderSettings {
@@ -162,6 +170,7 @@ impl ProviderSettings {
                     .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS),
             },
             Provider::OnDevice => Self::OnDevice,
+            Provider::Whisper => Self::Whisper,
         })
     }
 }
@@ -226,6 +235,9 @@ fn complete_probe(
 
 fn validate_start(options: &StartOptions) -> Result<()> {
     validate_provider(options.mode, options.provider)?;
+    if options.provider == Provider::Whisper {
+        whisper::validate_language(options.spoken_language.as_deref())?;
+    }
     anyhow::ensure!(
         options.target_language.supported_by(options.provider),
         "{:?} does not support caption language {}",
@@ -343,7 +355,7 @@ impl CaptureTarget {
         origin: Origin,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
-        audio_tx: Sender<AudioChunk>,
+        audio_tx: AudioSink,
         cancel: CancellationToken,
     ) -> Result<()> {
         match origin {
@@ -477,6 +489,7 @@ impl ProviderSettings {
                     io.pause,
                 ))
             }
+            Self::Whisper => anyhow::bail!("Whisper requires the local audio pipeline"),
         })
     }
 }
@@ -492,14 +505,18 @@ struct SessionBuilder<'a> {
     clock: SessionClock,
     level_tx: Sender<AudioLevel>,
     session: ActiveSession,
+    local_model: Option<Arc<LoadedModel>>,
 }
 
 impl SessionBuilder<'_> {
     fn add_source(&mut self, origin: Origin) -> Result<()> {
+        if self.options.provider == Provider::Whisper {
+            return self.add_local_source(origin);
+        }
         let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
         let cancel = self.session.cancel.child_token();
         self.session.sources.push(cancel.clone());
-        self.spawn_producer(origin, audio_tx, &cancel)?;
+        self.spawn_producer(origin, audio_tx.into(), &cancel)?;
 
         let targets = caption_languages(self.options);
         if targets.len() == 1 {
@@ -546,11 +563,46 @@ impl SessionBuilder<'_> {
         Ok(())
     }
 
+    fn add_local_source(&mut self, origin: Origin) -> Result<()> {
+        // Thirty seconds of scheduling slack for the disk writer. Inference never consumes
+        // this queue; it reads its own spool and may lag by much longer without losing audio.
+        let (sender, input) = channel(300);
+        let spool = Arc::new(Spool::new()?);
+        let cancel = self.session.cancel.child_token();
+        self.session.sources.push(cancel.clone());
+        let sink = AudioSink::Local {
+            sender,
+            spool: spool.clone(),
+            clock: self.clock,
+            pause: self.session.pause.subscribe(),
+            cancel: cancel.clone(),
+        };
+        self.spawn_producer(origin, sink, &cancel)?;
+        let model = self
+            .local_model
+            .clone()
+            .context("Whisper model was not loaded")?;
+        self.session
+            .client_tasks
+            .push(tauri::async_runtime::spawn(whisper::run(LocalSession {
+                app: self.app.clone(),
+                model,
+                language: self.options.spoken_language.clone(),
+                origin,
+                input,
+                spool,
+                capture_cancel: cancel,
+                abort: self.session.abort.clone(),
+                failure: self.session.failure.clone(),
+            })));
+        Ok(())
+    }
+
     /// Start whatever feeds one source's audio channel.
     fn spawn_producer(
         &mut self,
         origin: Origin,
-        audio_tx: Sender<AudioChunk>,
+        audio_tx: AudioSink,
         cancel: &CancellationToken,
     ) -> Result<()> {
         if self.options.provider == Provider::OnDevice {
@@ -561,6 +613,7 @@ impl SessionBuilder<'_> {
         }
 
         let app = self.app.clone();
+        let mut capture_completion = audio_tx.completion_guard();
         let level_tx = self.level_tx.clone();
         let target_rate = self.target_rate;
         let cancel = cancel.clone();
@@ -580,8 +633,15 @@ impl SessionBuilder<'_> {
                             cancel.clone(),
                         )
                         .await;
+                        if let Some(completion) = &mut capture_completion {
+                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+                        }
                         if let Err(error) = result {
-                            report_source_failure(&app, origin, &error, &cancel);
+                            if capture_completion.is_some() {
+                                cancel.cancel();
+                            } else {
+                                report_source_failure(&app, origin, &error, &cancel);
+                            }
                         }
                     }));
             }
@@ -592,8 +652,15 @@ impl SessionBuilder<'_> {
                     .spawn(move || {
                         let result =
                             capture.run(origin, target_rate, level_tx, audio_tx, cancel.clone());
+                        if let Some(completion) = &mut capture_completion {
+                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+                        }
                         if let Err(error) = result {
-                            report_source_failure(&app, origin, &error, &cancel);
+                            if capture_completion.is_some() {
+                                cancel.cancel();
+                            } else {
+                                report_source_failure(&app, origin, &error, &cancel);
+                            }
                         }
                     })
                     .context("failed to spawn capture thread")?;
@@ -613,7 +680,7 @@ impl SessionManager {
         validate_start(&options)?;
 
         let provider = options.provider;
-        // The built-in demonstration is the one backend that starts with no credential.
+        // The built-in demo and local Whisper start with no credential.
         // Credential Manager is a blocking call, and this holds the lifecycle lock: keep it off
         // the async workers that are pumping the other windows' events meanwhile.
         let api_key = if provider.requires_api_key() {
@@ -624,9 +691,24 @@ impl SessionManager {
             String::new()
         };
         let settings = ProviderSettings::resolve(provider)?;
+        let local_model = if provider == Provider::Whisper {
+            let app = app.clone();
+            let model = options.whisper_model;
+            Some(
+                tauri::async_runtime::spawn_blocking(move || whisper::load(&app, model))
+                    .await
+                    .context("Whisper model loading stopped unexpectedly")??,
+            )
+        } else {
+            None
+        };
 
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
+        let abort = CancellationToken::new();
+        if provider == Provider::Whisper {
+            *lock(&self.local_abort) = Some(abort.clone());
+        }
         let mut builder = SessionBuilder {
             app,
             options: &options,
@@ -641,6 +723,10 @@ impl SessionManager {
             level_tx: spawn_level_forwarder(app),
             session: ActiveSession {
                 cancel,
+                local: provider == Provider::Whisper,
+                failure: Arc::new(Mutex::new(None)),
+                abort,
+                origins: session_origins(&options),
                 pause: watch::Sender::new(false),
                 sources: Vec::new(),
                 capture_threads: Vec::new(),
@@ -648,6 +734,7 @@ impl SessionManager {
                 relay_tasks: Vec::new(),
                 client_tasks: Vec::new(),
             },
+            local_model,
         };
         for origin in session_origins(&options) {
             builder.add_source(origin)?;
@@ -724,7 +811,7 @@ impl SessionManager {
                         origin,
                         TEST_SAMPLE_RATE,
                         level_tx,
-                        audio_tx,
+                        audio_tx.into(),
                         probe_cancel.clone(),
                     );
                     complete_probe(result, origin, &probe_cancel, |update| {
@@ -782,14 +869,44 @@ impl SessionManager {
     /// connection — so nothing is streamed or billed — and capture keeps metering, so the
     /// operator can see when the room starts talking again. Not behind the lifecycle lock: a
     /// pause is a signal to the clients, and must not wait out a start or stop.
-    pub fn set_paused(&self, paused: bool) -> Result<()> {
+    pub fn set_paused(&self, app: &AppHandle, paused: bool) -> Result<()> {
         let active = lock(&self.active);
         let session = active
             .as_ref()
             .filter(|session| session.sources.iter().any(|source| !source.is_cancelled()))
             .context("No session is running")?;
         session.pause.send_replace(paused);
+        if session.local {
+            for (origin, source) in session.origins.iter().zip(&session.sources) {
+                if source.is_cancelled() {
+                    continue;
+                }
+                let _ = app.emit(
+                    events::STATUS,
+                    StatusUpdate {
+                        state: if paused {
+                            SessionState::Paused
+                        } else {
+                            SessionState::Running
+                        },
+                        message: None,
+                        origin: Some(*origin),
+                        lane: None,
+                    },
+                );
+            }
+        }
         Ok(())
+    }
+
+    /// Available while Stop owns the lifecycle lock and drains a long local backlog.
+    pub fn discard_local_pending(&self) {
+        if let Some(abort) = lock(&self.local_abort).as_ref() {
+            abort.cancel();
+        }
+        if let Some(session) = lock(&self.active).as_ref().filter(|s| s.local) {
+            session.cancel.cancel();
+        }
     }
 
     pub async fn stop(&self, app: &AppHandle) {
@@ -823,7 +940,16 @@ impl SessionManager {
 
             // Providers may emit their last transcript while flushing. Do not report Idle
             // (or start a replacement session) until that bounded drain has completed.
-            if tokio::time::timeout(
+            if session.local {
+                // Local Stop is an EOF, not cancellation of inference. Do not truncate the
+                // transcript at the cloud client's five-second shutdown deadline.
+                for result in join_all(session.client_tasks.iter_mut()).await {
+                    if let Err(error) = result {
+                        tracing::warn!("local transcription task failed: {error}");
+                    }
+                }
+                *lock(&self.local_abort) = None;
+            } else if tokio::time::timeout(
                 CLIENT_DRAIN_TIMEOUT,
                 join_all(session.client_tasks.iter_mut()),
             )
@@ -839,7 +965,7 @@ impl SessionManager {
                 events::STATUS,
                 StatusUpdate {
                     state: SessionState::Idle,
-                    message: None,
+                    message: lock(&session.failure).clone(),
                     origin: None,
                     lane: None,
                 },

@@ -58,11 +58,20 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Configure native Whisper compiler
+        shell: pwsh
+        run: |
+          "CC=clang-cl" >> $env:GITHUB_ENV
+          "CXX=clang-cl" >> $env:GITHUB_ENV
+          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
+          "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: windows-speech-x64-v1
+          prefix-key: whisper-cpu-x64-v1
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -98,15 +107,17 @@ jobs:
   msix:
     name: MSIX package (${{ matrix.arch }})
     needs: build
-    runs-on: windows-latest
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
           - arch: x64
+            runner: windows-latest
             target: x86_64-pc-windows-msvc
           - arch: arm64
+            runner: windows-11-arm
             target: aarch64-pc-windows-msvc
     steps:
       - name: Checkout
@@ -119,12 +130,21 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Configure native Whisper compiler
+        shell: pwsh
+        run: |
+          "CC=clang-cl" >> $env:GITHUB_ENV
+          "CXX=clang-cl" >> $env:GITHUB_ENV
+          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
+          "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
           # Keep the native Windows package lanes separate.
-          prefix-key: windows-speech-${{ matrix.arch }}-v1
+          prefix-key: whisper-cpu-${{ matrix.arch }}-v1
 
       - name: Setup Node
         uses: actions/setup-node@v7

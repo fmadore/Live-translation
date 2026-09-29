@@ -31,11 +31,13 @@
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
 	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
-		providerDetectsLanguage($options.provider)
-			? $t.language.auto
-			: [$options.targetLanguage, ...(second ? [second] : [])]
-					.map((code) => languageName(code, $locale))
-					.join(' + ')
+		$options.provider === 'whisper' && $options.spokenLanguage
+			? new Intl.DisplayNames([$locale], { type: 'language' }).of($options.spokenLanguage)
+			: providerDetectsLanguage($options.provider)
+				? $t.language.auto
+				: [$options.targetLanguage, ...(second ? [second] : [])]
+						.map((code) => languageName(code, $locale))
+						.join(' + ')
 	);
 	// Every source streams once per caption language, and each stream is billed.
 	const streams = $derived(($options.source === 'both' ? 2 : 1) * laneCount($options));
@@ -124,7 +126,7 @@
 					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams))}
 				</span>
 			</div>
-			{#if $options.source === 'both'}
+			{#if $options.source === 'both' && $options.provider !== 'whisper'}
 				<span class="cost-tag">{$t.cost.twoSources}</span>
 			{/if}
 			{#if second}

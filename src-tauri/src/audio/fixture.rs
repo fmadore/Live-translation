@@ -20,7 +20,7 @@ use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
 use super::capture::CaptureState;
-use super::{chunk_samples, AudioChunk, CHUNK_MS};
+use super::{chunk_samples, CHUNK_MS};
 use crate::types::{AudioLevel, DemoLanguage, Origin};
 
 /// Directory the fixtures are bundled into, relative to the app's resource directory —
@@ -221,7 +221,7 @@ pub async fn run_rehearsal(
     language: DemoLanguage,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
-    chunk_tx: Sender<AudioChunk>,
+    chunk_tx: super::sink::AudioSink,
     cancel: CancellationToken,
 ) -> Result<()> {
     let path = fixture_path(app, language)?;

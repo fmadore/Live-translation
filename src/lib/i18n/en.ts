@@ -164,7 +164,34 @@ export const en = {
 		sample: 'Sample'
 	},
 
+	whisper: {
+		cost: 'On this computer — no API charges',
+		title: 'Local transcription',
+		language: 'Spoken language',
+		auto: 'Detect automatically',
+		languageHint:
+			'Transcribe in the language being spoken. Choose a language when you know it; automatic detection works across the supported languages.',
+		model: 'Whisper model',
+		tiny: 'Tiny — fastest',
+		base: 'Base — balanced',
+		small: 'Small — more accurate',
+		download: 'Download model',
+		remove: 'Remove model',
+		cancel: 'Cancel download',
+		ready: 'Model ready for offline transcription.',
+		missing: 'Download a model before starting.',
+		downloading: 'Downloading model…',
+		privacy:
+			'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
+		hint: 'Models support 99 languages. Accuracy and processing speed vary by language and computer.',
+		processing: 'Finishing the transcript…',
+		pending: 'Audio waiting to be transcribed',
+		discard: 'Discard remaining audio',
+		discardConfirm:
+			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.'
+	},
 	engine: {
+		whisper: 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -191,6 +218,7 @@ export const en = {
 
 	provider: {
 		vendor: {
+			whisper: 'Local Whisper',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -200,9 +228,12 @@ export const en = {
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
+			whisper: 'Multilingual Whisper',
 			ondevice: 'Bundled sample · deterministic'
 		},
 		costNote: {
+			whisper:
+				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
 			gemini:
 				'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
 			'gemini-transcribe':
@@ -680,6 +711,8 @@ export const en = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
+		whisperModel: 'The Whisper model could not be prepared',
+		whisperSession: 'Local transcription could not finish; the transcript may be incomplete',
 		deviceEnumeration: 'Windows could not list the audio devices',
 		keychain: 'Windows Credential Manager refused the request',
 		demoUnavailable: 'The built-in demonstration could not be prepared',

@@ -488,3 +488,5 @@ export function applyAppearance(value: Appearance) {
 	overlayHoldSeconds.set(a.hold);
 	overlayPace.set(a.pace);
 }
+
+export const whisperModels = writable<import('./types').WhisperModelInfo[]>([]);

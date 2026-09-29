@@ -27,6 +27,7 @@ mod textscale;
 mod timing;
 mod tray;
 mod types;
+mod whisper;
 
 use tauri::{Emitter, Manager};
 
@@ -105,6 +106,7 @@ pub fn run() {
             show_operator_window(app);
         }))
         .manage(SessionManager::default())
+        .manage(whisper::models::ModelManager::default())
         .manage(CloseGuard::default())
         .manage(TrayMenu::default())
         .invoke_handler(tauri::generate_handler![
@@ -115,6 +117,11 @@ pub fn run() {
             commands::set_api_key,
             commands::clear_api_key,
             commands::ondevice_readiness,
+            commands::whisper_models,
+            commands::download_whisper_model,
+            commands::cancel_whisper_download,
+            commands::remove_whisper_model,
+            commands::discard_whisper_pending,
             commands::start_session,
             commands::stop_session,
             commands::pause_session,

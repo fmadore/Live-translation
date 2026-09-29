@@ -3,6 +3,9 @@
 // of throwing. When `window.__TAURI_INTERNALS__` is absent we are running in a browser.
 
 import type {
+	WhisperModelId,
+	WhisperModelInfo,
+	WhisperProgress,
 	AudioDevice,
 	AudioSource,
 	AudioTestUpdate,
@@ -47,6 +50,12 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 // ---- Commands -------------------------------------------------------------
 
 export const api = {
+	whisperModels: () => invoke<WhisperModelInfo[]>('whisper_models'),
+	downloadWhisperModel: (model: WhisperModelId) =>
+		invoke<void>('download_whisper_model', { model }),
+	cancelWhisperDownload: () => invoke<void>('cancel_whisper_download'),
+	removeWhisperModel: (model: WhisperModelId) => invoke<void>('remove_whisper_model', { model }),
+	discardWhisperPending: () => invoke<void>('discard_whisper_pending'),
 	renameHistory: (id: string, title: string) => invoke<void>('rename_history', { id, title }),
 	getOverlayPlacement: () => invoke<import('./profiles').Placement>('get_overlay_placement'),
 	setOverlayPlacement: (placement: import('./profiles').Placement) =>
@@ -148,6 +157,8 @@ export const api = {
 // ---- Events ---------------------------------------------------------------
 
 export const on = {
+	whisperProgress: (h: (p: WhisperProgress) => void) =>
+		listen<WhisperProgress>(EVT.whisperProgress, h),
 	devicesChanged: (h: () => void) => listen<null>(EVT.devicesChanged, h),
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),

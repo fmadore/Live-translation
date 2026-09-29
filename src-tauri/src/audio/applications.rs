@@ -231,7 +231,7 @@ mod platform {
                 },
                 16000,
                 levels,
-                chunks,
+                chunks.into(),
                 cancel,
             )
         })

@@ -11,7 +11,6 @@ use anyhow::Result;
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
-use super::AudioChunk;
 use crate::types::AudioLevel;
 
 #[cfg(not(windows))]
@@ -20,7 +19,7 @@ pub fn run_system_loopback(
     _capture: super::applications::SystemCapture,
     _target_rate: u32,
     _level_tx: Sender<AudioLevel>,
-    _chunk_tx: Sender<AudioChunk>,
+    _chunk_tx: crate::audio::sink::AudioSink,
     _cancel: CancellationToken,
 ) -> Result<()> {
     anyhow::bail!("System (loopback) capture is only supported on Windows in this build")
@@ -32,7 +31,7 @@ pub fn run_system_loopback(
     capture: super::applications::SystemCapture,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
-    chunk_tx: Sender<AudioChunk>,
+    chunk_tx: crate::audio::sink::AudioSink,
     cancel: CancellationToken,
 ) -> Result<()> {
     windows_impl::run(device_id, capture, target_rate, level_tx, chunk_tx, cancel)
@@ -50,7 +49,6 @@ mod windows_impl {
 
     use crate::audio::capture::CaptureState;
     use crate::audio::devices::PresenceCheck;
-    use crate::audio::AudioChunk;
     use crate::types::{AudioLevel, Origin};
 
     /// `wasapi`'s fallible calls return `Box<dyn Error>`, which is neither `Send` nor
@@ -71,7 +69,7 @@ mod windows_impl {
         capture: crate::audio::applications::SystemCapture,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
-        chunk_tx: Sender<AudioChunk>,
+        chunk_tx: crate::audio::sink::AudioSink,
         cancel: CancellationToken,
     ) -> Result<()> {
         // COM must be initialised on the capture thread. `initialize_mta` returns an

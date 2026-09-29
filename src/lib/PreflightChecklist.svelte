@@ -3,7 +3,7 @@
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
-	import { hasKey, options, overlayPlaced, statusMessage } from './stores';
+	import { hasKey, options, overlayPlaced, statusMessage, whisperModels } from './stores';
 	import { PROVIDER_META, rateText } from './providers';
 	import { describeReadiness, laneCount, providerRequiresKey } from './types';
 	import type { OverlayController } from './overlayController.svelte';
@@ -70,7 +70,17 @@
 </script>
 
 <div class="checklist">
-	{#if !needsKey}
+	{#if $options.provider === 'whisper'}
+		<ChecklistRow
+			status={$whisperModels.find((m) => m.id === ($options.whisperModel ?? 'base'))?.installed
+				? 'ok'
+				: 'wait'}
+			title={$t.whisper.title}
+			desc={$whisperModels.find((m) => m.id === ($options.whisperModel ?? 'base'))?.installed
+				? $t.whisper.ready
+				: $t.whisper.missing}
+		/>
+	{:else if !needsKey}
 		<ChecklistRow
 			status={preflight.localReadiness?.ready ? 'ok' : 'wait'}
 			title={$t.preflight.demoRow.title}
@@ -157,7 +167,11 @@
 		status="neutral"
 		glyph="$"
 		title={$t.preflight.cost.title}
-		desc={$options.provider === 'ondevice' ? $t.preflight.cost.free : $t.preflight.cost.billed}
+		desc={$options.provider === 'whisper'
+			? $t.whisper.cost
+			: !needsKey
+				? $t.preflight.cost.free
+				: $t.preflight.cost.billed}
 	>
 		{#snippet action()}
 			<span class="check-rate">{rateText(PROVIDER_META[$options.provider], $t)}</span>
