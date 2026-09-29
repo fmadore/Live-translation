@@ -24,7 +24,7 @@ fn account(provider: Provider) -> Option<&'static str> {
         Provider::Gemini | Provider::GeminiTranscribe => Some("gemini-api-key"),
         Provider::OpenAi => Some("openai-api-key"),
         Provider::Mistral => Some("mistral-api-key"),
-        Provider::OnDevice => None,
+        Provider::OnDevice | Provider::Whisper => None,
     }
 }
 
@@ -34,7 +34,7 @@ fn env_var(provider: Provider) -> Option<&'static str> {
         Provider::Gemini | Provider::GeminiTranscribe => Some("GEMINI_API_KEY"),
         Provider::OpenAi => Some("OPENAI_API_KEY"),
         Provider::Mistral => Some("MISTRAL_API_KEY"),
-        Provider::OnDevice => None,
+        Provider::OnDevice | Provider::Whisper => None,
     }
 }
 
@@ -44,6 +44,7 @@ fn label(provider: Provider) -> &'static str {
         Provider::OpenAi => "OpenAI",
         Provider::Mistral => "Mistral",
         Provider::OnDevice => "Built-in demo",
+        Provider::Whisper => "Whisper",
     }
 }
 

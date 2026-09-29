@@ -5,6 +5,7 @@ import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
 import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
+import whisperLanguages from './whisperLanguages.json';
 import { readStored } from './persisted';
 
 // Each union below is declared once, as a runtime list, and the type is derived from it.
@@ -30,8 +31,30 @@ export type { TargetLanguage, DemoLanguage } from './languages';
  *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
  *  different modes at different rates, and `providerCanTranslate` has to stay a plain
  *  function of the provider. */
-export const PROVIDERS = ['gemini', 'gemini-transcribe', 'openai', 'mistral', 'ondevice'] as const;
+export const PROVIDERS = [
+	'gemini',
+	'gemini-transcribe',
+	'openai',
+	'mistral',
+	'ondevice',
+	'whisper'
+] as const;
 export type Provider = (typeof PROVIDERS)[number];
+export const WHISPER_MODELS = ['tiny', 'base', 'small'] as const;
+export type WhisperModelId = (typeof WHISPER_MODELS)[number];
+export interface WhisperModelInfo {
+	id: WhisperModelId;
+	bytes: number;
+	installed: boolean;
+	downloading: boolean;
+	downloadedBytes: number;
+	inUse: boolean;
+}
+export interface WhisperProgress {
+	origin: Origin;
+	pendingMs: number;
+	finalizing: boolean;
+}
 
 export interface OnDeviceReadiness {
 	ready: boolean;
@@ -69,7 +92,7 @@ export function providerCanTranslate(provider: Provider): boolean {
  *  one backend that works with no credential, which keeps provider keys out of the
  *  app's primary functionality — see `docs/microsoft-store.md`. */
 export function providerRequiresKey(provider: Provider): boolean {
-	return provider !== 'ondevice';
+	return provider !== 'ondevice' && provider !== 'whisper';
 }
 
 /** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
@@ -84,7 +107,7 @@ export function providerKeyName(provider: Provider): string {
  *  the operator to choose. True for both subtitle engines; the built-in demo instead picks
  *  which bundled script to play. */
 export function providerDetectsLanguage(provider: Provider): boolean {
-	return provider === 'mistral' || provider === 'gemini-transcribe';
+	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
 }
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
@@ -198,6 +221,8 @@ export interface StartOptions {
 	targetLanguage: TargetLanguage;
 	/** Realtime translation/transcription backend. */
 	provider: Provider;
+	whisperModel?: WhisperModelId;
+	spokenLanguage?: string | null;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;
 	micDeviceId?: string | null;
@@ -377,6 +402,7 @@ export type TrayCommand = (typeof TRAY_COMMANDS)[number];
 /** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
  *  Operator→overlay: overlayConfig. Overlay→operator: overlayState. */
 export const EVT = {
+	whisperProgress: 'whisper-progress',
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',
@@ -522,6 +548,16 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 			DEFAULT_START_OPTIONS.targetLanguage
 		),
 		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
+		...(stored.provider === 'whisper' || stored.whisperModel !== undefined
+			? {
+					whisperModel: oneOf(WHISPER_MODELS, stored.whisperModel, 'base'),
+					spokenLanguage:
+						typeof stored.spokenLanguage === 'string' &&
+						whisperLanguages.some((l) => l.code === stored.spokenLanguage)
+							? stored.spokenLanguage
+							: null
+				}
+			: {}),
 		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
 		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
 		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null,

@@ -21,6 +21,14 @@ export interface ProviderMeta {
 }
 
 export const PROVIDER_META: Record<Provider, ProviderMeta> = {
+	whisper: {
+		id: 'whisper',
+		modelId: 'Whisper · multilingual',
+		hourlyRate: null,
+		hourlyEstimate: 0,
+		perStream: false,
+		keyUrl: null
+	},
 	gemini: {
 		id: 'gemini',
 		modelId: 'gemini-3.5-live-translate-preview',

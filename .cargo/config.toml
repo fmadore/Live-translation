@@ -1,0 +1,9 @@
+# Distributed binaries must not inherit the build machine's instruction set. Keep the
+# first local-transcription release CPU-only and portable on both supported architectures.
+[env]
+GGML_NATIVE = "OFF"
+GGML_AVX = "OFF"
+GGML_AVX2 = "OFF"
+GGML_FMA = "OFF"
+GGML_F16C = "OFF"
+GGML_CPU_ARM_ARCH = "armv8-a"

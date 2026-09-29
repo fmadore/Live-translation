@@ -170,7 +170,34 @@ export const de: Messages = {
 		sample: 'Beispiel'
 	},
 
+	whisper: {
+		title: 'Lokale Transkription',
+		language: 'Gesprochene Sprache',
+		auto: 'Automatisch erkennen',
+		languageHint:
+			'In der gesprochenen Sprache transkribieren. Wählen Sie die Sprache, wenn sie bekannt ist; die automatische Erkennung umfasst die unterstützten Sprachen.',
+		model: 'Whisper-Modell',
+		tiny: 'Tiny — am schnellsten',
+		base: 'Base — ausgewogen',
+		small: 'Small — genauer',
+		download: 'Modell herunterladen',
+		remove: 'Modell entfernen',
+		cancel: 'Download abbrechen',
+		ready: 'Modell für die Offline-Transkription bereit.',
+		missing: 'Laden Sie vor dem Start ein Modell herunter.',
+		downloading: 'Modell wird heruntergeladen…',
+		privacy:
+			'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
+		hint: 'Die Modelle unterstützen 99 Sprachen. Genauigkeit und Geschwindigkeit hängen von Sprache und Computer ab.',
+		processing: 'Transkript wird fertiggestellt…',
+		pending: 'Noch zu transkribierendes Audio',
+		discard: 'Restliches Audio verwerfen',
+		discardConfirm:
+			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
+		refresh: 'Modelle aktualisieren'
+	},
 	engine: {
+		whisper: 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -197,6 +224,7 @@ export const de: Messages = {
 
 	provider: {
 		vendor: {
+			whisper: 'Lokales Whisper',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -209,6 +237,8 @@ export const de: Messages = {
 			ondevice: 'Mitgeliefertes Beispiel · deterministisch'
 		},
 		costNote: {
+			whisper:
+				'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
 			gemini:
 				'Gemini: Die Eingabe wird nach Echtzeit abgerechnet, die Ausgabe nur während der Übersetzung – Pausen und Folienwechsel senken die Kosten.',
 			'gemini-transcribe':
@@ -696,6 +726,9 @@ export const de: Messages = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
+		whisperModel: 'Das Whisper-Modell konnte nicht vorbereitet werden',
+		whisperSession:
+			'Die lokale Transkription konnte nicht abgeschlossen werden; das Transkript ist möglicherweise unvollständig',
 		deviceEnumeration: 'Windows konnte die Audiogeräte nicht auflisten',
 		keychain: 'Die Windows-Anmeldeinformationsverwaltung hat die Anfrage abgelehnt',
 		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',

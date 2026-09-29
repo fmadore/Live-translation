@@ -42,7 +42,7 @@ ${['gemini', 'openai', 'ondevice']
 				.join('\n                    | ')}\n            ),`
 	)
 	.join('\n')}
-            Provider::Mistral | Provider::GeminiTranscribe => true,
+            Provider::Mistral | Provider::GeminiTranscribe | Provider::Whisper => true,
         }
     }
 }

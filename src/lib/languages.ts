@@ -15,6 +15,7 @@ export function isTargetLanguage(value: unknown): value is TargetLanguage {
 
 export function supportsLanguage(provider: Provider, code: TargetLanguage): boolean {
 	return (
+		provider === 'whisper' ||
 		provider === 'mistral' ||
 		provider === 'gemini-transcribe' ||
 		!!catalog.languages.find((l) => l.code === code)?.providers.includes(provider)

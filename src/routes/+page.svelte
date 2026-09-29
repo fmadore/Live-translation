@@ -1,4 +1,6 @@
 <script lang="ts">
+	import WhisperActivity from '$lib/WhisperActivity.svelte';
+	import { whisperModels } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
@@ -82,7 +84,15 @@
 	// remounted ApiKeyPanel has re-checked the keychain.
 	const needsKey = $derived(providerRequiresKey($options.provider));
 	$effect(() => {
-		hasKey.set(needsKey ? false : (preflight.localReadiness?.ready ?? false));
+		hasKey.set(
+			needsKey
+				? false
+				: $options.provider === 'whisper'
+					? !!$whisperModels.find(
+							(m) => m.id === ($options.whisperModel ?? 'base') && m.installed && !m.downloading
+						)
+					: (preflight.localReadiness?.ready ?? false)
+		);
 	});
 
 	// Ticks only while a session is open.
@@ -346,6 +356,7 @@
 		</aside>
 
 		<main class="stage">
+			{#if $options.provider === 'whisper'}<WhisperActivity />{/if}
 			{#if browserMode}
 				<div class="banner">
 					{$t.stage.browserBanner.before}
@@ -409,7 +420,9 @@
 								: $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
 							? $t.preflight.privacy.demo
-							: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
+							: $options.provider === 'whisper'
+								? $t.whisper.privacy
+								: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
 					</span>
 				</div>
 			{/if}
