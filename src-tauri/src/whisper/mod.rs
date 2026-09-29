@@ -254,8 +254,14 @@ fn transcribe(
             params.set_print_special(false);
             params.set_suppress_blank(true);
             params.set_suppress_nst(true);
-            let stop = abort.clone();
-            params.set_abort_callback_safe(Some(move || stop.is_cancelled()));
+            // whisper-rs 0.16's closure helper has an incorrect user-data cast and leaks its
+            // allocation. Use the C callback with a borrowed, thread-safe token instead.
+            // SAFETY: full() is synchronous; abort outlives the entire call, and the callback
+            // only reads CancellationToken. No pointer escapes this invocation.
+            unsafe {
+                params.set_abort_callback(Some(abort_requested));
+                params.set_abort_callback_user_data(std::ptr::from_ref(abort).cast_mut().cast());
+            }
             let mut samples = window.samples;
             // Whisper needs enough samples for its analysis window, including a final
             // phrase shorter than a second. Padding affects inference only, not timestamps.
@@ -312,6 +318,11 @@ fn transcribe(
         }
     }
     Ok(())
+}
+
+unsafe extern "C" fn abort_requested(data: *mut std::ffi::c_void) -> bool {
+    // SAFETY: installed only above, with a live CancellationToken for the full() duration.
+    unsafe { &*data.cast::<CancellationToken>() }.is_cancelled()
 }
 
 #[cfg(test)]

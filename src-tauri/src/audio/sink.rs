@@ -21,6 +21,36 @@ pub enum AudioSink {
     },
 }
 
+/// Keep the input channel open until the producer has published its outcome. Without this
+/// guard, dropping CaptureState can expose EOF before a device-open error is recorded.
+pub struct CaptureCompletion {
+    spool: Arc<Spool>,
+    _sender: Sender<TimedChunk>,
+    completed: bool,
+}
+
+impl CaptureCompletion {
+    pub fn finish(&mut self, error: Option<String>) {
+        *self
+            .spool
+            .capture_error
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = error;
+        self.completed = true;
+    }
+}
+
+impl Drop for CaptureCompletion {
+    fn drop(&mut self) {
+        if !self.completed {
+            self.finish(Some(
+                "The audio capture worker stopped unexpectedly".to_owned(),
+            ));
+        }
+        // Fields drop after this method: readers cannot see EOF until the error is visible.
+    }
+}
+
 impl From<Sender<AudioChunk>> for AudioSink {
     fn from(sender: Sender<AudioChunk>) -> Self {
         Self::Realtime(sender)
@@ -28,6 +58,16 @@ impl From<Sender<AudioChunk>> for AudioSink {
 }
 
 impl AudioSink {
+    pub fn completion_guard(&self) -> Option<CaptureCompletion> {
+        match self {
+            Self::Local { sender, spool, .. } => Some(CaptureCompletion {
+                spool: spool.clone(),
+                _sender: sender.clone(),
+                completed: false,
+            }),
+            Self::Realtime(_) => None,
+        }
+    }
     pub fn local_spool(&self) -> Option<Arc<Spool>> {
         match self {
             Self::Local { spool, .. } => Some(spool.clone()),
@@ -76,6 +116,30 @@ impl AudioSink {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn producer_outcome_is_visible_before_eof_even_when_it_unwinds() {
+        let (sender, mut rx) = tokio::sync::mpsc::channel(1);
+        let spool = Arc::new(Spool::new().unwrap());
+        let sink = AudioSink::Local {
+            sender,
+            spool: spool.clone(),
+            clock: SessionClock::at(0),
+            pause: tokio::sync::watch::channel(false).1,
+            cancel: CancellationToken::new(),
+        };
+        let guard = sink.completion_guard().unwrap();
+        drop(sink);
+        assert!(matches!(
+            rx.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Empty)
+        ));
+        drop(guard);
+        assert!(matches!(
+            rx.try_recv(),
+            Err(tokio::sync::mpsc::error::TryRecvError::Disconnected)
+        ));
+        assert!(spool.capture_error.lock().unwrap().is_some());
+    }
     #[test]
     fn local_overflow_stops_capture_and_pause_does_not_enqueue_audio() {
         let (sender, mut rx) = tokio::sync::mpsc::channel(1);

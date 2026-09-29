@@ -613,7 +613,7 @@ impl SessionBuilder<'_> {
         }
 
         let app = self.app.clone();
-        let local_spool = audio_tx.local_spool();
+        let mut capture_completion = audio_tx.completion_guard();
         let level_tx = self.level_tx.clone();
         let target_rate = self.target_rate;
         let cancel = cancel.clone();
@@ -633,9 +633,11 @@ impl SessionBuilder<'_> {
                             cancel.clone(),
                         )
                         .await;
+                        if let Some(completion) = &mut capture_completion {
+                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+                        }
                         if let Err(error) = result {
-                            if let Some(spool) = &local_spool {
-                                *lock(&spool.capture_error) = Some(format!("{error:#}"));
+                            if capture_completion.is_some() {
                                 cancel.cancel();
                             } else {
                                 report_source_failure(&app, origin, &error, &cancel);
@@ -650,9 +652,11 @@ impl SessionBuilder<'_> {
                     .spawn(move || {
                         let result =
                             capture.run(origin, target_rate, level_tx, audio_tx, cancel.clone());
+                        if let Some(completion) = &mut capture_completion {
+                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+                        }
                         if let Err(error) = result {
-                            if let Some(spool) = &local_spool {
-                                *lock(&spool.capture_error) = Some(format!("{error:#}"));
+                            if capture_completion.is_some() {
                                 cancel.cancel();
                             } else {
                                 report_source_failure(&app, origin, &error, &cancel);
@@ -676,7 +680,7 @@ impl SessionManager {
         validate_start(&options)?;
 
         let provider = options.provider;
-        // The built-in demonstration is the one backend that starts with no credential.
+        // The built-in demo and local Whisper start with no credential.
         // Credential Manager is a blocking call, and this holds the lifecycle lock: keep it off
         // the async workers that are pumping the other windows' events meanwhile.
         let api_key = if provider.requires_api_key() {
@@ -873,7 +877,10 @@ impl SessionManager {
             .context("No session is running")?;
         session.pause.send_replace(paused);
         if session.local {
-            for origin in &session.origins {
+            for (origin, source) in session.origins.iter().zip(&session.sources) {
+                if source.is_cancelled() {
+                    continue;
+                }
                 let _ = app.emit(
                     events::STATUS,
                     StatusUpdate {

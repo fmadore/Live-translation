@@ -1,13 +1,14 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 19 September 2026
+**Effective date:** next release (local Whisper addition, 29 September 2026)
 
 ## What this app is
 
-Live Translation & Subtitles is a Windows desktop application with two kinds of operation:
+Live Translation & Subtitles is a Windows desktop application with three kinds of operation:
 
 - a built-in scripted demonstration of the caption display, overlay, timer, level meter,
-  transcript, and export workflow; and
+  transcript, and export workflow;
+- optional local multilingual speech transcription using Whisper on the user’s computer; and
 - optional live speech captioning or translation through a third-party provider selected and
   configured by the user: Google Gemini, OpenAI, or Mistral.
 
@@ -21,13 +22,27 @@ level data and English/French caption text are bundled inside the application an
 device.
 
 When a live provider is selected, the app captures only the audio source selected by the user:
-a chosen microphone, Windows system audio, or both. Audio is processed in memory and streamed
-directly to the selected provider for the duration of the session. System capture can use
+a chosen microphone, Windows system audio, or both. With a cloud provider, audio is processed
+in memory and streamed directly to that provider for the duration of the session. System capture can use
 all audio on a selected output or only the selected application and its child processes.
 The latter includes that application’s notifications and may include several browser tabs.
 Application titles and process identities are used locally to select the source, not sent
-to the speech provider. The application does not
-write captured audio to disk.
+to the speech provider. Cloud captioning does not write captured audio to disk.
+
+With **local Whisper**, audio is processed on the computer and is never uploaded. Pending audio
+is buffered in a temporary file so a slower recognizer can catch up without silently losing
+speech. This file is local, is not a saved recording, and is automatically deleted when its
+handle closes, including when the process exits. It is not an encrypted audio archive or a
+recoverable recording. Stop finishes the remaining audio; explicitly discarding the backlog
+keeps captions already produced but leaves the transcript incomplete. Pause excludes newly
+captured audio from recognition and temporary storage while metering remains active.
+
+Whisper model files are downloaded only when the user chooses **Download model**. Downloads
+contact Hugging Face and its file-delivery infrastructure, which receive ordinary network
+request information such as the user's IP address. No captured audio, captions or provider
+key is included. The app verifies model size and SHA-256 before installation and before use.
+Models remain under the application's local-data `whisper-models` folder until removed through
+the model controls. Once installed, local transcription needs no network connection.
 
 ## Captions and transcripts
 
@@ -96,7 +111,7 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
+provider, Whisper model and spoken language, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
@@ -127,14 +142,15 @@ API keys, device identifiers, or usage data from the application.
 
 ## Third-party processing
 
-Starting a live session sends audio directly to the chosen provider under the user’s relationship
+Starting a cloud session sends audio directly to the chosen provider under the user’s relationship
 with that provider. Their terms and privacy policies apply:
 
 - [Google Privacy Policy](https://policies.google.com/privacy)
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
 - [Mistral AI Privacy Policy](https://mistral.ai/terms/#privacy-policy)
 
-The built-in demonstration contacts none of these services.
+The built-in demonstration and local Whisper transcription contact none of these speech services.
+Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
 
 ## Children
 

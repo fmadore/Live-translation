@@ -14,7 +14,11 @@
 	);
 	const finalizing = $derived(Object.values(progress).some((p) => p.finalizing));
 	$effect(() => {
-		if (!$isRunning) progress = {};
+		if (!$isRunning) {
+			progress = {};
+			confirmDiscard = false;
+		}
+		if (pending === 0) confirmDiscard = false;
 	});
 	onMount(() => {
 		let disposed = false;

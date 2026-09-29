@@ -165,6 +165,7 @@ export const en = {
 	},
 
 	whisper: {
+		cost: 'On this computer — no API charges',
 		title: 'Local transcription',
 		language: 'Spoken language',
 		auto: 'Detect automatically',
@@ -187,8 +188,7 @@ export const en = {
 		pending: 'Audio waiting to be transcribed',
 		discard: 'Discard remaining audio',
 		discardConfirm:
-			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.',
-		refresh: 'Refresh models'
+			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.'
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -228,6 +228,7 @@ export const en = {
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
+			whisper: 'Multilingual Whisper',
 			ondevice: 'Bundled sample · deterministic'
 		},
 		costNote: {

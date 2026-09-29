@@ -167,7 +167,11 @@
 		status="neutral"
 		glyph="$"
 		title={$t.preflight.cost.title}
-		desc={!needsKey ? $t.preflight.cost.free : $t.preflight.cost.billed}
+		desc={$options.provider === 'whisper'
+			? $t.whisper.cost
+			: !needsKey
+				? $t.preflight.cost.free
+				: $t.preflight.cost.billed}
 	>
 		{#snippet action()}
 			<span class="check-rate">{rateText(PROVIDER_META[$options.provider], $t)}</span>

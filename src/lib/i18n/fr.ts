@@ -173,6 +173,7 @@ export const fr: Messages = {
 	},
 
 	whisper: {
+		cost: 'Sur cet ordinateur — aucun frais d’API',
 		title: 'Transcription locale',
 		language: 'Langue parlée',
 		auto: 'Détection automatique',
@@ -195,8 +196,7 @@ export const fr: Messages = {
 		pending: 'Son en attente de transcription',
 		discard: 'Abandonner le son restant',
 		discardConfirm:
-			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.',
-		refresh: 'Actualiser les modèles'
+			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.'
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -237,6 +237,7 @@ export const fr: Messages = {
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
+			whisper: 'Whisper multilingue',
 			ondevice: 'Échantillon fourni · déterministe'
 		},
 		costNote: {

@@ -171,6 +171,7 @@ export const de: Messages = {
 	},
 
 	whisper: {
+		cost: 'Auf diesem Computer — keine API-Kosten',
 		title: 'Lokale Transkription',
 		language: 'Gesprochene Sprache',
 		auto: 'Automatisch erkennen',
@@ -193,8 +194,7 @@ export const de: Messages = {
 		pending: 'Noch zu transkribierendes Audio',
 		discard: 'Restliches Audio verwerfen',
 		discardConfirm:
-			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
-		refresh: 'Modelle aktualisieren'
+			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.'
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -234,6 +234,7 @@ export const de: Messages = {
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
+			whisper: 'Mehrsprachiges Whisper',
 			ondevice: 'Mitgeliefertes Beispiel · deterministisch'
 		},
 		costNote: {

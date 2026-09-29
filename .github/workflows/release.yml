@@ -63,6 +63,7 @@ jobs:
         run: |
           "CC=clang-cl" >> $env:GITHUB_ENV
           "CXX=clang-cl" >> $env:GITHUB_ENV
+          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
           "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
@@ -134,6 +135,7 @@ jobs:
         run: |
           "CC=clang-cl" >> $env:GITHUB_ENV
           "CXX=clang-cl" >> $env:GITHUB_ENV
+          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
           "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
