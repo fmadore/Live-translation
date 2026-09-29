@@ -39,7 +39,7 @@ Capture produces approximately 100 ms of 16 kHz mono PCM16 per frame. A bounded 
 the disk writer 30 seconds of scheduling slack. The inference worker reads an anonymous local
 temporary file rather than the cloud clients’ low-latency queues, so delayed recognition does
 not trigger their stale-audio discard behavior. Buffering is bounded to 2 GiB per source
-(roughly 18 hours of raw pending audio); disk-full, I/O failure and writer overflow stop the
+(roughly 18 hours of audio without the reader catching up and resetting the file); disk-full, I/O failure and writer overflow stop the
 source and report that its transcript may be incomplete. Memory does not grow with the audio
 backlog. The existing text transcript remains in memory and can use optional history/recovery.
 
@@ -81,6 +81,9 @@ the same compiler setup. `.cargo/config.toml` disables build-host-specific instr
 including AVX-only x64 builds, and targets baseline ARMv8. CPU portability takes precedence
 over optional acceleration in this first implementation. Real-time throughput is not guaranteed;
 Both sources runs two inference states and increases CPU/memory use.
+
+Whisper.cpp and the OpenAI model weights use the MIT license; whisper-rs uses the Unlicense.
+Their notices are included under `resources/licenses` and bundled with the app.
 
 ## Validation
 

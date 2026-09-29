@@ -35,8 +35,10 @@ impl Segmenter {
         }
         let samples: Vec<f32> = chunk
             .pcm
-            .chunks_exact(2)
-            .map(|b| i16::from_le_bytes([b[0], b[1]]) as f32 / 32768.0)
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|b| i16::from_le_bytes(*b) as f32 / 32768.0)
             .collect();
         // Conservative silence gate (~-80 dBFS). Quiet speech still reaches Whisper's own
         // no-speech classifier. Endpointing is an optimization, not an audio-loss policy.

@@ -347,8 +347,8 @@ impl CaptureState {
             let end = self.pending_start + self.chunk_len;
             f32_to_pcm16_le(&self.pending[self.pending_start..end], &mut pcm);
             self.pending_start = end;
-            // Never block the real-time callback. A full queue means the caption client is
-            // already behind, so bounded loss is preferable to unbounded caption latency.
+            // Never block the real-time callback. Cloud queues favor current speech;
+            // the local sink stops visibly if its independent writer queue overflows.
             if let Err(error) = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm }) {
                 if matches!(error, TrySendError::Closed(_)) {
                     self.pending_start = self.pending.len();
