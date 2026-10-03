@@ -180,7 +180,7 @@ non-`cfg(windows)` code, not a supported target.
 
 - Windows 11
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
-- Stable Rust
+- Stable Rust (1.90 or newer)
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
 - No key is needed for the built-in demonstration. Live modes need the corresponding provider key:
   - [Google AI Studio](https://aistudio.google.com/api-keys) for Gemini translation
@@ -347,8 +347,14 @@ src-tauri/src/ondevice/      deterministic built-in caption demonstration
 ## CI and maintenance
 
 Pull requests and `main` pushes run frontend tests/type-check/build/audit, Rust format,
-Clippy and tests on Linux and Windows, RustSec, and actionlint. Dependabot checks npm, Cargo,
-and GitHub Actions weekly.
+Clippy and tests on Linux, Windows x64 and Windows ARM64, RustSec, and actionlint.
+Dependabot checks npm, Cargo, and GitHub Actions weekly.
+
+The npm override for SvelteKit's `cookie` dependency uses version 0.7.2 to fix
+[GHSA-pxg6-pf52-xh8x](https://github.com/advisories/GHSA-pxg6-pf52-xh8x) while keeping the
+compatible SvelteKit 2/static-adapter 3 pair. This app serves a static frontend and does not
+use server-side cookies. Remove the override when SvelteKit's dependency is patched or
+when migrating SvelteKit and its adapter together to a new major version.
 
 Pushing a `v*` tag builds the installers, both architectures' MSIX, and the multi-architecture
 `.msixbundle` the Store submission uses. That bundle is then uploaded to Partner Center by

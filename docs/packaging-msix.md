@@ -84,7 +84,7 @@ Build 1.5.1 with the normal committed configuration and complete the
 
 ## Prerequisites
 
-- **Rust stable** with both Store targets: `rustup target add x86_64-pc-windows-msvc aarch64-pc-windows-msvc`.
+- **Rust stable (1.90 or newer)** with both Store targets: `rustup target add x86_64-pc-windows-msvc aarch64-pc-windows-msvc`.
 - **Windows SDK**, for `MakeAppx.exe` (packing) and `SignTool.exe` (signing). Installed by
   the Visual Studio "Desktop development with C++" workload or the standalone SDK. Nothing
   needs to be on `PATH`: the packer resolves the SDK through
