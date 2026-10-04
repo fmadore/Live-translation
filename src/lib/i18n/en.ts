@@ -320,7 +320,7 @@ export const en = {
 		},
 		transcribe: {
 			title: 'Subtitles',
-			desc: 'Built-in demonstration or live speech with Whisper, Voxtral or Gemini. Export as text, Markdown, SRT or VTT.'
+			desc: 'Transcribe speech locally with Whisper or through Voxtral or Gemini. Export as text, Markdown, SRT or VTT.'
 		},
 
 		sourceHint:

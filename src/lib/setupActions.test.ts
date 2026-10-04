@@ -39,18 +39,19 @@ describe('setup actions', () => {
 		expect(deps.invalidateAudioTest).not.toHaveBeenCalled();
 	});
 
-	it('switching mode picks that mode default engine and resets a transcription to the mic', () => {
+	it('switching to subtitles chooses Whisper and keeps the selected audio source', () => {
 		const { actions, deps } = setup();
 		actions.setMode('transcribe');
 		expect(get(options)).toMatchObject({
 			mode: 'transcribe',
-			provider: 'ondevice',
-			source: 'microphone',
-			micDeviceName: null
+			provider: 'whisper',
+			source: 'both',
+			micDeviceName: 'Room mic'
 		});
 		actions.setMode('translate');
 		expect(get(options)).toMatchObject({ mode: 'translate', provider: 'gemini' });
 		expect(deps.invalidateAudioTest).toHaveBeenCalledTimes(2);
+		expect(deps.refreshDevices).toHaveBeenCalledTimes(2);
 	});
 
 	it('only accepts engines that serve the current mode, and re-lists devices for them', () => {

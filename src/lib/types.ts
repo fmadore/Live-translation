@@ -88,9 +88,8 @@ export function providerCanTranslate(provider: Provider): boolean {
 	return provider === 'gemini' || provider === 'openai';
 }
 
-/** Whether an API key must be saved before a session can start. The built-in demo is the
- *  one backend that works with no credential, which keeps provider keys out of the
- *  app's primary functionality — see `docs/microsoft-store.md`. */
+/** Whether an API key must be saved before a session can start. Local Whisper and the
+ *  scripted demo need no credential — see `docs/microsoft-store.md`. */
 export function providerRequiresKey(provider: Provider): boolean {
 	return provider !== 'ondevice' && provider !== 'whisper';
 }
@@ -497,13 +496,15 @@ export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
  *  longer quitting. Persisted so it is said the first time and never again. */
 export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
 
-/** Fresh-install session setup. The bundled demonstration needs no hardware, network, account,
- *  or API key and is transparently identified as a demonstration. */
+/** Fresh-install setup for local speech recognition. The user downloads a model before
+ *  starting; opening the app never starts a download or audio capture. */
 export const DEFAULT_START_OPTIONS: StartOptions = {
 	source: 'microphone',
 	mode: 'transcribe',
 	targetLanguage: 'en',
-	provider: 'ondevice',
+	provider: 'whisper',
+	whisperModel: 'base',
+	spokenLanguage: null,
 	micDeviceName: null
 };
 

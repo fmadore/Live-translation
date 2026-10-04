@@ -21,8 +21,10 @@ voice tags, and SRT prefixes each cue with its localized source name. Both retai
 finalized text, order cues by start time, permit simultaneous microphone/system cues,
 and support durations over 24 hours. One-frame turns receive a minimum 1 ms interval.
 Timing comes from the core's monotonic session clock, not wall-clock timestamps or an
-audio recording. Provider latency is included; these are caption timings, not forced
-alignment with speech. Reconnects share the session clock. Separate sessions retained in
+audio recording. Cloud provider latency is included; these are caption timings, not forced
+alignment with speech. Whisper uses segment offsets mapped to capture timestamps, so pending
+processing time does not move cues later. Wait for Stop to finish its backlog before saving
+the complete transcript; confirmed discard leaves an incomplete-transcript notice. Reconnects share the session clock. Separate sessions retained in
 one transcript are concatenated after its last cue; idle time between sessions is omitted.
 Older recovery files without timing remain exportable as Markdown/text, with timed export
 disabled and an explanation rather than guessed timestamps or silently omitted text.

@@ -1,4 +1,4 @@
-# Audio devices — issue #28
+# Audio devices and native acceptance
 
 The first installed 1.2.1 test on 8 September exposed COM apartment conflicts during
 output enumeration and recoverable microphone xruns incorrectly ending preflight.
@@ -10,8 +10,9 @@ On 8 September 2026, the user retested the signed 1.2.2.0 ARM64 MSIX and confirm
 that both reported errors were resolved. This confirms the reported refresh and
 audio-test failures; the broader hardware matrix below remains pending.
 
-Implemented for the prepared 1.2.1 release. Hardware checks below are **pending**;
-automated tests and browser previews do not replace them.
+Device handling was introduced in 1.2.1/1.2.2. The broader hardware matrix remains **pending**
+for the 1.6.0 packages; automated tests and browser previews do not replace it. Repeat key
+cases with local Whisper as well as a cloud engine, including Pause and Stop with pending audio.
 
 Automated verification on 7 September 2026: 263 frontend tests and 61 Rust tests
 passed (one billable test ignored). English and French browser previews confirm
@@ -33,8 +34,9 @@ keep the transcript and may start billable provider capture again. Nothing recon
 or changes capture endpoints automatically.
 
 Notification callbacks only try-send to a bounded worker queue. Enumeration and webview
-events happen away from callbacks. Microphone availability checks run once per second
-on its owning thread; loopback checks its pinned endpoint while servicing capture.
+events happen away from callbacks. Device-change notifications trigger availability checks on the owning capture path, with
+a periodic fallback if a notification is missed. Loopback checks its pinned endpoint on
+notification or at most a second later while servicing capture.
 
 ## Hardware matrix
 

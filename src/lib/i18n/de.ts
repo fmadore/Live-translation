@@ -328,7 +328,7 @@ export const de: Messages = {
 		},
 		transcribe: {
 			title: 'Untertitel',
-			desc: 'Integrierte Demonstration oder Live-Sprache mit Whisper, Voxtral oder Gemini. Export als Text, Markdown, SRT oder VTT.'
+			desc: 'Sprache lokal mit Whisper oder über Voxtral oder Gemini transkribieren. Export als Text, Markdown, SRT oder VTT.'
 		},
 
 		sourceHint:

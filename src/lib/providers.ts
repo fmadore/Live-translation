@@ -1,5 +1,5 @@
-// Display metadata and the cost model for each caption backend. Rates mirror the table in
-// README.md ("Running costs") — update both together.
+// Display metadata and the cost model for each caption backend. Provider integration notes
+// and their dated verification sources live in docs/*-realtime-api.md and gemini-live-api.md.
 
 import type { Messages } from './i18n/en';
 import type { Provider } from './types';

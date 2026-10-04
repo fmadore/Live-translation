@@ -1,8 +1,8 @@
 # Meeting profiles and live controls
 
 Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
-See the [release checklist](store-updates.md#release-151-handoff).
-This update adds no new scroll-back or return-to-live controls.
+Pause, two caption languages and bilingual output are included in **1.6.0** (in preparation).
+See the [release checklist](store-updates.md#release-160-handoff).
 
 ## Session controls (1.4.2)
 
@@ -12,18 +12,26 @@ or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and 
 transcript all remain below the session controls. Readiness gates and keyboard shortcuts
 are unchanged.
 
+New installations open on Whisper with Base and automatic language detection. Switching
+from translation to Subtitles also selects Whisper and retains the selected audio source;
+it does not start capture or a model download. Existing saved setups are restored on launch.
+
 ## Pause
 
-**Pause**, beside Stop (or Ctrl+Shift+P), is for a coffee break or a video clip: it keeps the
-session, its clock and its transcript, and lets the caption engine go. Each provider
-connection is closed gracefully — the last turn is flushed into the transcript first — so
-nothing is streamed or billed while paused; **Resume** connects afresh. Capture and the level
-meters keep running, so the operator can see when the room is talking again. The status pill,
-the tray and the input status read *Paused*, the rail says the engine is disconnected, and the
-running cost estimate counts only streamed time. Hide overlay is unchanged: it blanks the
-captions but keeps streaming. The built-in demonstration holds between steps the same way.
+**Pause**, beside Stop (or Ctrl+Shift+P), keeps the session, clock and transcript together.
+For cloud engines, each connection closes gracefully and flushes its final turn; after that,
+no audio is streamed or billed until **Resume** connects afresh. The cost estimate counts
+streamed time. With **Whisper**, Pause stops new audio entering recognition or temporary
+storage while pending speech continues processing. The demo holds between scripted steps.
+
+Capture and level meters remain active while paused. **Hide overlay** only blanks the
+captions and does not pause capture or provider usage. Normal Stop lets Whisper finish its
+backlog; wait for completion before exporting the full transcript.
 
 ## Meeting profiles
+
+For bilingual output, see [Two caption languages and original speech](#two-caption-languages-and-original-speech)
+below; these settings are chosen before starting a translation session.
 
 Use the profile picker above step 01, then **Manage profiles**. Choose **Save current setup…**,
 enter a name and save. Each profile row offers **Load profile** and a management menu for
@@ -43,6 +51,22 @@ display's work area; a disconnected projector falls back to the primary display.
 after display or scaling changes. Only the operator window may invoke the placement commands.
 
 ## Reading and saved sessions
+
+### Two caption languages and original speech
+
+In **Live translation**, choose your first target in the language step, then use **Second
+caption language** for an additional target supported by the same engine. The two targets
+must differ. Choose no second language to return to a single output. Both captions appear
+in the overlay and transcript; exports preserve each line's language. Each target opens a
+separate provider session for each audio source, so adding a target increases cloud usage.
+
+In **Settings → Reading**, **Show the original speech under translations** adds a smaller
+source-text line when the provider supplies one. It works in Fit window and Compact, not
+Stable reading. This display choice is separate from **Include original speech** in the
+export controls. Neither option creates missing source text. Local Whisper transcribes in
+the spoken language and does not offer translation targets.
+
+### Settings and history
 
 Settings has **Captions**, **Reading**, **Transcript history** and **App** tabs.
 The dialog and tab bar retain their dimensions when switching tabs; the content scrolls

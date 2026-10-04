@@ -1,16 +1,16 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** next release (local Whisper addition, 29 September 2026)
+**Effective date:** 4 October 2026 (documents the 1.6.0 release candidate)
 
 ## What this app is
 
 Live Translation & Subtitles is a Windows desktop application with three kinds of operation:
 
-- a built-in scripted demonstration of the caption display, overlay, timer, level meter,
-  transcript, and export workflow;
-- optional local multilingual speech transcription using Whisper on the user’s computer; and
-- optional live speech captioning or translation through a third-party provider selected and
-  configured by the user: Google Gemini, OpenAI, or Mistral.
+- local multilingual speech transcription using Whisper on the user’s computer;
+- optional cloud speech captioning or translation through a provider selected and configured
+  by the user: Google Gemini, OpenAI, or Mistral; and
+- a scripted demonstration of the caption display, overlay, timer, level meter, transcript
+  and export workflow.
 
 The built-in demonstration is explicitly labeled as a demonstration. It does not capture or
 recognize speech.
@@ -51,8 +51,8 @@ is never shortened or discarded behind the user's back. A transcript is written 
 the user explicitly chooses to save it, or through the optional recovery copy or session history described below.
 The app does not automatically upload saved transcripts.
 
-The overlay keeps reading context in memory (the current session in Stable reading mode) so that a larger window can
-show more captions. Text removed from the overlay by resizing or its idle timeout remains
+The overlay keeps a bounded amount of reading context in memory so that a larger window can
+show more captions. Stable reading drops the oldest hidden lines as its buffer fills. Text removed from the overlay by resizing or its idle timeout remains
 in the full session transcript. The layout feature creates no additional disk history or
 network requests.
 
@@ -103,7 +103,7 @@ and exports remains unchanged. It introduces no network requests.
 
 ## API keys
 
-No API key is needed for the built-in demonstration. Optional provider keys are stored in
+No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are stored in
 Windows Credential Manager and read only by the native application core. A key is sent only to
 the provider that issued it to authenticate the live connection. The developer does not receive,
 copy, proxy, or store provider keys.

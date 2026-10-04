@@ -176,8 +176,10 @@ leap days, calendar selection, inclusive history bounds and clearing filters.
 ## Caption language selector (issue #78)
 
 Caption coverage is provider-dependent: Gemini translation has 78 choices and OpenAI 13;
-the bundled demo has only English/French scripts. Subtitle providers auto-detect and show no
-selector. Choosing a caption language never changes the English/French/German interface.
+the bundled demo has only English/French scripts. Cloud subtitle providers auto-detect and
+show no selector. Whisper has its own 99-language spoken-language selector plus automatic
+detection, independent of the translation-target catalog. Localized display names fall back
+to English names when the platform has no translation, rather than showing bare codes. Choosing a caption language never changes the English/French/German interface.
 
 The source of truth is `src/lib/languages.json`, including English fallback names, endonyms,
 provider memberships, source URLs and verification dates. Run `npm run generate:languages`

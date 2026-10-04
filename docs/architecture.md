@@ -3,13 +3,16 @@
 ## Data flow
 
 ```text
-live microphone (CPAL) ─┐
-                        ├─ PCM16 bounded channel ── provider WebSocket ─┐
-system audio (WASAPI) ──┘                                              │
-                                                                        ├─ caption/status/level events
-built-in demo ───────────── deterministic caption + level timeline ────┘
-                                                                                 │
-                                                                         operator + overlay
+microphone / system / application audio
+                  │
+          resampling + PCM16
+                  ├── cloud WebSocket client(s) ──────────────┐
+                  └── temporary spool → Whisper CPU worker ──┤
+scripted demo ───────── deterministic caption timeline ──────┤
+                                                             ▼
+                                              operator + caption overlay
+                                                             │
+                                              transcript / export / history
 ```
 
 1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
@@ -37,10 +40,11 @@ Every caption also carries an interval — `startMs`/`endMs`, milliseconds since
 started — stamped in the core by `timing::SessionClock` and shared by every source in the
 session, so a document that interleaves the microphone and the system agrees with itself about
 what happened when. It is deliberately monotonic elapsed time rather than the audio timeline:
-cloud clients drop buffered audio before reconnecting, so an audio clock would quietly compress
+cloud clients drop stale buffered audio before reconnecting, so a compressed audio clock would lose
 every gap where the socket was down. `realtime::emit_caption` is the one place it is applied,
-which is why five protocol implementations and the demonstration all produce timed captions
-without any of them knowing about a clock.
+which gives cloud protocols and the demonstration a common clock. Whisper instead stamps
+segments from capture timestamps carried through its spool, so CPU backlog does not shift
+the transcript to the later inference time.
 
 Protocol handlers are pure: `handle_message` parses one server message into the turn
 accumulator and returns a `CaptionUpdate` (none, interim or final) with the connection

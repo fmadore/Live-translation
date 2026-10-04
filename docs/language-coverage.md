@@ -1,13 +1,14 @@
 # Caption language coverage (issue #78)
 
-This describes versions 1.5.0 and 1.5.1; 1.5.1 does not change language coverage. The older
-1.4.2 installers have English/French caption buttons.
-GitHub publication was requested with the live verification gaps below explicitly retained.
+This describes **1.6.0** (in preparation). Translation targets retain the catalog introduced
+in 1.5.0; Whisper adds a separate spoken-language selector. The dated cloud-provider checks
+below remain the latest recorded evidence, not a claim of fresh endpoint verification.
 
 | Engine | Caption language control |
 | --- | --- |
 | Gemini Live Translate | 78 searchable translation targets |
 | OpenAI Realtime Translate | 13 searchable targets; endpoint code probe pending |
+| Local Whisper | 99 spoken languages or automatic detection; same-language subtitles only |
 | Built-in demo | English/French script buttons only |
 | Mistral / Gemini Transcribe | Auto-detection hint, no language selector |
 
@@ -18,8 +19,9 @@ star next to each row. Preferences survive restart independently of session opti
 
 An unsupported favourite stays visible and disabled with an explanation. Switching engines
 does not change the chosen target: Start and Rehearse remain blocked until a supported
-language is selected. The Rust core rejects unsupported targets too. Subtitle auto-detection
-does not consult the retained target. Changing back to translation keeps the operator's choice.
+language is selected. The Rust core rejects unsupported targets too. Cloud subtitle auto-detection
+does not consult the retained target. Whisper uses its separate spoken-language preference,
+which covers the multilingual Tiny/Base/Small models rather than the translation catalog. Changing back to translation keeps the operator's choice.
 
 F2 swaps the first two favourites while translation is stopped. From outside that pair it
 selects the first. With fewer than two pins, or either pin unsupported, it does nothing.
@@ -78,3 +80,11 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
    the keyboard, switch providers with an unsupported target, and confirm Start is blocked.
 6. Run Narrator through the combobox; verify active option, selected/disabled state and
    the unsupported reason. Complete the existing packaged accessibility checklist.
+
+## Whisper verification — 4 October 2026
+
+PR #99 adds a separate 99-token vocabulary for the multilingual Tiny/Base/Small models.
+Local ARM64 fixture inference passed in English with detection and French with an explicit
+language, including final-tail draining and capture-based timestamps. This does not establish
+recognition accuracy in all 99 languages. Non-Latin speech, code-switching and real meeting
+audio remain in the [Whisper acceptance plan](local-whisper.md#validation).

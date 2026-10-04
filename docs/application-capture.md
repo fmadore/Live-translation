@@ -58,3 +58,11 @@ Manual acceptance remains pending in development and packaged NSIS/MSIX builds:
 Real Teams/Zoom/browser isolation and hardware transitions cannot be inferred from the
 silent-process smoke test. Issue #27 is closed at the user’s request for release 1.2.3;
 icons and grouping unrelated process trees remain outside the accepted first implementation.
+
+## Local Whisper (1.6.0)
+
+Application capture feeds the same selected process tree to local Whisper as to a cloud
+engine. Whisper keeps audio on the PC and buffers pending speech temporarily; it does not
+change which processes are included. Repeat the isolation and process-exit checks above with
+Whisper, then Stop and let its backlog drain before evaluating the complete transcript.
+See [local Whisper](local-whisper.md) for buffering, models and offline operation.

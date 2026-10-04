@@ -1,7 +1,16 @@
 # Local multilingual Whisper transcription
 
+Included in **1.6.0** (in preparation), merged in [PR #99](https://github.com/fmadore/Live-translation/pull/99).
 Implements [issue #98](https://github.com/fmadore/Live-translation/issues/98). This is an
 additional **Subtitles** provider; local translation is outside this feature’s scope.
+
+Suggested by [@valentinrabot](https://github.com/valentinrabot) in
+[issue #98](https://github.com/fmadore/Live-translation/issues/98): local transcription for
+same-language meetings without ongoing API costs, with Whisper offered as a possible engine.
+
+New installations open on Whisper with Base and automatic language detection selected.
+Downloading a model and starting capture both require the user's action. Existing saved
+engine, model, language and audio choices remain in place on upgrade.
 
 ## Using it
 
@@ -106,3 +115,10 @@ Before release, test packaged x64 and ARM64 applications on real devices: downlo
 relaunch offline, microphone and Teams/application loopback, Both sources, pause/resume, long
 backlogs, Stop/discard, exports, non-Latin speech and clean uninstall. CI audio fixtures do not
 establish microphone permissions, actual conference-call capture quality or battery performance.
+
+Recorded on 4 October 2026 for merged PR #99: 538 frontend tests and 120 Rust tests passed
+(3 opt-in Rust tests ignored in the ordinary suite). The opt-in Whisper smoke test passed on
+ARM64 for English/French, including non-ASCII model paths. All seven PR CI jobs passed on
+[run 37196818518](https://github.com/fmadore/Live-translation/actions/runs/37196818518).
+A separate ARM64 Whisper Test install was verified as native ARM64; this is not final MSIX
+acceptance. The [1.6.0 handoff](store-updates.md#release-160-handoff) records new package evidence.

@@ -5,8 +5,8 @@ install it, and check the things CI cannot check — microphone capture, WASAPI 
 Credential Manager, the overlay and the export path, all running under package identity.
 
 [`microsoft-store.md`](microsoft-store.md) has the why: the Store policy gates, the assigned
-identity values, and the phased plan. This file is the mechanics. It covers Phase C's
-"build locally, sign, install, verify gates 6, 7 and 8".
+identity values and acceptance checklist. This file covers building, signing and testing
+the **1.6.0** candidate; the [handoff](store-updates.md#release-160-handoff) records its status.
 
 ## What is committed
 
@@ -22,7 +22,7 @@ hands it to the Windows SDK's `MakeAppx`.
 | `src-tauri/gen/windows/Assets/*.png` | Store logo and tiles, copied into the package verbatim. |
 | `src-tauri/icons/{StoreLogo,Square44x44Logo,Square150x150Logo}.png` | `tauri icon` output for the MSIX sizes; the source the bundler regenerates `Assets/` from. |
 | `package.json` → `bundle:msix:{x64,arm64}` | Architecture-specific Store package commands. |
-| `.github/workflows/release.yml` → `msix` job | The same command on `windows-latest`, attaching an unsigned package to the release. |
+| `.github/workflows/release.yml` → `msix` job | Native x64 on `windows-latest`, ARM64 on `windows-11-arm`; unsigned release packages. |
 
 `src-tauri/gen/` is otherwise generated and ignored; `.gitignore` carries an exception for
 `gen/windows/`.
@@ -55,20 +55,21 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.5.1.0"
+  Version="1.6.0.0"
   ProcessorArchitecture="x64" />
 ```
 
 with `runFullTrust` and `microphone`. The built-in demonstration uses neither capability nor
 network access. The package carries no speech model, Windows AI runtime, WinRT recognizer, or
-`systemAIModels` declaration. Optional live capture uses microphone/WASAPI through the
-full-trust desktop process.
+`systemAIModels` declaration. Live capture uses microphone/WASAPI through the full-trust
+desktop process. Whisper CPU inference is statically linked; model weights download only
+at the user's request.
 
 `Version` is the field here that moves: the bundler stamps it from `tauri.conf.json`, with a
-fourth component appended. It reads `1.5.1.0` at the time of writing and whatever that file
+fourth component appended. It reads `1.6.0.0` at the time of writing and whatever that file
 says at the time of reading.
 
-## Local responsive-caption test build (14 September 2026)
+## Historical local test builds
 
 A separate unpackaged ARM64 executable was installed as **Live Translation Local Test**
 under %LOCALAPPDATA%\Programs\Live Translation Local Test, with Desktop and Start-menu
@@ -77,9 +78,13 @@ the shallow bottom-alignment preset. Its identifier is io.github.fmadore.live-tr
 its WebView preferences are separate, while provider keys use the existing Credential Manager
 service. The Store-signed 1.2.2.0 install was left intact.
 
+On 4 October, PR #99 was also tested in a separate native ARM64 **Live Translation Whisper
+Test** installation (version label 1.5.1). It has a separate identifier and preferences.
+Neither local test identity belongs in a Store package.
+
 This executable is for local feedback, not proof of MSIX compatibility. The ignored
 src-tauri/target/local-test.conf.json override must not be used for release packages.
-Build 1.5.1 with the normal committed configuration and complete the
+Build 1.6.0 with the normal committed configuration and complete the
 [release verification](caption-layout.md#release-verification).
 
 ## Prerequisites
@@ -89,7 +94,11 @@ Build 1.5.1 with the normal committed configuration and complete the
   the Visual Studio "Desktop development with C++" workload or the standalone SDK. Nothing
   needs to be on `PATH`: the packer resolves the SDK through
   `HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots` → `KitsRoot10`.
-- **Node 22 or 24**, then `npm ci`.
+- **Node 22.12+ or 24**, then `npm ci`.
+- **LLVM/Clang with libclang, CMake and Ninja** for the statically linked Whisper CPU backend.
+  Configure the matching Visual Studio target environment as in [local Whisper](local-whisper.md#building).
+  Prefer native builds for each architecture, as CI does; cross-compilation also needs the
+  target C++ libraries and Windows SDK.
 
 ## Build the package
 
@@ -103,8 +112,8 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.5.1.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.5.1.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.6.0.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.6.0.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`. CI builds x64 and ARM64 packages,
@@ -112,7 +121,7 @@ combines them into `Live.Translation_<version>.msixbundle`, and attaches that si
 to the release for Store submission. For local verification, use the per-architecture
 `Live.Translation_<version>_<arch>.msix` files instead.
 
-Substitute the current `tauri.conf.json` version for `1.5.1` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.6.0` throughout this file. Every
 release built on this machine is still in `target/msix/` beside the newest one, which is why
 the commands below derive the name instead of spelling it out.
 
@@ -263,7 +272,8 @@ nothing). Then work through the list; the first three are the open gates in
 
 | Check | What "pass" looks like |
 | — | — |
-| **Built-in demo (certification default)** | Without changing Windows settings or attaching audio hardware, click *Start demo subtitles*. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop, and export all work. Repeat in English and French. |
+| **Whisper (first-launch default)** | A clean install selects Whisper, Base and automatic detection. No download or capture starts automatically. Download a model, select/test the audio source and start; verify offline captions after download and complete Stop draining. |
+| **Built-in demo (optional)** | Select Built-in demo, then click *Start demo subtitles*, without audio hardware or network. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop and export work. Repeat in English and French. |
 | **Microphone (optional live mode)** | With Mistral/Gemini/OpenAI configured, the app appears under Settings → Privacy & security → Microphone and captures with access on. With access blocked, it reports the exact Settings path. |
 | **WASAPI loopback (gate 7)** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
 | **Credential Manager (gate 8)** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |

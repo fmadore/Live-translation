@@ -165,7 +165,7 @@ control theme. Search/date controls retain visible keyboard focus. See
 [Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
 focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
 Windows text scaling and mixed-DPI acceptance for the final package remain in the
-[release checklist](store-updates.md#release-141-handoff).
+[current release checklist](store-updates.md#release-160-handoff).
 
 ## 1.4.1 settings and date controls
 
@@ -193,3 +193,11 @@ Caption paragraphs inherit their selected language and explicit RTL/LTR directio
 subtitle languages use auto direction. Stable reading uses logical start alignment so Arabic
 starts at the right edge. Verify actual Japanese and Arabic glyph fallback on Windows; the
 bundled Archivo face falls back to the system for uncovered scripts.
+
+## Whisper controls and Pause (1.6.0)
+
+Test keyboard access to Whisper's spoken-language and model selectors, Download/Cancel/Remove,
+and the model's ready/error status. Verify that the pending-audio duration and finishing state
+are readable and that the discard confirmation keeps focus inside the active dialog. Check
+Pause/Resume labels and Ctrl+Shift+P without losing access to Stop. These native checks remain
+part of final-package acceptance, including Narrator and enlarged Windows text.

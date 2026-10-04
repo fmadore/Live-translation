@@ -330,7 +330,7 @@ export const fr: Messages = {
 		},
 		transcribe: {
 			title: 'Sous-titres',
-			desc: 'Démonstration intégrée ou parole en direct avec Whisper, Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
+			desc: 'Transcrivez la parole localement avec Whisper ou via Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
 		},
 
 		sourceHint:
