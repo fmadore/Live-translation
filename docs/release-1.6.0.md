@@ -32,10 +32,14 @@ The optional scripted English/French demo remains available for trying the displ
 Thanks to [@valentinrabot](https://github.com/valentinrabot) for suggesting
 local transcription in [issue #98](https://github.com/fmadore/Live-translation/issues/98).
 
-See [local Whisper](local-whisper.md) for model sizes, storage and performance details and
-the [privacy policy](privacy.md) for local buffering and cloud processing.
+See [local Whisper](https://github.com/fmadore/Live-translation/blob/v1.6.0/docs/local-whisper.md)
+for model sizes, storage and performance details and the
+[privacy policy](https://fmadore.github.io/Live-translation/privacy) for local buffering and cloud processing.
 
-For the Microsoft Store, the planned submission artifact is
-`Live.Translation_1.6.0.msixbundle`, containing x64 and ARM64 packages at version **1.6.0.0**.
-This file is prepared release copy, not a publication announcement. Build evidence and
-remaining acceptance checks are tracked in the [release handoff](store-updates.md#release-160-handoff).
+For the Microsoft Store, upload
+[Live.Translation_1.6.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0.msixbundle),
+containing native x64 and ARM64 packages at version **1.6.0.0**. The Store signs accepted packages.
+Separate MSIX files are provided for per-architecture testing; EXE/MSI installers are for
+installation outside the Store. GitHub publication and Store certification are separate;
+the [release handoff](https://github.com/fmadore/Live-translation/blob/main/docs/store-updates.md#release-160-handoff)
+records the package evidence and remaining Store acceptance checks.
