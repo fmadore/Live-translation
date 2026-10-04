@@ -4,57 +4,28 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.5.1 release
+## Current status — 1.6.0 in preparation
 
-The latest GitHub release is **v1.5.1** (23 September 2026). It is a maintenance release from
-batches 1–2 of the [22 September app review](docs/app-review-2026-09-22.md) (#86). It adds a
-windowed-sinc anti-alias filter and limits `.env` and host overrides to debug builds. Panic
-unwinding now stops a failing source from closing the app. Stacked-dialog keyboard handling,
-history write volume and the unbounded Stable context are also fixed. Batch 3 (structure)
-and batch 4 (design system) of that review remain open. Version 1.3.0 delivered local
-transcript history (#81), Stable reading (#79), overlay filler cleanup (#80), and the German
-interface. Those three issues are closed. Thanks to @valentinrabot for the meeting feedback.
+The latest published GitHub and Store release is **1.5.1** (23 September 2026). The next
+release is **1.6.0**, with the following work merged:
 
-**1.4.0 adds usability improvements.** It adds meeting profiles,
-reading persistence and update pace, appearance previews/presets, history titles and search,
-per-source input status, and operator shortcuts. Gemini Smart final results now replace
-speculative interim text, including all-filler empty results. Impeccable visual checks also
-fixed long history-title overflow and date-picker icon contrast.
+- **Local Whisper transcription** ([#99](https://github.com/fmadore/Live-translation/pull/99)):
+  downloadable multilingual Tiny/Base/Small models, 99 language choices, CPU processing on
+  x64/ARM64, temporary pending-audio storage, graceful Stop and explicit backlog discard.
+- **Bilingual meetings:** two translation targets, available original speech in exports and
+  optionally in the overlay, and Pause/Resume without splitting the transcript (#90).
+- **Editable filler-word list** (#89 / #85), preserving raw transcripts.
+- Review batches 3–4 (#87/#88), more efficient history/caption updates, improved Gemini
+  reconnection, and dependency maintenance.
 
-See the [release handoff](docs/store-updates.md#release-151-handoff) for verified
-checks and remaining native/package acceptance. **1.5.1 is live in the Microsoft Store**
-(confirmed 23 September 2026), replacing 1.2.4; 1.3.0 through 1.5.0 were never submitted.
-Citation metadata identifies 1.5.1, dated 23 September 2026.
+The [release handoff](docs/store-updates.md#release-160-handoff) tracks validation, package
+artifacts and remaining native acceptance. Whisper is implemented; live hardware, language
+and Store-package verification must still be distinguished from unit/fixture tests. Cloud
+language acceptance from [#78](docs/language-coverage.md) also remains to be completed.
 
-**1.5.0 adds searchable caption languages and favourites (#78).** Provider support, persisted
-targets, F2, demo/rehearsal types and RTL captions are reconciled. Live acceptance is still
-pending in [language coverage](docs/language-coverage.md); #78 remains open.
-
-**1.4.1 refines the operator interface.** Settings has four tabs in a stable window,
-profiles sit above setup with aligned controls, and history uses a list/detail view.
-Presets, swatches, localized tray labels and EN/FR/DE date fields complete the UI audit.
-The final frontend suite has 337 passing tests. Store acceptance remains pending.
-
-The customizable filter list ([#85](https://github.com/fmadore/Live-translation/issues/85)) is
-implemented on `main` for the next release; see [the word list](docs/caption-layout.md#the-word-list).
-No new scroll-back or return-to-live controls are included in this update.
-
-**1.4.2 keeps session controls visible.** Start and Stop share a persistent top bar;
-setup and transcripts scroll underneath.
-
-**Next release, on `main` once merged: efficiency follow-up and three features.** Recorded in
-[the 24 September follow-up](docs/app-review-2026-09-22.md#follow-up--24-september-2026):
-
-- Gemini's `goAway` reconnects at once instead of backing off and dropping queued audio;
-  history appends new lines instead of rewriting the session file; overlay caption fitting
-  searches only the tail that could show (4.1 → 0.7 ms a caption in Chromium); device
-  presence is checked on change rather than polled; faster CI and component tests.
-- **Bilingual output** — the original speech under translations in exports and, optionally,
-  on the overlay.
-- **Pause** — keeps the session and transcript, disconnects the caption engine so nothing is
-  streamed or billed, and resumes with Ctrl+Shift+P or the button beside Stop.
-- **Two caption languages at once** — a second translation client per source, fed by the same
-  capture; both languages on the overlay, in the transcript and in the exports.
+Store copy now leads with real offline captions and optional cloud translation. The scripted
+demo stays available as a setup-free display check; first-launch behavior is unchanged.
+Citation metadata is prepared for 1.6.0, with the publication date left unset until release.
 
 ## Historical delivery context
 
@@ -70,8 +41,9 @@ privacy consent, installed speech languages, network behavior and a usable defau
 microphone. 1.0.5 dropped on-device recognition entirely in favour of a deterministic bundled
 demonstration that needs no device, account, language pack or network.
 
-That is the standing constraint on everything below: **the default path has to work on a
-machine nobody configured**, because that is the machine certification runs on.
+That history explains why the setup-free demo remains available. In 1.6.0, Whisper adds a
+real local recognition route after a model download; the earlier recognizer experiments
+below are historical and do not describe the new implementation.
 
 ## Planning conventions
 
@@ -171,7 +143,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.5.1 handoff](docs/store-updates.md#release-151-handoff) for the current checklist.
+Use the [1.6.0 handoff](docs/store-updates.md#release-160-handoff) for the current checklist.
 
 ## Research and unscheduled work
 

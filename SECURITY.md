@@ -14,7 +14,8 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 ## How this app handles credentials
 
 - Provider API keys (Gemini, OpenAI, Mistral) are stored in the OS credential store —
-  Windows Credential Manager — and are read only by the Rust core. They are never written to the frontend, to disk, or to logs.
+  Windows Credential Manager — and are read only by the Rust core. They are never written to
+  frontend storage, application settings, transcript files or logs.
 - The webview runs under a restrictive CSP (`connect-src 'self'`); all provider WebSocket
   traffic originates from Rust, not the frontend.
 - `.env` is git-ignored and intended for development only. `.env.example` contains variable
@@ -23,9 +24,11 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 
 ## What leaves the machine
 
-Live modes stream captured audio directly to the selected provider under that provider's
-terms. The built-in demo captures no audio and uses no network. The developer receives
-no audio, keys or transcripts.
+Cloud modes stream captured audio directly to the selected provider under that provider's
+terms. Local Whisper keeps audio on the PC, with pending speech in a delete-on-close temporary
+file. User-requested model downloads contact Hugging Face; size and SHA-256 are verified
+before installation and again before loading. Models remain cached until removed. The built-in
+demo captures no audio and uses no network. The developer receives no audio, keys or transcripts.
 
 Save as writes text, Markdown, SRT or VTT to the folder the user selects in the native
 Windows dialog. The optional local recovery copy is off by default and stores finalized

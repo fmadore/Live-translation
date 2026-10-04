@@ -1,5 +1,9 @@
 # Mistral Voxtral Mini Realtime Transcription API
 
+Cloud subtitle integration used by the 1.6.0 candidate. The API verification date below is
+historical; current release acceptance is in the [handoff](store-updates.md#release-160-handoff).
+For local subtitles without an account or key, see [Whisper](local-whisper.md).
+
 Verified 1 August 2026 against Mistral’s
 [realtime transcription guide](https://docs.mistral.ai/studio-api/audio/speech_to_text/realtime_transcription),
 [client-auth documentation](https://docs.mistral.ai/studio-api/audio/speech_to_text/realtime_transcription/client_auth),

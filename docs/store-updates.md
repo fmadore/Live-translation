@@ -9,6 +9,92 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.6.0 handoff
+
+**Prepared on 4 October 2026; not tagged, published or submitted.** Last confirmed live
+Store version: **1.5.1.0**. Target app version: **1.6.0**, MSIX **1.6.0.0**.
+
+Includes local Whisper (#99), two translation targets, original speech in overlay/exports,
+Pause/Resume, editable filler words and the remaining September review improvements.
+[GitHub release copy](release-1.6.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
+[Partner Center walkthrough](partner-center-walkthrough.md).
+
+The README is shortened around the current features, with detailed guides linked from the
+[documentation index](README.md). Store copy leads with offline captions and the overlay;
+the scripted demo remains a secondary setup aid. First-launch defaults are unchanged.
+Privacy/security documentation now distinguishes cloud streaming, Whisper's temporary local
+audio buffering and optional saved text history. No dependency versions change in preparation.
+
+### Preparation and validation
+
+- [x] PR #99 merged as `3717e5968d674af2e31818ae9ebd488caebccc75`; all seven PR CI jobs passed.
+- [x] App manifests and root lockfile entries set to 1.6.0; citation release date left unset
+  until publication.
+- [x] README, active user/developer guides, EN/FR/DE Store descriptions, features, short
+  descriptions, What's new, requirements and certification steps updated.
+- [x] The prior PR validation passed 538 frontend tests, 120 Rust tests (3 ignored), Clippy,
+  type checks and build; ARM64 English/French Whisper fixture inference also passed.
+- [x] Release-preparation validation: 538 frontend tests, 120 Rust tests (3 opt-in tests ignored),
+  Svelte check (zero errors/warnings), catalog parity, production build, Prettier, Rust
+  formatting and all-target Clippy with warnings denied. `npm audit` reports zero vulnerabilities.
+- [x] Store field lengths, localized screenshot captions, relative file links, UTF-8,
+  version consistency and unchanged dependency resolutions checked.
+- [x] Build and inspect native ARM64 and x64 MSIX packages and the combined unsigned bundle.
+
+### Remaining release acceptance
+
+- [ ] Test the final signed x64 and ARM64 MSIX on their native hardware: model download,
+  cancellation/removal, offline relaunch, microphone/system/application/Both capture,
+  Whisper backlog, Pause/Resume, Stop/discard and all export formats.
+- [ ] Complete cloud language acceptance (#78), two-target translation and original-speech
+  checks with suitable provider credentials; record provider and date.
+- [ ] Complete keyboard/Narrator, enlarged text, mixed-DPI overlay, profiles, history,
+  recovery, tray and quit-prompt checks from [Store acceptance](microsoft-store.md#acceptance-checklist).
+- [ ] Capture final MSIX screenshots in EN/FR/DE and review the German listing. Existing
+  repository screenshots are historical; see the [capture plan](store-screenshots/README.md).
+- [ ] Run Windows App Certification Kit and confirm the updated public privacy policy.
+- [ ] After acceptance, set the citation publication date, tag the approved commit, verify
+  release CI/artifacts, apply the prepared GitHub body and submit the bundle in Partner Center.
+- [ ] Record submission/certification and confirm the Store version before marking it live.
+
+The already installed **Live Translation Whisper Test** is a separate ARM64 NSIS build of
+PR #99 (version label 1.5.1), with its own identity/preferences. It remains useful for feedback
+but is not the Store submission artifact or evidence of 1.6.0 MSIX acceptance.
+
+### 1.6.0 artifact verification
+
+Built locally on 4 October 2026 from the release-preparation tree, based on `3717e596`.
+ARM64 was built natively; x64 was cross-compiled on the ARM64 host. Both builds used Rust
+1.98.1, LLVM/Clang 23.1.2, the normal committed Store configuration and the production frontend.
+No local-test identity override was applied. Files are in the ignored local directory
+`src-tauri/target/release-1.6.0/`; retain them separately from any signed sideload copies.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `Live.Translation_1.6.0.msixbundle` | 11,119,377 | `4d80ac5d054ad011fe537642bb732b0c1146383c24715891bc27e444727ca217` |
+| `Live.Translation_1.6.0_arm64.msix` | 5,465,272 | `cffa13f19027ce34e503c8805fa610d0d26c306f2bbd752abf97f3e5229a9d1a` |
+| `Live.Translation_1.6.0_x64.msix` | 5,652,099 | `53be35633058c4febacae4f6a8ad512408e216ac51e2bf9b35ff6787ce7b922d` |
+
+The bundle contains exactly the verified x64 and ARM64 packages, byte-for-byte. Bundle and
+inner manifests report **1.6.0.0**, identity `49346FMadore.LiveTranslationSubtitles`, publisher
+`CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`, and inner publisher display name `FMadore`.
+Executable PE machine values are `0xAA64` (ARM64, 10,606,080 bytes) and `0x8664` (x64,
+12,043,776 bytes). Each package includes both rehearsal WAVs and all three Whisper license
+notices, declares only `runFullTrust` and `microphone`, and carries no model weights or
+signature. Local `verification.json` and `SHA256SUMS.txt` accompany the artifacts.
+
+This verifies packaging and architecture, not native x64 runtime behavior or Store
+certification. Final signed-package acceptance and fresh screenshots remain pending above.
+The published release workflow should rebuild from the approved tag; record its asset
+hashes separately because independently rebuilt packages need not be byte-identical.
+
+## Historical release handoffs
+
+The sections below preserve the status and evidence recorded for earlier releases. Old
+upload instructions, pending checks and listing links do not select the current submission;
+use the 1.6.0 handoff above. The shared listing file now contains 1.6.0 copy; Git history
+preserves earlier text.
+
 ## Release 1.5.1 handoff
 
 **1.5.1 is live in the Microsoft Store**, MSIX **1.5.1.0**, as the maintainer confirmed on

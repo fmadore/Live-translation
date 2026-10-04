@@ -16,6 +16,12 @@ this way on 23 September 2026; earlier releases without prepared text here stay 
 
 ---
 
+## v1.6.0 — in preparation
+
+[Release body](release-1.6.0.md) · [Store handoff](store-updates.md#release-160-handoff).
+Local Whisper, two caption languages, bilingual output, Pause and editable filler words.
+No tag, GitHub release or Store submission has been published by this preparation.
+
 ## v1.5.1
 
 23 September 2026. [Release body](release-1.5.1.md) and

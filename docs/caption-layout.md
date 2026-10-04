@@ -1,6 +1,6 @@
 # Caption layout
 
-Current behavior through **1.5.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior for **1.6.0** (in preparation), originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 
@@ -161,7 +161,7 @@ Completed on 14 September 2026:
   **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
 
 The checks above are historical evidence for 1.2.4, not acceptance of the next package.
-For 1.5.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
+For 1.6.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
 
 | Check | Expected result |
 | --- | --- |

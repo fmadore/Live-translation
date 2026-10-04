@@ -1,5 +1,9 @@
 # OpenAI Realtime Translate API
 
+Cloud translation integration used by the 1.6.0 candidate. See [language coverage](language-coverage.md)
+for the remaining endpoint-code and live-language checks. Offline same-language captions
+use [local Whisper](local-whisper.md), not this translation endpoint.
+
 Verified 1 August 2026 with the official
 [Realtime translation guide](https://developers.openai.com/api/docs/guides/realtime-translation)
 and [translation client-event reference](https://developers.openai.com/api/reference/resources/realtime/translation-client-events).
