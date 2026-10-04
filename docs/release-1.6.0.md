@@ -29,7 +29,7 @@ The interface remains available in English, French and German. Cloud translation
 subtitles still require your own provider account and API key and may incur usage charges.
 The optional scripted English/French demo remains available for trying the display controls.
 
-Thanks to **Valentin Rabot** ([@valentinrabot](https://github.com/valentinrabot)) for suggesting
+Thanks to [@valentinrabot](https://github.com/valentinrabot) for suggesting
 local transcription in [issue #98](https://github.com/fmadore/Live-translation/issues/98).
 
 See [local Whisper](local-whisper.md) for model sizes, storage and performance details and

@@ -4,7 +4,7 @@ Included in **1.6.0** (in preparation), merged in [PR #99](https://github.com/fm
 Implements [issue #98](https://github.com/fmadore/Live-translation/issues/98). This is an
 additional **Subtitles** provider; local translation is outside this feature’s scope.
 
-**Suggested by Valentin Rabot** ([@valentinrabot](https://github.com/valentinrabot)) in
+Suggested by [@valentinrabot](https://github.com/valentinrabot) in
 [issue #98](https://github.com/fmadore/Live-translation/issues/98): local transcription for
 same-language meetings without ongoing API costs, with Whisper offered as a possible engine.
 

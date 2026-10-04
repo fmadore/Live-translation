@@ -23,7 +23,7 @@ The README is shortened around the current features, with detailed guides linked
 [documentation index](README.md). Store copy leads with offline captions and the overlay;
 the scripted demo remains a secondary setup aid. Fresh installations select Whisper / Base /
 automatic detection; downloads and capture require user action. Existing saved setups are
-preserved. Valentin Rabot is credited for proposing local transcription in issue #98.
+preserved. @valentinrabot is credited for proposing local transcription in issue #98.
 Privacy/security documentation now distinguishes cloud streaming, Whisper's temporary local
 audio buffering and optional saved text history. No dependency versions change in preparation.
 

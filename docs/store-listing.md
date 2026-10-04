@@ -66,7 +66,7 @@ For bilingual meetings, show two translation languages at once or include availa
 
 Pause and resume without splitting your transcript. Cloud connections close during breaks; Whisper keeps processing speech already queued. Edit the overlay's filler-word list while preserving the raw transcript.
 
-New installs open on Whisper with Base and automatic language detection; existing saved setups are preserved. Also includes faster caption layout and history updates, improved Gemini reconnection and a more consistent operator interface. Native x64 and ARM64, with an English, French or German interface. Thanks to Valentin Rabot for suggesting local transcription in issue #98.
+New installs open on Whisper with Base and automatic language detection; existing saved setups are preserved. Also includes faster caption layout and history updates, improved Gemini reconnection and a more consistent operator interface. Native x64 and ARM64, with an English, French or German interface. Thanks to @valentinrabot for suggesting local transcription in issue #98.
 ```
 
 ## Français (France)
@@ -125,7 +125,7 @@ Pour les réunions bilingues, affichez deux langues de traduction à la fois ou 
 
 Faites une pause puis reprenez sans scinder la transcription. Les connexions cloud se ferment pendant les pauses ; Whisper continue de traiter l'audio déjà en attente. Modifiez la liste d'hésitations de la surimpression sans altérer la transcription originale.
 
-Les nouvelles installations s'ouvrent sur Whisper avec Base et la détection automatique ; les réglages enregistrés restent conservés. Inclut aussi un affichage et un historique plus efficaces, une reconnexion Gemini améliorée et une interface de contrôle harmonisée. Versions x64 et ARM64 natives ; interface en français, anglais ou allemand. Merci à Valentin Rabot pour sa suggestion de transcription locale dans le ticket #98.
+Les nouvelles installations s'ouvrent sur Whisper avec Base et la détection automatique ; les réglages enregistrés restent conservés. Inclut aussi un affichage et un historique plus efficaces, une reconnexion Gemini améliorée et une interface de contrôle harmonisée. Versions x64 et ARM64 natives ; interface en français, anglais ou allemand. Merci à @valentinrabot pour sa suggestion de transcription locale dans le ticket #98.
 ```
 
 ## Deutsch (Deutschland)
@@ -184,7 +184,7 @@ Für zweisprachige Meetings zeigen Sie zwei Übersetzungssprachen gleichzeitig o
 
 Pausieren und fortsetzen, ohne das Transkript aufzuteilen. Cloud-Verbindungen werden in Pausen geschlossen; Whisper verarbeitet bereits wartendes Audio weiter. Bearbeiten Sie die Füllwortliste des Overlays, ohne das Originaltranskript zu ändern.
 
-Neue Installationen starten mit Whisper, Base und automatischer Spracherkennung; gespeicherte Einstellungen bleiben erhalten. Außerdem: effizientere Untertiteldarstellung und Verlaufsspeicherung, verbesserte Gemini-Wiederverbindung und eine einheitlichere Bedienoberfläche. Native x64- und ARM64-Versionen; Oberfläche auf Deutsch, Englisch oder Französisch. Danke an Valentin Rabot für den Vorschlag zur lokalen Transkription in Issue #98.
+Neue Installationen starten mit Whisper, Base und automatischer Spracherkennung; gespeicherte Einstellungen bleiben erhalten. Außerdem: effizientere Untertiteldarstellung und Verlaufsspeicherung, verbesserte Gemini-Wiederverbindung und eine einheitlichere Bedienoberfläche. Native x64- und ARM64-Versionen; Oberfläche auf Deutsch, Englisch oder Französisch. Danke an @valentinrabot für den Vorschlag zur lokalen Transkription in Issue #98.
 ```
 
 ## Adding the German listing

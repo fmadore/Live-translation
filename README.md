@@ -98,7 +98,7 @@ and Windows x64/ARM64, dependencies and workflows. Tagged releases build install
 combined Store bundle; Partner Center submission is manual.
 
 Originally developed for the workshop *Digital Humanities and Artificial Intelligence in
-African Studies*, STIAS, Stellenbosch, 21–24 September 2026. Thanks to **Valentin Rabot**
-([@valentinrabot](https://github.com/valentinrabot)) for proposing local transcription in
+African Studies*, STIAS, Stellenbosch, 21–24 September 2026. Thanks to
+[@valentinrabot](https://github.com/valentinrabot) for proposing local transcription in
 [issue #98](https://github.com/fmadore/Live-translation/issues/98) and for his meeting feedback.
 [Citation metadata](CITATION.cff) · [MIT license](LICENSE).
