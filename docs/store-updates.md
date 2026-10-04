@@ -11,8 +11,9 @@ packages are built.
 
 ## Release 1.6.0 handoff
 
-**Prepared on 4 October 2026; not tagged, published or submitted.** Last confirmed live
-Store version: **1.5.1.0**. Target app version: **1.6.0**, MSIX **1.6.0.0**.
+**[v1.6.0 published on GitHub](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
+on 4 October 2026; Store submission pending.** Last confirmed live Store version:
+**1.5.1.0**. Published app version: **1.6.0**, MSIX **1.6.0.0**.
 
 Includes local Whisper (#99), two translation targets, original speech in overlay/exports,
 Pause/Resume, editable filler words and the remaining September review improvements.
@@ -30,8 +31,8 @@ audio buffering and optional saved text history. No dependency versions change i
 ### Preparation and validation
 
 - [x] PR #99 merged as `3717e5968d674af2e31818ae9ebd488caebccc75`; all seven PR CI jobs passed.
-- [x] App manifests and root lockfile entries set to 1.6.0; citation release date left unset
-  until publication.
+- [x] App manifests and root lockfile entries set to 1.6.0; citation release date set to
+  4 October 2026 at publication.
 - [x] README, active user/developer guides, EN/FR/DE Store descriptions, features, short
   descriptions, What's new, requirements and certification steps updated.
 - [x] The prior PR validation passed 538 frontend tests, 120 Rust tests (3 ignored), Clippy,
@@ -48,7 +49,7 @@ audio buffering and optional saved text history. No dependency versions change i
 - [x] Rebuild and inspect native ARM64 and x64 MSIX packages and the combined unsigned bundle
   after changing the first-launch default.
 
-### Remaining release acceptance
+### Remaining Store acceptance
 
 - [ ] Test the final signed x64 and ARM64 MSIX on their native hardware: model download,
   cancellation/removal, offline relaunch, microphone/system/application/Both capture,
@@ -59,16 +60,45 @@ audio buffering and optional saved text history. No dependency versions change i
   recovery, tray and quit-prompt checks from [Store acceptance](microsoft-store.md#acceptance-checklist).
 - [ ] Capture final MSIX screenshots in EN/FR/DE and review the German listing. Existing
   repository screenshots are historical; see the [capture plan](store-screenshots/README.md).
-- [ ] Run Windows App Certification Kit and confirm the updated public privacy policy.
-- [ ] After acceptance, set the citation publication date, tag the approved commit, verify
-  release CI/artifacts, apply the prepared GitHub body and submit the bundle in Partner Center.
+- [x] Confirm the public privacy policy responds successfully and includes the
+  4 October Whisper update, model downloads and temporary local audio buffering.
+- [ ] Run Windows App Certification Kit.
+- [x] Tag `v1.6.0`, pass release-commit CI and all installer/MSIX/bundle jobs, verify
+  downloaded assets and publish the prepared GitHub release body.
+- [ ] Submit the published combined bundle in Partner Center with the updated listing.
 - [ ] Record submission/certification and confirm the Store version before marking it live.
 
 The already installed **Live Translation Whisper Test** is a separate ARM64 NSIS build of
 PR #99 (version label 1.5.1), with its own identity/preferences. It remains useful for feedback
 but is not the Store submission artifact or evidence of 1.6.0 MSIX acceptance.
 
-### 1.6.0 artifact verification
+### Published 1.6.0 artifact verification
+
+Tag `v1.6.0` points to `41cee07bddc6ad412787972798c277bdb46cacdb`.
+All seven [release-commit CI jobs](https://github.com/fmadore/Live-translation/actions/runs/37210371969)
+and all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/37210374213)
+passed. The GitHub release body is [release-1.6.0.md](release-1.6.0.md).
+
+Upload **[Live.Translation_1.6.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0.msixbundle)**
+to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
+GitHub's asset digest. Local copies and verification reports are in the ignored directory
+`src-tauri/target/release-1.6.0/published/`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Live.Translation_1.6.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0.msixbundle) | 11,129,466 | `8b24e343ee505f4b5efa7dd0278fa82e5c926592299f27a85ba00fac876ff430` |
+| [Live.Translation_1.6.0_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0_x64.msix) | 5,658,699 | `1efc608f9502f29cc6015424fe1f3ea19020b59ccfdd3d2efbd2194ba8897bbf` |
+| [Live.Translation_1.6.0_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0_arm64.msix) | 5,468,759 | `1926305273bc30e4ee1cdb3fa02d714082eb1333469ffd24155052ff54712b07` |
+
+The bundle contains exactly the separately downloaded x64 and ARM64 packages, byte-for-byte.
+Bundle and inner manifests report **1.6.0.0**, identity `49346FMadore.LiveTranslationSubtitles`,
+publisher `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` and publisher display name `FMadore`.
+The executable PE machine values confirm native `0x8664` (x64) and `0xAA64` (ARM64).
+Both packages include the English/French rehearsal WAVs and all three Whisper license notices,
+declare only `runFullTrust` and `microphone`, and contain no model weights or signature.
+The Store signs accepted packages; final signed-package acceptance remains tracked above.
+
+### Local candidate artifact verification (before tagging)
 
 Rebuilt locally on 4 October 2026 after the Whisper first-launch change, based on the
 release-preparation branch. The revised frontend and localized subtitle copy are embedded.
@@ -93,8 +123,8 @@ signature. Local `verification.json` and `SHA256SUMS.txt` accompany the artifact
 
 This verifies packaging and architecture, not native x64 runtime behavior or Store
 certification. Final signed-package acceptance and fresh screenshots remain pending above.
-The published release workflow should rebuild from the approved tag; record its asset
-hashes separately because independently rebuilt packages need not be byte-identical.
+These local candidate files are superseded for submission by the published CI assets
+above. Independently rebuilt packages need not be byte-identical.
 
 ## Historical release handoffs
 

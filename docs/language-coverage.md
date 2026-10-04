@@ -1,6 +1,6 @@
 # Caption language coverage (issue #78)
 
-This describes **1.6.0** (in preparation). Translation targets retain the catalog introduced
+This describes **1.6.0**. Translation targets retain the catalog introduced
 in 1.5.0; Whisper adds a separate spoken-language selector. The dated cloud-provider checks
 below remain the latest recorded evidence, not a claim of fresh endpoint verification.
 

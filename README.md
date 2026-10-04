@@ -9,9 +9,10 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
-The latest published release is **1.5.1**. This README describes **1.6.0**, currently being
-prepared for release. Whisper and the other additions below are in the source; see the
-[1.6.0 release notes](docs/release-1.6.0.md) and [Store handoff](docs/store-updates.md#release-160-handoff).
+**[1.6.0 is available on GitHub](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)**
+(4 October 2026), including local Whisper. The Store update is pending; its last confirmed
+version is 1.5.1. See the [release notes](docs/release-1.6.0.md) and
+[Store handoff](docs/store-updates.md#release-160-handoff).
 
 ## What it does
 

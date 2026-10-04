@@ -1,6 +1,6 @@
 # Gemini Live API
 
-Cloud integration used by the 1.6.0 candidate. The verification dates below describe the
+Cloud integration used by 1.6.0. The verification dates below describe the
 recorded API checks; release acceptance is tracked in the [current handoff](store-updates.md#release-160-handoff).
 For subtitles without a cloud connection, see [local Whisper](local-whisper.md).
 

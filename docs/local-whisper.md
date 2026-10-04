@@ -1,6 +1,6 @@
 # Local multilingual Whisper transcription
 
-Included in **1.6.0** (in preparation), merged in [PR #99](https://github.com/fmadore/Live-translation/pull/99).
+Included in **1.6.0**, merged in [PR #99](https://github.com/fmadore/Live-translation/pull/99).
 Implements [issue #98](https://github.com/fmadore/Live-translation/issues/98). This is an
 additional **Subtitles** provider; local translation is outside this feature’s scope.
 

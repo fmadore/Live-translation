@@ -1,7 +1,7 @@
 # Microsoft Store submission
 
-**Next target: 1.6.0 / MSIX 1.6.0.0, in preparation.** The last confirmed Store release is
-1.5.1, live since 23 September 2026. See the [current handoff](store-updates.md#release-160-handoff),
+**GitHub release: 1.6.0 / MSIX 1.6.0.0; Store submission pending.** The last confirmed Store
+release is 1.5.1, live since 23 September 2026. See the [current handoff](store-updates.md#release-160-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach

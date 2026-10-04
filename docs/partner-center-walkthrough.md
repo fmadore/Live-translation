@@ -1,8 +1,10 @@
 # Partner Center submission walkthrough — 1.6.0
 
 Target: **Live Translation & Subtitles 1.6.0**, Product ID `9PFB8LR3RR9X`.
-Prepared, not submitted. Use the [release handoff](store-updates.md#release-160-handoff)
-for package evidence and outstanding acceptance checks.
+Published on GitHub, not yet submitted to the Store. Download the
+[combined x64 + ARM64 bundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.0/Live.Translation_1.6.0.msixbundle).
+Use the [release handoff](store-updates.md#release-160-handoff) for package evidence and
+outstanding acceptance checks.
 
 ## Before Partner Center
 
@@ -14,7 +16,7 @@ for package evidence and outstanding acceptance checks.
 3. Complete the [acceptance checklist](microsoft-store.md#acceptance-checklist), including
    offline Whisper after download, cloud features, Stop/backlog, overlay, export and WACK.
 4. Refresh [screenshots](store-screenshots/README.md) and review all three listing languages.
-5. Publish and check the updated [privacy policy](https://fmadore.github.io/Live-translation/privacy),
+5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy),
    including Whisper model downloads and temporary local audio buffering.
 
 ## Pricing and properties

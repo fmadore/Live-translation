@@ -1,6 +1,6 @@
 # Caption layout
 
-Current behavior for **1.6.0** (in preparation), originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior for **1.6.0**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 

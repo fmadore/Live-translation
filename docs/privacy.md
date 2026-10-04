@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 4 October 2026 (documents the 1.6.0 release candidate)
+**Effective date:** 4 October 2026 (documents the 1.6.0 release)
 
 ## What this app is
 

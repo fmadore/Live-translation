@@ -1,7 +1,8 @@
 # Documentation
 
-These guides describe **1.6.0 in preparation**. The latest published GitHub/Store release is
-1.5.1; dated reviews and older release handoffs are historical records.
+These guides describe **[1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)**,
+published on GitHub on 4 October 2026. The Store update is pending; its last confirmed version
+is 1.5.1. Dated reviews and older release handoffs are historical records.
 
 ## Using the app
 

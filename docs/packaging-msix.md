@@ -6,7 +6,7 @@ Credential Manager, the overlay and the export path, all running under package i
 
 [`microsoft-store.md`](microsoft-store.md) has the why: the Store policy gates, the assigned
 identity values and acceptance checklist. This file covers building, signing and testing
-the **1.6.0** candidate; the [handoff](store-updates.md#release-160-handoff) records its status.
+the **1.6.0** release; the [handoff](store-updates.md#release-160-handoff) records its Store status.
 
 ## What is committed
 

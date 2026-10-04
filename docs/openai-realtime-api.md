@@ -1,6 +1,6 @@
 # OpenAI Realtime Translate API
 
-Cloud translation integration used by the 1.6.0 candidate. See [language coverage](language-coverage.md)
+Cloud translation integration used by 1.6.0. See [language coverage](language-coverage.md)
 for the remaining endpoint-code and live-language checks. Offline same-language captions
 use [local Whisper](local-whisper.md), not this translation endpoint.
 

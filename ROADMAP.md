@@ -4,10 +4,11 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.6.0 in preparation
+## Current status — 1.6.0 released on GitHub
 
-The latest published GitHub and Store release is **1.5.1** (23 September 2026). The next
-release is **1.6.0**, with the following work merged:
+The latest [GitHub release is **1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
+(4 October 2026). Store submission is pending; its last confirmed version is **1.5.1**
+(23 September 2026). Version 1.6.0 includes:
 
 - **Local Whisper transcription** ([#99](https://github.com/fmadore/Live-translation/pull/99)):
   downloadable multilingual Tiny/Base/Small models, 99 language choices, CPU processing on
@@ -27,7 +28,7 @@ Store copy now leads with real offline captions and optional cloud translation. 
 demo stays available as a setup-free display check. Fresh installs now select Whisper with
 Base and automatic detection, while upgrades preserve saved setups. Thanks to **@valentinrabot**
 for the local transcription suggestion in [#98](https://github.com/fmadore/Live-translation/issues/98).
-Citation metadata is prepared for 1.6.0, with the publication date left unset until release.
+Citation metadata records 1.6.0 with its publication date of 4 October 2026.
 
 ## Historical delivery context
 

@@ -16,11 +16,13 @@ this way on 23 September 2026; earlier releases without prepared text here stay 
 
 ---
 
-## v1.6.0 — in preparation
+## v1.6.0
 
+4 October 2026. [Published release](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) ·
 [Release body](release-1.6.0.md) · [Store handoff](store-updates.md#release-160-handoff).
 Local Whisper, two caption languages, bilingual output, Pause and editable filler words.
-No tag, GitHub release or Store submission has been published by this preparation.
+Native x64/ARM64 MSIX packages and the combined Store bundle are attached. Store submission
+and certification remain separate and are pending.
 
 ## v1.5.1
 

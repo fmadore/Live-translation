@@ -1,6 +1,6 @@
 # Mistral Voxtral Mini Realtime Transcription API
 
-Cloud subtitle integration used by the 1.6.0 candidate. The API verification date below is
+Cloud subtitle integration used by 1.6.0. The API verification date below is
 historical; current release acceptance is in the [handoff](store-updates.md#release-160-handoff).
 For local subtitles without an account or key, see [Whisper](local-whisper.md).
 

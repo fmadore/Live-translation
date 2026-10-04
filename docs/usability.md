@@ -1,7 +1,7 @@
 # Meeting profiles and live controls
 
 Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
-Pause, two caption languages and bilingual output are included in **1.6.0** (in preparation).
+Pause, two caption languages and bilingual output are included in **1.6.0**.
 See the [release checklist](store-updates.md#release-160-handoff).
 
 ## Session controls (1.4.2)
