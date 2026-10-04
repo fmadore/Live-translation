@@ -328,13 +328,13 @@ export const de: Messages = {
 		},
 		transcribe: {
 			title: 'Untertitel',
-			desc: 'Integrierte Demonstration oder Live-Sprache mit Voxtral oder Gemini. Export als Text, Markdown, SRT oder VTT.'
+			desc: 'Integrierte Demonstration oder Live-Sprache mit Whisper, Voxtral oder Gemini. Export als Text, Markdown, SRT oder VTT.'
 		},
 
 		sourceHint:
 			'Systemaudio nimmt Anwendungen auf, die über die ausgewählte Ausgabe laufen – Zoom, Teams, einen Browser-Tab, einen Medienplayer.',
 		demoSourceHint:
-			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
+			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Whisper, Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
 		micDevice: 'Mikrofongerät',
 		systemDefault: 'Systemstandard',
 		/** Appended to the name of the device Windows would pick on its own. */

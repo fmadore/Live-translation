@@ -56,7 +56,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Linux catches portable logic; Windows compiles WASAPI and the Win32/WinRT bindings.
+        # Exercise the portable logic and both supported Windows architectures, including
+        # native WASAPI and Win32/WinRT bindings. Packaging still runs in release.yml.
         os: [ubuntu-latest, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45

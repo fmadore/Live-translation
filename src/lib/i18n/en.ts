@@ -320,13 +320,13 @@ export const en = {
 		},
 		transcribe: {
 			title: 'Subtitles',
-			desc: 'Built-in demonstration or live speech with Voxtral or Gemini. Export as text, Markdown, SRT or VTT.'
+			desc: 'Built-in demonstration or live speech with Whisper, Voxtral or Gemini. Export as text, Markdown, SRT or VTT.'
 		},
 
 		sourceHint:
 			'System audio captures apps playing through the selected output — Zoom, Teams, a browser tab, a media player.',
 		demoSourceHint:
-			'Uses a bundled deterministic sample. Choose Voxtral or Gemini for live microphone or system-audio subtitles.',
+			'Uses a bundled deterministic sample. Choose Whisper, Voxtral or Gemini for live microphone or system-audio subtitles.',
 		micDevice: 'Microphone device',
 		systemDefault: 'System default',
 		/** Appended to the name of the device Windows would pick on its own. */

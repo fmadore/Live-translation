@@ -91,17 +91,18 @@ pub fn trim_overlap<'a>(previous: &str, current: &'a str, overlaps: bool) -> &'a
     if !overlaps {
         return current;
     }
+    // Prefer a complete match before shorter suffixes: repeated words such as
+    // "yes yes" otherwise leave an extra "yes" at the next window boundary.
+    if current.chars().count() >= 3 && previous.ends_with(current) {
+        return "";
+    }
     for (index, _) in current.char_indices().rev() {
         let prefix = &current[..index];
         if prefix.chars().count() >= 3 && previous.ends_with(prefix) {
             return current[index..].trim_start();
         }
     }
-    if current.chars().count() >= 3 && previous.ends_with(current) {
-        ""
-    } else {
-        current
-    }
+    current
 }
 
 #[cfg(test)]
@@ -146,5 +147,12 @@ mod tests {
         );
         assert_eq!(trim_overlap("你好世界朋友", "世界朋友再见", true), "再见");
         assert_eq!(trim_overlap("yes yes", "yes yes", false), "yes yes");
+    }
+
+    #[test]
+    fn complete_overlap_wins_over_a_repeated_partial_suffix() {
+        assert_eq!(trim_overlap("yes yes", "yes yes", true), "");
+        assert_eq!(trim_overlap("il dit oui oui", "oui oui", true), "");
+        assert_eq!(trim_overlap("你好你好你好", "你好你好", true), "");
     }
 }

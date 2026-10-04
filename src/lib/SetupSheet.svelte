@@ -61,7 +61,7 @@
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself.
 	const spokenChoices = $derived.by(() => {
-		const names = new Intl.DisplayNames([$locale], { type: 'language' });
+		const names = new Intl.DisplayNames([$locale], { type: 'language', fallback: 'none' });
 		return whisperLanguages
 			.map((l) => ({ code: l.code, name: names.of(l.code) || l.name }))
 			.sort((a, b) => a.name.localeCompare(b.name, $locale));

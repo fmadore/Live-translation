@@ -330,13 +330,13 @@ export const fr: Messages = {
 		},
 		transcribe: {
 			title: 'Sous-titres',
-			desc: 'Démonstration intégrée ou parole en direct avec Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
+			desc: 'Démonstration intégrée ou parole en direct avec Whisper, Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
 		},
 
 		sourceHint:
 			'L’audio système capte les applications utilisant la sortie choisie — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
 		demoSourceHint:
-			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
+			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Whisper, Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
 		micDevice: 'Périphérique microphone',
 		systemDefault: 'Périphérique par défaut',
 		/** Appended to the name of the device Windows would pick on its own. */
