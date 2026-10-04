@@ -84,10 +84,72 @@ pub async fn start_session(
 
 /// Pause or resume the running session; see `SessionManager::set_paused`.
 #[tauri::command]
-pub fn pause_session(manager: State<'_, SessionManager>, paused: bool) -> Result<(), AppError> {
+pub fn pause_session(
+    app: AppHandle,
+    manager: State<'_, SessionManager>,
+    paused: bool,
+) -> Result<(), AppError> {
     manager
-        .set_paused(paused)
+        .set_paused(&app, paused)
         .map_err(|error| AppError::with(id::SESSION_PAUSE, format!("{error:#}")))
+}
+
+#[tauri::command]
+pub async fn whisper_models(
+    app: AppHandle,
+) -> Result<Vec<crate::whisper::models::ModelInfo>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = crate::whisper::models::directory(&app)?;
+        Ok::<_, anyhow::Error>(
+            app.state::<crate::whisper::models::ModelManager>()
+                .list(&dir),
+        )
+    })
+    .await
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+}
+
+#[tauri::command]
+pub async fn download_whisper_model(
+    app: AppHandle,
+    model: crate::whisper::models::ModelId,
+) -> Result<(), AppError> {
+    let dir = crate::whisper::models::directory(&app)
+        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?;
+    let manager = app
+        .state::<crate::whisper::models::ModelManager>()
+        .inner()
+        .clone();
+    manager
+        .download(&dir, model)
+        .await
+        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+}
+
+#[tauri::command]
+pub fn cancel_whisper_download(manager: State<'_, crate::whisper::models::ModelManager>) {
+    manager.cancel_download();
+}
+
+#[tauri::command]
+pub async fn remove_whisper_model(
+    app: AppHandle,
+    model: crate::whisper::models::ModelId,
+) -> Result<(), AppError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let dir = crate::whisper::models::directory(&app)?;
+        app.state::<crate::whisper::models::ModelManager>()
+            .remove(&dir, model)
+    })
+    .await
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+}
+
+#[tauri::command]
+pub fn discard_whisper_pending(manager: State<'_, SessionManager>) {
+    manager.discard_local_pending();
 }
 
 #[tauri::command]

@@ -1,5 +1,7 @@
 <script lang="ts">
 	import LanguagePicker from './LanguagePicker.svelte';
+	import WhisperModels from './WhisperModels.svelte';
+	import whisperLanguages from './whisperLanguages.json';
 	import LevelMeter from './LevelMeter.svelte';
 	import SystemCapturePicker from './SystemCapturePicker.svelte';
 	import ChoiceButton from './ui/ChoiceButton.svelte';
@@ -42,7 +44,7 @@
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
 			? ['gemini', 'openai']
-			: ['mistral', 'gemini-transcribe', 'ondevice']
+			: ['mistral', 'gemini-transcribe', 'whisper', 'ondevice']
 	);
 
 	// The second caption language: favourites first, then every language the engine offers,
@@ -58,6 +60,12 @@
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself.
+	const spokenChoices = $derived.by(() => {
+		const names = new Intl.DisplayNames([$locale], { type: 'language', fallback: 'none' });
+		return whisperLanguages
+			.map((l) => ({ code: l.code, name: names.of(l.code) || l.name }))
+			.sort((a, b) => a.name.localeCompare(b.name, $locale));
+	});
 	const languageStepTitle = $derived(
 		$options.mode === 'translate'
 			? $t.rail.step.roomReads
@@ -258,7 +266,22 @@
 		<span class="step-no">03</span>
 		<h2 class="kicker">{languageStepTitle}</h2>
 	</div>
-	{#if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
+	{#if $options.provider === 'whisper'}
+		<Field label={$t.whisper.language}>
+			<Select
+				value={$options.spokenLanguage ?? ''}
+				disabled={locked}
+				onchange={(e) =>
+					($options = { ...$options, spokenLanguage: e.currentTarget.value || null })}
+			>
+				<option value="">{$t.whisper.auto}</option>
+				{#each spokenChoices as language (language.code)}
+					<option value={language.code}>{language.name}</option>
+				{/each}
+			</Select>
+		</Field>
+		<p class="hint">{$t.whisper.languageHint}</p>
+	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
 	{:else if $options.mode === 'translate'}
 		<LanguagePicker
@@ -340,6 +363,7 @@
 			</button>
 		{/each}
 	</div>
+	{#if $options.provider === 'whisper'}<WhisperModels {locked} {browserMode} />{/if}
 </section>
 
 <style>

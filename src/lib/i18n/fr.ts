@@ -172,7 +172,34 @@ export const fr: Messages = {
 		sample: 'Échantillon'
 	},
 
+	whisper: {
+		cost: 'Sur cet ordinateur — aucun frais d’API',
+		title: 'Transcription locale',
+		language: 'Langue parlée',
+		auto: 'Détection automatique',
+		languageHint:
+			'Transcrire dans la langue parlée. Choisissez une langue si vous la connaissez ; la détection automatique couvre les langues prises en charge.',
+		model: 'Modèle Whisper',
+		tiny: 'Tiny — le plus rapide',
+		base: 'Base — équilibré',
+		small: 'Small — plus précis',
+		download: 'Télécharger le modèle',
+		remove: 'Supprimer le modèle',
+		cancel: 'Annuler le téléchargement',
+		ready: 'Modèle prêt pour la transcription hors ligne.',
+		missing: 'Téléchargez un modèle avant de démarrer.',
+		downloading: 'Téléchargement du modèle…',
+		privacy:
+			'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
+		hint: 'Les modèles prennent en charge 99 langues. La précision et la vitesse varient selon la langue et l’ordinateur.',
+		processing: 'Finalisation de la transcription…',
+		pending: 'Son en attente de transcription',
+		discard: 'Abandonner le son restant',
+		discardConfirm:
+			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.'
+	},
 	engine: {
+		whisper: 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -200,6 +227,7 @@ export const fr: Messages = {
 
 	provider: {
 		vendor: {
+			whisper: 'Whisper local',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -209,9 +237,12 @@ export const fr: Messages = {
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
+			whisper: 'Whisper multilingue',
 			ondevice: 'Échantillon fourni · déterministe'
 		},
 		costNote: {
+			whisper:
+				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
 			gemini:
 				'Gemini : l’entrée est facturée au temps réel, la sortie uniquement pendant la traduction — les pauses et les changements de diapositive font baisser ce montant.',
 			'gemini-transcribe':
@@ -299,13 +330,13 @@ export const fr: Messages = {
 		},
 		transcribe: {
 			title: 'Sous-titres',
-			desc: 'Démonstration intégrée ou parole en direct avec Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
+			desc: 'Démonstration intégrée ou parole en direct avec Whisper, Voxtral ou Gemini. Export en texte, Markdown, SRT ou VTT.'
 		},
 
 		sourceHint:
 			'L’audio système capte les applications utilisant la sortie choisie — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
 		demoSourceHint:
-			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
+			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Whisper, Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
 		micDevice: 'Périphérique microphone',
 		systemDefault: 'Périphérique par défaut',
 		/** Appended to the name of the device Windows would pick on its own. */
@@ -702,6 +733,8 @@ export const fr: Messages = {
 	// stop. Keep the ids and the keys in step: `errors.test.ts` reads the Rust file and fails
 	// if a failure the core can report has no sentence here.
 	error: {
+		whisperModel: 'Le modèle Whisper n’a pas pu être préparé',
+		whisperSession: 'La transcription locale n’a pas pu se terminer ; elle peut être incomplète',
 		deviceEnumeration: 'Windows n’a pas pu énumérer les appareils audio',
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',

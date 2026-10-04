@@ -21,6 +21,14 @@ export interface ProviderMeta {
 }
 
 export const PROVIDER_META: Record<Provider, ProviderMeta> = {
+	whisper: {
+		id: 'whisper',
+		modelId: '',
+		hourlyRate: null,
+		hourlyEstimate: 0,
+		perStream: false,
+		keyUrl: null
+	},
 	gemini: {
 		id: 'gemini',
 		modelId: 'gemini-3.5-live-translate-preview',
@@ -94,5 +102,7 @@ export function rateText(meta: ProviderMeta, m: Messages): string {
 /** What to print under the vendor name. Real backends have a model id; the demonstration has
  *  a description instead, and that is prose. */
 export function modelLabel(meta: ProviderMeta, m: Messages): string {
-	return meta.modelId || m.provider.model.ondevice;
+	return meta.id === 'whisper'
+		? m.provider.model.whisper
+		: meta.modelId || m.provider.model.ondevice;
 }

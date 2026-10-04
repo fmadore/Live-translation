@@ -111,6 +111,7 @@ pub enum Provider {
     Mistral,
     /// Bundled deterministic demonstration. Keyless, offline, same-language only.
     OnDevice,
+    Whisper,
 }
 
 impl Provider {
@@ -121,7 +122,7 @@ impl Provider {
             Provider::GeminiTranscribe => 16_000,
             Provider::OpenAi => 24_000,
             Provider::Mistral => 16_000,
-            Provider::OnDevice => 16_000,
+            Provider::OnDevice | Provider::Whisper => 16_000,
         }
     }
 
@@ -129,7 +130,7 @@ impl Provider {
     /// demonstration is the one path that works with no credential — which is what keeps
     /// provider keys out of the app's *primary* functionality.
     pub fn requires_api_key(self) -> bool {
-        !matches!(self, Provider::OnDevice)
+        !matches!(self, Provider::OnDevice | Provider::Whisper)
     }
 
     /// Whether the backend can produce translated captions. The built-in demonstration is
@@ -179,6 +180,10 @@ pub struct StartOptions {
     /// fed by the same capture — lane 1, beside `target_language` on lane 0. Translation only.
     #[serde(default)]
     pub second_target_language: Option<TargetLanguage>,
+    #[serde(default)]
+    pub whisper_model: crate::whisper::models::ModelId,
+    #[serde(default)]
+    pub spoken_language: Option<String>,
 }
 
 /// Borrows the turn's text rather than owning it: a caption is serialized the moment it is
@@ -268,6 +273,7 @@ pub struct AudioDevice {
 
 /// Event names emitted to the front-end. Mirror `EVT` in types.ts.
 pub mod events {
+    pub const WHISPER_PROGRESS: &str = "whisper-progress";
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";

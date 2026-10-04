@@ -105,7 +105,7 @@ pub fn run_microphone(
     device_name: Option<String>,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
-    chunk_tx: Sender<AudioChunk>,
+    chunk_tx: super::sink::AudioSink,
     cancel: CancellationToken,
 ) -> Result<()> {
     let device = pick_device(device_name.as_deref())?;
@@ -264,7 +264,7 @@ pub fn run_microphone(
 pub struct CaptureState {
     origin: Origin,
     level_tx: Sender<AudioLevel>,
-    chunk_tx: Sender<AudioChunk>,
+    chunk_tx: super::sink::AudioSink,
     resampler: Resampler,
     // Samples in one ~100 ms chunk at the target rate.
     chunk_len: usize,
@@ -286,7 +286,7 @@ impl CaptureState {
         in_rate: u32,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
-        chunk_tx: Sender<AudioChunk>,
+        chunk_tx: super::sink::AudioSink,
     ) -> Self {
         let chunk_len = chunk_samples(target_rate);
         Self {
@@ -347,8 +347,8 @@ impl CaptureState {
             let end = self.pending_start + self.chunk_len;
             f32_to_pcm16_le(&self.pending[self.pending_start..end], &mut pcm);
             self.pending_start = end;
-            // Never block the real-time callback. A full queue means the caption client is
-            // already behind, so bounded loss is preferable to unbounded caption latency.
+            // Never block the real-time callback. Cloud queues favor current speech;
+            // the local sink stops visibly if its independent writer queue overflows.
             if let Err(error) = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm }) {
                 if matches!(error, TrySendError::Closed(_)) {
                     self.pending_start = self.pending.len();
@@ -384,6 +384,16 @@ impl CaptureState {
         self.peak_accum = 0.0;
         self.sq_sum = 0.0;
         self.sq_count = 0;
+    }
+}
+
+impl Drop for CaptureState {
+    fn drop(&mut self) {
+        if self.chunk_tx.local_spool().is_some() && self.pending_start < self.pending.len() {
+            let mut pcm = Vec::new();
+            f32_to_pcm16_le(&self.pending[self.pending_start..], &mut pcm);
+            let _ = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm });
+        }
     }
 }
 
@@ -432,7 +442,7 @@ mod tests {
         let (levels, mut level_rx) = channel(8);
         let (audio, audio_rx) = channel(5);
         drop(audio_rx);
-        let mut state = CaptureState::new(Origin::Microphone, 48_000, 16_000, levels, audio);
+        let mut state = CaptureState::new(Origin::Microphone, 48_000, 16_000, levels, audio.into());
         let samples = vec![0.25; 480];
         for _ in 0..10_000 {
             state.last_level = Instant::now() - Duration::from_millis(100);
@@ -446,7 +456,7 @@ mod tests {
     fn receiver_closing_mid_stream_discards_partial_audio() {
         let (levels, _) = channel(8);
         let (audio, audio_rx) = channel(5);
-        let mut state = CaptureState::new(Origin::Microphone, 16_000, 16_000, levels, audio);
+        let mut state = CaptureState::new(Origin::Microphone, 16_000, 16_000, levels, audio.into());
         state.push_samples(&[0.5; 160], 1);
         assert!(!state.pending.is_empty());
         drop(audio_rx);

@@ -47,6 +47,8 @@ impl std::fmt::Display for AppError {
 /// Every id the core can emit. Adding a variant here without a catalog entry fails the
 /// front-end test that reads this file.
 pub mod id {
+    pub const WHISPER_MODEL: &str = "error.whisperModel";
+    pub const WHISPER_SESSION: &str = "error.whisperSession";
     /// Enumerating input devices failed before any device was opened.
     pub const DEVICE_ENUMERATION: &str = "error.deviceEnumeration";
     /// Windows Credential Manager refused a read or a write.

@@ -18,16 +18,17 @@ It has two deliberately separate modes:
   displayed. Gemini also captions speech that is already in the selected target language,
   so mixed-language meetings do not go blank during same-language passages.
 - **Subtitles** — a built-in English/French product demonstration requires no setup, while
-  real-time same-language speech recognition uses Mistral Voxtral Mini Transcribe Realtime
+  same-language speech recognition uses local multilingual **Whisper** (no API cost),
+  Mistral Voxtral Mini Transcribe Realtime
   (`voxtral-mini-transcribe-realtime-2602`) or Google Gemini
-  (`gemini-3.5-transcribe-live`). Both detect the spoken language themselves; Gemini covers
+  (`gemini-3.5-transcribe-live`). The cloud engines detect the spoken language themselves; Gemini covers
   over 70 languages and cleans fillers and false starts out of the subtitle, Voxtral is flat-rate
   and has no session length limit. The transcript can be saved as plain `.txt` or Markdown; SRT/VTT export and the native Windows Save As dialog are available in version 1.2.3.
 
 The app opens on a deterministic **Built-in demo**: no publisher key, account, microphone,
 language pack, network, or per-minute charge. It drives the real caption UI, overlay, elapsed
 timer, level meter, transcript and export path using clearly labelled bundled scripted
-content; it does not recognize live speech. Live microphone and system subtitles use Mistral
+content; it does not recognize live speech. Live microphone and system subtitles use local Whisper, Mistral
 or Gemini, and live translation uses Gemini or OpenAI with your own provider key.
 [`docs/microsoft-store.md`](docs/microsoft-store.md) explains why that split is what made
 Microsoft Store distribution possible.
@@ -54,6 +55,22 @@ an engine change; an unsupported selection blocks Start until you choose another
 F2 swaps the first two favourites while stopped, only when both are supported. Rehearsal
 recordings remain English/French. See [language coverage and verification](docs/language-coverage.md).
 Live-provider and packaged-app acceptance are still pending; see the verification notes above.
+
+## Local Whisper transcription (next release)
+
+Subtitles → **Whisper** offers same-language transcription in **99 languages**, with automatic
+detection or an explicit spoken-language choice. Download a multilingual Tiny, Base or Small
+model once, then caption microphone, system or application audio offline with no API key.
+The existing caption overlay, transcript history and TXT/Markdown/SRT/VTT exports work with it.
+
+Processing uses the CPU on native Windows x64 and ARM64 builds. Speed and accuracy depend on
+the language, model and computer; Small uses more memory and may fall behind live audio.
+The app shows the pending audio duration. **Stop** finishes that backlog before ending the
+session; **Discard remaining audio** explicitly abandons it and keeps the completed captions.
+Pending audio stays in an automatically deleted local temporary file. It is never uploaded.
+
+See [local Whisper setup, limits and validation](docs/local-whisper.md). This feature is under
+review in [PR #99](https://github.com/fmadore/Live-translation/pull/99), not in release 1.5.1.
 
 ## Bilingual rooms and breaks (next release)
 
@@ -181,8 +198,10 @@ non-`cfg(windows)` code, not a supported target.
 - Windows 11
 - Node.js **24 LTS** and npm (Node.js **22.12+** remains CI-tested)
 - Stable Rust (1.90 or newer)
+- LLVM/Clang (including libclang), CMake and Ninja for the bundled Whisper CPU backend;
+  use a Visual Studio Developer PowerShell matching x64 or ARM64. See [native build setup](docs/local-whisper.md#building).
 - [Tauri prerequisites for Windows](https://tauri.app/start/prerequisites/)
-- No key is needed for the built-in demonstration. Live modes need the corresponding provider key:
+- No key is needed for the built-in demonstration or local Whisper. Cloud modes need the corresponding provider key:
   - [Google AI Studio](https://aistudio.google.com/api-keys) for Gemini translation
   - [OpenAI](https://platform.openai.com/api-keys) for OpenAI translation
   - [Mistral Studio](https://console.mistral.ai/api-keys) for Mistral subtitles
@@ -190,7 +209,7 @@ non-`cfg(windows)` code, not a supported target.
 
 ## Running costs
 
-Every provider bills per minute of streamed audio, so the meter runs for as long as a session
+Cloud providers bill per minute of streamed audio, so the meter runs for as long as a session
 is open. Rates verified 27 August 2026 against
 [Gemini](https://ai.google.dev/gemini-api/docs/pricing),
 [OpenAI](https://developers.openai.com/api/docs/pricing) and
@@ -204,6 +223,7 @@ is open. Rates verified 27 August 2026 against
 | Translation | OpenAI total | | **$3.06** |
 | Subtitles | `voxtral-mini-transcribe-realtime-2602` | $0.006/min | **$0.36** |
 | Subtitles | `gemini-3.5-transcribe-live` | $0.005/min audio in + $0.004/min text out | **$0.30–0.54** |
+| Local subtitles | multilingual Whisper Tiny / Base / Small | no API charge | **$0.00** |
 | Built-in caption demonstration | bundled scripted content | free | **$0.00** |
 
 Both Gemini rows work the same way: the input leg is billed on the full wall clock because
@@ -214,7 +234,7 @@ the transcript text, which is far cheaper. OpenAI is duration-billed and therefo
 silence costs the same as speech, and the `gpt-realtime-whisper` source transcription that
 feeds the operator monitor is a separate charge on top. Voxtral is likewise flat.
 
-The two subtitle engines cost about the same, so choose on behaviour rather than price.
+The two cloud subtitle engines cost about the same, so choose on behaviour rather than price.
 Gemini covers over 70 languages, detects the spoken one per utterance, and applies Google's
 smart transcription — fillers, false starts and spoken self-corrections are cleaned out, and
 punctuation and casing are applied. Against that, its live sessions cap at ten minutes, so a
@@ -224,7 +244,7 @@ mean a caption that grows to a paragraph before it settles. Voxtral has no sessi
 finalizes on short pauses, so it produces shorter, more even lines. Both behaviours are
 measured rather than assumed — see [`docs/gemini-live-api.md`](docs/gemini-live-api.md).
 
-Selecting **Both** as the source doubles every figure — the pipeline opens one capture and
+For cloud providers, selecting **Both** as the source doubles every figure — the pipeline opens one capture and
 one WebSocket session per origin. A second caption language doubles it again: each source
 opens one translation session per language. **Pause** stops the meter, since nothing is
 streamed while paused, and the running estimate in the rail leaves paused time out.

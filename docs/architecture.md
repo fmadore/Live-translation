@@ -26,14 +26,18 @@ built-in demo ───────────── deterministic caption + le
    final-caption events as a live provider. This tests the shipping UI, timer, overlay,
    transcript, and export paths identically on x64 and ARM64. It is explicitly presented as a
    demonstration, not speech recognition.
-4. **Render/export.** Both windows receive caption events. Pending turns are keyed by
+4. **Local Whisper.** The `whisper` provider uses 16 kHz PCM16, a bounded writer queue,
+   an anonymous temporary audio file and a separate CPU inference worker per source. A verified
+   multilingual model context is shared; each source owns its inference state. Capture timestamps
+   travel with the audio, so a slow recognizer preserves meeting timing. See [local Whisper](local-whisper.md).
+5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
 Every caption also carries an interval — `startMs`/`endMs`, milliseconds since the session
 started — stamped in the core by `timing::SessionClock` and shared by every source in the
 session, so a document that interleaves the microphone and the system agrees with itself about
 what happened when. It is deliberately monotonic elapsed time rather than the audio timeline:
-this app drops buffered audio before reconnecting, so an audio clock would quietly compress
+cloud clients drop buffered audio before reconnecting, so an audio clock would quietly compress
 every gap where the socket was down. `realtime::emit_caption` is the one place it is applied,
 which is why five protocol implementations and the demonstration all produce timed captions
 without any of them knowing about a clock.
@@ -86,6 +90,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
 | Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain |
+| Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
 The two Gemini rows are separate `Provider` variants sharing one endpoint and one stored API
@@ -104,6 +109,13 @@ enforces the mode/provider relationship through `Provider::can_translate`.
 `CancellationToken` owns the run and each live source gets a child token. A capture failure
 cancels that source. Stop cancels producers, lets live providers flush and drain briefly, joins
 capture threads, clears meters and current captions, and retains completed transcript lines.
+
+For Whisper, Stop cancels capture and closes input, then waits for every accepted frame and
+the final partial window. There is no cloud drain timeout on this path. An independent abort
+token allows the operator to explicitly discard remaining audio while Stop waits. The writer
+and inference worker cancel capture even on unwind; producer outcome guards publish failures
+before EOF. Disk errors and writer overflow produce visible incomplete-transcript errors.
+Pause keeps processing the backlog but drops newly captured frames before the writer queue.
 
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
@@ -290,6 +302,8 @@ devices.
 
 ## Security and privacy
 
+- Local Whisper never sends audio over the network. Its temporary audio file is deleted on
+  close; pinned model downloads are integrity-checked and available only to the operator window.
 - The built-in demo opens no audio device, uses no network, and needs no credential.
 - Each optional provider key has a separate Windows Credential Manager entry, with an
   environment-variable fallback. Only debug builds load `.env` or honour the `*_WS_HOST`
@@ -339,7 +353,8 @@ await window.__TAURI_INTERNALS__.invoke('stop_session')
 
 - Windows is the supported release target; native x64 and ARM64 packages are built.
 - CI contract-tests provider messages but does not call billable services.
-- Live caption accuracy and availability depend on the selected third-party provider.
+- Cloud caption accuracy and availability depend on the selected third-party provider. Local
+  Whisper accuracy and speed depend on its model, language and the computer’s CPU.
 - The built-in demo verifies product presentation and workflow, not microphone recognition.
 
 ## Usability additions in 1.4.0
