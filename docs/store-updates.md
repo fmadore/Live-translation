@@ -21,7 +21,9 @@ Pause/Resume, editable filler words and the remaining September review improveme
 
 The README is shortened around the current features, with detailed guides linked from the
 [documentation index](README.md). Store copy leads with offline captions and the overlay;
-the scripted demo remains a secondary setup aid. First-launch defaults are unchanged.
+the scripted demo remains a secondary setup aid. Fresh installations select Whisper / Base /
+automatic detection; downloads and capture require user action. Existing saved setups are
+preserved. Valentin Rabot is credited for proposing local transcription in issue #98.
 Privacy/security documentation now distinguishes cloud streaming, Whisper's temporary local
 audio buffering and optional saved text history. No dependency versions change in preparation.
 
@@ -34,12 +36,17 @@ audio buffering and optional saved text history. No dependency versions change i
   descriptions, What's new, requirements and certification steps updated.
 - [x] The prior PR validation passed 538 frontend tests, 120 Rust tests (3 ignored), Clippy,
   type checks and build; ARM64 English/French Whisper fixture inference also passed.
-- [x] Release-preparation validation: 538 frontend tests, 120 Rust tests (3 opt-in tests ignored),
+- [x] Release-preparation validation: 543 frontend tests, 120 Rust tests (3 opt-in tests ignored),
   Svelte check (zero errors/warnings), catalog parity, production build, Prettier, Rust
   formatting and all-target Clippy with warnings denied. `npm audit` reports zero vulnerabilities.
 - [x] Store field lengths, localized screenshot captions, relative file links, UTF-8,
   version consistency and unchanged dependency resolutions checked.
-- [x] Build and inspect native ARM64 and x64 MSIX packages and the combined unsigned bundle.
+- [x] First-launch regressions cover absent/corrupt saved setup, preserving explicit demo
+  selection and requiring a click for the initial model download. A fresh browser origin
+  shows Whisper / Base / automatic detection and the revised subtitle copy, with no console
+  warnings or errors. Native capture remains outside browser verification.
+- [x] Rebuild and inspect native ARM64 and x64 MSIX packages and the combined unsigned bundle
+  after changing the first-launch default.
 
 ### Remaining release acceptance
 
@@ -63,7 +70,8 @@ but is not the Store submission artifact or evidence of 1.6.0 MSIX acceptance.
 
 ### 1.6.0 artifact verification
 
-Built locally on 4 October 2026 from the release-preparation tree, based on `3717e596`.
+Rebuilt locally on 4 October 2026 after the Whisper first-launch change, based on the
+release-preparation branch. The revised frontend and localized subtitle copy are embedded.
 ARM64 was built natively; x64 was cross-compiled on the ARM64 host. Both builds used Rust
 1.98.1, LLVM/Clang 23.1.2, the normal committed Store configuration and the production frontend.
 No local-test identity override was applied. Files are in the ignored local directory
@@ -71,9 +79,9 @@ No local-test identity override was applied. Files are in the ignored local dire
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| `Live.Translation_1.6.0.msixbundle` | 11,119,377 | `4d80ac5d054ad011fe537642bb732b0c1146383c24715891bc27e444727ca217` |
-| `Live.Translation_1.6.0_arm64.msix` | 5,465,272 | `cffa13f19027ce34e503c8805fa610d0d26c306f2bbd752abf97f3e5229a9d1a` |
-| `Live.Translation_1.6.0_x64.msix` | 5,652,099 | `53be35633058c4febacae4f6a8ad512408e216ac51e2bf9b35ff6787ce7b922d` |
+| `Live.Translation_1.6.0.msixbundle` | 11,119,129 | `aabf00457ce9519e198d0c16ca056a540a33da06791ac13948f3beead3e8b5e6` |
+| `Live.Translation_1.6.0_arm64.msix` | 5,464,924 | `79368b857a297f5d18fb8dfbf5c4b8a3d97ac2f01e9f279dc39160bd63467c56` |
+| `Live.Translation_1.6.0_x64.msix` | 5,652,196 | `2645d4141aa45dab29f797949af20ce53f6632ef68413068e4b27fd02a248276` |
 
 The bundle contains exactly the verified x64 and ARM64 packages, byte-for-byte. Bundle and
 inner manifests report **1.6.0.0**, identity `49346FMadore.LiveTranslationSubtitles`, publisher

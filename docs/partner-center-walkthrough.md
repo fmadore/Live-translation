@@ -75,6 +75,11 @@ Paste [Notes for certification](store-listing.md#notes-for-certification). Check
 model download works from a clean install. Resolve any required cloud test credentials
 privately before submission; no personal keys belong in public metadata or screenshots.
 
+A clean install now opens on Whisper, Base and automatic language detection. Verify that
+Download model requires a click and that Start remains unavailable until a model is ready.
+For the setup-free fallback, explicitly select Built-in demo from the engine list. An existing
+installation keeps its previously saved engine and audio choices.
+
 Suggested `runFullTrust` justification:
 
 > Win32 desktop app packaged as MSIX. The full-trust process handles microphone/WASAPI

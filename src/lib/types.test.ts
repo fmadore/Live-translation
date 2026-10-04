@@ -125,7 +125,43 @@ describe('loadStartOptions with the Gemini subtitle backend', () => {
 			targetLanguage: 'fr',
 			provider: 'gemini-transcribe'
 		});
-		expect(loadStartOptions().provider).toBe('ondevice');
+		expect(loadStartOptions().provider).toBe('whisper');
+	});
+});
+
+describe('first-launch setup', () => {
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'localStorage');
+	});
+
+	it.each([null, '{invalid', 'null'])(
+		'opens Whisper when saved setup is absent or unusable: %s',
+		(raw) => {
+			Object.defineProperty(globalThis, 'localStorage', {
+				configurable: true,
+				value: { getItem: () => raw }
+			});
+			expect(loadStartOptions()).toMatchObject({
+				mode: 'transcribe',
+				provider: 'whisper',
+				source: 'microphone',
+				whisperModel: 'base',
+				spokenLanguage: null
+			});
+		}
+	);
+
+	it('preserves an existing explicit scripted-demo choice', () => {
+		storing({
+			mode: 'transcribe',
+			provider: 'ondevice',
+			source: 'microphone',
+			targetLanguage: 'fr'
+		});
+		expect(loadStartOptions()).toMatchObject({
+			provider: 'ondevice',
+			targetLanguage: 'fr'
+		});
 	});
 });
 

@@ -44,7 +44,7 @@
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
 			? ['gemini', 'openai']
-			: ['mistral', 'gemini-transcribe', 'whisper', 'ondevice']
+			: ['whisper', 'mistral', 'gemini-transcribe', 'ondevice']
 	);
 
 	// The second caption language: favourites first, then every language the engine offers,

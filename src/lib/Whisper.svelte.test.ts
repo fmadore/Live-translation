@@ -38,12 +38,20 @@ const base: WhisperModelInfo = {
 beforeEach(() => {
 	vi.resetAllMocks();
 	setLocale('en');
-	options.set({ ...DEFAULT_START_OPTIONS, provider: 'whisper', whisperModel: 'base' });
+	options.set({ ...DEFAULT_START_OPTIONS });
 	whisperModels.set([]);
 	statusMessage.set('');
 	originStates.set({});
 	mocks.models.mockResolvedValue([{ ...base }]);
 	mocks.progress.mockResolvedValue(mocks.unlisten);
+});
+
+it('offers the first-launch model download without downloading automatically', async () => {
+	const view = render(WhisperModels, { locked: false, browserMode: false });
+	await waitFor(() => expect(mocks.models).toHaveBeenCalled());
+	expect(view.getByRole('combobox', { name: 'Whisper model' })).toHaveValue('base');
+	expect(view.getByRole('button', { name: 'Download model' })).toBeEnabled();
+	expect(mocks.download).not.toHaveBeenCalled();
 });
 
 it('downloads the selected model, exposes cancellation, then refreshes offline readiness', async () => {

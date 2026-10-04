@@ -5,7 +5,7 @@
 import { get } from 'svelte/store';
 import { nextFavourite } from './languages';
 import { languageFavourites, options } from './stores';
-import { canFlipDirection, providerCanTranslate } from './types';
+import { canFlipDirection, DEFAULT_START_OPTIONS, providerCanTranslate } from './types';
 import type { AudioSource, OutputMode, Provider, TargetLanguage } from './types';
 
 export interface SetupDeps {
@@ -73,9 +73,9 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		options.set({
 			...current,
 			mode,
-			provider: mode === 'transcribe' ? 'ondevice' : 'gemini',
-			...(mode === 'transcribe' ? { source: 'microphone' as const, micDeviceName: null } : {})
+			provider: mode === 'transcribe' ? DEFAULT_START_OPTIONS.provider : 'gemini'
 		});
+		refreshDevices();
 	}
 
 	/** Quick flip of the caption language — handy when speakers alternate. */

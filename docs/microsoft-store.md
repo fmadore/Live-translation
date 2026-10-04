@@ -12,9 +12,11 @@ model choice and language affect latency and accuracy. Optional cloud translatio
 still require the user's provider account, key and network connection, with possible usage
 charges. These dependencies are disclosed at the beginning of every localized description.
 
-The English/French scripted demo remains the fresh-install default and a setup-free way to
-check the overlay and export flow. It must always be labelled as a demo, never as speech
-recognition. Store marketing leads with Whisper and the useful captioning workflow.
+New installations open on **Whisper**, with Base and automatic language detection selected.
+The user chooses Download model and then Start; no download or capture starts automatically.
+Existing saved setups are preserved on upgrade. The English/French scripted demo remains
+available as a setup-free way to check the overlay and export flow. It must always be
+labelled as a demo, never as speech recognition.
 
 Historical context: 1.0.3 failed certification because Start Subtitles did not work on the
 review device. Windows AI Speech/ML and the Windows speech recognizer were removed in 1.0.5,
@@ -48,6 +50,8 @@ before submission; passing a local check does not imply certification.
 - [ ] Both signed native packages are installed and exercised on their target hardware.
 - [ ] Clean-install Whisper model download, verification, cancellation/removal and offline
   restart work without API keys. Test English and French; record non-Latin language checks.
+- [ ] First launch selects Whisper / Base / automatic detection without starting a download
+  or audio capture. An upgrade preserves an existing cloud or scripted-demo selection.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.

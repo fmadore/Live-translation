@@ -24,7 +24,9 @@ and Store-package verification must still be distinguished from unit/fixture tes
 language acceptance from [#78](docs/language-coverage.md) also remains to be completed.
 
 Store copy now leads with real offline captions and optional cloud translation. The scripted
-demo stays available as a setup-free display check; first-launch behavior is unchanged.
+demo stays available as a setup-free display check. Fresh installs now select Whisper with
+Base and automatic detection, while upgrades preserve saved setups. Thanks to **Valentin Rabot**
+for the local transcription suggestion in [#98](https://github.com/fmadore/Live-translation/issues/98).
 Citation metadata is prepared for 1.6.0, with the publication date left unset until release.
 
 ## Historical delivery context

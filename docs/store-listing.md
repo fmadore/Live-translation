@@ -66,7 +66,7 @@ For bilingual meetings, show two translation languages at once or include availa
 
 Pause and resume without splitting your transcript. Cloud connections close during breaks; Whisper keeps processing speech already queued. Edit the overlay's filler-word list while preserving the raw transcript.
 
-Also includes faster caption layout and history updates, improved Gemini reconnection and a more consistent operator interface. Native x64 and ARM64, with an English, French or German interface.
+New installs open on Whisper with Base and automatic language detection; existing saved setups are preserved. Also includes faster caption layout and history updates, improved Gemini reconnection and a more consistent operator interface. Native x64 and ARM64, with an English, French or German interface. Thanks to Valentin Rabot for suggesting local transcription in issue #98.
 ```
 
 ## Français (France)
@@ -125,7 +125,7 @@ Pour les réunions bilingues, affichez deux langues de traduction à la fois ou 
 
 Faites une pause puis reprenez sans scinder la transcription. Les connexions cloud se ferment pendant les pauses ; Whisper continue de traiter l'audio déjà en attente. Modifiez la liste d'hésitations de la surimpression sans altérer la transcription originale.
 
-Inclut aussi un affichage et un historique plus efficaces, une reconnexion Gemini améliorée et une interface de contrôle harmonisée. Versions x64 et ARM64 natives ; interface en français, anglais ou allemand.
+Les nouvelles installations s'ouvrent sur Whisper avec Base et la détection automatique ; les réglages enregistrés restent conservés. Inclut aussi un affichage et un historique plus efficaces, une reconnexion Gemini améliorée et une interface de contrôle harmonisée. Versions x64 et ARM64 natives ; interface en français, anglais ou allemand. Merci à Valentin Rabot pour sa suggestion de transcription locale dans le ticket #98.
 ```
 
 ## Deutsch (Deutschland)
@@ -184,7 +184,7 @@ Für zweisprachige Meetings zeigen Sie zwei Übersetzungssprachen gleichzeitig o
 
 Pausieren und fortsetzen, ohne das Transkript aufzuteilen. Cloud-Verbindungen werden in Pausen geschlossen; Whisper verarbeitet bereits wartendes Audio weiter. Bearbeiten Sie die Füllwortliste des Overlays, ohne das Originaltranskript zu ändern.
 
-Außerdem: effizientere Untertiteldarstellung und Verlaufsspeicherung, verbesserte Gemini-Wiederverbindung und eine einheitlichere Bedienoberfläche. Native x64- und ARM64-Versionen; Oberfläche auf Deutsch, Englisch oder Französisch.
+Neue Installationen starten mit Whisper, Base und automatischer Spracherkennung; gespeicherte Einstellungen bleiben erhalten. Außerdem: effizientere Untertiteldarstellung und Verlaufsspeicherung, verbesserte Gemini-Wiederverbindung und eine einheitlichere Bedienoberfläche. Native x64- und ARM64-Versionen; Oberfläche auf Deutsch, Englisch oder Französisch. Danke an Valentin Rabot für den Vorschlag zur lokalen Transkription in Issue #98.
 ```
 
 ## Adding the German listing
@@ -231,7 +231,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.6.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime.
 
 Real speech recognition without a paid account or API key:
-1. Choose Subtitles and Whisper, then the microphone or system audio source. Grant microphone access if using a microphone.
+1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
 2. Choose the spoken language or Detect automatically. Download Tiny (about 31 MiB) for the lightest setup, or Base (about 57 MiB). The initial HTTPS model download needs internet access; the model is not bundled. No account or key is needed.
 3. Start captioning and speak a few sentences or play speech on the selected output. Allow for CPU processing time. Verify captions in the operator window and overlay, elapsed time and input levels.
 4. Use Move overlay to place it, lock it back to click-through, and try Fit window, Compact and Stable reading. Pause blocks new speech entering recognition; existing pending audio can still finish.
@@ -239,7 +239,7 @@ Real speech recognition without a paid account or API key:
 6. In Settings, optionally enable transcript history; run a disposable session and reopen, rename, export and delete it. History and recovery are disabled by default. Test the editable filler-word list: it changes only the overlay.
 
 Setup-free display check if capture hardware or model downloads are unavailable:
-A clean install opens on Subtitles / Demo audio / English / Built-in demo. Click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the local speech engine.
+In Subtitles, select Built-in demo in the engine list, choose English and click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the first-launch local speech engine.
 
 Optional cloud features:
 Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it.

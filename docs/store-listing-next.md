@@ -5,7 +5,8 @@ submission targets **1.6.0.0**, with one unsigned bundle containing native x64 a
 
 Lead the listing with offline Whisper captions, the transparent overlay and optional cloud
 translation. The scripted demo remains a secondary way to try the display controls. The
-application's existing first-launch selection is unchanged.
+application opens on Whisper / Base / automatic detection for new installations, while
+preserving existing saved setups. Model download and capture remain explicit user actions.
 
 - [EN/FR/DE descriptions, features, short descriptions and What's new](store-listing.md)
 - [Release notes](release-1.6.0.md)

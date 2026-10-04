@@ -53,8 +53,9 @@ prepared for release. Whisper and the other additions below are in the source; s
 5. **Stop**, let Whisper finish any pending audio, then **Save as…**. Enable history in
    **Settings → Transcript history** if you want sessions saved automatically on this PC.
 
-A fresh installation opens on an optional English/French scripted demo for trying the
-overlay without setup. Select Whisper or a cloud engine to recognize actual speech.
+A fresh installation opens on **Whisper**, with Base selected and automatic language
+detection. Choose **Download model** before starting; existing saved setups are preserved.
+An optional English/French scripted demo remains available for trying the overlay without setup.
 
 ## Privacy and local processing
 
@@ -97,5 +98,7 @@ and Windows x64/ARM64, dependencies and workflows. Tagged releases build install
 combined Store bundle; Partner Center submission is manual.
 
 Originally developed for the workshop *Digital Humanities and Artificial Intelligence in
-African Studies*, STIAS, Stellenbosch, 21–24 September 2026. Thanks to @valentinrabot for
-meeting feedback. [Citation metadata](CITATION.cff) · [MIT license](LICENSE).
+African Studies*, STIAS, Stellenbosch, 21–24 September 2026. Thanks to **Valentin Rabot**
+([@valentinrabot](https://github.com/valentinrabot)) for proposing local transcription in
+[issue #98](https://github.com/fmadore/Live-translation/issues/98) and for his meeting feedback.
+[Citation metadata](CITATION.cff) · [MIT license](LICENSE).

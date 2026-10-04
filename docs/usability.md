@@ -12,6 +12,10 @@ or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and 
 transcript all remain below the session controls. Readiness gates and keyboard shortcuts
 are unchanged.
 
+New installations open on Whisper with Base and automatic language detection. Switching
+from translation to Subtitles also selects Whisper and retains the selected audio source;
+it does not start capture or a model download. Existing saved setups are restored on launch.
+
 ## Pause
 
 **Pause**, beside Stop (or Ctrl+Shift+P), keeps the session, clock and transcript together.
