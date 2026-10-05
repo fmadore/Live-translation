@@ -33,15 +33,21 @@
 </script>
 
 <header class="toolbar">
+	<!-- The app icon's mark (src-tauri/icons/source.svg), cropped to its middle and drawn
+	     heavier so it survives 18 px. -->
 	<span class="brand" aria-hidden="true">
 		<svg
-			width="14"
-			height="14"
-			viewBox="0 0 24 24"
+			width="18"
+			height="18"
+			viewBox="128 128 768 768"
 			fill="none"
-			stroke="currentColor"
-			stroke-width="2.4"
-			stroke-linecap="round"><path d="M4 12.5h3.5L11 6l3 12 2.5-5.5H20" /></svg
+			stroke-width="84"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			><path
+				class="wave"
+				d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
+			/><path class="line" d="M500 680 L840 680" /></svg
 		>
 	</span>
 	<!-- The window's one h1, which every heading in either column sits under. The frame
@@ -120,12 +126,18 @@
 		width: 1.5rem;
 		height: 1.5rem;
 		border-radius: var(--radius-control);
-		background: linear-gradient(150deg, var(--accent), var(--accent-deep));
-		color: var(--on-accent);
+		background: linear-gradient(var(--surface-2), var(--surface-0));
+		border: 1px solid var(--line-strong);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
+	}
+	.brand .wave {
+		stroke: var(--accent);
+	}
+	.brand .line {
+		stroke: var(--text-body);
 	}
 	/* Pushed to the far end, and kept there with the gear when the bar wraps. */
 	.pill {
