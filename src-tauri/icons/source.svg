@@ -1,11 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" rx="200" fill="#10b981"/>
-  <g transform="translate(512,512) scale(26) translate(-12,-12)" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m5 8 6 6"/>
-    <path d="m4 14 6-6 2-3"/>
-    <path d="M2 5h12"/>
-    <path d="M7 2h1"/>
-    <path d="m22 22-5-10-5 10"/>
-    <path d="M14 18h6"/>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2029"/>
+      <stop offset="1" stop-color="#0d1015"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.25" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#10b981" stop-opacity="0.16"/>
+      <stop offset="0.6" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#tile)"/>
+  <rect width="1024" height="1024" rx="224" fill="url(#glow)"/>
+  <!-- Wave to words: a speech wave settles into a caption line, with a second line beneath. -->
+  <g fill="none" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="#5ad1a0" d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"/>
+    <path stroke="#e7e9ee" d="M500 680 L840 680"/>
   </g>
 </svg>
