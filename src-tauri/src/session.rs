@@ -46,6 +46,10 @@ use crate::whisper::{self, spool::Spool, LoadedModel, LocalSession};
 const AUDIO_CHANNEL_CAPACITY: usize = 5;
 const LEVEL_CHANNEL_CAPACITY: usize = 8;
 const CLIENT_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+/// Capture threads stop within a wake or two of their token being cancelled. One that has not
+/// after this long is wedged in a driver call — an unplugged device can do that — and waiting
+/// on would make the app impossible to quit.
+const CAPTURE_JOIN_TIMEOUT: Duration = Duration::from_secs(3);
 /// The preflight test throws its audio away, and `capture.rs` accumulates the level meter over
 /// the mono signal *before* resampling, so this rate reaches nothing that can observe it. It
 /// exists only because the capture path requires a target.
@@ -284,15 +288,19 @@ fn caption_languages(options: &StartOptions) -> Vec<TargetLanguage> {
 
 /// Copy one source's audio to each of its caption-language clients. Never blocks on either:
 /// a client that has fallen behind drops chunks on its own queue, as a lone client would at
-/// the producer's. Ends when the producer does, or once every client has gone — and then
-/// cancels the source, which stops its capture.
+/// the producer's. Ends when the producer does, once every client has gone — and then
+/// cancels the source, which stops its capture — or when the source is cancelled, so Stop
+/// never waits on a capture thread that is wedged and still holds the producer end.
 async fn relay_audio(
     mut input: Receiver<AudioChunk>,
     outputs: Vec<Sender<AudioChunk>>,
     source: CancellationToken,
 ) {
-    let _stop_capture = source.drop_guard();
-    while let Some(chunk) = input.recv().await {
+    let _stop_capture = source.clone().drop_guard();
+    while let Some(chunk) = tokio::select! {
+        _ = source.cancelled() => None,
+        chunk = input.recv() => chunk,
+    } {
         let mut open = 0;
         for output in &outputs {
             if !matches!(output.try_send(chunk.clone()), Err(TrySendError::Closed(_))) {
@@ -386,19 +394,32 @@ fn spawn_level_forwarder(app: &AppHandle) -> Sender<AudioLevel> {
     level_tx
 }
 
-/// Join capture threads without blocking the async runtime. `what` names them in the log.
+/// Join capture threads without blocking the async runtime, giving up after
+/// `CAPTURE_JOIN_TIMEOUT`. `what` names them in the log.
 async fn join_threads(handles: Vec<JoinHandle<()>>, what: &'static str) {
-    let joined = tauri::async_runtime::spawn_blocking(move || {
+    let joining = tauri::async_runtime::spawn_blocking(move || {
         for handle in handles {
             if handle.join().is_err() {
                 tracing::warn!("{what} thread panicked while stopping");
             }
         }
-    })
-    .await;
-    if let Err(error) = joined {
-        tracing::warn!("{what} join task failed: {error}");
+    });
+    match tokio::time::timeout(CAPTURE_JOIN_TIMEOUT, joining).await {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => tracing::warn!("{what} join task failed: {error}"),
+        // Detached, not killed: the thread holds nothing a later session needs except possibly
+        // its device, and a wedged driver call cannot be interrupted from here anyway.
+        Err(_) => tracing::warn!(
+            "{what} threads did not stop within {} seconds; leaving them behind",
+            CAPTURE_JOIN_TIMEOUT.as_secs()
+        ),
     }
+}
+
+/// Publish a pause or resume to every client. False when it changes nothing: an unchanged
+/// value must wake no client, or a repeated Resume would cut a reconnect backoff short.
+fn signal_pause(pause: &watch::Sender<bool>, paused: bool) -> bool {
+    pause.send_if_modified(|current| std::mem::replace(current, paused) != paused)
 }
 
 /// The per-source plumbing every client gets, whichever provider it speaks.
@@ -737,7 +758,13 @@ impl SessionManager {
             local_model,
         };
         for origin in session_origins(&options) {
-            builder.add_source(origin)?;
+            if let Err(error) = builder.add_source(origin) {
+                // The sources before this one are already capturing and connecting. Release
+                // them as Stop would, so a failed start leaves no thread, task or token behind.
+                // No Idle: the start reports its own failure, and a late Idle would clear it.
+                self.shutdown(builder.session).await;
+                return Err(error);
+            }
         }
 
         cancel_guard.disarm();
@@ -875,7 +902,9 @@ impl SessionManager {
             .as_ref()
             .filter(|session| session.sources.iter().any(|source| !source.is_cancelled()))
             .context("No session is running")?;
-        session.pause.send_replace(paused);
+        if !signal_pause(&session.pause, paused) {
+            return Ok(());
+        }
         if session.local {
             for (origin, source) in session.origins.iter().zip(&session.sources) {
                 if source.is_cancelled() {
@@ -916,61 +945,68 @@ impl SessionManager {
 
     async fn stop_active(&self, app: &AppHandle) {
         let session = lock(&self.active).take();
-        if let Some(mut session) = session {
-            session.cancel.cancel();
-            join_threads(session.capture_threads, "capture").await;
-
-            // Rehearsal playback holds the producer end of its audio channel, and the client
-            // below only sees the stream end once that is dropped — so drain it here, in the
-            // same place the capture threads are joined.
-            // A relay ends once its producer has: the capture threads are joined and the
-            // rehearsal tasks are next, so this cannot wait on anything still running.
-            for result in join_all(
-                session
-                    .fixture_tasks
-                    .iter_mut()
-                    .chain(session.relay_tasks.iter_mut()),
-            )
-            .await
-            {
-                if let Err(error) = result {
-                    tracing::warn!("rehearsal playback task failed: {error}");
-                }
-            }
-
-            // Providers may emit their last transcript while flushing. Do not report Idle
-            // (or start a replacement session) until that bounded drain has completed.
-            if session.local {
-                // Local Stop is an EOF, not cancellation of inference. Do not truncate the
-                // transcript at the cloud client's five-second shutdown deadline.
-                for result in join_all(session.client_tasks.iter_mut()).await {
-                    if let Err(error) = result {
-                        tracing::warn!("local transcription task failed: {error}");
-                    }
-                }
-                *lock(&self.local_abort) = None;
-            } else if tokio::time::timeout(
-                CLIENT_DRAIN_TIMEOUT,
-                join_all(session.client_tasks.iter_mut()),
-            )
-            .await
-            .is_err()
-            {
-                tracing::warn!("realtime clients did not finish graceful shutdown in time");
-                for task in &session.client_tasks {
-                    task.abort();
-                }
-            }
+        if let Some(session) = session {
+            let failure = session.failure.clone();
+            self.shutdown(session).await;
             let _ = app.emit(
                 events::STATUS,
                 StatusUpdate {
                     state: SessionState::Idle,
-                    message: lock(&session.failure).clone(),
+                    message: lock(&failure).clone(),
                     origin: None,
                     lane: None,
                 },
             );
             tracing::info!("session stopped");
+        }
+    }
+
+    /// Cancel a session and wait for everything it started: capture, playback, relays and
+    /// clients. Shared by Stop and by a start that failed part-way.
+    async fn shutdown(&self, mut session: ActiveSession) {
+        session.cancel.cancel();
+        join_threads(session.capture_threads, "capture").await;
+
+        // Rehearsal playback holds the producer end of its audio channel, and the client
+        // below only sees the stream end once that is dropped — so drain it here, in the
+        // same place the capture threads are joined.
+        // A relay ends once its producer has: the capture threads are joined and the
+        // rehearsal tasks are next, so this cannot wait on anything still running.
+        for result in join_all(
+            session
+                .fixture_tasks
+                .iter_mut()
+                .chain(session.relay_tasks.iter_mut()),
+        )
+        .await
+        {
+            if let Err(error) = result {
+                tracing::warn!("rehearsal playback task failed: {error}");
+            }
+        }
+
+        // Providers may emit their last transcript while flushing. Do not report Idle
+        // (or start a replacement session) until that bounded drain has completed.
+        if session.local {
+            // Local Stop is an EOF, not cancellation of inference. Do not truncate the
+            // transcript at the cloud client's five-second shutdown deadline.
+            for result in join_all(session.client_tasks.iter_mut()).await {
+                if let Err(error) = result {
+                    tracing::warn!("local transcription task failed: {error}");
+                }
+            }
+            *lock(&self.local_abort) = None;
+        } else if tokio::time::timeout(
+            CLIENT_DRAIN_TIMEOUT,
+            join_all(session.client_tasks.iter_mut()),
+        )
+        .await
+        .is_err()
+        {
+            tracing::warn!("realtime clients did not finish graceful shutdown in time");
+            for task in &session.client_tasks {
+                task.abort();
+            }
         }
     }
 }
@@ -1109,6 +1145,51 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(source.is_cancelled());
+    }
+
+    #[test]
+    fn an_unchanged_pause_wakes_no_client() {
+        let pause = watch::Sender::new(false);
+        let mut client = pause.subscribe();
+        assert!(!signal_pause(&pause, false));
+        assert!(
+            !client.has_changed().unwrap(),
+            "a redundant Resume woke a client"
+        );
+
+        assert!(signal_pause(&pause, true));
+        assert!(client.has_changed().unwrap());
+        assert!(*client.borrow_and_update());
+        assert!(!signal_pause(&pause, true));
+        assert!(!client.has_changed().unwrap());
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_wedged_capture_thread_cannot_hold_stop_forever() {
+        let (release, wedged) = std::sync::mpsc::channel::<()>();
+        let thread = std::thread::spawn(move || {
+            let _ = wedged.recv();
+        });
+        let started = tokio::time::Instant::now();
+        tokio::time::timeout(Duration::from_secs(60), join_threads(vec![thread], "test"))
+            .await
+            .expect("the join had no deadline");
+        assert!(started.elapsed() >= CAPTURE_JOIN_TIMEOUT);
+        // Lets the detached join finish.
+        drop(release);
+    }
+
+    #[tokio::test]
+    async fn the_relay_ends_when_its_source_is_stopped_even_if_capture_has_not() {
+        let (_wedged_capture, input_rx) = channel(8);
+        let (lane_tx, _lane) = channel(8);
+        let source = CancellationToken::new();
+        let relay = tokio::spawn(relay_audio(input_rx, vec![lane_tx], source.clone()));
+        source.cancel();
+        tokio::time::timeout(Duration::from_secs(1), relay)
+            .await
+            .expect("Stop waited on the capture thread")
+            .unwrap();
     }
 
     #[test]
