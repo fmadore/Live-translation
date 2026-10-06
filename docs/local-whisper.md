@@ -60,18 +60,47 @@ of audio without the reader catching up and resetting the file); disk-full, I/O 
 writer overflow stop the source and report that its transcript may be incomplete. Memory does
 not grow with the audio backlog.
 
-Recognition uses windows of up to roughly 10 seconds, one second of overlap, conservative
-silence endpointing and Whisper’s no-speech probability. It produces finalized captions, not
-speculative word-by-word interim captions. A final short window is padded for inference and
-its timestamps are clamped to the actual audio duration. Pauses retain elapsed meeting timing.
-Exact overlap text is reconciled only for overlapping timestamps; later repetitions are kept.
+Recognition uses windows of up to roughly 10 seconds, one second of overlap and conservative
+silence endpointing. It produces finalized captions, not speculative word-by-word interim
+captions. A final short window is padded for inference and its timestamps are clamped to the
+actual audio duration. Pauses retain elapsed meeting timing, and each window's time is taken
+from the capture timestamp of the audio it starts in rather than counted in samples, so a
+capture clock running slightly fast or slow cannot drift caption times over a long meeting.
+
+When the backlog exceeds 30 seconds, windows grow to about 28 seconds until it has cleared.
+Whisper encodes 30 seconds of audio however short the window is, so long windows clear a
+backlog with roughly a third of the encoder passes; timestamps are unaffected.
+
+Text repeated across the second of overlap is removed only where the timestamps actually
+overlap; later repetitions are kept. It is compared word by word, ignoring case and
+punctuation ("there" does not match "here"); Chinese, Japanese, Thai and other scripts written
+without spaces are compared by character. whisper.cpp already drops a window it judges silent;
+the app additionally drops a segment only when the window's no-speech probability is above 0.6
+**and** the segment's mean token log-probability is below −1 (whisper.cpp's own thresholds,
+applied per segment), which removes the "Thank you." Whisper invents over room noise without
+dropping confident speech. Text that is not valid UTF-8 loses only the broken character.
 Accuracy at window boundaries, background noise and code-switching still need real meeting
 acceptance tests. Whisper can misrecognize speech or hallucinate text.
 
+With **Detect automatically**, every window of 3 seconds or more detects its own language, so a
+French/English room is followed as speakers alternate. A shorter window — a quick reply, a
+name, the last words before a pause — reuses the language detected on the last longer window
+that produced captions, because a second or two of audio is where detection is least reliable
+and most likely to turn a phrase into the other language. A chosen spoken language is always
+used as chosen.
+
 Pause stops new audio entering transcription or its temporary file, while the existing backlog
-continues processing. Normal Stop drains input and the final partial window without the cloud
-pipeline’s five-second limit. An explicit discard token interrupts inference. Temporary audio
-is delete-on-close and cannot be recovered after the process exits; see [privacy](privacy.md).
+continues processing. When no new audio has arrived for a second — after Pause, or when system
+audio goes quiet because nothing is playing — the audio already held is transcribed straight
+away instead of waiting for more. Normal Stop drains input and the final partial window
+without the cloud pipeline’s five-second limit. An explicit discard token interrupts
+inference. Temporary audio is delete-on-close and cannot be recovered after the process exits;
+see [privacy](privacy.md).
+
+Inference uses about half the logical processors on x64 (one thread per core, assuming
+simultaneous multithreading) and all but one core on ARM64, at most eight threads either way.
+With Both sources, the two sources take turns rather than running inference at the same time,
+so they do not compete for the same cores with capture and the interface.
 
 ## Building
 

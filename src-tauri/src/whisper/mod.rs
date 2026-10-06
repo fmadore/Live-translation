@@ -1,27 +1,45 @@
 //! Multilingual, CPU-only local transcription. Capture, disk ingestion and inference run
 //! independently; normal Stop closes input then drains every accepted frame.
 pub mod cpu;
+mod language;
 pub mod models;
+mod reconcile;
 mod segment;
 pub mod spool;
 
 use std::sync::{atomic::Ordering, Arc, Mutex};
+use std::time::Duration;
 
 use anyhow::{ensure, Context, Result};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+use whisper_rs::{
+    FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperSegment,
+};
 
 use crate::errors::{id, AppError};
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
+use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};
-use segment::{trim_overlap, Segmenter};
-use spool::{Spool, TimedChunk};
+use reconcile::{RawSegment, Reconciler};
+use segment::{Segmenter, Window};
+use spool::{Next, Spool, TimedChunk};
+
+/// Input quiet for this long releases whatever audio is held, so the last words before Pause,
+/// or before a call goes silent, are captioned now rather than when audio resumes.
+const IDLE: Duration = Duration::from_secs(1);
+
+/// A backlog beyond this switches to long windows; see `segment::LONG_WINDOW`.
+const LONG_WINDOW_BACKLOG_MS: u64 = 30_000;
 
 pub struct LoadedModel {
     context: WhisperContext,
+    /// One inference at a time across sources. With Both sources, two concurrent passes would
+    /// each start a full set of ggml workers, which spin while they wait and leave capture and
+    /// the interface fighting for what is left; taking turns finishes both sooner.
+    inference: Mutex<()>,
     _lease: ModelLease,
 }
 
@@ -44,8 +62,23 @@ fn load_lease(lease: ModelLease) -> Result<Arc<LoadedModel>> {
         .context("Could not load Whisper model")?;
     Ok(Arc::new(LoadedModel {
         context,
+        inference: Mutex::new(()),
         _lease: lease,
     }))
+}
+
+/// ggml's workers busy-wait between operations, so a thread per hardware thread starves
+/// capture and the interface, and beyond about eight these small models stop getting faster.
+/// x64 processors are assumed to have SMT: half the logical processors is one thread per core,
+/// and the sibling hardware threads absorb capture and the interface. Windows-on-ARM has no
+/// SMT, so one core is left free instead.
+fn inference_threads(logical: usize) -> i32 {
+    let threads = if cfg!(target_arch = "x86_64") {
+        logical / 2
+    } else {
+        logical.saturating_sub(1)
+    };
+    threads.clamp(1, 8) as i32
 }
 
 pub fn validate_language(language: Option<&str>) -> Result<()> {
@@ -232,20 +265,18 @@ fn transcribe(
     mut report: impl FnMut(),
 ) -> Result<()> {
     let mut state = model.context.create_state()?;
-    let mut segmenter = Segmenter::default();
-    let mut turn = 0u64;
-    let mut previous_text = String::new();
-    let mut previous_end = 0u64;
-    let threads = std::thread::available_parallelism()
-        .map_or(2, usize::from)
-        .clamp(1, 4) as i32;
-    let mut process = |window: segment::Window| -> Result<()> {
+    let mut reconciler = Reconciler::default();
+    let mut languages = Languages::new(language);
+    let threads = inference_threads(std::thread::available_parallelism().map_or(2, usize::from));
+    let process = |window: Window| -> Result<()> {
         if abort.is_cancelled() {
             return Ok(());
         }
         if window.speech {
+            let duration_ms = window.samples.len() as u64 / 16;
+            let spoken = languages.for_window(duration_ms);
             let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-            params.set_language(language);
+            params.set_language(spoken);
             // `detect_language=true` asks whisper.cpp to return after detection. Leaving it
             // false with language=None performs detection followed by transcription.
             params.set_translate(false);
@@ -265,54 +296,64 @@ fn transcribe(
                 params.set_abort_callback(Some(abort_requested));
                 params.set_abort_callback_user_data(std::ptr::from_ref(abort).cast_mut().cast());
             }
-            let mut samples = window.samples;
             // Whisper needs enough samples for its analysis window, including a final
             // phrase shorter than a second. Padding affects inference only, not timestamps.
-            let duration_ms = samples.len() as u64 / 16;
+            let mut samples = window.samples;
             samples.resize(samples.len().max(16_000), 0.0);
-            if let Err(error) = state.full(params, &samples) {
+            let inferred = {
+                let _turn = model.inference.lock().unwrap_or_else(|e| e.into_inner());
+                state.full(params, &samples)
+            };
+            if let Err(error) = inferred {
                 if abort.is_cancelled() {
                     return Ok(());
                 }
                 return Err(error.into());
             }
+            let mut captioned = false;
             for segment in state.as_iter() {
-                if segment.no_speech_probability() > 0.8 {
+                // A segment whisper.cpp cannot describe is skipped, never fatal to the source.
+                let Some(segment) = raw_segment(&segment) else {
                     continue;
+                };
+                if let Some(line) = reconciler.accept(window.start_ms, duration_ms, &segment) {
+                    emit(&line.text, line.start_ms, line.end_ms, line.turn);
+                    captioned = true;
                 }
-                let start = window.start_ms
-                    + (segment.start_timestamp().max(0) as u64 * 10).min(duration_ms);
-                let end =
-                    window.start_ms + (segment.end_timestamp().max(0) as u64 * 10).min(duration_ms);
-                if end <= previous_end {
-                    continue;
-                }
-                let text = segment.to_str()?.trim();
-                let text = trim_overlap(&previous_text, text, start < previous_end);
-                if text.is_empty() {
-                    continue;
-                }
-                turn += 1;
-                emit(
-                    text,
-                    start.max(previous_end),
-                    end.max(start.max(previous_end)),
-                    turn,
-                );
-                previous_text = text.to_owned();
-                previous_end = end;
             }
+            let detected = whisper_rs::get_lang_str(state.full_lang_id_from_state())
+                .filter(|&code| validate_language(Some(code)).is_ok());
+            languages.observe(duration_ms, spoken, captioned, detected);
         }
         spool.complete(window.consumed);
         report();
         Ok(())
     };
+    pump(spool, abort, IDLE, process)
+}
+
+/// Feed spooled audio through the segmenter to `process` until input ends or is discarded.
+fn pump(
+    spool: &Spool,
+    abort: &CancellationToken,
+    idle: Duration,
+    mut process: impl FnMut(Window) -> Result<()>,
+) -> Result<()> {
+    let mut segmenter = Segmenter::default();
     while !abort.is_cancelled() {
-        let Some(frame) = spool.next()? else {
-            break;
-        };
-        for window in segmenter.push(frame) {
-            process(window)?;
+        segmenter.set_long_windows(spool.pending_ms() > LONG_WINDOW_BACKLOG_MS);
+        match spool.next_timeout(idle)? {
+            Next::Chunk(frame) => {
+                for window in segmenter.push(frame) {
+                    process(window)?;
+                }
+            }
+            Next::Idle => {
+                if let Some(window) = segmenter.finish() {
+                    process(window)?;
+                }
+            }
+            Next::End => break,
         }
     }
     if !abort.is_cancelled() {
@@ -323,6 +364,29 @@ fn transcribe(
     Ok(())
 }
 
+fn raw_segment(segment: &WhisperSegment<'_>) -> Option<RawSegment> {
+    // Lossy: a token boundary inside a multi-byte character must cost one character, not the
+    // rest of the meeting's transcript.
+    let text = segment.to_str_lossy().ok()?.into_owned();
+    let tokens = segment.n_tokens();
+    let mean_logprob = if tokens > 0 {
+        (0..tokens)
+            .filter_map(|i| segment.get_token(i))
+            .map(|token| token.token_data().plog)
+            .sum::<f32>()
+            / tokens as f32
+    } else {
+        0.0
+    };
+    Some(RawSegment {
+        text,
+        start_cs: segment.start_timestamp(),
+        end_cs: segment.end_timestamp(),
+        no_speech: segment.no_speech_probability(),
+        mean_logprob,
+    })
+}
+
 unsafe extern "C" fn abort_requested(data: *mut std::ffi::c_void) -> bool {
     // SAFETY: installed only above, with a live CancellationToken for the full() duration.
     unsafe { &*data.cast::<CancellationToken>() }.is_cancelled()
@@ -331,6 +395,109 @@ unsafe extern "C" fn abort_requested(data: *mut std::ffi::c_void) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn speech(start_ms: u64) -> TimedChunk {
+        TimedChunk {
+            start_ms,
+            pcm: 100i16.to_le_bytes().repeat(1600),
+        }
+    }
+
+    #[test]
+    fn inference_threads_leave_room_for_capture_and_stop_at_eight() {
+        if cfg!(target_arch = "x86_64") {
+            assert_eq!(
+                [1, 2, 4, 8, 12, 16, 32].map(inference_threads),
+                [1, 1, 2, 4, 6, 8, 8]
+            );
+        } else {
+            assert_eq!(
+                [1, 2, 4, 8, 12, 16].map(inference_threads),
+                [1, 1, 3, 7, 8, 8]
+            );
+        }
+    }
+
+    #[test]
+    fn quiet_input_releases_held_speech_without_waiting_for_more_audio() {
+        let spool = Arc::new(Spool::new().unwrap());
+        for i in 0..20 {
+            spool.push(speech(i * 100)).unwrap();
+        }
+        let (sent, windows) = std::sync::mpsc::channel();
+        let reader = spool.clone();
+        let worker = std::thread::spawn(move || {
+            pump(
+                &reader,
+                &CancellationToken::new(),
+                Duration::from_millis(100),
+                |window| {
+                    reader.complete(window.consumed);
+                    sent.send((window.start_ms, window.consumed, window.speech))
+                        .unwrap();
+                    Ok(())
+                },
+            )
+        });
+        // Input is still open, as during Pause: only going idle can release these two seconds.
+        let window = windows.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert_eq!(window, (0, 20 * 1600, true));
+        assert_eq!(spool.pending_ms(), 0);
+        // Resuming after the pause starts a new window at its own time.
+        spool.push(speech(9_000)).unwrap();
+        let window = windows.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert_eq!(window, (9_000, 1600, true));
+        spool.finish();
+        worker.join().unwrap().unwrap();
+        assert!(windows.try_recv().is_err());
+    }
+
+    #[test]
+    fn a_backlog_is_worked_through_in_long_windows_then_normal_ones() {
+        let spool = Spool::new().unwrap();
+        for i in 0..400 {
+            spool.push(speech(i * 100)).unwrap();
+        }
+        spool.finish();
+        let mut cuts = Vec::new();
+        pump(
+            &spool,
+            &CancellationToken::new(),
+            Duration::from_secs(5),
+            |window| {
+                spool.complete(window.consumed);
+                cuts.push((window.start_ms, window.samples.len()));
+                Ok(())
+            },
+        )
+        .unwrap();
+        // 40 s queued: one 28 s window, after which 13 s remain and 10 s windows resume.
+        assert_eq!(
+            cuts,
+            [
+                (0, 28 * 16_000),
+                (27_000, 10 * 16_000),
+                (36_000, 4 * 16_000)
+            ]
+        );
+        assert_eq!(spool.pending_ms(), 0);
+    }
+
+    #[test]
+    fn discarding_stops_the_pump_without_flushing() {
+        let spool = Spool::new().unwrap();
+        spool.push(speech(0)).unwrap();
+        spool.finish();
+        let abort = CancellationToken::new();
+        abort.cancel();
+        let mut windows = 0;
+        pump(&spool, &abort, Duration::from_millis(10), |_| {
+            windows += 1;
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(windows, 0);
+    }
 
     #[test]
     fn advertised_languages_match_the_native_multilingual_vocabulary() {
@@ -382,6 +549,7 @@ mod tests {
             spool.finish();
             let mut text = String::new();
             let mut last_end = 0;
+            let started = std::time::Instant::now();
             transcribe(
                 &model,
                 language,
@@ -397,7 +565,8 @@ mod tests {
                 || {},
             )
             .unwrap();
-            eprintln!("{fixture}: {text}");
+            // The time is the one number CI can compare across instruction-set changes.
+            eprintln!("{fixture} ({:.2?}): {text}", started.elapsed());
             assert!(text.to_lowercase().contains(expected), "{fixture}: {text}");
             assert_eq!(
                 spool.pending_ms(),
