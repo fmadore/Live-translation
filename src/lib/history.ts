@@ -1,6 +1,7 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { decodeRecovery, readLine } from './document';
+import { persistedFlag } from './persisted';
 import { api } from './tauri';
 import {
 	OUTPUT_MODES,
@@ -10,12 +11,9 @@ import {
 } from './types';
 
 export const HISTORY_ENABLED_KEY = 'transcript.historyEnabled';
-export const historyEnabled = writable(
-	typeof localStorage !== 'undefined' && localStorage.getItem(HISTORY_ENABLED_KEY) === 'true'
-);
-historyEnabled.subscribe((value) => {
-	if (typeof localStorage !== 'undefined') localStorage.setItem(HISTORY_ENABLED_KEY, String(value));
-});
+// Read as this module loads, so it goes through `persisted.ts`: storage that refuses access
+// would otherwise throw at import and leave the operator window blank.
+export const historyEnabled = persistedFlag(HISTORY_ENABLED_KEY);
 export const historyError = writable('');
 export const historyRevision = writable(0);
 

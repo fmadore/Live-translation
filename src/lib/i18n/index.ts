@@ -5,6 +5,7 @@
 // independent. Nothing here touches `options.targetLanguage`.
 
 import { derived, writable } from 'svelte/store';
+import { readStored, writeStored } from '../persisted';
 import { de } from './de';
 import { en, type Messages } from './en';
 import { fr } from './fr';
@@ -38,12 +39,14 @@ export function isLocale(value: string | null | undefined): value is Locale {
  * First run follows the machine because an operator who has set Windows to French should not
  * have to find a selector to be spoken to in French; after that the explicit choice wins,
  * because someone who switched the app to English meant it.
+ *
+ * Called as this module loads, which every window does first, so storage is read through
+ * `persisted.ts`: WebView2 throws when site data is blocked, and a throw here would leave the
+ * window blank instead of merely forgetful.
  */
 export function detectLocale(): Locale {
-	if (typeof localStorage !== 'undefined') {
-		const stored = localStorage.getItem(LOCALE_KEY);
-		if (isLocale(stored)) return stored;
-	}
+	const stored = readStored(LOCALE_KEY);
+	if (isLocale(stored)) return stored;
 	if (typeof navigator !== 'undefined') {
 		for (const tag of navigator.languages ?? [navigator.language]) {
 			// Match on the primary subtag: fr-CA and fr-FR are both French here, de-AT and
@@ -60,7 +63,7 @@ export const locale = writable<Locale>(detectLocale());
 /** Persisted, so the next launch opens in the language the operator chose. */
 export function setLocale(next: Locale): void {
 	locale.set(next);
-	if (typeof localStorage !== 'undefined') localStorage.setItem(LOCALE_KEY, next);
+	writeStored(LOCALE_KEY, next);
 }
 
 /**

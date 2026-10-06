@@ -6,6 +6,7 @@ import { api } from './tauri';
 import { createOverlayController } from './overlayController.svelte';
 import { options, overlayFontSize, overlayPace } from './stores';
 import { PROFILES_KEY } from './profiles';
+import { blockStorage } from './testing/storage';
 vi.mock('./tauri', () => ({
 	isTauri: () => true,
 	api: {
@@ -79,4 +80,29 @@ it('names the profile picker by its visible label', () => {
 	});
 	expect(view.getByRole('combobox')).toHaveAccessibleName(/^Meeting profiles/);
 	view.unmount();
+});
+
+// D20: the list was read straight from localStorage as the rail mounted, so blocked site data
+// threw while the operator window was being built.
+it('mounts, and keeps a saved profile for the run, when storage refuses access', async () => {
+	const restore = blockStorage();
+	try {
+		const view = render(MeetingProfiles, {
+			props: {
+				locked: false,
+				overlay: createOverlayController(),
+				onLoaded: vi.fn(),
+				onBusy: vi.fn()
+			}
+		});
+		await fireEvent.click(view.getByRole('button', { name: 'Manage profiles' }));
+		await fireEvent.click(view.getByText('Save current setup…'));
+		await fireEvent.input(view.getByLabelText('Profile name'), { target: { value: 'Atrium' } });
+		await fireEvent.click(view.getByText('Save current setup'));
+		await waitFor(() => expect(view.getByText('Profile saved.')).toBeTruthy());
+		expect(view.getByRole('option', { name: 'Atrium' })).toBeInTheDocument();
+		view.unmount();
+	} finally {
+		restore();
+	}
 });

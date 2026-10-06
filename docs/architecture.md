@@ -222,9 +222,12 @@ button; that popup's language can depend on the host runtime.
 The eight appearance settings have one schema in `appearance.ts`: `DEFAULT_APPEARANCE`,
 `normalizeAppearance`, `toOverlayConfig` and the reading `PRESETS`. They persist one key each
 through `persisted.ts`, which reads and writes localStorage without ever throwing, and
-`stores.ts` exposes them together as `appearance` with `applyAppearance`. Names shared with
-the core (commands, events and the string values of serde enums) are checked against the
-Rust source by `contract.test.ts`.
+`stores.ts` exposes them together as `appearance` with `applyAppearance`. Every other module
+that reads storage as it loads (history, the interface language, meeting profiles and the
+export format in `exportFormat.ts`) goes through `persisted.ts` too, so blocked site data
+cannot throw at import and leave a window blank. Names shared with the core (commands, events
+and the string values of serde enums) are checked against the Rust source by
+`contract.test.ts`.
 
 `reading.ts` throttles interim presentation per source at 450 ms in Steadier mode; finals
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
