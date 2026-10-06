@@ -22,13 +22,15 @@ or quit. While the History tab is open during a session, its list refreshes at m
 seconds; Refresh, rename and delete still update it immediately.
 
 The session list opens automatically and shows start date/time, duration and known language
-information. Source speech is labelled auto-detected when the provider does not report its
-language; demonstration and rehearsal sources have known languages. Whisper history records
-its source language as automatic even when an explicit recognition language was chosen.
-Unfinished sessions show duration through the last save. Select a session to read its raw
-captions and available source transcription, copy it, or export Markdown, plain text, WebVTT
-or SRT through the existing Save As dialog. Timed formats require valid cue timing. Browsing
-and exporting history never replaces the active transcript.
+information. Source
+speech is labelled auto-detected when the provider does not report its language;
+demonstration and rehearsal sources have known languages. Whisper history records its source
+language as automatic even when an explicit recognition language was chosen. Unfinished
+sessions show duration through the last save. Select a session to read its raw captions and
+available source transcription, copy it, or export Markdown, plain text, WebVTT or SRT through
+the existing Save As dialog. The format is the one chosen in the transcript toolbar, and
+changing it here changes it there too. Timed formats require valid cue timing. Browsing and
+exporting history never replaces the active transcript.
 
 History remains after clearing the active transcript, export, quitting, and disabling automatic
 history. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current

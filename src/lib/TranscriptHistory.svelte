@@ -18,6 +18,8 @@
 		type SavedSession
 	} from './history';
 	import { exportOriginal } from './stores';
+	// The same remembered choice as the transcript toolbar's, like the original-speech option.
+	import { exportFormat as format, isTimedFormat } from './exportFormat';
 	import {
 		formatTranscript,
 		transcriptFilename,
@@ -32,7 +34,6 @@
 	let error = $state('');
 	let notice = $state('');
 	let confirmDelete = $state('');
-	let format = $state<TranscriptFormat>('markdown');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
 	const timed = $derived(selected ? hasTranscriptTiming(selected.lines) : false);
 	let query = $state('');
@@ -128,8 +129,8 @@
 				notice = $t.history.copied;
 			} else {
 				const path = await api.saveTranscript(
-					content(selected, format),
-					transcriptFilename(new Date(selected.startedAt), format)
+					content(selected, $format),
+					transcriptFilename(new Date(selected.startedAt), $format)
 				);
 				if (path) notice = `${$t.transcript.savedTo} ${path}`;
 			}
@@ -254,14 +255,14 @@
 				</form>
 				<div class="actions">
 					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
-					<Select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
+					<Select aria-label={$t.transcript.format} bind:value={$format} disabled={busy}>
 						<option value="markdown">Markdown (.md)</option><option value="text"
 							>{$t.transcript.plainText} (.txt)</option
 						>
 						<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
 					</Select>
 					<ToolButton
-						disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
+						disabled={busy || (isTimedFormat($format) && !timed)}
 						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
 					>
 					<ToolButton disabled={busy} onclick={() => remove(selectedId)}
@@ -280,7 +281,7 @@
 						disabled={busy}
 						onchange={(value) => exportOriginal.set(value)}
 					/>{/if}
-				{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
+				{#if isTimedFormat($format) && !timed}<p class="hint">
 						{$t.transcript.noTiming}
 					</p>{/if}
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->

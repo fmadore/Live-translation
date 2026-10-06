@@ -12,6 +12,7 @@
 		transcriptDirty
 	} from './stores';
 	import { TRANSCRIPT_WARN_LINES } from './document';
+	import { exportFormat, isTimedFormat } from './exportFormat';
 	import { saveTranscriptDocument } from './saveDocument';
 	import {
 		groupTranscript,
@@ -34,16 +35,21 @@
 	// feature whose only outcome would be an IPC error is the mistake issue #29 fixed elsewhere.
 	const desktop = isTauri();
 	let saving = $state(false);
-	let exportFormat = $state<TranscriptFormat>('markdown');
+	// The export format is a stored preference (`exportFormat.ts`), not this component's
+	// state: the page mounts the monitor once while a session runs and again after it, and
+	// each mount used to start over from Markdown.
 	const timedExportAvailable = $derived(hasTranscriptTiming(transcript));
 	// Offered only when there is something to include: subtitles have no separate original.
 	const bilingual = $derived(hasOriginalSpeech(transcript));
-	const missingTiming = $derived(
-		(exportFormat === 'srt' || exportFormat === 'vtt') && !timedExportAvailable
-	);
+	const missingTiming = $derived(isTimedFormat($exportFormat) && !timedExportAvailable);
 	// Clear throws away unsaved text, so when there is any it asks once rather than acting on
-	// the first click.
-	let confirmingClear = $state(false);
+	// the first click. New captions withdraw the question — the log the operator was about to
+	// throw away is no longer the log in front of them — so it is derived from the transcript,
+	// and only the click that asks sets it.
+	let confirmingClear = $derived.by(() => {
+		void transcript.length;
+		return false;
+	});
 
 	// The log names the two sides of the room; the saved file names the devices
 	// (`export.origin`). Both follow the interface language.
@@ -85,13 +91,6 @@
 		paragraphs;
 		if (!paragraphs.length) following = true;
 		if (logEl && untrack(() => following)) logEl.scrollTop = logEl.scrollHeight;
-	});
-
-	// New captions withdraw the pending "discard?" question: the log the operator was about to
-	// throw away is no longer the log in front of them.
-	$effect(() => {
-		transcript.length;
-		confirmingClear = false;
 	});
 
 	async function save(format: TranscriptFormat) {
@@ -138,7 +137,7 @@
 			</span>
 		{/if}
 		<div class="spacer"></div>
-		<select aria-label={$t.transcript.format} bind:value={exportFormat} disabled={saving}>
+		<select aria-label={$t.transcript.format} bind:value={$exportFormat} disabled={saving}>
 			<option value="markdown">Markdown (.md)</option>
 			<option value="text">{$t.transcript.plainText} (.txt)</option>
 			<option value="vtt">WebVTT (.vtt)</option>
@@ -155,7 +154,7 @@
 			size="sm"
 			disabled={!desktop || !transcript.length || saving || missingTiming}
 			aria-busy={saving}
-			onclick={() => save(exportFormat)}
+			onclick={() => save($exportFormat)}
 		>
 			{$t.transcript.saveAs}
 		</ToolButton>
