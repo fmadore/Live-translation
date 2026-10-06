@@ -71,7 +71,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: whisper-cpu-x64-v1
+          prefix-key: whisper-cpu-x64-v2
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -143,8 +143,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          # Keep the native Windows package lanes separate.
-          prefix-key: whisper-cpu-${{ matrix.arch }}-v1
+          # Keep the native Windows package lanes separate. Bump with `.cargo/config.toml`:
+          # whisper-rs-sys does not rebuild ggml when its GGML_* variables change.
+          prefix-key: whisper-cpu-${{ matrix.arch }}-v2
 
       - name: Setup Node
         uses: actions/setup-node@v7

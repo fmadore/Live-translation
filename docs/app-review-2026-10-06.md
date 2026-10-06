@@ -1,0 +1,278 @@
+# App review — 6 October 2026
+
+Scope: a read-only review of 1.6.1 (`b4cd7f1`) looking for defects, refactoring, efficiency,
+testing and new features. It concentrates on what 1.6.0 added since the
+[22 September review](app-review-2026-09-22.md): local Whisper, Pause, two caption languages,
+original speech, the Gemini handover and the append-only history log. Nothing was changed.
+Findings marked **verified** were traced in the code (several were rechecked by a second pass);
+**plausible** ones rest on reading the code or provider documentation and need a run to confirm.
+
+Baseline: `npm test` passes 550 tests in 59 files; `npm run check` reports 0 errors and 0
+warnings; CI on `main` passes 120 Rust tests (3 ignored) and takes about 5 minutes wall time,
+with `windows-11-arm` on the critical path.
+
+**Status (6 October 2026):** batches 1 and 2 (§7) are implemented on
+`review/2026-10-06-batch1-2`; batches 3–6 are not started.
+
+## Implementation tracker — batches 1 and 2
+
+| Item | Change | Status |
+| --- | --- | --- |
+| D1 | A mid-stream close is a handover; OpenAI and Mistral `error` events classified, and OpenAI's `session_expired` is a planned handover | Done; live checks pending |
+| D2 | `drain_complete`: Transcribe ends on the final after `audioStreamEnd`; Translate now sends `audioStreamEnd` and ends on `turnComplete`; an empty turn after 3 quiet seconds closes at once | Done; Translate's answer to `audioStreamEnd` not yet seen live |
+| D3 | Sends bounded at 3 s; a ping every 15 s; 30 s with no inbound frame reconnects | Done; pong replies not yet seen live |
+| D4 | Pause honoured during connect and setup; no Running before Paused; an unchanged pause is not published | Done |
+| D5 | A 30-chunk backlog while a handover's socket opens, sent in order | Done; live handover pending |
+| D6 | Capture joins give up after 3 s; a relay ends with its source | Done |
+| D7 | A failed start shuts down through `SessionManager::shutdown`, without an Idle | Done; no automated test (needs an `AppHandle`) |
+| R1 | `realtime/{mod,policy,socket}.rs` and an `Events` seam | Done |
+| T1 | `realtime/tests.rs`: loopback server and paused clock, 15 runner tests, plus 9 policy tests | Done |
+| E1 | ggml with AVX2/FMA/F16C on x64 and `armv8.2-a+dotprod+fp16` on ARM64; `whisper/cpu.rs` gate; `whisper_cpu_support`; demo fallback; Intel SDE step in CI | Done; SDE step awaits its first CI run; hardware checks pending |
+| D8, E8 | reqwest 0.13 with `system-proxy`; no total timeout; fixed `.part` file and stale clean-up; `whisper-rs-sys` pinned | Done; proxy network pending |
+| D9 | `Spool::next_timeout`; 1 s idle releases the held window; window times re-anchored | Done |
+| D10 | Quit discards pending local audio; the running-session prompt says how much | Done |
+| D11 | Lossy segment text, U+FFFD stripped | Done |
+| D12 | Word-level overlap trimming; characters only for unspaced scripts | Done |
+| D13 | A segment is dropped only when no-speech > 0.6 **and** mean log-probability < −1 | Done |
+| E2 | Short windows reuse the last long window's language (changed; see notes) | Done |
+| E4 | One inference at a time per model; threads half the logical processors on x64, all cores but one on ARM64, at most 8 | Done; laptop check under load pending |
+| E5 | 28 s windows while the backlog exceeds 30 s | Done |
+| T2 | `reconcile.rs`, `language.rs`; segmenter, spool, download and CPU-gate tests | Done |
+
+### Notes
+
+- **E2 differs from the review on purpose.** Locking the detected language for a session would
+  mis-transcribe the other language of a bilingual room for minutes. Windows of 3 s or more
+  still detect their language; shorter ones reuse the language of the last longer window that
+  produced captions, which skips detection where it is least reliable.
+- **D2 trade-off.** Stop or Pause straight after speech on Gemini Translate now waits up to the
+  4 s drain for the last translation instead of dropping it; after 3 quiet seconds with no open
+  turn it closes at once.
+- **E1.** clang-cl treats `/arch:AVX2` as Haswell, so the gate requires the whole Haswell set on
+  x64 (BMI1/2, LZCNT, MOVBE, POPCNT included). On ARM64 it checks dot-product only: Windows'
+  FP16 flag exists only on recent builds, and every Windows-on-ARM SoC with dot-product has
+  FP16. whisper-rs-sys does not rebuild ggml when these variables change, so the Rust cache keys
+  in `ci.yml` and `release.yml` moved to `-v2`.
+- **E4.** "All cores but one" applies to ARM64 only; on x64, half the logical processors already
+  leaves each core's second hardware thread free.
+- **Measured** (Tiny smoke test, Snapdragon X, best of quiet runs): English 3.10 s → 1.46 s,
+  French 1.73 s → 1.04 s. E1 alone gave 1.2×, and the thread change most of the rest. Under
+  other load every build was erratic, because ggml's workers busy-wait.
+
+Still needs Windows hardware or live providers: Gemini Translate's answer to `audioStreamEnd`;
+an OpenAI session past 60 minutes; Mistral's real `error` payloads; pong replies from every
+provider; a live handover; an x64 PC without AVX2 (Whisper unavailable, demo selected); the
+ARM64 Store package (gate and speed on Base and Small); a model download behind a Windows
+proxy; quitting with a large backlog.
+
+## 1. Defects
+
+### Cloud sessions (`realtime.rs`, provider clients)
+
+| ID | Priority | Finding | Suggested change | Effort |
+| --- | --- | --- | --- | --- |
+| D1 | High | **A provider close or `error` event mid-session ends the source for good** (verified). `MessageControl::Closed` maps to `RunEnd::Stopped` in the pump (`realtime.rs:550`), which breaks out of `run_session` (`:265`), emits Idle and cancels capture. OpenAI `session.closed` (`openai/client.rs:113`) and Mistral `transcription.done` (`mistral/client.rs:105-122`) take that path if they arrive mid-session, and every OpenAI and Mistral `error` event is `Fatal` (`openai/client.rs:93`, `mistral/client.rs:124`), including expiry and transient server errors. If `/translations` shares the 60-minute Realtime cap (*plausible*), a 90-minute talk loses that source at the cap. | `Closed` means "drain finished" only inside `graceful_close`; in the pump it becomes `Handover`/`Reconnect`. Classify errors: auth and invalid-request are `Fatal`, `session_expired`/`server_error` reconnect. Harness tests for each. | S |
+| D2 | High | **Close drains ignore the provider's own end signal** (code verified, server behaviour plausible). `graceful_close` (`realtime.rs:626-641`) stops on `Closed`/`Fatal`, end of stream or the 4 s deadline. Gemini Transcribe sends `audioStreamEnd` but never returns `Closed`, so every Pause and Stop waits the full 4 s. Gemini Translate sends no closing frame and closes at once, losing the translation of the last 1–3 s of speech on every Stop and Pause. | A `drain_complete(&MessageOutcome)` trait method: Transcribe finishes on the final after `audioStreamEnd`. Send `audioStreamEnd` from Translate too and finish on `turnComplete`, after a `live_probe` confirms the server accepts it. | S |
+| D3 | Medium | **A stalled socket freezes the client** (plausible). `write.send(...).await` has no timeout (`realtime.rs:523-526`) and there is no ping or inbound-liveness check. After a Wi-Fi handoff or NAT drop, sends block until Windows abandons TCP retransmission; meanwhile the status still says Running, Pause is not seen, and Stop ends it only through the 5 s abort. | `timeout(≈3 s)` around each send, expiry → `Reconnect`; a ping arm every ~15 s and a `last_inbound` instant, ~30 s of silence → `Reconnect`. | S–M |
+| D4 | Medium | **Pause gaps** (verified). The connect and setup selects (`realtime.rs:409-414`, `:431-444`) ignore pause, so Pause during a slow connect can wait up to 30 s and then completes a setup only to close it. `Running` is emitted (`:482`) before the pause check (`:497`), so the UI flickers. `set_paused` calls `send_replace` unconditionally (`session.rs:878`), so a redundant Resume wakes clients and cuts their backoff short (`realtime.rs:335`). | `pause.changed()` arms returning `RunEnd::Paused`; check pause before emitting Running; `send_if_modified`. | S |
+| D5 | Medium | **Handover keeps only the first half-second** (mechanism verified). A `goAway` handover keeps the backlog (`realtime.rs:256`, `next_chunk` `:368`), but the producer queue holds 5 chunks (`session.rs:46`, `try_send`), so speech during the reconnect's TLS handshake and setup beyond ~500 ms is dropped. | While `catch_up` is set, select connect/setup against `audio_rx.recv()` into a `VecDeque` capped at ~30 chunks, then flush it in order: the gap becomes latency, not lost words. | S–M |
+| D6 | Low | **Shutdown has no deadline on capture joins** (plausible). `join_threads` (`session.rs:390-402`) waits forever under the lifecycle lock; `confirm_close` (`lifecycle.rs:152`) awaits it. A driver hang on unplug makes the app impossible to quit. | `timeout(3 s)` around the `spawn_blocking`, then log and detach. | S |
+| D7 | Low | **A failed `add_source` leaks the first source** (verified). The error path at `session.rs:740` drops threads and tasks without joining and leaves a dead token in `local_abort`. Rare: needs the second source's spawn or `Spool::new` to fail. | Fold `stop_active`'s body into `shutdown(session)` and call it there (part of R2). | S |
+
+### Local Whisper and capture
+
+| ID | Priority | Finding | Suggested change | Effort |
+| --- | --- | --- | --- | --- |
+| D8 | High | **Model download fails on slow or proxied networks and leaks partial files** (verified). `.timeout(1800 s)` bounds the whole request (`whisper/models.rs:164`), so Small needs ≥ 106 KB/s; the 60 s per-chunk stall timeout (`:176`) already covers hangs. `default-features = false` (`Cargo.toml:50`) drops reqwest 0.12's default `system-proxy` feature, so Windows proxy settings — common on university networks — are ignored. `NamedTempFile::new_in` (`:156`) is not cleaned up when the app exits mid-download (`app.exit(0)` skips destructors), leaving up to 190 MB per attempt. | Drop the total timeout; add `"system-proxy"`; download to a fixed `<file>.part` and delete stale parts on start. Optional resume with `Range`. | S (M with resume) |
+| D9 | Medium | **The last ≤ 10 s before Pause is not captioned until Resume or Stop** (verified for Pause). Paused frames are dropped and `Spool::next` waits with no timeout (`whisper/spool.rs:86-88`); the segmenter flushes only on a later gap, a full window, digital silence or `finish()` (`whisper/segment.rs:28-58`). Plausibly the same when loopback stops delivering packets. Also, with microphone noise the segmenter never empties, so caption times are pure sample counts and drift accumulates over a meeting. | `Spool::next_timeout` (`Condvar::wait_timeout`) returning Idle; after ~1 s idle with a non-empty segmenter, `finish()`. Re-anchor `start_ms` from chunk timestamps at each `take()`. | S–M |
+| D10 | Medium | **Quit during "Finishing the transcript" waits for the whole backlog** (traced). The renderer gives up after 8 s (`src/lib/quit.ts:84`), but `confirm_close` (`lifecycle.rs:158`) calls `manager.stop()`, which drains under the lifecycle lock; captions keep arriving after the save prompt committed the document. | `discard_local_pending()` in `confirm_close` before `stop`; show pending Whisper audio in the quit prompt. | S |
+| D11 | Medium | **One invalid-UTF-8 segment ends the source** (verified). `segment.to_str()?` (`whisper/mod.rs:287`) fails `transcribe`, the drop guard cancels capture and the source goes to Error. | `to_str_lossy()`, strip U+FFFD. | S |
+| D12 | Medium | **Window-boundary de-duplication matches characters, not words** (verified). `trim_overlap` (`whisper/segment.rs:90-106`) turns "…went there" + "here we go" into "we go", and is case- and punctuation-sensitive, so a re-capitalised "We…" is never de-duplicated. | Compare normalised words with boundaries; characters only for scripts without spaces. | S |
+| D13 | Low | **The extra no-speech filter can drop confident speech** (plausible). `no_speech_probability()` is one value per window; `whisper/mod.rs:277` drops every segment above 0.8. whisper.cpp already suppresses `no_speech_prob > 0.6 && avg_logprob < −1`. | Remove the filter, or also require a low mean token probability. | S |
+| D14 | Low | **Loopback reads one packet per wake into a ~10–20 ms buffer** (code verified, loss plausible). `read_from_device_to_deque` does one `GetBuffer` (`audio/loopback.rs:139-142, 181-195`); under load the backlog overflows. SILENT and DATA_DISCONTINUITY flags are discarded. | Loop while `get_next_packet_size() > 0`, request ≥ 100 ms, zero-fill SILENT packets, log discontinuities; optionally MMCSS "Pro Audio". | S |
+| D15 | Low | **24-bit microphones are rejected** (verified). The ten sample-format arms (`audio/capture.rs:138-233`) have no `I24`, which cpal 0.18 reports for 24-bit WASAPI devices. | The R3 generic `build::<T: SizedSample>` with the F32 fast path adds it for free. | S |
+
+### Operator and overlay
+
+| ID | Priority | Finding | Suggested change | Effort |
+| --- | --- | --- | --- | --- |
+| D16 | Medium | **Test audio does nothing while the device-failure banner is up** (verified). `startAudioTest` returns when `locked()` is true (`preflightController.svelte.ts:93`), and the page's `locked()` includes `device.failed !== null` (`+page.svelte:69`), but the button's disabled state uses only `controlsLocked` (`PreflightChecklist.svelte:127`). After a capture failure, choosing another mic and clicking Test audio is silent. | A separate test gate (`controlsLocked` only), or `device.clear()` when the failed source's device changes. | S |
+| D17 | Medium | **Rehearsal doubles the cost estimate** (verified). `LiveRail.svelte:43` counts streams from `$options.source` and `:128` shows "two sources", but a rehearsal is one System stream (`types.ts:230-236`). | `rehearsing ? 1 : …` in both places. | S |
+| D18 | Medium | **History ignores the second caption language** (verified). The filter (`historySearch.ts:34`) checks only `targetLanguage`; the list row (`TranscriptHistory.svelte:230`) prints only `→ FR`. | Match either language; print `FR + DE`. | S |
+| D19 | Medium | **Export format resets on Start/Stop, and quit Save always writes Markdown** (verified; the September D8). `TranscriptMonitor` is mounted twice (`+page.svelte:377, 398`), resetting `exportFormat`, the clear confirmation and follow-scroll; `quit.ts:104` hard-codes Markdown. | A persisted export-format store read by the monitor and `resolveClose`. | S |
+| D20 | Low | **Three storage reads bypass `persisted.ts`** (code verified, trigger plausible). `history.ts:13-18` and `i18n/index.ts:43-45, 63` read localStorage at module load; `MeetingProfiles.svelte:29, 42` too. WebView2 throws when site data is blocked, which here would blank the window at import. | `persistedFlag` / `readStored` / `writeStored`. | S |
+| D21 | Low | **Accessibility.** Pause has `aria-pressed={paused}` while its label flips to "Resume" (`SessionControls.svelte:62`), so Narrator says "Resume, toggle button, pressed"; Move does the same (`LiveRail.svelte:150-153`) (verified). `LiveActivity.svelte:10` is a `role="status"` region whose labels flip on every 3 s gap, so Narrator may re-read it constantly (plausible). | Drop `aria-pressed` or keep the label fixed; announce only error and stale transitions. | S |
+| D22 | Low | **Width stepper reads "Caption width −/+"** (verified). `overlayControls.narrower`/`wider` exist in all three catalogs but `ReadingPreferences.svelte:33-41` passes no labels, and hard-codes 20/60 and 2/30 instead of `OVERLAY_WIDTH_MIN/MAX` and the `reading.ts` bounds. Seven other keys are dead in all catalogs: `settings.close`, `history.browse`, `history.close`, `transcript.saveText`, `transcript.saveMarkdown`, `cost.elapsed`, `cost.streamed`. French and German have no untranslated strings. | Wire the two labels and constants; delete the seven keys. | S |
+
+## 2. Efficiency
+
+| ID | Finding | Change | Effort |
+| --- | --- | --- | --- |
+| E1 | **Whisper's matrix maths runs without SIMD on x64 and below baseline on ARM64** (scalar path verified; speed-up plausible, likely several ×). `.cargo/config.toml` turns off AVX, AVX2, FMA, F16C and SSE4.2, and the q5_1 dot product (`ggml_vec_dot_q5_1_q8_1`) has only AVX2/AVX paths, so all three shipped models fall back to scalar code. ARM64 is built for `armv8-a`, disabling the dot-product and FP16 instructions every Windows-on-ARM SoC has. The config's own comment calls this the conservative first-release setting. This is the biggest single performance lever in the app: it decides whether Small keeps up in real time. | Build x64 with AVX/AVX2/FMA/F16C/SSE4.2 and ARM64 with `armv8.2-a+dotprod+fp16`. Gate Whisper at runtime (`is_x86_feature_detected!` / `is_aarch64_feature_detected!`) in `whisper::load` and the readiness check, so a CPU without them gets a different first-launch default — the keyless-path lesson applies. Run the packaged x64 app under Intel SDE `-wsm` to prove no AVX runs at start-up. Runtime dispatch (`GGML_BACKEND_DL`) needs a whisper-rs-sys fork. | M |
+| E2 | **Automatic language detection doubles encoder work on every window** (verified). With `language = None` whisper.cpp runs detection (an encoder pass) then encodes again (`whisper/mod.rs:245`); re-detecting every 10 s also lets the language flip on short windows. Automatic is the first-launch default. | Read `full_lang_id_from_state()` after `full()`; once two ≥ 3 s speech windows agree, pass it explicitly; re-check every ~2 min or on an empty result. | S |
+| E3 | **Silence detection is a −80 dBFS gate** (verified). `\|x\| > 1e-4` (`whisper/segment.rs:45`) means only digital zeros are silence: on a real microphone every window is speech, cut at exactly 10 s mid-word, and room noise is transcribed ("Thank you." hallucinations). | Silero VAD: whisper-rs 0.16 exposes `WhisperVadContext`, but `enable_vad` is ignored by `full_with_state`, so call `segments_from_samples` directly (one context per source, ≥ 1–2 s input). Bundle `ggml-silero-v6.2.0.bin` (MIT, ~0.9 MB). Cut at 300–500 ms pauses, force a cut at 15–20 s. | M–L |
+| E4 | **Thread oversubscription with two sources; underuse on big ARM chips** (plausible). Each source uses `min(cores, 4)` threads (`whisper/mod.rs:236-238`): two concurrent `full()` calls spin 8 ggml workers against capture and WebView2, while a 12-core Snapdragon X uses 4. | An inference `Mutex` on `LoadedModel` around `full()`, threads = `min(physical cores, 8)`; or divide by active sources. | S |
+| E5 | **Each 10 s window pays for a 30 s encoder pass** (verified). `n_ctx` is fixed at 1500 unless `audio_ctx` is set. | When the backlog exceeds 30 s, use ~28 s windows (latency no longer matters); optionally benchmark `set_audio_ctx`. | S |
+| E6 | **The History tab re-reads and re-decodes every session every ≤ 5 s while recording** (plausible magnitude). Each history write bumps the revision; `read_sessions` (`history.rs:83-109`) sends every file in full and `TranscriptHistory.svelte:63-99` decodes them all, discarding the search cache. Also, one unreadable file (`?` at `history.rs:91, 98, 104`) hides all history, and `rename_session` reads the whole log to check its header. | `list_history(known: [(id, len)])` returning only changed files (logs are append-only, so length is a sound key); skip bad files with a warning; read only the first line in rename; cache decoded sessions by id. | S–M |
+| E7 | **Live turns are unbounded outside the overlay caption text** (plausible). `LiveTurns.svelte:58-62` re-renders the full turn at display size on every interim; in Fit, the overlay's original speech is unbounded (`overlayCaptions.svelte.ts:172, 181`) while the caption is cut at 12,000 characters. | Move `tail()` (`overlayCaptions.svelte.ts:29`) to `captionLayout.ts` and use it in all three places. | S |
+| E8 | **Two copies of reqwest are compiled** (verified in `Cargo.lock`). Tauri 2.12 pulls reqwest 0.13.4; the app adds 0.12.28. | `reqwest = { version = "0.13", default-features = false, features = ["native-tls", "system-proxy"] }` (with D8). Do *not* bump `sha2` to 0.11: wry and tauri-codegen use 0.10. | S |
+
+Checked and fine: the meter path (one store per source, transform-only bars, 500 ms activity
+throttle); listener and timer teardown; copies between capture, spool and inference; the
+resampler's ~1.6 M multiply-adds per second; per-chunk base64/JSON allocations. The Whisper
+model list's 500 ms interval wakes while idle but calls nothing unless a download is running.
+
+## 3. Refactoring
+
+### Rust core
+
+- **R1 — Split the realtime runner.** `run_session` (`realtime.rs:193`, 163 lines) and
+  `connect_and_run` (`:396`, 165 lines, was 122) carry the reconnect state machine inline.
+  Move it into a pure `Reconnect::after(&RunEnd, uptime) -> Next { status, wait, drain_stale,
+  catch_up }` (`realtime/policy.rs`) and the socket side into `open()` + `pump()` +
+  `graceful_close` (`realtime/socket.rs`). `run_session` drops to about 50 lines and pause,
+  handover and backoff become unit-testable (T1). M.
+- **R2 — Split `session.rs` (1,190 lines)** into `session/{mod, settings, options, builder,
+  capture, preflight}.rs` along the existing seams (`ProviderSettings` `:104-176, 430-495`;
+  validation and origins `:96-102, 236-283, 308-329`; `SessionBuilder`/`ClientIo`/`relay_audio`
+  `:285-306, 404-428, 497-672`; `CaptureTarget` and joins `:178-234, 331-402`; preflight
+  `:66-71, 748-866`). On the way: merge the two identical completion blocks in `spawn_producer`
+  (`:636-645`, `:655-664`), fix D7, and compute `session_origins` once (`:729, 739`). M.
+- **R3–R5 from September are all still open.**
+
+  | Item | Where |
+  | --- | --- |
+  | `bearer_request` | `openai/client.rs:71-81`, `mistral/client.rs:56-65` |
+  | `gemini_request` | `gemini/client.rs:39-58`, `gemini/transcribe.rs:38-58` |
+  | `parse_or_log<T>` (4 copies) | `gemini/client.rs:76`, `transcribe.rs:81`, `openai/client.rs:97`, `mistral/client.rs:85` |
+  | `ServerMessage::control` | `gemini/client.rs:84-96`, `transcribe.rs:89-103` |
+  | `atomic_write` / `replace_snapshot` | `export.rs:13`, `recovery.rs:37` |
+  | Ten sample-format arms (D15) | `audio/capture.rs:138-233` |
+  | String errors instead of `AppError` | `recovery.rs:80-183`, `history.rs`, `lifecycle.rs:134`, `tray.rs:237` |
+  | `{path:?}` shown to operators | `recovery.rs:110, 113, 147, 151, 177, 179` |
+  | `MessageOutcome` booleans | `realtime.rs:115-121` |
+  | `MistralConfig.received_delta` is runtime state | `mistral/client.rs:37`, set at `session.rs:476` |
+  | `TurnAccumulator.translated` holds transcriptions; `lane` set after construction | `realtime.rs:57, 211` |
+  | `emit_status` duplicated (now 6 sites) | `realtime.rs:690`, `session.rs:210, 886, 966`, `ondevice/mod.rs:227`, `whisper/mod.rs:84` |
+  | COM `Apartment` guard duplicated | `audio/devices.rs:66-73`, `audio/loopback.rs:80-86` |
+  | Stale docs | `lib.rs:1-5` (Gemini-only "Live Captions"); `commands.rs:5` says every command is async (3 are sync); two doc lines on `TRANSCRIPT_WRITE` in `errors.rs` |
+  | Long functions | `capture.rs:104` (156 lines), `loopback.rs:67` (135), the two runner functions (R1) |
+
+### Frontend
+
+- **R6 — One start gate (with R14).** The Start logic is written three ways
+  (`+page.svelte:273-275, 289-294, 295-299`), and Rehearse lacks the profile-busy check, so it
+  stays enabled while a profile loads. One derived `startBlockers` for Start, Rehearse and the
+  shortcut. Replace the `hasKey` writable (`stores.ts:213`, written from `+page.svelte:86-96`
+  and `PreflightChecklist.svelte:95`) with an `engineReady` value derived in the preflight
+  controller. The remaining R14 effects: `LanguagePicker.svelte:43-46`, `DateField.svelte:8-11`
+  (`$derived(value)` is writable in Svelte 5.57), `WhisperActivity.svelte:16-22`,
+  `TranscriptMonitor.svelte:92-95`. M.
+- **R7 — The unsupported-language check is written twice** (`+page.svelte:245-253`,
+  `sessionController.ts:33-46`): extract `unsupportedCaptionLanguage(options)` into
+  `languages.ts`. S.
+- **R8 — The overlay re-validates its config by hand** (`overlay/+page.svelte:148-171`, ten
+  fields). Add `fromOverlayConfig` to `appearance.ts` as the inverse of `toOverlayConfig`, with
+  a round-trip test, and keep one appearance state in the overlay. M.
+- **R9 — `stores.ts` and `types.ts` cohesion.** `stores.ts` mixes status aggregation (58-212),
+  the caption-to-transcript pipeline (230-369), ~15 persisted preferences (371-450) and the
+  appearance aggregate: split into session, transcript-log and preferences modules behind a
+  re-exporting `stores.ts`. In `types.ts`, move the provider predicates (86-110) to
+  `providers.ts`, overlay keys and clamps (417-475) to `appearance.ts`, and `StartOptions`
+  defaults (499-584) to `startOptions.ts`. M, no behaviour change.
+- **September leftovers.** R8 (history decoding): only the legacy v1 path still parses twice
+  and depends on `RECOVERY_VERSION` (`history.ts:156-160`) — check `version === 1` and map
+  through `readLine`. R10 (controller classes): low value; convert preflight and quit only.
+  R13: `SystemCapturePicker.svelte:35, 56, 88` should use `Field`, the recovery checkbox
+  (`TranscriptMonitor.svelte:233-246`) `Preference`; close the `Icon` item (27 inline SVGs,
+  only 3 paths repeat).
+
+## 4. Testing
+
+Untested or thin, ranked by logic density × visibility: `+page.svelte` (2 tests, indirectly),
+`audio/loopback.rs` (0), `nativeSync.svelte.ts` (0; a no-op in browser previews, so only a
+desktop run exercises it), `lib.rs` (0), `OverlayMoveChrome.svelte` (style tests only),
+`SetupSheet.svelte` (0), `secrets.rs` (0; key migration), `tray.rs` (0), `commands.rs`
+(names only), `SettingsDialog.svelte` (0), `overlay.rs` (0), `placement.rs` (1),
+`LiveRail`/`LiveTurns` (0), `whisper/mod.rs` (3 tests for 424 lines), `export.rs` (1). The
+September computed-style harness was never committed.
+
+| ID | Recommendation | Catches | Effort |
+| --- | --- | --- | --- |
+| T1 | **Runner state-machine tests.** An `Events` trait (caption, status) implemented for `AppHandle`, a loopback `tokio_tungstenite::accept_async` server, a `FakeProto` and `tokio::time::pause()`. Cases: pause mid-stream flushes then reports Paused and resumes via Connecting; `goAway` after 30 s reconnects without sleep and sends queued chunks in order; `goAway` at 2 s backs off; a mid-stream close reconnects (D1); setup timeout is Fatal; cancel during setup sends Close. | Pause, handover and backoff — today all "live check pending" | M (with R1) |
+| T2 | **Whisper pure-logic tests.** Extract segment reconciliation (`whisper/mod.rs:276-301`) and test overlap skipping, tail clamping, monotonic times and D12's cases; the segmenter (250 vs 251 ms gaps, backwards timestamps); the spool with an injectable size limit and failing writer; downloads against a local `TcpListener` (oversize, hash mismatch leaves no file, stall, cancel). | D8–D12 regressions | M |
+| T3 | **Page-level tests with `@tauri-apps/api/mocks`.** `mockIPC(cb, { shouldMockEvents: true })` and `mockWindows` ship in the installed 2.12.1 and make `isTauri()` true, so the real `tauri.ts` runs in jsdom. Script a demo session through `+page.svelte`, `nativeSync`, `SetupSheet`, `SettingsDialog`, `LiveRail` and `OverlayMoveChrome`; add the D16–D19 regressions. | Orchestration regressions, in seconds on Linux | S–M |
+| T4 | **Native end-to-end on `windows-latest`.** Launch the debug exe with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222` and drive it with Playwright `connectOverCDP` (documented for WebView2; `@playwright/test` 1.63.0), or `@wdio/tauri-service` 1.4.0 on WebdriverIO 9.32 (not 10, released 5 October; the service still depends on 9). First spec: choose the demo (the default engine is Whisper, so it is not keyless), Start, expect the scripted line in the overlay within 15 s, Pause/Resume/Stop, close → unsaved prompt. Second: download Whisper Tiny through the UI and run the EN rehearsal fixture (cache the model). Could also cover move mode, profile placement, history and kill-and-relaunch recovery. | About 40% of the desktop-run backlog (plausible); tray, Narrator, real contrast themes, mixed DPI, meeting apps and Store identity stay manual | M |
+| T5 | **Computed-style and overflow regression** in Playwright against `vite preview`: the September harness (8 states × EN/FR/DE × 100/150/225%) as committed JSON snapshots of ~30 properties per element plus a `scrollWidth > clientWidth` scan; a few `toHaveScreenshot` captures on `windows-latest` with `channel: 'msedge'`. | Token, layout and translation-length regressions | M |
+| T6 | **Static analysis.** Cheapest: `noUnusedLocals` and `noUnusedParameters` in `tsconfig.json`. Then a minimal typed ESLint for what svelte-check cannot see: `no-floating-promises`/`no-misused-promises` (38 hand-written `void`s today), `svelte/require-each-key` (6 of 26 `{#each}` are unkeyed), `prefer-writable-derived`, `infinite-reactive-loop`. Versions checked: eslint 10.12.0, typescript-eslint 8.71.1 (peer TypeScript < 6.1 — group it with TypeScript in Dependabot), eslint-plugin-svelte 3.23.0. `knip` 6.39.0 for unused files, exports and deps. A curated `[lints.clippy]` table: the cast lints (82 `as` casts), `needless_pass_by_value`, `match_same_arms`, `unnecessary_wraps`. | Unhandled IPC rejections, dead code, lossy casts | S–M |
+| T7 | **Coverage, report-only.** `@vitest/coverage-v8` 5.0.3 with `include: ['src/**/*.{ts,svelte}']` to the step summary, thresholds only on pure modules; `cargo-llvm-cov` 0.9.1 in place of `cargo test` on the Ubuntu lane. | Makes the map above visible | S |
+| T8 | **Optional nightly audio job.** `LABSN/sound-ci-helpers` installs VB-Cable on x64 Windows runners (donationware; professional use expects a licence) or the MIT `VirtualDrivers/Virtual-Audio-Driver`; play a fixture into the virtual device and capture through loopback and the mic. Flaky; keep fixtures as the per-PR boundary. | WASAPI paths, D14 | M |
+
+### CI
+
+- **`npm audit` fails unrelated PRs** (verified): 14 of the 26 failed runs since 1 August
+  failed only there, eight of them in one minute on 3 October over the dev-only `source-map-js`
+  advisory. Gate on `npm audit --omit=dev --audit-level=moderate` (only `@tauri-apps/api` and
+  the fonts ship) and run the full audit weekly. S.
+- `fail-fast: false` on the Node matrix; cache the Whisper smoke-test model (38–104 s per run).
+  The Rust cache works (warm clippy 22–31 s). nextest and sccache are not worth it. S.
+
+## 5. Dependencies and provider drift
+
+- **npm majors are out:** `@sveltejs/kit` 3.0.1, `@sveltejs/adapter-static` 4.0.0 and
+  `typescript` 7.0.2 (from `npm outdated`). Each needs its own branch; check svelte-check and
+  typescript-eslint compatibility before TypeScript 7.
+- **Rust:** `wasapi` 0.25.0 (1 October) is available — 0.24 itself has not yet been tested on
+  hardware, so take both in one hardware pass. `tauri-plugin-single-instance` 2.5.2 and
+  `tokio` 1.53.2 are patch updates. whisper-rs 0.16.0 is still the latest (the project moved to
+  Codeberg; upstream whisper.cpp is at 1.9.4 with Parakeet support). The `=0.16.0` pin does not
+  pin whisper.cpp: add `whisper-rs-sys = "=0.15.0"` with a comment.
+- **Providers: nothing the app uses is deprecated** (checked against the Google, OpenAI and
+  Mistral deprecation pages on 6 October). Watch items:
+  - OpenAI's migration guide maps `gpt-realtime-whisper` (the translation session's source
+    transcriber, `openai/client.rs:24-26`) to `gpt-live-transcribe`, though the translation
+    reference still documents only the former. It is the most likely next forced change: probe
+    with `OPENAI_TRANSCRIBE_MODEL=gpt-live-transcribe` before switching the default.
+  - OpenAI's July notice retires the `gpt-realtime` family on 20 January 2027; it reads as
+    excluding `gpt-realtime-translate` (plausible). Re-check monthly.
+  - OpenAI sends `noise_reduction: near_field` for every source (`openai/protocol.rs:64`):
+    choose per source (`far_field` for a room mic, none for loopback).
+  - Gemini Transcribe Live accepts `language_codes` hints (`gemini/protocol.rs`).
+  - Gemini's API reference lists `diarization` in `AudioTranscriptionConfig` while the guide
+    says it is unsupported live; a `live_probe` would settle it.
+- **Pricing:** the rates in `providers.ts` match current Google and OpenAI pricing but have no
+  in-repo source or date since the README table went in `f61279d`. Mistral's realtime price
+  ($0.006/min at launch) is no longer on its pricing page.
+- **Doc drift:** `ROADMAP.md` still lists the glossary, diagnostic export and latency readout
+  declined on 24 September. Issue #12's body describes a picker and F2 flip that no longer
+  exist; #32's last comment says whisper.cpp is not the shipping fallback, which 1.6.0
+  reversed. Open issue #108 asks for Azure MAI-Transcribe-2-Streaming (preview, Azure resource
+  plus key, 1-hour sessions).
+
+## 6. Feature candidates
+
+Ranked by value for effort. The glossary, diagnostic export, latency readout and meeting
+integrations stay declined.
+
+| # | Feature | Notes | Effort |
+| --- | --- | --- | --- |
+| F1 | **Offline translation to English with Whisper's translate task** | The first keyless *translation* path. `set_translate(false)` is hard-coded (`whisper/mod.rs:248`). `Provider::can_translate` becomes "English target only" for Whisper; touches `types.rs`, `languages.json`, SetupSheet, i18n and `local-whisper.md`. Weak on Tiny/Base, so recommend Small (and E1 first). Does nothing for a francophone audience. | S–M |
+| F2 | **Remember overlay position and size**, per profile or per monitor | On the roadmap; nothing persists geometry today. Store it in `profiles.ts` or use `tauri-plugin-window-state` 2.5.0; clamp to visible work areas for unplugged and mixed-DPI monitors. | S–M |
+| F3 | **Automatic FR ⇄ EN for Gemini (#12)** | Two lanes with `echoTargetLanguage: false`, merged into one track: the EN lane is silent on English speech and vice versa, so the room always reads the other language with no detection or reconnects. Output is billed only while a lane speaks, so it costs roughly one extra input leg (~$0.32/h), not double (plausible). Needs a `live_probe` first. | M |
+| F4 | **Captions on attendees' phones over the LAN, and an OBS mode** | A small read-only HTTP/SSE server fed by caption events, a static page and a QR code; each attendee picks a lane and size. The same server serves `localhost` for OBS; a solid-background window mode alone is S. Bind to private interfaces with a random URL token; campus Wi-Fi often blocks client-to-client traffic; update `privacy.md`. | M–L |
+| F5 | **Source labels and per-origin overlay styling** | On the roadmap: a subtle Room/Remote prefix when both sources are live. True speaker labels need live diarization, which no engine in use offers today. | S |
+| F6 | **Small provider adoptions** | Gemini Transcribe language hints from the spoken-language selector; OpenAI noise reduction per source; an opt-in `gpt-live-transcribe` subtitle engine for OpenAI-key holders (~$1.02/h). | S each |
+| F7 | **Opt-in "polish transcript" after the session** | Keep the session audio (opt-in), re-run with a larger local model or a cheap batch cloud model with speaker labels. Reverses a privacy promise: consent wording, disk space and deletion controls. | M–L |
+| F8 | **Research** | Local text translation with Mozilla's Bergamot/Marian models (MPL-2.0, ~37 MB per direction; WASM in WebView2 avoids native ARM64 builds). Parakeet through whisper.cpp ≥ 1.9 once whisper-rs releases. Avoid NLLB (non-commercial licence). | L |
+
+## 7. Suggested batches
+
+1. **Cloud session robustness:** D1–D6, with R1 and T1 so the fixes ship with tests. Needs
+   live checks against each provider, including a session longer than 60 minutes on OpenAI.
+2. **Whisper:** E1 (with the runtime CPU gate and an SDE run), D8–D13, E2, E4, E5 and T2. E3
+   (VAD) as its own follow-up once E1 shows the new real-time headroom.
+3. **Operator fixes:** D16–D22, R6, R7, E6, E7, with T3 for the regressions.
+4. **Tooling:** the `npm audit` gate, `tsconfig` unused checks, then ESLint/knip, coverage and
+   T4/T5.
+5. **Structure:** R2, R3–R5 (including D15), R8, R9 — no behaviour change.
+6. **Features** in whatever order the maintainer picks; F1 and F2 are the cheapest wins.

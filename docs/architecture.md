@@ -30,9 +30,11 @@ scripted demo ───────── deterministic caption timeline ──�
    paths on x64 and ARM64. It is presented as a demonstration, not speech recognition.
 4. **Local Whisper.** The `whisper` provider uses 16 kHz PCM16, a bounded writer queue,
    an anonymous temporary audio file and a separate CPU inference worker per source. A verified
-   multilingual model context is shared; each source owns its inference state. Capture
-   timestamps travel with the audio, so a slow recognizer preserves meeting timing. See
-   [local Whisper](local-whisper.md).
+   multilingual model context is shared, and the sources take turns at inference on it; each
+   source owns its inference state. Capture timestamps travel with the audio, so a slow
+   recognizer preserves meeting timing. ggml is compiled for AVX2 on x64 and for dot-product
+   on ARM64, so `whisper/cpu.rs` refuses an older processor before any native code runs and
+   the interface offers another engine. See [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -135,8 +137,10 @@ For Whisper, Stop cancels capture and closes input, then waits for every accepte
 the final partial window, with no cloud drain timeout; an independent abort token lets the
 operator discard the remaining audio while Stop waits. The writer and inference worker cancel
 capture even on unwind, and producer outcome guards publish failures before EOF. Pause keeps
-processing the backlog but drops newly captured frames before the writer queue. Backlog limits
-and disk or overflow failures are covered in [local Whisper](local-whisper.md).
+processing the backlog but drops newly captured frames before the writer queue; a second of
+idle input releases the window the worker holds, so the last words before a Pause or a quiet
+spell are captioned at once. Quit discards the backlog rather than waiting for it. Backlog
+limits and disk or overflow failures are covered in [local Whisper](local-whisper.md).
 
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
