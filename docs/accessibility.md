@@ -27,7 +27,8 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. |
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
 | Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
-| Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. |
+| Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. The running rail's input labels are not live, because they flip with every pause in speech; a separate region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. |
+| Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine and interface-language cards, presets, swatches and pinned languages. |
 | Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
 | Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes. |
@@ -81,6 +82,8 @@ treats the window.
    transcript, and quit. Focus order follows the visual order and the ring is always visible.
 2. **Narrator.** Same walk. Headings navigate (`H`). The session state, status messages and a
    completed save are each announced once, not repeatedly. The level meters do not chatter.
+   The input status is silent while captions flow and speaks once when a source goes stale or
+   stops with an error. Pause, Resume, Move and Done read as plain buttons.
 3. **Contrast theme.** Settings → Accessibility → Contrast themes → Aquatic and Desert. The
    selected mode, source, language and engine stay distinguishable; the Start button is
    readable; the level meter is visible; the status pill keeps an edge. The overlay's audience

@@ -148,9 +148,11 @@
 		<!-- Both labels are a single verb on screen, which is all the space allows and
 		     all a sighted operator needs beside the "Overlay" heading. The accessible
 		     name says what is being moved or hidden, because a screen reader can arrive
-		     at the button without the heading. -->
+		     at the button without the heading. The name changes with the state, so the
+		     button is not also a toggle (see `docs/accessibility.md`); while moving, "Done"
+		     is the primary action instead of a pressed one. -->
 		<ToolButton
-			aria-pressed={overlay.moveOverlay}
+			variant={overlay.moveOverlay ? 'primary' : 'default'}
 			aria-label={overlay.moveOverlay
 				? $t.overlayControls.moveDoneLabel
 				: $t.overlayControls.moveLabel}

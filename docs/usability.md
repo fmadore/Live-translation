@@ -87,6 +87,8 @@ level above the existing RMS signal threshold is **Receiving audio**. When audio
 but captions have not arrived for 15 seconds, the app suggests checking the provider/connection.
 Quiet inputs say **Listening — no recent audio signal**. These are observations, not speech
 detection or a diagnosis of provider failure. The built-in demo uses simulated input events.
+A screen reader hears a source only when it stops with an error or goes 15 seconds without
+captions, not on every change of label.
 
 ## Keyboard controls
 

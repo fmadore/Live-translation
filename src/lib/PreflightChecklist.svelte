@@ -150,11 +150,12 @@
 	>
 		{#snippet action()}
 			<!-- Placement is never final: re-entering move mode is the way to adjust position and
-			     caption size, so the row keeps a button in both states. -->
+			     caption size, so the row keeps a button in both states. Its name changes to
+			     "Finish placing" while moving, so it is not also a pressed toggle; "Done" is
+			     the primary action then instead. -->
 			<ToolButton
-				variant={$overlayPlaced ? 'ghost' : 'warn'}
+				variant={overlay.moveOverlay ? 'primary' : $overlayPlaced ? 'ghost' : 'warn'}
 				size="sm"
-				aria-pressed={overlay.moveOverlay}
 				aria-label={overlay.moveOverlay
 					? $t.preflight.overlay.doneLabel
 					: $overlayPlaced

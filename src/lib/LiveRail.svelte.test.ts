@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, expect, it } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import LiveRail from './LiveRail.svelte';
 import { createOverlayController } from './overlayController.svelte';
+import { api } from './tauri';
 import { setLocale } from './i18n';
 import { options } from './stores';
 import { DEFAULT_START_OPTIONS } from './types';
@@ -62,5 +63,25 @@ it('counts each caption language of a rehearsal as its own stream', () => {
 	expect(view.getByText('$3.46')).toBeInTheDocument();
 	expect(view.getByText('×2 languages')).toBeInTheDocument();
 	expect(view.queryByText('×2 sources')).toBeNull();
+	view.unmount();
+});
+
+// Review D21: the name already flips between moving and finishing, so a pressed state on top of
+// it was read as "Finish moving the overlay, toggle button, pressed".
+it('names the move button by what a press does, without a pressed state', async () => {
+	const overlay = createOverlayController({
+		...api,
+		showOverlay: vi.fn().mockResolvedValue(undefined),
+		setOverlayClickThrough: vi.fn().mockResolvedValue(undefined),
+		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
+	});
+	const view = render(LiveRail, {
+		props: { overlay, clock, rehearsing: false, usesMic: true, usesSystem: true }
+	});
+	const move = view.getByRole('button', { name: 'Move overlay' });
+	expect(move).not.toHaveAttribute('aria-pressed');
+	await fireEvent.click(move);
+	const done = await waitFor(() => view.getByRole('button', { name: 'Finish moving the overlay' }));
+	expect(done).not.toHaveAttribute('aria-pressed');
 	view.unmount();
 });
