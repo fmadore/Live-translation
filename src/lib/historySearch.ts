@@ -11,8 +11,9 @@ function fold(text: string): string {
 }
 
 // Normalising every line of every session on each keystroke cost tens of milliseconds with a
-// long history. A listed session is decoded once and never mutated — a rename re-lists — so
-// its folded text is computed on first search and reused until the list is replaced.
+// long history. A listed session is decoded once and never mutated, and the History tab keeps
+// the same object until its file changes (`createHistoryCache`), so its folded text is
+// computed on first search and reused for as long as the session is unchanged.
 const searchText = new WeakMap<SavedSession, string[]>();
 
 function foldedText(session: SavedSession): string[] {

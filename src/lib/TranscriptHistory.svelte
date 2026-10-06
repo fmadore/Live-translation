@@ -10,11 +10,12 @@
 	import { api, isTauri } from './tauri';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
 	import {
-		decodeSession,
+		createHistoryCache,
 		historyEnabled,
 		historyError,
 		historyRevision,
 		sessionHistory,
+		type HistoryEntry,
 		type SavedSession
 	} from './history';
 	import { exportOriginal } from './stores';
@@ -28,7 +29,11 @@
 		type TranscriptFormat
 	} from './transcript';
 	const desktop = isTauri();
-	let sessions = $state<{ id: string; session: SavedSession | null }[]>([]);
+	// Raw rather than deeply reactive: the list is only ever replaced, and an unchanged session
+	// has to stay the very object the cache holds for the search's own cache to find it. A deep
+	// proxy would hand out a new wrapper with every listing.
+	let sessions = $state.raw<HistoryEntry[]>([]);
+	const cache = createHistoryCache();
 	let selectedId = $state('');
 	let busy = $state(false);
 	let error = $state('');
@@ -54,6 +59,7 @@
 		error = '';
 		try {
 			await sessionHistory.rename(selected, title);
+			cache.forget(selected.id);
 			await refresh();
 			notice = $t.usability.titleSaved;
 		} catch (e) {
@@ -69,11 +75,9 @@
 		const current = ++request;
 		try {
 			await sessionHistory.flush();
-			const stored = await api.listHistory();
+			const listing = await api.listHistory(cache.known());
 			if (current !== request) return;
-			sessions = stored
-				.map((s) => ({ id: s.path, session: decodeSession(s.contents, s.path) }))
-				.sort((a, b) => (b.session?.startedAt ?? '').localeCompare(a.session?.startedAt ?? ''));
+			sessions = cache.apply(listing);
 			error = '';
 		} catch (e) {
 			if (current === request) error = String(e);
@@ -82,7 +86,8 @@
 	// A recording session writes history after every finalized line, and each write bumps the
 	// revision. Re-listing every stored session for each one made an open History tab reread
 	// the whole folder several times a minute, so the list catches up at most every few
-	// seconds. Rename, delete and the Refresh button still refresh at once.
+	// seconds, and then reads only the sessions that changed. Rename, delete and the Refresh
+	// button still refresh at once.
 	const REFRESH_INTERVAL_MS = 5000;
 	let lastRefresh = 0;
 	let refreshTimer: ReturnType<typeof setTimeout> | undefined;

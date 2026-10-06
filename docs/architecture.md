@@ -260,8 +260,13 @@ A session file is a log ([file format](transcript-history.md#file-format)). Afte
 write, `append_history` adds only the new lines; the first write and any write after a failure
 replace the file whole with the same flushed staging-and-replace operation as recovery.
 `rename_history` is serialized under the native history I/O mutex and changes only the title
-of the latest on-disk record, so a stale view cannot overwrite newer lines. Search normalizes
-text with NFKC and uses inclusive local-calendar dates. Only the operator has permission to
+of the latest on-disk record, so a stale view cannot overwrite newer lines; it reads only a
+file's header line to tell a log from the older format. `list_history` takes the
+`[id, length]` pairs the History tab already holds and sends contents only for files that are
+new or have grown, since a log only grows; it skips a file it cannot read with a warning
+rather than failing the list. `createHistoryCache` in `history.ts` decodes only what it was
+sent, so an unchanged session keeps its object and its search cache. Search normalizes text
+with NFKC and uses inclusive local-calendar dates. Only the operator has permission to
 list, save, rename or delete these files, and UUID validation prevents renderer paths escaping
 the folder. History is opt-in, off by default and independent of crash recovery. See
 [history](transcript-history.md).

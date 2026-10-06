@@ -181,6 +181,75 @@ export function decodeSession(raw: string, id: string): SavedSession | null {
 	return decodeSessionLog(raw, id) ?? decodeWholeSession(raw, id);
 }
 
+// ---- Listing ----------------------------------------------------------------------------
+
+/** One session file as `list_history` reports it. `contents` is absent when the renderer
+ *  already holds the file at this length. */
+export interface ListedSession {
+	id: string;
+	/** The file's length in bytes: a log only grows, so an unchanged length is an unchanged
+	 *  session. */
+	length: number;
+	contents?: string | null;
+}
+
+/** The history folder, measured against what the renderer said it holds. */
+export interface HistoryListing {
+	sessions: ListedSession[];
+	/** Sessions the renderer holds that are no longer listed. */
+	removed: string[];
+}
+
+/** A listed session, decoded; `session` is null for a file that could not be. */
+export interface HistoryEntry {
+	id: string;
+	length: number;
+	session: SavedSession | null;
+}
+
+/**
+ * The sessions a History view holds, kept in step with the folder.
+ *
+ * A recording session saves every few seconds, and each save had an open History tab read,
+ * send and decode every stored session again. The view now says what it holds; the core
+ * sends only what is new or has grown, and only that is decoded. An unchanged session keeps
+ * the same object, which also keeps the search's per-session cache (`historySearch.ts`)
+ * warm.
+ */
+export function createHistoryCache(decode = decodeSession) {
+	const held = new Map<string, HistoryEntry>();
+	return {
+		/** What to tell `list_history` this view already holds. */
+		known(): [string, number][] {
+			return [...held.values()].map((entry) => [entry.id, entry.length]);
+		},
+		/** Take a listing in, and return the sessions it describes, newest first. */
+		apply(listing: HistoryListing): HistoryEntry[] {
+			for (const id of listing.removed) held.delete(id);
+			const entries = listing.sessions.flatMap(({ id, length, contents }) => {
+				if (contents == null) {
+					// Unchanged. One this view stopped holding meanwhile is left out, and read
+					// on the next listing, which no longer names it as held.
+					const kept = held.get(id);
+					return kept ? [kept] : [];
+				}
+				const entry = { id, length, session: decode(contents, id) };
+				held.set(id, entry);
+				return [entry];
+			});
+			return entries.sort((a, b) =>
+				(b.session?.startedAt ?? '').localeCompare(a.session?.startedAt ?? '')
+			);
+		},
+		/** Read this session again on the next listing, whatever its length. Renaming a file
+		 *  from before the log format rewrites it whole, and a title of the same length would
+		 *  leave the file the same length as well. */
+		forget(id: string) {
+			held.delete(id);
+		}
+	};
+}
+
 /** Appended lines reach disk at most this often. The lines a few seconds of delay holds back
  *  are written at once by finish, flush, retry and quit. */
 export const HISTORY_WRITE_INTERVAL_MS = 5000;
