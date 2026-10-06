@@ -5,7 +5,8 @@ import { get } from 'svelte/store';
 const native = vi.hoisted(() => ({
 	handlers: {} as Record<string, (value?: unknown) => void>,
 	startSession: vi.fn(),
-	stopSession: vi.fn()
+	stopSession: vi.fn(),
+	startAudioTest: vi.fn()
 }));
 vi.mock('./tauri', () => ({
 	isTauri: () => true,
@@ -13,6 +14,7 @@ vi.mock('./tauri', () => ({
 		{
 			startSession: native.startSession,
 			stopSession: native.stopSession,
+			startAudioTest: native.startAudioTest,
 			listMicrophones: vi.fn().mockResolvedValue([{ id: 'mic-1', name: 'Mic', isDefault: true }]),
 			listOutputs: vi.fn().mockResolvedValue([{ id: 'render-1', name: 'Dock', isDefault: true }]),
 			listApplications: vi.fn().mockResolvedValue({ supported: true, applications: [] }),
@@ -146,5 +148,40 @@ it('keeps the failed endpoint until an explicit fallback and drains before resta
 		expect.objectContaining({ micDeviceId: 'mic-1', systemDeviceId: null })
 	);
 	expect(get(transcript).some((line) => line.text === 'Keep this transcript')).toBe(true);
+	view.unmount();
+});
+
+// Review D16: the button followed only the setup lock while the action also refused during a
+// capture failure, so after a failure, choosing another mic and clicking Test audio did nothing.
+it('tests audio while the capture-failure banner is up', async () => {
+	vi.clearAllMocks();
+	locale.set('en');
+	clearTranscript();
+	options.set({
+		source: 'microphone',
+		provider: 'gemini',
+		mode: 'translate',
+		targetLanguage: 'en',
+		micDeviceId: 'mic-1'
+	});
+	applyStatus({ state: 'idle' });
+	native.startAudioTest.mockResolvedValue(undefined);
+	const view = render(Page);
+	await waitFor(() => expect(native.handlers.status).toBeTypeOf('function'));
+	native.handlers.status({ state: 'running', origin: 'microphone' });
+	native.handlers.status({
+		state: 'error',
+		origin: 'microphone',
+		message: { id: 'error.micCapture', detail: 'Headset unplugged' }
+	});
+	await waitFor(() =>
+		expect(view.getByRole('button', { name: 'Stop and retry with default device' })).toBeDefined()
+	);
+	const test = view.getByRole('button', { name: 'Test audio' });
+	expect(test).toBeEnabled();
+	await fireEvent.click(test);
+	await waitFor(() => expect(native.startAudioTest).toHaveBeenCalledOnce());
+	// The automatic fallback stays held, so Retry still means the chosen endpoint.
+	expect(get(options).micDeviceId).toBe('mic-1');
 	view.unmount();
 });

@@ -15,7 +15,7 @@ afterEach(() => {
 
 it('expires live signal while retaining verification until the input changes', () => {
 	vi.useFakeTimers();
-	const probe = createPreflightController(false, () => false);
+	const probe = createPreflightController(false, { locked: () => false });
 	probe.noteLevel({ source: 'microphone', rms: 0.2, peak: 0.4 });
 	expect(probe.micSignal).toBe(true);
 	vi.advanceTimersByTime(3000);
@@ -35,7 +35,11 @@ it('prevents overlapping test starts and leaves native events authoritative', as
 				release = resolve;
 			})
 	);
-	const probe = createPreflightController(true, () => false, { ...api, startAudioTest });
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{ ...api, startAudioTest }
+	);
 	const starting = probe.startAudioTest();
 	await probe.startAudioTest();
 	expect(startAudioTest).toHaveBeenCalledTimes(1);
@@ -51,7 +55,7 @@ it('prevents overlapping test starts and leaves native events authoritative', as
 
 it('asks the core once whether this processor can run local Whisper', async () => {
 	// A browser preview has no engine to protect and never asks.
-	const preview = createPreflightController(false, () => false);
+	const preview = createPreflightController(false, { locked: () => false });
 	expect(preview.whisperCpu).toEqual({ supported: true, missing: [] });
 	await preview.refreshWhisperCpu();
 	expect(preview.whisperRefused).toBe(false);
@@ -60,7 +64,11 @@ it('asks the core once whether this processor can run local Whisper', async () =
 		supported: false,
 		missing: ['AVX', 'AVX2', 'FMA', 'F16C', 'BMI2']
 	});
-	const probe = createPreflightController(true, () => false, { ...api, whisperCpuSupport });
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{ ...api, whisperCpuSupport }
+	);
 	// Unknown until answered: not refused, but not known to be supported either.
 	expect(probe.whisperCpu).toBeNull();
 	expect(probe.whisperRefused).toBe(false);
@@ -69,25 +77,60 @@ it('asks the core once whether this processor can run local Whisper', async () =
 	expect(probe.whisperCpuMissing).toBe('AVX, AVX2, FMA…');
 
 	// A failed question is not a refusal: the core still checks at Start.
-	const failing = createPreflightController(true, () => false, {
-		...api,
-		whisperCpuSupport: vi.fn().mockRejectedValue(new Error('ipc'))
-	});
+	const failing = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			whisperCpuSupport: vi.fn().mockRejectedValue(new Error('ipc'))
+		}
+	);
 	await failing.refreshWhisperCpu();
 	expect(failing.whisperCpu).toEqual({ supported: true, missing: [] });
 });
 
+it('lets a capture failure hold the saved devices without refusing an audio test', async () => {
+	options.update((value) => ({
+		...value,
+		provider: 'gemini',
+		source: 'microphone',
+		micDeviceId: 'unplugged'
+	}));
+	const startAudioTest = vi.fn().mockResolvedValue(undefined);
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false, holdSelection: () => true },
+		{
+			...api,
+			startAudioTest,
+			listMicrophones: vi
+				.fn()
+				.mockResolvedValue([{ id: 'mic-1', name: 'Available', isDefault: true }]),
+			listOutputs: vi.fn().mockResolvedValue([])
+		}
+	);
+	await probe.refresh();
+	// The failure banner's Retry still needs the endpoint the operator chose.
+	expect(get(options).micDeviceId).toBe('unplugged');
+	await probe.startAudioTest();
+	expect(startAudioTest).toHaveBeenCalledOnce();
+});
+
 it('calls an engine ready only on the key, model or check that belongs to it', async () => {
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		whisperCpuSupport: vi.fn().mockResolvedValue({ supported: true, missing: [] }),
-		onDeviceReadiness: vi.fn().mockResolvedValue({
-			ready: true,
-			engine: 'built-in-demo',
-			state: 'ready',
-			canPrepare: false
-		})
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			whisperCpuSupport: vi.fn().mockResolvedValue({ supported: true, missing: [] }),
+			onDeviceReadiness: vi.fn().mockResolvedValue({
+				ready: true,
+				engine: 'built-in-demo',
+				state: 'ready',
+				canPrepare: false
+			})
+		}
+	);
 
 	const gemini: StartOptions = { ...DEFAULT_START_OPTIONS, mode: 'translate', provider: 'gemini' };
 	expect(probe.engineReady(gemini, [])).toBe(false);
@@ -122,13 +165,17 @@ it('calls an engine ready only on the key, model or check that belongs to it', a
 
 it('falls back to the default microphone when a saved device disappears', async () => {
 	options.update((value) => ({ ...value, provider: 'gemini', micDeviceName: 'Unplugged' }));
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		listMicrophones: vi
-			.fn()
-			.mockResolvedValue([{ id: 'mic-1', name: 'Available', isDefault: true }]),
-		listOutputs: vi.fn().mockResolvedValue([])
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			listMicrophones: vi
+				.fn()
+				.mockResolvedValue([{ id: 'mic-1', name: 'Available', isDefault: true }]),
+			listOutputs: vi.fn().mockResolvedValue([])
+		}
+	);
 	await probe.refresh();
 	expect(get(options).micDeviceName).toBeNull();
 	expect(probe.microphones).toHaveLength(1);

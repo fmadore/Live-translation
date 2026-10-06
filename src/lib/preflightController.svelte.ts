@@ -16,8 +16,23 @@ import type {
 	WhisperModelInfo
 } from './types';
 
+export interface PreflightGates {
+	/** Setup is locked: a session, a start or a profile load is under way. Nothing is tested or
+	 *  re-validated then. The Test audio button is disabled on exactly this, so a click the
+	 *  button accepts is never silently refused here. */
+	locked: () => boolean;
+	/** Idle validation must leave the saved devices alone, on top of `locked`: while a capture
+	 *  failure is on screen, its Retry still needs the endpoint the operator chose. A test is
+	 *  allowed then — checking another microphone is exactly what the banner invites. */
+	holdSelection?: () => boolean;
+}
+
 /** Capture preflight and signal lifetime, independent of the operator's layout. */
-export function createPreflightController(desktop: boolean, locked: () => boolean, port = api) {
+export function createPreflightController(
+	desktop: boolean,
+	{ locked, holdSelection = () => false }: PreflightGates,
+	port = api
+) {
 	const api = port;
 	let microphones = $state<AudioDevice[]>([]);
 	let outputs = $state<AudioDevice[]>([]);
@@ -178,7 +193,7 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	}
 
 	function validateSelection() {
-		if (!loaded || locked() || audioTesting || audioTestBusy) return;
+		if (!loaded || locked() || holdSelection() || audioTesting || audioTestBusy) return;
 		const current = get(options);
 		const next = validateDevices(current, microphones, outputs);
 		if (

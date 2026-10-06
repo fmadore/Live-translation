@@ -39,8 +39,11 @@
 						.map((code) => languageName(code, $locale))
 						.join(' + ')
 	);
-	// Every source streams once per caption language, and each stream is billed.
-	const streams = $derived(($options.source === 'both' ? 2 : 1) * laneCount($options));
+	// Every source streams once per caption language, and each stream is billed. Counted from
+	// the sources this run actually opens, as the meters are: a rehearsal is one System stream
+	// whatever source is saved.
+	const sources = $derived((usesMic ? 1 : 0) + (usesSystem ? 1 : 0));
+	const streams = $derived(sources * laneCount($options));
 </script>
 
 <div class="rail-head">
@@ -126,7 +129,7 @@
 					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams))}
 				</span>
 			</div>
-			{#if $options.source === 'both' && $options.provider !== 'whisper'}
+			{#if sources === 2 && $options.provider !== 'whisper'}
 				<span class="cost-tag">{$t.cost.twoSources}</span>
 			{/if}
 			{#if second}

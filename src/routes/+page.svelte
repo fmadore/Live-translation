@@ -63,10 +63,12 @@
 	const sessionBusy = session.busy;
 	let profileBusy = $state(false);
 	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
-	const preflight = createPreflightController(
-		!browserMode,
-		() => controlsLocked || device.failed !== null || device.retrying
-	);
+	// Test audio follows `controlsLocked`, as its button does. A capture failure holds only the
+	// automatic device fallback, which would otherwise turn the banner's Retry into a fallback.
+	const preflight = createPreflightController(!browserMode, {
+		locked: () => controlsLocked,
+		holdSelection: () => device.failed !== null || device.retrying
+	});
 	const device = createDeviceFailure({
 		stop: () => session.stop(),
 		start: (selected) => session.start(selected),
