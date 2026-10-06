@@ -6,7 +6,7 @@ use anyhow::{Context, Result};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
-use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage};
+use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage, AUDIO_STREAM_END};
 use crate::realtime::{
     CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
@@ -61,6 +61,19 @@ impl RealtimeProtocol for GeminiConfig {
 
     fn wait_for_setup_complete(&self) -> bool {
         true
+    }
+
+    /// Without it, closing at once loses the translation of the last one to three seconds of
+    /// speech on every Pause and Stop. The guide documents `audioStreamEnd` for the Live API
+    /// generally, not for Live Translate in particular, so a live check is still pending; if
+    /// the server rejects it, the runner ends the drain quietly and keeps the turn so far.
+    fn closing_json(&self) -> Result<Vec<String>> {
+        Ok(vec![AUDIO_STREAM_END.to_string()])
+    }
+
+    /// The model finishes its turn once the stream end has flushed the speech it was given.
+    fn drain_complete(&self, outcome: &MessageOutcome) -> bool {
+        outcome.caption == CaptionUpdate::Final
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
@@ -154,6 +167,17 @@ mod tests {
         h.send(r#"{"serverContent":{"outputTranscription":{"text":""}}}"#);
         h.send(r#"{"serverContent":{"modelTurn":{}}}"#);
         assert!(h.captions.is_empty());
+    }
+
+    #[test]
+    fn closing_ends_the_audio_stream_and_the_drain_ends_on_turn_complete() {
+        let mut h = harness();
+        assert_eq!(h.proto.closing_json().unwrap(), [AUDIO_STREAM_END]);
+        let interim = h.send(r#"{"serverContent":{"outputTranscription":{"text":"Merci"}}}"#);
+        assert!(!h.proto.drain_complete(&interim));
+        let done = h.send(r#"{"serverContent":{"turnComplete":true}}"#);
+        assert!(h.proto.drain_complete(&done));
+        assert_eq!(h.captions.last(), Some(&Emitted::final_(0, "Merci", "")));
     }
 
     #[test]

@@ -77,6 +77,12 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
         Ok(vec![AUDIO_STREAM_END.to_string()])
     }
 
+    /// The authoritative final that follows `audioStreamEnd` is the flush it asked for. Waiting
+    /// on past it held every Pause and Stop for the runner's whole safety timeout.
+    fn drain_complete(&self, outcome: &MessageOutcome) -> bool {
+        outcome.caption == CaptionUpdate::Final
+    }
+
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
         let msg: ServerMessage = match serde_json::from_str(text) {
             Ok(m) => m,
@@ -204,6 +210,22 @@ mod smart_tests {
             MessageControl::Handover
         ));
     }
+
+    #[test]
+    fn the_close_drain_ends_on_the_final_after_the_stream_end() {
+        use crate::realtime::test_support::Harness;
+        let mut h = Harness::new(GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        });
+        let interim =
+            h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"And fin"}}}"#);
+        assert!(!h.proto.drain_complete(&interim));
+        let last = h.send(r#"{"serverContent":{"inputTranscription":{"text":"And finally."}}}"#);
+        assert!(h.proto.drain_complete(&last));
+    }
 }
 
 /// Opt-in probe against the real endpoint. Ignored by default, so CI never runs it and it
@@ -235,8 +257,8 @@ mod live_probe {
     use crate::gemini::DEFAULT_HOST;
 
     /// The Live API replies in **binary** frames carrying UTF-8 JSON, not text frames —
-    /// undocumented, and the reason this probe reads them the way `realtime.rs` does rather
-    /// than matching on `Message::Text`. A text-only reader sees the socket go silent.
+    /// undocumented, and the reason this probe reads them the way `realtime/socket.rs` does
+    /// rather than matching on `Message::Text`. A text-only reader sees the socket go silent.
     fn frame_json(message: &Message) -> Option<String> {
         match message {
             Message::Text(text) => Some(text.to_string()),

@@ -91,13 +91,20 @@ impl RealtimeProtocol for OpenAiConfig {
         };
 
         if let Some(error) = ev.error {
-            return MessageOutcome::control(MessageControl::Fatal(format!(
-                "OpenAI realtime error: {error}"
-            )));
+            let control = error_control(&error);
+            if !matches!(control, MessageControl::Fatal(_)) {
+                tracing::warn!(
+                    origin = ?self.origin,
+                    %error,
+                    "OpenAI ended the session; moving to a new one"
+                );
+            }
+            return MessageOutcome::control(control);
         }
 
         let kind = ev.kind.as_str();
 
+        // The drain's end after `session.close`; mid-stream the runner moves to a new session.
         if kind == "session.closed" {
             return MessageOutcome::control(MessageControl::Closed);
         }
@@ -133,6 +140,44 @@ impl RealtimeProtocol for OpenAiConfig {
 
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
+    }
+}
+
+/// How an `error` event steers the connection. Its `error` object carries a `type`
+/// (`invalid_request_error`, `server_error`, …) and an optional `code`, and the code is read
+/// first:
+///
+/// - `session_expired` is the 60-minute session cap. It arrives as an `invalid_request_error`
+///   but is a planned end, so it hands over like Gemini's `goAway`: after a stable connection
+///   the runner reconnects at once and replays the audio queued meanwhile.
+/// - Server errors, rate limits and an overloaded service reconnect with backoff.
+/// - Everything else is fatal — including an exhausted quota, which is reported like a rate
+///   limit but which no reconnect refills — so a persistent bad request reports itself
+///   instead of reconnecting in a loop.
+fn error_control(error: &serde_json::Value) -> MessageControl {
+    let field = |name: &str| error.get(name).and_then(serde_json::Value::as_str);
+    let (kind, code) = (field("type").unwrap_or(""), field("code").unwrap_or(""));
+    let exhausted = [kind, code]
+        .iter()
+        .any(|s| s.contains("quota") || s.contains("billing"));
+    if code == "session_expired" {
+        MessageControl::Handover
+    } else if !exhausted
+        && (matches!(
+            code,
+            "server_error"
+                | "rate_limit_exceeded"
+                | "overloaded"
+                | "service_unavailable"
+                | "timeout"
+        ) || matches!(
+            kind,
+            "server_error" | "rate_limit_error" | "overloaded_error"
+        ))
+    {
+        MessageControl::Reconnect
+    } else {
+        MessageControl::Fatal(format!("OpenAI realtime error: {error}"))
     }
 }
 
@@ -200,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn close_and_error_events_end_the_connection() {
+    fn session_closed_ends_the_session_and_unclassified_errors_are_fatal() {
         let mut h = harness();
         assert!(matches!(
             h.send(r#"{"type":"session.closed"}"#).control,
@@ -211,5 +256,63 @@ mod tests {
                 .control,
             MessageControl::Fatal(_)
         ));
+    }
+
+    #[test]
+    fn the_session_cap_hands_over_transient_errors_reconnect_and_the_rest_are_fatal() {
+        let mut h = harness();
+        for (error, expected) in [
+            (
+                r#"{"type":"invalid_request_error","code":"session_expired","message":"Your session hit the maximum duration of 60 minutes."}"#,
+                "handover",
+            ),
+            (
+                r#"{"type":"server_error","message":"The server had an error"}"#,
+                "reconnect",
+            ),
+            (
+                r#"{"type":"rate_limit_error","code":"rate_limit_exceeded"}"#,
+                "reconnect",
+            ),
+            (
+                r#"{"type":"server_error","code":"overloaded"}"#,
+                "reconnect",
+            ),
+            (
+                r#"{"type":"insufficient_quota","code":"insufficient_quota"}"#,
+                "fatal",
+            ),
+            (
+                r#"{"type":"rate_limit_error","code":"insufficient_quota"}"#,
+                "fatal",
+            ),
+            (
+                r#"{"type":"invalid_request_error","code":"invalid_api_key"}"#,
+                "fatal",
+            ),
+            (r#"{"type":"authentication_error"}"#, "fatal"),
+            (r#"{"type":"permission_error"}"#, "fatal"),
+            (
+                r#"{"type":"invalid_request_error","code":"model_not_found"}"#,
+                "fatal",
+            ),
+            (
+                r#"{"type":"invalid_request_error","code":"invalid_value","param":"session.audio.output.language"}"#,
+                "fatal",
+            ),
+            (r#"{"type":"something_new"}"#, "fatal"),
+            (r#""a bare string""#, "fatal"),
+        ] {
+            let frame = format!(r#"{{"type":"error","error":{error}}}"#);
+            let control = h.send(&frame).control;
+            let got = match control {
+                MessageControl::Handover => "handover",
+                MessageControl::Reconnect => "reconnect",
+                MessageControl::Fatal(_) => "fatal",
+                _ => "other",
+            };
+            assert_eq!(got, expected, "{error}");
+        }
+        assert!(h.captions.is_empty());
     }
 }

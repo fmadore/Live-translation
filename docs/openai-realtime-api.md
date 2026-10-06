@@ -51,6 +51,23 @@ The client sends `{"type":"session.close"}`, stops appending audio, and keeps re
 `session.closed` or a four-second safety timeout. OpenAI documents that closing the socket
 immediately can lose translated output still draining from the session.
 
+## Errors and the end of a session
+
+`error` events carry `error.type` (`invalid_request_error`, `server_error`, …) and an
+optional `error.code`, and the code is read first. `session_expired` — the Realtime API's
+60-minute session cap, which arrives as an `invalid_request_error` — is a planned end, so it
+hands over like Gemini's `goAway`: after a stable connection the client reconnects at once and
+replays the audio queued meanwhile. It reconnects with the usual backoff on `server_error`, a
+rate limit (`rate_limit_exceeded`) and an overloaded service. Authentication, permission, invalid requests and values, an
+unknown model, an exhausted quota (`insufficient_quota`, also reported with a 429) and anything
+unrecognized stop the source with OpenAI's message. A `session.closed` that arrives
+mid-stream, outside a close drain, moves the source to a new session instead of ending it.
+
+**Live check pending:** whether `/translations` shares the 60-minute cap, and which event it
+sends there, has not been observed. Run a session longer than an hour before relying on it: the
+expected log is one `OpenAI ended the session; moving to a new one` followed by a planned
+handover, and captions resuming within a couple of seconds.
+
 ## Target-language catalog
 
 On 2026-09-22 the [official cookbook](https://developers.openai.com/cookbook/examples/voice_solutions/realtime_translation_guide)

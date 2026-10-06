@@ -84,6 +84,19 @@ Both placements are pinned by `python-genai`'s converter tests (`tests/live/test
 - `goAway` triggers an immediate planned reconnect; see [the ten-minute cap](#the-ten-minute-cap).
 - A provider `error` becomes a terminal operator-visible status instead of a silent log.
 
+### Closing
+
+Pause and Stop send `{"realtimeInput":{"audioStreamEnd":true}}`, then drain until the
+`turnComplete` that follows it (at most four seconds) before closing — unless no turn is open
+and nothing has been captioned for three seconds, when they close at once. Closing at once, as the
+client did through 1.6.1, discards whatever translation of the last one to three seconds of
+speech is still in flight. **Live check pending:** the reference documents `audioStreamEnd` for
+the Live API in general, and no probe has yet shown how Live Translate answers it. The client
+is safe either way: an `error` or a close during the drain ends it quietly — no error status —
+and the turn accumulated so far is still finalized. Things to confirm on the first live run:
+the drain ends well before four seconds on Stop mid-sentence, the last words are translated,
+and nothing is logged as `provider error while closing`.
+
 ## Gemini 3.5 Transcribe Live
 
 Same endpoint, audio frame and key; a subtitle engine rather than a translator, so the setup
@@ -144,7 +157,10 @@ the pending empty turn (regression-tested; no live probe was run for this 1.4.0 
 local [Hide filler words](caption-layout.md#hide-filler-words) filter is separate.
 
 `{"realtimeInput":{"audioStreamEnd":true}}` is sent on close so a last segment can still
-arrive during the shared runner's drain window.
+arrive during the shared runner's drain window. The drain ends on the authoritative final that
+follows it, rather than always waiting out the four-second window. The server sends no
+acknowledgement when there is nothing left to flush, so a close with no turn open and nothing
+captioned for three seconds skips the wait altogether.
 
 ### What the wire does that the guide does not mention
 
@@ -152,8 +168,8 @@ Found with `live_probe` (below) against the real endpoint on 27 August 2026:
 
 - **Replies arrive as WebSocket _binary_ frames carrying UTF-8 JSON.** The guide's browser
   sample hides the difference; a client matching only text frames has setup accepted and then
-  hears nothing. `realtime.rs` decodes `Message::Binary` — check this first if a session ever
-  appears to hang.
+  hears nothing. `realtime/socket.rs` decodes `Message::Binary` — check this first if a session
+  ever appears to hang.
 - **`generationComplete` closes a segment**, not the `turnComplete` the translate path sends.
   It lets the client finalize a segment that produced only a speculative hypothesis.
 - **`setupComplete` *is* sent**, although the guide's sample never waits for one. Waiting is
@@ -178,12 +194,13 @@ subtitle engines: a room session reconnects several times an hour.
 
 `goAway` arrives before the cut, and both Gemini clients answer it with
 `MessageControl::Handover`: a planned move, not a failure. After a connection that lasted at
-least 30 seconds the runner finalizes the in-flight turn, keeps the source Running, reconnects
-at once with no backoff, and sends the up-to-half-second of audio queued meanwhile, in order,
-instead of discarding it as a stall's backlog. The remaining gap is the new connection's TLS
-handshake and setup round trip. A `goAway` straight after connecting still backs off, so a
-server refusing the session is never hammered. Opening the new socket before closing the old
-one would remove the gap; the runner holds one socket per client today.
+least 30 seconds the runner finalizes the in-flight turn, keeps the source Running and
+reconnects at once with no backoff. While the new socket's TLS handshake and setup round trip
+run it keeps reading the capture into a backlog of up to about three seconds, and sends it in
+order once setup completes, so the gap shows up as a moment of extra latency rather than lost
+words. A `goAway` straight after connecting still backs off, so a server refusing the session
+is never hammered. Opening the new socket before closing the old one would remove even the
+latency; the runner holds one socket per client today.
 
 Speaker diarization and word-level timestamps are not available over the Live API; they belong
 to the non-streaming `gemini-3.5-transcribe` model, which takes uploaded files and cannot serve

@@ -96,6 +96,8 @@ impl RealtimeProtocol for MistralConfig {
                     return MessageOutcome::activity(CaptionUpdate::Interim);
                 }
             }
+            // The drain's end after `input_audio.end`. Mid-stream the final caption still goes
+            // out, and the runner moves to a new session rather than ending the source.
             "transcription.done" => {
                 // `done.text` contains the full session transcript. Only use it when the
                 // server sent no deltas; otherwise idle-finalized turns would be duplicated.
@@ -116,6 +118,14 @@ impl RealtimeProtocol for MistralConfig {
                 };
             }
             "error" => {
+                if event.error.as_ref().is_some_and(recoverable) {
+                    tracing::warn!(
+                        origin = ?self.origin,
+                        error = ?event.error,
+                        "Mistral reported a transient error; reconnecting"
+                    );
+                    return MessageOutcome::control(MessageControl::Reconnect);
+                }
                 return MessageOutcome::control(MessageControl::Fatal(
                     event
                         .error
@@ -132,6 +142,45 @@ impl RealtimeProtocol for MistralConfig {
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
     }
+}
+
+/// Whether an `error` event is one a new session can get past. The official SDK types it as
+/// `{ message, code }`: `message` a string or an object, `code` an integer it calls an
+/// internal code for debugging. Codes in HTTP's transient range (timeout, rate limit, server
+/// errors) reconnect, as do the transient `type`/`code` names Mistral's HTTP API uses, should
+/// `message` be such an object. Everything else — authentication, permission, a bad request
+/// or model, an exhausted quota, an unknown code — stays fatal, so a persistent failure
+/// reports itself instead of reconnecting in a loop.
+fn recoverable(error: &serde_json::Value) -> bool {
+    let code = error
+        .get("code")
+        .and_then(|code| code.as_u64().or_else(|| code.as_str()?.parse().ok()));
+    let message = error.get("message");
+    let names: Vec<&str> = [error, message.unwrap_or(&serde_json::Value::Null)]
+        .into_iter()
+        .flat_map(|value| ["type", "code"].map(|key| value.get(key)))
+        .filter_map(|name| name?.as_str())
+        .collect();
+    let text = message.map(|message| message.to_string().to_lowercase());
+    // A 429 is also how an exhausted quota or plan limit is reported; no reconnect fixes that.
+    if text.is_some_and(|text| {
+        ["quota", "billing", "payment", "credit"]
+            .iter()
+            .any(|w| text.contains(w))
+    }) {
+        return false;
+    }
+    matches!(code, Some(408 | 429 | 500 | 502 | 503 | 504))
+        || names.iter().any(|name| {
+            matches!(
+                *name,
+                "server_error"
+                    | "rate_limit_error"
+                    | "rate_limited"
+                    | "timeout"
+                    | "session_expired"
+            )
+        })
 }
 
 #[cfg(test)]
@@ -207,11 +256,42 @@ mod tests {
     }
 
     #[test]
-    fn errors_are_fatal() {
+    fn transient_errors_reconnect_and_the_rest_stop_the_source() {
         let mut h = harness();
+        for (error, reconnects) in [
+            (r#"{"message":"Internal server error","code":500}"#, true),
+            (r#"{"message":"Service unavailable","code":503}"#, true),
+            (r#"{"message":"Rate limit exceeded","code":429}"#, true),
+            (
+                r#"{"message":{"type":"server_error","detail":"retry"},"code":3000}"#,
+                true,
+            ),
+            (r#"{"message":"Monthly quota exceeded","code":429}"#, false),
+            (r#"{"message":"Unauthorized","code":401}"#, false),
+            (r#"{"message":"Forbidden","code":403}"#, false),
+            (
+                r#"{"message":"Invalid model: voxtral-unknown","code":400}"#,
+                false,
+            ),
+            (
+                r#"{"message":{"detail":"something new"},"code":3001}"#,
+                false,
+            ),
+            (r#"{"message":"invalid key"}"#, false),
+        ] {
+            let frame = format!(r#"{{"type":"error","error":{error}}}"#);
+            let control = h.send(&frame).control;
+            assert_eq!(
+                matches!(control, MessageControl::Reconnect),
+                reconnects,
+                "{error} -> {control:?}"
+            );
+            if !reconnects {
+                assert!(matches!(control, MessageControl::Fatal(_)), "{error}");
+            }
+        }
         assert!(matches!(
-            h.send(r#"{"type":"error","error":{"message":"invalid key"}}"#)
-                .control,
+            h.send(r#"{"type":"error"}"#).control,
             MessageControl::Fatal(_)
         ));
     }

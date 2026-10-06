@@ -76,6 +76,11 @@ windows-sys = { version = "0.61", features = [
 # that crate is already in the graph via tauri, and only the requested namespace is compiled.
 windows = { version = "0.62", features = ["UI_ViewManagement"] }
 
+[dev-dependencies]
+# `test-util` adds `tokio::time::pause`, which the runner and shutdown tests run on. A feature
+# of a crate already in the graph, so `Cargo.lock` does not change.
+tokio = { version = "1", features = ["test-util"] }
+
 [features]
 # Standard Tauri production feature: serve the bundled front-end assets over the custom
 # protocol instead of the dev server. Enabled automatically by `tauri build`.
