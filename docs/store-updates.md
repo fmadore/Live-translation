@@ -15,8 +15,8 @@ packages are built.
 Store version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target app
 version: **1.6.1**, MSIX **1.6.1.0**.
 
-A maintenance and visual release: no new features, no dependency changes and no privacy
-change. The **wave-to-words** mark, a speech wave settling into a caption line on a dark
+A maintenance and visual release: no new features, no runtime dependency changes and no
+privacy change. The **wave-to-words** mark, a speech wave settling into a caption line on a dark
 tile, replaces the stock Lucide "languages" glyph in Start, the taskbar, the tray, the Store
 tiles and the toolbar badge ([#111](https://github.com/fmadore/Live-translation/pull/111)).
 [#112](https://github.com/fmadore/Live-translation/pull/112) applies the 5 October 2026
@@ -45,8 +45,9 @@ components, and new `typeScale`/`spacing` guard tests.
 - [x] PR #111 merged as `324332f6d01f9020f7cbd3997d97376df9f98cd4`.
 - [x] App manifests and root lockfile entries set to 1.6.1; citation release date set to
   6 October 2026. Reset it to the publication date if tagging happens later, as for 1.6.0.
-- [x] No dependency, package-manifest template or capability change since `v1.6.0`; only
-  the version lines move in `package.json`, both lockfiles and `Cargo.toml`.
+- [x] No runtime dependency, package-manifest template or capability change since `v1.6.0`.
+  Besides the version lines, the only lockfile change is the dev-only `source-map-js` 1.2.1 →
+  1.2.2 (GHSA-68fv-2mgg-jv7q), which the CI audit step required; it is not shipped in the app.
 - [x] Frontend validation on the #112 branch: 550 tests in 59 files, Svelte check (zero
   errors and warnings), Prettier and the production build.
 - [ ] PR #112 CI, including the Rust jobs, is pending.

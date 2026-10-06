@@ -9,7 +9,7 @@ it does not exist before tagging. Use the [release handoff](store-updates.md#rel
 for package evidence and outstanding acceptance checks.
 
 1.6.1 is a maintenance and visual release: a new app icon and a refreshed interface, with no
-new features, dependency or privacy changes. The listing keeps its positioning; paste every
+new features, runtime dependency or privacy changes. The listing keeps its positioning; paste every
 field again from [store-listing.md](store-listing.md), which notes what changed for 1.6.1. The
 screenshots and any separately uploaded Store logo also change.
 
