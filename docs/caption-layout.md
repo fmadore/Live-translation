@@ -98,7 +98,8 @@ list, and meeting profiles do not store it.
 Settings → Reading → **Show the original speech under translations** adds a smaller (0.6×),
 dimmed line under each translated caption, for people following the speaker's own language.
 It is the current turn's source text, fitted by the same measured tail search as the caption,
-two lines when the row has room for them and one otherwise. It is left out of Stable reading —
+two lines when the row has room for them and one otherwise. Like the caption, it reaches that
+search as at most its last 12,000 characters, cut at a word. It is left out of Stable reading —
 a second, separately scrolling language under one flowing paragraph would be two things to read
 at once — and subtitles have no separate original to show. Snap to bottom makes room for one
 line of it per row. Off by default. The browser preview shows it on the remote row when the
@@ -122,6 +123,12 @@ synchronous layout. The search starts from the tail the region could possibly sh
 the whole text only if even that tail fits, so the result is unchanged. In headless Chromium at
 1500 px wide and 38 px with 12,000 characters of context, this took the median fit from 4.1 ms
 to 0.7 ms per caption per source. Line height is read once per font.
+
+The same 12,000 characters (`CAPTION_TAIL_CHARS` in `captionLayout.ts`) bound everything else
+that streams with a turn: the current turn in Fit window, its original speech, and the operator
+window's live stage, which shows the newest part of each current turn and its original rather
+than laying a turn of several minutes out again on every interim. The transcript keeps every
+word.
 
 ## Recent context and the transcript
 

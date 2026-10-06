@@ -26,11 +26,15 @@ it('application capture passes a stable process identity and never falls back wh
 	const listApplications = vi
 		.fn()
 		.mockResolvedValue({ supported: true, applications: [{ process, name: 'Meeting' }] });
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		startAudioTest,
-		listApplications
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			startAudioTest,
+			listApplications
+		}
+	);
 	options.set({ ...get(options), source: 'both', systemCapture: { kind: 'application', process } });
 	await probe.refreshApplications();
 	expect(probe.applicationReady(get(options))).toBe(true);
@@ -53,11 +57,15 @@ it('application capture passes a stable process identity and never falls back wh
 
 it('unsupported Windows leaves the application mode selected and blocks capture', async () => {
 	const startAudioTest = vi.fn();
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		startAudioTest,
-		listApplications: vi.fn().mockResolvedValue({ supported: false, applications: [] })
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			startAudioTest,
+			listApplications: vi.fn().mockResolvedValue({ supported: false, applications: [] })
+		}
+	);
 	options.set({
 		...get(options),
 		source: 'system',
@@ -91,11 +99,15 @@ it('migrates unique legacy names and resolves duplicate names by stable id', () 
 
 it('repairs missing remembered endpoints only when idle', async () => {
 	let locked = true;
-	const probe = createPreflightController(true, () => locked, {
-		...api,
-		listMicrophones: vi.fn().mockResolvedValue([]),
-		listOutputs: vi.fn().mockResolvedValue([])
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => locked },
+		{
+			...api,
+			listMicrophones: vi.fn().mockResolvedValue([]),
+			listOutputs: vi.fn().mockResolvedValue([])
+		}
+	);
 	await probe.refresh();
 	expect(get(options).micDeviceId).toBe(mic.id);
 	expect(get(options).systemDeviceId).toBe(output.id);
@@ -107,14 +119,18 @@ it('repairs missing remembered endpoints only when idle', async () => {
 });
 
 it('updates a default-change notification without rewriting an explicit selection', async () => {
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		listMicrophones: vi.fn().mockResolvedValue([mic]),
-		listOutputs: vi.fn().mockResolvedValue([
-			{ ...output, isDefault: false },
-			{ ...output, id: 'render-2', isDefault: true }
-		])
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			listMicrophones: vi.fn().mockResolvedValue([mic]),
+			listOutputs: vi.fn().mockResolvedValue([
+				{ ...output, isDefault: false },
+				{ ...output, id: 'render-2', isDefault: true }
+			])
+		}
+	);
 	await probe.refresh();
 	expect(probe.outputs.find((device) => device.isDefault)?.id).toBe('render-2');
 	expect(get(options).systemDeviceId).toBe('render-1');
@@ -131,11 +147,15 @@ it('coalesces overlapping refreshes and processes a change received during enume
 				})
 		)
 		.mockResolvedValue([]);
-	const probe = createPreflightController(true, () => true, {
-		...api,
-		listMicrophones,
-		listOutputs: vi.fn().mockResolvedValue([output])
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => true },
+		{
+			...api,
+			listMicrophones,
+			listOutputs: vi.fn().mockResolvedValue([output])
+		}
+	);
 	const first = probe.refresh();
 	await probe.refresh();
 	await probe.refresh();
@@ -149,11 +169,15 @@ it('coalesces overlapping refreshes and processes a change received during enume
 
 it('does not apply delayed enumeration after teardown or erase choices on an enumeration error', async () => {
 	const listOutputs = vi.fn().mockRejectedValue(new Error('Unavailable'));
-	const probe = createPreflightController(true, () => false, {
-		...api,
-		listMicrophones: vi.fn().mockResolvedValue([]),
-		listOutputs
-	});
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			listMicrophones: vi.fn().mockResolvedValue([]),
+			listOutputs
+		}
+	);
 	await probe.refresh();
 	expect(get(options).systemDeviceId).toBe(output.id);
 	let resolve!: (value: (typeof output)[]) => void;
@@ -172,7 +196,11 @@ it('does not apply delayed enumeration after teardown or erase choices on an enu
 
 it('passes the chosen endpoints to level-only capture', async () => {
 	const startAudioTest = vi.fn().mockResolvedValue(undefined);
-	const probe = createPreflightController(true, () => false, { ...api, startAudioTest });
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{ ...api, startAudioTest }
+	);
 	await probe.startAudioTest();
 	expect(startAudioTest).toHaveBeenCalledWith(get(options).source, mic.id, output.id, undefined);
 });

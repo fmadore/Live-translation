@@ -13,7 +13,7 @@
 		/** True when the close arrived mid-session and capture has just been drained, so the
 		 *  count can be explained rather than appearing from nowhere. */
 		endedSession: boolean;
-		/** Set while the Markdown file is being written, so Save cannot be pressed twice. */
+		/** Set while the transcript is being written, so Save cannot be pressed twice. */
 		saving: boolean;
 		/** Last save failure — kept on screen rather than quitting on a write that did not land. */
 		error: string;

@@ -189,13 +189,17 @@ stopping the core; repeated Stop requests share that operation.
 
 The operator page owns native event subscriptions, layout, launch and shortcuts, and
 delegates state to controller modules: `preflightController.svelte.ts` (device readiness,
-signal expiry, audio tests), `quitController.svelte.ts` (tray and close prompts),
+signal expiry, audio tests, and whether the chosen engine is ready: a stored key, an
+installed Whisper model on a supported processor, or the bundled demo),
+`quitController.svelte.ts` (tray and close prompts),
 `overlayController.svelte.ts` (appearance and window commands), `sessionClock.svelte.ts`,
 `setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
 failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
 `nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
-when imported. Page teardown disposes the preflight timers and capture test.
+when imported. Page teardown disposes the preflight timers and capture test. Start, Rehearse
+and Ctrl+Shift+Space read one derived list of start blockers (busy, caption language, engine,
+application), so the three cannot disagree about whether a session can begin.
 
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
 its actions), `DeviceRecoveryBanner`, `SetupSheet` or `LiveRail`, `PreflightChecklist` or
@@ -222,9 +226,18 @@ button; that popup's language can depend on the host runtime.
 The eight appearance settings have one schema in `appearance.ts`: `DEFAULT_APPEARANCE`,
 `normalizeAppearance`, `toOverlayConfig` and the reading `PRESETS`. They persist one key each
 through `persisted.ts`, which reads and writes localStorage without ever throwing, and
-`stores.ts` exposes them together as `appearance` with `applyAppearance`. Names shared with
-the core (commands, events and the string values of serde enums) are checked against the
-Rust source by `contract.test.ts`.
+`stores.ts` exposes them together as `appearance` with `applyAppearance`. Every other module
+that reads storage as it loads (history, the interface language, meeting profiles and the
+export format in `exportFormat.ts`) goes through `persisted.ts` too, so blocked site data
+cannot throw at import and leave a window blank. Names shared with the core (commands, events
+and the string values of serde enums) are checked against the Rust source by
+`contract.test.ts`.
+
+Page-level tests render `+page.svelte` against Tauri's own IPC mocks
+(`src/lib/testing/tauriMock.ts`, imported only by tests): the real `tauri.ts` runs, and the
+test plays the core, answering commands and emitting `status` and `caption` events as
+`src-tauri` does. `src/routes/OperatorPage.svelte.test.ts` scripts a built-in demo session
+from Start to Stop. These tests query by role and accessible name, not by page structure.
 
 `reading.ts` throttles interim presentation per source at 450 ms in Steadier mode; finals
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
@@ -257,11 +270,16 @@ A session file is a log ([file format](transcript-history.md#file-format)). Afte
 write, `append_history` adds only the new lines; the first write and any write after a failure
 replace the file whole with the same flushed staging-and-replace operation as recovery.
 `rename_history` is serialized under the native history I/O mutex and changes only the title
-of the latest on-disk record, so a stale view cannot overwrite newer lines. Search normalizes
-text with NFKC and uses inclusive local-calendar dates. Only the operator has permission to
-list, save, rename or delete these files, and UUID validation prevents renderer paths escaping
-the folder. History is opt-in, off by default and independent of crash recovery. See
-[history](transcript-history.md).
+of the latest on-disk record, so a stale view cannot overwrite newer lines; it reads only a
+file's header line to tell a log from the older format. `list_history` takes the
+`[id, length]` pairs the History tab already holds and sends contents only for files that are
+new or have grown, since a log only grows; it skips a file it cannot read with a warning
+rather than failing the list. `createHistoryCache` in `history.ts` decodes only what it was
+sent, so an unchanged session keeps its object and its search cache. Search normalizes text
+with NFKC, uses inclusive local-calendar dates and matches either caption language of a
+two-language session. Only the operator has permission to list, save, rename or delete these
+files, and UUID validation prevents renderer paths escaping the folder. History is opt-in, off
+by default and independent of crash recovery. See [history](transcript-history.md).
 
 ## Two caption languages
 

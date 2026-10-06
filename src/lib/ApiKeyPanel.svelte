@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { api, isTauri } from './tauri';
 	import { t } from './i18n';
 	import { asStatus, type AppError } from './errors';
@@ -51,13 +52,20 @@
 		}
 	}
 
+	// The check runs again when the engine changes, and on nothing else. The engine is read
+	// through a `$derived` because the page passes it as a getter over the whole setup, and the
+	// rest is untracked because what the parent's callback reads is not a reason to ask again:
+	// re-asking the keychain on every setup change turned Start off for a round trip.
+	const currentProvider = $derived(provider);
 	$effect(() => {
-		const activeProvider = provider;
-		editing = false;
-		apiKeyInput = '';
-		available = false;
-		onAvailability(activeProvider, false);
-		void checkKey(activeProvider);
+		const activeProvider = currentProvider;
+		untrack(() => {
+			editing = false;
+			apiKeyInput = '';
+			available = false;
+			onAvailability(activeProvider, false);
+			void checkKey(activeProvider);
+		});
 	});
 
 	async function saveKey() {

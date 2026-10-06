@@ -12,8 +12,9 @@
 import { get } from 'svelte/store';
 
 import type { CloseChoice } from './document';
+import { exportFormat, savableFormat } from './exportFormat';
 import { sessionHistory } from './history';
-import { endTranscriptSession, isRunning, transcriptDirty } from './stores';
+import { endTranscriptSession, isRunning, transcript, transcriptDirty } from './stores';
 import { saveTranscriptDocument } from './saveDocument';
 import { api } from './tauri';
 import { recovery } from './recovery';
@@ -96,12 +97,14 @@ export async function prepareClose(
  * Act on the operator's answer and quit. `cancel` is handled by the caller — it is the one
  * answer that changes nothing.
  *
- * A failed save throws and the app stays open: quitting on a write that did not land would
+ * Save writes the format chosen in the transcript toolbar, as its own Save as… would. A
+ * failed save throws and the app stays open: quitting on a write that did not land would
  * lose precisely what the operator just asked to keep.
  */
 export async function resolveClose(choice: Exclude<CloseChoice, 'cancel'>): Promise<boolean> {
 	if (choice === 'save') {
-		if (!(await saveTranscriptDocument('markdown'))) return false;
+		const format = savableFormat(get(exportFormat), get(transcript));
+		if (!(await saveTranscriptDocument(format))) return false;
 	} else {
 		// The spool only ever held the text now being thrown away.
 		await recovery.clear().catch(() => {});

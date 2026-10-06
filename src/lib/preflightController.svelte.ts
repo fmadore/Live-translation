@@ -4,16 +4,35 @@ import { asStatus, describeError } from './errors';
 import { t } from './i18n';
 import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
+import { providerRequiresKey } from './types';
 import type {
 	AudioDevice,
 	AudioLevel,
 	AudioTestUpdate,
 	OnDeviceReadiness,
-	WhisperCpuSupport
+	Provider,
+	StartOptions,
+	WhisperCpuSupport,
+	WhisperModelInfo
 } from './types';
 
+export interface PreflightGates {
+	/** Setup is locked: a session, a start or a profile load is under way. Nothing is tested or
+	 *  re-validated then. The Test audio button is disabled on exactly this, so a click the
+	 *  button accepts is never silently refused here. */
+	locked: () => boolean;
+	/** Idle validation must leave the saved devices alone, on top of `locked`: while a capture
+	 *  failure is on screen, its Retry still needs the endpoint the operator chose. A test is
+	 *  allowed then — checking another microphone is exactly what the banner invites. */
+	holdSelection?: () => boolean;
+}
+
 /** Capture preflight and signal lifetime, independent of the operator's layout. */
-export function createPreflightController(desktop: boolean, locked: () => boolean, port = api) {
+export function createPreflightController(
+	desktop: boolean,
+	{ locked, holdSelection = () => false }: PreflightGates,
+	port = api
+) {
 	const api = port;
 	let microphones = $state<AudioDevice[]>([]);
 	let outputs = $state<AudioDevice[]>([]);
@@ -60,6 +79,31 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	let whisperCpu = $state<WhisperCpuSupport | null>(
 		desktop ? null : { supported: true, missing: [] }
 	);
+	// The engine whose stored key the key panel last confirmed. Tied to that engine rather than
+	// kept as a bare flag, so switching engines can never borrow the previous one's answer while
+	// the panel is still asking the keychain about the new one.
+	let keyFor = $state<Provider | null>(null);
+
+	/** The key panel's answer for the engine it is showing. */
+	function noteKey(provider: Provider, available: boolean) {
+		keyFor = available ? provider : null;
+	}
+
+	/** Whether `selected`'s engine could start now: its key is stored, its Whisper model is
+	 *  installed on a processor that can run it, or the built-in demonstration is ready. Read
+	 *  through a `$derived` on the page, so it follows every input as it changes. */
+	function engineReady(selected: StartOptions, models: readonly WhisperModelInfo[]): boolean {
+		if (providerRequiresKey(selected.provider)) return keyFor === selected.provider;
+		if (selected.provider === 'whisper') {
+			// Until the core has said this processor can run it, Whisper cannot start.
+			const model = selected.whisperModel ?? 'base';
+			return (
+				whisperCpu?.supported === true &&
+				models.some((m) => m.id === model && m.installed && !m.downloading)
+			);
+		}
+		return localReadiness?.ready ?? false;
+	}
 	// ---- Pre-flight audio check -------------------------------------------------
 	// A source counts as arriving while it has been above the noise floor recently. Driven by
 	// the level events themselves, so nothing polls while the window sits idle.
@@ -149,7 +193,7 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	}
 
 	function validateSelection() {
-		if (!loaded || locked() || audioTesting || audioTestBusy) return;
+		if (!loaded || locked() || holdSelection() || audioTesting || audioTestBusy) return;
 		const current = get(options);
 		const next = validateDevices(current, microphones, outputs);
 		if (
@@ -244,6 +288,8 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 
 	return {
 		applicationReady,
+		engineReady,
+		noteKey,
 		get applications() {
 			return applications;
 		},

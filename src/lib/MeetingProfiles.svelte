@@ -11,6 +11,7 @@
 	import { validateDevices } from './audioDevices';
 	import { captionLanguageOf, normalizeStartOptions } from './types';
 	import { PROFILES_KEY, decodeProfiles, type MeetingProfile } from './profiles';
+	import { readStored, writeStored } from './persisted';
 	import { appearance, applyAppearance, options } from './stores';
 	import { normalizeAppearance } from './appearance';
 	import type { OverlayController } from './overlayController.svelte';
@@ -25,9 +26,9 @@
 		onLoaded: () => Promise<void>;
 		onBusy: (busy: boolean) => void;
 	} = $props();
-	let profiles = $state(
-		decodeProfiles(typeof localStorage === 'undefined' ? null : localStorage.getItem(PROFILES_KEY))
-	);
+	// Through `persisted.ts`, so storage that refuses access leaves an empty list rather than a
+	// component that throws while the operator window mounts.
+	let profiles = $state(decodeProfiles(readStored(PROFILES_KEY)));
 	let expanded = $state(false);
 	let editing = $state<'save' | 'rename' | null>(null);
 	let selected = $state('');
@@ -38,8 +39,9 @@
 	let confirming = $state(false);
 	let rowMenu = $state('');
 	let renameId = $state('');
+	/** A refused write keeps the profiles for the rest of the run, like every preference. */
 	function persist(next: MeetingProfile[]) {
-		localStorage.setItem(PROFILES_KEY, JSON.stringify(next));
+		writeStored(PROFILES_KEY, JSON.stringify(next));
 		profiles = next;
 	}
 	async function perform(action: () => Promise<void>) {

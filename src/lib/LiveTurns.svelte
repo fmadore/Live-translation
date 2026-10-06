@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { CAPTION_TAIL_CHARS, tail } from './captionLayout';
 	import { locale, t } from './i18n';
 	import { languageName } from './languages';
 	import { currentCaptions, options } from './stores';
@@ -12,13 +13,26 @@
 		type Track
 	} from './types';
 
-	type Turn = { track: Track; origin: Origin; caption: Caption };
+	type Turn = { track: Track; origin: Origin; caption: Caption; text: string; source: string };
 
 	// The speakers currently on screen, least-recently-updated first (newest at the bottom).
+	// A turn streams until it completes, which in continuous speech can be many minutes, and it
+	// is laid out again at display size on every interim. Only its newest part is shown, to the
+	// same bound the overlay keeps; the transcript below holds every word.
 	const liveTurns = $derived(
-		(Object.keys($currentCaptions) as Track[])
-			.map((track) => ({ track, origin: trackOrigin(track), caption: $currentCaptions[track] }))
-			.filter((turn): turn is Turn => turn.caption !== undefined)
+		(Object.keys($currentCaptions) as Track[]).flatMap((track): Turn[] => {
+			const caption = $currentCaptions[track];
+			if (!caption) return [];
+			return [
+				{
+					track,
+					origin: trackOrigin(track),
+					caption,
+					text: tail(caption.text, CAPTION_TAIL_CHARS),
+					source: tail(caption.sourceText, CAPTION_TAIL_CHARS)
+				}
+			];
+		})
 	);
 	// With two caption languages each speaker appears twice, so each block says which language
 	// it is in; the original speech is shown once, on the first.
@@ -54,11 +68,11 @@
 					</span>
 				</div>
 				<div class="turn-text">
-					{#if turn.caption.sourceText && !(dual && trackLane(turn.track) === 1)}
-						<p class="turn-source">{turn.caption.sourceText}</p>
+					{#if turn.source && !(dual && trackLane(turn.track) === 1)}
+						<p class="turn-source">{turn.source}</p>
 					{/if}
 					<p class="turn-caption" class:live={!turn.caption.final}>
-						{turn.caption.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
+						{turn.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
 					</p>
 				</div>
 			</article>

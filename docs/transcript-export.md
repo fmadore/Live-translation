@@ -3,14 +3,17 @@
 Included in **1.2.3**. The user confirmed native Save As on the ARM64 test MSIX on
 8 September 2026; the acceptance matrix below remains partially unverified.
 
-Choose a format in the transcript toolbar and press **Save as…** (**Enregistrer sous…**).
+Choose a format in the transcript toolbar and press **Save as…** (**Enregistrer sous…**). The
+choice is remembered through Start, Stop and restarts, and the history view shares it.
 Windows opens its native Save As dialog, owned by the operator window; select any writable
 folder and filename. Windows supplies overwrite confirmation and the default file extension.
 The app remembers the folder after a successful save, including across restarts; a missing
 folder falls back to Documents. No filesystem capability is granted to the overlay.
 
 Cancelling leaves the transcript, saved marker and recovery copy unchanged. Cancelling
-Save As from the quit prompt keeps the application open. A successful export writes a
+Save As from the quit prompt keeps the application open. The quit prompt's Save writes the
+format chosen in the toolbar; when that is WebVTT or SubRip and the transcript has no timing
+(an older recovered one), it writes Markdown instead, so the save cannot fail on the way out. A successful export writes a
 snapshot of finalized captions; captions arriving while the dialog is open remain unsaved
 and eligible for recovery. Writes use a flushed temporary file in the chosen directory,
 followed by replacement, so a failed write does not truncate an existing export.
@@ -56,7 +59,9 @@ transcript in one language exports exactly as before.
 
 Automated tests cover cancelled saves and quit, captions arriving during a save, atomic
 replacement and failed replacement cleanup, format selection, untimed recovery, source
-overlap, partial replacement, session restart, escaping, and long-duration timestamps.
+overlap, partial replacement, session restart, escaping, and long-duration timestamps. A
+page-level test runs the built-in demo through Start and Stop twice and checks that the
+chosen format survives both and is what the quit prompt saves.
 
 Native acceptance checks remain manual, separately in development, NSIS and Store MSIX:
 

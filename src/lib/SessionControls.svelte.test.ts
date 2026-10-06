@@ -49,18 +49,20 @@ describe('the session actions', () => {
 		expect(stop).not.toHaveAccessibleName(/Ctrl/);
 	});
 
-	it('offer Pause beside Stop while running, and Resume once paused', async () => {
+	// The label says what a press does. A pressed state on top of it made Narrator read
+	// "Resume, toggle button, pressed", which says the opposite of what is going on.
+	it('offer Pause beside Stop while running, and Resume once paused, as plain actions', async () => {
 		originStates.set({ system: 'running' });
 		const onPause = vi.fn();
 		const pause = controls(false, onPause).getByRole('button', { name: /Pause/ });
-		expect(pause).toHaveAttribute('aria-pressed', 'false');
+		expect(pause).not.toHaveAttribute('aria-pressed');
 		expect(pause).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+P');
 		pause.click();
 		expect(onPause).toHaveBeenCalledOnce();
 
 		originStates.set({ system: 'paused' });
 		const resume = controls(true).getByRole('button', { name: /Resume/ });
-		expect(resume).toHaveAttribute('aria-pressed', 'true');
+		expect(resume).not.toHaveAttribute('aria-pressed');
 	});
 
 	it('leave Rehearse without a shortcut of its own', () => {

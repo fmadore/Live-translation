@@ -5,9 +5,12 @@
 //! `write_history` replaces a whole file; `append_history` adds records to one, so a long
 //! session no longer rewrites everything it has already saved every few seconds. Files from
 //! before the log format are a single JSON object, and are still read and renamed.
-use crate::recovery::{remove_snapshot, replace_snapshot, StoredRecovery};
+use crate::recovery::{remove_snapshot, replace_snapshot};
+use serde::Serialize;
 use std::{
-    io::{Read, Seek, SeekFrom, Write},
+    collections::{HashMap, HashSet},
+    fs::File,
+    io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::Mutex,
 };
@@ -80,32 +83,116 @@ pub async fn append_history(app: AppHandle, id: String, contents: String) -> Res
     .map_err(|e| e.to_string())?
 }
 
-fn read_sessions(dir: &Path) -> Result<Vec<StoredRecovery>, String> {
+/// One session file as `list_history` reports it. `contents` is left out when the renderer
+/// already holds the file at this length.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListedSession {
+    pub id: String,
+    pub length: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contents: Option<String>,
+}
+
+/// The history folder, measured against what the renderer already holds.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct HistoryListing {
+    /// Every session file, with its contents only where they are new to the renderer.
+    pub sessions: Vec<ListedSession>,
+    /// Sessions the renderer holds that are no longer listed.
+    pub removed: Vec<String>,
+}
+
+/// A session file as text, with its length on disk. Logs are written as UTF-8, so the common
+/// case keeps the buffer it was read into and only a damaged file pays for the lossy copy.
+/// The length is the file's rather than the text's, because a lossy copy is longer and the
+/// renderer hands this length back to be compared with the file's.
+fn read_text(path: &Path) -> std::io::Result<(String, u64)> {
+    let bytes = std::fs::read(path)?;
+    let length = bytes.len() as u64;
+    let text = String::from_utf8(bytes)
+        .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
+    Ok((text, length))
+}
+
+/// List the session files, reading only those the renderer does not already hold.
+///
+/// A log only ever grows at its end, so a file whose length is the one the renderer holds
+/// has not changed since it was read, and an open History tab no longer re-reads the whole
+/// folder each time a recording session saves. One file that cannot be read now — locked by
+/// a backup or a virus scan, say — is skipped with a warning instead of hiding every session:
+/// a new one is listed once it can be read, and one the renderer holds is reported at its
+/// old length, so the renderer keeps its copy and the next listing tries again.
+///
+/// `read` is `read_text`, and a parameter only so a test can make one file fail.
+fn list_sessions(
+    dir: &Path,
+    known: &HashMap<String, u64>,
+    read: impl Fn(&Path) -> std::io::Result<(String, u64)>,
+) -> Result<HistoryListing, String> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(HistoryListing {
+                sessions: vec![],
+                removed: known.keys().cloned().collect(),
+            })
+        }
         Err(e) => return Err(e.to_string()),
     };
     let mut sessions = vec![];
     for entry in entries {
-        let entry = entry.map_err(|e| e.to_string())?;
+        let entry = match entry {
+            Ok(entry) => entry,
+            Err(error) => {
+                tracing::warn!("skipping a history entry that cannot be listed: {error}");
+                continue;
+            }
+        };
         let path = entry.path();
         if path.extension().is_none_or(|e| e != "json") {
             continue;
         }
-        let id = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-        if session_path(dir, id).is_err()
-            || !entry.file_type().map_err(|e| e.to_string())?.is_file()
-        {
+        let Some(id) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+        if session_path(dir, id).is_err() {
             continue;
         }
-        sessions.push(StoredRecovery {
-            path: id.to_string(),
-            contents: String::from_utf8_lossy(&std::fs::read(path).map_err(|e| e.to_string())?)
-                .into_owned(),
+        let held = known.get(id).copied();
+        // Asked of the file, not taken from the directory listing: on Windows the listing's
+        // copy of a size can lag while another handle (a virus scan, say) still has the file
+        // open, and a stale length would pass for an unchanged session. Not followed through
+        // a link, like the file type it replaces.
+        let read = match std::fs::symlink_metadata(&path) {
+            Ok(metadata) if !metadata.is_file() => continue,
+            Ok(metadata) if held == Some(metadata.len()) => Ok((metadata.len(), None)),
+            Ok(_) => read(&path).map(|(contents, length)| (length, Some(contents))),
+            Err(error) => Err(error),
+        };
+        let (length, contents) = match read {
+            Ok(read) => read,
+            Err(error) => {
+                tracing::warn!("skipping history session {id} for now: {error}");
+                // The renderer keeps the copy it holds, and the next listing tries again.
+                let Some(length) = held else { continue };
+                (length, None)
+            }
+        };
+        sessions.push(ListedSession {
+            id: id.to_owned(),
+            length,
+            contents,
         });
     }
-    Ok(sessions)
+    let listed: HashSet<&str> = sessions.iter().map(|s| s.id.as_str()).collect();
+    let removed = known
+        .keys()
+        .filter(|id| !listed.contains(id.as_str()))
+        .cloned()
+        .collect();
+    Ok(HistoryListing { sessions, removed })
 }
 
 /// The log format's version, as its header records it.
@@ -118,16 +205,31 @@ fn is_log(raw: &[u8]) -> bool {
         .is_ok_and(|record| record["version"] == LOG_VERSION)
 }
 
+/// A file's first line, newline included. Reading stops there, give or take the reader's
+/// buffer.
+fn read_header(reader: &mut impl BufRead) -> std::io::Result<Vec<u8>> {
+    let mut header = Vec::new();
+    reader.read_until(b'\n', &mut header)?;
+    Ok(header)
+}
+
 fn rename_session(path: &Path, title: &str) -> Result<(), String> {
-    let raw = std::fs::read(path).map_err(|e| e.to_string())?;
+    // Only the header says whether this is a log, and a long session's log runs to megabytes.
+    let mut reader = BufReader::new(File::open(path).map_err(|e| e.to_string())?);
+    let mut raw = read_header(&mut reader).map_err(|e| e.to_string())?;
     let title = title.trim().chars().take(120).collect::<String>();
     // A log takes the rename as one more record; the latest title record wins when it is read.
     if is_log(&raw) {
+        drop(reader);
         let mut record = serde_json::to_string(&serde_json::json!({ "title": title }))
             .map_err(|e| e.to_string())?;
         record.push('\n');
         return append_session(path, &record).map_err(|e| e.to_string());
     }
+    // A file from before the log format is one JSON object, rewritten whole with its new
+    // title, so the rest of it is needed after all.
+    reader.read_to_end(&mut raw).map_err(|e| e.to_string())?;
+    drop(reader);
     let mut session: serde_json::Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
     let record = session.as_object_mut().ok_or("invalid session")?;
     record.insert("title".into(), title.into());
@@ -146,12 +248,18 @@ pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result
     .map_err(|e| e.to_string())?
 }
 
+/// List the history folder. `known` is what the renderer already holds, as `[id, length]`
+/// pairs; those sessions come back without their contents unless their file has changed.
 #[tauri::command]
-pub async fn list_history(app: AppHandle) -> Result<Vec<StoredRecovery>, String> {
+pub async fn list_history(
+    app: AppHandle,
+    known: Vec<(String, u64)>,
+) -> Result<HistoryListing, String> {
     let dir = directory(&app)?;
+    let known: HashMap<String, u64> = known.into_iter().collect();
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        read_sessions(&dir)
+        list_sessions(&dir, &known, read_text)
     })
     .await
     .map_err(|e| e.to_string())?
@@ -252,26 +360,175 @@ mod tests {
                 .unwrap()
                 .as_nanos()
         ));
-        assert!(read_sessions(&dir).unwrap().is_empty());
+        assert!(list(&dir, &[]).sessions.is_empty());
         std::fs::create_dir(&dir).unwrap();
-        let first = session_path(&dir, "12345678-1234-1234-1234-123456789abc").unwrap();
-        let second = session_path(&dir, "12345678-1234-1234-1234-123456789abd").unwrap();
+        let first = session_path(&dir, FIRST).unwrap();
+        let second = session_path(&dir, SECOND).unwrap();
         replace_snapshot(&first, |f| f.write_all(b"complete session")).unwrap();
         replace_snapshot(&second, |f| f.write_all(b"second session")).unwrap();
         // Incomplete writes and unrelated files are never offered as saved sessions.
         std::fs::write(first.with_extension("json.pending"), "partial").unwrap();
         std::fs::write(dir.join("unrelated.json"), "unrelated").unwrap();
-        assert_eq!(read_sessions(&dir).unwrap().len(), 2);
+        assert_eq!(list(&dir, &[]).sessions.len(), 2);
         // A corrupt record remains individually deletable without hiding the good one.
         std::fs::write(&second, [0xff, 0x00]).unwrap();
-        let reopened = read_sessions(&dir).unwrap();
+        let reopened = list(&dir, &[]).sessions;
         assert_eq!(reopened.len(), 2);
-        assert!(reopened.iter().any(|s| s.contents == "complete session"));
+        assert!(reopened
+            .iter()
+            .any(|s| s.contents.as_deref() == Some("complete session")));
         remove_snapshot(&first).unwrap();
         remove_snapshot(&first).unwrap();
-        assert_eq!(read_sessions(&dir).unwrap().len(), 1);
+        assert_eq!(list(&dir, &[]).sessions.len(), 1);
         std::fs::remove_dir_all(dir).unwrap();
     }
+
+    const FIRST: &str = "12345678-1234-1234-1234-123456789abc";
+    const SECOND: &str = "12345678-1234-1234-1234-123456789abd";
+
+    fn list(dir: &Path, known: &[(&str, u64)]) -> HistoryListing {
+        let known = known.iter().map(|&(id, n)| (id.to_owned(), n)).collect();
+        list_sessions(dir, &known, read_text).unwrap()
+    }
+
+    fn listed<'a>(listing: &'a HistoryListing, id: &str) -> &'a ListedSession {
+        listing.sessions.iter().find(|s| s.id == id).unwrap()
+    }
+
+    // Each history write sent the open History tab back to read every session in full. Logs
+    // only grow, so a length the renderer already holds means the file has not changed.
+    #[test]
+    fn listing_sends_only_sessions_that_are_new_or_have_grown() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = session_path(dir.path(), FIRST).unwrap();
+        let second = session_path(dir.path(), SECOND).unwrap();
+        std::fs::write(&first, "{\"version\":2}\n").unwrap();
+        std::fs::write(&second, "{\"version\":2}\n{\"line\":1}\n").unwrap();
+
+        let fresh = list(dir.path(), &[]);
+        assert_eq!(fresh.sessions.len(), 2);
+        assert_eq!(listed(&fresh, FIRST).length, 14);
+        assert_eq!(
+            listed(&fresh, SECOND).contents.as_deref(),
+            Some("{\"version\":2}\n{\"line\":1}\n")
+        );
+        assert!(fresh.removed.is_empty());
+
+        let held = [(FIRST, 14), (SECOND, 25)];
+        let unchanged = list(dir.path(), &held);
+        assert_eq!(unchanged.sessions.len(), 2);
+        assert!(unchanged.sessions.iter().all(|s| s.contents.is_none()));
+        assert_eq!(listed(&unchanged, SECOND).length, 25);
+
+        append_session(&first, "{\"line\":1}\n").unwrap();
+        let grown = list(dir.path(), &held);
+        assert_eq!(listed(&grown, FIRST).length, 25);
+        assert!(listed(&grown, FIRST).contents.is_some());
+        assert!(listed(&grown, SECOND).contents.is_none());
+
+        // A deleted session, and one remembered from a folder that has since gone, are both
+        // named as removed rather than silently left out.
+        remove_snapshot(&second).unwrap();
+        let gone = list(dir.path(), &[(FIRST, 25), (SECOND, 25)]);
+        assert_eq!(gone.sessions.len(), 1);
+        assert_eq!(gone.removed, vec![SECOND.to_owned()]);
+        let missing = list(&dir.path().join("absent"), &[(FIRST, 25)]);
+        assert!(missing.sessions.is_empty());
+        assert_eq!(missing.removed, vec![FIRST.to_owned()]);
+    }
+
+    // One unreadable file used to fail the whole listing, so the tab showed no history at all.
+    #[test]
+    fn a_session_that_cannot_be_read_is_skipped_without_hiding_the_others() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = session_path(dir.path(), FIRST).unwrap();
+        let second = session_path(dir.path(), SECOND).unwrap();
+        std::fs::write(&first, "{\"version\":2}\n").unwrap();
+        std::fs::write(&second, "{\"version\":2}\n{\"line\":1}\n").unwrap();
+        let locked = |path: &Path| {
+            if path == second {
+                Err(std::io::Error::other("locked by another process"))
+            } else {
+                read_text(path)
+            }
+        };
+
+        // New to the renderer: left out until it can be read.
+        let fresh = list_sessions(dir.path(), &HashMap::new(), locked).unwrap();
+        assert_eq!(fresh.sessions.len(), 1);
+        assert_eq!(fresh.sessions[0].id, FIRST);
+        assert!(fresh.removed.is_empty());
+
+        // Held at an older length: reported as held, so the renderer keeps its copy and asks
+        // again next time instead of dropping the session from the list.
+        let known = HashMap::from([(SECOND.to_owned(), 14)]);
+        let held = list_sessions(dir.path(), &known, locked).unwrap();
+        assert_eq!(held.sessions.len(), 2);
+        assert_eq!(listed(&held, SECOND).length, 14);
+        assert!(listed(&held, SECOND).contents.is_none());
+        assert!(held.removed.is_empty());
+    }
+
+    // The same against a real lock: Windows refuses to open a file that another handle holds
+    // without sharing, which is what a backup or a virus scan can do.
+    #[cfg(windows)]
+    #[test]
+    fn a_file_locked_by_another_handle_does_not_fail_the_listing() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let first = session_path(dir.path(), FIRST).unwrap();
+        let second = session_path(dir.path(), SECOND).unwrap();
+        std::fs::write(&first, "{\"version\":2}\n").unwrap();
+        std::fs::write(&second, "{\"version\":2}\n").unwrap();
+        let lock = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&second)
+            .unwrap();
+        let listing = list(dir.path(), &[]);
+        assert_eq!(listing.sessions.len(), 1);
+        assert_eq!(listing.sessions[0].id, FIRST);
+        drop(lock);
+        assert_eq!(list(dir.path(), &[]).sessions.len(), 2);
+    }
+
+    // The length handed back is the file's, so a damaged file read lossily, whose text is
+    // longer than its bytes, still counts as unchanged on the next listing.
+    #[test]
+    fn a_lossily_read_session_reports_its_length_on_disk() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = session_path(dir.path(), FIRST).unwrap();
+        std::fs::write(&path, [b'{', 0xff, b'}']).unwrap();
+        let fresh = list(dir.path(), &[]);
+        assert_eq!(fresh.sessions[0].length, 3);
+        assert_eq!(fresh.sessions[0].contents.as_deref(), Some("{\u{fffd}}"));
+        let again = list(dir.path(), &[(FIRST, 3)]);
+        assert!(again.sessions[0].contents.is_none());
+    }
+
+    #[test]
+    fn renaming_reads_only_the_header_line() {
+        let mut log = std::io::Cursor::new(b"{\"version\":2}\n{\"line\":1}\n".to_vec());
+        assert_eq!(read_header(&mut log).unwrap(), b"{\"version\":2}\n");
+        assert_eq!(log.position(), 14);
+        // A file from before the log format has no newline, so its header is all of it.
+        let mut whole = std::io::Cursor::new(b"{\"lines\":[]}".to_vec());
+        assert_eq!(read_header(&mut whole).unwrap(), b"{\"lines\":[]}");
+    }
+
+    // The header decides; what follows it in a log is never parsed by a rename.
+    #[test]
+    fn renaming_a_log_ignores_whatever_follows_its_header() {
+        let path = temp_file("history-rename-damaged");
+        let mut contents = b"{\"version\":2}\n".to_vec();
+        contents.extend_from_slice(&[0xff; 64]);
+        std::fs::write(&path, &contents).unwrap();
+        rename_session(&path, "Board").unwrap();
+        let after = std::fs::read(&path).unwrap();
+        assert!(after.ends_with(b"\n{\"title\":\"Board\"}\n"));
+        std::fs::remove_file(path).unwrap();
+    }
+
     #[test]
     fn session_ids_cannot_escape_the_history_directory() {
         let dir = Path::new("history");

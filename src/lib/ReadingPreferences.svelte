@@ -11,6 +11,8 @@
 	} from './stores';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { CaptionLayout } from './captionLayout';
+	import { HOLD_SECONDS_MAX, HOLD_SECONDS_MIN } from './reading';
+	import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './types';
 	import Field from './ui/Field.svelte';
 	import Select from './ui/Select.svelte';
 	import Stepper from './ui/Stepper.svelte';
@@ -33,17 +35,19 @@
 	{#if $overlayCaptionLayout === 'compact'}<Stepper
 			label={$t.overlayControls.captionWidth}
 			value={$overlayCaptionWidth}
-			min={20}
-			max={60}
+			min={OVERLAY_WIDTH_MIN}
+			max={OVERLAY_WIDTH_MAX}
 			step={2}
 			unit="ch"
+			decreaseLabel={$t.overlayControls.narrower}
+			increaseLabel={$t.overlayControls.wider}
 			onchange={overlay.setCaptionWidth}
 		/>{/if}
 	<Stepper
 		label={$t.usability.hold}
 		value={$overlayHoldSeconds}
-		min={2}
-		max={30}
+		min={HOLD_SECONDS_MIN}
+		max={HOLD_SECONDS_MAX}
 		unit="s"
 		disabled={$overlayCaptionLayout === 'stable'}
 		onchange={overlay.setHoldSeconds}

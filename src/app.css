@@ -373,7 +373,8 @@ input {
 	background: var(--warn-chip);
 	color: var(--warn-soft);
 }
-/* A toggle that is on: move mode, a chosen preset, the selected history session. */
+/* A toggle that is on: a chosen preset, the selected history session. Move mode is not one:
+   its label flips to Done, so it takes the primary variant instead of a pressed state. */
 .ui-tool[aria-pressed='true'] {
 	border-color: var(--accent-border);
 	background: var(--accent-wash);

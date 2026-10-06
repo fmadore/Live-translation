@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createOverlayCaptions, tail, type ReadingSettings } from './overlayCaptions.svelte';
+import { createOverlayCaptions, type ReadingSettings } from './overlayCaptions.svelte';
 import { DEFAULT_FILLER_WORDS } from '$lib/cleanSpeech';
+import { CAPTION_TAIL_CHARS } from '$lib/captionLayout';
 import { captionBudget, type Caption, type Origin } from '$lib/types';
 
 const fit: ReadingSettings = {
@@ -248,6 +249,19 @@ describe('overlay captions', () => {
 		c.dispose();
 	});
 
+	// Review E7: the caption was cut to its tail in Fit, but the original under it streamed
+	// whole into the filler filter and the fitting search for as long as the turn ran.
+	it('bounds the original speech in Fit window as the caption is', () => {
+		const c = createOverlayCaptions({ ...fit, showOriginal: true });
+		const speech = Array.from({ length: 4000 }, (_, i) => `mot${i}`).join(' ');
+		c.push({ ...caption('system', 1, 'Short.', false), sourceText: speech });
+		const [line] = c.lines;
+		expect(line.original.length).toBeLessThanOrEqual(CAPTION_TAIL_CHARS + 2);
+		expect(line.original.startsWith('… ')).toBe(true);
+		expect(line.original.endsWith('mot3999')).toBe(true);
+		c.dispose();
+	});
+
 	it('keeps each language’s lead-in to itself', () => {
 		const c = createOverlayCaptions(fit);
 		c.push(caption('system', 1, 'Premier.'));
@@ -265,12 +279,5 @@ describe('overlay captions', () => {
 		vi.advanceTimersByTime(450);
 		expect(c.lines.map((line) => line.text)).toEqual(['Streaming']);
 		c.dispose();
-	});
-});
-
-describe('tail', () => {
-	it('keeps short text whole and cuts long text at a nearby word boundary', () => {
-		expect(tail('  a   short   line ', 40)).toBe('a short line');
-		expect(tail('alpha beta gamma delta', 10)).toBe('… delta');
 	});
 });

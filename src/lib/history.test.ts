@@ -1,5 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createHistoryCoordinator, decodeSession, HISTORY_LOG_VERSION } from './history';
+import {
+	createHistoryCache,
+	createHistoryCoordinator,
+	decodeSession,
+	encodeSessionAppend,
+	encodeSessionLog,
+	HISTORY_LOG_VERSION,
+	type SavedSession
+} from './history';
 import type { StartOptions, TranscriptLine } from './types';
 
 const options: StartOptions = {
@@ -341,5 +349,91 @@ describe('session history', () => {
 		});
 		expect(decodeSession(legacy, id)).toMatchObject({ title: 'Old meeting', lines: [line] });
 		expect(decodeSession(legacy, id2)).toBeNull();
+	});
+});
+
+// E6: an open History tab re-read, re-sent and re-decoded every session after each write.
+describe('the history view cache', () => {
+	const session: SavedSession = {
+		version: 1,
+		id,
+		startedAt: start.toISOString(),
+		savedAt: start.toISOString(),
+		endedAt: null,
+		durationMs: 1000,
+		mode: 'translate',
+		sourceLanguage: 'auto',
+		targetLanguage: 'fr',
+		lines: [line]
+	};
+	const older = { ...session, id: id2, startedAt: '2026-09-18T10:00:00.000Z' };
+	const file = (s: SavedSession) => encodeSessionLog(s);
+	const fresh = (...sessions: SavedSession[]) => ({
+		sessions: sessions.map((s) => ({ id: s.id, length: file(s).length, contents: file(s) })),
+		removed: []
+	});
+
+	it('decodes a session once and keeps the same object while its file is unchanged', () => {
+		const decode = vi.fn(decodeSession);
+		const cache = createHistoryCache(decode);
+		expect(cache.known()).toEqual([]);
+		const first = cache.apply(fresh(older, session));
+		expect(first.map((e) => e.id)).toEqual([id, id2]);
+		expect(decode).toHaveBeenCalledTimes(2);
+		expect(cache.known()).toEqual(
+			expect.arrayContaining([
+				[id, file(session).length],
+				[id2, file(older).length]
+			])
+		);
+
+		const again = cache.apply({
+			sessions: cache.known().map(([id, length]) => ({ id, length })),
+			removed: []
+		});
+		expect(decode).toHaveBeenCalledTimes(2);
+		// The very same objects, so the search's WeakMap keeps their folded text.
+		expect(again[0].session).toBe(first[0].session);
+		expect(again[1].session).toBe(first[1].session);
+	});
+
+	it('decodes only a session whose file has grown, and drops one that has gone', () => {
+		const decode = vi.fn(decodeSession);
+		const cache = createHistoryCache(decode);
+		const [kept] = cache.apply(fresh(older)).map((e) => e.session);
+		const grown =
+			file(session) + encodeSessionAppend({ ...session, lines: [{ ...line, id: 2 }, line] }, 1);
+		decode.mockClear();
+		const entries = cache.apply({
+			sessions: [
+				{ id, length: grown.length, contents: grown },
+				{ id: id2, length: file(older).length }
+			],
+			removed: []
+		});
+		expect(decode).toHaveBeenCalledOnce();
+		expect(decode).toHaveBeenCalledWith(grown, id);
+		expect(entries.find((e) => e.id === id)?.session?.lines).toHaveLength(2);
+		expect(entries.find((e) => e.id === id2)?.session).toBe(kept);
+
+		expect(cache.apply({ sessions: [{ id, length: grown.length }], removed: [id2] })).toHaveLength(
+			1
+		);
+		expect(cache.known()).toEqual([[id, grown.length]]);
+	});
+
+	it('reads a forgotten session again rather than claiming to hold it', () => {
+		const cache = createHistoryCache();
+		cache.apply(fresh(session));
+		cache.forget(id);
+		expect(cache.known()).toEqual([]);
+		// A listing that crossed the forget still names it as unchanged: left out, not kept stale.
+		expect(cache.apply({ sessions: [{ id, length: 1 }], removed: [] })).toEqual([]);
+	});
+
+	it('keeps an unreadable file listed, so it can still be deleted', () => {
+		const cache = createHistoryCache();
+		const [entry] = cache.apply({ sessions: [{ id, length: 1, contents: '{' }], removed: [] });
+		expect(entry).toEqual({ id, length: 1, session: null });
 	});
 });

@@ -8,6 +8,8 @@ node_modules
 build
 package-lock.json
 .impeccable
+# Agent worktrees: whole checkouts of this repo, formatted in their own right.
+.claude/worktrees
 
 # Tauri's, not ours. Its config and capability files are 2-space JSON by Tauri convention and
 # are rewritten by the `tauri` CLI; reformatting them to this repo's tab style would only put

@@ -19,8 +19,16 @@ vi.mock('./tauri', () => ({
 }));
 
 const { endsLiveSession, prepareClose, resolveClose } = await import('./quit');
-const { applyStatus, clearTranscript, pushCaption, savedPath, transcript, transcriptDirty } =
-	await import('./stores');
+const {
+	applyStatus,
+	clearTranscript,
+	pushCaption,
+	restoreTranscript,
+	savedPath,
+	transcript,
+	transcriptDirty
+} = await import('./stores');
+const { exportFormat } = await import('./exportFormat');
 import type { Caption } from './types';
 
 function caption(turnId: number, text: string, final = true): Caption {
@@ -45,6 +53,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	applyStatus({ state: 'idle' });
 	clearTranscript();
+	exportFormat.set('markdown');
 	mocks.saveTranscript.mockResolvedValue('C:\\Docs\\Live-translation\\transcript.md');
 	mocks.clearRecovery.mockResolvedValue(undefined);
 	mocks.ackClose.mockResolvedValue(undefined);
@@ -152,6 +161,33 @@ describe('answering the prompt', () => {
 		expect(get(savedPath)).toBe('C:\\Docs\\Live-translation\\transcript.md');
 		expect(mocks.clearRecovery).toHaveBeenCalledTimes(1);
 		expect(mocks.confirmClose).toHaveBeenCalledTimes(1);
+	});
+
+	// D19: the quit prompt's Save always wrote Markdown, whatever the toolbar said.
+	it('writes the format chosen in the transcript toolbar', async () => {
+		exportFormat.set('vtt');
+		pushCaption(caption(1, 'worth keeping'));
+
+		await expect(resolveClose('save')).resolves.toBe(true);
+
+		const [content, filename] = mocks.saveTranscript.mock.calls[0];
+		expect(content).toMatch(/^WEBVTT/);
+		expect(filename).toMatch(/\.vtt$/);
+		expect(mocks.confirmClose).toHaveBeenCalledTimes(1);
+	});
+
+	// The toolbar disables a subtitle save without timing and says why; the prompt cannot, and
+	// a save that threw would keep the app open with the text still unsaved.
+	it('saves Markdown when the chosen subtitles need timing the transcript lacks', async () => {
+		exportFormat.set('srt');
+		restoreTranscript([{ id: 1, text: 'recovered', sourceText: '', origin: 'microphone' }]);
+
+		await expect(resolveClose('save')).resolves.toBe(true);
+
+		const [content, filename] = mocks.saveTranscript.mock.calls[0];
+		expect(content).toContain('recovered');
+		expect(filename).toMatch(/\.md$/);
+		expect(get(exportFormat)).toBe('srt');
 	});
 
 	// Quitting on a write that did not land would lose exactly what the operator asked to keep.

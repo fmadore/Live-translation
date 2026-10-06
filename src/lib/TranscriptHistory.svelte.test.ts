@@ -9,8 +9,10 @@ import { api } from './tauri';
 import {
 	historyEnabled,
 	historyError,
+	encodeSessionLog,
 	historyRevision,
 	sessionHistory,
+	type HistoryListing,
 	type SavedSession
 } from './history';
 import { transcript, clearTranscript } from './stores';
@@ -45,14 +47,21 @@ const saved: SavedSession = {
 		}
 	]
 };
+/** What `list_history` answers for files the view does not hold yet. */
+function listing(...files: { id: string; contents: string }[]): HistoryListing {
+	return {
+		sessions: files.map(({ id, contents }) => ({ id, length: contents.length, contents })),
+		removed: []
+	};
+}
 beforeEach(() => {
 	locale.set('en');
 	historyEnabled.set(false);
 	historyError.set('');
 	clearTranscript();
-	vi.mocked(api.listHistory).mockResolvedValue([
-		{ path: saved.id, contents: JSON.stringify(saved) }
-	]);
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: saved.id, contents: JSON.stringify(saved) })
+	);
 	vi.mocked(api.saveTranscript).mockResolvedValue('saved.txt');
 });
 
@@ -119,7 +128,7 @@ it('copies and deletes a selected session only after confirmation', async () => 
 	);
 	await fireEvent.click(view.getByText('Delete'));
 	expect(deletion).not.toHaveBeenCalled();
-	vi.mocked(api.listHistory).mockResolvedValue([]);
+	vi.mocked(api.listHistory).mockResolvedValue({ sessions: [], removed: [saved.id] });
 	await fireEvent.click(view.getByText('Delete permanently'));
 	await waitFor(() => expect(view.getByText('No saved sessions yet.')).toBeTruthy());
 	expect(deletion).toHaveBeenCalledWith(saved.id);
@@ -148,7 +157,7 @@ it('re-lists history at most every few seconds while writes keep landing', async
 });
 
 it('shows unreadable records and read errors instead of silently losing history', async () => {
-	vi.mocked(api.listHistory).mockResolvedValue([{ path: saved.id, contents: '{' }]);
+	vi.mocked(api.listHistory).mockResolvedValue(listing({ id: saved.id, contents: '{' }));
 	const view = render(TranscriptHistory);
 	await waitFor(() => expect(view.getByText('Unreadable session', { exact: false })).toBeTruthy());
 	vi.mocked(api.listHistory).mockRejectedValue(new Error('Access denied'));
@@ -193,21 +202,87 @@ it('filters the session list and saves a title without changing raw text', async
 	await waitFor(() =>
 		expect(rename).toHaveBeenCalledWith(expect.objectContaining({ lines: saved.lines }), 'Workshop')
 	);
+	// Renaming a file from before the log format rewrites it, possibly at the same length, so
+	// the renamed session is read again rather than claimed as held.
+	await waitFor(() => expect(view.getByText('Session title saved.')).toBeTruthy());
+	expect(vi.mocked(api.listHistory).mock.lastCall![0]).toEqual([]);
 	rename.mockRestore();
 	view.unmount();
 });
 
 it('allows explicit deletion of an unreadable record from the detail pane', async () => {
-	vi.mocked(api.listHistory).mockResolvedValue([{ path: saved.id, contents: '{' }]);
+	vi.mocked(api.listHistory).mockResolvedValue(listing({ id: saved.id, contents: '{' }));
 	const deletion = vi.spyOn(sessionHistory, 'delete').mockResolvedValue();
 	const view = render(TranscriptHistory);
 	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
 	await fireEvent.click(view.container.querySelector('.session')!);
 	await fireEvent.click(view.getByText('Delete'));
 	expect(deletion).not.toHaveBeenCalled();
-	vi.mocked(api.listHistory).mockResolvedValue([]);
+	vi.mocked(api.listHistory).mockResolvedValue({ sessions: [], removed: [saved.id] });
 	await fireEvent.click(view.getByText('Delete permanently'));
 	await waitFor(() => expect(deletion).toHaveBeenCalledWith(saved.id));
 	deletion.mockRestore();
 	view.unmount();
+});
+
+// E6: every history write used to make an open tab read, send and decode every session again.
+it('lists by what it already holds and keeps sessions the core says are unchanged', async () => {
+	const contents = JSON.stringify(saved);
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	expect(vi.mocked(api.listHistory).mock.lastCall![0]).toEqual([]);
+
+	vi.mocked(api.listHistory).mockResolvedValue({
+		sessions: [{ id: saved.id, length: contents.length }],
+		removed: []
+	});
+	await fireEvent.click(view.getByText('Refresh'));
+	await waitFor(() => expect(api.listHistory).toHaveBeenCalledTimes(2));
+	expect(vi.mocked(api.listHistory).mock.lastCall![0]).toEqual([[saved.id, contents.length]]);
+	await fireEvent.click(view.container.querySelector('.session')!);
+	expect(view.getByText('Um, hello.')).toBeTruthy();
+
+	vi.mocked(api.listHistory).mockResolvedValue({ sessions: [], removed: [saved.id] });
+	await fireEvent.click(view.getByText('Refresh'));
+	await waitFor(() => expect(view.getByText('No saved sessions yet.')).toBeTruthy());
+	view.unmount();
+});
+
+// D18: a session captioned in two languages was listed, and filtered, by its first alone.
+it('lists and filters a two-language session by both of its caption languages', async () => {
+	// Written as a log: the second language arrived after the log format, so only logs have one.
+	const both: SavedSession = { ...saved, secondTargetLanguage: 'de' };
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: both.id, contents: encodeSessionLog(both) })
+	);
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	expect(view.container.querySelector('.session')).toHaveTextContent(
+		'Auto-detected speech → FR + DE'
+	);
+	const language = view.getByRole('combobox', { name: 'Caption language' });
+	for (const [code, shown] of [
+		['de', true],
+		['fr', true],
+		['en', false]
+	] as const) {
+		await fireEvent.change(language, { target: { value: code } });
+		expect(view.container.querySelector('.session') !== null).toBe(shown);
+	}
+	view.unmount();
+});
+
+it('matches either caption language, and sessions saved before the second existed', () => {
+	const filter = { query: '', from: '', to: '', language: 'de' };
+	expect(matchesSession({ ...saved, secondTargetLanguage: 'de' }, filter)).toBe(true);
+	expect(matchesSession({ ...saved, secondTargetLanguage: null }, filter)).toBe(false);
+	// Older files carry no second language at all.
+	expect(matchesSession(saved, { ...filter, language: 'fr' })).toBe(true);
+	expect(matchesSession(saved, filter)).toBe(false);
+	// Subtitles are filed under the language spoken.
+	const subtitles: SavedSession = { ...saved, mode: 'transcribe', targetLanguage: null };
+	expect(
+		matchesSession({ ...subtitles, sourceLanguage: 'en' }, { ...filter, language: 'en' })
+	).toBe(true);
+	expect(matchesSession(subtitles, { ...filter, language: 'auto' })).toBe(true);
 });

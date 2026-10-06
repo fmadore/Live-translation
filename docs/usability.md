@@ -10,6 +10,12 @@ stays visible while either column scrolls, including the stacked layout at narro
 or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and the saved
 transcript all remain below the session controls.
 
+Start, Rehearse and Ctrl+Shift+Space read one rule: nothing starts while a start, a stop or a
+profile load is under way, while a caption language is one the engine does not offer, or
+before the engine is ready (its key saved, its Whisper model installed, or the demo checked).
+Start also needs a chosen application to be running; Rehearse plays the bundled sample
+instead, and the built-in demo has no rehearsal.
+
 New installations open on Whisper with Base and automatic language detection. Switching
 from translation to Subtitles also selects Whisper and retains the selected audio source;
 it does not start capture or a model download. Existing saved setups are restored on launch.
@@ -81,6 +87,8 @@ level above the existing RMS signal threshold is **Receiving audio**. When audio
 but captions have not arrived for 15 seconds, the app suggests checking the provider/connection.
 Quiet inputs say **Listening — no recent audio signal**. These are observations, not speech
 detection or a diagnosis of provider failure. The built-in demo uses simulated input events.
+A screen reader hears a source only when it stops with an error or goes 15 seconds without
+captions, not on every change of label.
 
 ## Keyboard controls
 
@@ -90,7 +98,7 @@ system-wide hotkeys and cannot control the app while another application is focu
 
 | Shortcut | Action |
 | --- | --- |
-| Ctrl+Shift+Space | Start / stop; respects the same readiness and busy gates as the buttons |
+| Ctrl+Shift+Space | Start / stop; follows the same rule as Start, and says why when an unsupported language or a missing application stops it |
 | Ctrl+Shift+P | Pause / resume a running session |
 | Ctrl+Shift+O | Show / hide the overlay |
 | Ctrl+Shift+Up / Down | Increase / decrease caption size |

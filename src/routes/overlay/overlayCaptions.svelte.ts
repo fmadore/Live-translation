@@ -2,7 +2,12 @@
 // finished turn before it, and that track's reading context, plus when each of them expires. Kept apart from the window so it
 // can be exercised without fonts, a ResizeObserver or a Tauri window.
 
-import { appendCaptionHistory, type CaptionLayout } from '$lib/captionLayout';
+import {
+	appendCaptionHistory,
+	CAPTION_TAIL_CHARS,
+	tail,
+	type CaptionLayout
+} from '$lib/captionLayout';
 import { createFillerFilter } from '$lib/cleanSpeech';
 import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
 import {
@@ -24,17 +29,6 @@ const INTERIM_HOLD_MS = 3000;
  *  lead-in, and only when it is worth reading: a readable fragment of a previous sentence is
  *  the same amount of text in a narrow region as in a wide one. */
 const MIN_LEAD_CHARS = 40;
-
-/** Keep the last `limit` characters, cutting on a word boundary. */
-export function tail(text: string, limit: number): string {
-	const t = text.replace(/\s+/g, ' ').trim();
-	if (t.length <= limit) return t;
-	let cut = t.length - limit;
-	// Don't start mid-word: jump to the next space if it's close.
-	const sp = t.indexOf(' ', cut);
-	if (sp !== -1 && sp - cut < 24) cut = sp + 1;
-	return '… ' + t.slice(cut);
-}
 
 export interface CaptionLine {
 	/** The source and caption language this row is. */
@@ -157,7 +151,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 				layout !== 'compact'
 					? layout === 'stable'
 						? caption.text
-						: caption.text.slice(-12000)
+						: caption.text.slice(-CAPTION_TAIL_CHARS)
 					: tail(caption.text, maxChars);
 			const room = maxChars - text.length;
 			const lead =
@@ -168,8 +162,13 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 						: '';
 			// Stable reading is one flowing paragraph of context; a second, separately
 			// scrolling language under it would be two things to read at once. A second caption
-			// language heard the same speech, so the original goes under the first only.
-			const source = showOriginal && layout !== 'stable' && lane === 0 ? caption.sourceText : '';
+			// language heard the same speech, so the original goes under the first only. It
+			// streams as long as the caption does, so it is bounded as the caption is: to the
+			// Compact budget, or in Fit to the tail the fitting search is handed.
+			const source =
+				showOriginal && layout !== 'stable' && lane === 0
+					? tail(caption.sourceText, layout === 'compact' ? maxChars : CAPTION_TAIL_CHARS)
+					: '';
 			return [
 				{
 					track,
@@ -178,7 +177,7 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 					lead: layout === 'compact' ? clean(lead) : lead,
 					text: clean(text, caption.final),
 					interim: !caption.final,
-					original: clean(layout === 'compact' ? tail(source, maxChars) : source, caption.final)
+					original: clean(source, caption.final)
 				}
 			];
 		})

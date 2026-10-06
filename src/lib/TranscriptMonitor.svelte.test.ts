@@ -22,6 +22,7 @@ const {
 	transcriptDirty
 } = await import('./stores');
 const { TRANSCRIPT_WARN_LINES } = await import('./document');
+const { exportFormat, EXPORT_FORMAT_KEY } = await import('./exportFormat');
 import type { TranscriptLine } from './types';
 
 /** Seed the log the way a recovered or already-running session leaves it: lines present,
@@ -48,6 +49,8 @@ function mount(lines: TranscriptLine[]) {
 beforeEach(() => {
 	clearTranscript();
 	recoveryEnabled.set(false);
+	// A remembered preference now, so one test's choice would otherwise carry into the next.
+	exportFormat.set('markdown');
 	mocks.saveTranscript.mockResolvedValue('C:\\Docs\\Live-translation\\transcript.md');
 	mocks.clearRecovery.mockResolvedValue(undefined);
 });
@@ -73,6 +76,31 @@ describe('saved / unsaved state', () => {
 		const [content, filename] = mocks.saveTranscript.mock.lastCall!;
 		expect(content).toMatch(/^WEBVTT/);
 		expect(filename).toMatch(/\.vtt$/);
+	});
+	// The page mounts the monitor once while a session runs and again after it, and each
+	// mount used to start from Markdown.
+	it('remembers the chosen format when it is mounted again', async () => {
+		const lines = seed(1).map((line) => ({ ...line, startMs: 0, endMs: 1000 }));
+		restoreTranscript(lines);
+		const first = mount(lines);
+		await fireEvent.change(first.getByRole('combobox', { name: 'Export format' }), {
+			target: { value: 'srt' }
+		});
+		expect(localStorage.getItem(EXPORT_FORMAT_KEY)).toBe('srt');
+		first.unmount();
+		const second = mount(lines);
+		expect(second.getByRole('combobox', { name: 'Export format' })).toHaveValue('srt');
+		await fireEvent.click(second.getByRole('button', { name: 'Save as…' }));
+		await waitFor(() => expect(mocks.saveTranscript).toHaveBeenCalled());
+		expect(mocks.saveTranscript.mock.lastCall![1]).toMatch(/\.srt$/);
+	});
+	it('withdraws the clear confirmation when new lines arrive', async () => {
+		const { getByRole, rerender } = mount(seed(2));
+		await fireEvent.click(getByRole('button', { name: 'Clear' }));
+		expect(getByRole('button', { name: 'Discard unsaved lines?' })).toBeInTheDocument();
+		await rerender({ mode: 'transcribe', transcript: seed(3), onError: vi.fn() });
+		expect(getByRole('button', { name: 'Clear' })).toBeInTheDocument();
+		expect(get(transcript)).toHaveLength(3);
 	});
 	// Issue #25: on screen a transcript that exists only in memory looked exactly like one
 	// that was already on disk.

@@ -80,3 +80,31 @@ it('keeps unsupported favourites visible with a reason and refuses selection', a
 	expect(view.getByRole('status')).toHaveTextContent('choose another language');
 	view.unmount();
 });
+
+it('closes when it is disabled under the operator, and stays closed when it is enabled again', async () => {
+	const view = render(LanguagePicker, base);
+	const input = view.getByRole('combobox');
+	input.focus();
+	await waitFor(() => expect(input).toHaveAttribute('aria-expanded', 'true'));
+	await view.rerender({ ...base, disabled: true });
+	expect(input).toHaveAttribute('aria-expanded', 'false');
+	await view.rerender({ ...base, disabled: false });
+	expect(input).toHaveAttribute('aria-expanded', 'false');
+	view.unmount();
+});
+
+it('keeps the first match active while typing, even after a pin reorders the list', async () => {
+	const view = render(LanguagePicker, { ...base, favourites: [] });
+	const input = view.getByRole('combobox');
+	input.focus();
+	await fireEvent.input(input, { target: { value: 'ish' } });
+	const active = () => document.getElementById(input.getAttribute('aria-activedescendant')!);
+	await waitFor(() => expect(active()).toBe(view.getAllByRole('option')[0]));
+	const first = active()?.textContent;
+	expect(first).not.toContain('Turkish');
+	// Pinning another match moves it to the top; the operator's place in the list stays put.
+	await view.rerender({ ...base, favourites: ['tr'] });
+	expect(view.getAllByRole('option')[0]).toHaveTextContent('Turkish');
+	expect(active()?.textContent).toBe(first);
+	view.unmount();
+});

@@ -3,7 +3,7 @@
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
-	import { hasKey, options, overlayPlaced, statusMessage, whisperModels } from './stores';
+	import { options, overlayPlaced, statusMessage, whisperModels } from './stores';
 	import { PROVIDER_META, rateText } from './providers';
 	import { describeReadiness, laneCount, providerRequiresKey } from './types';
 	import type { OverlayController } from './overlayController.svelte';
@@ -100,7 +100,7 @@
 			provider={$options.provider}
 			{locked}
 			onAvailability={(provider, available) => {
-				if ($options.provider === provider) $hasKey = available;
+				if ($options.provider === provider) preflight.noteKey(provider, available);
 			}}
 			onError={(message) => statusMessage.set(message)}
 		/>
@@ -150,11 +150,12 @@
 	>
 		{#snippet action()}
 			<!-- Placement is never final: re-entering move mode is the way to adjust position and
-			     caption size, so the row keeps a button in both states. -->
+			     caption size, so the row keeps a button in both states. Its name changes to
+			     "Finish placing" while moving, so it is not also a pressed toggle; "Done" is
+			     the primary action then instead. -->
 			<ToolButton
-				variant={$overlayPlaced ? 'ghost' : 'warn'}
+				variant={overlay.moveOverlay ? 'primary' : $overlayPlaced ? 'ghost' : 'warn'}
 				size="sm"
-				aria-pressed={overlay.moveOverlay}
 				aria-label={overlay.moveOverlay
 					? $t.preflight.overlay.doneLabel
 					: $overlayPlaced

@@ -54,12 +54,13 @@
 			<span class="shortcut" aria-hidden="true">{keys}</span>
 		</ToolButton>
 		<!-- Pausing keeps the session, its clock and its transcript: only the caption engine is
-		     let go, so a coffee break or a video clip is not billed. -->
+		     let go, so a coffee break or a video clip is not billed. The label says what a
+		     press does, Pause or Resume, so it is not also a toggle: Narrator read a pressed
+		     "Resume" as "Resume, toggle button, pressed". -->
 		<ToolButton
 			variant={paused ? 'primary' : 'ghost'}
 			size="lg"
 			disabled={busy}
-			aria-pressed={paused}
 			aria-keyshortcuts={ariaKeyShortcut('togglePause')}
 			onclick={onPause}
 		>

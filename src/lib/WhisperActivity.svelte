@@ -12,13 +12,19 @@
 	} from './whisperProgress';
 	import ToolButton from './ui/ToolButton.svelte';
 
-	let confirmDiscard = $state(false);
+	// Discard asks a second time before throwing audio away, and the question goes as soon as
+	// there is nothing left to discard. `$derived` is writable: the button sets it, and the
+	// backlog starting or ending resets it.
+	const backlogged = $derived($isRunning && $pending > 0);
+	let confirmDiscard = $derived.by(() => {
+		void backlogged;
+		return false;
+	});
+	// The backlog is shared with the quit prompt, so a finished run's figure is cleared rather
+	// than only hidden — again if a late report lands after the run has ended.
 	$effect(() => {
-		if (!$isRunning) {
-			whisperProgress.set({});
-			confirmDiscard = false;
-		}
-		if ($pending === 0) confirmDiscard = false;
+		void $pending;
+		if (!$isRunning) whisperProgress.set({});
 	});
 	onMount(() => {
 		let disposed = false;

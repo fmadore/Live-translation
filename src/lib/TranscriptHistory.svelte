@@ -5,19 +5,22 @@
 	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
-	import { matchesSession } from './historySearch';
+	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
 	import {
-		decodeSession,
+		createHistoryCache,
 		historyEnabled,
 		historyError,
 		historyRevision,
 		sessionHistory,
+		type HistoryEntry,
 		type SavedSession
 	} from './history';
 	import { exportOriginal } from './stores';
+	// The same remembered choice as the transcript toolbar's, like the original-speech option.
+	import { exportFormat as format, isTimedFormat } from './exportFormat';
 	import {
 		formatTranscript,
 		transcriptFilename,
@@ -26,13 +29,16 @@
 		type TranscriptFormat
 	} from './transcript';
 	const desktop = isTauri();
-	let sessions = $state<{ id: string; session: SavedSession | null }[]>([]);
+	// Raw rather than deeply reactive: the list is only ever replaced, and an unchanged session
+	// has to stay the very object the cache holds for the search's own cache to find it. A deep
+	// proxy would hand out a new wrapper with every listing.
+	let sessions = $state.raw<HistoryEntry[]>([]);
+	const cache = createHistoryCache();
 	let selectedId = $state('');
 	let busy = $state(false);
 	let error = $state('');
 	let notice = $state('');
 	let confirmDelete = $state('');
-	let format = $state<TranscriptFormat>('markdown');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
 	const timed = $derived(selected ? hasTranscriptTiming(selected.lines) : false);
 	let query = $state('');
@@ -53,6 +59,7 @@
 		error = '';
 		try {
 			await sessionHistory.rename(selected, title);
+			cache.forget(selected.id);
 			await refresh();
 			notice = $t.usability.titleSaved;
 		} catch (e) {
@@ -68,11 +75,9 @@
 		const current = ++request;
 		try {
 			await sessionHistory.flush();
-			const stored = await api.listHistory();
+			const listing = await api.listHistory(cache.known());
 			if (current !== request) return;
-			sessions = stored
-				.map((s) => ({ id: s.path, session: decodeSession(s.contents, s.path) }))
-				.sort((a, b) => (b.session?.startedAt ?? '').localeCompare(a.session?.startedAt ?? ''));
+			sessions = cache.apply(listing);
 			error = '';
 		} catch (e) {
 			if (current === request) error = String(e);
@@ -81,7 +86,8 @@
 	// A recording session writes history after every finalized line, and each write bumps the
 	// revision. Re-listing every stored session for each one made an open History tab reread
 	// the whole folder several times a minute, so the list catches up at most every few
-	// seconds. Rename, delete and the Refresh button still refresh at once.
+	// seconds, and then reads only the sessions that changed. Rename, delete and the Refresh
+	// button still refresh at once.
 	const REFRESH_INTERVAL_MS = 5000;
 	let lastRefresh = 0;
 	let refreshTimer: ReturnType<typeof setTimeout> | undefined;
@@ -101,6 +107,14 @@
 		if (wait <= 0) run();
 		else refreshTimer = setTimeout(run, wait);
 	});
+
+	/** The session's caption languages, both of them when it had two: `FR + DE`. */
+	function captionLanguages(session: SavedSession) {
+		const codes = captionLanguagesOf(session);
+		return codes.length
+			? codes.map((code) => code.toUpperCase()).join(' + ')
+			: $t.history.sameLanguage;
+	}
 
 	function content(session: SavedSession, format: TranscriptFormat) {
 		return formatTranscript(
@@ -128,8 +142,8 @@
 				notice = $t.history.copied;
 			} else {
 				const path = await api.saveTranscript(
-					content(selected, format),
-					transcriptFilename(new Date(selected.startedAt), format)
+					content(selected, $format),
+					transcriptFilename(new Date(selected.startedAt), $format)
 				);
 				if (path) notice = `${$t.transcript.savedTo} ${path}`;
 			}
@@ -227,8 +241,9 @@
 									Math.floor(entry.session.durationMs / 1000) % 60
 								).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
 									? $t.history.auto
-									: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
-									$t.history.sameLanguage}</span
+									: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
+									entry.session
+								)}</span
 							>
 							{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
 						{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
@@ -254,14 +269,14 @@
 				</form>
 				<div class="actions">
 					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
-					<Select aria-label={$t.transcript.format} bind:value={format} disabled={busy}>
+					<Select aria-label={$t.transcript.format} bind:value={$format} disabled={busy}>
 						<option value="markdown">Markdown (.md)</option><option value="text"
 							>{$t.transcript.plainText} (.txt)</option
 						>
 						<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
 					</Select>
 					<ToolButton
-						disabled={busy || (['srt', 'vtt'].includes(format) && !timed)}
+						disabled={busy || (isTimedFormat($format) && !timed)}
 						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
 					>
 					<ToolButton disabled={busy} onclick={() => remove(selectedId)}
@@ -280,7 +295,7 @@
 						disabled={busy}
 						onchange={(value) => exportOriginal.set(value)}
 					/>{/if}
-				{#if ['srt', 'vtt'].includes(format) && !timed}<p class="hint">
+				{#if isTimedFormat($format) && !timed}<p class="hint">
 						{$t.transcript.noTiming}
 					</p>{/if}
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->

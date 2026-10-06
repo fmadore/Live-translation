@@ -83,7 +83,7 @@
 					     check, because it is the same thing being done. -->
 					<ToolButton
 						wide
-						aria-pressed={overlay.moveOverlay}
+						variant={overlay.moveOverlay ? 'primary' : 'default'}
 						disabled={browserMode}
 						aria-label={overlay.moveOverlay
 							? $t.preflight.overlay.doneLabel

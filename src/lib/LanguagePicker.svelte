@@ -24,11 +24,23 @@
 	let root: HTMLDivElement;
 	let input: HTMLInputElement;
 	let results = $state<HTMLDivElement>();
-	let open = $state(false);
+	// Closed whenever `disabled` changes, so a lock that lands while the list is open closes it.
+	// Otherwise opened and closed by assignment: `$derived` is writable. `locked` passes on a
+	// change of the answer only, so a parent re-evaluating its expression to the same value
+	// leaves an open list alone.
+	const locked = $derived(disabled);
+	let open = $derived.by(() => {
+		void locked;
+		return false;
+	});
 	let query = $state('');
 	let edited = $state(false);
-	let active = $state<TargetLanguage | undefined>();
 	const rows = $derived(languageRows(provider, favourites, query, $locale));
+	// The row the operator last moved to. While the list is open the active option is that row
+	// if the filter still shows it, and the first row otherwise, so a query or an unpinned
+	// language never leaves the list without an active option.
+	let chosen = $state<TargetLanguage | undefined>();
+	const active = $derived(open && !rows.some((r) => r.code === chosen) ? rows[0]?.code : chosen);
 	function gridRow(index: number) {
 		return (
 			index +
@@ -41,10 +53,6 @@
 	const display = $derived(`${value.toUpperCase()} · ${languageName(value, $locale)}`);
 	const activeRow = $derived(rows.find((r) => r.code === active));
 	$effect(() => {
-		if (disabled) open = false;
-		if (open && !rows.some((r) => r.code === active)) active = rows[0]?.code;
-	});
-	$effect(() => {
 		if (open && active)
 			document.getElementById(`${id}-${active}`)?.scrollIntoView?.({ block: 'nearest' });
 	});
@@ -52,7 +60,7 @@
 		if (disabled || open) return;
 		query = '';
 		edited = false;
-		active = value;
+		chosen = value;
 		open = true;
 		await tick();
 		input.select();
@@ -97,7 +105,7 @@
 				: event.key === 'End'
 					? rows.length - 1
 					: Math.max(0, Math.min(rows.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
-		active = rows[next]?.code;
+		chosen = rows[next]?.code;
 	}
 </script>
 
@@ -134,7 +142,8 @@
 			open = true;
 			edited = true;
 			query = event.currentTarget.value;
-			active = undefined;
+			// The best match leads, and stays active if a pin then reorders the list.
+			chosen = rows[0]?.code;
 		}}
 	/>
 	<p class="hint" id={`${id}-help`}>{$t.language.searchHint}</p>

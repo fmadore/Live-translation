@@ -19,16 +19,22 @@ saved snapshot, which can miss up to the last 5 seconds of lines. Empty sessions
 A session that ends by itself — every source stops, for example after a provider error — is
 finished at that moment, so its recorded duration does not run on until the next Start, Stop
 or quit. While the History tab is open during a session, its list refreshes at most every 5
-seconds; Refresh, rename and delete still update it immediately.
+seconds; Refresh, rename and delete still update it immediately. A refresh reads only the
+sessions that are new or whose file has grown since the tab last read them. A file that cannot
+be read at that moment (locked by backup or antivirus software, say) is skipped and logged,
+and the other sessions still list; one the tab already shows stays as it was until it can be
+read again.
 
 The session list opens automatically and shows start date/time, duration and known language
-information. Source speech is labelled auto-detected when the provider does not report its
-language; demonstration and rehearsal sources have known languages. Whisper history records
-its source language as automatic even when an explicit recognition language was chosen.
-Unfinished sessions show duration through the last save. Select a session to read its raw
-captions and available source transcription, copy it, or export Markdown, plain text, WebVTT
-or SRT through the existing Save As dialog. Timed formats require valid cue timing. Browsing
-and exporting history never replaces the active transcript.
+information; a session captioned in two languages shows both, for example `→ FR + DE`. Source
+speech is labelled auto-detected when the provider does not report its language;
+demonstration and rehearsal sources have known languages. Whisper history records its source
+language as automatic even when an explicit recognition language was chosen. Unfinished
+sessions show duration through the last save. Select a session to read its raw captions and
+available source transcription, copy it, or export Markdown, plain text, WebVTT or SRT through
+the existing Save As dialog. The format is the one chosen in the transcript toolbar, and
+changing it here changes it there too. Timed formats require valid cue timing. Browsing and
+exporting history never replaces the active transcript.
 
 History remains after clearing the active transcript, export, quitting, and disabling automatic
 history. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current
@@ -59,12 +65,21 @@ is closed off with a newline before the next one; the reader skips it.
 The log replaced a format that rewrote the whole session object on every save — about half a
 gigabyte of rewrites for a three-hour session. Files in that format are still read and renamed.
 
+Because a log only grows, its length in bytes says whether it has changed. The History tab
+tells `list_history` which sessions it holds and at what length; the core lists every session
+with its length but sends contents only for files that are new or have grown, and names the
+held sessions that are gone. The tab decodes only what it was sent. Renaming a file in the
+older format rewrites it whole, possibly at the same length, so the tab reads a renamed session
+again regardless. A rename reads only a file's first line to tell a log from the older format.
+
 ## Verification
 
 Automated coverage includes opt-in behaviour, progressive writes, raw text preservation,
 separate session timelines, trailing partials, duration finalization, restart/readback, atomic
 replacement, interrupted writes, write failures and retry, corruption, deletion races, path
 validation, operator-only command permissions, and the history UI's copy/export/delete actions.
+The listing is covered for unchanged, grown, deleted, unreadable, locked (on Windows) and
+lossily read files, and the History tab for keeping an unchanged session's decoded copy.
 
 Native release acceptance should also exercise the built-in demonstration with history enabled,
 restart the packaged app, reopen two sessions, export and delete one, and confirm the other is
@@ -79,9 +94,9 @@ captions. Older files without titles remain readable. Changing a title never edi
 text.
 
 Search matches session titles, caption text and available source text. The caption-language
-filter uses the translation target, or the known source language for subtitles; automatically
-detected languages remain marked unknown rather than guessed. Filters do not delete sessions
-or change export contents.
+filter uses the translation target (either one, for a session captioned in two languages), or
+the known source language for subtitles; automatically detected languages remain marked
+unknown rather than guessed. Filters do not delete sessions or change export contents.
 
 The selected session appears beside the list (below it in narrow windows), with rename, copy,
 export and confirmed deletion grouped beside it.

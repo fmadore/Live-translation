@@ -57,3 +57,15 @@ it('supports German entry, validation, calendar selection and clearing', async (
 	expect(picker.value).toBe('');
 	expect(field).toHaveAttribute('aria-invalid', 'false');
 });
+
+it('keeps half-typed text until the bound value itself changes', async () => {
+	const view = render(DateField, { label: 'From date', value: '2026-09-20' });
+	const field = view.getByRole('textbox', { name: 'From date' });
+	await fireEvent.input(field, { target: { value: '2026-09-3' } });
+	expect(field).toHaveAttribute('aria-invalid', 'true');
+	await view.rerender({ label: 'From', value: '2026-09-20' });
+	expect(field).toHaveValue('2026-09-3');
+	await view.rerender({ label: 'From', value: '2026-09-21' });
+	expect(field).toHaveValue('2026-09-21');
+	expect(field).toHaveAttribute('aria-invalid', 'false');
+});

@@ -14,9 +14,12 @@ export type CaptionPace = 'immediate' | 'steady';
 export const HOLD_KEY = 'overlay.holdSeconds';
 export const PACE_KEY = 'overlay.pace';
 export const DEFAULT_HOLD_SECONDS = 4;
+/** The range the reading pause is kept in, and the range its stepper offers. */
+export const HOLD_SECONDS_MIN = 2;
+export const HOLD_SECONDS_MAX = 30;
 export function holdSeconds(value: unknown): number {
 	return typeof value === 'number' && Number.isFinite(value)
-		? Math.max(2, Math.min(30, Math.round(value)))
+		? Math.max(HOLD_SECONDS_MIN, Math.min(HOLD_SECONDS_MAX, Math.round(value)))
 		: DEFAULT_HOLD_SECONDS;
 }
 export function loadHoldSeconds(): number {

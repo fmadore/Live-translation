@@ -255,8 +255,6 @@ export const en = {
 		/** Appended to a published rate: "$3.06" + "/hr". */
 		perHour: '/hr',
 		free: 'Free',
-		elapsed: 'Elapsed',
-		streamed: 'Streamed',
 		twoLanguages: '×2 languages',
 		estimate: 'Est. cost',
 		twoSources: '×2 sources'
@@ -346,7 +344,6 @@ export const en = {
 	settings: {
 		heading: 'Settings',
 		openLabel: 'Open settings',
-		close: 'Close',
 		closeLabel: 'Close settings',
 		appearance: 'Caption appearance',
 		/** Says where to look while choosing. The stand-in caption the overlay shows in
@@ -358,8 +355,6 @@ export const en = {
 	history: {
 		stored: 'Transcript history is saved locally until you delete it.',
 		heading: 'Transcript history',
-		browse: 'Browse sessions',
-		close: 'Close history',
 		enable: 'Automatically save sessions locally',
 		privacy:
 			'Off by default. Saves finalized lines from now on. Turning this off keeps existing sessions; delete them here. No audio is saved.',
@@ -596,13 +591,11 @@ export const en = {
 		lines: (n: number) => (n === 1 ? '1 line' : `${n} lines`),
 		unsaved: 'Unsaved',
 		saved: 'Saved',
-		saveText: 'Save text',
 		saveAs: 'Save as…',
 		format: 'Export format',
 		plainText: 'Plain text',
 		includeOriginal: 'Include original speech',
 		noTiming: 'This recovered transcript has no timing. Save it as text or Markdown.',
-		saveMarkdown: 'Save Markdown',
 		clear: 'Clear',
 		confirmClear: 'Discard unsaved lines?',
 		savedTo: 'Saved to',
@@ -649,7 +642,7 @@ export const en = {
 			saving: 'Saving…',
 			discard: 'Discard and close',
 			cancel: 'Cancel',
-			note: 'Choose where to save a Markdown file. Cancel keeps the app open.'
+			note: 'Choose where to save the transcript. Cancel keeps the app open.'
 		},
 		recovery: {
 			title: 'Recover the transcript from your last session?',

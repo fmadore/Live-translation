@@ -11,8 +11,9 @@ Baseline: `npm test` passes 550 tests in 59 files; `npm run check` reports 0 err
 warnings; CI on `main` passes 120 Rust tests (3 ignored) and takes about 5 minutes wall time,
 with `windows-11-arm` on the critical path.
 
-**Status (6 October 2026):** batches 1 and 2 (§7) are implemented on
-`review/2026-10-06-batch1-2`; batches 3–6 are not started.
+**Status (6 October 2026):** batches 1 and 2 (§7) were merged in
+[#116](https://github.com/fmadore/Live-translation/pull/116); batch 3 is implemented on
+`review/2026-10-06-batch3`; batches 4–6 are not started.
 
 ## Implementation tracker — batches 1 and 2
 
@@ -64,6 +65,42 @@ an OpenAI session past 60 minutes; Mistral's real `error` payloads; pong replies
 provider; a live handover; an x64 PC without AVX2 (Whisper unavailable, demo selected); the
 ARM64 Store package (gate and speed on Base and Small); a model download behind a Windows
 proxy; quitting with a large backlog.
+
+## Implementation tracker — batch 3
+
+| Item | Change | Status |
+| --- | --- | --- |
+| D16 | The preflight controller takes `{ locked, holdSelection }`: a device failure holds the automatic device fallback, not Test audio | Done; desktop check pending |
+| D17 | The rail counts streams from the sources actually in use, so a rehearsal is one System stream per language | Done |
+| D18 | History matches and prints either caption language (`→ FR + DE`) | Done |
+| D19 | `exportFormat.ts`: a persisted format shared by the monitor, the History tab and quit Save (Markdown when a recovered transcript has no timing) | Done |
+| D20 | `history.ts`, `i18n/index.ts` and `MeetingProfiles` go through `persisted.ts`; a test imports them with storage throwing | Done |
+| D21 | No `aria-pressed` on Pause or the three Move buttons (their labels flip; Move uses the primary style while on); `LiveActivity` speaks only on stale or error | Done; Narrator check pending |
+| D22 | Width stepper labelled "Shorter/Longer caption lines", shared bounds; seven dead keys removed | Done |
+| R6 | One derived list of start blockers for Start, Rehearse and the shortcut; the `hasKey` store replaced by the preflight controller's engine readiness; the R14 effects are derived | Done |
+| R7 | `captionLanguageError` in `languages.ts`, used by the page and the session controller | Done |
+| E6 | `list_history(known)` returns contents only for new or grown files and the ids removed; unreadable files are skipped; rename reads the header line; the History tab caches decoded sessions by id | Done |
+| E7 | `tail()` and `CAPTION_TAIL_CHARS` in `captionLayout.ts` bound the live turns and the Fit original line | Done |
+| T3 | `src/lib/testing/tauriMock.ts` on `mockIPC`/`mockWindows`; `OperatorPage.svelte.test.ts` runs a demo session through the page, Start to quit Save | Done |
+
+Found on the way:
+
+- `ApiKeyPanel` re-read the keychain on every setup change, briefly disabling Start; it now
+  re-checks only when the engine changes.
+- The pressed style had overridden the paused Pause button's primary fill.
+- The Ctrl+Shift+Space shortcut with a missing application now shows the same message as
+  Start instead of doing nothing; Rehearse now waits for a profile load like Start.
+- `audio::devices` presence tests raced on a process-wide counter and are now serialised.
+- One gap is known in E6: a whole-file rewrite after a failed append that lands on exactly the
+  same length is missed until the next change.
+
+Verification: `npm test` 595 passed in 67 files (556 before); `npm run check`, `format:check`,
+`build` and `check:languages` pass; `cargo test` 189 passed, 4 ignored (183 before), five runs
+in a row; clippy passes for aarch64 and x86_64; in the browser preview the width stepper reads
+"Raccourcir/Allonger les lignes de sous-titres" and the console is clean. Still needs a
+desktop run: Narrator on Pause/Resume, Move/Done and the input-status announcements; the
+primary-filled Resume and Done in a contrast theme; Test audio with the failure banner up; the
+History tab updating during a session; quit Save with SRT chosen.
 
 ## 1. Defects
 

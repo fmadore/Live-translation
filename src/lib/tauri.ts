@@ -66,7 +66,10 @@ export const api = {
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
 	pauseSession: (paused: boolean) => invoke<void>('pause_session', { paused }),
 	appendHistory: (id: string, contents: string) => invoke<void>('append_history', { id, contents }),
-	listHistory: () => invoke<StoredRecovery[]>('list_history'),
+	/** The saved sessions, with contents only for those not in `known` at the same length.
+	 *  See `createHistoryCache`. */
+	listHistory: (known: [id: string, length: number][]) =>
+		invoke<import('./history').HistoryListing>('list_history', { known }),
 	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
