@@ -1,7 +1,7 @@
 # Gemini Live API
 
-Cloud integration used by 1.6.0. The verification dates below describe the
-recorded API checks; release acceptance is tracked in the [current handoff](store-updates.md#release-160-handoff).
+Cloud integration used by 1.6.0 and 1.6.1. The verification dates below describe the
+recorded API checks; release acceptance is tracked in the [current handoff](store-updates.md#release-161-handoff).
 For subtitles without a cloud connection, see [local Whisper](local-whisper.md).
 
 Two Gemini models, one `BidiGenerateContent` socket, one API key:

@@ -1,9 +1,11 @@
-# Store screenshots — 1.6.0 capture plan
+# Store screenshots — 1.6.1 capture plan
 
 The existing `en/` and `fr/` images are historical 1.2.2 captures. They are **not ready for
-1.6.0**. The `de/` set has not been captured. Retake screenshots from the final signed MSIX
-with the interface set to each listing language; browser previews and the separate Whisper
-Test installation do not establish packaged-app appearance.
+1.6.1**. The `de/` set has not been captured. The 1.6.0 capture was not recorded as done, and
+1.6.1 changes the app icon and the interface, so captures must show the new wave-to-words icon
+and the refreshed interface. Retake screenshots from the final signed 1.6.1 MSIX with the
+interface set to each listing language; browser previews and the separate Whisper Test
+installation do not establish packaged-app appearance.
 
 The first images should demonstrate useful captioning, with the scripted demo last if included.
 Capture only disposable, consented speech or the bundled rehearsal material. Do not show
@@ -34,6 +36,6 @@ Each prepared caption is under 200 characters.
 
 ## Capture status
 
-- English: pending final 1.6.0 MSIX capture.
-- French: pending final 1.6.0 MSIX capture.
-- German: pending final 1.6.0 MSIX capture and language review.
+- English: pending final 1.6.1 MSIX capture.
+- French: pending final 1.6.1 MSIX capture.
+- German: pending final 1.6.1 MSIX capture and language review.

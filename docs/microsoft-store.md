@@ -1,8 +1,9 @@
 # Microsoft Store submission
 
-**GitHub release: 1.6.0 / MSIX 1.6.0.0; Store submission pending.** The last confirmed Store
-release is 1.5.1, live since 23 September 2026. See the [current handoff](store-updates.md#release-160-handoff),
-[listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
+**Next target: 1.6.1 / MSIX 1.6.1.0, prepared; not tagged or submitted.** The last confirmed
+Store release is 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026. See
+the [current handoff](store-updates.md#release-161-handoff), [listing copy](store-listing.md)
+and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
 
@@ -45,8 +46,8 @@ before submission; passing a local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.6.0; both MSIX manifests and the combined bundle
-  report 1.6.0.0 and the assigned identity.
+- [ ] Manifests and lockfiles agree on 1.6.1; both MSIX manifests and the combined bundle
+  report 1.6.1.0 and the assigned identity, and both packages carry the new icon assets.
 - [ ] Both signed native packages are installed and exercised on their target hardware.
 - [ ] Clean-install Whisper model download, verification, cancellation/removal and offline
   restart work without API keys. Test English and French; record non-Latin language checks.
@@ -64,7 +65,7 @@ before submission; passing a local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-160-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-161-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing

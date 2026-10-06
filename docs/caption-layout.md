@@ -1,6 +1,6 @@
 # Caption layout
 
-Current behavior for **1.6.0**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
+Current behavior for **1.6.0** and **1.6.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
 Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
 This acknowledgment is for feedback, not implementation.
 
@@ -161,7 +161,7 @@ Completed on 14 September 2026:
   **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
 
 The checks above are historical evidence for 1.2.4, not acceptance of the next package.
-For 1.6.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
+For 1.6.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
 
 | Check | Expected result |
 | --- | --- |
@@ -177,7 +177,7 @@ For 1.6.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
 | Windows scaling | Check 100%, 150%, 200% display scaling and moving between monitors with different DPI. |
 | Compact and reset | Width is adjustable only in Compact; switching retains it; reset returns to Fit window. |
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
-| Placement and locking | Move/resize, Enter, Escape and click-through still work. |
+| Placement and locking | Move/resize, Enter, Escape and click-through still work; the move-mode preview stays readable over a white slide (1.6.1). |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
 | Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; changing Hide filler words or its word list changes the live turn and new captions only. |
 | English and French | Labels, keyboard access and layout choice work in both the rail and settings. |
@@ -186,7 +186,7 @@ For 1.6.0, repeat this matrix against the final x64 and ARM64 MSIX packages:
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-151-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-161-handoff) for the remaining release gates.
 
 ## Reading pace and preview
 

@@ -1,7 +1,7 @@
 # Operator UI audit implementation — 20 September 2026
 
 Historical implementation record. Current release status and the consolidated native checks
-are in the [1.6.0 handoff](store-updates.md#release-160-handoff).
+are in the [1.6.1 handoff](store-updates.md#release-161-handoff).
 
 Implements the supplied **Live Translation UI Audit** following the 1.4.0 feature release.
 The existing dark surfaces, mint selection state, numbered setup and live-session

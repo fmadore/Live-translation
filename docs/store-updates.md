@@ -9,11 +9,91 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.6.1 handoff
+
+**Prepared on 6 October 2026; not tagged, published or submitted.** Last confirmed live
+Store version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target app
+version: **1.6.1**, MSIX **1.6.1.0**.
+
+A maintenance and visual release: no new features, no dependency changes and no privacy
+change. The **wave-to-words** mark, a speech wave settling into a caption line on a dark
+tile, replaces the stock Lucide "languages" glyph in Start, the taskbar, the tray, the Store
+tiles and the toolbar badge ([#111](https://github.com/fmadore/Live-translation/pull/111)).
+[#112](https://github.com/fmadore/Live-translation/pull/112) applies the 5 October 2026
+design review:
+
+- Windows 11 geometry: 4px corners in the page, 8px for dialogs and flyouts.
+- One consistent status pill; Settings tabs become a selector bar; default buttons are
+  distinguishable from ghost buttons; the settings gear and dialog close share one icon button.
+- One stepper control everywhere; − and + now disable at their limits.
+- Move mode: the toolbar is a flyout that no longer wraps, and the placement preview is drawn
+  in the real caption colour, outline and backing, so it stays readable over a white slide.
+- The icon and Store tiles are redrawn in the app's palette colours; the Whisper model block
+  takes the rail's spacing; the Remote speaker chip is neutral, so mint now means live,
+  primary or on.
+- The pre-flight intro points to Start at the top of the window, in English, French and German.
+- The GitHub social preview is redrawn in Archivo and IBM Plex Mono with the token colours.
+
+Developer-facing: new tokens (`-wash`/`-chip`/`-border` steps for every hue, `--radius-overlay`,
+`--control-sm/md/lg`, `--tracking-caps`, `--leading-*`), shared `.ui-card` and `.ui-tool.icon`
+components, and new `typeScale`/`spacing` guard tests.
+[GitHub release copy](release-1.6.1.md) · [EN/FR/DE Store fields](store-listing.md) ·
+[Partner Center walkthrough](partner-center-walkthrough.md).
+
+### Preparation and validation
+
+- [x] PR #111 merged as `324332f6d01f9020f7cbd3997d97376df9f98cd4`.
+- [x] App manifests and root lockfile entries set to 1.6.1; citation release date set to
+  6 October 2026. Reset it to the publication date if tagging happens later, as for 1.6.0.
+- [x] No dependency, package-manifest template or capability change since `v1.6.0`; only
+  the version lines move in `package.json`, both lockfiles and `Cargo.toml`.
+- [x] Frontend validation on the #112 branch: 550 tests in 59 files, Svelte check (zero
+  errors and warnings), Prettier and the production build.
+- [ ] PR #112 CI, including the Rust jobs, is pending.
+- [ ] Rust tests, formatting and Clippy were not run locally: this machine has no
+  LLVM/libclang, which the Whisper bindings need since #99. CI installs it and is the gate.
+
+### Remaining Store acceptance
+
+- [ ] Merge #112, then this release PR.
+- [ ] Tag `v1.6.1` from `main` after the merge. Pass release-commit CI and all
+  installer/MSIX/bundle jobs, verify the downloaded assets and publish the prepared GitHub
+  release body.
+- [ ] Verify `Live.Translation_1.6.1.msixbundle` contains native x64 and ARM64 packages at
+  **1.6.1.0** with the [assigned identity](microsoft-store.md#store-identity-assigned), and
+  that both carry the new `Square44x44Logo`, `Square150x150Logo`, `Wide310x150Logo` and
+  `StoreLogo` assets. Record sizes and SHA-256 below.
+- [ ] On both architectures, check the new icon in Start, the taskbar, the tray and the Store
+  tile.
+- [ ] Smoke-test capture, Whisper and overlay move mode over a white and a dark slide; Settings
+  tabs; steppers at their limits; keyboard focus; Windows contrast themes and enlarged text.
+  The shared button and tab styles changed, so earlier checks do not cover them.
+- [ ] Recapture EN/FR/DE Store screenshots, because the interface and icon changed. The
+  [capture plan](store-screenshots/README.md) is still pending from 1.6.0.
+- [ ] Run Windows App Certification Kit, which also reports missing package images.
+- [ ] Upload the new `.github/social-preview.png` in the GitHub repository settings. This is
+  manual and not part of the Store.
+- [ ] Submit the single combined bundle in Partner Center with the 1.6.1 What's new text.
+- [ ] Record submission/certification and confirm the Store version before marking it live.
+
+### 1.6.1 artifact verification
+
+Pending: no tag, release assets or bundle exist yet. After tagging, record the tag commit,
+CI runs, bundle and package sizes, SHA-256 digests and manifest values here, as for 1.6.0.
+
+## Historical release handoffs
+
+The sections below preserve the status and evidence recorded for earlier releases. Old
+upload instructions, pending checks and listing links do not select the current submission;
+use the 1.6.1 handoff above. The shared listing file now contains 1.6.1 copy; Git history
+preserves earlier text.
+
 ## Release 1.6.0 handoff
 
-**[v1.6.0 published on GitHub](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
-on 4 October 2026; Store submission pending.** Last confirmed live Store version:
-**1.5.1.0**. Published app version: **1.6.0**, MSIX **1.6.0.0**.
+**1.6.0 is live in the Microsoft Store**, MSIX **1.6.0.0**, as the maintainer confirmed on
+6 October 2026; the exact go-live date was not recorded. GitHub release:
+[v1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0), published on
+4 October 2026. It replaces 1.5.1 as the Store version.
 
 Includes local Whisper (#99), two translation targets, original speech in overlay/exports,
 Pause/Resume, editable filler words and the remaining September review improvements.
@@ -49,7 +129,7 @@ audio buffering and optional saved text history. No dependency versions change i
 - [x] Rebuild and inspect native ARM64 and x64 MSIX packages and the combined unsigned bundle
   after changing the first-launch default.
 
-### Remaining Store acceptance
+### Store acceptance
 
 - [ ] Test the final signed x64 and ARM64 MSIX on their native hardware: model download,
   cancellation/removal, offline relaunch, microphone/system/application/Both capture,
@@ -65,8 +145,12 @@ audio buffering and optional saved text history. No dependency versions change i
 - [ ] Run Windows App Certification Kit.
 - [x] Tag `v1.6.0`, pass release-commit CI and all installer/MSIX/bundle jobs, verify
   downloaded assets and publish the prepared GitHub release body.
-- [ ] Submit the published combined bundle in Partner Center with the updated listing.
-- [ ] Record submission/certification and confirm the Store version before marking it live.
+- [x] Submit the published combined bundle in Partner Center and pass certification. **Live in
+  the Store** as 1.6.0.0 (confirmed by the maintainer on 6 October 2026; the submission and
+  certification dates were not recorded).
+
+The unchecked items above were not recorded as done before submission. They stay open as
+checks against the Store build.
 
 The already installed **Live Translation Whisper Test** is a separate ARM64 NSIS build of
 PR #99 (version label 1.5.1), with its own identity/preferences. It remains useful for feedback
@@ -97,6 +181,7 @@ The executable PE machine values confirm native `0x8664` (x64) and `0xAA64` (ARM
 Both packages include the English/French rehearsal WAVs and all three Whisper license notices,
 declare only `runFullTrust` and `microphone`, and contain no model weights or signature.
 The Store signs accepted packages; final signed-package acceptance remains tracked above.
+1.6.0 was then submitted through Partner Center and is live; see above.
 
 ### Local candidate artifact verification (before tagging)
 
@@ -125,13 +210,6 @@ This verifies packaging and architecture, not native x64 runtime behavior or Sto
 certification. Final signed-package acceptance and fresh screenshots remain pending above.
 These local candidate files are superseded for submission by the published CI assets
 above. Independently rebuilt packages need not be byte-identical.
-
-## Historical release handoffs
-
-The sections below preserve the status and evidence recorded for earlier releases. Old
-upload instructions, pending checks and listing links do not select the current submission;
-use the 1.6.0 handoff above. The shared listing file now contains 1.6.0 copy; Git history
-preserves earlier text.
 
 ## Release 1.5.1 handoff
 
