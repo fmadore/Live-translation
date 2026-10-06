@@ -489,7 +489,7 @@ export const en = {
 		kicker: 'Pre-flight',
 		heading: 'Ready when you are',
 		intro:
-			'Four checks, then one button. Everything on the left locks while captions are running, so nothing can be changed by accident mid-session.',
+			'Four checks, then Start at the top of the window. Everything on the left locks while captions are running, so nothing can be changed by accident mid-session.',
 
 		demoRow: {
 			title: 'Built-in demo · no key needed',
