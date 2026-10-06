@@ -5,7 +5,7 @@
 	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
-	import { matchesSession } from './historySearch';
+	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
@@ -107,6 +107,14 @@
 		if (wait <= 0) run();
 		else refreshTimer = setTimeout(run, wait);
 	});
+
+	/** The session's caption languages, both of them when it had two: `FR + DE`. */
+	function captionLanguages(session: SavedSession) {
+		const codes = captionLanguagesOf(session);
+		return codes.length
+			? codes.map((code) => code.toUpperCase()).join(' + ')
+			: $t.history.sameLanguage;
+	}
 
 	function content(session: SavedSession, format: TranscriptFormat) {
 		return formatTranscript(
@@ -233,8 +241,9 @@
 									Math.floor(entry.session.durationMs / 1000) % 60
 								).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
 									? $t.history.auto
-									: entry.session.sourceLanguage.toUpperCase()} → {entry.session.targetLanguage?.toUpperCase() ??
-									$t.history.sameLanguage}</span
+									: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
+									entry.session
+								)}</span
 							>
 							{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
 						{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}

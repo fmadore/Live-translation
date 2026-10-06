@@ -266,10 +266,10 @@ file's header line to tell a log from the older format. `list_history` takes the
 new or have grown, since a log only grows; it skips a file it cannot read with a warning
 rather than failing the list. `createHistoryCache` in `history.ts` decodes only what it was
 sent, so an unchanged session keeps its object and its search cache. Search normalizes text
-with NFKC and uses inclusive local-calendar dates. Only the operator has permission to
-list, save, rename or delete these files, and UUID validation prevents renderer paths escaping
-the folder. History is opt-in, off by default and independent of crash recovery. See
-[history](transcript-history.md).
+with NFKC, uses inclusive local-calendar dates and matches either caption language of a
+two-language session. Only the operator has permission to list, save, rename or delete these
+files, and UUID validation prevents renderer paths escaping the folder. History is opt-in, off
+by default and independent of crash recovery. See [history](transcript-history.md).
 
 ## Two caption languages
 

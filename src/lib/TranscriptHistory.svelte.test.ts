@@ -9,6 +9,7 @@ import { api } from './tauri';
 import {
 	historyEnabled,
 	historyError,
+	encodeSessionLog,
 	historyRevision,
 	sessionHistory,
 	type HistoryListing,
@@ -245,4 +246,43 @@ it('lists by what it already holds and keeps sessions the core says are unchange
 	await fireEvent.click(view.getByText('Refresh'));
 	await waitFor(() => expect(view.getByText('No saved sessions yet.')).toBeTruthy());
 	view.unmount();
+});
+
+// D18: a session captioned in two languages was listed, and filtered, by its first alone.
+it('lists and filters a two-language session by both of its caption languages', async () => {
+	// Written as a log: the second language arrived after the log format, so only logs have one.
+	const both: SavedSession = { ...saved, secondTargetLanguage: 'de' };
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: both.id, contents: encodeSessionLog(both) })
+	);
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	expect(view.container.querySelector('.session')).toHaveTextContent(
+		'Auto-detected speech → FR + DE'
+	);
+	const language = view.getByRole('combobox', { name: 'Caption language' });
+	for (const [code, shown] of [
+		['de', true],
+		['fr', true],
+		['en', false]
+	] as const) {
+		await fireEvent.change(language, { target: { value: code } });
+		expect(view.container.querySelector('.session') !== null).toBe(shown);
+	}
+	view.unmount();
+});
+
+it('matches either caption language, and sessions saved before the second existed', () => {
+	const filter = { query: '', from: '', to: '', language: 'de' };
+	expect(matchesSession({ ...saved, secondTargetLanguage: 'de' }, filter)).toBe(true);
+	expect(matchesSession({ ...saved, secondTargetLanguage: null }, filter)).toBe(false);
+	// Older files carry no second language at all.
+	expect(matchesSession(saved, { ...filter, language: 'fr' })).toBe(true);
+	expect(matchesSession(saved, filter)).toBe(false);
+	// Subtitles are filed under the language spoken.
+	const subtitles: SavedSession = { ...saved, mode: 'transcribe', targetLanguage: null };
+	expect(
+		matchesSession({ ...subtitles, sourceLanguage: 'en' }, { ...filter, language: 'en' })
+	).toBe(true);
+	expect(matchesSession(subtitles, { ...filter, language: 'auto' })).toBe(true);
 });

@@ -26,7 +26,7 @@ and the other sessions still list; one the tab already shows stays as it was unt
 read again.
 
 The session list opens automatically and shows start date/time, duration and known language
-information. Source
+information; a session captioned in two languages shows both, for example `→ FR + DE`. Source
 speech is labelled auto-detected when the provider does not report its language;
 demonstration and rehearsal sources have known languages. Whisper history records its source
 language as automatic even when an explicit recognition language was chosen. Unfinished
@@ -94,9 +94,9 @@ captions. Older files without titles remain readable. Changing a title never edi
 text.
 
 Search matches session titles, caption text and available source text. The caption-language
-filter uses the translation target, or the known source language for subtitles; automatically
-detected languages remain marked unknown rather than guessed. Filters do not delete sessions
-or change export contents.
+filter uses the translation target (either one, for a session captioned in two languages), or
+the known source language for subtitles; automatically detected languages remain marked
+unknown rather than guessed. Filters do not delete sessions or change export contents.
 
 The selected session appears beside the list (below it in narrow windows), with rename, copy,
 export and confirmed deletion grouped beside it.
