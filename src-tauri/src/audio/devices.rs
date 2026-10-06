@@ -178,8 +178,19 @@ pub fn watch(app: tauri::AppHandle) {
 mod presence_tests {
     use super::*;
 
+    /// `CHANGES` is process-wide, and the test harness runs tests in parallel: one test's
+    /// `note_change` landing between the other's two `due` calls made it fail now and then.
+    static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn serial() -> std::sync::MutexGuard<'static, ()> {
+        SERIAL
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     #[test]
     fn a_device_change_makes_the_check_due_at_once_and_only_once() {
+        let _serial = serial();
         let mut check = PresenceCheck::new(Duration::from_secs(3600));
         assert!(!check.due());
         note_change();
@@ -189,6 +200,7 @@ mod presence_tests {
 
     #[test]
     fn the_fallback_interval_makes_the_check_due_without_a_change() {
+        let _serial = serial();
         let mut check = PresenceCheck::new(Duration::from_secs(5));
         check.last -= Duration::from_secs(6);
         check.seen = CHANGES.load(Ordering::Relaxed);
