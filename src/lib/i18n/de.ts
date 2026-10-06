@@ -259,8 +259,6 @@ export const de: Messages = {
 		/** Appended to a published rate: "$3.06" + "/hr". */
 		perHour: '/Std.',
 		free: 'Kostenlos',
-		elapsed: 'Vergangen',
-		streamed: 'Übertragen',
 		twoLanguages: '×2 Sprachen',
 		estimate: 'Gesch. Kosten',
 		twoSources: '×2 Quellen'
@@ -352,7 +350,6 @@ export const de: Messages = {
 	settings: {
 		heading: 'Einstellungen',
 		openLabel: 'Einstellungen öffnen',
-		close: 'Schließen',
 		closeLabel: 'Einstellungen schließen',
 		appearance: 'Darstellung der Untertitel',
 		/** Says where to look while choosing. The stand-in caption the overlay shows in
@@ -364,8 +361,6 @@ export const de: Messages = {
 	history: {
 		stored: 'Der Transkriptverlauf wird lokal gespeichert, bis Sie ihn löschen.',
 		heading: 'Transkriptverlauf',
-		browse: 'Sitzungen anzeigen',
-		close: 'Verlauf schließen',
 		enable: 'Sitzungen automatisch lokal speichern',
 		privacy:
 			'Standardmäßig deaktiviert. Speichert ab jetzt abgeschlossene Zeilen. Beim Deaktivieren bleiben vorhandene Sitzungen erhalten; löschen Sie diese hier. Audio wird nicht gespeichert.',
@@ -607,14 +602,12 @@ export const de: Messages = {
 		lines: (n: number) => (n === 1 ? '1 Zeile' : `${n} Zeilen`),
 		unsaved: 'Nicht gespeichert',
 		saved: 'Gespeichert',
-		saveText: 'Text speichern',
 		saveAs: 'Speichern unter…',
 		format: 'Exportformat',
 		plainText: 'Reiner Text',
 		includeOriginal: 'Originalwortlaut einschließen',
 		noTiming:
 			'Dieses wiederhergestellte Transkript hat keine Zeitangaben. Speichern Sie es als Text oder Markdown.',
-		saveMarkdown: 'Markdown speichern',
 		clear: 'Leeren',
 		confirmClear: 'Nicht gespeicherte Zeilen verwerfen?',
 		savedTo: 'Gespeichert unter',

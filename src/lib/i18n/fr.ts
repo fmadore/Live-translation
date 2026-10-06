@@ -261,8 +261,6 @@ export const fr: Messages = {
 		/** Appended to a published rate: "$3.06" + "/hr". */
 		perHour: '/h',
 		free: 'Gratuit',
-		elapsed: 'Écoulé',
-		streamed: 'Transmis',
 		twoLanguages: '×2 langues',
 		estimate: 'Coût est.',
 		twoSources: '×2 sources'
@@ -354,7 +352,6 @@ export const fr: Messages = {
 	settings: {
 		heading: 'Paramètres',
 		openLabel: 'Ouvrir les paramètres',
-		close: 'Fermer',
 		closeLabel: 'Fermer les paramètres',
 		appearance: 'Apparence des sous-titres',
 		/** Says where to look while choosing. The stand-in caption the overlay shows in
@@ -366,8 +363,6 @@ export const fr: Messages = {
 	history: {
 		stored: 'L’historique des transcriptions reste enregistré localement jusqu’à sa suppression.',
 		heading: 'Historique des transcriptions',
-		browse: 'Parcourir les sessions',
-		close: 'Fermer l’historique',
 		enable: 'Enregistrer automatiquement les sessions en local',
 		privacy:
 			'Désactivé par défaut. Enregistre les lignes finalisées à partir de maintenant. La désactivation conserve les sessions existantes ; supprimez-les ici. Aucun audio n’est enregistré.',
@@ -609,14 +604,12 @@ export const fr: Messages = {
 		lines: (n: number) => (n === 1 ? '1 ligne' : `${n} lignes`),
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',
-		saveText: 'Enregistrer en texte',
 		saveAs: 'Enregistrer sous…',
 		format: 'Format d’export',
 		plainText: 'Texte brut',
 		includeOriginal: 'Inclure la parole originale',
 		noTiming:
 			'Cette transcription récupérée ne contient pas d’horodatage. Enregistrez-la en texte ou en Markdown.',
-		saveMarkdown: 'Enregistrer en Markdown',
 		clear: 'Effacer',
 		confirmClear: 'Supprimer les lignes non enregistrées ?',
 		savedTo: 'Enregistrée dans',
