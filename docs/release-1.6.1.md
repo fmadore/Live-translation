@@ -28,7 +28,8 @@ For developers: the stylesheet tokens were regularised (`-wash` / `-chip` / `-bo
 leadings). New guard tests keep components on them. See
 [PR #112](https://github.com/fmadore/Live-translation/pull/112).
 
-No dependency, privacy or data-handling changes. Cloud translation and cloud subtitles still
+No runtime dependency, privacy or data-handling changes. The build-time `source-map-js` is
+patched for GHSA-68fv-2mgg-jv7q; it is not shipped in the app. Cloud translation and cloud subtitles still
 require your own provider account and API key and may incur usage charges.
 
 For the Microsoft Store, upload

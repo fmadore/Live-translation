@@ -21,8 +21,9 @@ the [Store release history](store-updates.md#release-history).
 [Release body](release-1.6.1.md) · [Store handoff](store-updates.md#release-161-handoff).
 A maintenance and visual release: the new wave-to-words app icon and the October design
 review (Windows 11 geometry, one status pill, selector-bar tabs, one stepper control and a
-readable move-mode preview). No new features, dependency or privacy changes. No tag, GitHub
-release or Store submission exists yet.
+readable move-mode preview). No new features, runtime dependency or privacy changes; the
+dev-only `source-map-js` is patched for a security advisory. No tag, GitHub release or Store
+submission exists yet.
 
 ## Published releases
 

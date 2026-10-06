@@ -9,8 +9,8 @@ The [release handoff](store-updates.md#release-161-handoff) has the package evid
 outstanding acceptance checks.
 
 1.6.1 is a maintenance and visual release: a new app icon and a refreshed interface, with no
-new features, dependency or privacy changes. The listing keeps its positioning; paste every
-field again from [store-listing.md](store-listing.md), which notes what changed. The
+new features, runtime dependency or privacy changes. The listing keeps its positioning; paste
+every field again from [store-listing.md](store-listing.md), which notes what changed. The
 screenshots and any separately uploaded Store logo also change.
 
 ## Before Partner Center

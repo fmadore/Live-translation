@@ -20,7 +20,7 @@ detection, while upgrades preserve saved setups.
 **1.6.1** is prepared as a maintenance and visual release and is not yet published on GitHub:
 the wave-to-words app icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and
 the 5 October design review ([#112](https://github.com/fmadore/Live-translation/pull/112)),
-with no new features, dependency or privacy changes. The
+with no new features, runtime dependency or privacy changes. The
 [1.6.1 handoff](docs/store-updates.md#release-161-handoff) tracks its validation, tagging and
 Store acceptance. Citation metadata records 1.6.1 with a provisional date of 6 October 2026,
 to be reset to the publication date if tagging happens later.
