@@ -40,7 +40,11 @@ captured audio from recognition and temporary storage while metering remains act
 Whisper model files are downloaded only when the user chooses **Download model**. Downloads
 contact Hugging Face and its file-delivery infrastructure, which receive ordinary network
 request information such as the user's IP address. No captured audio, captions or provider
-key is included. The app verifies model size and SHA-256 before installation and before use.
+key is included. When a proxy server is set in Windows Settings (or through the
+`HTTPS_PROXY`/`HTTP_PROXY` variables), downloads go through it, so it sees the same request
+information. While downloading, the file is held as `<model>.part` in the models folder; it is
+deleted if the download fails or is cancelled, or at the start of the next download if the app
+was closed mid-way. The app verifies model size and SHA-256 before installation and before use.
 Models remain under the application's local-data `whisper-models` folder until removed through
 the model controls. Once installed, local transcription needs no network connection.
 

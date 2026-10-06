@@ -39,9 +39,16 @@ The separate Cantonese token introduced with large-v3 is not advertised for thes
 
 Models are pinned to Hugging Face `ggerganov/whisper.cpp` revision
 `5359861c739e955e79d9a303bcbc70fb988958b1`. Exact sizes and SHA-256 digests are in
-`src-tauri/src/whisper/models.rs`. Downloads use HTTPS, cancellation, timeouts and a temporary
-file; only a completely verified download is installed. Installed bytes are verified again
-before passing them to the native loader. Files in use cannot be deleted or replaced.
+`src-tauri/src/whisper/models.rs`. Downloads use HTTPS and can be cancelled. There is no overall
+time limit, so a slow connection still finishes Small; a connection that delivers nothing for
+60 seconds fails instead. Downloads follow the proxy server set in Windows Settings → Network &
+internet → Proxy (manual setup, including its bypass list) and the `HTTPS_PROXY`/`HTTP_PROXY`
+variables; automatic proxy scripts (PAC/WPAD) are not read. The file is written as
+`<model>.part` in the models folder and renamed into place only after its size and SHA-256
+match; a failed or cancelled download deletes it, and starting a download first deletes any
+partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
+bytes are verified again before passing them to the native loader. Files in use cannot be
+deleted or replaced.
 
 ## Audio handling and limits
 
@@ -68,8 +75,8 @@ is delete-on-close and cannot be recovered after the process exits; see [privacy
 
 ## Building
 
-`whisper-rs` 0.16.0 vendors whisper.cpp through `whisper-rs-sys` 0.15.0. The CPU backend is
-statically linked. No Python, external Whisper executable, GPU, CUDA or model is bundled in
+`whisper-rs` 0.16.0 vendors whisper.cpp 1.8.3 through `whisper-rs-sys` 0.15.0, both pinned
+exactly in `Cargo.toml`. The CPU backend is statically linked. No Python, external Whisper executable, GPU, CUDA or model is bundled in
 the installer. Model loading uses Rust’s filesystem API so non-ASCII Windows usernames work.
 
 Install LLVM/Clang with libclang, CMake and Ninja alongside the normal Rust/Tauri Windows
