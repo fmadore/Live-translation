@@ -70,7 +70,15 @@
 </script>
 
 <div class="checklist">
-	{#if $options.provider === 'whisper'}
+	{#if $options.provider === 'whisper' && preflight.whisperRefused}
+		<!-- Normally replaced by the demo at once; shown while setup is locked and cannot switch. -->
+		<ChecklistRow
+			status="wait"
+			title={$t.whisper.title}
+			desc={$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}
+			warn
+		/>
+	{:else if $options.provider === 'whisper'}
 		<ChecklistRow
 			status={$whisperModels.find((m) => m.id === ($options.whisperModel ?? 'base'))?.installed
 				? 'ok'

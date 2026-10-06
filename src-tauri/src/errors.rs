@@ -49,6 +49,8 @@ impl std::fmt::Display for AppError {
 pub mod id {
     pub const WHISPER_MODEL: &str = "error.whisperModel";
     pub const WHISPER_SESSION: &str = "error.whisperSession";
+    /// This processor lacks the instruction sets the Whisper engine was built for.
+    pub const WHISPER_CPU: &str = "error.whisperCpu";
     /// Enumerating input devices failed before any device was opened.
     pub const DEVICE_ENUMERATION: &str = "error.deviceEnumeration";
     /// Windows Credential Manager refused a read or a write.

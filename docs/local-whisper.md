@@ -10,6 +10,11 @@ New installations open on Whisper with Base and automatic language detection sel
 Downloading a model and starting capture both require the user's action. Saved engine, model,
 language and audio choices are kept on upgrade.
 
+On a processor that cannot run the Whisper engine (see [processor requirements](#processor-requirements)),
+the setup sheet lists Whisper as unavailable with a one-line reason, Start is not offered for it,
+and a selected Whisper — including the first-launch default — is replaced by the built-in demo,
+so the keyless first launch always opens on something that starts.
+
 ## Using it
 
 1. Choose Subtitles, the microphone/system/application source, and **Whisper** as the engine.
@@ -82,10 +87,31 @@ npm run tauri dev
 
 The native Windows ARM64 backend requires Clang; plain MSVC cannot compile this version of
 GGML’s ARM CPU code. CI and release packaging use native Windows x64 and ARM64 runners with
-the same compiler setup. `.cargo/config.toml` disables build-host-specific instruction sets,
-including AVX-only x64 builds, and targets baseline ARMv8: CPU portability takes precedence
-over optional acceleration. Real-time throughput is not guaranteed; Both sources runs two
-inference states and increases CPU and memory use.
+the same compiler setup. Real-time throughput is not guaranteed; Both sources runs two
+inference states and increases memory use.
+
+### Processor requirements
+
+`.cargo/config.toml` builds GGML's CPU code for a fixed instruction-set level rather than the
+build machine's, because GGML's quantised maths has no fast path below it and Small would not
+keep up with speech:
+
+| Architecture | Built for | Checked at runtime |
+| --- | --- | --- |
+| x64 | AVX2, FMA, F16C, SSE4.2 — clang-cl's `/arch:AVX2`, which also allows BMI1, BMI2, LZCNT, MOVBE and POPCNT | All of those (Intel Haswell, AMD Excavator/Zen and later, including Alder Lake-N) |
+| ARM64 | `armv8.2-a+dotprod+fp16` | Dot-product (Snapdragon 850 and later); Windows reports FP16 only on recent builds, and every SoC with dot-product has it |
+
+`src-tauri/src/whisper/cpu.rs` checks this before any whisper.cpp code runs — model load,
+context creation, the smoke test — because GGML code built for AVX2 stops the whole app with
+an illegal instruction on an older processor. Such a PC is refused with a translated
+explanation, and the setup sheet learns it before Start through `whisper_cpu_support`. The
+other engines are unaffected. CI proves the x64 side by running the test binary under Intel SDE
+emulating Goldmont Plus (the pre-AVX core in budget Celeron and Pentium Silver laptops): the
+binary starts without executing AVX code and the gate reports the processor unsupported.
+
+The whisper-rs-sys build script does not watch these variables. After changing them, run
+`cargo clean -p whisper-rs-sys` and bump the Rust cache `prefix-key` in the workflows, or the
+old native libraries are reused.
 
 Whisper.cpp and the OpenAI model weights use the MIT license; whisper-rs uses the Unlicense.
 Their notices are included under `resources/licenses` and bundled with the app.

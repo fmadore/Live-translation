@@ -343,9 +343,12 @@
 		{#each modeProviders as id (id)}
 			{@const p = PROVIDER_META[id]}
 			{@const rate = rateParts(p, $t)}
+			<!-- Whisper on a processor it was not built for stays listed, so the operator learns
+			     why it is missing, but cannot be chosen. -->
+			{@const refused = id === 'whisper' && preflight.whisperRefused}
 			<button
 				class="engine ui-card"
-				disabled={locked}
+				disabled={locked || refused}
 				aria-pressed={$options.provider === id}
 				onclick={() => actions.setProvider(id)}
 			>
@@ -353,6 +356,8 @@
 					<span class="engine-name">{$t.provider.vendor[id]}</span>
 					<span class="engine-model">{modelLabel(p, $t)}</span>{#if id === 'gemini-transcribe'}<span
 							class="hint">{$t.design.smartSummary}</span
+						>{/if}{#if refused}<span class="hint"
+							>{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}</span
 						>{/if}
 				</span>
 				<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>

@@ -117,6 +117,7 @@ pub fn run() {
             commands::set_api_key,
             commands::clear_api_key,
             commands::ondevice_readiness,
+            commands::whisper_cpu_support,
             commands::whisper_models,
             commands::download_whisper_model,
             commands::cancel_whisper_download,

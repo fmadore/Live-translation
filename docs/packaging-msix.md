@@ -255,7 +255,7 @@ nothing. Then work through the list; the
 
 | Check | What "pass" looks like |
 | --- | --- |
-| **Whisper (first-launch default)** | A clean install selects Whisper, Base and automatic detection. No download or capture starts automatically. Download a model, select/test the audio source and start; verify offline captions after download and complete Stop draining. |
+| **Whisper (first-launch default)** | A clean install selects Whisper, Base and automatic detection. No download or capture starts automatically. Download a model, select/test the audio source and start; verify offline captions after download and complete Stop draining. On a processor without AVX2 (x64) or dot-product (ARM64) the built-in demo is selected instead and Whisper is listed as unavailable with its reason; see [processor requirements](local-whisper.md#processor-requirements). |
 | **Built-in demo (optional)** | Select Built-in demo, then click *Start demo subtitles*, without audio hardware or network. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop and export work. Repeat in English and French. |
 | **Microphone (optional live mode)** | With Mistral/Gemini/OpenAI configured, the app appears under Settings → Privacy & security → Microphone and captures with access on. With access blocked, it reports the exact Settings path. |
 | **WASAPI loopback** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |

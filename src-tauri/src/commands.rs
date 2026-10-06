@@ -76,10 +76,25 @@ pub async fn start_session(
     manager: State<'_, SessionManager>,
     options: StartOptions,
 ) -> Result<(), AppError> {
-    manager
-        .start(&app, options)
-        .await
-        .map_err(|error| AppError::with(id::SESSION_START, format!("{error:#}")))
+    // Checked before anything is stopped or opened, and given its own sentence: "the session
+    // could not be started" would not tell the operator that no retry can help on this PC.
+    if options.provider == Provider::Whisper {
+        crate::whisper::cpu::ensure_supported()
+            .map_err(|error| AppError::with(id::WHISPER_CPU, error))?;
+    }
+    manager.start(&app, options).await.map_err(|error| {
+        match error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
+            Some(unsupported) => AppError::with(id::WHISPER_CPU, unsupported),
+            None => AppError::with(id::SESSION_START, format!("{error:#}")),
+        }
+    })
+}
+
+/// Whether this processor can run local Whisper, asked once by the setup sheet so an
+/// unsupported PC is told before Start rather than by it.
+#[tauri::command]
+pub fn whisper_cpu_support() -> crate::whisper::cpu::CpuSupport {
+    crate::whisper::cpu::support().clone()
 }
 
 /// Pause or resume the running session; see `SessionManager::set_paused`.

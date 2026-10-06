@@ -15,9 +15,19 @@ export interface SetupDeps {
 	invalidateAudioTest: () => void;
 	/** Re-list devices after switching to an engine that captures them. */
 	refreshDevices: () => void;
+	/** This processor cannot run local Whisper (`whisper/cpu.rs`), so it is never chosen. */
+	whisperRefused?: () => boolean;
 }
 
-export function createSetupActions({ locked, invalidateAudioTest, refreshDevices }: SetupDeps) {
+/** The built-in demo's single virtual source, applied whenever it becomes the engine. */
+const DEMO_SOURCE = { source: 'microphone', micDeviceName: null } as const;
+
+export function createSetupActions({
+	locked,
+	invalidateAudioTest,
+	refreshDevices,
+	whisperRefused = () => false
+}: SetupDeps) {
 	function setSource(source: AudioSource) {
 		const current = get(options);
 		if (locked()) return;
@@ -57,11 +67,12 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		if (locked() || provider === current.provider) return;
 		// Each mode accepts only the backends that can serve it.
 		if (providerCanTranslate(provider) !== (current.mode === 'translate')) return;
+		if (provider === 'whisper' && whisperRefused()) return;
 		invalidateAudioTest();
 		options.set({
 			...current,
 			provider,
-			...(provider === 'ondevice' ? { source: 'microphone' as const, micDeviceName: null } : {})
+			...(provider === 'ondevice' ? DEMO_SOURCE : {})
 		});
 		if (provider !== 'ondevice') refreshDevices();
 	}
@@ -70,12 +81,30 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		const current = get(options);
 		if (locked() || mode === current.mode) return;
 		invalidateAudioTest();
+		// Subtitles open on Whisper, or on the keyless demo where this processor cannot run it.
+		const provider =
+			mode === 'translate'
+				? 'gemini'
+				: DEFAULT_START_OPTIONS.provider === 'whisper' && whisperRefused()
+					? 'ondevice'
+					: DEFAULT_START_OPTIONS.provider;
 		options.set({
 			...current,
 			mode,
-			provider: mode === 'transcribe' ? DEFAULT_START_OPTIONS.provider : 'gemini'
+			provider,
+			...(provider === 'ondevice' ? DEMO_SOURCE : {})
 		});
 		refreshDevices();
+	}
+
+	/** Leave Whisper for the built-in demo on a processor that cannot run it: the first-launch,
+	 *  keyless path must work on whatever PC the app is opened on. True when it switched. */
+	function avoidUnsupportedWhisper(): boolean {
+		const current = get(options);
+		if (locked() || current.provider !== 'whisper' || !whisperRefused()) return false;
+		invalidateAudioTest();
+		options.set({ ...current, provider: 'ondevice', ...DEMO_SOURCE });
+		return true;
 	}
 
 	/** Quick flip of the caption language — handy when speakers alternate. */
@@ -86,6 +115,14 @@ export function createSetupActions({ locked, invalidateAudioTest, refreshDevices
 		if (next) setTarget(next);
 	}
 
-	return { setSource, setTarget, setSecondTarget, setProvider, setMode, flipDirection };
+	return {
+		setSource,
+		setTarget,
+		setSecondTarget,
+		setProvider,
+		setMode,
+		flipDirection,
+		avoidUnsupportedWhisper
+	};
 }
 export type SetupActions = ReturnType<typeof createSetupActions>;

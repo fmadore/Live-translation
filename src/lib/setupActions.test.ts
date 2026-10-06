@@ -13,11 +13,12 @@ const base: StartOptions = {
 	micDeviceId: null
 };
 
-function setup(locked = false) {
+function setup(locked = false, whisperRefused = false) {
 	const deps = {
 		locked: vi.fn(() => locked),
 		invalidateAudioTest: vi.fn(),
-		refreshDevices: vi.fn()
+		refreshDevices: vi.fn(),
+		whisperRefused: () => whisperRefused
 	};
 	return { actions: createSetupActions(deps), deps };
 }
@@ -86,6 +87,36 @@ describe('setup actions', () => {
 		const { actions } = setup();
 		actions.setTarget('fr');
 		expect(get(options).targetLanguage).toBe('en');
+	});
+
+	// The Store lesson: the first-launch, keyless path must not depend on the reviewer's PC.
+	it('never lands on Whisper on a processor that cannot run it', () => {
+		const { actions } = setup(false, true);
+		actions.setMode('transcribe');
+		expect(get(options)).toMatchObject({
+			mode: 'transcribe',
+			provider: 'ondevice',
+			source: 'microphone',
+			micDeviceName: null
+		});
+		actions.setProvider('whisper');
+		expect(get(options).provider).toBe('ondevice');
+		actions.setProvider('mistral');
+		expect(get(options).provider).toBe('mistral');
+	});
+
+	it('moves a saved Whisper setup to the demo only when the processor refuses it', () => {
+		const whisper: StartOptions = { ...base, mode: 'transcribe', provider: 'whisper' };
+		options.set({ ...whisper });
+		expect(setup(false, false).actions.avoidUnsupportedWhisper()).toBe(false);
+		expect(setup(true, true).actions.avoidUnsupportedWhisper()).toBe(false);
+		expect(get(options)).toEqual(whisper);
+
+		const { actions, deps } = setup(false, true);
+		expect(actions.avoidUnsupportedWhisper()).toBe(true);
+		expect(get(options)).toMatchObject({ provider: 'ondevice', source: 'microphone' });
+		expect(deps.invalidateAudioTest).toHaveBeenCalledOnce();
+		expect(actions.avoidUnsupportedWhisper()).toBe(false);
 	});
 
 	it('flips between the first two favourites the engine supports', () => {

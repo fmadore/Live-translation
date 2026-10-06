@@ -13,6 +13,7 @@
     "allow-set-api-key",
     "allow-clear-api-key",
     "allow-ondevice-readiness",
+    "allow-whisper-cpu-support",
     "allow-whisper-models",
     "allow-download-whisper-model",
     "allow-cancel-whisper-download",

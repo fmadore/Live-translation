@@ -196,7 +196,9 @@ export const fr: Messages = {
 		pending: 'Son en attente de transcription',
 		discard: 'Abandonner le son restant',
 		discardConfirm:
-			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.'
+			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.',
+		cpuUnsupported: (missing: string) =>
+			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -735,6 +737,8 @@ export const fr: Messages = {
 	error: {
 		whisperModel: 'Le modèle Whisper n’a pas pu être préparé',
 		whisperSession: 'La transcription locale n’a pas pu se terminer ; elle peut être incomplète',
+		whisperCpu:
+			'Whisper local ne peut pas fonctionner sur ce processeur ; choisissez un autre moteur, par exemple la démonstration intégrée',
 		deviceEnumeration: 'Windows n’a pas pu énumérer les appareils audio',
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',

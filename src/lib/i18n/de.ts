@@ -194,7 +194,9 @@ export const de: Messages = {
 		pending: 'Noch zu transkribierendes Audio',
 		discard: 'Restliches Audio verwerfen',
 		discardConfirm:
-			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.'
+			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
+		cpuUnsupported: (missing: string) =>
+			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -728,6 +730,8 @@ export const de: Messages = {
 	// if a failure the core can report has no sentence here.
 	error: {
 		whisperModel: 'Das Whisper-Modell konnte nicht vorbereitet werden',
+		whisperCpu:
+			'Lokales Whisper kann auf diesem Prozessor nicht laufen; wählen Sie eine andere Engine, etwa die integrierte Demo',
 		whisperSession:
 			'Die lokale Transkription konnte nicht abgeschlossen werden; das Transkript ist möglicherweise unvollständig',
 		deviceEnumeration: 'Windows konnte die Audiogeräte nicht auflisten',

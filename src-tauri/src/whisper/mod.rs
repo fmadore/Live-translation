@@ -1,5 +1,6 @@
 //! Multilingual, CPU-only local transcription. Capture, disk ingestion and inference run
 //! independently; normal Stop closes input then drains every accepted frame.
+pub mod cpu;
 pub mod models;
 mod segment;
 pub mod spool;
@@ -32,6 +33,8 @@ pub fn load(app: &AppHandle, id: ModelId) -> Result<Arc<LoadedModel>> {
 }
 
 fn load_lease(lease: ModelLease) -> Result<Arc<LoadedModel>> {
+    // First native call of a session: refuse here, not with an illegal instruction inside it.
+    cpu::ensure_supported()?;
     // Read through Rust's Unicode-aware filesystem API (Windows usernames may contain
     // non-ASCII characters), then pass the exact verified bytes to the native loader.
     let bytes = lease.read_verified()?;

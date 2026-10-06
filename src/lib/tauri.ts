@@ -3,6 +3,7 @@
 // of throwing. When `window.__TAURI_INTERNALS__` is absent we are running in a browser.
 
 import type {
+	WhisperCpuSupport,
 	WhisperModelId,
 	WhisperModelInfo,
 	WhisperProgress,
@@ -50,6 +51,8 @@ async function emit<T>(event: string, payload: T): Promise<void> {
 // ---- Commands -------------------------------------------------------------
 
 export const api = {
+	/** Whether this processor can run local Whisper at all; asked before Start is offered. */
+	whisperCpuSupport: () => invoke<WhisperCpuSupport>('whisper_cpu_support'),
 	whisperModels: () => invoke<WhisperModelInfo[]>('whisper_models'),
 	downloadWhisperModel: (model: WhisperModelId) =>
 		invoke<void>('download_whisper_model', { model }),

@@ -48,6 +48,34 @@ it('prevents overlapping test starts and leaves native events authoritative', as
 	expect(get(statusMessage)).toBe('Device disconnected');
 });
 
+it('asks the core once whether this processor can run local Whisper', async () => {
+	// A browser preview has no engine to protect and never asks.
+	const preview = createPreflightController(false, () => false);
+	expect(preview.whisperCpu).toEqual({ supported: true, missing: [] });
+	await preview.refreshWhisperCpu();
+	expect(preview.whisperRefused).toBe(false);
+
+	const whisperCpuSupport = vi.fn().mockResolvedValue({
+		supported: false,
+		missing: ['AVX', 'AVX2', 'FMA', 'F16C', 'BMI2']
+	});
+	const probe = createPreflightController(true, () => false, { ...api, whisperCpuSupport });
+	// Unknown until answered: not refused, but not known to be supported either.
+	expect(probe.whisperCpu).toBeNull();
+	expect(probe.whisperRefused).toBe(false);
+	await probe.refreshWhisperCpu();
+	expect(probe.whisperRefused).toBe(true);
+	expect(probe.whisperCpuMissing).toBe('AVX, AVX2, FMA…');
+
+	// A failed question is not a refusal: the core still checks at Start.
+	const failing = createPreflightController(true, () => false, {
+		...api,
+		whisperCpuSupport: vi.fn().mockRejectedValue(new Error('ipc'))
+	});
+	await failing.refreshWhisperCpu();
+	expect(failing.whisperCpu).toEqual({ supported: true, missing: [] });
+});
+
 it('falls back to the default microphone when a saved device disappears', async () => {
 	options.update((value) => ({ ...value, provider: 'gemini', micDeviceName: 'Unplugged' }));
 	const probe = createPreflightController(true, () => false, {
