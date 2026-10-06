@@ -684,7 +684,9 @@ export const de: Messages = {
 			noteEmphasis: 'Im Infobereich weiterlaufen lassen, wenn ich dieses Fenster schließe',
 			noteAfter: '.',
 			keep: 'Weiter untertiteln',
-			stop: 'Beenden und schließen'
+			stop: 'Beenden und schließen',
+			whisperPending: (seconds: number) =>
+				`Lokales Whisper muss noch ${seconds} s Audio transkribieren. Beim Schließen bekommt es dafür einige Sekunden, danach wird der Rest verworfen und das Transkript bleibt unvollständig.`
 		},
 		trayHide: {
 			title: 'Live Translation läuft weiter',

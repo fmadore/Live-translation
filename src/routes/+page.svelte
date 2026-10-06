@@ -1,6 +1,7 @@
 <script lang="ts">
 	import WhisperActivity from '$lib/WhisperActivity.svelte';
 	import { whisperModels } from '$lib/stores';
+	import { whisperPendingSeconds } from '$lib/whisperProgress';
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
@@ -472,6 +473,7 @@
 	<ActiveSessionPrompt
 		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
+		pendingSeconds={$options.provider === 'whisper' ? $whisperPendingSeconds : 0}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
 {/if}

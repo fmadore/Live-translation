@@ -670,7 +670,9 @@ export const en = {
 			noteEmphasis: 'Keep running in the tray when I close this window',
 			noteAfter: '.',
 			keep: 'Keep captioning',
-			stop: 'Stop and close'
+			stop: 'Stop and close',
+			whisperPending: (seconds: number) =>
+				`Local Whisper still has ${seconds} s of audio to transcribe. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
 		},
 		trayHide: {
 			title: 'Live Translation will keep running',

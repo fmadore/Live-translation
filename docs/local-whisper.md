@@ -27,6 +27,11 @@ so the keyless first launch always opens on something that starts.
    of processing time. Discarding pending audio requires confirmation and leaves an explicit
    incomplete-transcript notice.
 
+Closing the app while audio is still waiting is different from Stop: the close prompt says how
+many seconds remain, closing gives the backlog a few seconds, and whatever is left is then
+discarded so the app can actually quit. Stop first and let it finish if the transcript has to
+be complete.
+
 | Model | Download | Intended choice |
 | --- | ---: | --- |
 | Tiny Q5_1 | 31 MiB | Lowest CPU and memory demand; try first on slower machines |
@@ -105,8 +110,9 @@ so they do not compete for the same cores with capture and the interface.
 ## Building
 
 `whisper-rs` 0.16.0 vendors whisper.cpp 1.8.3 through `whisper-rs-sys` 0.15.0, both pinned
-exactly in `Cargo.toml`. The CPU backend is statically linked. No Python, external Whisper executable, GPU, CUDA or model is bundled in
-the installer. Model loading uses Rust’s filesystem API so non-ASCII Windows usernames work.
+exactly in `Cargo.toml`. The CPU backend is statically linked. No Python, external Whisper
+executable, GPU, CUDA or model is bundled in the installer. Model loading uses Rust’s
+filesystem API so non-ASCII Windows usernames work.
 
 Install LLVM/Clang with libclang, CMake and Ninja alongside the normal Rust/Tauri Windows
 prerequisites. Run in a Visual Studio Developer PowerShell for the target architecture:
@@ -167,14 +173,24 @@ cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
 
 Unit tests cover language vocabulary, corrupt model rejection, active-model protection,
 writer overflow, pause filtering, final-tail handling, timestamp gaps and producer failure
-ordering. UI tests cover persisted multilingual settings and model/progress controls. For
+ordering; the processor check; downloads against a loopback HTTP server (verified install,
+hash mismatch, oversized body, stalled connection, cancellation, partial-file clean-up); the
+spool's idle signal and size limit; the segmenter's gap threshold, jittered and drifting
+timestamps, long windows and idle flush; segment reconciliation (overlap by word and by
+character, clamped and monotonic times, broken UTF-8, the no-speech filter); short-window
+language reuse; and thread counts. UI tests cover persisted multilingual settings,
+model/progress controls, the unsupported-processor engine card and the close prompt's pending
+audio. For
 PR #99 (4 October 2026) the smoke test passed on ARM64, including non-ASCII model paths, and
 all seven PR CI jobs passed on
 [run 37196818518](https://github.com/fmadore/Live-translation/actions/runs/37196818518).
 
 Before release, test packaged x64 and ARM64 applications on real devices: download/cancel/remove,
 relaunch offline, microphone and Teams/application loopback, Both sources, pause/resume, long
-backlogs, Stop/discard, exports, non-Latin speech and clean uninstall. CI audio fixtures do not
+backlogs, Stop/discard, quitting with a backlog, exports, non-Latin speech and clean
+uninstall; a model download behind a proxy configured in Windows Settings; and an x64 PC
+without AVX2, where Whisper must be listed as unavailable and the demo selected. CI audio
+fixtures do not
 establish microphone permissions, actual conference-call capture quality or battery
 performance. Package acceptance is tracked in the
 [release handoff](store-updates.md#release-161-handoff).

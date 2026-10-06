@@ -688,7 +688,9 @@ export const fr: Messages = {
 				'Garder l’application active dans la zone de notification quand je ferme cette fenêtre',
 			noteAfter: '.',
 			keep: 'Continuer le sous-titrage',
-			stop: 'Arrêter et fermer'
+			stop: 'Arrêter et fermer',
+			whisperPending: (seconds: number) =>
+				`Whisper local doit encore transcrire ${seconds} s de son. La fermeture lui laisse quelques secondes, puis abandonne le reste ; la transcription sera donc incomplète.`
 		},
 		trayHide: {
 			title: 'Live Translation va rester actif',
