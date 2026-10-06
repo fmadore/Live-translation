@@ -280,7 +280,7 @@
 	}
 	select {
 		font: inherit;
-		min-height: 2rem;
+		min-height: var(--control-sm);
 		font-size: var(--type-small);
 		color: var(--text-body);
 		background: var(--surface-0);
@@ -293,16 +293,16 @@
 		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
-		letter-spacing: 0.1em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		padding: var(--space-1) var(--space-2);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 		color: var(--accent-soft);
-		background: var(--accent-chip-bg);
+		background: var(--accent-chip);
 	}
 	.state.unsaved {
 		color: var(--warn-soft);
-		background: var(--warn-bg);
+		background: var(--warn-chip);
 	}
 	.saved {
 		margin: 0;
@@ -319,7 +319,7 @@
 	.hint {
 		margin: 0;
 		font-size: var(--type-body);
-		line-height: 1.55;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		word-break: break-word;
 	}
@@ -328,10 +328,10 @@
 		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--warn-border);
-		background: var(--warn-bg);
+		background: var(--warn-wash);
 		color: var(--warn-soft);
 		font-size: var(--type-small);
-		line-height: 1.55;
+		line-height: var(--leading-body);
 		text-wrap: pretty;
 	}
 	.recovery {
@@ -354,7 +354,7 @@
 		display: block;
 		margin-top: var(--space-1);
 		font-size: var(--type-small);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		text-wrap: pretty;
 	}
@@ -376,11 +376,14 @@
 		grid-template-columns: 4.25em 1fr;
 		gap: var(--space-3);
 	}
+	/* Two pixels down, so the small-capital label sits on the baseline of the first line of
+	   the larger text beside it rather than above it. */
 	.side {
+		padding-top: 2px;
 		font-size: var(--type-caption);
 		font-weight: 500;
-		line-height: 1.6;
-		letter-spacing: 0.12em;
+		line-height: var(--leading-body);
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 	}
 	/* The same identity as the live turns above: blue is the room, and only the room. The
@@ -400,7 +403,7 @@
 	}
 	.text {
 		font-size: var(--type-body);
-		line-height: 1.55;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		text-wrap: pretty;
 	}

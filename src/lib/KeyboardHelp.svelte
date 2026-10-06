@@ -42,7 +42,7 @@
 	p,
 	dd {
 		color: var(--text-muted);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 	}
 	dd {
 		margin: var(--space-1) 0 var(--space-3);

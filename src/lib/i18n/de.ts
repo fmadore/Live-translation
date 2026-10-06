@@ -498,7 +498,7 @@ export const de: Messages = {
 		kicker: 'Vorabprüfung',
 		heading: 'Bereit, wenn Sie es sind',
 		intro:
-			'Vier Prüfungen, dann eine Schaltfläche. Alles auf der linken Seite wird gesperrt, während Untertitel laufen, damit mitten in der Sitzung nichts versehentlich geändert wird.',
+			'Vier Prüfungen, dann die Start-Schaltfläche oben im Fenster. Alles auf der linken Seite wird gesperrt, während Untertitel laufen, damit mitten in der Sitzung nichts versehentlich geändert wird.',
 
 		demoRow: {
 			title: 'Integrierte Demo · kein Schlüssel nötig',

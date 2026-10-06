@@ -47,7 +47,7 @@
 			aria-keyshortcuts={ariaKeys}
 			onclick={onStop}
 		>
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 				><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 			>
 			{busy ? $t.rail.stopping : $t.rail.stop}
@@ -64,11 +64,11 @@
 			onclick={onPause}
 		>
 			{#if paused}
-				<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 				>
 			{:else}
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 					><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect
 						x="14"
 						y="5"
@@ -91,7 +91,7 @@
 			aria-keyshortcuts={ariaKeys}
 			onclick={onStart}
 		>
-			<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
 				><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 			>
 			{busy
@@ -111,12 +111,12 @@
 			onclick={onRehearse}
 		>
 			<svg
-				width="13"
-				height="13"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.8"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				aria-hidden="true"

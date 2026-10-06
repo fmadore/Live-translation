@@ -17,32 +17,18 @@
 	} = $props();
 </script>
 
-<button class="lang" class:selected {disabled} aria-pressed={selected} {onclick}>
+<button class="lang ui-card" {disabled} aria-pressed={selected} {onclick}>
 	<span class="lang-code">{code}</span>
 	<span class="lang-name">{name}</span>
 </button>
 
 <style>
+	/* The border, the fill and the selected wash are the shared .ui-card's. */
 	.lang {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-3);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-card);
-		background: var(--surface-1);
-		text-align: left;
-		color: inherit;
-	}
-	.lang.selected {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-	}
-	.lang:hover:not(:disabled) {
-		border-color: var(--line-hover);
-	}
-	.lang.selected:hover:not(:disabled) {
-		border-color: var(--accent);
 	}
 	.lang-code {
 		font-family: var(--font-mono);
@@ -51,7 +37,7 @@
 		line-height: 1;
 		color: var(--text-muted);
 	}
-	.lang.selected .lang-code {
+	.lang[aria-pressed='true'] .lang-code {
 		color: var(--accent-soft);
 		font-weight: 600;
 	}
@@ -61,14 +47,8 @@
 		line-height: 1;
 		color: var(--text-secondary);
 	}
-	.lang.selected .lang-name {
+	.lang[aria-pressed='true'] .lang-name {
 		color: var(--text-body);
 		font-weight: 600;
-	}
-	@media (forced-colors: active) {
-		.lang.selected {
-			outline: 2px solid Highlight;
-			outline-offset: -2px;
-		}
 	}
 </style>

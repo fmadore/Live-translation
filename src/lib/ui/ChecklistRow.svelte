@@ -91,11 +91,11 @@
 		margin-top: 3px;
 	}
 	.mark.ok {
-		background: var(--accent-chip-bg);
+		background: var(--accent-chip);
 		color: var(--accent);
 	}
 	.mark.wait {
-		background: var(--warn-bg);
+		background: var(--warn-chip);
 		color: var(--warn);
 	}
 	.mark.wait .dot {
@@ -105,7 +105,7 @@
 		background: currentColor;
 	}
 	.mark.neutral {
-		background: rgba(255, 255, 255, 0.05);
+		background: var(--surface-2);
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
@@ -121,16 +121,12 @@
 	.check-title {
 		font-size: var(--type-label);
 		font-weight: 500;
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 	}
 	.check-desc {
 		font-size: var(--type-small);
-		line-height: 1.3;
+		line-height: var(--leading-snug);
 		color: var(--text-muted);
-	}
-	/* A pending row's sentence wraps around a link and a model id. */
-	.check-row.pending .check-desc {
-		line-height: 1.35;
 	}
 	.check-desc.warn {
 		color: var(--warn);

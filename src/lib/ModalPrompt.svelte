@@ -16,6 +16,7 @@
 
 	import { onMount } from 'svelte';
 	import type { Snippet } from 'svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 
 	interface Props {
 		/** Used as the dialog's accessible name. */
@@ -115,20 +116,20 @@
 		<div class="header">
 			<h2 id={titleId}>{title}</h2>
 			{#if onDismiss && dismissLabel}
-				<button class="dismiss" aria-label={dismissLabel} onclick={onDismiss}>
+				<ToolButton class="icon dismiss" aria-label={dismissLabel} onclick={onDismiss}>
 					<svg
-						width="13"
-						height="13"
+						width="14"
+						height="14"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
-						stroke-width="1.9"
+						stroke-width="1.75"
 						stroke-linecap="round"
 						aria-hidden="true"
 					>
 						<path d="M5.5 5.5l13 13M18.5 5.5l-13 13" />
 					</svg>
-				</button>
+				</ToolButton>
 			{/if}
 		</div>
 		{@render children()}
@@ -143,7 +144,7 @@
 		display: grid;
 		place-items: center;
 		padding: var(--space-5);
-		background: rgba(8, 9, 11, 0.78);
+		background: var(--modal-scrim);
 	}
 	.prompt {
 		/* 460px at 100%. In `em` because what makes this readable is its measure, and a
@@ -157,10 +158,12 @@
 		flex-direction: column;
 		gap: var(--space-3);
 		padding: var(--space-5);
-		border-radius: var(--radius-card);
+		/* A top-level surface, so it rounds by 8px where the controls inside it round by 4px,
+		   and it casts the one flyout shadow the move-mode toolbar casts too. */
+		border-radius: var(--radius-overlay);
 		border: 1px solid var(--line-strong);
 		background: var(--surface-1);
-		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+		box-shadow: var(--shadow-flyout);
 	}
 	/* 832px at 100%, and in `em` for the same reason as the narrow box: at 225% text scaling a
 	   fixed pixel width turns a two-column row of controls into a column of clipped ones. */
@@ -184,38 +187,28 @@
 		margin: 0;
 		font-size: var(--type-title);
 		font-weight: 600;
-		line-height: 1.35;
+		line-height: var(--leading-tight);
 		color: var(--text-bright);
 		text-wrap: balance;
 	}
-	.dismiss {
-		flex: none;
-		display: grid;
-		place-items: center;
-		width: 2rem;
-		height: 2rem;
-		/* Pull it into the corner without inflating the header row. */
+	/* The shared icon button, the same one as the toolbar's gear. Pulled into the corner
+	   without inflating the header row. */
+	.header :global(.dismiss) {
 		margin: -4px -6px 0 0;
-		padding: 0;
-		border: none;
-		border-radius: var(--radius-control);
-		background: transparent;
-		color: var(--text-muted);
-	}
-	.dismiss:hover {
-		background: var(--surface-2);
-		color: var(--text-bright);
 	}
 
 	/* The bodies live in the caller's snippet, so their rules have to reach into it. */
 	.prompt :global(p) {
 		margin: 0;
 		font-size: var(--type-body);
-		line-height: 1.6;
+		line-height: var(--leading-body);
 		color: var(--text-secondary);
 		text-wrap: pretty;
 	}
-	.prompt :global(p.note) {
+	/* The rule above outranks app.css's `.hint`, so a hint inside a dialog (the settings panel
+	   has several) is given its small, muted face back here. */
+	.prompt :global(p.note),
+	.prompt :global(p.hint) {
 		font-size: var(--type-small);
 		color: var(--text-muted);
 	}
@@ -223,7 +216,7 @@
 		padding: var(--space-2) var(--space-3);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--danger-border);
-		background: var(--danger-bg);
+		background: var(--danger-wash);
 		color: var(--danger-soft);
 		font-size: var(--type-body);
 		word-break: break-word;

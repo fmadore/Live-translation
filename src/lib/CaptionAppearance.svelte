@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CaptionPreview from './CaptionPreview.svelte';
 	import Select from './ui/Select.svelte';
+	import Stepper from './ui/Stepper.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t, localeTag } from './i18n';
 	import {
@@ -20,6 +21,7 @@
 	} from './captionColour';
 	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
+	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	let {
 		heading,
@@ -63,20 +65,17 @@
 {#if !compact}<CaptionPreview {overlay} part="presets" />{/if}
 <div class="appearance-layout" class:compact>
 	<div class="appearance-controls">
-		<div class="stepper">
-			<span class="stepper-label">{$t.overlayControls.captionSize}</span>
-			<button
-				class="step"
-				onclick={() => overlay.setFont($overlayFontSize - 2)}
-				aria-label={$t.overlayControls.smaller}>−</button
-			>
-			<span class="stepper-value">{$overlayFontSize} px</span>
-			<button
-				class="step"
-				onclick={() => overlay.setFont($overlayFontSize + 2)}
-				aria-label={$t.overlayControls.larger}>+</button
-			>
-		</div>
+		<Stepper
+			label={$t.overlayControls.captionSize}
+			value={$overlayFontSize}
+			min={OVERLAY_FONT_MIN}
+			max={OVERLAY_FONT_MAX}
+			step={2}
+			unit="px"
+			decreaseLabel={$t.overlayControls.smaller}
+			increaseLabel={$t.overlayControls.larger}
+			onchange={overlay.setFont}
+		/>
 		<label class="face-label"
 			>{$t.overlayControls.captionFace}
 			<Select
@@ -141,22 +140,19 @@
 				/>
 			</label>
 		</div>
-		<div class="stepper">
-			<span class="stepper-label">{$t.overlayControls.scrimOpacity}</span>
-			<button
-				class="step"
-				disabled={$overlayPalette.scrimOpacity <= SCRIM_OPACITY_MIN}
-				onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity - 0.05 })}
-				aria-label={$t.overlayControls.weakerScrim}>−</button
-			>
-			<span class="stepper-value">{Math.round($overlayPalette.scrimOpacity * 100)}%</span>
-			<button
-				class="step"
-				disabled={$overlayPalette.scrimOpacity >= SCRIM_OPACITY_MAX}
-				onclick={() => overlay.setPalette({ scrimOpacity: $overlayPalette.scrimOpacity + 0.05 })}
-				aria-label={$t.overlayControls.strongerScrim}>+</button
-			>
-		</div>
+		<!-- Stepped in whole percent, the unit it is printed in, rather than in the stored
+		     fraction: the steps and the bounds are then integers, not sums of 0.05. -->
+		<Stepper
+			label={$t.overlayControls.scrimOpacity}
+			value={Math.round($overlayPalette.scrimOpacity * 100)}
+			min={Math.round(SCRIM_OPACITY_MIN * 100)}
+			max={Math.round(SCRIM_OPACITY_MAX * 100)}
+			step={5}
+			format={(percent) => `${percent}%`}
+			decreaseLabel={$t.overlayControls.weakerScrim}
+			increaseLabel={$t.overlayControls.strongerScrim}
+			onchange={(percent) => overlay.setPalette({ scrimOpacity: percent / 100 })}
+		/>
 		<!-- Not a live region on purpose: this changes on every step of a colour drag, and
 	     `docs/accessibility.md` keeps announcements for things worth interrupting a
 	     reader for. It is the description of the controls instead, so it is read on
@@ -191,7 +187,7 @@
 		display: grid;
 		gap: var(--space-2);
 		font-size: var(--type-small);
-		color: var(--text-muted);
+		color: var(--text-secondary);
 	}
 	.appearance-layout {
 		display: grid;
@@ -225,8 +221,8 @@
 		margin-top: var(--space-2);
 	}
 	.colour-choice {
-		width: 2rem;
-		height: 2rem;
+		width: var(--control-sm);
+		height: var(--control-sm);
 		border: 1px solid var(--line-hover);
 		border-radius: var(--radius-control);
 		forced-color-adjust: none;
@@ -242,41 +238,6 @@
 	}
 	.kicker {
 		flex: 0 0 auto;
-	}
-	.stepper {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-	.stepper-label {
-		font-size: var(--type-small);
-		line-height: 1;
-		color: var(--text-muted);
-		flex: 1;
-	}
-	.stepper-value {
-		font-family: var(--font-mono);
-		font-size: var(--type-body);
-		font-weight: 500;
-		line-height: 1;
-		/* Two mono digits, so the buttons either side stop moving as the number changes. */
-		min-width: 2ch;
-		text-align: center;
-		font-variant-numeric: tabular-nums;
-	}
-	.step {
-		width: 2rem;
-		height: 2rem;
-		border-radius: var(--radius-control);
-		border: 1px solid var(--line-strong);
-		background: var(--surface-1);
-		color: var(--text-secondary);
-		font-size: var(--type-label);
-		font-weight: 500;
-		line-height: 1;
-	}
-	.step:hover {
-		border-color: var(--line-hover);
 	}
 	.colour-row {
 		display: grid;
@@ -300,8 +261,8 @@
 	}
 	.swatch-label {
 		font-size: var(--type-small);
-		line-height: 1.2;
-		color: var(--text-muted);
+		line-height: var(--leading-tight);
+		color: var(--text-secondary);
 	}
 	.swatch input[type='color'] {
 		flex: 0 0 auto;
@@ -309,7 +270,7 @@
 		height: 20px;
 		padding: 0;
 		border: 1px solid var(--line-hover);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 		background: none;
 		cursor: pointer;
 	}
@@ -318,7 +279,7 @@
 	}
 	.swatch input[type='color']::-webkit-color-swatch {
 		border: none;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 	}
 	.contrast {
 		display: flex;
@@ -336,7 +297,7 @@
 	}
 	.contrast-note {
 		font-size: var(--type-caption);
-		line-height: 1.45;
+		line-height: var(--leading-snug);
 		color: var(--text-muted);
 	}
 	.contrast.warn .contrast-ratio {

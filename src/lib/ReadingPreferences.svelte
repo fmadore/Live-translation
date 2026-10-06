@@ -83,7 +83,7 @@
 	p {
 		margin: 0 0 var(--space-2);
 		font-size: var(--type-small);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 	}
 </style>

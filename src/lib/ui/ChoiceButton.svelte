@@ -20,7 +20,7 @@
 	} = $props();
 </script>
 
-<button class="card" class:selected {disabled} aria-pressed={selected} {onclick}>
+<button class="card ui-card" {disabled} aria-pressed={selected} {onclick}>
 	<span class="card-icon" aria-hidden="true">{@render icon()}</span>
 	<span class="card-body">
 		<span class="card-title">{title}</span>
@@ -42,41 +42,28 @@
 </button>
 
 <style>
+	/* The border, the fill and the selected wash are the shared .ui-card's; what is set here is
+	   the card's layout and how its icon plate and title follow the selection. */
 	.card {
 		display: flex;
 		align-items: flex-start;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-3);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-card);
-		background: var(--surface-1);
 		width: 100%;
-		text-align: left;
-		color: inherit;
-	}
-	.card.selected {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-	}
-	.card:hover:not(:disabled) {
-		border-color: var(--line-hover);
-	}
-	.card.selected:hover:not(:disabled) {
-		border-color: var(--accent);
 	}
 	.card-icon {
 		width: 30px;
 		height: 30px;
 		border-radius: var(--radius-control);
-		background: rgba(255, 255, 255, 0.045);
+		background: var(--surface-2);
 		color: var(--text-muted);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex: 0 0 auto;
 	}
-	.card.selected .card-icon {
-		background: var(--accent-chip-bg);
+	.card[aria-pressed='true'] .card-icon {
+		background: var(--accent-chip);
 		color: var(--accent-soft);
 	}
 	.card-body {
@@ -88,15 +75,15 @@
 	.card-title {
 		font-size: var(--type-label);
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 		color: var(--text-secondary);
 	}
-	.card.selected .card-title {
+	.card[aria-pressed='true'] .card-title {
 		color: var(--text-body);
 	}
 	.card-desc {
 		font-size: var(--type-small);
-		line-height: 1.45;
+		line-height: var(--leading-snug);
 		color: var(--text-muted);
 		text-wrap: pretty;
 	}
@@ -105,13 +92,5 @@
 		margin-left: auto;
 		flex: 0 0 auto;
 		display: flex;
-	}
-	/* Selection is a mint border and a mint wash, and both flatten to the same Canvas and
-	   CanvasText as the card next to it in a contrast theme. An inset outline survives. */
-	@media (forced-colors: active) {
-		.card.selected {
-			outline: 2px solid Highlight;
-			outline-offset: -2px;
-		}
 	}
 </style>

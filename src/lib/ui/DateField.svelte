@@ -40,12 +40,12 @@
 			onclick={() => picker.showPicker()}
 		>
 			<svg
-				width="16"
-				height="16"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				aria-hidden="true"
 				><rect x="3" y="5" width="18" height="16" rx="2" /><path
 					d="M16 3v4M8 3v4M3 11h18M7 15h2M11 15h2M15 15h2M7 18h2M11 18h2"
@@ -72,16 +72,18 @@
 	.date-control {
 		position: relative;
 	}
+	/* The calendar button spans the field's height, so it is as wide as the field is tall
+	   (--control-md, the 2.25rem below), and the text stops a step short of it. */
 	.date-control > input[type='text'] {
 		width: 100%;
-		padding-right: calc(2.5rem + var(--space-1));
+		padding-right: calc(2.25rem + var(--space-1));
 	}
 	button {
 		position: absolute;
 		right: 1px;
 		top: 1px;
 		bottom: 1px;
-		width: 2.5rem;
+		width: var(--control-md);
 		display: grid;
 		place-items: center;
 		padding: 0;

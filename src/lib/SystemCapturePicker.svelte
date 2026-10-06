@@ -124,6 +124,6 @@
 		margin: 0;
 		color: var(--text-muted);
 		font-size: var(--type-small);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 	}
 </style>

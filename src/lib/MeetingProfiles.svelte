@@ -148,24 +148,26 @@
 			onclick={() => (expanded = !expanded)}
 			title={$t.design.manageProfiles}
 		>
+			<!-- The knobs are filled with the button's own fill (`.ui-tool`'s --surface-2), so they
+			     read as rings sitting on the rails rather than as solid dots. -->
 			<svg
-				width="16"
-				height="16"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				aria-hidden="true"
 				><path d="M4 6h16M4 12h16M4 18h16" /><circle
 					cx="9"
 					cy="6"
 					r="2"
-					fill="var(--surface-1)"
-				/><circle cx="15" cy="12" r="2" fill="var(--surface-1)" /><circle
+					fill="var(--surface-2)"
+				/><circle cx="15" cy="12" r="2" fill="var(--surface-2)" /><circle
 					cx="9"
 					cy="18"
 					r="2"
-					fill="var(--surface-1)"
+					fill="var(--surface-2)"
 				/></svg
 			>
 		</ToolButton>
@@ -201,8 +203,8 @@
 								confirming = false;
 							}}
 							><svg
-								width="16"
-								height="16"
+								width="14"
+								height="14"
 								viewBox="0 0 24 24"
 								fill="currentColor"
 								aria-hidden="true"
@@ -225,7 +227,7 @@
 								}}>{$t.design.rename}</ToolButton
 							>
 							<ToolButton
-								class="danger"
+								variant="danger"
 								disabled={locked || busy}
 								onclick={() => {
 									if (selected !== p.id) confirming = false;
@@ -301,13 +303,14 @@
 	.picker > :global(.ui-tool) {
 		display: grid;
 		place-items: center;
-		width: 2.5rem;
-		min-height: 2.5rem;
+		/* Square, and the height of the select beside it. */
+		width: var(--control-md);
+		min-height: var(--control-md);
 		padding: 0;
 	}
 	p {
 		color: var(--text-muted);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		overflow-wrap: anywhere;
 	}
 	ul {

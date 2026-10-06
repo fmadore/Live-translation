@@ -119,8 +119,17 @@
 </div>
 
 <style>
+	/* The same 8px rhythm as every other block in the rail: the select, the two notes under
+	   it and the button each get their own line, rather than stacking flush. */
 	.models {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--space-2);
 		margin-top: var(--space-3);
+	}
+	.models > :global(.ui-field) {
+		align-self: stretch;
 	}
 	progress {
 		width: 100%;

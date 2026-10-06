@@ -502,7 +502,7 @@ export const fr: Messages = {
 		kicker: 'Avant de démarrer',
 		heading: 'Prêt quand vous l’êtes',
 		intro:
-			'Quatre vérifications, puis un seul bouton. Tout ce qui se trouve à gauche se verrouille pendant le sous-titrage : rien ne peut être modifié par accident en pleine session.',
+			'Quatre vérifications, puis Démarrer en haut de la fenêtre. Tout ce qui se trouve à gauche se verrouille pendant le sous-titrage : rien ne peut être modifié par accident en pleine session.',
 
 		demoRow: {
 			title: 'Démo intégrée · aucune clé nécessaire',

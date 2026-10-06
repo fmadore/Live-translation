@@ -179,9 +179,7 @@ describe('the component stylesheets', () => {
 	/** Literals that are content rather than interface: stand-ins for what the room sees. */
 	const CONTENT: Record<string, string[]> = {
 		// A dark and a bright slide behind the caption sample.
-		'lib/CaptionPreview.svelte': ['#111', '#fff'],
-		// The sample caption that stands in for the audience view while it is being placed.
-		'routes/overlay/OverlayMoveChrome.svelte': ['rgba(255, 255, 255, 0.55)']
+		'lib/CaptionPreview.svelte': ['#111', '#fff']
 	};
 
 	it('paint with tokens rather than hex literals', () => {
