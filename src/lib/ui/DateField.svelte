@@ -3,21 +3,23 @@
 	let { label, value = $bindable('') }: { label: string; value?: string } = $props();
 	const id = $props.id();
 	let picker: HTMLInputElement;
-	let draft = $state(value);
-	let invalid = $state(false);
-	$effect(() => {
-		draft = value;
-		invalid = false;
-	});
-	function edit(raw: string) {
-		draft = raw;
+	// What the field shows: the bound value, or what the operator is typing until it is a date.
+	// `$derived` is writable, so a value from outside — a calendar pick, a filter reset —
+	// replaces the draft without an effect copying it across.
+	let draft = $derived(value);
+	// An empty field is no filter, not an error.
+	const invalid = $derived(!!draft && !isCalendarDate(draft));
+	function isCalendarDate(raw: string): boolean {
 		const date = new Date(`${raw}T00:00:00Z`);
-		const valid =
+		return (
 			/^\d{4}-\d{2}-\d{2}$/.test(raw) &&
 			!Number.isNaN(date.getTime()) &&
-			date.toISOString().slice(0, 10) === raw;
-		invalid = !!raw && !valid;
-		if (!invalid) value = raw;
+			date.toISOString().slice(0, 10) === raw
+		);
+	}
+	function edit(raw: string) {
+		draft = raw;
+		if (!raw || isCalendarDate(raw)) value = raw;
 	}
 </script>
 
