@@ -3,7 +3,7 @@
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
-	import { hasKey, options, overlayPlaced, statusMessage, whisperModels } from './stores';
+	import { options, overlayPlaced, statusMessage, whisperModels } from './stores';
 	import { PROVIDER_META, rateText } from './providers';
 	import { describeReadiness, laneCount, providerRequiresKey } from './types';
 	import type { OverlayController } from './overlayController.svelte';
@@ -100,7 +100,7 @@
 			provider={$options.provider}
 			{locked}
 			onAvailability={(provider, available) => {
-				if ($options.provider === provider) $hasKey = available;
+				if ($options.provider === provider) preflight.noteKey(provider, available);
 			}}
 			onError={(message) => statusMessage.set(message)}
 		/>

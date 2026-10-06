@@ -4,6 +4,7 @@ import { api } from './tauri';
 import { createPreflightController } from './preflightController.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { options, overlayFontSize, overlayCaptionWidth, statusMessage } from './stores';
+import { DEFAULT_START_OPTIONS, type StartOptions, type WhisperModelInfo } from './types';
 
 beforeEach(() => {
 	statusMessage.set('');
@@ -74,6 +75,49 @@ it('asks the core once whether this processor can run local Whisper', async () =
 	});
 	await failing.refreshWhisperCpu();
 	expect(failing.whisperCpu).toEqual({ supported: true, missing: [] });
+});
+
+it('calls an engine ready only on the key, model or check that belongs to it', async () => {
+	const probe = createPreflightController(true, () => false, {
+		...api,
+		whisperCpuSupport: vi.fn().mockResolvedValue({ supported: true, missing: [] }),
+		onDeviceReadiness: vi.fn().mockResolvedValue({
+			ready: true,
+			engine: 'built-in-demo',
+			state: 'ready',
+			canPrepare: false
+		})
+	});
+
+	const gemini: StartOptions = { ...DEFAULT_START_OPTIONS, mode: 'translate', provider: 'gemini' };
+	expect(probe.engineReady(gemini, [])).toBe(false);
+	probe.noteKey('gemini', true);
+	expect(probe.engineReady(gemini, [])).toBe(true);
+	// Switching engines never borrows the previous one's answer while the panel asks again.
+	expect(probe.engineReady({ ...gemini, provider: 'openai' }, [])).toBe(false);
+	probe.noteKey('gemini', false);
+	expect(probe.engineReady(gemini, [])).toBe(false);
+
+	const whisper: StartOptions = { ...DEFAULT_START_OPTIONS, provider: 'whisper' };
+	const base: WhisperModelInfo = {
+		id: 'base',
+		bytes: 1,
+		installed: true,
+		downloading: false,
+		downloadedBytes: 0,
+		inUse: false
+	};
+	// Not until the core has said this processor can run it.
+	expect(probe.engineReady(whisper, [base])).toBe(false);
+	await probe.refreshWhisperCpu();
+	expect(probe.engineReady(whisper, [base])).toBe(true);
+	expect(probe.engineReady(whisper, [{ ...base, downloading: true }])).toBe(false);
+	expect(probe.engineReady({ ...whisper, whisperModel: 'small' }, [base])).toBe(false);
+
+	const demo: StartOptions = { ...DEFAULT_START_OPTIONS, provider: 'ondevice' };
+	expect(probe.engineReady(demo, [])).toBe(false);
+	await probe.refreshLocalReadiness();
+	expect(probe.engineReady(demo, [])).toBe(true);
 });
 
 it('falls back to the default microphone when a saved device disappears', async () => {

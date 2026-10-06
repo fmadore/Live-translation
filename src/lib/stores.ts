@@ -210,7 +210,6 @@ export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Da
 		[origin]: { audio: 0, caption: 0, ...value[origin], [kind]: now }
 	}));
 }
-export const hasKey = writable<boolean>(false);
 
 // Persisted to localStorage: the keyless built-in demo applies to a first run only, and a
 // configured operator's setup survives a restart. A chosen application is stored without its

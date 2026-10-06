@@ -35,7 +35,6 @@
 		isRunning,
 		statusMessage,
 		applyStatus,
-		hasKey,
 		options,
 		transcript,
 		recoveryEnabled,
@@ -47,7 +46,6 @@
 	} from '$lib/stores';
 	import { followTextScale } from '$lib/textScale';
 	import { historyEnabled } from '$lib/history';
-	import { providerRequiresKey } from '$lib/types';
 	import type { SessionState } from '$lib/types';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
@@ -79,24 +77,11 @@
 			preflight.validateSelection();
 	});
 
-	// The keyless demonstration is always bundled and ready. A commercial
-	// provider starts NOT ready: clearing the flag on the switch itself closes the
-	// tick where the previous provider's `true` would leave Start enabled before the
-	// remounted ApiKeyPanel has re-checked the keychain.
-	const needsKey = $derived(providerRequiresKey($options.provider));
-	$effect(() => {
-		hasKey.set(
-			needsKey
-				? false
-				: $options.provider === 'whisper'
-					? // Until the core has said this processor can run it, Whisper cannot start.
-						preflight.whisperCpu?.supported === true &&
-						!!$whisperModels.find(
-							(m) => m.id === ($options.whisperModel ?? 'base') && m.installed && !m.downloading
-						)
-					: (preflight.localReadiness?.ready ?? false)
-		);
-	});
+	// Whether the selected engine could start: a key the panel has confirmed for this engine,
+	// an installed Whisper model on a processor that runs it, or the demonstration's readiness.
+	// Derived rather than mirrored into a store, so nothing can leave it holding the previous
+	// engine's answer.
+	const engineReady = $derived(preflight.engineReady($options, $whisperModels));
 
 	// Ticks only while a session is open.
 	const clock = createSessionClock();
@@ -193,15 +178,42 @@
 				: 'en'
 	);
 
+	// Either caption language can be one the engine does not offer — the second one too, after
+	// an engine change — and either blocks Start.
+	const languageError = $derived(captionLanguageError($options, $t, $locale));
+
+	// Everything that keeps a session from starting, in one place. Start, Rehearse and the
+	// Ctrl+Shift+Space shortcut all read it, so they cannot drift apart again — Rehearse once
+	// stayed enabled while a profile was loading.
+	const startBlockers = $derived({
+		busy: browserMode || profileBusy || $sessionBusy || $isRunning,
+		language: languageError,
+		engine: !engineReady,
+		// Only a live start opens the chosen application; a rehearsal plays the bundled sample.
+		application: !preflight.applicationReady($options)
+	});
+	const canStart = $derived(
+		!startBlockers.busy &&
+			!startBlockers.language &&
+			!startBlockers.engine &&
+			!startBlockers.application
+	);
+	// The built-in demonstration plays its own scripted timeline, so it has no rehearsal.
+	const canRehearse = $derived(
+		!startBlockers.busy &&
+			!startBlockers.language &&
+			!startBlockers.engine &&
+			$options.provider !== 'ondevice'
+	);
+
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
+	// The buttons are already disabled for every blocker. The shortcut is not, so the two
+	// blockers an operator can act on from here say why rather than doing nothing.
 	async function launch(rehearsal?: DemoLanguage) {
-		if ($sessionBusy || $isRunning || profileBusy) return;
-		if (languageError) {
-			statusMessage.set(languageError);
-			return;
-		}
-		if (!rehearsal && !preflight.applicationReady($options)) {
-			statusMessage.set($t.applications.missing);
+		if (rehearsal === undefined ? !canStart : !canRehearse) {
+			if (startBlockers.busy || startBlockers.engine) return;
+			if (startBlockers.language) statusMessage.set(startBlockers.language);
+			else if (rehearsal === undefined) statusMessage.set($t.applications.missing);
 			return;
 		}
 		rehearsing = rehearsal !== undefined;
@@ -252,10 +264,6 @@
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.
 	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
-
-	// Either caption language can be one the engine does not offer — the second one too, after
-	// an engine change — and either blocks Start.
-	const languageError = $derived(captionLanguageError($options, $t, $locale));
 </script>
 
 <svelte:window
@@ -276,8 +284,9 @@
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
 		if (command === 'togglePause' && !browserMode && $isRunning && !$sessionBusy) togglePause();
 		if (command === 'toggleSession' && !browserMode && !profileBusy && !$sessionBusy) {
+			// Start answers to the same blockers as its button; see `launch`.
 			if ($isRunning) void stop();
-			else if ($hasKey && preflight.applicationReady($options)) void start();
+			else void start();
 		}
 	}}
 />
@@ -291,17 +300,8 @@
 		{#snippet actions()}
 			<SessionControls
 				busy={$sessionBusy}
-				startDisabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					profileBusy ||
-					$sessionBusy ||
-					!preflight.applicationReady($options)}
-				rehearseDisabled={!!languageError ||
-					!$hasKey ||
-					browserMode ||
-					$sessionBusy ||
-					$options.provider === 'ondevice'}
+				startDisabled={!canStart}
+				rehearseDisabled={!canRehearse}
 				paused={$pauseRequested}
 				onStart={start}
 				onRehearse={rehearse}
