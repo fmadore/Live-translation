@@ -12,7 +12,7 @@ use tokio::net::TcpStream;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::{sleep, sleep_until, timeout, Instant, MissedTickBehavior};
 use tokio_tungstenite::tungstenite::{Bytes, Message};
-use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{connect_async_with_config, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
@@ -169,7 +169,13 @@ async fn open<P: RealtimeProtocol, E: Events>(
     backlog: &mut Backlog,
 ) -> Result<Connection, RunEnd> {
     let request = proto.connect_request()?;
-    let connecting = timeout(CONNECT_TIMEOUT, connect_async(request));
+    // Nagle off: each 100 ms audio frame ends in a part-filled segment, which Nagle would hold
+    // until the provider acknowledged the previous one — a round trip of added latency, or a
+    // delayed-ACK timer, on every chunk of live speech.
+    let connecting = timeout(
+        CONNECT_TIMEOUT,
+        connect_async_with_config(request, None, true),
+    );
     tokio::pin!(connecting);
     let ws = loop {
         tokio::select! {

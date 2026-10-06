@@ -4,7 +4,10 @@
 //! The clock is paused. Tokio advances a paused clock to the next timer whenever the runtime
 //! parks — even with loopback I/O still in flight — so `tick_clock` keeps a 1 ms timer always
 //! pending: each park then moves the clock by a millisecond at most, and the multi-second
-//! timeouts under test are only ever crossed on purpose.
+//! timeouts under test are only ever crossed on purpose. That holds only while I/O completes
+//! within a few parks, so both ends run with Nagle off: on Linux, a small frame held for an
+//! acknowledgement waits out the ~40 ms delayed-ACK timer, thousands of parks in which the
+//! paused clock would race through a test's listening window.
 
 use std::time::Duration;
 
@@ -216,6 +219,9 @@ impl Server {
                 .await
                 .expect("the client did not connect")
                 .unwrap();
+            // As the client does: a frame Nagle held back would wait out Linux's delayed-ACK
+            // timer in real time, and the paused clock would race through it (see above).
+            stream.set_nodelay(true).unwrap();
             let Ok(ws) = accept_async(stream).await else {
                 continue;
             };
