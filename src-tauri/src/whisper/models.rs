@@ -1,5 +1,5 @@
 //! Pinned multilingual model downloads. No arbitrary URLs or renderer-supplied paths.
-use std::fs;
+use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -12,6 +12,10 @@ use tauri::{AppHandle, Manager};
 use tokio_util::sync::CancellationToken;
 
 const REVISION: &str = "5359861c739e955e79d9a303bcbc70fb988958b1";
+
+/// No overall deadline: Small is 182 MiB, and a slow or proxied network is still a network.
+/// A connection that stops delivering is what fails, after this long without a byte.
+const STALL: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -48,6 +52,36 @@ impl ModelId {
             Self::Small => "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
         }
     }
+
+    /// The fixed name a download is written under until it has been verified. Fixed rather than
+    /// random so the next download can find and delete what an interrupted one left behind:
+    /// quitting mid-download exits the process without running destructors.
+    fn partial(self) -> String {
+        format!("{}.part", self.file())
+    }
+}
+
+/// Where a download comes from and what it must turn out to be. Always the pinned Hugging Face
+/// file in the app; the tests point it at a local server with a small payload.
+struct Transfer {
+    url: String,
+    bytes: u64,
+    sha256: String,
+    stall: Duration,
+}
+
+impl Transfer {
+    fn pinned(id: ModelId) -> Self {
+        Self {
+            url: format!(
+                "https://huggingface.co/ggerganov/whisper.cpp/resolve/{REVISION}/{}",
+                id.file()
+            ),
+            bytes: id.bytes(),
+            sha256: id.sha256().to_owned(),
+            stall: STALL,
+        }
+    }
 }
 
 #[derive(Clone, Default)]
@@ -74,6 +108,70 @@ pub fn directory(app: &AppHandle) -> Result<PathBuf> {
     let dir = app.path().app_local_data_dir()?.join("whisper-models");
     fs::create_dir_all(&dir)?;
     Ok(dir)
+}
+
+/// Delete whatever earlier downloads left in the models folder: our own `.part` files, and the
+/// random `.tmp*` names releases up to 1.6.1 used. Only one download runs at a time and only
+/// this app writes here, so nothing matching is in use. Best effort: a file that cannot be
+/// deleted now is tried again next time.
+fn remove_partials(dir: &Path) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if (name.ends_with(".part") || name.starts_with(".tmp"))
+            && entry.file_type().is_ok_and(|t| t.is_file())
+        {
+            let _ = fs::remove_file(entry.path());
+        }
+    }
+}
+
+/// The download in progress. Removed on every way out except a verified install, including an
+/// error, a cancellation or an unwind.
+struct Partial {
+    path: PathBuf,
+    file: Option<File>,
+}
+
+impl Partial {
+    fn create(path: PathBuf) -> Result<Self> {
+        let file = File::create(&path)?;
+        Ok(Self {
+            path,
+            file: Some(file),
+        })
+    }
+
+    fn write(&mut self, bytes: &[u8]) -> Result<()> {
+        self.file
+            .as_mut()
+            .context("The partial download was already closed")?
+            .write_all(bytes)?;
+        Ok(())
+    }
+
+    /// Flush, close, then rename over the final name: a reader sees either no model or a
+    /// complete, verified one.
+    fn install(mut self, destination: &Path) -> Result<()> {
+        let file = self
+            .file
+            .take()
+            .context("The partial download was already closed")?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&self.path, destination).context("Could not install the verified model")
+    }
+}
+
+impl Drop for Partial {
+    fn drop(&mut self) {
+        // Close first: Windows only finishes deleting a file once its last handle is gone.
+        drop(self.file.take());
+        let _ = fs::remove_file(&self.path);
+    }
 }
 
 impl ModelManager {
@@ -138,6 +236,10 @@ impl ModelManager {
     }
 
     pub async fn download(&self, dir: &Path, id: ModelId) -> Result<()> {
+        self.download_from(dir, id, &Transfer::pinned(id)).await
+    }
+
+    async fn download_from(&self, dir: &Path, id: ModelId, transfer: &Transfer) -> Result<()> {
         let token = CancellationToken::new();
         {
             let mut state = self.0.lock().unwrap_or_else(|e| e.into_inner());
@@ -151,48 +253,58 @@ impl ModelManager {
             );
             state.download = Some((id, token.clone(), 0));
         }
-        // RAII clears both the partial file and the operation even on error/unwind.
+        // RAII clears the operation even on error/unwind; `Partial` does the same for the file.
         let _operation = DownloadGuard(self.clone());
-        let mut temp = tempfile::NamedTempFile::new_in(dir)?;
-        let url = format!(
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/{REVISION}/{}",
-            id.file()
-        );
+        remove_partials(dir);
+        let mut partial = Partial::create(dir.join(id.partial()))?;
         let client = reqwest::Client::builder()
-            .https_only(true)
-            .connect_timeout(Duration::from_secs(15))
-            .timeout(Duration::from_secs(1800))
-            .build()?;
+            // Plain HTTP exists only for the local test server.
+            .https_only(cfg!(not(test)))
+            .connect_timeout(Duration::from_secs(15));
+        // A developer's own proxy setting must not intercept the tests' loopback server.
+        #[cfg(test)]
+        let client = client.no_proxy();
+        let client = client.build()?;
         let mut response = tokio::select! {
             _ = token.cancelled() => anyhow::bail!("Model download cancelled"),
-            response = client.get(url).send() => response?.error_for_status()?,
+            response = tokio::time::timeout(transfer.stall, client.get(&transfer.url).send()) =>
+                response.context("The model download stopped responding")??.error_for_status()?,
         };
+        if let Some(length) = response.content_length() {
+            ensure!(
+                length <= transfer.bytes,
+                "The model exceeds its expected size"
+            );
+        }
         let mut hash = Sha256::new();
         let mut total = 0u64;
         loop {
             // Cancellation also interrupts a stalled connection, not only a successful read.
             let chunk = tokio::select! {
                 _ = token.cancelled() => anyhow::bail!("Model download cancelled"),
-                chunk = tokio::time::timeout(Duration::from_secs(60), response.chunk()) =>
+                chunk = tokio::time::timeout(transfer.stall, response.chunk()) =>
                     chunk.context("The model download stopped responding")??,
             };
             let Some(chunk) = chunk else {
                 break;
             };
             total += chunk.len() as u64;
-            ensure!(total <= id.bytes(), "The model exceeds its expected size");
+            ensure!(
+                total <= transfer.bytes,
+                "The model exceeds its expected size"
+            );
             hash.update(&chunk);
-            temp.write_all(&chunk)?;
+            partial.write(&chunk)?;
             if let Some(download) = &mut self.0.lock().unwrap_or_else(|e| e.into_inner()).download {
                 download.2 = total;
             }
         }
         ensure!(!token.is_cancelled(), "Model download cancelled");
-        verify_digest(id, total, &format!("{:x}", hash.finalize()))?;
-        temp.as_file().sync_all()?;
-        temp.persist(dir.join(id.file()))
-            .context("Could not install the verified model")?;
-        Ok(())
+        ensure!(
+            total == transfer.bytes && format!("{:x}", hash.finalize()) == transfer.sha256,
+            "Whisper model integrity check failed; remove and download it again"
+        );
+        partial.install(&dir.join(id.file()))
     }
 }
 
@@ -245,6 +357,9 @@ fn verify_digest(id: ModelId, bytes: u64, digest: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::{BufRead, BufReader};
+    use std::net::TcpListener;
+    use std::time::Instant;
 
     #[test]
     fn rejects_wrong_size_and_hash() {
@@ -266,5 +381,239 @@ mod tests {
         assert!(manager.download(dir.path(), ModelId::Tiny).await.is_err());
         drop(lease);
         manager.remove(dir.path(), ModelId::Tiny).unwrap();
+    }
+
+    #[test]
+    fn production_downloads_are_pinned_https() {
+        let transfer = Transfer::pinned(ModelId::Small);
+        assert!(transfer.url.starts_with("https://huggingface.co/"));
+        assert!(transfer.url.contains(REVISION));
+        assert_eq!(transfer.bytes, ModelId::Small.bytes());
+        assert_eq!(transfer.stall, STALL);
+    }
+
+    const PAYLOAD: &[u8] = b"a small stand-in for a model";
+
+    /// What the loopback server sends after the request: a status line and headers, then body
+    /// pieces, each optionally preceded by a pause. `hang` keeps the socket open, silent, at
+    /// the end — a stalled connection rather than a finished one.
+    struct Script {
+        head: String,
+        body: Vec<(Duration, Vec<u8>)>,
+        hang: bool,
+    }
+
+    fn ok(body: Vec<(Duration, Vec<u8>)>, length: Option<usize>, hang: bool) -> Script {
+        let length = length.map_or(String::new(), |n| format!("Content-Length: {n}\r\n"));
+        Script {
+            head: format!("HTTP/1.1 200 OK\r\n{length}Connection: close\r\n\r\n"),
+            body,
+            hang,
+        }
+    }
+
+    /// A one-request HTTP server on a loopback port. A plain thread, so it keeps answering
+    /// while the test's runtime is busy with the client.
+    fn serve(script: Script) -> String {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let Ok((mut stream, _)) = listener.accept() else {
+                return;
+            };
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut line = String::new();
+            while reader.read_line(&mut line).is_ok_and(|n| n > 0) && line != "\r\n" {
+                line.clear();
+            }
+            if stream.write_all(script.head.as_bytes()).is_err() {
+                return;
+            }
+            for (pause, piece) in script.body {
+                std::thread::sleep(pause);
+                if stream
+                    .write_all(&piece)
+                    .and_then(|()| stream.flush())
+                    .is_err()
+                {
+                    return;
+                }
+            }
+            if script.hang {
+                std::thread::sleep(Duration::from_secs(30));
+            }
+        });
+        format!("http://{address}/model.bin")
+    }
+
+    fn transfer(url: String) -> Transfer {
+        Transfer {
+            url,
+            bytes: PAYLOAD.len() as u64,
+            sha256: format!("{:x}", Sha256::digest(PAYLOAD)),
+            stall: Duration::from_millis(500),
+        }
+    }
+
+    /// Everything left in the models folder, sorted.
+    fn files(dir: &Path) -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        names.sort();
+        names
+    }
+
+    #[tokio::test]
+    async fn a_verified_download_is_installed_under_its_final_name_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = serve(ok(
+            vec![
+                (Duration::ZERO, PAYLOAD[..10].to_vec()),
+                (Duration::from_millis(50), PAYLOAD[10..].to_vec()),
+            ],
+            Some(PAYLOAD.len()),
+            false,
+        ));
+        let manager = ModelManager::default();
+        manager
+            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .await
+            .unwrap();
+        assert_eq!(files(dir.path()), [ModelId::Tiny.file()]);
+        assert_eq!(
+            fs::read(dir.path().join(ModelId::Tiny.file())).unwrap(),
+            PAYLOAD
+        );
+        assert!(manager.list(dir.path()).iter().all(|m| !m.downloading));
+    }
+
+    #[tokio::test]
+    async fn a_hash_mismatch_installs_nothing_and_leaves_no_partial_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut corrupt = PAYLOAD.to_vec();
+        corrupt[0] ^= 1;
+        let url = serve(ok(
+            vec![(Duration::ZERO, corrupt)],
+            Some(PAYLOAD.len()),
+            false,
+        ));
+        let error = ModelManager::default()
+            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .await
+            .unwrap_err();
+        assert!(error.to_string().contains("integrity"), "{error:#}");
+        assert!(files(dir.path()).is_empty(), "{:?}", files(dir.path()));
+    }
+
+    #[tokio::test]
+    async fn an_oversized_body_is_refused_with_or_without_a_declared_length() {
+        let mut long = PAYLOAD.to_vec();
+        long.push(b'!');
+        for declared in [Some(long.len()), None] {
+            let dir = tempfile::tempdir().unwrap();
+            let url = serve(ok(vec![(Duration::ZERO, long.clone())], declared, false));
+            let error = ModelManager::default()
+                .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+                .await
+                .unwrap_err();
+            assert!(error.to_string().contains("expected size"), "{error:#}");
+            assert!(files(dir.path()).is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn a_stalled_connection_fails_after_the_stall_timeout_not_a_total_deadline() {
+        let dir = tempfile::tempdir().unwrap();
+        // Slower in total than the stall timeout, but never silent for that long.
+        let pieces = PAYLOAD
+            .chunks(4)
+            .map(|piece| (Duration::from_millis(150), piece.to_vec()))
+            .collect();
+        let url = serve(ok(pieces, Some(PAYLOAD.len()), false));
+        let manager = ModelManager::default();
+        let started = Instant::now();
+        manager
+            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .await
+            .unwrap();
+        assert!(started.elapsed() > Duration::from_millis(500));
+
+        // Then a server that goes quiet half-way.
+        let dir = tempfile::tempdir().unwrap();
+        let url = serve(ok(
+            vec![(Duration::ZERO, PAYLOAD[..5].to_vec())],
+            Some(PAYLOAD.len()),
+            true,
+        ));
+        let error = manager
+            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("stopped responding"),
+            "{error:#}"
+        );
+        assert!(files(dir.path()).is_empty());
+    }
+
+    #[tokio::test]
+    async fn cancelling_a_download_removes_its_partial_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let url = serve(ok(
+            vec![(Duration::ZERO, PAYLOAD[..5].to_vec())],
+            Some(PAYLOAD.len()),
+            true,
+        ));
+        let manager = ModelManager::default();
+        let mut slow = transfer(url);
+        slow.stall = Duration::from_secs(20);
+        let download = {
+            let manager = manager.clone();
+            let dir = dir.path().to_owned();
+            tokio::spawn(async move { manager.download_from(&dir, ModelId::Tiny, &slow).await })
+        };
+        // Wait until the first bytes are on disk, so the cancel lands mid-transfer.
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while manager
+            .list(dir.path())
+            .iter()
+            .all(|m| m.downloaded_bytes == 0)
+        {
+            assert!(Instant::now() < deadline, "the download never started");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert_eq!(files(dir.path()), [ModelId::Tiny.partial()]);
+        manager.cancel_download();
+        let error = download.await.unwrap().unwrap_err();
+        assert!(error.to_string().contains("cancelled"), "{error:#}");
+        assert!(files(dir.path()).is_empty());
+        assert!(manager.list(dir.path()).iter().all(|m| !m.downloading));
+    }
+
+    #[tokio::test]
+    async fn a_new_download_clears_what_interrupted_ones_left_behind() {
+        let dir = tempfile::tempdir().unwrap();
+        for stale in [
+            ModelId::Small.partial().as_str(),
+            ".tmpA1b2C3",
+            ModelId::Base.file(),
+            "notes.txt",
+        ] {
+            fs::write(dir.path().join(stale), b"left over").unwrap();
+        }
+        // The download itself fails; the clean-up happens regardless.
+        let url = serve(Script {
+            head: "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                .to_owned(),
+            body: Vec::new(),
+            hang: false,
+        });
+        assert!(ModelManager::default()
+            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .await
+            .is_err());
+        assert_eq!(files(dir.path()), [ModelId::Base.file(), "notes.txt"]);
     }
 }

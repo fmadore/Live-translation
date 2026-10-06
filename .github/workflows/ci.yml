@@ -102,7 +102,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          prefix-key: whisper-cpu-${{ runner.arch }}-v1
+          # Bump when `.cargo/config.toml` changes: whisper-rs-sys does not rebuild ggml when
+          # its GGML_* variables change, so a restored cache would keep the old instruction sets.
+          prefix-key: whisper-cpu-${{ runner.arch }}-v2
           # Preserve the native dependency build when an app lint/test fails.
           cache-on-failure: true
 
@@ -122,6 +124,39 @@ jobs:
         timeout-minutes: 10
         run: cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
         working-directory: src-tauri
+
+      # The x64 build compiles ggml for AVX2 (`.cargo/config.toml`), and a processor without it
+      # must be refused before any of that code runs. Intel SDE emulates Goldmont Plus, the
+      # pre-AVX core in cheap Windows 11 Celeron and Pentium Silver laptops, and stops the
+      # process on any instruction that core lacks: this step passing shows the test binary
+      # starts without executing AVX code and that the runtime gate reports the CPU unsupported.
+      - name: Set up Intel SDE
+        if: matrix.os == 'windows-latest'
+        # Mirrors Intel's archive and checks it against the SHA-256 Intel publishes. SDE is under
+        # the Intel Simplified Software License, which permits unmodified redistribution.
+        uses: petarpetrovt/setup-sde@6d2773bc0ef3005fd52e0ae0bb91782321793aec # v6.0
+        with:
+          environmentVariableName: SDE_PATH
+          sdeVersion: 10.13.1
+
+      - name: Whisper CPU gate on a pre-AVX processor (Intel SDE)
+        if: matrix.os == 'windows-latest'
+        timeout-minutes: 10
+        shell: pwsh
+        working-directory: src-tauri
+        run: |
+          # The unit-test binary the tests step already built; --no-run only reports its path.
+          $exe = cargo test --locked --all-features --lib --no-run --message-format=json |
+            ForEach-Object { $_ | ConvertFrom-Json } |
+            Where-Object { $_.reason -eq 'compiler-artifact' -and $_.executable } |
+            Select-Object -Last 1 -ExpandProperty executable
+          if (-not $exe) { throw 'Could not find the unit-test binary' }
+          & "$env:SDE_PATH\sde.exe" -glp -- $exe `
+            whisper::cpu::tests::refuses_a_processor_without_avx --exact --ignored --nocapture |
+            Tee-Object -Variable output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # A renamed test would match nothing and "pass"; insist that it actually ran.
+          if (-not ($output -match '1 passed')) { throw 'The CPU gate test did not run' }
 
   workflow-lint:
     runs-on: ubuntu-latest

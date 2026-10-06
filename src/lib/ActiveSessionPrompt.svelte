@@ -16,10 +16,13 @@
 		elapsed: string;
 		/** True when the request came from the tray rather than the window's close button. */
 		fromTray: boolean;
+		/** Local Whisper audio not yet transcribed, in seconds. Quitting gives it a few seconds
+		 *  and then discards the rest, so the operator hears about it before choosing. */
+		pendingSeconds?: number;
 		onChoice: (stop: boolean) => void;
 	}
 
-	let { elapsed, fromTray, onChoice }: Props = $props();
+	let { elapsed, fromTray, pendingSeconds = 0, onChoice }: Props = $props();
 
 	let keepEl = $state<HTMLButtonElement | null>(null);
 
@@ -32,6 +35,9 @@
 
 <ModalPrompt title={$t.prompt.activeSession.title} onDismiss={() => onChoice(false)}>
 	<p>{$t.prompt.activeSession.body(elapsed)}</p>
+	{#if pendingSeconds > 0}
+		<p>{$t.prompt.activeSession.whisperPending(pendingSeconds)}</p>
+	{/if}
 	{#if !fromTray}
 		<p class="note">
 			{$t.prompt.activeSession.noteBefore}

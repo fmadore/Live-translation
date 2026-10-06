@@ -30,6 +30,19 @@ describe('ActiveSessionPrompt', () => {
 		expect(mount().getByRole('button', { name: 'Keep captioning' })).toHaveFocus();
 	});
 
+	// Quitting gives local Whisper a few seconds and then discards the rest of its backlog, so
+	// the operator hears how much before choosing — and nothing when there is none.
+	it('says how much untranscribed Whisper audio closing would discard', () => {
+		for (const props of [{}, { pendingSeconds: 0 }]) {
+			const view = mount(props);
+			expect(view.getByRole('dialog')).not.toHaveTextContent('to transcribe');
+			view.unmount();
+		}
+		expect(mount({ pendingSeconds: 95 }).getByRole('dialog')).toHaveTextContent(
+			'Local Whisper still has 95 s of audio to transcribe'
+		);
+	});
+
 	it('reports each answer', async () => {
 		const { getByRole, onChoice } = mount();
 

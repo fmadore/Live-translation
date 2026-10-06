@@ -6,6 +6,7 @@ import WhisperActivity from './WhisperActivity.svelte';
 import { options, whisperModels, statusMessage, originStates } from './stores';
 import { DEFAULT_START_OPTIONS, type WhisperModelInfo, type WhisperProgress } from './types';
 import { setLocale } from './i18n';
+import { whisperPendingSeconds, whisperProgress } from './whisperProgress';
 
 const mocks = vi.hoisted(() => ({
 	models: vi.fn(),
@@ -42,6 +43,7 @@ beforeEach(() => {
 	whisperModels.set([]);
 	statusMessage.set('');
 	originStates.set({});
+	whisperProgress.set({});
 	mocks.models.mockResolvedValue([{ ...base }]);
 	mocks.progress.mockResolvedValue(mocks.unlisten);
 });
@@ -109,6 +111,10 @@ it('requires a separate confirmation to discard pending audio and clears progres
 	await waitFor(() => expect(mocks.progress).toHaveBeenCalled());
 	progress({ origin: 'system', pendingMs: 30000, finalizing: true });
 	await waitFor(() => expect(view.getByText(/Finishing the transcript.*30 s/)).toBeInTheDocument());
+	// Shared with the quit prompt, which says how much closing would discard. The longer
+	// source is what finishing waits for.
+	progress({ origin: 'microphone', pendingMs: 41500, finalizing: true });
+	expect(get(whisperPendingSeconds)).toBe(42);
 	await fireEvent.click(view.getByRole('button', { name: 'Discard remaining audio' }));
 	expect(mocks.discard).not.toHaveBeenCalled();
 	expect(view.getByRole('alert')).toHaveTextContent('transcript will be incomplete');
@@ -119,6 +125,7 @@ it('requires a separate confirmation to discard pending audio and clears progres
 	expect(mocks.discard).toHaveBeenCalledOnce();
 	originStates.set({ system: 'idle' });
 	await waitFor(() => expect(view.queryByText(/Finishing the transcript/)).not.toBeInTheDocument());
+	expect(get(whisperPendingSeconds)).toBe(0);
 	view.unmount();
 	expect(mocks.unlisten).toHaveBeenCalledOnce();
 });

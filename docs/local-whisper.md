@@ -10,6 +10,11 @@ New installations open on Whisper with Base and automatic language detection sel
 Downloading a model and starting capture both require the user's action. Saved engine, model,
 language and audio choices are kept on upgrade.
 
+On a processor that cannot run the Whisper engine (see [processor requirements](#processor-requirements)),
+the setup sheet lists Whisper as unavailable with a one-line reason, Start is not offered for it,
+and a selected Whisper — including the first-launch default — is replaced by the built-in demo,
+so the keyless first launch always opens on something that starts.
+
 ## Using it
 
 1. Choose Subtitles, the microphone/system/application source, and **Whisper** as the engine.
@@ -21,6 +26,11 @@ language and audio choices are kept on upgrade.
    the complete transcript. The pending duration reports unprocessed audio, not a prediction
    of processing time. Discarding pending audio requires confirmation and leaves an explicit
    incomplete-transcript notice.
+
+Closing the app while audio is still waiting is different from Stop: the close prompt says how
+many seconds remain, closing gives the backlog a few seconds, and whatever is left is then
+discarded so the app can actually quit. Stop first and let it finish if the transcript has to
+be complete.
 
 | Model | Download | Intended choice |
 | --- | ---: | --- |
@@ -34,9 +44,16 @@ The separate Cantonese token introduced with large-v3 is not advertised for thes
 
 Models are pinned to Hugging Face `ggerganov/whisper.cpp` revision
 `5359861c739e955e79d9a303bcbc70fb988958b1`. Exact sizes and SHA-256 digests are in
-`src-tauri/src/whisper/models.rs`. Downloads use HTTPS, cancellation, timeouts and a temporary
-file; only a completely verified download is installed. Installed bytes are verified again
-before passing them to the native loader. Files in use cannot be deleted or replaced.
+`src-tauri/src/whisper/models.rs`. Downloads use HTTPS and can be cancelled. There is no overall
+time limit, so a slow connection still finishes Small; a connection that delivers nothing for
+60 seconds fails instead. Downloads follow the proxy server set in Windows Settings → Network &
+internet → Proxy (manual setup, including its bypass list) and the `HTTPS_PROXY`/`HTTP_PROXY`
+variables; automatic proxy scripts (PAC/WPAD) are not read. The file is written as
+`<model>.part` in the models folder and renamed into place only after its size and SHA-256
+match; a failed or cancelled download deletes it, and starting a download first deletes any
+partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
+bytes are verified again before passing them to the native loader. Files in use cannot be
+deleted or replaced.
 
 ## Audio handling and limits
 
@@ -48,24 +65,54 @@ of audio without the reader catching up and resetting the file); disk-full, I/O 
 writer overflow stop the source and report that its transcript may be incomplete. Memory does
 not grow with the audio backlog.
 
-Recognition uses windows of up to roughly 10 seconds, one second of overlap, conservative
-silence endpointing and Whisper’s no-speech probability. It produces finalized captions, not
-speculative word-by-word interim captions. A final short window is padded for inference and
-its timestamps are clamped to the actual audio duration. Pauses retain elapsed meeting timing.
-Exact overlap text is reconciled only for overlapping timestamps; later repetitions are kept.
+Recognition uses windows of up to roughly 10 seconds, one second of overlap and conservative
+silence endpointing. It produces finalized captions, not speculative word-by-word interim
+captions. A final short window is padded for inference and its timestamps are clamped to the
+actual audio duration. Pauses retain elapsed meeting timing, and each window's time is taken
+from the capture timestamp of the audio it starts in rather than counted in samples, so a
+capture clock running slightly fast or slow cannot drift caption times over a long meeting.
+
+When the backlog exceeds 30 seconds, windows grow to about 28 seconds until it has cleared.
+Whisper encodes 30 seconds of audio however short the window is, so long windows clear a
+backlog with roughly a third of the encoder passes; timestamps are unaffected.
+
+Text repeated across the second of overlap is removed only where the timestamps actually
+overlap; later repetitions are kept. It is compared word by word, ignoring case and
+punctuation ("there" does not match "here"); Chinese, Japanese, Thai and other scripts written
+without spaces are compared by character. whisper.cpp already drops a window it judges silent;
+the app additionally drops a segment only when the window's no-speech probability is above 0.6
+**and** the segment's mean token log-probability is below −1 (whisper.cpp's own thresholds,
+applied per segment), which removes the "Thank you." Whisper invents over room noise without
+dropping confident speech. Text that is not valid UTF-8 loses only the broken character.
 Accuracy at window boundaries, background noise and code-switching still need real meeting
 acceptance tests. Whisper can misrecognize speech or hallucinate text.
 
+With **Detect automatically**, every window of 3 seconds or more detects its own language, so a
+French/English room is followed as speakers alternate. A shorter window — a quick reply, a
+name, the last words before a pause — reuses the language detected on the last longer window
+that produced captions, because a second or two of audio is where detection is least reliable
+and most likely to turn a phrase into the other language. A chosen spoken language is always
+used as chosen.
+
 Pause stops new audio entering transcription or its temporary file, while the existing backlog
-continues processing. Normal Stop drains input and the final partial window without the cloud
-pipeline’s five-second limit. An explicit discard token interrupts inference. Temporary audio
-is delete-on-close and cannot be recovered after the process exits; see [privacy](privacy.md).
+continues processing. When no new audio has arrived for a second — after Pause, or when system
+audio goes quiet because nothing is playing — the audio already held is transcribed straight
+away instead of waiting for more. Normal Stop drains input and the final partial window
+without the cloud pipeline’s five-second limit. An explicit discard token interrupts
+inference. Temporary audio is delete-on-close and cannot be recovered after the process exits;
+see [privacy](privacy.md).
+
+Inference uses about half the logical processors on x64 (one thread per core, assuming
+simultaneous multithreading) and all but one core on ARM64, at most eight threads either way.
+With Both sources, the two sources take turns rather than running inference at the same time,
+so they do not compete for the same cores with capture and the interface.
 
 ## Building
 
-`whisper-rs` 0.16.0 vendors whisper.cpp through `whisper-rs-sys` 0.15.0. The CPU backend is
-statically linked. No Python, external Whisper executable, GPU, CUDA or model is bundled in
-the installer. Model loading uses Rust’s filesystem API so non-ASCII Windows usernames work.
+`whisper-rs` 0.16.0 vendors whisper.cpp 1.8.3 through `whisper-rs-sys` 0.15.0, both pinned
+exactly in `Cargo.toml`. The CPU backend is statically linked. No Python, external Whisper
+executable, GPU, CUDA or model is bundled in the installer. Model loading uses Rust’s
+filesystem API so non-ASCII Windows usernames work.
 
 Install LLVM/Clang with libclang, CMake and Ninja alongside the normal Rust/Tauri Windows
 prerequisites. Run in a Visual Studio Developer PowerShell for the target architecture:
@@ -82,10 +129,31 @@ npm run tauri dev
 
 The native Windows ARM64 backend requires Clang; plain MSVC cannot compile this version of
 GGML’s ARM CPU code. CI and release packaging use native Windows x64 and ARM64 runners with
-the same compiler setup. `.cargo/config.toml` disables build-host-specific instruction sets,
-including AVX-only x64 builds, and targets baseline ARMv8: CPU portability takes precedence
-over optional acceleration. Real-time throughput is not guaranteed; Both sources runs two
-inference states and increases CPU and memory use.
+the same compiler setup. Real-time throughput is not guaranteed; Both sources runs two
+inference states and increases memory use.
+
+### Processor requirements
+
+`.cargo/config.toml` builds GGML's CPU code for a fixed instruction-set level rather than the
+build machine's, because GGML's quantised maths has no fast path below it and Small would not
+keep up with speech:
+
+| Architecture | Built for | Checked at runtime |
+| --- | --- | --- |
+| x64 | AVX2, FMA, F16C, SSE4.2 — clang-cl's `/arch:AVX2`, which also allows BMI1, BMI2, LZCNT, MOVBE and POPCNT | All of those (Intel Haswell, AMD Excavator/Zen and later, including Alder Lake-N) |
+| ARM64 | `armv8.2-a+dotprod+fp16` | Dot-product (Snapdragon 850 and later); Windows reports FP16 only on recent builds, and every SoC with dot-product has it |
+
+`src-tauri/src/whisper/cpu.rs` checks this before any whisper.cpp code runs — model load,
+context creation, the smoke test — because GGML code built for AVX2 stops the whole app with
+an illegal instruction on an older processor. Such a PC is refused with a translated
+explanation, and the setup sheet learns it before Start through `whisper_cpu_support`. The
+other engines are unaffected. CI proves the x64 side by running the test binary under Intel SDE
+emulating Goldmont Plus (the pre-AVX core in budget Celeron and Pentium Silver laptops): the
+binary starts without executing AVX code and the gate reports the processor unsupported.
+
+The whisper-rs-sys build script does not watch these variables. After changing them, run
+`cargo clean -p whisper-rs-sys` and bump the Rust cache `prefix-key` in the workflows, or the
+old native libraries are reused.
 
 Whisper.cpp and the OpenAI model weights use the MIT license; whisper-rs uses the Unlicense.
 Their notices are included under `resources/licenses` and bundled with the app.
@@ -105,14 +173,24 @@ cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
 
 Unit tests cover language vocabulary, corrupt model rejection, active-model protection,
 writer overflow, pause filtering, final-tail handling, timestamp gaps and producer failure
-ordering. UI tests cover persisted multilingual settings and model/progress controls. For
+ordering; the processor check; downloads against a loopback HTTP server (verified install,
+hash mismatch, oversized body, stalled connection, cancellation, partial-file clean-up); the
+spool's idle signal and size limit; the segmenter's gap threshold, jittered and drifting
+timestamps, long windows and idle flush; segment reconciliation (overlap by word and by
+character, clamped and monotonic times, broken UTF-8, the no-speech filter); short-window
+language reuse; and thread counts. UI tests cover persisted multilingual settings,
+model/progress controls, the unsupported-processor engine card and the close prompt's pending
+audio. For
 PR #99 (4 October 2026) the smoke test passed on ARM64, including non-ASCII model paths, and
 all seven PR CI jobs passed on
 [run 37196818518](https://github.com/fmadore/Live-translation/actions/runs/37196818518).
 
 Before release, test packaged x64 and ARM64 applications on real devices: download/cancel/remove,
 relaunch offline, microphone and Teams/application loopback, Both sources, pause/resume, long
-backlogs, Stop/discard, exports, non-Latin speech and clean uninstall. CI audio fixtures do not
+backlogs, Stop/discard, quitting with a backlog, exports, non-Latin speech and clean
+uninstall; a model download behind a proxy configured in Windows Settings; and an x64 PC
+without AVX2, where Whisper must be listed as unavailable and the demo selected. CI audio
+fixtures do not
 establish microphone permissions, actual conference-call capture quality or battery
 performance. Package acceptance is tracked in the
 [release handoff](store-updates.md#release-161-handoff).

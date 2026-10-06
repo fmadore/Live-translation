@@ -48,6 +48,21 @@ Like the official SDK, the client sends `input_audio.flush`, then `input_audio.e
 through `transcription.done` (or a four-second safety timeout) before closing. Remaining
 accumulated text is finalized and included in exports.
 
+## Errors and the end of a session
+
+A `transcription.done` that arrives mid-stream, outside a close drain, still finalizes its
+caption, and the source then moves to a new session instead of ending.
+
+The SDK types an `error` event's payload as `{ message, code }`: `message` a string or an
+object, `code` an integer it describes only as an internal code for debugging. No list of codes
+is published, so the classification is deliberately narrow: codes in HTTP's transient range
+(408, 429, 500, 502–504), or a `type`/`code` of `server_error`, `rate_limit_error`,
+`rate_limited`, `timeout` or `session_expired` inside an object `message`, reconnect with
+backoff; a 429 whose message mentions a quota, billing, payment or credit does not. Everything
+else — including any code not listed — stops the source with Mistral's message, as every error
+did before. **Live check pending:** record the first real error payloads seen here and widen
+the list from them.
+
 Long-lived keys are safe here because the Rust backend, not a web page, opens the WebSocket.
 Mistral’s short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is for browser clients that
 cannot set an `Authorization` header.

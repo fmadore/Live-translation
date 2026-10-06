@@ -4,31 +4,29 @@
 	import { isRunning, statusMessage } from './stores';
 	import { api, on } from './tauri';
 	import { asStatus } from './errors';
-	import type { WhisperProgress, Origin } from './types';
+	import {
+		noteWhisperProgress,
+		whisperFinalizing as finalizing,
+		whisperPendingSeconds as pending,
+		whisperProgress
+	} from './whisperProgress';
 	import ToolButton from './ui/ToolButton.svelte';
 
-	let progress = $state<Partial<Record<Origin, WhisperProgress>>>({});
 	let confirmDiscard = $state(false);
-	const pending = $derived(
-		Math.ceil(Math.max(0, ...Object.values(progress).map((p) => p.pendingMs)) / 1000)
-	);
-	const finalizing = $derived(Object.values(progress).some((p) => p.finalizing));
 	$effect(() => {
 		if (!$isRunning) {
-			progress = {};
+			whisperProgress.set({});
 			confirmDiscard = false;
 		}
-		if (pending === 0) confirmDiscard = false;
+		if ($pending === 0) confirmDiscard = false;
 	});
 	onMount(() => {
 		let disposed = false;
 		let cleanup: (() => void) | undefined;
-		void on
-			.whisperProgress((p) => (progress = { ...progress, [p.origin]: p }))
-			.then((fn) => {
-				if (disposed) fn();
-				else cleanup = fn;
-			});
+		void on.whisperProgress(noteWhisperProgress).then((fn) => {
+			if (disposed) fn();
+			else cleanup = fn;
+		});
 		return () => {
 			disposed = true;
 			cleanup?.();
@@ -44,10 +42,10 @@
 	}
 </script>
 
-{#if $isRunning && (pending > 0 || finalizing)}
+{#if $isRunning && ($pending > 0 || $finalizing)}
 	<div class="local-progress" role="status">
-		<span>{finalizing ? $t.whisper.processing : $t.whisper.pending} · {pending} s</span>
-		{#if finalizing && pending > 0}
+		<span>{$finalizing ? $t.whisper.processing : $t.whisper.pending} · {$pending} s</span>
+		{#if $finalizing && $pending > 0}
 			<ToolButton onclick={() => (confirmDiscard = true)}>{$t.whisper.discard}</ToolButton>
 		{/if}
 	</div>

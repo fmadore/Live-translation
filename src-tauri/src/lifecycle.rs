@@ -148,6 +148,11 @@ pub async fn show_operator(app: AppHandle) -> Result<(), String> {
 /// a stop before it asked, so this is normally an immediate no-op, but it means the guarantee
 /// that quitting releases the capture devices does not depend on the renderer having got
 /// that far.
+///
+/// Local Whisper's Stop is different: it drains every second of audio still waiting, which
+/// after a long backlog can take minutes, and the front-end stops waiting for it after a few
+/// seconds. Whatever is still pending by now is discarded first — the quit prompt has already
+/// said so — or this stop would queue behind that drain and the app would not close.
 #[tauri::command]
 pub async fn confirm_close(
     app: AppHandle,
@@ -155,6 +160,7 @@ pub async fn confirm_close(
     close_guard: State<'_, CloseGuard>,
 ) -> Result<(), String> {
     close_guard.confirm();
+    manager.discard_local_pending();
     manager.stop(&app).await;
     app.exit(0);
     Ok(())

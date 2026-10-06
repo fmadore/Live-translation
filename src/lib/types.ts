@@ -55,6 +55,12 @@ export interface WhisperProgress {
 	pendingMs: number;
 	finalizing: boolean;
 }
+/** Whether this processor can run the Whisper engine the app was built with (`whisper/cpu.rs`).
+ *  `missing` names the absent instruction-set extensions, e.g. `AVX2`. */
+export interface WhisperCpuSupport {
+	supported: boolean;
+	missing: string[];
+}
 
 export interface OnDeviceReadiness {
 	ready: boolean;

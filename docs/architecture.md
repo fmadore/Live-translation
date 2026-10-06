@@ -30,9 +30,11 @@ scripted demo ───────── deterministic caption timeline ──�
    paths on x64 and ARM64. It is presented as a demonstration, not speech recognition.
 4. **Local Whisper.** The `whisper` provider uses 16 kHz PCM16, a bounded writer queue,
    an anonymous temporary audio file and a separate CPU inference worker per source. A verified
-   multilingual model context is shared; each source owns its inference state. Capture
-   timestamps travel with the audio, so a slow recognizer preserves meeting timing. See
-   [local Whisper](local-whisper.md).
+   multilingual model context is shared, and the sources take turns at inference on it; each
+   source owns its inference state. Capture timestamps travel with the audio, so a slow
+   recognizer preserves meeting timing. ggml is compiled for AVX2 on x64 and for dot-product
+   on ARM64, so `whisper/cpu.rs` refuses an older processor before any native code runs and
+   the interface offers another engine. See [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -48,7 +50,12 @@ shift the transcript to the later inference time.
 Protocol handlers are pure: `handle_message` parses one server message into the turn
 accumulator and returns a `CaptionUpdate` (none, interim or final) with the connection
 control. The shared runner emits the caption and advances a finished turn, so each wire format
-is unit-tested without a socket or an `AppHandle` (`realtime::test_support`).
+is unit-tested without a socket or an `AppHandle` (`realtime::test_support`). The runner itself
+is three parts: `realtime/mod.rs` holds the loop, `realtime/policy.rs` the reconnect decisions
+as pure functions (what to report, whether to drop or replay queued audio, how long to wait),
+and `realtime/socket.rs` one connection's open, pump and graceful close. It reports through an
+`Events` trait that `AppHandle` implements, so `realtime/tests.rs` drives the whole state
+machine against a loopback WebSocket server on a paused clock.
 `SessionManager::start` builds each source through `SessionBuilder`: a producer (the demo's
 own timeline, the rehearsal fixture or a `CaptureTarget` thread) and one client, spawned by
 `ProviderSettings::spawn_client`. The preflight test opens devices through the same
@@ -83,10 +90,10 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 
 | Provider | Mode | Input | Caption source | Graceful stop |
 | --- | --- | --- | --- | --- |
-| Google Gemini Live Translate | Translate | 16 kHz PCM16 | output transcription | WebSocket close |
+| Google Gemini Live Translate | Translate | 16 kHz PCM16 | output transcription | audio stream end, drain to turn complete |
 | OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
 | Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
-| Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain |
+| Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
@@ -99,19 +106,41 @@ the last. See [`gemini-live-api.md`](gemini-live-api.md).
 The subtitle backends and the built-in demo are unavailable in translation mode; `session.rs`
 enforces this through `Provider::can_translate`.
 
+A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
+`MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open
+and the connection has produced no caption for three seconds (`QUIET_BEFORE_CLOSE`), the
+closing frames are still sent but not waited on, so a Pause in a quiet room takes effect at
+once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
+runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
+drain.
+
+Provider `error` events are classified per provider: authentication, permission, a bad request
+or model, and an exhausted quota stop the source with the provider's message; a server error,
+a rate limit or an overloaded service reconnect with backoff; an expired session (OpenAI's
+60-minute cap) is a planned handover; anything unrecognized stays fatal, so a persistent
+failure reports itself instead of looping. A provider that ends its session mid-stream
+(OpenAI's `session.closed`, Mistral's `transcription.done`) does not end the source either:
+its last caption is emitted and the runner hands over to a new session.
+
 ## Concurrency and shutdown
 
 `SessionManager` serializes start and stop operations with a lifecycle mutex. A parent
 `CancellationToken` owns the run and each live source gets a child token. A capture failure
 cancels that source. Stop cancels producers, lets live providers flush and drain briefly, joins
 capture threads, clears meters and current captions, and retains completed transcript lines.
+The join gives up after three seconds and leaves a thread wedged in a driver call behind, so an
+unplugged device cannot make the app impossible to quit. A start that fails part-way shuts down
+what it had already started the same way (`SessionManager::shutdown`), without the Idle that
+would clear its error.
 
 For Whisper, Stop cancels capture and closes input, then waits for every accepted frame and
 the final partial window, with no cloud drain timeout; an independent abort token lets the
 operator discard the remaining audio while Stop waits. The writer and inference worker cancel
 capture even on unwind, and producer outcome guards publish failures before EOF. Pause keeps
-processing the backlog but drops newly captured frames before the writer queue. Backlog limits
-and disk or overflow failures are covered in [local Whisper](local-whisper.md).
+processing the backlog but drops newly captured frames before the writer queue; a second of
+idle input releases the window the worker holds, so the last words before a Pause or a quiet
+spell are captioned at once. Quit discards the backlog rather than waiting for it. Backlog
+limits and disk or overflow failures are covered in [local Whisper](local-whisper.md).
 
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
@@ -119,14 +148,25 @@ responsive and cannot leave an audio or recognizer thread behind.
 **Pause** is a `watch` channel per session: `pause_session` sets it, and every client holds a
 receiver. A connected client closes its provider connection through the same graceful close
 as Stop — so the last turn is flushed — reports `Paused`, and waits; on resume it connects
-afresh (`Connecting`, no backoff). A pause during a reconnect backoff ends the wait. Capture is
-untouched, so the meters keep running, and the demo's pacer holds between steps. The renderer
-counts paused time out of the running cost estimate.
+afresh (`Connecting`, no backoff). A pause during a connect or setup abandons it at once, and
+one that lands just as setup completes closes the connection before `Running` is reported. A
+pause during a reconnect backoff ends the wait. An unchanged value is not sent, so a repeated
+Resume wakes nobody. Capture is untouched, so the meters keep running, and the demo's pacer
+holds between steps. The renderer counts paused time out of the running cost estimate.
 
-**Planned handovers.** Gemini's `goAway` returns `MessageControl::Handover`. After a
-connection that lasted at least `STABLE_CONNECTION`, the runner reconnects without backoff,
-keeps the source Running, and sends the audio queued meanwhile in order (`next_chunk`'s
-catch-up) rather than coalescing it as a stall's backlog.
+**Connection health.** Every send is bounded (three seconds), and a connected client pings
+every 15 seconds; 30 seconds with no inbound frame at all, pongs included, means the path is
+gone even if the operating system has not noticed, and the client reconnects. Without this a
+Wi-Fi handoff or a dropped NAT entry left a source reporting Running while its sends blocked
+for minutes and Pause went unseen.
+
+**Planned handovers.** Gemini's `goAway` returns `MessageControl::Handover`, and a provider
+ending its session mid-stream is treated the same way. After a connection that lasted at least
+`STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. While
+the new socket connects and sets up it keeps reading the producer into a backlog of up to 30
+chunks (about three seconds; the oldest go first beyond that), sends it in order once setup
+completes, then whatever is still queued (`next_chunk`'s catch-up) rather than coalescing it as
+a stall's backlog. The gap becomes latency instead of lost speech.
 
 **Device presence.** Capture threads check that their endpoint still exists through
 `audio::devices::PresenceCheck`: at once when the device watcher reports a change, and

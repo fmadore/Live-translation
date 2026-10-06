@@ -21,6 +21,7 @@ pub const COMMANDS: &[&str] = &[
     "set_api_key",
     "clear_api_key",
     "ondevice_readiness",
+    "whisper_cpu_support",
     "whisper_models",
     "download_whisper_model",
     "cancel_whisper_download",

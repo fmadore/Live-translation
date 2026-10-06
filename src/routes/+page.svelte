@@ -1,6 +1,7 @@
 <script lang="ts">
 	import WhisperActivity from '$lib/WhisperActivity.svelte';
 	import { whisperModels } from '$lib/stores';
+	import { whisperPendingSeconds } from '$lib/whisperProgress';
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
@@ -88,7 +89,9 @@
 			needsKey
 				? false
 				: $options.provider === 'whisper'
-					? !!$whisperModels.find(
+					? // Until the core has said this processor can run it, Whisper cannot start.
+						preflight.whisperCpu?.supported === true &&
+						!!$whisperModels.find(
 							(m) => m.id === ($options.whisperModel ?? 'base') && m.installed && !m.downloading
 						)
 					: (preflight.localReadiness?.ready ?? false)
@@ -116,6 +119,7 @@
 
 		void preflight.refresh();
 		void preflight.refreshLocalReadiness();
+		void preflight.refreshWhisperCpu();
 		void recoveryOffer.load();
 		overlay.initialize();
 
@@ -217,7 +221,16 @@
 	const actions = createSetupActions({
 		locked: () => controlsLocked,
 		invalidateAudioTest: () => preflight.invalidateAudioTest(),
-		refreshDevices: () => void preflight.refresh()
+		refreshDevices: () => void preflight.refresh(),
+		whisperRefused: () => preflight.whisperRefused
+	});
+
+	// Whisper is the first-launch engine, but a processor without the instruction sets it was
+	// built for cannot run it. Whichever way it got selected — a fresh install, saved options, a
+	// profile — the keyless demo takes over, so the app always opens on something that starts.
+	$effect(() => {
+		if (preflight.whisperRefused && $options.provider === 'whisper' && !controlsLocked)
+			actions.avoidUnsupportedWhisper();
 	});
 
 	let settingsOpen = $state(false);
@@ -460,6 +473,7 @@
 	<ActiveSessionPrompt
 		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
+		pendingSeconds={$options.provider === 'whisper' ? $whisperPendingSeconds : 0}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
 {/if}

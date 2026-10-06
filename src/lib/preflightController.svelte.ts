@@ -4,7 +4,13 @@ import { asStatus, describeError } from './errors';
 import { t } from './i18n';
 import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
-import type { AudioDevice, AudioLevel, AudioTestUpdate, OnDeviceReadiness } from './types';
+import type {
+	AudioDevice,
+	AudioLevel,
+	AudioTestUpdate,
+	OnDeviceReadiness,
+	WhisperCpuSupport
+} from './types';
 
 /** Capture preflight and signal lifetime, independent of the operator's layout. */
 export function createPreflightController(desktop: boolean, locked: () => boolean, port = api) {
@@ -49,6 +55,11 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 	let disposed = false;
 	let refreshAgain = false;
 	let localReadiness = $state<OnDeviceReadiness | null>(null);
+	// Null until the core has answered, which blocks a Whisper start in the meantime. A browser
+	// preview has no engine to protect, so it counts as supported.
+	let whisperCpu = $state<WhisperCpuSupport | null>(
+		desktop ? null : { supported: true, missing: [] }
+	);
 	// ---- Pre-flight audio check -------------------------------------------------
 	// A source counts as arriving while it has been above the noise floor recently. Driven by
 	// the level events themselves, so nothing polls while the window sits idle.
@@ -201,6 +212,18 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 		}
 	}
 
+	/** Ask once whether this processor can run local Whisper. The answer cannot change while the
+	 *  app runs. A failed question is treated as supported: the core checks again at Start and
+	 *  refuses with its own sentence, so guessing "no" would only hide a working engine. */
+	async function refreshWhisperCpu() {
+		if (!desktop) return;
+		try {
+			whisperCpu = await api.whisperCpuSupport();
+		} catch {
+			whisperCpu = { supported: true, missing: [] };
+		}
+	}
+
 	function applyAudioTest(update: AudioTestUpdate) {
 		audioTesting = update.active;
 		if (!update.active) {
@@ -244,6 +267,20 @@ export function createPreflightController(desktop: boolean, locked: () => boolea
 		get localReadiness() {
 			return localReadiness;
 		},
+		get whisperCpu() {
+			return whisperCpu;
+		},
+		/** The processor is known to lack what local Whisper needs. */
+		get whisperRefused() {
+			return whisperCpu?.supported === false;
+		},
+		/** The first few absent instruction sets, for the one-line reason. A pre-AVX processor
+		 *  lacks most of the list, and all of it would wrap across a card. */
+		get whisperCpuMissing() {
+			const missing = whisperCpu?.missing ?? [];
+			return missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : '');
+		},
+		refreshWhisperCpu,
 		get micSignal() {
 			return micSignal;
 		},

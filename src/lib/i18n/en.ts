@@ -188,7 +188,11 @@ export const en = {
 		pending: 'Audio waiting to be transcribed',
 		discard: 'Discard remaining audio',
 		discardConfirm:
-			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.'
+			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.',
+		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
+		 *  absent instruction sets, e.g. "AVX, AVX2". */
+		cpuUnsupported: (missing: string) =>
+			`Not available on this processor (it lacks ${missing}). The other engines still work.`
 	},
 	engine: {
 		whisper: 'Whisper',
@@ -666,7 +670,9 @@ export const en = {
 			noteEmphasis: 'Keep running in the tray when I close this window',
 			noteAfter: '.',
 			keep: 'Keep captioning',
-			stop: 'Stop and close'
+			stop: 'Stop and close',
+			whisperPending: (seconds: number) =>
+				`Local Whisper still has ${seconds} s of audio to transcribe. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
 		},
 		trayHide: {
 			title: 'Live Translation will keep running',
@@ -713,6 +719,8 @@ export const en = {
 	error: {
 		whisperModel: 'The Whisper model could not be prepared',
 		whisperSession: 'Local transcription could not finish; the transcript may be incomplete',
+		whisperCpu:
+			'Local Whisper cannot run on this processor; choose another engine, such as the built-in demo',
 		deviceEnumeration: 'Windows could not list the audio devices',
 		keychain: 'Windows Credential Manager refused the request',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
