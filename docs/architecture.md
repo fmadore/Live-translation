@@ -189,13 +189,17 @@ stopping the core; repeated Stop requests share that operation.
 
 The operator page owns native event subscriptions, layout, launch and shortcuts, and
 delegates state to controller modules: `preflightController.svelte.ts` (device readiness,
-signal expiry, audio tests), `quitController.svelte.ts` (tray and close prompts),
+signal expiry, audio tests, and whether the chosen engine is ready: a stored key, an
+installed Whisper model on a supported processor, or the bundled demo),
+`quitController.svelte.ts` (tray and close prompts),
 `overlayController.svelte.ts` (appearance and window commands), `sessionClock.svelte.ts`,
 `setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
 failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
 `nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
-when imported. Page teardown disposes the preflight timers and capture test.
+when imported. Page teardown disposes the preflight timers and capture test. Start, Rehearse
+and Ctrl+Shift+Space read one derived list of start blockers (busy, caption language, engine,
+application), so the three cannot disagree about whether a session can begin.
 
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
 its actions), `DeviceRecoveryBanner`, `SetupSheet` or `LiveRail`, `PreflightChecklist` or
