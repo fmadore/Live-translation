@@ -11,8 +11,9 @@ that both reported errors were resolved. This confirms the reported refresh and
 audio-test failures; the broader hardware matrix below remains pending.
 
 Device handling was introduced in 1.2.1/1.2.2. The broader hardware matrix remains **pending**
-for the 1.6.0 packages; automated tests and browser previews do not replace it. Repeat key
-cases with local Whisper as well as a cloud engine, including Pause and Stop with pending audio.
+for the 1.6.0 and 1.6.1 packages; automated tests and browser previews do not replace it.
+Repeat key cases with local Whisper as well as a cloud engine, including Pause and Stop with
+pending audio.
 
 Automated verification on 7 September 2026: 263 frontend tests and 61 Rust tests
 passed (one billable test ignored). English and French browser previews confirm

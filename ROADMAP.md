@@ -4,11 +4,11 @@ This file combines the current delivery plan with the completed implementation h
 GitHub milestones are the source of truth for active work; the phase checklists below preserve
 why earlier architectural decisions were made.
 
-## Current status — 1.6.0 released on GitHub
+## Current status — 1.6.0 released, 1.6.1 in preparation
 
 The latest [GitHub release is **1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
-(4 October 2026). Store submission is pending; its last confirmed version is **1.5.1**
-(23 September 2026). Version 1.6.0 includes:
+(4 October 2026). It is also the Store version, **1.6.0.0**, confirmed live by the maintainer
+on 6 October 2026. Version 1.6.0 includes:
 
 - **Local Whisper transcription** ([#99](https://github.com/fmadore/Live-translation/pull/99)):
   downloadable multilingual Tiny/Base/Small models, 99 language choices, CPU processing on
@@ -19,16 +19,24 @@ The latest [GitHub release is **1.6.0**](https://github.com/fmadore/Live-transla
 - Review batches 3–4 (#87/#88), more efficient history/caption updates, improved Gemini
   reconnection, and dependency maintenance.
 
-The [release handoff](docs/store-updates.md#release-160-handoff) tracks validation, package
-artifacts and remaining native acceptance. Whisper is implemented; live hardware, language
-and Store-package verification must still be distinguished from unit/fixture tests. Cloud
-language acceptance from [#78](docs/language-coverage.md) also remains to be completed.
+The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its validation, package
+artifacts and the native checks still open against the Store build. Whisper is implemented;
+live hardware, language and Store-package verification must still be distinguished from
+unit/fixture tests. Cloud language acceptance from [#78](docs/language-coverage.md) also
+remains to be completed.
 
 Store copy now leads with real offline captions and optional cloud translation. The scripted
 demo stays available as a setup-free display check. Fresh installs now select Whisper with
 Base and automatic detection, while upgrades preserve saved setups. Thanks to **@valentinrabot**
 for the local transcription suggestion in [#98](https://github.com/fmadore/Live-translation/issues/98).
-Citation metadata records 1.6.0 with its publication date of 4 October 2026.
+
+**1.6.1** is prepared as a maintenance and visual release and is not yet published on GitHub:
+the wave-to-words app icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and
+the 5 October design review ([#112](https://github.com/fmadore/Live-translation/pull/112)),
+with no new features, runtime dependency or privacy changes. The
+[1.6.1 handoff](docs/store-updates.md#release-161-handoff) tracks its validation, tagging and
+Store acceptance. Citation metadata records 1.6.1 with a provisional date of 6 October 2026,
+to be reset to the publication date if tagging happens later.
 
 ## Historical delivery context
 
@@ -146,7 +154,7 @@ Implemented across the 1.2 releases:
 
 Release acceptance still includes Teams/Zoom, browser child processes, device changes,
 sleep/wake, mixed-DPI displays, application isolation and native transcript exports.
-Use the [1.6.0 handoff](docs/store-updates.md#release-160-handoff) for the current checklist.
+Use the [1.6.1 handoff](docs/store-updates.md#release-161-handoff) for the current checklist.
 
 ## Research and unscheduled work
 

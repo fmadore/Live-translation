@@ -16,13 +16,22 @@ this way on 23 September 2026; earlier releases without prepared text here stay 
 
 ---
 
+## v1.6.1 — prepared, not yet published
+
+[Release body](release-1.6.1.md) · [Store handoff](store-updates.md#release-161-handoff).
+A maintenance and visual release: the new wave-to-words app icon and the October design
+review (Windows 11 geometry, one status pill, selector-bar tabs, one stepper control and a
+readable move-mode preview). No new features, runtime dependency or privacy changes; the
+dev-only `source-map-js` is patched for a security advisory. No tag, GitHub release or Store
+submission has been published by this preparation.
+
 ## v1.6.0
 
 4 October 2026. [Published release](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) ·
 [Release body](release-1.6.0.md) · [Store handoff](store-updates.md#release-160-handoff).
 Local Whisper, two caption languages, bilingual output, Pause and editable filler words.
-Native x64/ARM64 MSIX packages and the combined Store bundle are attached. Store submission
-and certification remain separate and are pending.
+Native x64/ARM64 MSIX packages and the combined Store bundle are attached. Live in the
+Microsoft Store as 1.6.0.0, confirmed by the maintainer on 6 October 2026.
 
 ## v1.5.1
 
@@ -122,7 +131,7 @@ For Partner Center, use **Live.Translation_1.3.0.msixbundle**, containing x64 an
 
 ## v1.2.4
 
-GitHub release copy. See [release handoff](store-updates.md#release-124-handoff) for
+GitHub release copy. See [release handoff](store-updates.md#release-124-handoff--done) for
 package testing and publication status. The local test executable reports 1.2.4; final MSIX verification is pending.
 
 ```markdown
