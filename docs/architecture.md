@@ -229,6 +229,12 @@ cannot throw at import and leave a window blank. Names shared with the core (com
 and the string values of serde enums) are checked against the Rust source by
 `contract.test.ts`.
 
+Page-level tests render `+page.svelte` against Tauri's own IPC mocks
+(`src/lib/testing/tauriMock.ts`, imported only by tests): the real `tauri.ts` runs, and the
+test plays the core, answering commands and emitting `status` and `caption` events as
+`src-tauri` does. `src/routes/OperatorPage.svelte.test.ts` scripts a built-in demo session
+from Start to Stop. These tests query by role and accessible name, not by page structure.
+
 `reading.ts` throttles interim presentation per source at 450 ms in Steadier mode; finals
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
 independent of presentation pacing and the display filter. `profiles.ts` validates local

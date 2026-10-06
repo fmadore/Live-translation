@@ -59,7 +59,9 @@ transcript in one language exports exactly as before.
 
 Automated tests cover cancelled saves and quit, captions arriving during a save, atomic
 replacement and failed replacement cleanup, format selection, untimed recovery, source
-overlap, partial replacement, session restart, escaping, and long-duration timestamps.
+overlap, partial replacement, session restart, escaping, and long-duration timestamps. A
+page-level test runs the built-in demo through Start and Stop twice and checks that the
+chosen format survives both and is what the quit prompt saves.
 
 Native acceptance checks remain manual, separately in development, NSIS and Store MSIX:
 
