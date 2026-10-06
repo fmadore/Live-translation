@@ -11,9 +11,9 @@ packages are built.
 
 ## Release 1.6.1 handoff
 
-**Prepared on 6 October 2026; not tagged, published or submitted.** Last confirmed live
-Store version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target app
-version: **1.6.1**, MSIX **1.6.1.0**.
+**[v1.6.1 published on GitHub](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) on 6 October 2026; Store submission
+pending.** Last confirmed live Store version: **1.6.0.0**, confirmed by the maintainer on
+6 October 2026. Published app version: **1.6.1**, MSIX **1.6.1.0**.
 
 A maintenance and visual release: no new features, no runtime dependency changes and no
 privacy change. The **wave-to-words** mark, a speech wave settling into a caption line on a dark
@@ -43,27 +43,29 @@ components, and new `typeScale`/`spacing` guard tests.
 ### Preparation and validation
 
 - [x] PR #111 merged as `324332f6d01f9020f7cbd3997d97376df9f98cd4`.
-- [x] App manifests and root lockfile entries set to 1.6.1; citation release date set to
-  6 October 2026. Reset it to the publication date if tagging happens later, as for 1.6.0.
+- [x] App manifests and root lockfile entries set to 1.6.1; citation release date
+  6 October 2026, the publication date.
 - [x] No runtime dependency, package-manifest template or capability change since `v1.6.0`.
   Besides the version lines, the only lockfile change is the dev-only `source-map-js` 1.2.1 →
   1.2.2 (GHSA-68fv-2mgg-jv7q), which the CI audit step required; it is not shipped in the app.
 - [x] Frontend validation on the #112 branch: 550 tests in 59 files, Svelte check (zero
   errors and warnings), Prettier and the production build.
-- [ ] PR #112 CI, including the Rust jobs, is pending.
-- [ ] Rust tests, formatting and Clippy were not run locally: this machine has no
-  LLVM/libclang, which the Whisper bindings need since #99. CI installs it and is the gate.
+- [x] #112, #113 and #114 merged as `3b3eab4`, `1632589` and `d206091`, each after all seven
+  CI jobs passed: frontend on Node 22 and 24, Rust on Ubuntu, Windows x64 and Windows ARM64,
+  Rust security and workflow lint.
+- [x] Rust tests, formatting and Clippy passed in CI. They were not run locally: this machine
+  has no LLVM/libclang, which the Whisper bindings need since #99.
 
 ### Remaining Store acceptance
 
-- [ ] Merge #112, then this release PR.
-- [ ] Tag `v1.6.1` from `main` after the merge. Pass release-commit CI and all
-  installer/MSIX/bundle jobs, verify the downloaded assets and publish the prepared GitHub
-  release body.
-- [ ] Verify `Live.Translation_1.6.1.msixbundle` contains native x64 and ARM64 packages at
+- [x] Merge #112, then the release PR (#113) and the docs trim (#114).
+- [x] Tag `v1.6.1` from `main`. Release-commit CI and all four installer/MSIX/bundle jobs
+  passed; the downloaded assets are verified below and the prepared GitHub release body is
+  published.
+- [x] Verify `Live.Translation_1.6.1.msixbundle` contains native x64 and ARM64 packages at
   **1.6.1.0** with the [assigned identity](microsoft-store.md#store-identity-assigned), and
   that both carry the new `Square44x44Logo`, `Square150x150Logo`, `Wide310x150Logo` and
-  `StoreLogo` assets. Record sizes and SHA-256 below.
+  `StoreLogo` assets. Sizes and SHA-256 are recorded below.
 - [ ] On both architectures, check the new icon in Start, the taskbar, the tray and the Store
   tile.
 - [ ] Smoke-test capture, Whisper and overlay move mode over a white and a dark slide; Settings
@@ -79,17 +81,32 @@ components, and new `typeScale`/`spacing` guard tests.
 
 ### 1.6.1 artifact verification
 
-Pending: no tag, release assets or bundle exist yet. After tagging, record the tag commit,
-CI runs, bundle and package sizes, SHA-256 digests and manifest values here.
+Tag `v1.6.1` points to `d20609195cbbc20f9b1b9a44c5934f2ee6dd5c65`. The
+[release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/37418786176) and all four
+[installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/37418813127) passed. The GitHub
+release body is [release-1.6.1.md](release-1.6.1.md).
 
-Check the same points as for 1.6.0: each downloaded file's SHA-256 matches GitHub's asset
-digest; the bundle contains exactly the separately downloaded x64 and ARM64 packages,
-byte-for-byte; bundle and inner manifests report **1.6.1.0**, identity
+Upload **[Live.Translation_1.6.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle)**
+to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
+GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
+`src-tauri/target/release-1.6.1/published/`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Live.Translation_1.6.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle) | 11,195,249 | `86ef814f0e53baae6ff821db8cc263efa745982a7dfea945d8fda7d69a6ccea0` |
+| [Live.Translation_1.6.1_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1_x64.msix) | 5,692,715 | `fb2e4958fab3e1832dffff0ec1f3c42c84d7ac3af3fa8f434407e4b1670ed5dd` |
+| [Live.Translation_1.6.1_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1_arm64.msix) | 5,500,528 | `2d7451224fa8039e7314dd3b0602e28a67e6b43ed936ec7a448d6f70b88cc50c` |
+
+All 37 checks passed. The bundle contains exactly the separately downloaded x64 and ARM64
+packages, byte-for-byte. Bundle and inner manifests report **1.6.1.0**, identity
 `49346FMadore.LiveTranslationSubtitles`, publisher `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`
-and publisher display name `FMadore`; executable PE machine values are `0x8664` (x64) and
-`0xAA64` (ARM64); each package includes the English/French rehearsal WAVs and all three
-Whisper license notices, declares only `runFullTrust` and `microphone`, and contains no model
-weights or signature. This verifies packaging, not installed-app behaviour or certification.
+and publisher display name `FMadore`. Executable PE machine values are `0x8664` (x64,
+12,067,328 bytes) and `0xAA64` (ARM64, 10,647,040 bytes). Each package includes both
+rehearsal WAVs and all three Whisper license notices, declares only `runFullTrust` and
+`microphone`, contains no model weights or signature, and carries the new
+`Square44x44Logo`, `Square150x150Logo`, `Wide310x150Logo` and `StoreLogo`, byte-identical to
+`src-tauri/gen/windows/Assets/`. This verifies packaging, not installed-app behaviour or
+certification.
 
 ## The route
 

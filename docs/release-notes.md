@@ -16,15 +16,6 @@ the [Store release history](store-updates.md#release-history).
 
 ---
 
-## v1.6.1 — prepared, not yet published
-
-[Release body](release-1.6.1.md) · [Store handoff](store-updates.md#release-161-handoff).
-A maintenance and visual release: the new wave-to-words app icon and the October design
-review (Windows 11 geometry, one status pill, selector-bar tabs, one stepper control and a
-readable move-mode preview). No new features, runtime dependency or privacy changes; the
-dev-only `source-map-js` is patched for a security advisory. No tag, GitHub release or Store
-submission exists yet.
-
 ## Published releases
 
 Bodies before 1.5.0 were kept in this file and are published on their release pages; the
@@ -33,6 +24,7 @@ Releases without prepared text keep an empty body.
 
 | Release | Date | Body | Summary |
 | --- | --- | --- | --- |
+| [v1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) | 6 October 2026 | [release-1.6.1.md](release-1.6.1.md) | The wave-to-words icon and the October design review; no new features. |
 | [v1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) | 4 October 2026 | [release-1.6.0.md](release-1.6.0.md) | Local Whisper, two caption languages, bilingual output, Pause and editable filler words. |
 | [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) | 23 September 2026 | [release-1.5.1.md](release-1.5.1.md) | Audio, safety and history fixes from the September app review. |
 | [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0) | 22 September 2026 | [release-1.5.0.md](release-1.5.0.md) | Searchable caption languages and persistent favourites. |
