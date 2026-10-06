@@ -5,11 +5,18 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.6.0 released, 1.6.1 in preparation
+## Current status — 1.6.1 on GitHub, 1.6.0 in the Store
 
-The latest [GitHub release is **1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
-(4 October 2026). It is also the Store version, **1.6.0.0**, confirmed live by the maintainer
-on 6 October 2026. The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its
+The latest [GitHub release is **1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) (6 October 2026),
+a maintenance and visual release: the wave-to-words app icon
+([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design review
+([#112](https://github.com/fmadore/Live-translation/pull/112)), with no new features, runtime
+dependency or privacy changes. Its Store submission is pending; the
+[1.6.1 handoff](docs/store-updates.md#release-161-handoff) has the verified bundle and the
+remaining acceptance checks.
+
+The Store serves [**1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
+(MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026. The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its
 status and the native checks still open against the Store build; its package evidence is in
 that file's git history.
 
@@ -17,13 +24,7 @@ Store copy leads with offline captions and optional cloud translation; the scrip
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
 detection, while upgrades preserve saved setups.
 
-**1.6.1** is prepared as a maintenance and visual release and is not yet published on GitHub:
-the wave-to-words app icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and
-the 5 October design review ([#112](https://github.com/fmadore/Live-translation/pull/112)),
-with no new features, runtime dependency or privacy changes. The
-[1.6.1 handoff](docs/store-updates.md#release-161-handoff) tracks its validation, tagging and
-Store acceptance. Citation metadata records 1.6.1 with a provisional date of 6 October 2026,
-to be reset to the publication date if tagging happens later.
+Citation metadata records 1.6.1 with its publication date of 6 October 2026.
 
 ## Open verification
 

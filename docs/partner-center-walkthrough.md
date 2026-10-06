@@ -1,10 +1,10 @@
 # Partner Center submission walkthrough — 1.6.1
 
-Target: **Live Translation & Subtitles 1.6.1**, Product ID `9PFB8LR3RR9X`. Prepared, not
-tagged or submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer on
-6 October 2026. Once `v1.6.1` is tagged and its release workflow finishes, download the combined
-x64 + ARM64 bundle from
-`https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle`.
+Target: **Live Translation & Subtitles 1.6.1**, Product ID `9PFB8LR3RR9X`. Published on
+GitHub on 6 October 2026, not yet submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed
+live by the maintainer on 6 October 2026. Download the combined x64 + ARM64 bundle,
+[Live.Translation_1.6.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle)
+(11,195,249 bytes, SHA-256 `86ef814f…a6ccea0`).
 The [release handoff](store-updates.md#release-161-handoff) has the package evidence and
 outstanding acceptance checks.
 
