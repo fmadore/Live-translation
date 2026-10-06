@@ -10,7 +10,7 @@ import {
 } from './stores';
 import { api } from './tauri';
 import { secondCaptionLanguageOf, type StartOptions } from './types';
-import { languageName, supportsLanguage } from './languages';
+import { captionLanguageError } from './languages';
 import { locale, t } from './i18n';
 
 /** Own start/stop serialization separately from page rendering. A stop requested during
@@ -30,20 +30,12 @@ export function createSessionController(
 		busy,
 		async start(options: StartOptions): Promise<boolean> {
 			if (operation || stopping || get(isRunning)) return false;
-			const second = secondCaptionLanguageOf(options);
-			const unsupported = [options.targetLanguage, ...(second ? [second] : [])].find(
-				(code) => !supportsLanguage(options.provider, code)
-			);
-			if (unsupported) {
-				const messages = get(t);
-				statusMessage.set(
-					messages.language.unsupported(
-						messages.engine[options.provider],
-						languageName(unsupported, get(locale))
-					)
-				);
+			const languageError = captionLanguageError(options, get(t), get(locale));
+			if (languageError) {
+				statusMessage.set(languageError);
 				return false;
 			}
+			const second = secondCaptionLanguageOf(options);
 			busy.set(true);
 			statusMessage.set('');
 			// A second language chosen for translation stays in the saved setup when the mode

@@ -26,7 +26,7 @@
 	import { createDeviceFailure } from '$lib/deviceFailure.svelte';
 	import { createRecoveryOffer } from '$lib/recoveryOffer.svelte';
 	import { syncNative } from '$lib/nativeSync.svelte';
-	import { languageName, supportsLanguage, type DemoLanguage } from '$lib/languages';
+	import { captionLanguageError, type DemoLanguage } from '$lib/languages';
 	import { shortcut } from '$lib/shortcuts';
 	import { on, isTauri } from '$lib/tauri';
 	import { describeError } from '$lib/errors';
@@ -47,7 +47,7 @@
 	} from '$lib/stores';
 	import { followTextScale } from '$lib/textScale';
 	import { historyEnabled } from '$lib/history';
-	import { providerRequiresKey, secondCaptionLanguageOf } from '$lib/types';
+	import { providerRequiresKey } from '$lib/types';
 	import type { SessionState } from '$lib/types';
 	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
 
@@ -255,15 +255,7 @@
 
 	// Either caption language can be one the engine does not offer — the second one too, after
 	// an engine change — and either blocks Start.
-	const languageError = $derived.by(() => {
-		const second = secondCaptionLanguageOf($options);
-		const unsupported = [$options.targetLanguage, ...(second ? [second] : [])].find(
-			(code) => !supportsLanguage($options.provider, code)
-		);
-		return unsupported
-			? $t.language.unsupported($t.engine[$options.provider], languageName(unsupported, $locale))
-			: '';
-	});
+	const languageError = $derived(captionLanguageError($options, $t, $locale));
 </script>
 
 <svelte:window

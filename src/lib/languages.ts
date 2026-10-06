@@ -1,6 +1,7 @@
 import catalog from './languages.json';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languageCodes';
-import type { Provider } from './types';
+import { secondCaptionLanguageOf, type Provider, type StartOptions } from './types';
+import type { Messages } from './i18n/en';
 
 export { TARGET_LANGUAGES, type TargetLanguage };
 /** Languages with bundled demo scripts and rehearsal recordings. Mirrors `DemoLanguage`. */
@@ -20,6 +21,35 @@ export function supportsLanguage(provider: Provider, code: TargetLanguage): bool
 		provider === 'gemini-transcribe' ||
 		!!catalog.languages.find((l) => l.code === code)?.providers.includes(provider)
 	);
+}
+
+/** The first caption language of a run that its engine cannot write, or undefined. The second
+ *  language counts as much as the first: it stays in the saved setup across an engine change,
+ *  so it can be one the new engine does not offer. The page disables Start on it and the
+ *  session controller refuses it, both through here, so the two cannot disagree. */
+export function unsupportedCaptionLanguage(
+	options: Pick<StartOptions, 'provider' | 'mode' | 'targetLanguage' | 'secondTargetLanguage'>
+): TargetLanguage | undefined {
+	const second = secondCaptionLanguageOf(options);
+	return [options.targetLanguage, ...(second ? [second] : [])].find(
+		(code) => !supportsLanguage(options.provider, code)
+	);
+}
+
+/** The operator's sentence for `unsupportedCaptionLanguage`, or '' when the engine writes
+ *  every caption language the run asks for. */
+export function captionLanguageError(
+	options: Pick<StartOptions, 'provider' | 'mode' | 'targetLanguage' | 'secondTargetLanguage'>,
+	messages: Messages,
+	locale: string
+): string {
+	const unsupported = unsupportedCaptionLanguage(options);
+	return unsupported
+		? messages.language.unsupported(
+				messages.engine[options.provider],
+				languageName(unsupported, locale)
+			)
+		: '';
 }
 
 export function languageName(code: TargetLanguage, locale: string): string {

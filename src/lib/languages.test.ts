@@ -5,13 +5,16 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import {
 	captionDirection,
+	captionLanguageError,
 	languageRows,
 	languageName,
 	loadLanguageFavourites,
 	nextFavourite,
 	supportsLanguage,
-	TARGET_LANGUAGES
+	TARGET_LANGUAGES,
+	unsupportedCaptionLanguage
 } from './languages';
+import { en } from './i18n/en';
 import { DEFAULT_START_OPTIONS, normalizeStartOptions, loadStartOptions } from './types';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -73,6 +76,31 @@ it('keeps valid unsupported selections, restores every target, and rejects corru
 	expect(supportsLanguage(switched.provider, switched.targetLanguage)).toBe(false);
 	expect(supportsLanguage('ondevice', 'de')).toBe(false);
 	expect(supportsLanguage('mistral', 'sw')).toBe(true);
+});
+
+it('finds the caption language an engine cannot write, the second one included', () => {
+	const run = {
+		mode: 'translate',
+		provider: 'openai',
+		targetLanguage: 'en',
+		secondTargetLanguage: null
+	} as const;
+	expect(unsupportedCaptionLanguage(run)).toBeUndefined();
+	expect(unsupportedCaptionLanguage({ ...run, targetLanguage: 'sw' })).toBe('sw');
+	// Kept in the saved setup across an engine change, so it can be the one that fails.
+	expect(unsupportedCaptionLanguage({ ...run, secondTargetLanguage: 'sw' })).toBe('sw');
+	expect(
+		unsupportedCaptionLanguage({ ...run, provider: 'gemini', secondTargetLanguage: 'sw' })
+	).toBeUndefined();
+	// Subtitles have no second language, so a stale one there is not a reason to refuse.
+	expect(
+		unsupportedCaptionLanguage({ ...run, mode: 'transcribe', secondTargetLanguage: 'sw' })
+	).toBeUndefined();
+
+	expect(captionLanguageError(run, en, 'en')).toBe('');
+	expect(captionLanguageError({ ...run, secondTargetLanguage: 'sw' }, en, 'en')).toBe(
+		en.language.unsupported(en.engine.openai, 'Swahili')
+	);
 });
 
 it('swaps only the first two supported pins, including from outside the pair', () => {
