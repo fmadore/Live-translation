@@ -80,14 +80,48 @@ describe('the spacing scale', () => {
 	});
 });
 
+// Windows 11 rounds what sits in a page by 4px and what floats above it by 8px; the names say
+// which, rather than how big.
 describe('the radius scale', () => {
+	it('is named by role, at Windows 11 geometry', () => {
+		const radii = Object.fromEntries(
+			[...ROOT.matchAll(/--radius-([\w-]+):\s*([^;]+);/g)].map(([, role, value]) => [role, value])
+		);
+		expect(radii).toEqual({ control: '4px', card: '4px', overlay: '8px', pill: '999px' });
+	});
+
+	// The toolbar's brand mark is the app icon in miniature, so it rounds by the icon's own
+	// proportion (224 of 1024) rather than by a step of the scale.
 	it('is what every corner uses', () => {
 		const radii = declarations(/border-radius/);
 		expect(radii.length).toBeGreaterThan(20);
 		for (const { file, value } of radii) {
+			if (file === 'lib/OperatorToolbar.svelte' && value === '21.875%') continue;
 			expect(value, `${file} declares ${value}`).toMatch(
-				/^(var\(--radius-(sm|control|card|pill)\)|50%|0)$/
+				/^(var\(--radius-(control|card|overlay|pill)\)|50%|0)$/
 			);
 		}
+	});
+});
+
+// 2rem appeared six times, 2.25rem three and 2.5rem two, and the language picker sat at
+// 40px beside 36px selects. A control's box is one of the three button sizes.
+describe('the control heights', () => {
+	it('are the three button sizes', () => {
+		const sizes = [...ROOT.matchAll(/--control-(sm|md|lg):\s*([\d.]+)rem;/g)].map(
+			([, size, rem]) => [size, Number(rem) * 16]
+		);
+		expect(sizes).toEqual([
+			['sm', 32],
+			['md', 36],
+			['lg', 40]
+		]);
+	});
+
+	it('are what every control box uses', () => {
+		const boxes = declarations(/(?:min-|max-)?(?:height|width)/).filter(({ value }) =>
+			/^(2|2\.25|2\.5)rem$/.test(value)
+		);
+		expect(boxes).toEqual([]);
 	});
 });

@@ -60,7 +60,7 @@
 		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
-		letter-spacing: 0.1em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		color: var(--text-muted);
 		/* Last resort, not the plan: the column above is sized to hold the labels we ship, and
@@ -73,7 +73,7 @@
 	.track {
 		position: relative;
 		height: 8px;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 		background: var(--surface-2);
 		border: 1px solid var(--line);
 		overflow: hidden;

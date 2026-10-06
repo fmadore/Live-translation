@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { t } from '$lib/i18n';
+	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from '$lib/types';
+	import Stepper from '$lib/ui/Stepper.svelte';
 	import ToolButton from '$lib/ui/ToolButton.svelte';
 
 	/** Move mode's placement chrome. The overlay window *is* the caption region, so the chrome
@@ -35,12 +37,14 @@
 <!-- Dropped in a short region: there the chrome fills the window and the placeholder would
      run under the toolbar, which reads worse than no placeholder at all. -->
 {#if height >= 340}
-	<p class="placeholder">{$t.overlay.placeholder(fontSize)}</p>
+	<div class="placeholder">
+		<p>{$t.overlay.placeholder(fontSize)}</p>
+	</div>
 {/if}
 
 <div class="chrome">
 	<div class="drag-pill">
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<circle cx="9" cy="6" r="1.6" />
 			<circle cx="15" cy="6" r="1.6" />
 			<circle cx="9" cy="12" r="1.6" />
@@ -59,29 +63,34 @@
 			<!-- The operator's own controls can be hidden under this window, so the way out has
 			     to be printed where the operator is already looking. -->
 			<span class="keys">
-				<kbd>{$t.overlay.keyEnter}</kbd>
-				{$t.overlay.keysLocks} · <kbd>{$t.overlay.keyEscape}</kbd>
-				{$t.overlay.keysCancels} · <kbd>{$t.overlay.keyArrows}</kbd>
+				<kbd class="ui-kbd">{$t.overlay.keyEnter}</kbd>
+				{$t.overlay.keysLocks} · <kbd class="ui-kbd">{$t.overlay.keyEscape}</kbd>
+				{$t.overlay.keysCancels} · <kbd class="ui-kbd">{$t.overlay.keyArrows}</kbd>
 				{$t.overlay.keysNudge}
 			</span>
 		</div>
 		<span class="divider"></span>
-		<div class="size">
-			<span class="size-label">{$t.overlay.size}</span>
-			<button class="step" onclick={() => onBump(-2)} aria-label={$t.overlay.smaller}>−</button>
-			<span class="size-value">{fontSize}</span>
-			<button class="step" onclick={() => onBump(2)} aria-label={$t.overlay.larger}>+</button>
-		</div>
+		<Stepper
+			label={$t.overlay.size}
+			value={fontSize}
+			min={OVERLAY_FONT_MIN}
+			max={OVERLAY_FONT_MAX}
+			step={2}
+			unit="px"
+			decreaseLabel={$t.overlay.smaller}
+			increaseLabel={$t.overlay.larger}
+			onchange={(size) => onBump(size - fontSize)}
+		/>
 		<span class="divider"></span>
 		<ToolButton onclick={onSnap}>{$t.overlay.snapToBottom}</ToolButton>
 		<ToolButton variant="primary" onclick={onLock}>
 			<svg
-				width="13"
-				height="13"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="2"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				aria-hidden="true"
 			>
@@ -98,7 +107,7 @@
 		position: absolute;
 		inset: 0;
 		border: 2px solid var(--accent);
-		background: var(--accent-bg);
+		background: var(--accent-wash);
 		pointer-events: none;
 	}
 	/* Affordances only: the resize itself is the OS window edge-drag. */
@@ -106,7 +115,7 @@
 		position: absolute;
 		width: 11px;
 		height: 11px;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 		background: var(--accent);
 	}
 	.handle.tl {
@@ -131,7 +140,7 @@
 		transform: translateX(-50%);
 		width: 34px;
 		height: 9px;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 	.edge.top {
@@ -141,33 +150,51 @@
 		bottom: 3px;
 	}
 	/* Stands in for a caption while the region is being placed, so it previews the chosen
-	   face and size together — which is the moment an operator can still act on either. */
+	   face and size together — which is the moment an operator can still act on either. It is
+	   drawn as the room will see a caption, in the caption's own ink, halo and backing, and
+	   where captions sit: a pale ghost of one vanished on a white slide, just when the operator
+	   is judging whether captions will read there. */
 	.placeholder {
 		position: absolute;
-		inset: 0;
-		font-family: var(--caption-face);
-		display: grid;
-		place-items: center;
-		margin: 0;
+		left: 0;
+		right: 0;
+		bottom: 56px;
+		display: flex;
+		justify-content: center;
 		padding: 0 var(--space-6);
+		pointer-events: none;
+	}
+	/* The backing hugs the text: it shows the scrim's colour and strength behind the face,
+	   and a window-wide band would hide the very slide the region is being placed over. */
+	.placeholder p {
+		margin: 0;
+		padding: var(--space-2) var(--space-5);
+		border-radius: var(--radius-overlay);
+		background: var(--caption-scrim-strong);
+		font-family: var(--caption-face);
 		font-weight: 600;
 		/* Never larger than the caption it stands in for, and never so large it wraps to
 		   nothing in a short region. */
 		font-size: min(34px, var(--fs));
-		line-height: 1.3;
+		line-height: 1.34;
 		text-align: center;
 		text-wrap: pretty;
-		color: rgba(255, 255, 255, 0.55);
-		pointer-events: none;
+		color: var(--caption-ink);
+		text-shadow:
+			0 1px 3px var(--caption-halo-tight),
+			0 2px 14px var(--caption-halo-soft);
 	}
 
 	/* The pill and toolbar float just inside the top edge: in the real window there is no
 	   surrounding screen to hang them on. */
+	/* Spans the window and centres its children, rather than sitting at `left: 50%`: a box
+	   hung from the middle only has half the window to lay out in, so the toolbar's buttons
+	   wrapped long before the window was narrow. */
 	.chrome {
 		position: absolute;
 		top: 14px;
-		left: 50%;
-		transform: translateX(-50%);
+		left: 0;
+		right: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
@@ -206,14 +233,18 @@
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-3);
 		border: 1px solid var(--line-hover);
-		border-radius: var(--radius-card);
+		/* A flyout over the slide, so it takes a flyout's corners and the shadow dialogs cast. */
+		border-radius: var(--radius-overlay);
 		/* Nearly opaque, because what sits behind this window is a slide nobody controls: at
 		   0.92 a white slide lifted the panel enough to cost the dimmest text its 4.5:1. At
 		   0.96 the panel over white stays darker than --surface-2, so every text level that
 		   passes there passes here; `palette.test.ts` holds it to that. */
 		background: color-mix(in srgb, var(--surface-0) 96%, transparent);
-		box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.8);
+		box-shadow: var(--shadow-flyout);
 		color: var(--text-body);
+		/* One line while it fits, which is what the operator scans; a window narrower than
+		   the toolbar still wraps it rather than cutting it off. */
+		max-width: calc(100% - var(--space-5));
 		/* Clickable while the rest of the stage drags the window. */
 		pointer-events: auto;
 		cursor: default;
@@ -228,7 +259,7 @@
 		font-weight: 600;
 		font-size: var(--type-caption);
 		line-height: 1;
-		letter-spacing: 0.14em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		color: var(--warn);
 	}
@@ -237,64 +268,26 @@
 		line-height: 1;
 		color: var(--text-muted);
 	}
+	/* A row of key caps and the words between them, so each cap is laid out as a box of its
+	   own rather than spilling out of a line box. */
 	.keys {
+		display: flex;
+		align-items: center;
+		gap: var(--space-1);
 		margin-top: var(--space-1);
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
-		line-height: 1.7;
+		line-height: 1;
 		color: var(--text-muted);
 		white-space: nowrap;
 	}
-	.keys kbd {
-		padding: var(--space-1) var(--space-1);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--surface-2);
-		font-family: inherit;
-		font-weight: 500;
-		font-size: inherit;
-		color: var(--text-secondary);
-	}
+	/* A vertical rule as tall as the toolbar. `height: auto` undoes the horizontal rule the
+	   shared `.divider` in app.css draws, which would otherwise pin it at 1px. */
 	.divider {
+		align-self: stretch;
 		width: 1px;
-		height: 30px;
+		height: auto;
 		background: var(--line-strong);
-	}
-	.size {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-	}
-	.size-label {
-		font-size: var(--type-small);
-		line-height: 1;
-		color: var(--text-muted);
-	}
-	.size-value {
-		min-width: 24px;
-		font-family: var(--font-mono);
-		font-weight: 500;
-		font-size: var(--type-body);
-		line-height: 1;
-		font-variant-numeric: tabular-nums;
-		text-align: center;
-	}
-	.step {
-		display: grid;
-		place-items: center;
-		width: 2rem;
-		height: 2rem;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-control);
-		background: var(--surface-2);
-		color: var(--text-secondary);
-		font-weight: 500;
-		font-size: var(--type-body);
-		line-height: 1;
-	}
-	.step:hover {
-		border-color: var(--line-hover);
-		color: var(--text-body);
 	}
 
 	/* Windows contrast themes. The placement preview keeps its own colours, like the audience

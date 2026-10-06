@@ -89,12 +89,12 @@
 	>
 		{#snippet icon()}
 			<svg
-				width="17"
-				height="17"
+				width="18"
+				height="18"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				stroke-linecap="round"><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg
 			>
 		{/snippet}
@@ -108,12 +108,12 @@
 	>
 		{#snippet icon()}
 			<svg
-				width="17"
-				height="17"
+				width="18"
+				height="18"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg
 			>
 		{/snippet}
@@ -129,8 +129,7 @@
 	</div>
 	<div class="tiles">
 		<button
-			class="tile"
-			class:selected={$options.source === 'microphone'}
+			class="tile ui-card"
 			disabled={locked}
 			aria-pressed={$options.source === 'microphone'}
 			onclick={() => actions.setSource('microphone')}
@@ -141,7 +140,7 @@
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.6"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				aria-hidden="true"
 				><rect x="9" y="2.5" width="6" height="11" rx="3" /><path
@@ -151,8 +150,7 @@
 			<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span>
 		</button>
 		<button
-			class="tile"
-			class:selected={$options.source === 'system'}
+			class="tile ui-card"
 			disabled={locked || $options.provider === 'ondevice'}
 			aria-pressed={$options.source === 'system'}
 			onclick={() => actions.setSource('system')}
@@ -163,7 +161,7 @@
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.6"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				aria-hidden="true"
@@ -172,8 +170,7 @@
 			<span>{$t.source.system}</span>
 		</button>
 		<button
-			class="tile"
-			class:selected={$options.source === 'both'}
+			class="tile ui-card"
 			disabled={locked || $options.provider === 'ondevice'}
 			aria-pressed={$options.source === 'both'}
 			onclick={() => actions.setSource('both')}
@@ -184,7 +181,7 @@
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.6"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg
 			>
@@ -347,8 +344,7 @@
 			{@const p = PROVIDER_META[id]}
 			{@const rate = rateParts(p, $t)}
 			<button
-				class="engine"
-				class:selected={$options.provider === id}
+				class="engine ui-card"
 				disabled={locked}
 				aria-pressed={$options.provider === id}
 				onclick={() => actions.setProvider(id)}
@@ -373,28 +369,10 @@
 		flex: 0 0 auto;
 	}
 
-	/* ---- Selection cards ---------------------------------------------------- */
-
-	.tile,
-	.engine {
-		border: 1px solid var(--line-strong);
-		background: var(--surface-1);
-		text-align: left;
-		color: inherit;
-	}
-	.tile.selected,
-	.engine.selected {
-		border-color: var(--accent-border);
-		background: var(--accent-bg);
-	}
-	.tile:hover:not(:disabled),
-	.engine:hover:not(:disabled) {
-		border-color: var(--line-hover);
-	}
-	.tile.selected:hover:not(:disabled),
-	.engine.selected:hover:not(:disabled) {
-		border-color: var(--accent);
-	}
+	/* ---- Selection cards ----------------------------------------------------
+	   The border, the fill and the selected wash of the source tiles and the engine rows
+	   are the shared .ui-card's; what is set here is their layout and how their text
+	   follows the selection. */
 
 	.tiles {
 		display: grid;
@@ -407,13 +385,12 @@
 		align-items: center;
 		gap: var(--space-2);
 		padding: var(--space-3) var(--space-1) var(--space-2);
-		border-radius: var(--radius-card);
 		color: var(--text-muted);
 		font-size: var(--type-small);
 		font-weight: 500;
 		line-height: 1;
 	}
-	.tile.selected {
+	.tile[aria-pressed='true'] {
 		color: var(--accent-soft);
 		font-weight: 600;
 	}
@@ -441,7 +418,6 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-3);
-		border-radius: var(--radius-card);
 	}
 	.engine-body {
 		display: flex;
@@ -455,14 +431,14 @@
 		line-height: 1;
 		color: var(--text-secondary);
 	}
-	.engine.selected .engine-name {
+	.engine[aria-pressed='true'] .engine-name {
 		color: var(--text-body);
 		font-weight: 600;
 	}
 	.engine-model {
 		font-family: var(--font-mono);
 		font-size: var(--type-caption);
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 		color: var(--text-muted);
 		overflow-wrap: anywhere;
 	}
@@ -476,25 +452,11 @@
 		font-variant-numeric: tabular-nums;
 		white-space: nowrap;
 	}
-	.engine.selected .engine-rate {
+	.engine[aria-pressed='true'] .engine-rate {
 		color: var(--accent-soft);
 	}
 	/* The unit stays grey when the selected engine turns its rate mint. */
 	.engine-rate .unit {
 		color: var(--text-muted);
-	}
-
-	@media (forced-colors: active) {
-		/* The one place in this window that must keep its own colours: the swatch *is* the
-		   value. A contrast theme repainting it would leave the operator choosing a caption
-		   colour they cannot see. The label and the reading beside it are repainted as
-		   normal, which is what a contrast theme is for. */
-		/* Selection is a mint border and a mint wash, and both flatten to the same
-		   Canvas/CanvasText as the unselected card next to them. An inset outline survives. */
-		.tile.selected,
-		.engine.selected {
-			outline: 2px solid Highlight;
-			outline-offset: -2px;
-		}
 	}
 </style>

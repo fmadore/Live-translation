@@ -340,7 +340,7 @@
 		width: 100%;
 		text-align: left;
 		overflow-wrap: anywhere;
-		line-height: 1.5;
+		line-height: var(--leading-body);
 	}
 	.sessions :global(.session span) {
 		color: var(--text-muted);
@@ -369,7 +369,7 @@
 	.notice {
 		color: var(--text-muted);
 		font-size: var(--type-small);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		margin: 0;
 		overflow-wrap: anywhere;
 	}
@@ -380,7 +380,7 @@
 		margin-top: var(--space-4);
 		border-top: 1px solid var(--line);
 		font-size: var(--type-body);
-		line-height: 1.6;
+		line-height: var(--leading-body);
 	}
 	.saved-text p {
 		margin: var(--space-3) 0;

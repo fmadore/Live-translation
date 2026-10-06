@@ -99,6 +99,75 @@ describe('the type scale', () => {
 	});
 });
 
+/** Every declaration of `property` in the components' `<style>` blocks and in app.css below
+ *  `:root`, with the file it came from. */
+function styleDeclarations(property: string): Array<{ file: string; value: string }> {
+	const root = APP_CSS.indexOf('\n}') + 2;
+	return [
+		{ file: 'app.css', css: APP_CSS.slice(root) },
+		...sourceFiles(SRC).map((path) => {
+			const source = readFileSync(path, 'utf8');
+			return {
+				file: path.slice(SRC.length + 1).replace(/\\/g, '/'),
+				css: source.includes('<style') ? source.slice(source.indexOf('<style')) : ''
+			};
+		})
+	].flatMap(({ file, css }) =>
+		[...css.matchAll(new RegExp(`(?<![\\w-])${property}:\\s*([^;]+);`, 'g'))].map((m) => ({
+			file,
+			value: m[1].trim()
+		}))
+	);
+}
+
+// Small-capital labels had drifted to six trackings, from 0.06 to 0.16em, for one role. A
+// heading's negative tracking is a different job and stays local.
+describe('the tracking', () => {
+	it('is one value for every small-capital label', () => {
+		expect(APP_CSS).toMatch(/--tracking-caps:\s*0\.12em;/);
+		const caps = styleDeclarations('letter-spacing').filter(({ value }) => !value.startsWith('-'));
+		expect(caps.length).toBeGreaterThan(5);
+		for (const { file, value } of caps) {
+			expect(value, `${file} declares ${value}`).toBe('var(--tracking-caps)');
+		}
+	});
+});
+
+// Twelve line-heights, several 0.05 apart, became three. A single-line control keeps 1, and
+// caption text keeps the leading the overlay's fitting code measures — it is the room's, not
+// the interface's.
+describe('the leading', () => {
+	const CAPTION: Record<string, string[]> = {
+		'routes/overlay/OverlayCaptionLine.svelte': ['1.34'],
+		'routes/overlay/OverlayMoveChrome.svelte': ['1.34'],
+		'lib/CaptionPreview.svelte': ['1.34'],
+		// The operator's mirror of the caption, at display size.
+		'lib/LiveTurns.svelte': ['1.3'],
+		// A row of key caps: the leading is the cap's height, not a reading measure.
+		'lib/KeyboardHelp.svelte': ['2']
+	};
+
+	it('is three steps, declared once', () => {
+		const steps = [...APP_CSS.matchAll(/--leading-(\w+):\s*([\d.]+);/g)];
+		expect(Object.fromEntries(steps.map(([, role, value]) => [role, Number(value)]))).toEqual({
+			tight: 1.2,
+			snug: 1.4,
+			body: 1.5
+		});
+	});
+
+	it('is what every line-height uses', () => {
+		const leadings = styleDeclarations('line-height');
+		expect(leadings.length).toBeGreaterThan(40);
+		for (const { file, value } of leadings) {
+			if (CAPTION[file]?.includes(value)) continue;
+			expect(value, `${file} declares ${value}`).toMatch(
+				/^(1|inherit|var\(--leading-(tight|snug|body)\))$/
+			);
+		}
+	});
+});
+
 describe('clampTextScale', () => {
 	it('passes the Windows range through untouched', () => {
 		for (const factor of [1, 1.25, 1.45, 1.75, 2, 2.25]) {

@@ -46,12 +46,12 @@
 <div class="rail-head">
 	<span class="rail-icon" aria-hidden="true">
 		<svg
-			width="13"
-			height="13"
+			width="14"
+			height="14"
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"
-			stroke-width="1.8"
+			stroke-width="1.75"
 			stroke-linecap="round"
 			><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path
 				d="M8 10.5V8a4 4 0 0 1 8 0v2.5"
@@ -154,12 +154,12 @@
 			onclick={overlay.toggleMoveOverlay}
 		>
 			<svg
-				width="13"
-				height="13"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				aria-hidden="true"
@@ -177,12 +177,12 @@
 			onclick={overlay.toggleOverlayVisible}
 		>
 			<svg
-				width="13"
-				height="13"
+				width="14"
+				height="14"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
-				stroke-width="1.7"
+				stroke-width="1.75"
 				stroke-linecap="round"
 				aria-hidden="true"
 			>
@@ -213,7 +213,7 @@
 	}
 	.chip {
 		padding: var(--space-2) var(--space-3);
-		border-radius: var(--radius-control);
+		border-radius: var(--radius-card);
 		background: var(--surface-1);
 		border: 1px solid var(--line);
 		display: flex;
@@ -225,20 +225,20 @@
 		font-size: var(--type-caption);
 		font-weight: 500;
 		line-height: 1;
-		letter-spacing: 0.12em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		color: var(--text-muted);
 	}
 	.chip-value {
 		font-size: var(--type-body);
 		font-weight: 500;
-		line-height: 1.1;
+		line-height: var(--leading-tight);
 		color: var(--text-body);
 	}
 	.rail-note {
 		margin: 0;
 		font-size: var(--type-small);
-		line-height: 1.4;
+		line-height: var(--leading-snug);
 		color: var(--text-muted);
 	}
 
@@ -283,7 +283,7 @@
 	.cost-note {
 		margin: 0;
 		font-size: var(--type-caption);
-		line-height: 1.45;
+		line-height: var(--leading-snug);
 		color: var(--text-muted);
 		text-wrap: pretty;
 	}

@@ -496,7 +496,7 @@
 		background: var(--line);
 	}
 	.rule.live {
-		background: var(--accent-chip-bg);
+		background: var(--accent-chip);
 		position: relative;
 		overflow: hidden;
 	}
@@ -580,7 +580,7 @@
 		padding: var(--space-3);
 		margin-bottom: var(--space-5);
 		font-size: var(--type-body);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 	}
 	.banner code {
@@ -592,13 +592,13 @@
 		margin: var(--space-4) 0 0;
 		font-size: var(--type-display);
 		font-weight: 600;
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 		letter-spacing: -0.02em;
 	}
 	.intro {
 		margin: var(--space-2) 0 0;
 		font-size: var(--type-body);
-		line-height: 1.55;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		max-width: 48ch;
 		text-wrap: pretty;
@@ -612,17 +612,12 @@
 		gap: var(--space-3);
 		margin-top: var(--space-6);
 	}
-	.rehearse-hint {
-		font-size: var(--type-small);
-		line-height: 1.45;
-		color: var(--text-muted);
-		max-width: 72ch;
-		text-wrap: pretty;
-	}
-
+	/* The two launch notes are one kind of text in the same grey, so they share a size: at two
+	   sizes the second read as a separate, louder statement. */
+	.rehearse-hint,
 	.privacy {
-		font-size: var(--type-body);
-		line-height: 1.5;
+		font-size: var(--type-small);
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
@@ -630,7 +625,7 @@
 	.status-msg {
 		margin: var(--space-4) 0 0;
 		font-size: var(--type-body);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--warn);
 	}
 

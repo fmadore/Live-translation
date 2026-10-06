@@ -367,7 +367,7 @@
 		/* Scales with the caption so the label stays legible at projector distance. */
 		font-size: max(11px, calc(var(--fs) * 0.37));
 		line-height: 1;
-		letter-spacing: 0.16em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		color: var(--caption-ink-label);
 	}

@@ -145,7 +145,7 @@
 	}
 	.note {
 		margin: 0;
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 	}
 	ul {
@@ -158,7 +158,7 @@
 	}
 	.word {
 		overflow-wrap: anywhere;
-		line-height: 1.2;
+		line-height: var(--leading-tight);
 	}
 	form {
 		display: grid;
@@ -168,7 +168,7 @@
 	}
 	.problem {
 		margin: 0;
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--danger-soft);
 	}
 </style>

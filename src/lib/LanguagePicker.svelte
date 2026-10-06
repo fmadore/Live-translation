@@ -212,15 +212,19 @@
 	.language-picker {
 		min-width: 0;
 	}
+	/* Drawn like the selects around it on the rail: the same height, padding, size and grey,
+	   so the one searchable field does not stand 4px taller than its neighbours. */
 	input {
 		width: 100%;
 		min-width: 0;
-		padding: var(--space-3);
-		color: var(--text-body);
+		min-height: var(--control-md);
+		padding: var(--space-2) var(--space-3);
+		color: var(--text-secondary);
 		background: var(--surface-1);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-control);
 		font: inherit;
+		font-size: var(--type-small);
 	}
 	.hint,
 	.error {
@@ -242,7 +246,7 @@
 		max-height: min(20em, 45vh);
 		overflow: auto;
 		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-control);
+		border-radius: var(--radius-overlay);
 		background: var(--surface-1);
 		scrollbar-color: var(--text-muted) var(--surface-1);
 	}
@@ -284,12 +288,12 @@
 		font-size: var(--type-small);
 	}
 	.option.active {
-		background: var(--accent-bg);
+		background: var(--accent-wash);
 		outline: 1px solid var(--accent);
 		outline-offset: -1px;
 	}
 	.option:hover {
-		background: var(--accent-bg);
+		background: var(--accent-wash);
 	}
 	.option.unsupported {
 		cursor: default;

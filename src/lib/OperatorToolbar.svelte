@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { isRunning, options, sessionStartedAt, sessionState } from './stores';
 	import type { SessionState } from './types';
@@ -65,21 +66,22 @@
 			<span class="pill-time">{elapsed}</span>
 		{/if}
 	</div>
-	<!-- Persistent access to caption, reading, history and app preferences. -->
-	<button
-		class="gear"
+	<!-- Persistent access to caption, reading, history and app preferences: the one control in
+	     the bar whose place never depends on what the session is doing. -->
+	<ToolButton
+		class="icon"
 		aria-haspopup="dialog"
 		aria-expanded={settingsOpen}
 		aria-label={$t.settings.openLabel}
 		onclick={onOpenSettings}
 	>
 		<svg
-			width="15"
-			height="15"
+			width="16"
+			height="16"
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"
-			stroke-width="1.7"
+			stroke-width="1.75"
 			stroke-linecap="round"
 			stroke-linejoin="round"
 			aria-hidden="true"
@@ -89,7 +91,7 @@
 				d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
 			/>
 		</svg>
-	</button>
+	</ToolButton>
 </header>
 
 <style>
@@ -103,29 +105,12 @@
 		padding: var(--space-2) var(--space-5);
 		background: var(--surface-1);
 	}
-	/* The one control in the bar whose position never depends on what the session is doing.
-	   Icon-only, so its accessible name carries the whole label; the box is padded out to a
-	   real target rather than left the size of the glyph. */
-	.gear {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex: 0 0 auto;
-		width: 2rem;
-		height: 2rem;
-		border-radius: var(--radius-control);
-		border: 1px solid transparent;
-		background: transparent;
-		color: var(--text-muted);
-	}
-	.gear:hover {
-		border-color: var(--line-hover);
-		color: var(--text-body);
-	}
+	/* The app icon in miniature, so it rounds by the icon's own proportion (224 of 1024) rather
+	   than by a step of the radius scale, and the two read as one shape. */
 	.brand {
 		width: 1.5rem;
 		height: 1.5rem;
-		border-radius: var(--radius-control);
+		border-radius: 21.875%;
 		background: linear-gradient(var(--surface-2), var(--surface-0));
 		border: 1px solid var(--line-strong);
 		display: flex;
@@ -154,11 +139,13 @@
 		height: 7px;
 		border-radius: 50%;
 	}
+	/* One weight in every state: a pill that drops to 500 when it is paused or in error reads as
+	   less urgent at exactly the moment it is more so. */
 	.pill-label {
 		font-size: var(--type-caption);
-		font-weight: 500;
+		font-weight: 600;
 		line-height: 1;
-		letter-spacing: 0.06em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 	}
 	.pill-time {
@@ -179,7 +166,7 @@
 		color: var(--text-muted);
 	}
 	.pill.live {
-		background: var(--accent-bg);
+		background: var(--accent-wash);
 		border: 1px solid var(--accent-border);
 	}
 	.pill.live .pill-dot {
@@ -190,10 +177,12 @@
 	.pill.live .pill-label,
 	.pill.live .pill-time {
 		color: var(--accent-soft);
+	}
+	.pill.live .pill-time {
 		font-weight: 600;
 	}
 	.pill.warn {
-		background: var(--warn-bg);
+		background: var(--warn-wash);
 		border: 1px solid var(--warn-border);
 	}
 	.pill.warn .pill-dot {
@@ -204,7 +193,7 @@
 		color: var(--warn-soft);
 	}
 	.pill.bad {
-		background: var(--danger-bg);
+		background: var(--danger-wash);
 		border: 1px solid var(--danger-border);
 	}
 	.pill.bad .pill-dot {

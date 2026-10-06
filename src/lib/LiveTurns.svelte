@@ -127,18 +127,20 @@
 		font-size: var(--type-caption);
 		font-weight: 600;
 		line-height: 1;
-		letter-spacing: 0.14em;
+		letter-spacing: var(--tracking-caps);
 		text-transform: uppercase;
 		padding: var(--space-1) var(--space-2);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-control);
 	}
+	/* Neutral, so mint keeps one meaning in this window — live, primary, on — and the room
+	   keeps its blue. Two speakers still read as two: one tinted, one plain. */
 	.origin-chip.system {
-		color: var(--accent-soft);
-		background: var(--accent-chip-bg);
+		color: var(--text-secondary);
+		background: var(--surface-2);
 	}
 	.origin-chip.microphone {
 		color: var(--room-soft);
-		background: var(--room-bg);
+		background: var(--room-chip);
 	}
 	.origin-sub {
 		font-family: var(--font-mono);
@@ -155,7 +157,7 @@
 	.turn-source {
 		margin: 0;
 		font-size: var(--type-body);
-		line-height: 1.5;
+		line-height: var(--leading-body);
 		color: var(--text-muted);
 		text-wrap: pretty;
 	}

@@ -53,16 +53,19 @@ contrast themes (see *Contrast themes* below).
 - `npm test` → `src/lib/typeScale.test.ts` reads the same stylesheets and fails if any
   component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach.
   It is the same kind of guard for the same reason: the failure is invisible on a machine
-  sitting at 100%. It also fails on a size outside the seven roles, and covers the clamp that
-  stands between a settings event and every `calc()` in the stylesheet.
-- `npm test` → `src/lib/spacing.test.ts` does the same for spacing and corners: every padding,
-  margin and gap is a `--space-*` step (or an optical nudge of a few pixels), and every radius
-  is a `--radius-*` token.
+  sitting at 100%. It also fails on a size outside the seven roles, on a small-capital label
+  that is not tracked at `--tracking-caps`, on a line-height outside the three `--leading-*`
+  steps (caption text excepted), and covers the clamp that stands between a settings event and
+  every `calc()` in the stylesheet.
+- `npm test` → `src/lib/spacing.test.ts` does the same for spacing, corners and control boxes:
+  every padding, margin and gap is a `--space-*` step (or an optical nudge of a few pixels),
+  every radius is a `--radius-*` token at Windows 11 geometry (4px in the page, 8px for
+  dialogs and flyouts), and every control box is one of the three `--control-*` heights.
 - `npm test` also covers the modal Tab trap, stacked dialogs and the save announcement.
 - `npm run check` catches Svelte's own accessibility lints (missing labels, roles on the wrong
   element, click handlers without keyboard equivalents).
 
-Text on a **tinted wash** that the stylesheet names (`--accent-bg`, `--warn-bg` and the rest)
+Text on a **tinted wash** that the stylesheet names (`--accent-wash`, `--warn-chip` and the rest: every hue has the same 8% `-wash` and 14% `-chip`)
 is checked by `palette.test.ts` for the muted level, which bounds every grey above it. Anything
 else composited — a coloured label on its own wash (amber on amber), or text over a gradient —
 is measured against the rendered window instead:

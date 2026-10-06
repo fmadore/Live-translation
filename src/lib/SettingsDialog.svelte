@@ -6,6 +6,7 @@
 	import ModalPrompt from './ModalPrompt.svelte';
 	import Tabs from './ui/Tabs.svelte';
 	import LanguageCard from './ui/LanguageCard.svelte';
+	import Preference from './ui/Preference.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import CaptionAppearance from './CaptionAppearance.svelte';
 	import ReadingPreferences from './ReadingPreferences.svelte';
@@ -92,12 +93,12 @@
 						onclick={overlay.toggleMoveOverlay}
 					>
 						<svg
-							width="13"
-							height="13"
+							width="14"
+							height="14"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
-							stroke-width="1.7"
+							stroke-width="1.75"
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							aria-hidden="true"
@@ -146,12 +147,12 @@
 					<h2 class="kicker">{$t.window.heading}</h2>
 					<ToolButton wide disabled={browserMode} onclick={onHideWindow}>
 						<svg
-							width="13"
-							height="13"
+							width="14"
+							height="14"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
-							stroke-width="1.7"
+							stroke-width="1.75"
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							aria-hidden="true"
@@ -161,20 +162,13 @@
 						>
 						{$t.window.minimizeToTray}
 					</ToolButton>
-					<label class="pref">
-						<input
-							type="checkbox"
-							checked={$closeToTray}
-							disabled={browserMode}
-							onchange={(e) => closeToTray.set(e.currentTarget.checked)}
-						/>
-						<span>
-							<span class="pref-title">{$t.window.keepRunning}</span>
-							<span class="pref-note">
-								{browserMode ? $t.window.needsDesktop : $t.window.keepRunningNote}
-							</span>
-						</span>
-					</label>
+					<Preference
+						label={$t.window.keepRunning}
+						note={browserMode ? $t.window.needsDesktop : $t.window.keepRunningNote}
+						checked={$closeToTray}
+						disabled={browserMode}
+						onchange={(value) => closeToTray.set(value)}
+					/>
 				</div>
 				<KeyboardHelp />
 			{/if}

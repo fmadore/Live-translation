@@ -12,7 +12,8 @@ import {
 	overlayFontSize,
 	overlayCaptionLayout,
 	overlayCaptionWidth,
-	overlayCleanSpeech
+	overlayCleanSpeech,
+	overlayPalette
 } from './stores';
 import { loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
@@ -32,8 +33,8 @@ it('keeps both appearances synchronized with separate accessible contrast descri
 	)!;
 	await fireEvent.click(increase);
 	await waitFor(() => {
-		expect(rail.container.querySelector('.stepper-value')?.textContent).toBe('44 px');
-		expect(settings.container.querySelector('.stepper-value')?.textContent).toBe('44 px');
+		expect(rail.container.querySelector('.ui-stepper output')?.textContent).toBe('44 px');
+		expect(settings.container.querySelector('.ui-stepper output')?.textContent).toBe('44 px');
 	});
 	expect(setOverlayConfig).toHaveBeenCalledTimes(1);
 	rail.unmount();
@@ -128,6 +129,32 @@ it('names the colour swatches and marks the chosen one as pressed', async () => 
 		'aria-pressed',
 		'false'
 	);
+	overlay.resetOverlayAppearance();
+	view.unmount();
+});
+
+// The backing is stored as a fraction but stepped in whole percent: a step past the ceiling
+// stops on it, and the stronger button is disabled there, as it was before the shared Stepper.
+it('steps the backing strength in whole percent and stops at its ceiling', async () => {
+	const overlay = createOverlayController({
+		...api,
+		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
+	});
+	overlay.resetOverlayAppearance();
+	const view = render(CaptionAppearance, { heading: 'Rail', overlay, compact: true });
+	const backing = within(view.container).getByRole('group', { name: 'Backing strength' });
+	const stronger = within(backing).getByRole('button', {
+		name: 'Stronger backing behind the captions'
+	});
+	expect(backing.querySelector('output')?.textContent).toBe('72%');
+	for (let i = 0; i < 5; i++) await fireEvent.click(stronger);
+	await waitFor(() => expect(backing.querySelector('output')?.textContent).toBe('95%'));
+	expect(get(overlayPalette).scrimOpacity).toBe(0.95);
+	expect(stronger).toBeDisabled();
+	await fireEvent.click(
+		within(backing).getByRole('button', { name: 'Weaker backing behind the captions' })
+	);
+	expect(get(overlayPalette).scrimOpacity).toBe(0.9);
 	overlay.resetOverlayAppearance();
 	view.unmount();
 });

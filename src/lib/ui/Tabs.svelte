@@ -59,33 +59,50 @@
 </div>
 
 <style>
+	/* A Windows 11 selector bar: the selected tab is brighter text over a short accent
+	   indicator, so it no longer looks like a pressed toggle or a chosen card. */
 	.tabs {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-1);
 		border-bottom: 1px solid var(--line-strong);
-		padding-bottom: var(--space-3);
 	}
 	.tabs button {
-		flex: 1;
-		padding: var(--space-3);
-		border: 1px solid transparent;
+		position: relative;
+		padding: var(--space-3) var(--space-4);
+		border: 0;
 		border-radius: var(--radius-control);
 		background: transparent;
 		color: var(--text-muted);
 		font-size: var(--type-small);
-	}
-	.tabs button[aria-selected='true'] {
-		background: var(--accent-bg);
-		color: var(--accent-soft);
-		border-color: var(--accent-border);
+		font-weight: 500;
+		line-height: 1;
 	}
 	.tabs button:hover {
+		background: var(--surface-2);
 		color: var(--text-body);
+	}
+	.tabs button[aria-selected='true'] {
+		color: var(--text-bright);
+	}
+	.tabs button[aria-selected='true']::after {
+		content: '';
+		position: absolute;
+		left: 50%;
+		bottom: -1px;
+		width: 1rem;
+		height: 3px;
+		border-radius: var(--radius-pill);
+		background: var(--accent);
+		transform: translateX(-50%);
 	}
 	@media (forced-colors: active) {
 		.tabs button[aria-selected='true'] {
 			outline: 2px solid Highlight;
+		}
+		.tabs button[aria-selected='true']::after {
+			background: Highlight;
+			forced-color-adjust: none;
 		}
 	}
 </style>
