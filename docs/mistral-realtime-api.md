@@ -1,8 +1,7 @@
 # Mistral Voxtral Mini Realtime Transcription API
 
-Cloud subtitle integration used by 1.6.0 and 1.6.1. The API verification date below is
-historical; current release acceptance is in the [handoff](store-updates.md#release-161-handoff).
-For local subtitles without an account or key, see [Whisper](local-whisper.md).
+Cloud subtitle integration. For local subtitles without an account or key, see
+[Whisper](local-whisper.md).
 
 Verified 1 August 2026 against Mistral’s
 [realtime transcription guide](https://docs.mistral.ai/studio-api/audio/speech_to_text/realtime_transcription),
@@ -12,10 +11,9 @@ and the official [`mistralai` realtime connection source](https://github.com/mis
 ## Scope
 
 `voxtral-mini-transcribe-realtime-2602` produces same-language realtime transcription. It
-does **not** translate, so the UI exposes it as the separate **Live subtitles** function.
-The app uses 16 kHz mono signed 16-bit little-endian PCM and a default target streaming delay
-of 480 ms. Override the delay with `MISTRAL_TARGET_STREAMING_DELAY_MS` when testing the
-latency/accuracy trade-off.
+does **not** translate, so the UI exposes it under **Live subtitles**. The app sends 16 kHz
+mono signed 16-bit little-endian PCM with a default target streaming delay of 480 ms. Override
+the delay with `MISTRAL_TARGET_STREAMING_DELAY_MS` to test the latency/accuracy trade-off.
 
 ## Connection and setup
 
@@ -46,11 +44,10 @@ subtitle line through the shared 900 ms idle boundary.
 
 ## Graceful stop
 
-The official SDK flushes and ends input after the stream finishes. This implementation sends
-`input_audio.flush`, then `input_audio.end`, and drains through `transcription.done` (or a
-four-second safety timeout) before closing. Any remaining accumulated text is finalized and
-included in exports.
+Like the official SDK, the client sends `input_audio.flush`, then `input_audio.end`, and drains
+through `transcription.done` (or a four-second safety timeout) before closing. Remaining
+accumulated text is finalized and included in exports.
 
-Long-lived keys are safe here because the WebSocket is opened by the Rust backend, not a web
-page. Mistral’s short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is intended for browser
-clients that cannot set an `Authorization` header.
+Long-lived keys are safe here because the Rust backend, not a web page, opens the WebSocket.
+Mistral’s short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is for browser clients that
+cannot set an `Authorization` header.

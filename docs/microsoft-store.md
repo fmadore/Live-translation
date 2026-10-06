@@ -7,28 +7,27 @@ and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
 
-Whisper adds real local speech recognition without an account or API key. A user downloads a
-verified multilingual model once, then uses microphone or system audio offline. CPU speed,
-model choice and language affect latency and accuracy. Optional cloud translation/subtitles
-still require the user's provider account, key and network connection, with possible usage
-charges. These dependencies are disclosed at the beginning of every localized description.
+Whisper gives real local speech recognition without an account or API key: the user downloads
+a verified multilingual model once, then captions microphone or system audio offline. CPU speed,
+model choice and language affect latency and accuracy. Optional cloud translation and subtitles
+need the user's provider account, key and network connection, with possible usage charges.
+Every localized description discloses these dependencies at the start.
 
 New installations open on **Whisper**, with Base and automatic language detection selected.
 The user chooses Download model and then Start; no download or capture starts automatically.
-Existing saved setups are preserved on upgrade. The English/French scripted demo remains
-available as a setup-free way to check the overlay and export flow. It must always be
-labelled as a demo, never as speech recognition.
+Existing saved setups are preserved on upgrade. The English/French scripted demo remains a
+setup-free way to check the overlay and export flow, and must always be labelled as a demo,
+never as speech recognition.
 
-Historical context: 1.0.3 failed certification because Start Subtitles did not work on the
-review device. Windows AI Speech/ML and the Windows speech recognizer were removed in 1.0.5,
-which introduced the deterministic demo. Whisper in 1.6.0 is a different CPU implementation
-with downloadable models; those earlier failures do not describe the current recognizer.
+1.0.3 failed certification because Start Subtitles did not work on the review device. 1.0.5
+removed Windows AI Speech/ML and the Windows speech recognizer, and introduced the demo. Whisper
+(1.6.0) is a different CPU implementation, so those failures do not describe it.
 
 Review the current [Microsoft Store policies](https://learn.microsoft.com/en-us/windows/apps/publish/store-policies)
-when submitting. Metadata must accurately describe dependencies and costs, advertised
-features must work on supported devices, and reviewers need a usable test path. The notes
+when submitting: metadata must describe dependencies and costs accurately, advertised features
+must work on supported devices, and reviewers need a usable test path. The certification notes
 provide Whisper setup and the demo fallback. Resolve access needed to test cloud features
-before submission; passing a local check does not imply certification.
+before submission; a passing local check does not imply certification.
 
 ## Store identity (assigned)
 

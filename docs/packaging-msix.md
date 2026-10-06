@@ -1,12 +1,12 @@
 # MSIX packaging
 
 How to build the Microsoft Store package on your own machine, sign it so Windows will
-install it, and check the things CI cannot check — microphone capture, WASAPI loopback,
-Credential Manager, the overlay and the export path, all running under package identity.
+install it, and check what CI cannot: microphone capture, WASAPI loopback, Credential Manager,
+the overlay and the export path, all running under package identity.
 
-[`microsoft-store.md`](microsoft-store.md) has the why: the Store policy gates, the assigned
-identity values and acceptance checklist. This file covers building, signing and testing
-the **1.6.1** release; the [handoff](store-updates.md#release-161-handoff) records its Store status.
+[`microsoft-store.md`](microsoft-store.md) has the certification approach, the assigned identity
+values and the acceptance checklist; the [handoff](store-updates.md#release-161-handoff)
+records the **1.6.1** release's Store status.
 
 ## What is committed
 
@@ -16,7 +16,7 @@ a devDependency. It drives `tauri build --no-bundle`, assembles the package payl
 hands it to the Windows SDK's `MakeAppx`.
 
 | Path | What it is |
-| — | — |
+| --- | --- |
 | `src-tauri/gen/windows/bundle.config.json` | Publisher, capabilities, signing. Read at build time. |
 | `src-tauri/gen/windows/AppxManifest.xml.template` | The manifest, with `{{PLACEHOLDER}}`s the bundler fills in per architecture. |
 | `src-tauri/gen/windows/Assets/*.png` | Store logo and tiles, copied into the package verbatim. |
@@ -41,13 +41,10 @@ Three things in there are not what they look like:
   any of these differ by a character, so they are written out in the template and checked
   against *Store identity (assigned)* in `microsoft-store.md`.
 - **`"publisher"` in `tauri.conf.json` is load-bearing.** Tauri defaults the Windows publisher
-  to the second element of `identifier`, which under the old `org.stias.live-translation` named
-  the workshop venue as the author: *stias* in the packaged executable's `CompanyName` and in
-  the NSIS/MSI installers attached to a GitHub release. `"publisher": "Frédérick Madore"` sets
-  it explicitly, and still has to, because the second element of
-  `io.github.fmadore.live-translation` is *github*. The Store identity is unaffected by any of
-  this — it is a literal in `bundle.config.json`, which is what made the 1.2.0 rename of the
-  identifier safe to do at all.
+  to the second element of `identifier` — *github* in `io.github.fmadore.live-translation` —
+  and writes it into the packaged executable's `CompanyName` and the NSIS/MSI installers.
+  `"publisher": "Frédérick Madore"` sets it explicitly. The Store identity is unaffected: it is
+  a literal in `bundle.config.json`, which is what made the 1.2.0 rename of the identifier safe.
 
 The manifest the bundler produces carries the matching `x64` or `arm64` architecture:
 
@@ -65,26 +62,23 @@ network access. The package carries no speech model, Windows AI runtime, WinRT r
 desktop process. Whisper CPU inference is statically linked; model weights download only
 at the user's request.
 
-`Version` is the field here that moves: the bundler stamps it from `tauri.conf.json`, with a
-fourth component appended. It reads `1.6.1.0` at the time of writing and whatever that file
-says at the time of reading.
+`Version` is the field that moves: the bundler stamps it from `tauri.conf.json`, with a fourth
+component appended.
 
-## Historical local test builds
+## Side-by-side test builds
 
-A separate unpackaged ARM64 executable was installed as **Live Translation Local Test**
-under %LOCALAPPDATA%\Programs\Live Translation Local Test, with Desktop and Start-menu
-shortcuts. The initial test executable reported 1.2.3; it was then updated to 1.2.4 with
-the shallow bottom-alignment preset. Its identifier is io.github.fmadore.live-translation.local-test;
-its WebView preferences are separate, while provider keys use the existing Credential Manager
-service. The Store-signed 1.2.2.0 install was left intact.
+Two test installations sit beside the Store app, each with its own identifier and WebView
+preferences:
 
-On 4 October, PR #99 was also tested in a separate native ARM64 **Live Translation Whisper
-Test** installation (version label 1.5.1). It has a separate identifier and preferences.
-Neither local test identity belongs in a Store package.
+- **Live Translation Local Test**, an unpackaged ARM64 executable under
+  `%LOCALAPPDATA%\Programs\Live Translation Local Test`, identifier
+  `io.github.fmadore.live-translation.local-test`. Provider keys use the existing Credential
+  Manager service.
+- **Live Translation Whisper Test**, a native ARM64 build of PR #99 (version label 1.5.1).
 
-This executable is for local feedback, not proof of MSIX compatibility. The ignored
-src-tauri/target/local-test.conf.json override must not be used for release packages.
-Build 1.6.1 with the normal committed configuration and complete the
+They are for local feedback, not proof of MSIX compatibility, and neither identity belongs in
+a Store package. The ignored `src-tauri/target/local-test.conf.json` override must not be used
+for release packages: build with the normal committed configuration and complete the
 [release verification](caption-layout.md#release-verification).
 
 ## Prerequisites
@@ -116,16 +110,15 @@ src-tauri/target/msix/Live Translation & Subtitles_1.6.1.0_arm64.msix
 src-tauri/target/msix/Live Translation & Subtitles_1.6.1.0.msixbundle
 ```
 
-The local names come from the manifest's `DisplayName`. CI builds x64 and ARM64 packages,
-combines them into `Live.Translation_<version>.msixbundle`, and attaches that single bundle
-to the release for Store submission. For local verification, use the per-architecture
-`Live.Translation_<version>_<arch>.msix` files instead.
+The local names come from the manifest's `DisplayName`; CI renames them (see
+[What CI does](#what-ci-does)). For local verification, use the per-architecture `.msix`, not
+the bundle.
 
 Substitute the current `tauri.conf.json` version for `1.6.1` throughout this file. Every
-release built on this machine is still in `target/msix/` beside the newest one, which is why
-the commands below derive the name instead of spelling it out.
+release built on this machine stays in `target/msix/`, which is why the commands below derive
+the name instead of spelling it out.
 
-Sanity checks worth a glance on the staged payload:
+Check the staged payload:
 
 ```powershell
 Get-ChildItem src-tauri/target/appx/arm64 -Recurse -Name
@@ -140,30 +133,23 @@ committed `Wide310x150Logo.png` is the corrected one.
 
 ## Sign it, so Windows will install it
 
-For this repository's local certificate files, the shortest safe path is the checked-in helper.
-Open Windows PowerShell **as Administrator** from the repository root; it prompts securely for
-the PFX password, trusts the matching public certificate in Local Machine → Trusted People,
-checks for the two conflicts below before asking for anything, signs, verifies, installs,
-and confirms the installed version:
+Windows installs no unsigned MSIX. The Store re-signs the submitted package with its own
+certificate, which is why this route removes the SmartScreen warning; the certificate here only
+gets the package onto your own machine and is thrown away afterwards.
+
+The shortest safe path is the checked-in helper. Run it in Windows PowerShell **as
+Administrator** from the repository root (`-File` resolves relative to the current directory):
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-local-msix.ps1 -Architecture arm64
 ```
 
-Run it from the repository root: `-File` resolves relative to your current directory, so a
-prompt sitting anywhere else reports that the script does not exist.
-
-It reads the version from `tauri.conf.json`, the same file the bundler stamps into the
-filename, so the package it signs is always the one you just built rather than a previous
-release still sitting in `target/msix/`. Pass `-Version 1.1.0` to reach for one of those on
-purpose.
-
-Use `-Architecture x64` on an x64 test machine. The manual equivalent follows.
-
-Windows installs no unsigned MSIX. The Store re-signs the submitted package with its own
-certificate, which is the whole reason this route removes the SmartScreen warning — so the
-certificate below exists only to get the package onto your own machine, and is thrown away
-afterwards.
+It checks for the two install conflicts below before asking for anything, prompts securely for
+the PFX password, trusts the matching public certificate in Local Machine → Trusted People,
+signs, verifies, installs and confirms the installed version. It reads the version from
+`tauri.conf.json`, so it signs the package you just built; pass `-Version 1.1.0` to pick an
+older one on purpose. Use `-Architecture x64` on an x64 test machine. The manual equivalent
+follows.
 
 The certificate's **subject must equal the manifest's `Publisher` exactly**, or the install
 fails with a publisher mismatch.
@@ -200,11 +186,10 @@ fails with a publisher mismatch.
      -Password (Read-Host -AsSecureString "Password for the dev PFX")
    ```
 
-   `LocalMachine\TrustedPeople` — not `Root`. Both stores satisfy the MSIX installer, but
-   Trusted People is trusted *for installing signed app packages* and nothing else, whereas a
-   certificate in Trusted Root Certification Authorities is trusted for everything on the
-   machine, including TLS. A throwaway key with a private half sitting in your Downloads
-   folder does not belong in Root.
+   `LocalMachine\TrustedPeople`, not `Root`. Both satisfy the MSIX installer, but Trusted
+   People is trusted *for installing signed app packages* only, whereas Trusted Root
+   Certification Authorities is trusted for everything on the machine, including TLS. A
+   throwaway key does not belong there.
 
 4. Sign the package. `signtool.exe` lives under the SDK; take the newest:
 
@@ -236,11 +221,10 @@ fails with a publisher mismatch.
    Get-AppxPackage 49346FMadore.LiveTranslationSubtitles | Remove-AppxPackage
    ```
 
-   A **Store-signed copy installed from the listing** is the other thing that blocks this, and
-   it fails differently: `0x80073CF3`, "package updates, dependency or conflict validation
-   failed". Windows will not let a developer-signed package replace a Store-signed one of the
-   same identity, whatever the version numbers say. `Get-AppxPackage` names the culprit — a
-   `SignatureKind` of `Store` rather than `Developer`:
+   A **Store-signed copy installed from the listing** also blocks it, with `0x80073CF3`
+   ("package updates, dependency or conflict validation failed"): Windows will not let a
+   developer-signed package replace a Store-signed one of the same identity, whatever the
+   versions. `Get-AppxPackage` shows a `SignatureKind` of `Store` rather than `Developer`:
 
    ```powershell
    Get-AppxPackage 49346FMadore.LiveTranslationSubtitles |
@@ -248,9 +232,8 @@ fails with a publisher mismatch.
    ```
 
    Remove it with the same command as above, install the local package, and reinstall from the
-   Store when the verification round is done. This is worth expecting rather than debugging:
-   the app is published, so any machine that has it from the Store hits this on the first
-   sideload.
+   Store when the verification round is done. Expect this on any machine that has the app from
+   the Store.
 
 6. Confirm the identity is the one Partner Center assigned — the family name's hash suffix is
    derived from `Name` plus `Publisher`, so this is a byte-for-byte check of both:
@@ -266,17 +249,17 @@ fails with a publisher mismatch.
 
 ## Verify under package identity
 
-Launch from the Start menu (not the staged `.exe` — that runs without identity and proves
-nothing). Then work through the list; the first three are the open gates in
-`microsoft-store.md`.
+Launch from the Start menu, not the staged `.exe`, which runs without identity and proves
+nothing. Then work through the list; the
+[acceptance checklist](microsoft-store.md#acceptance-checklist) has the rest.
 
 | Check | What "pass" looks like |
-| — | — |
+| --- | --- |
 | **Whisper (first-launch default)** | A clean install selects Whisper, Base and automatic detection. No download or capture starts automatically. Download a model, select/test the audio source and start; verify offline captions after download and complete Stop draining. |
 | **Built-in demo (optional)** | Select Built-in demo, then click *Start demo subtitles*, without audio hardware or network. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop and export work. Repeat in English and French. |
 | **Microphone (optional live mode)** | With Mistral/Gemini/OpenAI configured, the app appears under Settings → Privacy & security → Microphone and captures with access on. With access blocked, it reports the exact Settings path. |
-| **WASAPI loopback (gate 7)** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
-| **Credential Manager (gate 8)** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
+| **WASAPI loopback** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
+| **Credential Manager** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
 | **Overlay** | Transparent background, click-through to the window behind, always on top over a full-screen slide deck, and move mode still drags it. |
 | **Export** | Use native Save As to choose a folder and filename for text, Markdown, SRT and VTT. Verify remembered folder, overwrite confirmation and cancellation (including the quit prompt); check the file exists at the exact selected path. See [transcript export](transcript-export.md#verification). Older packages may use the previous Documents export path. |
 
@@ -303,23 +286,23 @@ with that key. Remove it when the verification round is done.
 
 ## Debugging without repacking
 
-Signing and reinstalling an MSIX for every code change is not a debug loop. Microsoft's
-[`winapp` CLI](https://github.com/microsoft/winappCli) grants package identity to an
-unpackaged build through loose-layout registration, so packaged-only behaviour can be
-reproduced against an ordinary build:
+Microsoft's [`winapp` CLI](https://github.com/microsoft/winappCli) grants package identity to
+an unpackaged build through loose-layout registration, so packaged-only behaviour can be
+reproduced without signing and reinstalling an MSIX for every change:
 
 ```powershell
 winget install Microsoft.winappcli --source winget
 winapp run
 ```
 
-`microsoft-store.md` recommends keeping it installed for exactly this. It also has its own
-`winapp init` / `winapp cert` / `winapp pack` flow, which is a first-party alternative to the
+The CLI's `winapp init` / `winapp cert` / `winapp pack` flow is a first-party alternative to the
 packaging above — single-architecture, and not what the release workflow uses.
 
 ## What CI does
 
-The `msix` job in `.github/workflows/release.yml` runs the same build command on
-`windows-latest` after the installer job has created the release, then renames the bundle and
-attaches it with `gh release upload`. It signs nothing: Partner Center expects an unsigned
-package and the Store applies its own signature.
+After the installer job has created the release, the `msix` job in
+`.github/workflows/release.yml` runs the same build command natively per architecture and
+uploads `Live.Translation_<version>_<arch>.msix`. The `bundle` job then combines both into
+`Live.Translation_<version>.msixbundle` with MakeAppx and uploads that single Store bundle.
+Nothing is signed: Partner Center expects an unsigned package and the Store applies its own
+signature.

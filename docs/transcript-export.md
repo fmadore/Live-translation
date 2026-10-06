@@ -1,14 +1,13 @@
 # Transcript export — issue #26
 
 Included in **1.2.3**. The user confirmed native Save As on the ARM64 test MSIX on
-8 September 2026. The detailed acceptance matrix below remains partially unverified.
+8 September 2026; the acceptance matrix below remains partially unverified.
 
 Choose a format in the transcript toolbar and press **Save as…** (**Enregistrer sous…**).
-Windows opens its native Save As dialog, owned by the operator window. Select any writable
-folder and filename. The format is chosen in the toolbar before opening the dialog.
-Windows supplies overwrite confirmation and the default file extension. The app remembers
-the folder after a successful save, including across restarts; a missing folder falls back
-to Documents. No filesystem capability is granted to the overlay.
+Windows opens its native Save As dialog, owned by the operator window; select any writable
+folder and filename. Windows supplies overwrite confirmation and the default file extension.
+The app remembers the folder after a successful save, including across restarts; a missing
+folder falls back to Documents. No filesystem capability is granted to the overlay.
 
 Cancelling leaves the transcript, saved marker and recovery copy unchanged. Cancelling
 Save As from the quit prompt keeps the application open. A successful export writes a
@@ -20,14 +19,22 @@ Markdown and plain text retain paragraph grouping and localized source labels. W
 voice tags, and SRT prefixes each cue with its localized source name. Both retain all
 finalized text, order cues by start time, permit simultaneous microphone/system cues,
 and support durations over 24 hours. One-frame turns receive a minimum 1 ms interval.
-Timing comes from the core's monotonic session clock, not wall-clock timestamps or an
-audio recording. Cloud provider latency is included; these are caption timings, not forced
-alignment with speech. Whisper uses segment offsets mapped to capture timestamps, so pending
-processing time does not move cues later. Wait for Stop to finish its backlog before saving
-the complete transcript; confirmed discard leaves an incomplete-transcript notice. Reconnects share the session clock. Separate sessions retained in
-one transcript are concatenated after its last cue; idle time between sessions is omitted.
-Older recovery files without timing remain exportable as Markdown/text, with timed export
-disabled and an explanation rather than guessed timestamps or silently omitted text.
+
+Timing comes from the core's monotonic session clock, not wall-clock timestamps or an audio
+recording. Cloud provider latency is included; these are caption timings, not forced alignment
+with speech. Whisper maps segment offsets to capture timestamps, so pending processing time
+does not move cues later; wait for Stop to finish its backlog before saving the complete
+transcript (a confirmed discard leaves an incomplete-transcript notice). Reconnects share the
+session clock. Separate sessions retained in one transcript are concatenated after its last
+cue; idle time between sessions is omitted. Older recovery files without timing remain
+exportable as Markdown/text, with timed export disabled and an explanation rather than guessed
+timestamps or silently omitted text.
+
+Session titles, history search, reading pace, hold duration and the local filler filter never
+change exported text or the date-based filename. Raw export text is what the provider
+returned: Gemini Smart transcription may already have removed fillers and false starts. See
+[history titles/search](transcript-history.md#titles-and-search) and
+[reading controls](caption-layout.md#reading-pace-and-preview).
 
 ## Bilingual and two-language exports
 
@@ -60,14 +67,5 @@ Native acceptance checks remain manual, separately in development, NSIS and Stor
 - Try an unwritable destination; verify the prior file and unsaved status survive.
 - Open exported SRT/VTT in a subtitle player and check both-source captions.
 
-Issue #26 is closed at the user’s request for release 1.2.3. Closure records implementation
-and the reported ARM64 test; it does not certify every packaging scenario above.
-
-## Titles, cleanup and reading controls in 1.4.0
-
-Saved session titles and history search help find a session; they do not rewrite its exported
-caption text or change the date-based export filename. Reading pace, hold duration and the
-optional local filler filter affect only presentation. Raw transcript/export text means the
-text returned by the provider: Gemini Smart transcription can already have removed fillers
-and corrected false starts before the app receives a final caption. See
-[history titles/search](transcript-history.md#titles-and-search) and [reading controls](caption-layout.md#reading-pace-and-preview).
+Issue #26 was closed at the user’s request for release 1.2.3; that closure does not certify
+every packaging scenario above.

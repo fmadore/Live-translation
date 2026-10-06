@@ -2,35 +2,33 @@
 
 Implements [issue #81](https://github.com/fmadore/Live-translation/issues/81).
 
-Open **Settings → Transcript history** in the operator window.
-Enable **Automatically save sessions locally** before starting a meeting. This is off by
-default. Enabling it mid-session saves subsequent finalized lines; it does not retroactively
-archive the transcript already in memory.
+Open **Settings → Transcript history** in the operator window and enable **Automatically save
+sessions locally** before starting a meeting. It is off by default. Enabling it mid-session
+saves subsequent finalized lines; it does not retroactively archive the transcript already in
+memory.
 
-Each Start creates a separate session. Finalized lines are progressively saved to a flushed,
-atomically replaced JSON file in
-`%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`.
-The first line is written at once; after that, new lines are saved at most every 5 seconds
-rather than after every caption (1.5.1). Stop, quit, retry and the next Start write anything
-still waiting immediately. Stop drains and saves trailing partial text before finishing the
-session. Whisper may continue producing finalized lines after Stop while its backlog drains;
-wait for completion before exporting a finished session. Pause keeps the same history session.
-A crash leaves the last successfully saved snapshot available, which can miss up to
-the last 5 seconds of lines. Empty sessions create no file.
+Each Start creates a separate session. Finalized lines are saved progressively to
+`%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`. The first line
+is written at once; after that, new lines are saved at most every 5 seconds rather than after
+every caption. Stop, quit, retry and the next Start write anything still waiting immediately.
+Stop drains and saves trailing partial text before finishing the session. Whisper may keep
+producing finalized lines after Stop while its backlog drains; wait for completion before
+exporting a finished session. Pause keeps the same history session. A crash leaves the last
+saved snapshot, which can miss up to the last 5 seconds of lines. Empty sessions create no file.
 
 A session that ends by itself — every source stops, for example after a provider error — is
 finished at that moment, so its recorded duration does not run on until the next Start, Stop
 or quit. While the History tab is open during a session, its list refreshes at most every 5
 seconds; Refresh, rename and delete still update it immediately.
 
-The session list opens automatically and shows start date/time, duration, and known language information. Source
-speech is labelled auto-detected when the provider does not report its language. Demonstration
-and rehearsal sources have known languages. In 1.6.0, Whisper history still records its source
-language as automatic, even when an explicit recognition language was chosen; that setting
-is not a detected-language annotation in the saved history. Unfinished sessions show duration through the last
-save. Select a session to read its raw captions and available source transcription, copy it, or
-export Markdown, plain text, WebVTT or SRT through the existing Save As dialog. Timed formats
-require valid cue timing. Browsing and exporting history never replaces the active transcript.
+The session list opens automatically and shows start date/time, duration and known language
+information. Source speech is labelled auto-detected when the provider does not report its
+language; demonstration and rehearsal sources have known languages. Whisper history records
+its source language as automatic even when an explicit recognition language was chosen.
+Unfinished sessions show duration through the last save. Select a session to read its raw
+captions and available source transcription, copy it, or export Markdown, plain text, WebVTT
+or SRT through the existing Save As dialog. Timed formats require valid cue timing. Browsing
+and exporting history never replaces the active transcript.
 
 History remains after clearing the active transcript, export, quitting, and disabling automatic
 history. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current
@@ -44,8 +42,8 @@ copy are independent. See [privacy](privacy.md).
 
 ## File format
 
-Each session is one file under app-local data/history, named by its UUID. Since
-24 September 2026 the file is a log, one JSON record per line:
+Each session is one file under app-local data/history, named by its UUID: a log with one JSON
+record per line.
 
 1. a header — `version: 2`, the id, start time, mode, languages and title;
 2. one `{"line": …}` record per finalized line, oldest first;
@@ -53,19 +51,17 @@ Each session is one file under app-local data/history, named by its UUID. Since
 4. a `{"title": …}` record for each rename.
 
 The latest progress and title records win. The first write of a session, and any write after
-a failure, replaces the file whole through the flushed staging file as before; every later
-write goes through `append_history`, which adds only the lines that are new and flushes them.
-Appending never creates a file, so a log never starts without its header, and a record torn by
-a failed write is closed off with a newline before the next one; the reader skips it.
+a failure, replaces the file whole through a flushed staging file; every later write goes
+through `append_history`, which adds only the new lines and flushes them. Appending never
+creates a file, so a log never starts without its header, and a record torn by a failed write
+is closed off with a newline before the next one; the reader skips it.
 
-The previous format rewrote the whole session object on every save. At about ten finalized
-lines a minute the 5-second write interval coalesced roughly one line per write, so a
-three-hour session rewrote and flushed about half a gigabyte. Files in that format are still
-read and renamed.
+The log replaced a format that rewrote the whole session object on every save — about half a
+gigabyte of rewrites for a three-hour session. Files in that format are still read and renamed.
 
 ## Verification
 
-Automated coverage includes opt-in behavior, progressive writes, raw text preservation,
+Automated coverage includes opt-in behaviour, progressive writes, raw text preservation,
 separate session timelines, trailing partials, duration finalization, restart/readback, atomic
 replacement, interrupted writes, write failures and retry, corruption, deletion races, path
 validation, operator-only command permissions, and the history UI's copy/export/delete actions.
@@ -77,27 +73,23 @@ provider call is needed for these checks.
 
 ## Titles and search
 
-New in **1.4.0**.
-
 Saved sessions can be renamed (up to 120 characters); a blank title restores the date label.
-Titles are stored inside the existing local session JSON, including when the active session
-continues receiving captions. Older files without titles remain readable. Changing a title
-never replaces or edits caption text.
+Titles are stored in the session file, including while the active session continues receiving
+captions. Older files without titles remain readable. Changing a title never edits caption
+text.
 
-Search matches session titles, caption text and available source text. Date bounds include
-both selected local calendar days. The caption-language filter uses the translation target,
-or the known source language for subtitles; automatically detected languages remain marked
-unknown rather than guessed. Filters do not delete sessions or change export contents.
+Search matches session titles, caption text and available source text. The caption-language
+filter uses the translation target, or the known source language for subtitles; automatically
+detected languages remain marked unknown rather than guessed. Filters do not delete sessions
+or change export contents.
 
-In 1.4.1, the selected session appears beside the list (below it in narrow windows).
-Use **Clear filters** to reset search, date and language constraints. Rename, copy, export
-and confirmed deletion are grouped with the selected session.
+The selected session appears beside the list (below it in narrow windows), with rename, copy,
+export and confirmed deletion grouped beside it.
 
 Enter date bounds in year-month-day order, or use the calendar button. The format hint
-follows the interface language: **YYYY-MM-DD** (English), **AAAA-MM-JJ** (French),
-and **JJJJ-MM-TT** (German); for example, `2026-09-20` in every language.
-Invalid dates show a localized error and do not replace the last valid filter.
-Both bounds include the whole selected local day. Clear a field to remove that bound,
-or use **Clear filters** to reset the applied search, dates and language.
-The calendar popup is a native browser/WebView control; its presentation can follow
-the host's regional settings independently of the translated text field.
+follows the interface language: **YYYY-MM-DD** (English), **AAAA-MM-JJ** (French) and
+**JJJJ-MM-TT** (German); for example, `2026-09-20` in every language. Invalid dates show a
+localized error and do not replace the last valid filter. Both bounds include the whole
+selected local day. Clear a field to remove that bound, or use **Clear filters** to reset the
+search, dates and language. The calendar popup is a native browser/WebView control; its
+presentation can follow the host's regional settings independently of the translated field.

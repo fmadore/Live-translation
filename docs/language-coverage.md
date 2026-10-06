@@ -1,9 +1,8 @@
 # Caption language coverage (issue #78)
 
-This describes **1.6.0** and **1.6.1**; 1.6.1 does not change language coverage. Translation
-targets retain the catalog introduced in 1.5.0; Whisper adds a separate spoken-language
-selector. The dated cloud-provider checks below remain the latest recorded evidence, not a
-claim of fresh endpoint verification.
+Current for 1.6.1. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
+separate spoken-language selector. The dated provider checks below are the latest recorded
+evidence, not fresh endpoint verification.
 
 | Engine | Caption language control |
 | --- | --- |
@@ -13,21 +12,40 @@ claim of fresh endpoint verification.
 | Built-in demo | English/French script buttons only |
 | Mistral / Gemini Transcribe | Auto-detection hint, no language selector |
 
-Names use the interface's locale without changing that locale. Search accepts English,
-localized and native names, codes and aliases; accents/case are ignored. Prefixes rank
-before substrings. Empty search groups favourites first in pin order. Pin/unpin uses the
-star next to each row. Preferences survive restart independently of session options.
+Choosing a caption language never changes the English/French/German interface; see
+[localization](localization.md).
 
 An unsupported favourite stays visible and disabled with an explanation. Switching engines
-does not change the chosen target: Start and Rehearse remain blocked until a supported
-language is selected. The Rust core rejects unsupported targets too. Cloud subtitle auto-detection
-does not consult the retained target. Whisper uses its separate spoken-language preference,
-which covers the multilingual Tiny/Base/Small models rather than the translation catalog. Changing back to translation keeps the operator's choice.
+does not change the chosen target: Start and Rehearse stay blocked until a supported language
+is selected, and the Rust core rejects unsupported targets too. Cloud subtitle auto-detection
+ignores the retained target, and Whisper uses its own spoken-language preference; switching
+back to translation keeps the operator's choice.
 
 F2 swaps the first two favourites while translation is stopped. From outside that pair it
 selects the first. With fewer than two pins, or either pin unsupported, it does nothing.
 Rehearsal uses French for an English translation target and English for other targets.
-Both demo scripts and rehearsal recordings remain statically restricted to English/French.
+Demo scripts and rehearsal recordings remain restricted to English/French.
+
+## Catalog
+
+`src/lib/languages.json` is the source of truth: English fallback names, endonyms, provider
+memberships, source URLs and verification dates. Run `npm run generate:languages` after
+editing it to regenerate the TypeScript union and the Rust enum/support checks; a test runs the
+equivalent of `npm run check:languages` to reject drift. Norwegian uses `no`, with `nb` as a
+search alias rather than a second option. Portuguese region and Chinese script tags stay
+distinct.
+
+Names come from `Intl.DisplayNames` in the interface locale, falling back to the catalog's
+English name rather than a bare code. Search strips combining accents and case and matches
+codes, English/localized names, endonyms and aliases; prefixes rank before substrings. An empty
+search lists favourites first, in pin order; the star next to each row pins or unpins it.
+Favourites live in `language.favourites`, never in StartOptions or IPC, and survive restart
+independently of session options. UI catalogs contain only the selector's copy.
+
+Overlay captions carry the selected BCP-47 code and their own text direction. Arabic, Hebrew,
+Persian, Urdu and Sindhi are RTL; unknown auto-detected subtitles use `dir="auto"`, and Stable
+reading aligns to the start edge. Font stacks keep the system fallback after bundled Archivo
+for scripts the bundled font does not cover.
 
 ## Keyboard and accessibility
 
@@ -44,32 +62,33 @@ Both demo scripts and rehearsal recordings remain statically restricted to Engli
 Follow the [Windows accessibility checklist](accessibility.md) for Narrator and packaged
 contrast/theme checks. Automated DOM assertions cannot establish what Narrator speaks.
 
-## Verification status — 2026-09-22
+## Verification status
 
-- Gemini's live table was rechecked today: 78 languages, with `no`/`nb` on one row. The app
-  sends `no`, and searches `nb` as an alias. Full mirror: [Gemini API notes](gemini-live-api.md).
-- OpenAI's cookbook still lists 13 languages. The reproducible configuration probe is in
-  `src-tauri/src/openai/language_probe.rs`; see [OpenAI API notes](openai-realtime-api.md).
-  Its first run found no saved key. User-assisted credential setup and rerun are pending.
-- Validation: 356 frontend tests and 74 Rust tests pass (2 network probes remain opt-in).
-  Type checking, production build, generated-catalog parity, Prettier, Rust formatting and
-  Clippy pass. Windows enumeration tests require running outside the sandbox.
+- 2026-09-22: Gemini's table rechecked (78 languages, `no`/`nb` on one row; see
+  [Gemini API notes](gemini-live-api.md#target-language-catalog)). OpenAI's cookbook still
+  lists 13; the configuration probe found no saved key and a rerun with user-assisted
+  credentials is pending (see [OpenAI API notes](openai-realtime-api.md#target-language-catalog)).
+- 2026-10-04: local ARM64 Whisper fixture inference passed in English with detection and in
+  French with an explicit language. That does not establish accuracy in all 99 languages;
+  see the [Whisper acceptance plan](local-whisper.md#validation).
 - Tests cover generated catalog parity, persistence/defaults, search ranking, favourites,
   F2, keyboard controls, unsupported options, history and caption direction. Rust tests
   verify provider memberships and every demo script's packaged WAV.
-- Browser checks passed at 980×660 in English, French and German: the open selector fits the rail,
-  pinned Swahili survives the Gemini → OpenAI switch with a disabled reason, and the
-  selected value is preserved. Japanese/Arabic browser preview glyphs render, and Arabic
-  stable reading aligns at the right edge with `dir="rtl"`. Reproduce with `/overlay?language=ja`
-  or `/overlay?language=ar`; `he`, `fa`, `ur` previews are also available.
-- Real speech into a non-EN/FR target on both engines, native Narrator announcements, and
-  final MSIX checks are **pending**. Keep #78 open and complete the live code probe and real-speech checks before Store submission.
+- Browser checks at 980×660 in English, French and German: the open selector fits the rail,
+  pinned Swahili survives the Gemini → OpenAI switch with a disabled reason, and the selected
+  value is preserved. Japanese/Arabic preview glyphs render, and Arabic stable reading aligns
+  at the right edge with `dir="rtl"`. Reproduce with `/overlay?language=ja` or
+  `/overlay?language=ar`; `he`, `fa` and `ur` previews are also available.
+- **Pending:** real speech into a non-EN/FR target on both engines, native Narrator
+  announcements and final MSIX checks. Keep #78 open and complete the live code probe and
+  real-speech checks before Store submission.
 
 ## Live acceptance procedure
 
 1. Save OpenAI and Gemini keys in the app; never put keys in screenshots or test reports.
-2. Run the OpenAI code probe documented above. Record every accepted/rejected code, including
-   all Portuguese/Chinese variants, and regenerate the catalog if its memberships change.
+2. Run the [OpenAI code probe](openai-realtime-api.md#target-language-catalog). Record every
+   accepted/rejected code, including all Portuguese/Chinese variants, and regenerate the
+   catalog if its memberships change.
 3. In a native development build, choose Live translation → German → Gemini → microphone.
    Start, speak a new English or French sentence, confirm German in the overlay and transcript,
    then Stop. Repeat with OpenAI. Record the input sentence, output and provider/date; a
@@ -81,11 +100,3 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
    the keyboard, switch providers with an unsupported target, and confirm Start is blocked.
 6. Run Narrator through the combobox; verify active option, selected/disabled state and
    the unsupported reason. Complete the existing packaged accessibility checklist.
-
-## Whisper verification — 4 October 2026
-
-PR #99 adds a separate 99-token vocabulary for the multilingual Tiny/Base/Small models.
-Local ARM64 fixture inference passed in English with detection and French with an explicit
-language, including final-tail draining and capture-based timestamps. This does not establish
-recognition accuracy in all 99 languages. Non-Latin speech, code-switching and real meeting
-audio remain in the [Whisper acceptance plan](local-whisper.md#validation).

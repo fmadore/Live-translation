@@ -4,7 +4,7 @@ These guides describe **[1.6.0](https://github.com/fmadore/Live-translation/rele
 published on GitHub on 4 October 2026 and the current Store version (confirmed live by the
 maintainer on 6 October 2026). They also cover **1.6.1**, a maintenance release with a new app
 icon and a refreshed interface but no new features; it is prepared but not yet published.
-Dated reviews and older release handoffs are historical records.
+The [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
 
