@@ -38,9 +38,27 @@ export function loadCaptionLayout(): CaptionLayout {
 	return isCaptionLayout(value) ? value : DEFAULT_CAPTION_LAYOUT;
 }
 
+/** The most of one turn, or of one source's reading context, that any caption view lays out.
+ *  Far more than a projector region or the operator's stage can show, and the bound on what
+ *  each update costs while a turn streams for minutes of continuous speech. The transcript
+ *  keeps every word; this is presentation only. */
+export const CAPTION_TAIL_CHARS = 12_000;
+
 /** Bounded reading context, separate from the full session transcript. */
 export function appendCaptionHistory(history: string, text: string): string {
-	return `${history} ${text}`.replace(/\s+/g, ' ').trim().slice(-12000);
+	return `${history} ${text}`.replace(/\s+/g, ' ').trim().slice(-CAPTION_TAIL_CHARS);
+}
+
+/** Keep the last `limit` characters, cutting on a word boundary, behind an ellipsis when
+ *  anything was cut. */
+export function tail(text: string, limit: number): string {
+	const t = text.replace(/\s+/g, ' ').trim();
+	if (t.length <= limit) return t;
+	let cut = t.length - limit;
+	// Don't start mid-word: jump to the next space if it's close.
+	const sp = t.indexOf(' ', cut);
+	if (sp !== -1 && sp - cut < 24) cut = sp + 1;
+	return '… ' + t.slice(cut);
 }
 
 /**

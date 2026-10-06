@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
 	appendCaptionHistory,
+	CAPTION_TAIL_CHARS,
 	captionReach,
 	firstOffsetOnLine,
 	fitCaptionTail,
 	isCaptionLayout,
-	bottomCaptionHeight
+	bottomCaptionHeight,
+	tail
 } from './captionLayout';
 
 it('makes room for one line of original speech per row when it is shown', () => {
@@ -82,13 +84,31 @@ describe('caption fitting', () => {
 	it('retains multiple recent turns with a bounded history', () => {
 		expect(appendCaptionHistory(appendCaptionHistory('', 'One.'), 'Two.')).toBe('One. Two.');
 		const history = appendCaptionHistory('old '.repeat(5000), 'Newest turn.');
-		expect(history.length).toBeLessThanOrEqual(12000);
+		expect(history.length).toBeLessThanOrEqual(CAPTION_TAIL_CHARS);
 		expect(history.endsWith('Newest turn.')).toBe(true);
 	});
 	it('rejects unsupported persisted layout values', () => {
 		expect(isCaptionLayout('fit')).toBe(true);
 		expect(isCaptionLayout('compact')).toBe(true);
 		expect(isCaptionLayout('wide')).toBe(false);
+	});
+});
+
+describe('tail', () => {
+	it('keeps short text whole and cuts long text at a nearby word boundary', () => {
+		expect(tail('  a   short   line ', 40)).toBe('a short line');
+		expect(tail('alpha beta gamma delta', 10)).toBe('… delta');
+		expect(tail('', 10)).toBe('');
+	});
+
+	it('cuts inside a word only when no space is near, and never keeps more than asked', () => {
+		const token = 'x'.repeat(60);
+		expect(tail(`start ${token}`, 30)).toBe('… ' + 'x'.repeat(30));
+		const speech = Array.from({ length: 5000 }, (_, i) => `word${i}`).join(' ');
+		const kept = tail(speech, CAPTION_TAIL_CHARS);
+		expect(kept.length).toBeLessThanOrEqual(CAPTION_TAIL_CHARS + 2);
+		expect(kept.startsWith('… word')).toBe(true);
+		expect(kept.endsWith('word4999')).toBe(true);
 	});
 });
 
