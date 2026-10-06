@@ -29,8 +29,8 @@ leadings). New guard tests keep components on them. See
 [PR #112](https://github.com/fmadore/Live-translation/pull/112).
 
 No runtime dependency, privacy or data-handling changes. The build-time `source-map-js` is
-patched for GHSA-68fv-2mgg-jv7q; it is not shipped in the app. Cloud translation and cloud subtitles still
-require your own provider account and API key and may incur usage charges.
+patched for GHSA-68fv-2mgg-jv7q; it is not shipped in the app. Cloud translation and cloud
+subtitles still require your own provider account and API key and may incur usage charges.
 
 For the Microsoft Store, upload
 [Live.Translation_1.6.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle),
