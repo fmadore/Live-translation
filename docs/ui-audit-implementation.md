@@ -1,12 +1,8 @@
 # Operator UI audit implementation — 20 September 2026
 
-Historical implementation record. Current release status and the consolidated native checks
-are in the [1.6.1 handoff](store-updates.md#release-161-handoff).
-
-Implements the supplied **Live Translation UI Audit** following the 1.4.0 feature release.
-The existing dark surfaces, mint selection state, numbered setup and live-session
-identity are preserved. These changes are included in version 1.4.1; final Store
-assets and native acceptance remain pending.
+Historical implementation record of the **Live Translation UI Audit**, shipped in
+[1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1). Current release status
+and the consolidated native checks are in the [1.6.1 handoff](store-updates.md#release-161-handoff).
 
 | Finding | Implementation |
 | --- | --- |
@@ -31,21 +27,9 @@ assets and native acceptance remain pending.
 
 ## Validation
 
-- Svelte/TypeScript check: no errors or warnings.
-- Final frontend suite: 337 tests passed with two workers after a clean locked install.
-  The default-worker attempt hit worker startup timeouts during concurrent native compilation.
-- Production frontend build passed.
-- Rust formatting and all-target/all-feature Clippy passed with warnings denied.
-- Native tests: 73 passed; the one billable provider probe remains ignored.
-- Frontend formatting passed; dependency audit found no moderate-or-higher issues.
-- Browser review covered French caption settings, German narrow-window app
-  preferences, English reading controls, history empty state and keyboard tab
-  navigation. No horizontal document overflow at the checked widths.
-- Corrected Windows-encoded accented additions to UTF-8 and added a catalog
-  regression check for accented labels/replacement characters.
-
-The browser cannot exercise native audio, overlay-window placement or tray-menu
-interaction. Those still require a Windows application smoke test. Final Store
-screenshots must come from the packaged MSIX; the existing historical captures
-were not replaced with browser screenshots. See the [1.4.1 release handoff](store-updates.md#release-141-handoff)
-for the local installer build and outstanding submission checks.
+Svelte/TypeScript checks, formatting, the production build, Clippy with warnings denied and
+the dependency audit passed; 337 frontend and 73 native tests passed, with the billable
+provider probe ignored. A catalog regression check now rejects replacement characters in
+accented labels. Browser review covered all three interface languages, narrow windows and
+keyboard tab navigation; native audio, overlay placement and the tray menu need a Windows
+application smoke test, and Store screenshots must come from the packaged MSIX.

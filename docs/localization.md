@@ -1,7 +1,5 @@
 # Localization
 
-How the app says things, in which language, and what has to happen for a new one.
-
 The rule the whole design follows: **the interface language is not the caption language.** An
 operator running a French-language event may be working in English, or the other way round.
 Nothing here touches `options.targetLanguage`, and the language selector is deliberately in
@@ -21,6 +19,9 @@ Nothing here touches `options.targetLanguage`, and the language selector is deli
 Components read `$t.some.key`. Anything with a parameter is a function — `lines(n)`,
 `isDefault(name)` — so word order and plural rules stay the translator's decision rather than
 being frozen into a `{0}` placeholder by English.
+
+User-entered profile names and session titles are not translated. Tray labels follow the
+interface through `TrayLabels` sent to the Rust core.
 
 ## What the core does and does not say
 
@@ -47,6 +48,16 @@ and `fr-FR` are both French). After that the explicit choice wins and is persist
 
 The overlay is a **separate webview**, so the operator pushes the choice to it through the
 existing overlay-config event rather than relying on a `storage` event crossing two windows.
+
+## Dates
+
+History date fields (`usability.dateFormat`, `chooseDate`, `invalidDate`) show a hint in the
+interface language for the same ISO year-month-day value; changing language changes the hint,
+not an entered date or its filter (see
+[transcript history](transcript-history.md#titles-and-search)). The native calendar receives
+the locale tag, but its popup wording can still follow browser/WebView regional settings.
+German component tests cover input validation, leap days, calendar selection, inclusive
+history bounds and clearing filters.
 
 ## What is checked automatically
 
@@ -78,6 +89,9 @@ existing overlay-config event rather than relying on a `storage` event crossing 
 5. Run `npm run check` and `npm test`; both will name anything missing.
 6. Walk the operator window and the overlay at the minimum window size (980×660) — a
    translation is routinely 20–30% longer than its English source, and this UI is dense.
+   Look first at labels in fixed columns: a language that builds compound words has nowhere to
+   wrap. German's `Raummikrofon` painted across the level meter until its label column was
+   sized to hold the longest label on one line.
 
 ## German, specifically
 
@@ -103,37 +117,25 @@ German needs no typographic rule of its own, so there is no `de` equivalent of t
 punctuation tests. `de-DE`'s medium date style is numeric and dotted (`27.08.2026`) where
 English and French both name the month, which is what `formatDateTime`'s test asserts.
 
-German did find one layout bug, and it is the kind worth knowing about before the next
-language: **a compound noun has nowhere to wrap.** The level meter's label column was sized on
-the assumption that a long label breaks at a space — `Micro de la salle` has always run to two
-lines inside it — so `Raummikrofon` simply painted across the meter. The column is now sized to
-hold the longest label on one line. When walking a new language, look for labels in fixed
-columns before anything else: a language that builds words rather than phrases will find them.
-
-The German Store copy is written — full description, Funktionen, Kurzbeschreibung, a release
-note and the five screenshot descriptions, in `docs/store-listing.md`. It is prepared, not
-published in the Store. The German interface ships in the GitHub release; final-package
-screenshots and native language review are still required for its Store listing.
-
-Still open before Store submission:
+The German Store copy (description, features, short description, release note and screenshot
+descriptions) is in `docs/store-listing.md`. Still open:
 
 - German screenshots in `docs/store-screenshots/de/`, captured from the final MSIX with the
   interface set to German.
 - A native German speaker reviews the catalog and the Store copy.
-- **German subtitles are unverified.** Both subtitle engines detect the spoken language
-  themselves and Gemini documents over 70, so German subtitles most likely work already with no
-  code at all — but nobody has put German speech in front of them, so nothing claims it. This is
-  worth an hour: it is the strongest line a German-language listing could carry.
-- The **caption** languages in `$t.language` are still English and French only, because
-  `TargetLanguage` is; a German *caption* target is
-  [#78](https://github.com/fmadore/Live-translation/issues/78), not this.
+- **German subtitles are unverified.** Both subtitle engines detect the spoken language and
+  Gemini documents over 70, so they most likely work already, but nobody has put German speech
+  in front of them, so nothing claims it. It would be the strongest line a German listing could
+  carry.
 
 ## French, specifically
 
 `fr.ts` is translated. Its wording follows the French Store copy in `docs/store-listing.md`,
 which was written first and is what a French-speaking operator will have read before
 installing — **surimpression**, **transcription**, **démonstration intégrée**, **zone de
-notification**, **Gestionnaire d'informations d'identification Windows**.
+notification**, **Gestionnaire d'informations d'identification Windows**. The layout controls
+are **Disposition des sous-titres**, **Adapter à la fenêtre**, **Compact** and **Largeur des
+lignes**, the same in the live rail and the settings panel.
 
 Two things are not translated, on purpose:
 
@@ -145,54 +147,13 @@ Two things are not translated, on purpose:
 `i18n.test.ts` enforces the two typographic conventions that are invisible in a diff: a
 non-breaking space before `: ? ; !`, and the typographic apostrophe.
 
-For 1.2.4, the layout controls use **Caption layout / Disposition des sous-titres**,
-**Fit window / Adapter à la fenêtre**, and **Compact / Compact**. The existing
-**Line width / Largeur des lignes** control appears only in Compact. Both the live rail
-and settings panel use the same translations. EN/FR browser controls were checked on
-14 September; native package checks and new screenshots remain in the release checklist.
+The committed French screenshots are historical; new controls and listing copy need
+final-package screenshots, because earlier review does not certify newly added strings.
 
-The historical French screenshot set is committed. The 1.4.1 controls and listing copy need
-final-package screenshots; previous review does not certify newly added strings.
+## Caption languages (issue #78)
 
-## 1.4.0 usability strings
-
-The typed `usability` catalog in EN/FR/DE covers profiles, reading duration and pace, previews,
-presets, title/search controls, input status and shortcut help. Interface language remains
-independent of caption language. User-entered profile names and session titles are not translated.
-French and German layouts were visually checked in the browser, including enlarged German
-text. Native German review and fresh Store screenshots remain pending for submission.
-
-## 1.4.1 interface and dates
-
-The `design` catalog covers the new settings tabs, profile actions and shared visual
-controls. Tray labels follow the interface through `TrayLabels` sent to the Rust core.
-History date fields use `usability.dateFormat`, `chooseDate` and `invalidDate`:
-`YYYY-MM-DD`, `AAAA-MM-JJ` and `JJJJ-MM-TT` all represent ISO year-month-day values.
-Changing interface language changes the hint, not an entered date or its filter meaning.
-The native calendar receives the locale tag, but its popup wording can still depend
-on browser/WebView regional settings. German component tests cover input validation,
-leap days, calendar selection, inclusive history bounds and clearing filters.
-
-## Caption language selector (issue #78)
-
-Caption coverage is provider-dependent: Gemini translation has 78 choices and OpenAI 13;
-the bundled demo has only English/French scripts. Cloud subtitle providers auto-detect and
-show no selector. Whisper has its own 99-language spoken-language selector plus automatic
-detection, independent of the translation-target catalog. Localized display names fall back
-to English names when the platform has no translation, rather than showing bare codes. Choosing a caption language never changes the English/French/German interface.
-
-The source of truth is `src/lib/languages.json`, including English fallback names, endonyms,
-provider memberships, source URLs and verification dates. Run `npm run generate:languages`
-after editing it; this generates the TypeScript union and Rust enum/support checks. A test
-runs `npm run check:languages`'s equivalent to reject drift. Norwegian uses `no`; `nb`
-is a search alias, not a second option. Portuguese region and Chinese script tags stay distinct.
-
-Names come from `Intl.DisplayNames` in the interface locale, with the catalog English name
-as fallback. Search strips combining accents and matches codes, English/localized names,
-endonyms and aliases. Prefix matches outrank substrings. UI catalogs contain only selector
-copy. Favourites live separately in `language.favourites`, never in StartOptions or IPC.
-
-Overlay captions carry the selected BCP-47 code and their own text direction. Arabic, Hebrew,
-Persian, Urdu and Sindhi are RTL; unknown auto-detected subtitles use `dir="auto"`. Stable
-reading aligns to the start edge. Font stacks keep the system fallback after bundled Archivo
-for scripts outside the bundled font's coverage. See [verification](language-coverage.md).
+Caption languages have their own catalog, `src/lib/languages.json`, independent of the
+interface: choosing one never changes the interface language. UI catalogs contain only the
+selector's copy; language names come from `Intl.DisplayNames` in the interface locale. The
+catalog, search, favourites and text direction are described in
+[language coverage](language-coverage.md#catalog).

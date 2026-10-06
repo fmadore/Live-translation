@@ -1,16 +1,14 @@
 # Meeting profiles and live controls
 
-Features introduced in **v1.4.0**, with the operator interface reorganized in **1.4.1**.
-Pause, two caption languages and bilingual output are included in **1.6.0**.
-See the [release checklist](store-updates.md#release-160-handoff).
+The controls an operator uses to set up and run a meeting. Native acceptance is tracked in the
+[current release checklist](store-updates.md#release-161-handoff).
 
-## Session controls (1.4.2)
+## Session controls
 
 Start and Stop share a persistent action bar immediately below the app header. The bar
 stays visible while either column scrolls, including the stacked layout at narrow widths
 or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and the saved
-transcript all remain below the session controls. Readiness gates and keyboard shortcuts
-are unchanged.
+transcript all remain below the session controls.
 
 New installations open on Whisper with Base and automatic language detection. Switching
 from translation to Subtitles also selects Whisper and retains the selected audio source;
@@ -29,9 +27,6 @@ captions and does not pause capture or provider usage. Normal Stop lets Whisper 
 backlog; wait for completion before exporting the full transcript.
 
 ## Meeting profiles
-
-For bilingual output, see [Two caption languages and original speech](#two-caption-languages-and-original-speech)
-below; these settings are chosen before starting a translation session.
 
 Use the profile picker above step 01, then **Manage profiles**. Choose **Save current setup…**,
 enter a name and save. Each profile row offers **Load profile** and a management menu for
@@ -106,28 +101,19 @@ move-mode keys are unchanged.
 
 ## Verification
 
-The final 1.4.1 frontend suite passed all **337 tests**. On 20 September, browser checks
-confirmed identical dialog/tab-bar positions across all four tabs at 1280×800 and a
-narrow preview, with independently scrolling content. The profile selector and manage
-button had matching top/bottom edges and 40 px heights at default text size.
-French date hints were visually checked; automated German regressions cover valid and
-invalid dates, leap years, calendar event handling, inclusive bounds and filter reset.
-These checks do not certify the native calendar popup or installed MSIX behavior.
-
 Automated tests cover interim batching without starvation, independent sources, immediate
 finalization, stop cancellation, preference validation, profile round trips and hardware checks,
 profile controls, safe placement, concurrent history renames, search, keyboard guards and live
 status classification. Gemini tests cover Smart final/interim precedence and empty finals.
+German date regressions cover valid and invalid dates, leap years, calendar event handling,
+inclusive bounds and filter reset.
 
-Impeccable browser inspection on 2026-09-19 covered appearance previews, the Large room preset,
-profile save/load feedback, history search and title editing, separate active/quiet input statuses,
-and the stop shortcut. The checks used the real components with a temporary synthetic backend
-at 1280×800 and 800×600, including French and German interfaces and 200% accessibility text
-scaling. The two-source stable overlay was also inspected at 1000×400. Long unbroken session
-titles now wrap without horizontal scrolling, and history date controls use a dark color scheme
-so their calendar icons remain visible. Keyboard focus was checked in the search/date controls;
-the tested pages reported no browser console errors. The temporary backend was removed.
-
-Earlier browser inspection covered shortcut help at 1280×720 and 800×600. Native mixed-DPI
-placement, keyboard operation in the packaged app, and a fresh paid provider probe still require
-release acceptance. These browser checks do not exercise native storage or cloud services.
+Impeccable browser checks on 19 September 2026 used the real components with a temporary
+synthetic backend at 1280×800 and 800×600, in French and German and at 200% text scaling:
+appearance previews, the Large room preset, profile save/load, history search and title
+editing, input statuses, the stop shortcut and the two-source stable overlay at 1000×400. On
+20 September, Settings kept identical dialog and tab-bar positions across all four tabs at
+1280×800 and in a narrow preview. Browser checks do not exercise native storage, the native
+calendar popup, installed MSIX behaviour or cloud services; native mixed-DPI placement,
+keyboard operation in the packaged app and a fresh paid provider probe still require release
+acceptance.

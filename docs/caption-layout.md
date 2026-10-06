@@ -1,27 +1,24 @@
 # Caption layout
 
-Current behavior for **1.6.0** and **1.6.1**, originally following [issue #77](https://github.com/fmadore/Live-translation/issues/77).
-Thanks to **@valentinrabot for the feedback and responsive-layout suggestion**.
-This acknowledgment is for feedback, not implementation.
+Follows [issue #77](https://github.com/fmadore/Live-translation/issues/77). Thanks to
+**@valentinrabot for the feedback and responsive-layout suggestion** (not the implementation).
 
 ## Fit window
 
-Open Settings → Reading → Caption layout → **Fit window**. In French, use
-**Paramètres → Lecture → Disposition des sous-titres → Adapter à la fenêtre**.
-Settings remains available during a live session.
+Settings → Reading → Caption layout → **Fit window** (French: **Paramètres → Lecture →
+Disposition des sous-titres → Adapter à la fenêtre**) is the default when no layout preference
+has been saved; Settings stays available during a live session. Widening the overlay allows
+more words per line; increasing its height shows more recent context. The font size stays
+unchanged, captions stay bottom-aligned with margins, and the newest words take priority when
+space shrinks.
 
-Fit window is the default when no layout preference has been saved. Widening the overlay
-allows more words per line; increasing its height allows more recent caption context.
-The selected font size stays unchanged. Captions remain bottom-aligned with margins,
-and the newest words take priority when the available space shrinks.
-
-Use **Place the overlay** to move or resize it, then **Lock into place** to see the
-audience view again. Placement mode shows positioning controls instead of live captions.
-The locked overlay remains click-through. **Align to bottom / Aligner en bas** also resets
-the height to a shallow strip sized for roughly two lines per currently visible source
-(160 logical pixels at the default font with one source). New overlays start at 160 pixels
-high. Drag the edges taller when you deliberately want more reading context. Resizing does not create text: a short caption
-or a new session with little history can still leave empty space.
+Use **Place the overlay** to move or resize it, then **Lock into place** to see the audience
+view again; placement mode shows positioning controls instead of live captions. The locked
+overlay remains click-through. **Align to bottom / Aligner en bas** also resets the height to
+a shallow strip sized for roughly two lines per visible source (160 logical pixels at the
+default font with one source); new overlays start at 160 pixels high. Drag the edges taller
+for more reading context. Resizing does not create text: a short caption or a new session
+with little history can still leave empty space.
 
 When both sources have visible captions, system audio appears above the microphone,
 with labels, and they share the available height. A single visible source uses the
@@ -47,24 +44,30 @@ naturally. Once the area fills, the viewport advances one complete rendered line
 there is no continuous centering, animated scrolling, or moving caret. Earlier turns retain
 the same colour so finishing a turn does not visually relocate the reading point.
 
-This mode retains the session's caption context in memory, including during pauses. Stop
-clears it. Since 1.5.1 the retained context is bounded: once 180 lines have scrolled out of
-view, the oldest are dropped at the start of a rendered line, keeping 60 hidden lines.
-Cutting only at a line start means no line already on screen re-wraps. The two sources
-remain independent and share the window. Resizing, changing fonts, adding a second source,
-or provider corrections can still reflow text. The backing is even
-across the reading area so top-aligned text is readable over light content. Fit window and
-Compact retain their existing alignment, colour treatment, and idle expiry.
+This mode retains the session's caption context in memory, including during pauses; Stop
+clears it. Once 180 lines have scrolled out of view, the oldest are dropped at the start of a
+rendered line, keeping 60 hidden lines; cutting only at a line start means no line already on
+screen re-wraps. The two sources remain independent and share the window. Resizing, changing
+fonts, adding a second source, or provider corrections can still reflow text. The backing is
+even across the reading area so top-aligned text is readable over light content.
 
 ## Hide filler words
 
 **Hide filler words** is off by default ([issue #80](https://github.com/fmadore/Live-translation/issues/80)).
-It removes listed words from the overlay and repairs the clause punctuation around them.
-The built-in list is the hesitation tokens `um`, `uh`, `erm`, `hmm`, `euh` and `heu`;
-meaningful words such as “so”, “well”, “like” and “oh” are not on it. Substrings, all-capital
-abbreviations, quoted words (including French « spaced » guillemets) and unfinished streamed
-tokens are preserved. This is a conservative text filter, not semantic speech analysis: it
-cannot reliably distinguish every intentional hesitation from other uses in every language.
+It removes listed words from the overlay and repairs the clause punctuation around them: only
+the removed word and its adjacent commas, semicolons or colons go, so other punctuation and
+spacing (including French spacing before `?` and `!`) stay as the provider returned them. The
+built-in list is the hesitation tokens `um`, `uh`, `erm`, `hmm`, `euh` and `heu`. Substrings,
+all-capital abbreviations, quoted words (including French « spaced » guillemets) and unfinished
+streamed tokens are preserved. This is a conservative text filter, not semantic speech
+analysis.
+
+Translation mode filters the translated text shown to the audience; subtitle mode filters the
+same-language text. The operator transcript, saved history, recovery copy and exports keep the
+original text, and no provider setting or extra request is involved. In Stable reading, each
+turn is cleaned once as it joins the retained context, so a mid-session change to the option
+or the list applies to the live turn and new captions without re-wrapping lines already read;
+Fit window and Compact apply it to the text on screen at once.
 
 ### The word list
 
@@ -74,37 +77,21 @@ word, including the built-in ones, add words one at a time, and **Reset to defau
 change reaches the overlay at once, without restarting the session.
 
 - **Whole words only.** A listed word matches only between spaces or punctuation, in any
-  script and without regard to case; `eh` never matches inside `ehé`. A listed word is removed
-  wherever it stands on its own, whatever it means there, which is why the interface warns
-  against ambiguous words such as “like”, “well” or “so”.
+  script and without regard to case; `eh` never matches inside `ehé`. It is removed wherever it
+  stands on its own, whatever it means there, which is why the interface warns against
+  ambiguous words such as “like”, “well” or “so”.
 - **One word per entry.** Entries are trimmed, and blank entries and duplicates (ignoring case)
   are rejected. Letters, marks and digits may be joined by hyphens or apostrophes (`mm-hmm`,
   `y'know`); either apostrophe or hyphen form in the captions matches. Phrases, patterns and
-  per-language lists are out of scope for now. The list holds up to 100 words of up to 40
-  characters.
-- **Languages written without spaces.** Chinese, Japanese and Thai captions rarely separate
-  words with spaces, so a listed word there is removed only when it stands alone between spaces
-  or the punctuation above.
-- **Storage.** Nothing is stored while the list is the built-in one, so existing users keep the
-  shipped behaviour. A customized list persists as JSON under `overlay.fillerWords`; an emptied
-  list persists as `[]`, stays empty after restart and removes nothing.
+  per-language lists are out of scope. The list holds up to 100 words of up to 40 characters.
+- **Languages written without spaces.** In Chinese, Japanese and Thai captions a listed word is
+  removed only when it stands alone between spaces or punctuation.
+- **Storage.** Nothing is stored while the list is the built-in one. A customized list persists
+  as JSON under `overlay.fillerWords`; an emptied list persists as `[]` and removes nothing.
 
-The list is not part of the appearance. Reset appearance switches the option off but keeps the
+The option and the list persist across relaunch and synchronize with the live controls. The
+list is not part of the appearance: Reset appearance switches the option off but keeps the
 list, and meeting profiles do not store it.
-
-Punctuation and spacing that belong to the remaining text are left as the provider returned
-them; only the removed word and its adjacent commas, semicolons or colons go. French spacing
-before `?` and `!` therefore survives the filter.
-
-In Stable reading, each turn is cleaned once as it joins the retained context. Changing the
-option or the list mid-session therefore applies to the live turn and new captions, and the
-lines already read do not re-wrap (1.5.1). Fit window and Compact apply the change to the text
-on screen at once. Translation mode filters the translated text shown to the audience;
-subtitle mode filters the same-language text.
-
-The operator transcript, saved history, recovery copy, and exports retain the original text.
-No provider setting or additional request is involved. The option and the list persist across
-relaunch and synchronize with the live controls.
 
 ## Original speech under translations
 
@@ -130,38 +117,29 @@ previews it in a browser.
 ## Fitting cost
 
 Fit window hands the fitting search up to 12,000 characters of context, and every probe is a
-synchronous layout. The search now starts from the tail the region could possibly show
+synchronous layout. The search starts from the tail the region could possibly show
 (`captionReach`: two rows of slack, glyphs a fifth of the line height wide) and falls back to
-the whole text only if even that tail fits, so the result is unchanged. Measured in headless
-Chromium at 1500 px wide and 38 px with 12,000 characters of context, the median fit went from
-4.1 ms to 0.7 ms per caption per source. Line height is read once per font.
+the whole text only if even that tail fits, so the result is unchanged. In headless Chromium at
+1500 px wide and 38 px with 12,000 characters of context, this took the median fit from 4.1 ms
+to 0.7 ms per caption per source. Line height is read once per font.
 
 ## Recent context and the transcript
 
 Fit window retains a bounded recent history in memory for each source. Completed text is
-dimmed ahead of the current turn. Growing the window can reveal more of that available
-history; shrinking it removes older words from the audience view first. Very long unbroken
-tokens can be shortened so their newest characters still fit.
+dimmed ahead of the current turn. Growing the window can reveal more of that history;
+shrinking it removes older words from the audience view first. Very long unbroken tokens can be
+shortened so their newest characters still fit.
 
-In Fit window and Compact, the existing fade-out timers remain: captions clear 4 seconds after the last final update,
-or 3 seconds after a stalled interim update. Clearing also removes that source's reading
-context. This is a live-caption view, not a scrolling transcript viewer. The full operator
-transcript and exported files are unaffected by overlay trimming or expiry. No additional
-audio capture, provider request, disk history or telemetry is introduced.
+In Fit window and Compact, captions clear after the [reading pause](#reading-pace-and-preview),
+and clearing also removes that source's reading context. This is a live-caption view, not a
+scrolling transcript viewer. The full operator transcript and exported files are unaffected by
+overlay trimming or expiry. No additional audio capture, provider request, disk history or
+telemetry is introduced.
 
 ## Release verification
 
-Completed on 14 September 2026:
-
-- 287 frontend tests, Svelte checks, formatting and the production frontend build passed.
-- Browser checks covered long captions at 600 × 260, 1200 × 600 and 1200 × 850,
-  showing more text as width/height increased at the same font size.
-- Compact mode, EN/FR settings and large captions were checked in the browser.
-- The optimized native ARM64 executable built and launched successfully as a separate
-  **Live Translation Local Test** install. The updated executable reports 1.2.4 and includes the shallow bottom-alignment preset.
-
-The checks above are historical evidence for 1.2.4, not acceptance of the next package.
-For 1.6.1, repeat this matrix against the final x64 and ARM64 MSIX packages:
+Repeat this matrix against the final 1.6.1 x64 and ARM64 MSIX packages. The last recorded
+browser and native pass was for 1.2.4 (14 September 2026).
 
 | Check | Expected result |
 | --- | --- |
@@ -190,23 +168,23 @@ See [accessibility](accessibility.md#release-checklist-manual-on-windows) and th
 
 ## Reading pace and preview
 
-New in **1.4.0**.
-
 Fit window and Compact keep finished captions for a configurable **2–30 seconds** (default
 4 seconds). This is a per-source reading pause after its latest completed caption, not a
 minimum display time that delays new speech. Unfinished, stalled text still expires after
-3 seconds. Stable reading retains its session-long context, bounded as described above.
+3 seconds. Stable reading keeps its session-long context, bounded as described above.
 
 **Immediate** remains the default. **Steadier** presents the most recent interim hypothesis
 every 450 ms per source, without waiting indefinitely for silence. Final text and turn
 transitions flush promptly; it can still revise already displayed words. This setting only
 changes presentation: it does not buffer audio, delay transcription storage or add requests.
 
-**Settings → Captions** keeps presets and the appearance preview visible. It shows sample text at the selected font size over bright
-and dark slides. Standard, Large room and High contrast presets change appearance; the Reset
-button also restores the default reading pace and hold time, and switches the filler filter off; the filler word list keeps its own reset. The real overlay
-may have different dimensions, so finish placement on the presentation display.
+**Settings → Captions** keeps presets and the appearance preview visible, with sample text at
+the selected font size over bright and dark slides. Standard, Large room and High contrast
+presets change appearance. Reset also restores the default reading pace and hold time and
+switches the filler filter off; the word list keeps its own reset. The real overlay may have
+different dimensions, so finish placement on the presentation display.
 
-Gemini subtitles already request Google's Smart transcription. The optional local filler
-filter is additional and cannot restore fillers removed by the provider. Raw text means the
+Gemini subtitles already request
+[Smart transcription](gemini-live-api.md#gemini-35-transcribe-live), so the local filler
+filter is additional and cannot restore fillers the provider removed. Raw text means the
 provider's returned text, not a guaranteed verbatim record of speech.

@@ -1,24 +1,17 @@
 # Audio devices and native acceptance
 
-The first installed 1.2.1 test on 8 September exposed COM apartment conflicts during
-output enumeration and recoverable microphone xruns incorrectly ending preflight.
-The 1.2.2 fix runs output discovery on an isolated MTA thread with balanced COM cleanup,
-and ignores CPAL Xrun/RealtimeDenied quality notifications while preserving fatal errors.
+Device handling arrived in 1.2.1/1.2.2. The hardware matrix below remains **pending** for the
+1.6.1 packages; automated tests and browser previews do not replace it. Repeat key cases with
+local Whisper as well as a cloud engine, including Pause and Stop with pending audio.
+
+Output discovery runs on an isolated MTA thread with balanced COM cleanup, and CPAL
+Xrun/RealtimeDenied quality notifications are ignored while fatal errors are kept. This fixes
+what the first installed 1.2.1 test exposed: COM apartment conflicts during output enumeration,
+and recoverable microphone xruns ending preflight. The user confirmed both fixes on the signed
+1.2.2.0 ARM64 MSIX on 8 September 2026.
 Regression tests exercise an STA caller and the real error-callback dispatch logic.
 
-On 8 September 2026, the user retested the signed 1.2.2.0 ARM64 MSIX and confirmed
-that both reported errors were resolved. This confirms the reported refresh and
-audio-test failures; the broader hardware matrix below remains pending.
-
-Device handling was introduced in 1.2.1/1.2.2. The broader hardware matrix remains **pending**
-for the 1.6.0 and 1.6.1 packages; automated tests and browser previews do not replace it.
-Repeat key cases with local Whisper as well as a cloud engine, including Pause and Stop with
-pending audio.
-
-Automated verification on 7 September 2026: 263 frontend tests and 61 Rust tests
-passed (one billable test ignored). English and French browser previews confirm
-the selectors and Refresh placement. Component tests verify stop-before-retry ordering
-and transcript preservation; controller tests cover device-list changes and teardown.
+## How devices are handled
 
 The source section offers Refresh devices and an output selector for system audio.
 Windows add/remove/state/property/default notifications trigger a coalesced refresh.
@@ -26,18 +19,21 @@ Microphones and outputs persist endpoint IDs; an older microphone name migrates 
 when it identifies one device. Missing idle selections reset to the Windows default
 with a visible explanation. Refresh failures retain the last successful list and choices.
 
-An active capture remains attached to the endpoint opened at startup, including when
-the selection was Default. A new Windows default is used only on the next start.
-Removal or disabling ends the affected source with a microphone/system-specific error.
-The other source can continue. Stop and retry ends and drains the whole session before
-restarting; its fallback variant resets only the failed source to Default. Both actions
-keep the transcript and may start billable provider capture again. Nothing reconnects
-or changes capture endpoints automatically.
+An active capture stays attached to the endpoint opened at startup, including when the
+selection was Default; a new Windows default is used only on the next start. Removal or
+disabling ends the affected source with a microphone/system-specific error, and the other
+source can continue. Stop and retry ends and drains the whole session before restarting; its
+fallback variant resets only the failed source to Default. Both actions keep the transcript
+and may start billable provider capture again. Nothing reconnects or changes capture
+endpoints automatically.
 
-Notification callbacks only try-send to a bounded worker queue. Enumeration and webview
-events happen away from callbacks. Device-change notifications trigger availability checks on the owning capture path, with
-a periodic fallback if a notification is missed. Loopback checks its pinned endpoint on
-notification or at most a second later while servicing capture.
+Notification callbacks only try-send to a bounded worker queue; enumeration and webview events
+happen away from callbacks. Device-change notifications trigger availability checks on the
+owning capture path, with a periodic fallback if a notification is missed. Loopback checks its
+pinned endpoint on notification or at most a second later while servicing capture.
+
+Component tests verify stop-before-retry ordering and transcript preservation; controller
+tests cover device-list changes and teardown.
 
 ## Hardware matrix
 

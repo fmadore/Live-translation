@@ -1,11 +1,10 @@
 # Store screenshots — 1.6.1 capture plan
 
-The existing `en/` and `fr/` images are historical 1.2.2 captures. They are **not ready for
-1.6.1**. The `de/` set has not been captured. The 1.6.0 capture was not recorded as done, and
-1.6.1 changes the app icon and the interface, so captures must show the new wave-to-words icon
-and the refreshed interface. Retake screenshots from the final signed 1.6.1 MSIX with the
-interface set to each listing language; browser previews and the separate Whisper Test
-installation do not establish packaged-app appearance.
+The existing `en/` and `fr/` images are historical 1.2.2 captures and are **not ready for
+1.6.1**; the `de/` set has not been captured. The 1.6.0 capture was not recorded as done, and
+1.6.1 changes the app icon and the interface, so retake every set from the final signed 1.6.1
+MSIX, with the interface set to each listing language. Browser previews and the separate
+Whisper Test installation do not establish packaged-app appearance.
 
 The first images should demonstrate useful captioning, with the scripted demo last if included.
 Capture only disposable, consented speech or the bundled rehearsal material. Do not show
@@ -29,10 +28,9 @@ Replace obsolete filenames when the new captures exist; do not relabel or reuse 
 as evidence of the new interface. Record package version, architecture, capture date and
 display scaling here when refreshed.
 
-Before capture, check the current Microsoft [screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images).
-Use PNGs at 1366×768 or higher, keep key content clear of Store overlays, and put descriptive
-copy in Partner Center's caption field rather than adding marketing text to the image.
-Each prepared caption is under 200 characters.
+Before capture, check the current Microsoft [screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images)
+and the [Store rules](../store-updates.md#screenshots) summarized for this listing. Each
+prepared caption is under 200 characters.
 
 ## Capture status
 

@@ -1,8 +1,7 @@
 # OpenAI Realtime Translate API
 
-Cloud translation integration used by 1.6.0 and 1.6.1. See [language coverage](language-coverage.md)
-for the remaining endpoint-code and live-language checks. Offline same-language captions
-use [local Whisper](local-whisper.md), not this translation endpoint.
+Cloud translation integration. Offline same-language captions use [local Whisper](local-whisper.md),
+not this endpoint.
 
 Verified 1 August 2026 with the official
 [Realtime translation guide](https://developers.openai.com/api/docs/guides/realtime-translation)
@@ -36,34 +35,35 @@ part of the continuous stream.
 }
 ```
 
-The current schema explicitly supports output language, optional source transcription, and
-input noise reduction. Source language is auto-detected.
+The schema supports output language, optional source transcription and input noise reduction.
+Source language is auto-detected.
 
 Audio frames use `session.input_audio_buffer.append`. The app reads
 `session.input_transcript.delta` for the operator’s source monitor and
 `session.output_transcript.delta` for translated captions; output audio is ignored.
 
-Only output transcript activity arms the 900 ms idle caption boundary. This prevents a
-source delta from prematurely finalizing a caption before its translation arrives.
+Only output transcript activity arms the 900 ms idle caption boundary, so a source delta cannot
+finalize a caption before its translation arrives.
 
 ## Graceful stop
 
-The client sends `{"type":"session.close"}`, stops appending audio, and continues reading
-until `session.closed` or a four-second safety timeout. OpenAI documents that immediately
-closing the socket can lose translated output still draining from the session.
+The client sends `{"type":"session.close"}`, stops appending audio, and keeps reading until
+`session.closed` or a four-second safety timeout. OpenAI documents that closing the socket
+immediately can lose translated output still draining from the session.
 
-## Target-language catalog — documentation checked 2026-09-22
+## Target-language catalog
 
-The [official cookbook](https://developers.openai.com/cookbook/examples/voice_solutions/realtime_translation_guide)
-still names 13 targets. The development catalog lists `en es pt fr ja ru zh de ko hi id vi it`.
-The source is `src/lib/languages.json`, shared by generated Rust and TypeScript types.
+On 2026-09-22 the [official cookbook](https://developers.openai.com/cookbook/examples/voice_solutions/realtime_translation_guide)
+still named 13 targets. The catalog lists `en es pt fr ja ru zh de ko hi id vi it`; its source
+is `src/lib/languages.json`, shared by generated Rust and TypeScript types.
 
 **Endpoint verification is pending.** On 2026-09-22 the opt-in probe could not resolve an
 OpenAI API key, including outside the sandbox. Portuguese `pt` versus `pt-BR`/`pt-PT` and
 Chinese `zh` versus `zh-Hans`/`zh-Hant` must not be represented as proven until it runs.
-The probe opens a separate translation session per candidate, uses the production update
+The probe (`src-tauri/src/openai/language_probe.rs`) opens a separate translation session per
+candidate — all 13 targets plus the four ambiguous alternatives — with the production update
 payload, waits for `session.updated` or `error`, prints only language verdicts, and closes
-without transmitting audio. It tests all 13 targets plus the four ambiguous alternatives.
+without transmitting audio.
 
 Save the key in the app (or set `OPENAI_API_KEY`), then run:
 
@@ -71,6 +71,6 @@ Save the key in the app (or set `OPENAI_API_KEY`), then run:
 cargo test --manifest-path src-tauri/Cargo.toml --lib probe_target_language_codes -- --ignored --nocapture
 ```
 
-Record returned codes/verdicts here and update the catalog if needed. A successful session
-update proves configuration acceptance, not translation quality; the non-EN/FR real-speech
-check on both providers remains separate in [language coverage](language-coverage.md).
+Record the returned codes and verdicts here and update the catalog if needed. An accepted
+session update proves configuration, not translation quality; the real-speech check is in
+[language coverage](language-coverage.md#live-acceptance-procedure).

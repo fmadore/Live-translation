@@ -56,9 +56,9 @@ published; see its [release notes](docs/release-1.6.1.md) and
 5. **Stop**, let Whisper finish any pending audio, then **Save as…**. Enable history in
    **Settings → Transcript history** if you want sessions saved automatically on this PC.
 
-A fresh installation opens on **Whisper**, with Base selected and automatic language
-detection. Choose **Download model** before starting; existing saved setups are preserved.
-An optional English/French scripted demo remains available for trying the overlay without setup.
+A fresh installation opens on **Whisper** with Base and automatic language detection;
+existing saved setups are preserved. A scripted English/French demo shows the overlay without
+any setup.
 
 ## Privacy and local processing
 

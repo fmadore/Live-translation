@@ -1,16 +1,16 @@
 # Accessibility
 
-What this app owes an operator who cannot rely on colour, a mouse, or small text, how much of
-that is checked automatically, and what has to be checked by hand before a release.
+What this app owes an operator who cannot rely on colour, a mouse, or small text, what is
+checked automatically, and what has to be checked by hand before a release.
 
 The target is WCAG 2.2 AA for the operator window, plus the Windows-specific behaviour the
 Microsoft Store accessibility checklist asks for: keyboard operation, Narrator, contrast
 themes, and text scaling.
 
-The overlay is treated differently on purpose. It is not a control surface — it is the caption
-being projected into a room, over slides nobody in this app controls. Its contrast is measured
-against the scrim it paints, not against the operator's system palette, and it opts out of
-contrast themes (see *Contrast themes* below).
+The overlay is treated differently on purpose. It is not a control surface but the caption
+projected into a room, over slides nobody in this app controls. Its contrast is measured
+against the scrim it paints, not the operator's system palette, and it opts out of contrast
+themes and of Windows text scaling (see [below](#windows-text-scaling)).
 
 ## What the code guarantees
 
@@ -23,14 +23,14 @@ contrast themes (see *Contrast themes* below).
 | Caption reflow | Fit window measures rendered text against the overlay width and height, preserving newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
 | Caption colours | `src/lib/captionColour.ts` — the operator picks the ink and the scrim, and every ratio is computed on the **composite**: the scrim as it is thinned under the text, over both a white and a black slide, with the halo that rings the glyph. One function settles how dim each step is painted *and* what the readout says, so the two cannot disagree. A single control puts the whole overlay appearance back to what it ships with, because a way into an unreadable palette needs a way out of it. |
 | Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesized bold at projector size is a legibility failure, not a cosmetic one. |
-| Reaching the controls | The caption appearance controls used to exist only inside a running session, which put them behind starting one. They are one snippet rendered in two places now — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
+| Reaching the controls | The caption appearance controls are one snippet rendered in two places — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. |
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
 | Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
 | Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. |
 | Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
-| Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes (1.5.1). |
+| Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes. |
 | Shortcuts | One table in `src/lib/shortcuts.ts`: the listener matches it, `aria-keyshortcuts` on Start and Stop announces it, and the key caps print it in the interface language's key names (`Strg+Umschalt+Leertaste`). The printed copy inside a button is `aria-hidden`, so it never becomes part of the button's name. |
 | Targets and names | Every button is at least 32px tall at 100%. The colour swatches are named (Mint, Navy), not read out as hex, and a chosen swatch has its own inset ring rather than the focus ring's outline. The profile picker is named by its visible label (WCAG 2.5.3). |
 | Motion | `prefers-reduced-motion` stops the sweep, the breathing status dot, the caret and the meter easing; a global safety net catches anything added later. |
@@ -43,20 +43,19 @@ contrast themes (see *Contrast themes* below).
   wash, or if any non-text mark drops below 3:1. It pins the ramps (four text levels, three
   surfaces, three lines), and it reads every component stylesheet: a hex literal, or a text
   colour that is not a token, fails it, and so does an overlay toolbar that a white slide
-  would lift above `--surface-2`. This is the regression guard: the contrast failures that
-  prompted issue #24 arrived one shade at a time, and nothing could see them.
+  would lift above `--surface-2`. It exists because the contrast failures behind issue #24
+  arrived one shade at a time, and nothing could see them.
 - `npm test` → `src/lib/captionColour.test.ts` is the same guard for the overlay, which
   `palette.test.ts` cannot reach because its colours are no longer in the stylesheet. It fails
   if the shipped default drops below 4.5:1 at any step over either slide, if the default stops
-  reproducing the literals the overlay used to hard-code, or if a colour is written back into
-  the overlay's stylesheet where the check cannot see it.
+  reproducing the overlay's original literals, or if a colour is written back into the
+  overlay's stylesheet where the check cannot see it.
 - `npm test` → `src/lib/typeScale.test.ts` reads the same stylesheets and fails if any
-  component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach.
-  It is the same kind of guard for the same reason: the failure is invisible on a machine
-  sitting at 100%. It also fails on a size outside the seven roles, on a small-capital label
-  that is not tracked at `--tracking-caps`, on a line-height outside the three `--leading-*`
-  steps (caption text excepted), and covers the clamp that stands between a settings event and
-  every `calc()` in the stylesheet.
+  component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach,
+  and a failure invisible on a machine at 100%. It also fails on a size outside the seven
+  roles, on a small-capital label not tracked at `--tracking-caps`, on a line-height outside
+  the three `--leading-*` steps (caption text excepted), and covers the clamp that stands
+  between a settings event and every `calc()` in the stylesheet.
 - `npm test` → `src/lib/spacing.test.ts` does the same for spacing, corners and control boxes:
   every padding, margin and gap is a `--space-*` step (or an optical nudge of a few pixels),
   every radius is a `--radius-*` token at Windows 11 geometry (4px in the page, 8px for
@@ -65,19 +64,12 @@ contrast themes (see *Contrast themes* below).
 - `npm run check` catches Svelte's own accessibility lints (missing labels, roles on the wrong
   element, click handlers without keyboard equivalents).
 
-Text on a **tinted wash** that the stylesheet names (`--accent-wash`, `--warn-chip` and the rest: every hue has the same 8% `-wash` and 14% `-chip`)
-is checked by `palette.test.ts` for the muted level, which bounds every grey above it. Anything
-else composited — a coloured label on its own wash (amber on amber), or text over a gradient —
-is measured against the rendered window instead:
-
-```bash
-npm run dev
-```
-
-then, in the browser preview, walk the DOM comparing each element's computed colour against
-its composited background. The last run of that audit checked 52 text elements in the idle
-operator window with no failures; it is how the `/hr` unit on a selected engine was caught at
-4.36:1.
+Text on a **tinted wash** that the stylesheet names (`--accent-wash`, `--warn-chip` and the
+rest: every hue has the same 8% `-wash` and 14% `-chip`) is checked by `palette.test.ts` for the
+muted level, which bounds every grey above it. Anything else composited — a coloured label on
+its own wash (amber on amber), or text over a gradient — is measured against the rendered
+window instead: run `npm run dev`, then walk the DOM in the browser preview, comparing each
+element's computed colour against its composited background.
 
 ## Release checklist (manual, on Windows)
 
@@ -111,7 +103,6 @@ treats the window.
    for Web** (or `axe` DevTools) against `npm run dev` for the DOM-level rules.
 9. **Minimum window size.** Resize to 980 × 660. Nothing overlaps and nothing is clipped; both
    columns scroll rather than compress.
-
 10. **Responsive captions.** Follow the [caption layout matrix](caption-layout.md#release-verification):
     narrow/wide and short/tall windows, 20/38/96px fonts, both origins, long words, and
     Fit window / Compact switching. Verify the selector’s keyboard operation and Narrator
@@ -127,11 +118,10 @@ not something this app gets for free. Display scaling works, because that scales
 window. So the core reads the factor and the operator window applies it:
 
 1. `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor`. The operator window asks
-   for it once as it boots — a command rather than only an event, because a window has to lay
-   itself out before it could have subscribed to anything, and someone who needs 225% text
-   should not be shown a frame of 9.5px type first. The module then subscribes to
-   `TextScaleFactorChanged` and emits every later change, so moving the slider moves the
-   window without a restart.
+   for it once as it boots — a command rather than only an event, so someone who needs 225%
+   text is not shown a frame of 9.5px type before the window could subscribe. The module then
+   subscribes to `TextScaleFactorChanged` and emits every later change, so moving the slider
+   moves the window without a restart.
 2. `src/lib/textScale.ts` clamps the factor to the slider's own 1 … 2.25 and writes it to
    `--text-scale` on the document root. Both ends clamp: the value crosses a JSON event
    boundary, and a `NaN` there would invalidate every `calc()` in the stylesheet at once.
@@ -139,38 +129,32 @@ window. So the core reads the factor and the operator window applies it:
    well. The ramp is what makes the text grow; the root size is what makes the *layout* grow
    with it, because every gutter and width that has to hold text is expressed in `em`.
 
-That third point is the part worth keeping: honouring a text-size setting is not only a
-question of type. A 225% caption inside a 380px rail is not accessible, it is clipped. So the
-rail, the meter labels, the transcript's gutter, the key field and the dialog are all measured
-in `em`, and the two-column layout is a container query — `@container window (min-width:
-53.75em)`, which is the 380px rail plus the narrowest stage that still shows a caption line.
-Being in `em`, that threshold rises with the text, so the columns stack into one scrolling
-column at the point where they would otherwise start clipping, and return when the operator
-widens or maximizes the window. At 100% it resolves to 860px, comfortably inside the 980px
-minimum window, so the normal layout is untouched.
+Honouring a text-size setting is not only a question of type: a 225% caption inside a 380px
+rail is not accessible, it is clipped. So the rail, the meter labels, the transcript's gutter,
+the key field and the dialog are all measured in `em`, and the two-column layout is a container
+query — `@container window (min-width: 53.75em)`, the 380px rail plus the narrowest stage that
+still shows a caption line. Being in `em`, that threshold rises with the text, so the columns
+stack into one scrolling column where they would otherwise start clipping, and return when the
+operator widens or maximizes the window. At 100% it resolves to 860px, inside the 980px minimum
+window, so the normal layout is untouched.
 
 **The overlay opts out**, for the same reason it opts out of contrast themes: its captions are
 not chrome on the operator's screen, they are projected content whose size the operator sets
 for the room, with its own control and its own `--fs`. An accessibility setting on the
 operator's PC has no business resizing what an audience is reading.
 
-Verified at 980 × 660 — the window's minimum — at every step of the Windows slider: no
-horizontal overflow, no clipped box, and no overlapping region at 225%.
+Verified in a browser preview at 980 × 660 — the window's minimum — with the factor forced to
+every step of the Windows slider: no horizontal overflow, no clipped box, and no overlapping
+region at 225%. The native walk is item 5 of the release checklist.
 
-## 1.4.0 usability verification
-
-Impeccable browser checks covered the new profile, history, preview and live-status controls
-in compact and desktop layouts, including French/German and 200% text scaling. Long saved
-session titles wrap without horizontal scrolling; history calendar icons use the dark
-control theme. Search/date controls retain visible keyboard focus. See
-[verification details](usability.md#verification) for the tested sizes and scope.
+## Feature checks
 
 [Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
 focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
-Windows text scaling and mixed-DPI acceptance for the final package remain in the
+Windows text scaling and mixed-DPI acceptance for the final package are tracked in the
 [current release checklist](store-updates.md#release-161-handoff).
 
-## 1.4.1 settings and date controls
+### Settings and date fields
 
 Settings uses a roving tab stop with Left/Right, Home and End navigation. The dialog
 frame and tab bar stay stationary while the selected body scrolls; the body is also
@@ -182,7 +166,7 @@ localized error for invalid input. Calendar buttons have translated accessible n
 the implementation's hidden native date input is excluded from the accessibility tree
 and normal Tab order. Packaged WebView calendar and screen-reader acceptance remain pending.
 
-## Searchable caption language (1.5.0, #78)
+### Caption language selector (#78)
 
 The translation selector uses a combobox and filtered listbox with active-descendant,
 selected and disabled states. Keyboard and pin interaction are documented in
@@ -197,7 +181,7 @@ subtitle languages use auto direction. Stable reading uses logical start alignme
 starts at the right edge. Verify actual Japanese and Arabic glyph fallback on Windows; the
 bundled Archivo face falls back to the system for uncovered scripts.
 
-## Whisper controls and Pause (1.6.0)
+### Whisper controls and Pause
 
 Test keyboard access to Whisper's spoken-language and model selectors, Download/Cancel/Remove,
 and the model's ready/error status. Verify that the pending-audio duration and finishing state

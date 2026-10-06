@@ -1,18 +1,19 @@
 # Application audio capture — issue #27
 
-Included in **1.2.3**. The user confirmed application selection on the ARM64 test MSIX
-on 8 September 2026. Real audio-isolation and device-transition checks remain unverified.
+Included in **1.2.3**. The user confirmed application selection on the ARM64 test MSIX on
+8 September 2026; real audio-isolation and device-transition checks remain unverified.
 
 For System or Both sources, choose **System capture → One application**, select an open
 application, and run the level-only audio test before starting a live provider session.
-**Refresh applications** updates the list. The alternative mode retains the existing
-default/specific output endpoint selection. Rehearsal and the built-in demonstration
-continue using their fixtures and do not capture applications.
+**Refresh applications** updates the list. The alternative mode keeps the default/specific
+output endpoint selection. Rehearsal and the built-in demonstration use their fixtures and do
+not capture applications. Local Whisper receives the same selected process tree as a cloud
+engine; see [local Whisper](local-whisper.md) for buffering and offline operation.
 
-The first implementation lists accessible processes with visible top-level windows,
-using their window titles and PIDs to distinguish them. Multiple windows belonging to
-one process share one entry. Background-only applications and inaccessible processes
-are not listed. Per-app icons and grouping unrelated process trees are not implemented.
+The list shows accessible processes with visible top-level windows, distinguished by window
+title and PID. Multiple windows of one process share one entry. Background-only and
+inaccessible processes are not listed. Per-app icons and grouping unrelated process trees are
+outside this implementation.
 
 ## Capture scope and lifecycle
 
@@ -37,11 +38,13 @@ are not listed. Per-app icons and grouping unrelated process trees are not imple
 ## Verification
 
 Automated coverage checks mode preservation, missing/unsupported/stale selections,
-process identity forwarding to preflight, selector behavior and the command capability
+process identity forwarding to preflight, selector behaviour and the command capability
 boundary. Windows tests enumerate application windows and open a process-loopback client
 against an owned silent child process, then check process exit and stale creation times.
 
-Manual acceptance remains pending in development and packaged NSIS/MSIX builds:
+Manual acceptance remains pending in development and packaged NSIS/MSIX builds. Run the
+isolation and process-exit cases with Whisper as well as a cloud engine, and let Whisper's
+backlog drain after Stop before judging the transcript.
 
 | Scenario | Expected result |
 | --- | --- |
@@ -53,16 +56,7 @@ Manual acceptance remains pending in development and packaged NSIS/MSIX builds:
 | Minimized app, multiple windows | Selection remains stable; no duplicate entry for one PID |
 | No application audio | Silence, without a false disconnection |
 | Unsupported Windows | Explanatory message; all-output capture only after explicit selection |
-| Demo and rehearsal | Existing fixture behavior remains unchanged |
+| Demo and rehearsal | Existing fixture behaviour remains unchanged |
 
-Real Teams/Zoom/browser isolation and hardware transitions cannot be inferred from the
-silent-process smoke test. Issue #27 is closed at the user’s request for release 1.2.3;
-icons and grouping unrelated process trees remain outside the accepted first implementation.
-
-## Local Whisper (1.6.0)
-
-Application capture feeds the same selected process tree to local Whisper as to a cloud
-engine. Whisper keeps audio on the PC and buffers pending speech temporarily; it does not
-change which processes are included. Repeat the isolation and process-exit checks above with
-Whisper, then Stop and let its backlog drain before evaluating the complete transcript.
-See [local Whisper](local-whisper.md) for buffering, models and offline operation.
+The silent-process smoke test cannot establish real Teams/Zoom/browser isolation or hardware
+transitions. Issue #27 was closed at the user’s request for release 1.2.3.

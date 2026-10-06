@@ -1,16 +1,16 @@
 # Partner Center submission walkthrough — 1.6.1
 
-Target: **Live Translation & Subtitles 1.6.1**, Product ID `9PFB8LR3RR9X`.
-Prepared, not tagged or submitted. The Store currently serves 1.6.0 (MSIX 1.6.0.0), confirmed
-live by the maintainer on 6 October 2026. After `v1.6.1` is tagged and its release workflow
-finishes, download the combined x64 + ARM64 bundle from
-`https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle`;
-it does not exist before tagging. Use the [release handoff](store-updates.md#release-161-handoff)
-for package evidence and outstanding acceptance checks.
+Target: **Live Translation & Subtitles 1.6.1**, Product ID `9PFB8LR3RR9X`. Prepared, not
+tagged or submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer on
+6 October 2026. Once `v1.6.1` is tagged and its release workflow finishes, download the combined
+x64 + ARM64 bundle from
+`https://github.com/fmadore/Live-translation/releases/download/v1.6.1/Live.Translation_1.6.1.msixbundle`.
+The [release handoff](store-updates.md#release-161-handoff) has the package evidence and
+outstanding acceptance checks.
 
 1.6.1 is a maintenance and visual release: a new app icon and a refreshed interface, with no
 new features, dependency or privacy changes. The listing keeps its positioning; paste every
-field again from [store-listing.md](store-listing.md), which notes what changed for 1.6.1. The
+field again from [store-listing.md](store-listing.md), which notes what changed. The
 screenshots and any separately uploaded Store logo also change.
 
 ## Before Partner Center
@@ -79,12 +79,12 @@ that listing if it is not already present. For each language, paste:
    refreshed interface.
 7. **Store logos**: see below.
 
-The package's tiles and `StoreLogo` carry the new wave-to-words icon, so the 1.6.1 bundle
-updates the icon the Store takes from the package. Partner Center's optional **1:1 App tile
-icon (300 × 300)** overrides that package image when one has been uploaded. In each listing
-language's **Store logos** section, replace any uploaded app tile icon with a 300 × 300 PNG of
-the new mark (rendered from `src-tauri/icons/source.svg`), or remove it so the Store uses the
-package image. Check any uploaded promotional art for the old glyph in the same way.
+The package's tiles and `StoreLogo` carry the new wave-to-words icon, so the bundle updates
+the icon the Store takes from the package, unless Partner Center's optional **1:1 App tile icon
+(300 × 300)** has been uploaded, which overrides it. In each listing language's **Store logos**
+section, replace any uploaded app tile icon with a 300 × 300 PNG of the new mark (rendered
+from `src-tauri/icons/source.svg`), or remove it so the Store uses the package image. Check any
+uploaded promotional art for the old glyph too.
 
 Whisper and useful live captions lead the copy. Each full description discloses the initial
 model download and optional paid cloud dependencies in its opening paragraph. The demo
@@ -92,14 +92,14 @@ appears only as a secondary, explicitly scripted feature.
 
 ## Submission options
 
-Paste [Notes for certification](store-listing.md#notes-for-certification). Check that the
-model download works from a clean install. Resolve any required cloud test credentials
-privately before submission; no personal keys belong in public metadata or screenshots.
+Paste [Notes for certification](store-listing.md#notes-for-certification). Resolve any
+required cloud test credentials privately before submission; no personal keys belong in public
+metadata or screenshots.
 
-A clean install now opens on Whisper, Base and automatic language detection. Verify that
-Download model requires a click and that Start remains unavailable until a model is ready.
-For the setup-free fallback, explicitly select Built-in demo from the engine list. An existing
-installation keeps its previously saved engine and audio choices.
+A clean install opens on Whisper, Base and automatic language detection. Verify that the model
+download works, requires a click, and that Start stays unavailable until a model is ready. The
+setup-free fallback is Built-in demo, selected explicitly from the engine list. An existing
+installation keeps its saved engine and audio choices.
 
 Suggested `runFullTrust` justification:
 
@@ -110,8 +110,8 @@ Suggested `runFullTrust` justification:
 Confirm all sections are complete, packages and copy agree on 1.6.1.0, screenshots and Store
 logos match the final UI and new icon, and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
-setup-free display check. Neither route substitutes for testing the advertised cloud features.
+setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Submit manually when the [handoff checklist](store-updates.md#release-161-handoff) is complete.
-Record the submission date and certification result there. Do not mark 1.6.1 live until
+Submit manually when the [handoff checklist](store-updates.md#release-161-handoff) is complete,
+and record the submission date and certification result there. Do not mark 1.6.1 live until
 Partner Center or the public listing confirms publication.

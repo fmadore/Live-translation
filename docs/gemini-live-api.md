@@ -1,10 +1,7 @@
 # Gemini Live API
 
-Cloud integration used by 1.6.0 and 1.6.1. The verification dates below describe the
-recorded API checks; release acceptance is tracked in the [current handoff](store-updates.md#release-161-handoff).
-For subtitles without a cloud connection, see [local Whisper](local-whisper.md).
-
-Two Gemini models, one `BidiGenerateContent` socket, one API key:
+Two Gemini models share one `BidiGenerateContent` socket and one API key. For subtitles without a
+cloud connection, see [local Whisper](local-whisper.md).
 
 | Model | Status | Mode it serves |
 | --- | --- | --- |
@@ -15,13 +12,10 @@ Re-verified 27 August 2026 against Google’s
 [Live translation guide](https://ai.google.dev/gemini-api/docs/live-api/live-translate)
 (last updated 2026-07-23), the
 [Live transcription guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe)
-(last updated 2026-08-26), the
-[model list](https://ai.google.dev/gemini-api/docs/models) and the
-[Live API reference](https://ai.google.dev/api/live).
-
-Translation is still preview and has no stable equivalent — Gemini 3.5 Transcribe went GA,
-Live Translate did not — so re-check it before the event. Its wire format is unchanged since
-the 12 August 2026 verification.
+(last updated 2026-08-26), the [model list](https://ai.google.dev/gemini-api/docs/models) and
+the [Live API reference](https://ai.google.dev/api/live). Live Translate is still preview with
+no stable equivalent (Transcribe went GA), so re-check it before an event; its wire format is
+unchanged since the 12 August 2026 verification.
 
 ## Gemini 3.5 Live Translate
 
@@ -55,18 +49,17 @@ wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.G
 }
 ```
 
-The two levels are easy to confuse, because the SDKs flatten them into one `LiveConnectConfig`
-object. On the wire they are distinct:
+The SDKs flatten both levels into one `LiveConnectConfig`, but on the wire they are distinct:
 
 - `inputAudioTranscription` and `outputAudioTranscription` are fields of
   `BidiGenerateContentSetup` itself ([Live API reference](https://ai.google.dev/api/live)).
-  Nesting them under `generationConfig` makes the server reject the whole session with
+  Nested under `generationConfig`, they make the server reject the whole session with
   `Unknown name "inputAudioTranscription" at 'setup.generation_config': Cannot find field.`
 - `translationConfig` *is* a `generationConfig` field, and is Gemini Developer API only —
   the SDKs raise on it in Enterprise/Vertex mode.
 
-Both placements are pinned by the converter tests in Google’s own SDK (`python-genai`
-`tests/live/test_live.py`: `test_bidi_setup_to_api_with_input_transcription`,
+Both placements are pinned by `python-genai`'s converter tests (`tests/live/test_live.py`:
+`test_bidi_setup_to_api_with_input_transcription`,
 `test_bidi_setup_to_api_with_translation_config`). Older revisions used
 `realtimeInput.mediaChunks`; that shape is not used here.
 
@@ -88,14 +81,13 @@ Both placements are pinned by the converter tests in Google’s own SDK (`python
 - `echoTargetLanguage` stays enabled so speech already in the target language still appears
   in the caption stream; this is essential for bilingual meetings.
 - `serverContent.turnComplete` finalizes and advances the per-source turn.
-- `goAway` asks the shared runner to reconnect immediately rather than waiting for a socket
-  failure.
+- `goAway` triggers an immediate planned reconnect; see [the ten-minute cap](#the-ten-minute-cap).
 - A provider `error` becomes a terminal operator-visible status instead of a silent log.
 
 ## Gemini 3.5 Transcribe Live
 
-Same endpoint, same audio frame, same key — this is a subtitle engine, not a translator, so
-the setup message and the transcription fields differ.
+Same endpoint, audio frame and key; a subtitle engine rather than a translator, so the setup
+message and transcription fields differ.
 
 ### Setup
 
@@ -114,26 +106,28 @@ the setup message and the transcription fields differ.
 }
 ```
 
-- `responseModalities: ["TEXT"]` is what separates the transcription pipeline from a live
-  agent. There is no generated audio to discard and no output sidecar to read.
+- `responseModalities: ["TEXT"]` separates the transcription pipeline from a live agent: no
+  generated audio to discard, no output sidecar to read.
 - `inputAudioTranscription` is a `BidiGenerateContentSetup` field here too, and carries
   configuration rather than being an empty marker.
 - `languageCodes: []` enables automatic language identification across utterances, including
-  code-switching — the right default for a bilingual room. The guide's table lists 84 entries,
-  which are **83 distinct BCP-47 codes and 77 distinct languages** once locale variants
-  collapse (`en-US`/`en-GB`/`en-IN`, `bn-BD`/`bn-IN`, and so on). User-facing copy says "over
-  70 languages" from that count — not the "100+" a first reading of the page suggests.
+  code-switching — the right default for a bilingual room. The guide's table lists 84 entries:
+  **83 distinct BCP-47 codes and 77 distinct languages** once locale variants collapse
+  (`en-US`/`en-GB`/`en-IN`, `bn-BD`/`bn-IN`, …). User-facing copy therefore says "over 70
+  languages", not "100+".
 - `mode: "SMART"` removes fillers and false starts, resolves spoken self-corrections, and
-  applies punctuation and casing. Subtitles are read off an overlay by an audience, so
-  readability beats a faithful record of every "um". `VERBATIM` is Google's default; it is
-  the alternative, not an additional setting. SMART rules out word-level annotations, which
-  this app does not use.
+  applies punctuation and casing; an audience reading an overlay needs that more than every
+  "um". `VERBATIM` (Google's default) is the alternative, not an extra setting. SMART rules out
+  word-level annotations, which the app does not use. Google's
+  [15 September 2026 audio announcement](https://blog.google/innovation-and-ai/technology/developers-tools/build-real-time-voice-applications-gemini-audio/)
+  confirms the disfluency removal; its Gemini 3.8 Live models are conversational audio models,
+  not replacements for this integration.
 - `customVocabulary` (up to 1,000 terms, best under 100) is available and not yet wired up.
 
 ### Streaming and events
 
-The audio frame is byte-for-byte the one live translate uses — 16 kHz mono PCM16 LE, base64
-in `realtimeInput.audio`, 100 ms chunks.
+The audio frame is the one live translate uses — 16 kHz mono PCM16 LE, base64 in
+`realtimeInput.audio`, 100 ms chunks.
 
 - `serverContent.interimInputTranscription.text` is a speculative partial hypothesis, revised
   as the speaker talks.
@@ -141,192 +135,83 @@ in `realtimeInput.audio`, 100 ms chunks.
   speech segment, emitted when the speaker pauses.
 
 **Both describe the same segment, so each replaces the caption buffer rather than extending
-it.** This is the one place the two Gemini clients genuinely diverge: live translate appends
-`inputTranscription` deltas, and appending them here would repeat every revised hypothesis on
-screen. One finalized segment becomes one transcript line, broken where the speaker paused.
+it.** Live translate appends `inputTranscription` deltas; doing so here would repeat every
+revised hypothesis on screen. One finalized segment becomes one transcript line.
+
+When a message carries both, the finalized text wins. An empty final or segment close retracts
+an all-filler speculative caption rather than keeping it as speech, and the front end discards
+the pending empty turn (regression-tested; no live probe was run for this 1.4.0 change). The
+local [Hide filler words](caption-layout.md#hide-filler-words) filter is separate.
 
 `{"realtimeInput":{"audioStreamEnd":true}}` is sent on close so a last segment can still
 arrive during the shared runner's drain window.
 
 ### What the wire does that the guide does not mention
 
-All three were found by running `live_probe` (below) against the real endpoint on
-27 August 2026, and none of them appear in Google's documentation.
+Found with `live_probe` (below) against the real endpoint on 27 August 2026:
 
-- **Replies arrive as WebSocket _binary_ frames carrying UTF-8 JSON, not text frames.** The
-  guide's own sample reads `event.data` in a browser, where the difference is invisible. A
-  client that matches only on text frames sees the socket connect, accept setup, and then stay
-  completely silent. `realtime.rs` already decodes `Message::Binary`, so both Gemini clients
-  were unaffected — but it is the first thing to check if this ever appears to hang.
+- **Replies arrive as WebSocket _binary_ frames carrying UTF-8 JSON.** The guide's browser
+  sample hides the difference; a client matching only text frames has setup accepted and then
+  hears nothing. `realtime.rs` decodes `Message::Binary` — check this first if a session ever
+  appears to hang.
 - **`generationComplete` closes a segment**, not the `turnComplete` the translate path sends.
-  Nothing in the transcription guide names it. It is what lets the client finalize a segment
-  that produced only a speculative hypothesis and no confirmed text.
-- **`setupComplete` *is* sent**, even though the guide's WebSocket sample never waits for one.
-  Waiting is correct and matches the Live API contract.
+  It lets the client finalize a segment that produced only a speculative hypothesis.
+- **`setupComplete` *is* sent**, although the guide's sample never waits for one. Waiting is
+  correct and matches the Live API contract.
 
 ### Segmentation is the model's, and it is not sentence-shaped
 
-Observed over the bundled twenty-second recording: with continuous speech and few pauses the
-model will run two sentences into a single segment, joining them without a space
-(`…Use this recording toThe overlay before…`), and it splits mid-word where it does break
-(`…every sentence is` / `described and shown on screen…`, from "transcribed"). Segmentation
-also varies between runs on identical audio.
-
-The consequence for the overlay is that a caption grows until the model closes the segment,
-which on continuous speech can mean a paragraph rather than a line. This is the model's
-behaviour, not something the client corrects: splitting on our own heuristic would invent
-sentence boundaries the model did not report, and re-flowing text that is still being revised
-would make the caption jump. Voxtral's 900 ms idle finalization produces shorter lines, and
-that is a fair reason to prefer it for a speaker who does not pause much.
+On the bundled twenty-second recording, continuous speech runs two sentences into one segment
+without a space (`…Use this recording toThe overlay before…`), breaks can fall mid-word
+(`…every sentence is` / `described and shown on screen…`, from "transcribed"), and segmentation
+varies between runs on identical audio. A caption therefore grows until the model closes the
+segment — on continuous speech, a paragraph. The client does not re-split: that would invent
+sentence boundaries and make text still being revised jump. Voxtral's 900 ms idle finalization
+gives shorter lines, a fair reason to prefer it for a speaker who rarely pauses.
 
 ### The ten-minute cap
 
 > Live transcription sessions support continuous streaming for up to 10 minutes.
 
 Mistral Voxtral has no such limit, so this is the one operational difference between the two
-subtitle engines. A room session therefore reconnects several times an hour.
+subtitle engines: a room session reconnects several times an hour.
 
 `goAway` arrives before the cut, and both Gemini clients answer it with
 `MessageControl::Handover`: a planned move, not a failure. After a connection that lasted at
-least 30 seconds the runner finalizes the in-flight turn, keeps the source Running and
-reconnects at once — no backoff — then sends the up-to-half-second of audio that queued while
-the new socket opened, in order, instead of discarding it as a stall's backlog. Until
-24 September the runner treated `goAway` like a dropped socket: it waited out the one-second
-backoff (plus 173 ms on the system source) and dropped the queued audio, which is where most of
-the one- to two-second gap every ten minutes came from. What remains is the new connection's
-TLS handshake and setup round trip. A `goAway` straight after connecting still backs off, so a
+least 30 seconds the runner finalizes the in-flight turn, keeps the source Running, reconnects
+at once with no backoff, and sends the up-to-half-second of audio queued meanwhile, in order,
+instead of discarding it as a stall's backlog. The remaining gap is the new connection's TLS
+handshake and setup round trip. A `goAway` straight after connecting still backs off, so a
 server refusing the session is never hammered. Opening the new socket before closing the old
-one would remove the gap entirely; the runner holds one socket per client today.
+one would remove the gap; the runner holds one socket per client today.
 
-Speaker diarization and word-level timestamps are not available over the Live API — they
-belong to the non-streaming `gemini-3.5-transcribe` model, which takes uploaded files rather
-than a socket and cannot serve this app.
+Speaker diarization and word-level timestamps are not available over the Live API; they belong
+to the non-streaming `gemini-3.5-transcribe` model, which takes uploaded files and cannot serve
+this app.
 
 ## Re-verifying against the live endpoint
 
-The serialization tests pin both clients to the shapes documented above. They cannot tell us
-the documentation is *right* — and it demonstrably is not everywhere, since the translate guide
-still shows the transcription sidecars nested under `generationConfig`, which the server
-rejects. `gemini::transcribe::live_probe` closes that gap: it puts the production setup message,
-audio frame and response types in front of Google's servers with the bundled rehearsal
-recording as input, and reports the interim and finalized segments it gets back.
+Serialization tests pin both clients to the shapes above but cannot show the documentation is
+right — and it is not everywhere: the translate guide still nests the transcription sidecars
+under `generationConfig`. `gemini::transcribe::live_probe` sends the production setup, audio
+frame and response types to Google with the bundled rehearsal recording and reports the
+interim and finalized segments.
 
 ```bash
 GEMINI_API_KEY=... cargo test -p live-translation --lib live_probe -- --ignored --nocapture
 ```
 
-It is `#[ignore]`d, so CI never runs it and it cannot bill anyone by accident. Run it before an
-event, and after any change to either setup message. It costs a few cents: about twenty seconds
-of streamed audio. It reads `GEMINI_API_KEY` from the environment or from a `.env` at the repo
-root — `dotenvy` walks up from the crate directory, so `.env.example` is the right thing to
-copy.
+It is `#[ignore]`d, so CI never runs it or bills anyone. Run it before an event and after any
+change to either setup message; it costs a few cents (about twenty seconds of audio). The key
+comes from the environment or a `.env` at the repo root (`dotenvy` walks up from the crate
+directory; copy `.env.example`). Its assertions concern the shape of the exchange, not the
+words: setup is accepted, `generationComplete` arrives, and speculative updates outnumber
+finalized segments — which is what makes replace-don't-append correct.
 
-Its assertions are deliberately about the *shape of the exchange* rather than about the words
-recognized: that setup is accepted, that `generationComplete` arrives, and that speculative
-updates outnumber finalized segments — the last being what makes the client's
-replace-don't-append rule correct. Transcription accuracy is not something a test should pin.
+## Target-language catalog
 
-## September 2026 Smart transcription verification
-
-Google's [15 September audio announcement](https://blog.google/innovation-and-ai/technology/developers-tools/build-real-time-voice-applications-gemini-audio/)
-and [Live transcription guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe)
-confirm Smart transcription's disfluency removal. This app already explicitly requests
-`inputAudioTranscription.mode: "SMART"`; no new model, prompt or additional cleanup call is
-needed. The blog's Gemini 3.8 Live models are conversational audio models, not replacements
-for the dedicated transcription integration.
-
-In **1.4.0**, finalized text takes precedence when a message also carries interim text. An empty final
-or segment-close retracts an all-filler speculative caption instead of preserving it as final
-speech. Regression tests cover both paths, and the front end discards the pending empty turn.
-No fresh billable provider probe was run for this change. The optional local Hide filler words
-setting remains independent and applies to overlays from every provider, in both modes.
-
-## Target-language catalog — verified 2026-09-22
-
-Rechecked the [live translation guide](https://ai.google.dev/gemini-api/docs/live-api/live-translate)
-on 2026-09-22 (page updated 2026-09-16). It still lists 78 languages / 79 codes. The app
-shows one Norwegian row and sends `no`; `nb` is a search alias. The canonical machine-readable
-catalog is `src/lib/languages.json`; generated Rust and TypeScript types share that source.
-Subtitle language auto-detection is unchanged. This is documentation verification, not a
-live-speech pass; see [acceptance status](language-coverage.md).
-
-| Language | Code |
-| --- | --- |
-| Afrikaans | `af` |
-| Akan | `ak` |
-| Albanian | `sq` |
-| Amharic | `am` |
-| Arabic | `ar` |
-| Armenian | `hy` |
-| Azerbaijani | `az` |
-| Basque | `eu` |
-| Belarusian | `be` |
-| Bengali | `bn` |
-| Bulgarian | `bg` |
-| Burmese (Myanmar) | `my` |
-| Catalan | `ca` |
-| Chinese (Simplified) | `zh-Hans` |
-| Chinese (Traditional) | `zh-Hant` |
-| Croatian | `hr` |
-| Czech | `cs` |
-| Danish | `da` |
-| Dutch | `nl` |
-| English | `en` |
-| Estonian | `et` |
-| Filipino | `fil` |
-| Finnish | `fi` |
-| French | `fr` |
-| Galician | `gl` |
-| Georgian | `ka` |
-| German | `de` |
-| Greek | `el` |
-| Gujarati | `gu` |
-| Hausa | `ha` |
-| Hebrew | `he` |
-| Hindi | `hi` |
-| Hungarian | `hu` |
-| Icelandic | `is` |
-| Indonesian | `id` |
-| Italian | `it` |
-| Japanese | `ja` |
-| Javanese | `jv` |
-| Kannada | `kn` |
-| Kazakh | `kk` |
-| Khmer | `km` |
-| Kinyarwanda | `rw` |
-| Korean | `ko` |
-| Lao | `lo` |
-| Latvian | `lv` |
-| Lithuanian | `lt` |
-| Macedonian | `mk` |
-| Malay | `ms` |
-| Malayalam | `ml` |
-| Marathi | `mr` |
-| Mongolian | `mn` |
-| Nepali | `ne` |
-| Norwegian | `no` |
-| Persian | `fa` |
-| Polish | `pl` |
-| Portuguese (Brazil) | `pt-BR` |
-| Portuguese (Portugal) | `pt-PT` |
-| Punjabi | `pa` |
-| Romanian | `ro` |
-| Russian | `ru` |
-| Serbian | `sr` |
-| Sindhi | `sd` |
-| Sinhala | `si` |
-| Slovak | `sk` |
-| Slovenian | `sl` |
-| Spanish | `es` |
-| Sundanese | `su` |
-| Swahili | `sw` |
-| Swedish | `sv` |
-| Tamil | `ta` |
-| Telugu | `te` |
-| Thai | `th` |
-| Turkish | `tr` |
-| Ukrainian | `uk` |
-| Urdu | `ur` |
-| Uzbek | `uz` |
-| Vietnamese | `vi` |
-| Zulu | `zu` |
+Rechecked against the [live translation guide](https://ai.google.dev/gemini-api/docs/live-api/live-translate)
+on 2026-09-22 (page updated 2026-09-16): 78 languages / 79 codes. The app shows one Norwegian
+row and sends `no`; `nb` is a search alias. The canonical catalog, with each code's provider
+memberships, is `src/lib/languages.json`; generated Rust and TypeScript types share it. This is
+documentation verification, not a live-speech pass; see [language coverage](language-coverage.md).
