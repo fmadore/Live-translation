@@ -659,7 +659,7 @@ export const fr: Messages = {
 			saving: 'Enregistrement…',
 			discard: 'Supprimer et fermer',
 			cancel: 'Annuler',
-			note: 'Choisissez où enregistrer le fichier Markdown. Annuler laisse l’application ouverte.'
+			note: 'Choisissez où enregistrer la transcription. Annuler laisse l’application ouverte.'
 		},
 		recovery: {
 			title: 'Récupérer la transcription de votre dernière session ?',

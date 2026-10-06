@@ -656,7 +656,7 @@ export const de: Messages = {
 			saving: 'Wird gespeichert…',
 			discard: 'Verwerfen und schließen',
 			cancel: 'Abbrechen',
-			note: 'Wählen Sie, wo eine Markdown-Datei gespeichert werden soll. Abbrechen lässt die App geöffnet.'
+			note: 'Wählen Sie, wo das Transkript gespeichert werden soll. Abbrechen lässt die App geöffnet.'
 		},
 		recovery: {
 			title: 'Transkript der letzten Sitzung wiederherstellen?',

@@ -642,7 +642,7 @@ export const en = {
 			saving: 'Saving…',
 			discard: 'Discard and close',
 			cancel: 'Cancel',
-			note: 'Choose where to save a Markdown file. Cancel keeps the app open.'
+			note: 'Choose where to save the transcript. Cancel keeps the app open.'
 		},
 		recovery: {
 			title: 'Recover the transcript from your last session?',
