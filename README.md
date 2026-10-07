@@ -1,7 +1,8 @@
 # Live Translation & Subtitles
 
 Live captions over your meetings, video calls and slides. Transcribe speech locally with
-**Whisper**, or translate it with **Google Gemini** or **OpenAI**, in a transparent Windows overlay.
+**Whisper**, or translate it — into English locally with Whisper, or into many languages with
+**Google Gemini** or **OpenAI** — in a transparent Windows overlay.
 
 [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) ·
 [GitHub releases](https://github.com/fmadore/Live-translation/releases) ·
@@ -21,7 +22,10 @@ GitHub and awaiting Store submission; see its [release notes](docs/release-1.6.1
 - **Offline subtitles.** Whisper runs on your CPU with 99 spoken-language choices or automatic
   detection. Download Tiny (31 MiB), Base (57 MiB) or Small (182 MiB) once; then caption without
   an account, API key or internet connection. Speed and accuracy depend on the computer,
-  model and language. Local Whisper transcribes; it does not translate.
+  model and language.
+- **Offline translation into English.** Whisper also translates any of those languages into
+  English, with the same models and no key. English is its only target; choose Small, since
+  Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets and OpenAI 13 in
   the app's catalog. Gemini and Mistral also offer same-language subtitles. Cloud engines
   need your own compatible account, API key and internet connection; provider usage charges apply.
@@ -48,7 +52,8 @@ GitHub and awaiting Store submission; see its [release notes](docs/release-1.6.1
    packages are signed and update through the Store.
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
-   For translation, choose **Live translation**, Gemini or OpenAI, your key and target language.
+   For translation, choose **Live translation**, Gemini or OpenAI, your key and target language,
+   or **Local Whisper** to translate into English without a key.
 3. Test the source, start the session, and use **Move overlay** to position captions. Lock
    the overlay to make it click-through again.
 4. **Pause** during breaks. Cloud connections close after their final turn; Whisper stops

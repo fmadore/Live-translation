@@ -28,13 +28,15 @@ scripted demo ───────── deterministic caption timeline ──�
    English or French timeline emits the same status, level, partial- and final-caption events
    as a live provider, so it exercises the shipping UI, timer, overlay, transcript and export
    paths on x64 and ARM64. It is presented as a demonstration, not speech recognition.
-4. **Local Whisper.** The `whisper` provider uses 16 kHz PCM16, a bounded writer queue,
-   an anonymous temporary audio file and a separate CPU inference worker per source. A verified
-   multilingual model context is shared, and the sources take turns at inference on it; each
-   source owns its inference state. Capture timestamps travel with the audio, so a slow
-   recognizer preserves meeting timing. ggml is compiled for AVX2 on x64 and for dot-product
-   on ARM64, so `whisper/cpu.rs` refuses an older processor before any native code runs and
-   the interface offers another engine. See [local Whisper](local-whisper.md).
+4. **Local Whisper.** The `whisper` provider (subtitles) and `whisper-translate` (translation
+   into English, whisper.cpp's translate task) share one pipeline, `Provider::is_local_whisper`:
+   16 kHz PCM16, a bounded writer queue, an anonymous temporary audio file and a separate CPU
+   inference worker per source. A verified multilingual model context is shared, and the
+   sources take turns at inference on it; each source owns its inference state. Capture
+   timestamps travel with the audio, so a slow recognizer preserves meeting timing. ggml is
+   compiled for AVX2 on x64 and for dot-product on ARM64, so `whisper/cpu.rs` refuses an older
+   processor before any native code runs and the interface offers another engine. See
+   [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -99,13 +101,18 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
+| Local Whisper translation | Translate, English only | 16 kHz PCM16 | finalized segments in English, no source text | EOF, finish queued audio |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
 The two Gemini rows are separate `Provider` variants sharing one endpoint and one stored API
 key, because their wire format, rate and mode differ, and `Provider::can_translate` has to stay
 a plain function of the provider. Live Translate appends transcription deltas; Transcribe Live
 sends a revised hypothesis and then an authoritative final for the same segment, each replacing
-the last. See [`gemini-live-api.md`](gemini-live-api.md).
+the last. See [`gemini-live-api.md`](gemini-live-api.md). The two Whisper rows are split the same
+way, but they are one local pipeline: everything about running it follows
+`Provider::is_local_whisper`, and only the task handed to whisper.cpp follows the mode. The
+translating one captions in English only, so validation refuses any other caption language and
+any second one.
 
 The subtitle backends and the built-in demo are unavailable in translation mode;
 `session/options.rs` enforces this through `Provider::can_translate`.
