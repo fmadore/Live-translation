@@ -89,7 +89,7 @@ impl RealtimeProtocol for GeminiConfig {
             .map(|t| t.text.as_str());
         let got_translation = translated_delta.is_some_and(|s| !s.is_empty());
         if let Some(delta) = translated_delta {
-            acc.translated.push_str(delta);
+            acc.text.push_str(delta);
         }
 
         // Emit whenever we have new text, or to mark the turn final.

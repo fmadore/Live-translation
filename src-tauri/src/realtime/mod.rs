@@ -65,10 +65,14 @@ pub async fn wait_for_resume(pause: &mut PauseRx, cancel: &CancellationToken) ->
 
 pub struct TurnAccumulator {
     pub id: u64,
-    /// The caption language this accumulator's captions are in; see `Caption::lane`.
-    pub lane: u8,
+    /// The caption language this accumulator's captions are in; see `Caption::lane`. Fixed
+    /// for its life: a client produces one lane.
+    lane: u8,
+    /// Source-language text for the operator's monitor, from providers that send it.
     pub source: String,
-    pub translated: String,
+    /// The caption itself, whatever the provider makes: a translation from Live Translate and
+    /// OpenAI, a same-language transcript from Transcribe Live and Mistral.
+    pub text: String,
     /// Shared with every other source in this session, so their captions land on one
     /// timeline. Lives here because the accumulator is the thing that outlives a reconnect.
     clock: SessionClock,
@@ -78,12 +82,12 @@ pub struct TurnAccumulator {
 }
 
 impl TurnAccumulator {
-    pub fn new(clock: SessionClock) -> Self {
+    pub fn new(clock: SessionClock, lane: u8) -> Self {
         Self {
             id: 0,
-            lane: 0,
+            lane,
             source: String::new(),
-            translated: String::new(),
+            text: String::new(),
             clock,
             started_ms: None,
         }
@@ -92,12 +96,12 @@ impl TurnAccumulator {
     pub fn next_turn(&mut self) {
         self.id += 1;
         self.source.clear();
-        self.translated.clear();
+        self.text.clear();
         self.started_ms = None;
     }
 
     pub fn is_empty(&self) -> bool {
-        self.source.is_empty() && self.translated.is_empty()
+        self.source.is_empty() && self.text.is_empty()
     }
 }
 
@@ -235,8 +239,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let to = Lane { origin, lane };
     let mut policy = Reconnect::new(origin);
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
-    let mut acc = TurnAccumulator::new(clock);
-    acc.lane = lane;
+    let mut acc = TurnAccumulator::new(clock, lane);
     let mut terminal_error = None;
 
     while !cancel.is_cancelled() {
@@ -401,7 +404,7 @@ pub fn emit_caption(events: &impl Events, origin: Origin, acc: &mut TurnAccumula
     let start_ms = *acc.started_ms.get_or_insert(end_ms);
     events.caption(Caption {
         turn_id: acc.id,
-        text: &acc.translated,
+        text: &acc.text,
         source_text: &acc.source,
         final_,
         origin,
@@ -474,7 +477,7 @@ pub(crate) mod test_support {
         }
 
         fn of(acc: &TurnAccumulator, final_: bool) -> Self {
-            Self::new(acc.id, &acc.translated, &acc.source, final_)
+            Self::new(acc.id, &acc.text, &acc.source, final_)
         }
     }
 
@@ -488,7 +491,7 @@ pub(crate) mod test_support {
         pub fn new(proto: P) -> Self {
             Self {
                 proto,
-                acc: TurnAccumulator::new(SessionClock::start()),
+                acc: TurnAccumulator::new(SessionClock::start(), 0),
                 captions: Vec::new(),
             }
         }
@@ -570,7 +573,7 @@ mod unit_tests {
     }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
-        TurnAccumulator::new(SessionClock::at(elapsed_ms))
+        TurnAccumulator::new(SessionClock::at(elapsed_ms), 0)
     }
 
     #[test]
@@ -578,7 +581,7 @@ mod unit_tests {
         let mut acc = accumulator_at(0);
         acc.id = 7;
         acc.source = "hello".into();
-        acc.translated = "bonjour".into();
+        acc.text = "bonjour".into();
         acc.next_turn();
         assert_eq!(acc.id, 8);
         assert!(acc.is_empty());

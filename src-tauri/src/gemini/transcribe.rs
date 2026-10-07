@@ -2,8 +2,8 @@
 //! socket the translate client uses, with the same 16 kHz PCM frame and the same API key.
 //!
 //! Unlike Live Translate, the transcript *is* the audience caption, so it goes in the
-//! accumulator's `translated` field and reaches the export through the ordinary caption
-//! path — the arrangement Mistral already uses.
+//! accumulator's `text`, where Live Translate puts its translation, and reaches the export
+//! through the ordinary caption path — the arrangement Mistral already uses.
 
 use std::time::Duration;
 
@@ -105,19 +105,19 @@ fn apply_transcription(
     acc: &mut TurnAccumulator,
 ) -> Option<bool> {
     if let Some(final_text) = &content.input_transcription {
-        acc.translated.clone_from(&final_text.text);
+        acc.text.clone_from(&final_text.text);
         return Some(true);
     }
     if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
         if acc.is_empty() {
             return None;
         }
-        acc.translated.clear();
+        acc.text.clear();
         acc.source.clear();
         return Some(true);
     }
     if let Some(interim) = &content.interim_input_transcription {
-        acc.translated.clone_from(&interim.text);
+        acc.text.clone_from(&interim.text);
         return Some(false);
     }
     None
@@ -135,12 +135,12 @@ mod smart_tests {
     }
     #[test]
     fn smart_final_replaces_interim_even_in_the_same_frame() {
-        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
+        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
         let frame = content(
             r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
         );
         assert_eq!(apply_transcription(&frame, &mut acc), Some(true));
-        assert_eq!(acc.translated, "Hello.");
+        assert_eq!(acc.text, "Hello.");
     }
     #[test]
     fn empty_smart_final_and_bare_close_retract_fillers() {
@@ -148,8 +148,8 @@ mod smart_tests {
             r#"{"serverContent":{"inputTranscription":{"text":""}}}"#,
             r#"{"serverContent":{"generationComplete":true}}"#,
         ] {
-            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
-            acc.translated = "Um, uh".into();
+            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
+            acc.text = "Um, uh".into();
             assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
             assert!(acc.is_empty());
         }

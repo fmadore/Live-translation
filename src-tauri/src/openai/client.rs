@@ -106,7 +106,7 @@ impl RealtimeProtocol for OpenAiConfig {
             }
         } else if kind.ends_with("output_transcript.delta") {
             if let Some(t) = ev.payload() {
-                acc.translated.push_str(t);
+                acc.text.push_str(t);
                 return MessageOutcome::activity(CaptionUpdate::Interim);
             }
         } else if kind.ends_with("output_transcript.done")
@@ -114,9 +114,9 @@ impl RealtimeProtocol for OpenAiConfig {
         {
             // Some preview builds send an explicit completion; finalize immediately.
             if !acc.is_empty() {
-                if acc.translated.is_empty() {
+                if acc.text.is_empty() {
                     if let Some(t) = ev.transcript.as_deref() {
-                        acc.translated.push_str(t);
+                        acc.text.push_str(t);
                     }
                 }
                 return MessageOutcome::caption(CaptionUpdate::Final);

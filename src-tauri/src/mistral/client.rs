@@ -1,6 +1,6 @@
 //! Mistral Voxtral Mini realtime transcription. Unlike the translation providers, its
-//! transcript is the audience caption itself, so it is stored in `translated` and exported
-//! through the existing caption/transcript path.
+//! transcript is the audience caption itself: it goes in the accumulator's `text`, where a
+//! translation would, and is exported through the existing caption/transcript path.
 
 use std::time::Duration;
 
@@ -97,7 +97,7 @@ impl RealtimeProtocol for MistralClient {
             "transcription.text.delta" => {
                 if let Some(delta) = event.text.as_deref().filter(|delta| !delta.is_empty()) {
                     self.received_delta = true;
-                    acc.translated.push_str(delta);
+                    acc.text.push_str(delta);
                     return MessageOutcome::activity(CaptionUpdate::Interim);
                 }
             }
@@ -106,9 +106,9 @@ impl RealtimeProtocol for MistralClient {
             "transcription.done" => {
                 // `done.text` contains the full session transcript. Only use it when the
                 // server sent no deltas; otherwise idle-finalized turns would be duplicated.
-                if !self.received_delta && acc.translated.is_empty() {
+                if !self.received_delta && acc.text.is_empty() {
                     if let Some(full_text) = event.text {
-                        acc.translated = full_text;
+                        acc.text = full_text;
                     }
                 }
                 let caption = if acc.is_empty() {

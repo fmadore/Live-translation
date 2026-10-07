@@ -123,7 +123,8 @@ pub async fn run_session(
     }
     emit_status(&app, SessionState::Running, None, origin);
 
-    let mut acc = TurnAccumulator::new(clock);
+    // The demonstration captions in one language, so on the first lane.
+    let mut acc = TurnAccumulator::new(clock, 0);
     let mut pulse_index = 0usize;
 
     'session: loop {
@@ -136,7 +137,7 @@ pub async fn run_session(
                 pulse_index += 1;
             }
 
-            acc.translated = line.partial.into();
+            acc.text = line.partial.into();
             emit_caption(&app, origin, &mut acc, false);
 
             for _ in 0..7 {
@@ -146,7 +147,7 @@ pub async fn run_session(
                 pulse_index += 1;
             }
 
-            acc.translated = line.final_text.into();
+            acc.text = line.final_text.into();
             emit_caption(&app, origin, &mut acc, true);
             acc.next_turn();
 
