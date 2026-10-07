@@ -1,5 +1,6 @@
 import { normalizeAppearance, type Appearance } from './appearance';
-import { normalizeStartOptions, type StartOptions } from './types';
+import { normalizeStartOptions } from './startOptions';
+import type { StartOptions } from './types';
 
 export const PROFILES_KEY = 'meeting.profiles';
 export interface Placement {

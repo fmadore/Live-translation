@@ -3,7 +3,7 @@ import { fireEvent, render } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import SystemCapturePicker from './SystemCapturePicker.svelte';
 import { options } from './stores';
-import { DEFAULT_START_OPTIONS } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
 beforeEach(() => options.set({ ...DEFAULT_START_OPTIONS, source: 'both' }));
 it('requires an explicit application selection and preserves its identity', async () => {
 	const process = { pid: 123, createdAt: '987' };

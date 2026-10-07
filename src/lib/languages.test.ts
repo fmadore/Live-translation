@@ -15,7 +15,7 @@ import {
 	unsupportedCaptionLanguage
 } from './languages';
 import { en } from './i18n/en';
-import { DEFAULT_START_OPTIONS, normalizeStartOptions, loadStartOptions } from './types';
+import { DEFAULT_START_OPTIONS, normalizeStartOptions, loadStartOptions } from './startOptions';
 
 afterEach(() => vi.unstubAllGlobals());
 

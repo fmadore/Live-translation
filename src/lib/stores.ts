@@ -24,15 +24,14 @@ import {
 	CLOSE_TO_TRAY_KEY,
 	loadOverlayFont,
 	loadOverlayWidth,
-	loadStartOptions,
 	OVERLAY_FONT_KEY,
 	OVERLAY_WIDTH_KEY,
 	OVERLAY_PLACED_KEY,
 	RECOVERY_ENABLED_KEY,
-	SESSION_OPTIONS_KEY,
 	SHOW_ORIGINAL_KEY,
 	TRAY_HIDE_EXPLAINED_KEY
 } from './types';
+import { loadStartOptions, SESSION_OPTIONS_KEY } from './startOptions';
 import {
 	CAPTION_SCRIM_KEY,
 	CAPTION_SCRIM_OPACITY_KEY,

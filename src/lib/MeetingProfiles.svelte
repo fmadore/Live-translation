@@ -9,7 +9,8 @@
 	import { api, isTauri } from './tauri';
 	import { describeError } from './errors';
 	import { validateDevices } from './audioDevices';
-	import { captionLanguageOf, normalizeStartOptions } from './types';
+	import { captionLanguageOf } from './types';
+	import { normalizeStartOptions } from './startOptions';
 	import { PROFILES_KEY, decodeProfiles, type MeetingProfile } from './profiles';
 	import { readStored, writeStored } from './persisted';
 	import { appearance, applyAppearance, options } from './stores';

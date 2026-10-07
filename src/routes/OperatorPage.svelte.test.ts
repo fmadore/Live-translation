@@ -15,7 +15,7 @@ import type { Caption, StatusUpdate } from '$lib/types';
 localStorage.clear();
 const { default: Page } = await import('./+page.svelte');
 const { applyStatus, clearTranscript, options } = await import('$lib/stores');
-const { DEFAULT_START_OPTIONS } = await import('$lib/types');
+const { DEFAULT_START_OPTIONS } = await import('$lib/startOptions');
 const { exportFormat } = await import('$lib/exportFormat');
 const { locale } = await import('$lib/i18n');
 
