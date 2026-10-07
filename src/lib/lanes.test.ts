@@ -75,6 +75,19 @@ describe('the second caption language as an option', () => {
 		expect(laneLanguage(dual, 1)).toBe('en');
 	});
 
+	// Kept in the saved setup for the next cloud engine, as it is through subtitles.
+	it('never counts for Whisper, which translates into English only', () => {
+		const whisper: StartOptions = {
+			...dual,
+			provider: 'whisper-translate',
+			targetLanguage: 'en',
+			secondTargetLanguage: 'fr'
+		};
+		expect(secondCaptionLanguageOf(whisper)).toBeUndefined();
+		expect(laneCount(whisper)).toBe(1);
+		expect(laneLanguage(whisper, 0)).toBe('en');
+	});
+
 	it('survives a restart, and a stored value that is not a language does not', () => {
 		expect(normalizeStartOptions(dual).secondTargetLanguage).toBe('en');
 		expect(

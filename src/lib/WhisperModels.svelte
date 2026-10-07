@@ -90,7 +90,10 @@
 			{/each}
 		</Select>
 	</Field>
-	<p class="hint">{$t.whisper.hint}</p>
+	<!-- Translation is where the small models fall short, so it is the one place to say so. -->
+	<p class="hint">
+		{$options.provider === 'whisper-translate' ? $t.whisper.translateHint : $t.whisper.hint}
+	</p>
 	<p class="hint" role="status">
 		{model?.downloading
 			? `${$t.whisper.downloading} ${percent}%`

@@ -6,7 +6,12 @@
 	import { languageName } from './languages';
 	import { locale, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
-	import { estimateSessionCost, formatUsd, providerDetectsLanguage } from './providers';
+	import {
+		estimateSessionCost,
+		formatUsd,
+		isLocalWhisper,
+		providerDetectsLanguage
+	} from './providers';
 	import { laneCount, secondCaptionLanguageOf } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { SessionClock } from './sessionClock.svelte';
@@ -29,6 +34,8 @@
 	} = $props();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
+	// Whisper's subtitles are in the spoken language, when one was chosen; its translations are
+	// in English, the target, like any other translation.
 	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
 		$options.provider === 'whisper' && $options.spokenLanguage
@@ -129,7 +136,7 @@
 					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams))}
 				</span>
 			</div>
-			{#if sources === 2 && $options.provider !== 'whisper'}
+			{#if sources === 2 && !isLocalWhisper($options.provider)}
 				<span class="cost-tag">{$t.cost.twoSources}</span>
 			{/if}
 			{#if second}

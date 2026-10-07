@@ -2,6 +2,7 @@
 // These mirror the serde structs in `src-tauri/src/types.rs` — keep them in sync.
 
 import type { AppError } from './errors';
+import { isLocalWhisper } from './providers';
 import type { Messages } from './i18n/en';
 import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
@@ -23,19 +24,22 @@ import type { TargetLanguage, DemoLanguage } from './languages';
 export type { TargetLanguage } from './languages';
 
 /** Caption backend. The commercial providers each have their own API key; `ondevice`
- *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs.
+ *  is the bundled product demonstration and local Whisper runs on this PC, and neither needs
+ *  a credential. Mirrors `Provider` in types.rs.
  *
  *  `gemini` and `gemini-transcribe` are two different Google models sharing one endpoint and
  *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
  *  different modes at different rates, and `providerCanTranslate` has to stay a plain
- *  function of the provider. */
+ *  function of the provider. `whisper` and `whisper-translate` are one local engine split the
+ *  same way: subtitles, and translation into English. */
 export const PROVIDERS = [
 	'gemini',
 	'gemini-transcribe',
 	'openai',
 	'mistral',
 	'ondevice',
-	'whisper'
+	'whisper',
+	'whisper-translate'
 ] as const;
 export type Provider = (typeof PROVIDERS)[number];
 export const WHISPER_MODELS = ['tiny', 'base', 'small'] as const;
@@ -121,21 +125,26 @@ export function captionLanguageOf(
 	return undefined;
 }
 
-/** A second language only means something for translation, and only when it differs from
- *  the first: this is the one place that decides, so the core, the overlay, the cost and the
- *  labels cannot disagree about whether a run has one. */
+/** A second language only means something for translation by an engine that can write one,
+ *  and only when it differs from the first: this is the one place that decides, so the core,
+ *  the overlay, the cost and the labels cannot disagree about whether a run has one. Local
+ *  Whisper translates into English only, so a saved second language waits, unused, for the
+ *  next cloud engine — as it does through subtitles. */
 export function secondCaptionLanguageOf(
-	options: Pick<StartOptions, 'mode' | 'targetLanguage' | 'secondTargetLanguage'>
+	options: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage' | 'secondTargetLanguage'>
 ): TargetLanguage | undefined {
 	const second = options.secondTargetLanguage;
-	return options.mode === 'translate' && second && second !== options.targetLanguage
+	return options.mode === 'translate' &&
+		!isLocalWhisper(options.provider) &&
+		second &&
+		second !== options.targetLanguage
 		? second
 		: undefined;
 }
 
 /** How many caption languages a run streams per source: each is its own provider session. */
 export function laneCount(
-	options: Pick<StartOptions, 'mode' | 'targetLanguage' | 'secondTargetLanguage'>
+	options: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage' | 'secondTargetLanguage'>
 ): 1 | 2 {
 	return secondCaptionLanguageOf(options) ? 2 : 1;
 }

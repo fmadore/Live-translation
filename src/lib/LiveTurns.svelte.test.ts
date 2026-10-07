@@ -49,6 +49,34 @@ it('shows the newest part of a long turn and of its original speech', () => {
 	view.unmount();
 });
 
+// Whisper's translate task has English and no original speech, and a second language saved for
+// a cloud engine does not make its single language look like one of two.
+it('shows a Whisper translation as the caption alone', () => {
+	options.set({
+		...DEFAULT_START_OPTIONS,
+		mode: 'translate',
+		provider: 'whisper-translate',
+		targetLanguage: 'en',
+		secondTargetLanguage: 'fr'
+	});
+	currentCaptions.set({
+		microphone: {
+			origin: 'microphone',
+			turnId: 1,
+			text: 'Good morning.',
+			sourceText: '',
+			final: true,
+			startMs: 0,
+			endMs: 0
+		}
+	});
+	const view = render(LiveTurns);
+	expect(view.container.querySelector('.turn-source')).toBeNull();
+	expect(view.container.querySelector('.turn-caption')).toHaveTextContent('Good morning.');
+	expect(view.container.querySelector('.origin-sub')).not.toHaveTextContent('English');
+	view.unmount();
+});
+
 it('shows a short turn as it is', () => {
 	currentCaptions.set({
 		microphone: {

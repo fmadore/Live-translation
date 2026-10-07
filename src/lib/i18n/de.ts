@@ -196,10 +196,16 @@ export const de: Messages = {
 		discardConfirm:
 			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
 		cpuUnsupported: (missing: string) =>
-			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`
+			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
+		translateTitle: 'Lokale Übersetzung ins Englische',
+		translateLanguageHint:
+			'Die Sprache, aus der Whisper übersetzt. Wählen Sie sie, wenn sie bekannt ist; die automatische Erkennung umfasst die unterstützten Sprachen.',
+		translateHint:
+			'Übersetzt Sprache in jeder der 99 unterstützten Sprachen ausschließlich ins Englische. Wählen Sie Small: Tiny und Base übersetzen schlecht.'
 	},
 	engine: {
 		whisper: 'Whisper',
+		'whisper-translate': 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -220,6 +226,8 @@ export const de: Messages = {
 		unpin: (language: string) => `Lösen: ${language}`,
 		unsupported: (engine: string, language: string) =>
 			`${engine} unterstützt ${language} nicht — wählen Sie eine andere Sprache.`,
+		englishOnly:
+			'Whisper übersetzt nur ins Englische, daher gibt es keine zweite Untertitelsprache.',
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -227,6 +235,7 @@ export const de: Messages = {
 	provider: {
 		vendor: {
 			whisper: 'Lokales Whisper',
+			'whisper-translate': 'Lokales Whisper',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -237,10 +246,13 @@ export const de: Messages = {
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
 			whisper: 'Mehrsprachiges Whisper',
+			'whisper-translate': 'Offline · nur ins Englische',
 			ondevice: 'Mitgeliefertes Beispiel · deterministisch'
 		},
 		costNote: {
 			whisper:
+				'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
+			'whisper-translate':
 				'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
 			gemini:
 				'Gemini: Die Eingabe wird nach Echtzeit abgerechnet, die Ausgabe nur während der Übersetzung – Pausen und Folienwechsel senken die Kosten.',

@@ -198,10 +198,16 @@ export const fr: Messages = {
 		discardConfirm:
 			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.',
 		cpuUnsupported: (missing: string) =>
-			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`
+			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
+		translateTitle: 'Traduction locale vers l’anglais',
+		translateLanguageHint:
+			'La langue à partir de laquelle Whisper traduit. Choisissez-la si vous la connaissez ; la détection automatique couvre les langues prises en charge.',
+		translateHint:
+			'Traduit la parole de l’une des 99 langues prises en charge vers l’anglais uniquement. Choisissez Small : Tiny et Base traduisent mal.'
 	},
 	engine: {
 		whisper: 'Whisper',
+		'whisper-translate': 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -223,6 +229,7 @@ export const fr: Messages = {
 		unpin: (language: string) => `Désépingler ${language}`,
 		unsupported: (engine: string, language: string) =>
 			`${engine} ne prend pas en charge la langue ${language} — choisissez une autre langue.`,
+		englishOnly: 'Whisper traduit uniquement vers l’anglais, sans deuxième langue de sous-titrage.',
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -230,6 +237,7 @@ export const fr: Messages = {
 	provider: {
 		vendor: {
 			whisper: 'Whisper local',
+			'whisper-translate': 'Whisper local',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -240,10 +248,13 @@ export const fr: Messages = {
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
 			whisper: 'Whisper multilingue',
+			'whisper-translate': 'Hors ligne · vers l’anglais uniquement',
 			ondevice: 'Échantillon fourni · déterministe'
 		},
 		costNote: {
 			whisper:
+				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
+			'whisper-translate':
 				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
 			gemini:
 				'Gemini : l’entrée est facturée au temps réel, la sortie uniquement pendant la traduction — les pauses et les changements de diapositive font baisser ce montant.',

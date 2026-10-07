@@ -5,15 +5,23 @@
 import type { Messages } from './i18n/en';
 import type { Provider } from './types';
 
-/** Backends that produce translated captions. The built-in demo is same-language only. */
+/** Backends that produce translated captions. The built-in demo is same-language only, and
+ *  Whisper translates into English only. */
 export function providerCanTranslate(provider: Provider): boolean {
-	return provider === 'gemini' || provider === 'openai';
+	return provider === 'gemini' || provider === 'openai' || provider === 'whisper-translate';
+}
+
+/** Whether the engine is local Whisper, for subtitles or for translation into English: one
+ *  pipeline, so one model choice, download, processor check, pending-audio backlog and quit
+ *  prompt. Mirrors `Provider::is_local_whisper`. */
+export function isLocalWhisper(provider: Provider): provider is 'whisper' | 'whisper-translate' {
+	return provider === 'whisper' || provider === 'whisper-translate';
 }
 
 /** Whether an API key must be saved before a session can start. Local Whisper and the
  *  scripted demo need no credential — see `docs/microsoft-store.md`. */
 export function providerRequiresKey(provider: Provider): boolean {
-	return provider !== 'ondevice' && provider !== 'whisper';
+	return provider !== 'ondevice' && !isLocalWhisper(provider);
 }
 
 /** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
@@ -25,8 +33,9 @@ export function providerKeyName(provider: Provider): string {
 }
 
 /** Whether the backend identifies the spoken language itself, so there is no language for
- *  the operator to choose. True for both subtitle engines; the built-in demo instead picks
- *  which bundled script to play. */
+ *  the operator to choose. True for the subtitle engines; the built-in demo instead picks
+ *  which bundled script to play. Whisper's translate task detects the spoken language too, but
+ *  the room reads English, which the operator chooses, so it is false there. */
 export function providerDetectsLanguage(provider: Provider): boolean {
 	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
 }
@@ -50,6 +59,14 @@ export interface ProviderMeta {
 export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 	whisper: {
 		id: 'whisper',
+		modelId: '',
+		hourlyRate: null,
+		hourlyEstimate: 0,
+		perStream: false,
+		keyUrl: null
+	},
+	'whisper-translate': {
+		id: 'whisper-translate',
 		modelId: '',
 		hourlyRate: null,
 		hourlyEstimate: 0,
@@ -126,10 +143,11 @@ export function rateText(meta: ProviderMeta, m: Messages): string {
 	return rateParts(meta, m).join('');
 }
 
-/** What to print under the vendor name. Real backends have a model id; the demonstration has
- *  a description instead, and that is prose. */
+/** What to print under the vendor name. Real backends have a model id; local Whisper (whose
+ *  model is chosen below it) and the demonstration have a description instead, and that is
+ *  prose. */
 export function modelLabel(meta: ProviderMeta, m: Messages): string {
-	return meta.id === 'whisper'
-		? m.provider.model.whisper
+	return isLocalWhisper(meta.id)
+		? m.provider.model[meta.id]
 		: meta.modelId || m.provider.model.ondevice;
 }

@@ -13,7 +13,13 @@
 	import { languageName, languageRows } from './languages';
 	import { locale, t } from './i18n';
 	import { languageFavourites, micLevel, options, systemLevel } from './stores';
-	import { PROVIDER_META, modelLabel, providerDetectsLanguage, rateParts } from './providers';
+	import {
+		PROVIDER_META,
+		isLocalWhisper,
+		modelLabel,
+		providerDetectsLanguage,
+		rateParts
+	} from './providers';
 	import type { Provider, TargetLanguage } from './types';
 	import type { PreflightController } from './preflightController.svelte';
 	import type { SetupActions } from './setupActions';
@@ -43,7 +49,7 @@
 	// Each mode is served by its own backends; step 04 lists the ones for the current mode.
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
-			? ['gemini', 'openai']
+			? ['gemini', 'openai', 'whisper-translate']
 			: ['whisper', 'mistral', 'gemini-transcribe', 'ondevice']
 	);
 
@@ -262,7 +268,7 @@
 		<span class="step-no">03</span>
 		<h2 class="kicker">{languageStepTitle}</h2>
 	</div>
-	{#if $options.provider === 'whisper'}
+	{#snippet spokenLanguage(hint: string)}
 		<Field label={$t.whisper.language}>
 			<Select
 				value={$options.spokenLanguage ?? ''}
@@ -276,7 +282,10 @@
 				{/each}
 			</Select>
 		</Field>
-		<p class="hint">{$t.whisper.languageHint}</p>
+		<p class="hint">{hint}</p>
+	{/snippet}
+	{#if $options.provider === 'whisper'}
+		{@render spokenLanguage($t.whisper.languageHint)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
 	{:else if $options.mode === 'translate'}
@@ -292,23 +301,31 @@
 					pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
 				)}
 		/>
-		<p class="hint inline-hint">
-			<span>{$t.rail.flipHint}</span><Kbd command="direction" />
-		</p>
-		<Field label={$t.language.second}>
-			<Select
-				value={$options.secondTargetLanguage ?? ''}
-				disabled={locked}
-				onchange={(e) =>
-					actions.setSecondTarget((e.currentTarget.value || null) as TargetLanguage | null)}
-			>
-				<option value="">{$t.language.secondNone}</option>
-				{#each secondChoices as row (row.code)}
-					<option value={row.code}>{row.name}</option>
-				{/each}
-			</Select>
-		</Field>
-		<p class="hint">{$t.language.secondHint}</p>
+		{#if isLocalWhisper($options.provider)}
+			<!-- English is the only caption language, so there is nothing to flip to and no
+			     second language to offer: say so rather than show an empty picker. Whisper still
+			     has to hear the spoken language, which it translates from. -->
+			<p class="hint">{$t.language.englishOnly}</p>
+			{@render spokenLanguage($t.whisper.translateLanguageHint)}
+		{:else}
+			<p class="hint inline-hint">
+				<span>{$t.rail.flipHint}</span><Kbd command="direction" />
+			</p>
+			<Field label={$t.language.second}>
+				<Select
+					value={$options.secondTargetLanguage ?? ''}
+					disabled={locked}
+					onchange={(e) =>
+						actions.setSecondTarget((e.currentTarget.value || null) as TargetLanguage | null)}
+				>
+					<option value="">{$t.language.secondNone}</option>
+					{#each secondChoices as row (row.code)}
+						<option value={row.code}>{row.name}</option>
+					{/each}
+				</Select>
+			</Field>
+			<p class="hint">{$t.language.secondHint}</p>
+		{/if}
 	{:else}
 		{#if languageError}<p class="hint" role="status">{languageError}</p>{/if}
 		<div class="lang-cards">
@@ -344,7 +361,7 @@
 			{@const rate = rateParts(p, $t)}
 			<!-- Whisper on a processor it was not built for stays listed, so the operator learns
 			     why it is missing, but cannot be chosen. -->
-			{@const refused = id === 'whisper' && preflight.whisperRefused}
+			{@const refused = isLocalWhisper(id) && preflight.whisperRefused}
 			<button
 				class="engine ui-card"
 				disabled={locked || refused}
@@ -363,7 +380,7 @@
 			</button>
 		{/each}
 	</div>
-	{#if $options.provider === 'whisper'}<WhisperModels {locked} {browserMode} />{/if}
+	{#if isLocalWhisper($options.provider)}<WhisperModels {locked} {browserMode} />{/if}
 </section>
 
 <style>

@@ -4,7 +4,7 @@
 import whisperLanguages from './whisperLanguages.json';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languages';
 import { readStored } from './persisted';
-import { providerCanTranslate } from './providers';
+import { isLocalWhisper, providerCanTranslate } from './providers';
 import { AUDIO_SOURCES, OUTPUT_MODES, PROVIDERS, WHISPER_MODELS, type StartOptions } from './types';
 
 /** Fresh-install setup for local speech recognition. The user downloads a model before
@@ -51,6 +51,11 @@ export function loadStartOptions(): StartOptions {
 export function normalizeStartOptions(parsed: unknown): StartOptions {
 	if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_START_OPTIONS };
 	const stored = parsed as Record<string, unknown>;
+	const provider = oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider);
+	// Whisper's own choices come back with either Whisper engine, as saved — not with the
+	// fallback an unreadable provider gets — or wherever they were saved.
+	const whisperChoices =
+		(provider === stored.provider && isLocalWhisper(provider)) || stored.whisperModel !== undefined;
 	const loaded: StartOptions = {
 		source: oneOf(AUDIO_SOURCES, stored.source, DEFAULT_START_OPTIONS.source),
 		mode: oneOf(OUTPUT_MODES, stored.mode, DEFAULT_START_OPTIONS.mode),
@@ -59,8 +64,8 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 			stored.targetLanguage,
 			DEFAULT_START_OPTIONS.targetLanguage
 		),
-		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
-		...(stored.provider === 'whisper' || stored.whisperModel !== undefined
+		provider,
+		...(whisperChoices
 			? {
 					whisperModel: oneOf(WHISPER_MODELS, stored.whisperModel, 'base'),
 					spokenLanguage:

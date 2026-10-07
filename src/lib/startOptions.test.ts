@@ -54,6 +54,33 @@ describe('loadStartOptions with the Gemini subtitle backend', () => {
 	});
 });
 
+describe('loadStartOptions with Whisper translating into English', () => {
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'localStorage');
+	});
+
+	it('restores it with Whisper’s own choices, paired with translation', () => {
+		storing({
+			source: 'microphone',
+			mode: 'translate',
+			targetLanguage: 'en',
+			provider: 'whisper-translate',
+			spokenLanguage: 'fr'
+		});
+		expect(loadStartOptions()).toMatchObject({
+			mode: 'translate',
+			provider: 'whisper-translate',
+			whisperModel: 'base',
+			spokenLanguage: 'fr'
+		});
+	});
+
+	it('discards a stored record that pairs it with subtitles', () => {
+		storing({ mode: 'transcribe', targetLanguage: 'en', provider: 'whisper-translate' });
+		expect(loadStartOptions()).toMatchObject({ mode: 'transcribe', provider: 'whisper' });
+	});
+});
+
 describe('first-launch setup', () => {
 	afterEach(() => {
 		Reflect.deleteProperty(globalThis, 'localStorage');

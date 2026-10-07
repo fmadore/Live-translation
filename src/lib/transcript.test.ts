@@ -246,4 +246,18 @@ describe('bilingual export', () => {
 		);
 		expect(bare).not.toContain('<i>');
 	});
+
+	// Whisper's translate task writes English with no transcription of what was said. Such a
+	// transcript offers no bilingual export, and asked for one anyway, writes exactly what it
+	// would without: no "Original:" heading over nothing.
+	it('writes a translation with no original speech as if the original were not asked for', () => {
+		const english = translated.map((line) => ({ ...line, sourceText: '' }));
+		expect(hasOriginalSpeech(english)).toBe(false);
+		for (const format of ['markdown', 'text', 'vtt', 'srt'] as const) {
+			const asked = formatTranscript(english, format, at, DEFAULT_LABELS, { original: true });
+			expect(asked).toBe(formatTranscript(english, format, at));
+			expect(asked).not.toContain('Original');
+			expect(asked).not.toContain('<i>');
+		}
+	});
 });

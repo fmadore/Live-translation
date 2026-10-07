@@ -24,6 +24,26 @@ it('keeps generated Rust and TypeScript aligned with the provider catalog', () =
 	expect(languageRows('gemini', [], '', 'en')).toHaveLength(78);
 	expect(languageRows('openai', [], '', 'en')).toHaveLength(13);
 	expect(languageRows('ondevice', [], '', 'en').map((r) => r.code)).toEqual(['en', 'fr']);
+	expect(languageRows('whisper-translate', [], '', 'en').map((r) => r.code)).toEqual(['en']);
+});
+
+// Whisper's translate task writes English only. Another caption language is refused the way
+// any engine refuses one it cannot write, and a second language saved for a cloud engine
+// waits, unused, rather than blocking the start.
+it('lets Whisper translate into English only, and says so for any other caption language', () => {
+	const run = {
+		mode: 'translate',
+		provider: 'whisper-translate',
+		targetLanguage: 'en',
+		secondTargetLanguage: null
+	} as const;
+	expect(captionLanguageError(run, en, 'en')).toBe('');
+	expect(captionLanguageError({ ...run, targetLanguage: 'fr' }, en, 'en')).toBe(
+		'Whisper does not support French — choose another language.'
+	);
+	expect(unsupportedCaptionLanguage({ ...run, secondTargetLanguage: 'de' })).toBeUndefined();
+	// Nothing to flip to: only one of the two favourites can be written.
+	expect(nextFavourite('en', ['en', 'fr'], 'whisper-translate')).toBeUndefined();
 });
 
 describe('type-ahead search', () => {
