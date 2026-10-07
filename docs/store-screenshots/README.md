@@ -1,8 +1,9 @@
-# Store screenshots — 1.6.1 capture plan
+# Store screenshots — 1.7.0 capture plan
 
 The existing `en/` and `fr/` images are historical 1.2.2 captures and are **not ready for
-1.6.1**; the `de/` set has not been captured. The 1.6.0 capture was not recorded as done, and
-1.6.1 changes the app icon and the interface, so retake every set from the final signed 1.6.1
+1.7.0**; the `de/` set has not been captured. The 1.6.0 capture was not recorded as done, 1.6.1
+(never submitted) changed the app icon and the interface, and 1.7.0 adds Whisper's translation
+engine card to the setup sheet's translation mode. Retake every set from the final signed 1.7.0
 MSIX, with the interface set to each listing language. Browser previews and the separate
 Whisper Test installation do not establish packaged-app appearance.
 
@@ -12,7 +13,7 @@ private meeting transcripts, API keys, account details or personal application t
 
 | Upload order / new filename | Capture |
 | --- | --- |
-| `1-whisper.png` | Whisper selected, a verified model installed, spoken language and source visible, actual local captions running. |
+| `1-whisper.png` | Whisper selected, a verified model installed, spoken language and source visible, actual local captions running, in Subtitles mode as its caption describes. Any frame of translation setup now shows the Local Whisper card beside Gemini and OpenAI. |
 | `2-overlay.png` | Click-through captions over neutral slides or a non-private call; show readable type and placement. |
 | `3-bilingual.png` | Two target languages in a real cloud session, with original speech if available. Requires a configured provider and incurs usage. |
 | `4-reading.png` | Caption previews/presets, Stable reading and the editable filler-word list. Use the matching caption if multiple controls need separate images. |
@@ -34,6 +35,6 @@ prepared caption is under 200 characters.
 
 ## Capture status
 
-- English: pending final 1.6.1 MSIX capture.
-- French: pending final 1.6.1 MSIX capture.
-- German: pending final 1.6.1 MSIX capture and language review.
+- English: pending final 1.7.0 MSIX capture.
+- French: pending final 1.7.0 MSIX capture.
+- German: pending final 1.7.0 MSIX capture and language review.

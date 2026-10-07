@@ -1,16 +1,22 @@
-# Partner Center listing text — 1.6.1
+# Partner Center listing text — 1.7.0
 
-Prepared for **1.6.1 / MSIX 1.6.1.0**; not submitted. The last confirmed Store release is
-1.6.0. Paste each block into its named field after the
-[release checks](store-updates.md#release-161-handoff). These descriptions lead with the actual
-captioning workflow; the scripted demo is a secondary setup aid.
+Prepared for **1.7.0 / MSIX 1.7.0.0**; not submitted. The last confirmed Store release is
+1.6.0. 1.6.1 was published on GitHub only and is superseded in the Store by 1.7.0, so What's
+new covers everything since 1.6.0: 1.6.1's new icon and interface as well as 1.7.0. Paste each
+block into its named field after the [release checks](store-updates.md#release-170-handoff).
+These descriptions lead with the actual captioning workflow; the scripted demo is a secondary
+setup aid.
 
-For 1.6.1 the descriptions were also edited for plain language: the opening sentence now
-carries what the app does, "process tree" and "persistence" became everyday words, each
-paragraph says what to do before it says what it costs, and a line on keyboard, Narrator,
-text size and contrast-theme support was added in all three languages. Feature claims are
-unchanged. The German edits are parity additions only; the native-speaker review is still
-pending.
+For 1.7.0 the descriptions, features, short descriptions and requirements in all three
+languages add offline translation into English with Whisper (which retires the line that
+Whisper does not translate) and the overlay reopening where it was placed, and say that
+Whisper on x64 needs a processor with AVX2. The certification notes add that processor rule
+and an optional translation route. The plain-language pass from 1.6.1 stands. The German
+edits are parity additions only; the native-speaker review is still pending.
+
+Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
+breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
+(`.prettierignore`), so nothing re-wraps them.
 
 Microsoft's [listing field documentation](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/add-and-edit-store-listing-info)
 allows 10,000 characters for Description, 1,500 for What's new, and 20 features of 200
@@ -22,11 +28,11 @@ in some views. All three short descriptions below fit within 270 characters.
 ### Description — full text
 
 ```text
-Put live captions over any meeting, lecture, video call or slide deck. Live Translation & Subtitles transcribes speech on your own PC with Whisper: download a model once, and captions run offline with no account or subscription. When your audience needs another language, add cloud translation with your own Google Gemini or OpenAI API key; provider usage charges may apply.
+Put live captions over any meeting, lecture, video call or slide deck. Live Translation & Subtitles transcribes speech on your own PC with Whisper: download a model once, and captions run offline with no account or subscription. Whisper can also translate into English offline. When your audience needs another language, add cloud translation with your own Google Gemini or OpenAI API key; provider usage charges may apply.
 
-Captions appear in a transparent overlay that stays on top of your slides, call or any other Windows app, and lets clicks pass through to the window beneath. Choose what to listen to: a room microphone, the audio playing on your PC, a single app, or the microphone and system audio together.
+Captions appear in a transparent overlay that stays on top of your slides, call or any other Windows app, and lets clicks pass through to the window beneath. It reopens where you last placed it, remembered for each display setup. Choose what to listen to: a room microphone, the audio playing on your PC, a single app, or the microphone and system audio together.
 
-For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your CPU with no account, API key or internet connection. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken; for another language, use cloud translation.
+For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your CPU with no account, API key or internet connection. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly. For any other language, use cloud translation.
 
 For multilingual audiences, translate with Gemini into 78 languages or with OpenAI into 13. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key.
 
@@ -38,7 +44,7 @@ With Whisper, audio stays on your PC; speech waiting to be processed sits in a t
 
 Use the interface in English, French or German, whatever the caption language. The operator window works from the keyboard and with Narrator, and follows Windows text size and contrast themes. An optional English/French demo lets you try the display without any setup; it plays a prepared script and does not recognize speech.
 
-Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
+Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
 ```
 
 ### Features — one feature per line
@@ -46,10 +52,12 @@ Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and
 ```text
 Offline Whisper captions in 99 spoken languages, or automatic language detection
 Download Tiny, Base or Small once, then transcribe without an account, API key or internet
+Offline translation into English with Whisper, from any of its 99 languages, with no API key
 Cloud translation with your own Gemini or OpenAI key; provider usage charges may apply
 Two translation languages at once, plus optional original speech when available
 Capture a microphone, system audio, a single app, or microphone and system audio together
 Transparent, always-on-top, click-through captions over slides and video calls
+Overlay reopens where you last placed it, remembered for each display setup
 Fit window, Compact and Stable reading, with adjustable appearance and right-to-left support
 Pause and resume, reusable meeting profiles, searchable languages and favourites
 Editable filler-word filter for the overlay, with raw transcripts preserved
@@ -62,17 +70,21 @@ English, French and German interface; native Windows x64 and ARM64
 ### Short description
 
 ```text
-Free live captions over meetings, calls and slides. Transcribe offline with Whisper in 99 languages, or translate with your own cloud API key. Capture a microphone or any app, show two caption languages and export the transcript.
+Free live captions over meetings, calls and slides. Transcribe offline with Whisper in 99 languages or translate into English, or use your own cloud API key for other languages. Capture a microphone or any app, show two caption languages and export the transcript.
 ```
 
-### What's new in this version — 1.6.1
+### What's new in this version — 1.7.0
 
 ```text
-A new icon and a refreshed operator window. The icon shows a speech wave settling into a caption line, in the Start menu, on the taskbar and on Store tiles. The window now follows Windows 11 more closely, with consistent corners and buttons, one status indicator style for every session state, and Settings tabs that look like tabs.
+Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
 
-Placing the overlay is easier to judge. The preview now uses your caption colour, outline and backing, so it stays readable even over a white slide, and the move-mode toolbar stays on one line. The caption size and backing controls work the same in every panel and stop at their limits.
+The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling.
 
-Also includes tidier spacing in the Whisper model settings and an updated pre-flight hint that points to Start at the top of the window. Native x64 and ARM64, with an English, French or German interface.
+Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
+
+A new app icon, and an operator window that follows Windows 11 more closely, with a move-mode preview that stays readable over a white slide.
+
+Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
 ```
 
 ## Français (France)
@@ -80,11 +92,11 @@ Also includes tidier spacing in the Whisper model settings and an updated pre-fl
 ### Description — texte complet
 
 ```text
-Affichez des sous-titres en direct sur vos réunions, cours, appels vidéo et présentations. Live Translation & Subtitles transcrit la parole sur votre propre PC avec Whisper. Après le téléchargement unique d'un modèle, les sous-titres fonctionnent hors ligne, sans compte ni abonnement. Si votre public a besoin d'une autre langue, ajoutez la traduction cloud avec votre propre clé API Google Gemini ou OpenAI ; des frais d'utilisation du fournisseur peuvent s'appliquer.
+Affichez des sous-titres en direct sur vos réunions, cours, appels vidéo et présentations. Live Translation & Subtitles transcrit la parole sur votre propre PC avec Whisper. Après le téléchargement unique d'un modèle, les sous-titres fonctionnent hors ligne, sans compte ni abonnement. Whisper peut aussi traduire vers l'anglais hors ligne. Si votre public a besoin d'une autre langue, ajoutez la traduction cloud avec votre propre clé API Google Gemini ou OpenAI ; des frais d'utilisation du fournisseur peuvent s'appliquer.
 
-Les sous-titres s'affichent dans une surimpression transparente qui reste au-dessus de vos diapositives, de votre appel ou de toute autre application Windows, et laisse passer les clics vers la fenêtre en dessous. Choisissez la source : un microphone de salle, l'audio joué sur votre PC, une application précise, ou le microphone et l'audio système ensemble.
+Les sous-titres s'affichent dans une surimpression transparente qui reste au-dessus de vos diapositives, de votre appel ou de toute autre application Windows, et laisse passer les clics vers la fenêtre en dessous. Elle se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans. Choisissez la source : un microphone de salle, l'audio joué sur votre PC, une application précise, ou le microphone et l'audio système ensemble.
 
-Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base et Small se téléchargent séparément et pèsent environ 31, 57 et 182 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur le processeur de votre PC, sans compte, clé API ni connexion Internet. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ; pour une autre langue, utilisez la traduction cloud.
+Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base et Small se téléchargent séparément et pèsent environ 31, 57 et 182 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur le processeur de votre PC, sans compte, clé API ni connexion Internet. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal. Pour toute autre langue, utilisez la traduction cloud.
 
 Pour un public multilingue, traduisez avec Gemini vers 78 langues ou avec OpenAI vers 13. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API.
 
@@ -96,7 +108,7 @@ Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement es
 
 Utilisez l'interface en français, anglais ou allemand, quelle que soit la langue des sous-titres. La fenêtre de contrôle s'utilise au clavier et avec le Narrateur, et suit la taille du texte et les thèmes de contraste de Windows. Une démo facultative en français et en anglais permet d'essayer l'affichage sans configuration ; elle déroule un script préparé et ne reconnaît pas la parole.
 
-Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
+Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -104,10 +116,12 @@ Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 e
 ```text
 Sous-titres Whisper hors ligne dans 99 langues parlées, ou détection automatique de la langue
 Téléchargez Tiny, Base ou Small, puis transcrivez sans compte, clé API ni connexion Internet
+Traduction hors ligne vers l'anglais avec Whisper, depuis ses 99 langues, sans clé API
 Traduction cloud avec votre clé Gemini ou OpenAI ; des frais d'utilisation peuvent s'appliquer
 Deux langues de traduction à la fois et affichage facultatif du texte original disponible
 Captez un microphone, l'audio système, une application précise, ou le microphone et l'audio système ensemble
 Sous-titres transparents, toujours visibles et traversables par les clics, sur vos diapositives et appels
+La surimpression se rouvre là où vous l'avez placée, pour chaque configuration d'écrans
 Adapter à la fenêtre, Compact et Lecture stable ; apparence réglable et écritures de droite à gauche
 Pause et reprise, profils de réunion, recherche de langues et favoris
 Liste d'hésitations modifiable pour la surimpression, avec conservation de la transcription originale
@@ -120,17 +134,21 @@ Interface en français, anglais et allemand ; versions Windows x64 et ARM64 nati
 ### Description courte
 
 ```text
-Sous-titres en direct gratuits sur vos réunions, appels et présentations. Transcrivez hors ligne avec Whisper en 99 langues, ou traduisez avec votre propre clé API cloud. Captez un micro ou une application, affichez deux langues et exportez la transcription.
+Sous-titres en direct gratuits sur vos réunions, appels et présentations. Transcrivez hors ligne avec Whisper en 99 langues ou traduisez vers l'anglais, et vers d'autres langues avec votre clé API cloud. Captez un micro ou une application et exportez la transcription.
 ```
 
-### Nouveautés de cette version — 1.6.1
+### Nouveautés de cette version — 1.7.0
 
 ```text
-Une nouvelle icône et une fenêtre de contrôle rafraîchie. L'icône montre une onde de parole qui devient une ligne de sous-titre, dans le menu Démarrer, la barre des tâches et les vignettes du Store. La fenêtre suit désormais de plus près Windows 11, avec des angles et des boutons harmonisés, un même style d'indicateur pour chaque état de session et des onglets de paramètres qui ressemblent enfin à des onglets.
+Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
 
-Le placement de la surimpression est plus facile à juger. L'aperçu reprend la couleur, le contour et le fond de vos sous-titres et reste donc lisible même sur une diapositive blanche, et la barre d'outils du mode déplacement tient sur une seule ligne. Les réglages de taille et d'intensité du fond fonctionnent de la même façon dans chaque panneau et s'arrêtent à leurs limites.
+La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente.
 
-Inclut aussi un espacement plus clair des réglages du modèle Whisper et une indication « Avant de démarrer » qui renvoie au bouton Démarrer en haut de la fenêtre. Versions x64 et ARM64 natives ; interface en français, anglais ou allemand.
+Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
+
+Une nouvelle icône et une fenêtre de contrôle qui suit de plus près Windows 11, avec un aperçu du mode déplacement lisible même sur une diapositive blanche.
+
+Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
 ```
 
 ## Deutsch (Deutschland)
@@ -138,11 +156,11 @@ Inclut aussi un espacement plus clair des réglages du modèle Whisper et une in
 ### Beschreibung — vollständiger Text
 
 ```text
-Verfolgen Sie Besprechungen, Vorträge und Videoanrufe mit Untertiteln direkt über Ihren Inhalten. Live Translation & Subtitles transkribiert Sprache lokal mit Whisper nach einem einmaligen Modelldownload. Optionale Cloud-Übersetzungen und Cloud-Untertitel benötigen Ihr eigenes Konto mit API-Schlüssel bei Google Gemini, OpenAI oder Mistral; dabei können nutzungsabhängige Kosten entstehen.
+Verfolgen Sie Besprechungen, Vorträge und Videoanrufe mit Untertiteln direkt über Ihren Inhalten. Live Translation & Subtitles transkribiert Sprache lokal mit Whisper nach einem einmaligen Modelldownload und übersetzt sie auf Wunsch offline ins Englische. Optionale Cloud-Übersetzungen und Cloud-Untertitel benötigen Ihr eigenes Konto mit API-Schlüssel bei Google Gemini, OpenAI oder Mistral; dabei können nutzungsabhängige Kosten entstehen.
 
-Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf oder einer anderen Windows-App. Erfassen Sie ein Mikrofon, das Windows-Systemaudio, eine Anwendung mit ihren Unterprozessen oder Mikrofon und Systemaudio gemeinsam. Das Overlay bleibt im Vordergrund und lässt Mausklicks zur darunterliegenden Anwendung durch.
+Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf oder einer anderen Windows-App. Erfassen Sie ein Mikrofon, das Windows-Systemaudio, eine Anwendung mit ihren Unterprozessen oder Mikrofon und Systemaudio gemeinsam. Das Overlay bleibt im Vordergrund und lässt Mausklicks zur darunterliegenden Anwendung durch. Es öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung.
 
-Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base und Small werden separat heruntergeladen (etwa 31, 57 und 182 MiB). Danach läuft die Erkennung auf der CPU Ihres PCs, ohne Konto, API-Schlüssel oder Internetverbindung. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache; es übersetzt nicht.
+Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base und Small werden separat heruntergeladen (etwa 31, 57 und 182 MiB). Danach läuft die Erkennung auf der CPU Ihres PCs, ohne Konto, API-Schlüssel oder Internetverbindung. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
 
 Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini oder OpenAI. Die App bietet 78 Zielsprachen für Gemini und 13 für OpenAI. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache.
 
@@ -154,7 +172,7 @@ Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch g
 
 Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhängig von der Untertitelsprache. Das Bedienfenster lässt sich per Tastatur und mit der Sprachausgabe bedienen und folgt der Windows-Textgröße und den Kontrastdesigns. Eine optionale skriptbasierte Demo auf Englisch und Französisch zeigt die Anzeigefunktionen ohne Einrichtung; sie erkennt keine Sprache.
 
-Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
+Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -162,10 +180,12 @@ Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und AR
 ```text
 Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung
 Tiny, Base oder Small herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
+Offline-Übersetzung ins Englische mit Whisper aus allen 99 Sprachen, ohne API-Schlüssel
 Cloud-Übersetzung mit eigenem Gemini- oder OpenAI-Schlüssel; nutzungsabhängige Kosten möglich
 Zwei Übersetzungssprachen gleichzeitig und optional der verfügbare Originaltext
 Mikrofon, Systemaudio, eine Anwendung mit Unterprozessen oder Mikrofon und Systemaudio gemeinsam
 Transparente, durchklickbare Untertitel im Vordergrund über Folien und Videoanrufen
+Das Overlay öffnet sich dort, wo Sie es zuletzt platziert haben, für jede Bildschirmanordnung
 An Fenster anpassen, Kompakt und Ruhiger Lesemodus; anpassbare Darstellung und Text von rechts nach links
 Pause und Fortsetzen, Besprechungsprofile, Sprachsuche und Favoriten
 Bearbeitbarer Füllwortfilter für das Overlay; das Originaltranskript bleibt erhalten
@@ -178,17 +198,21 @@ Oberfläche auf Deutsch, Englisch und Französisch; native Windows-Versionen fü
 ### Kurzbeschreibung
 
 ```text
-Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprachen transkribieren oder per Cloud mit eigenem API-Schlüssel übersetzen. Mikrofon oder App-Audio erfassen, zwei Sprachen anzeigen und Transkripte exportieren.
+Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprachen transkribieren oder ins Englische übersetzen, andere Sprachen per Cloud mit eigenem API-Schlüssel. Mikrofon oder App-Audio erfassen, zwei Sprachen anzeigen und Transkripte exportieren.
 ```
 
-### Neu in dieser Version — 1.6.1
+### Neu in dieser Version — 1.7.0
 
 ```text
-Ein neues Symbol und ein überarbeitetes Bedienfenster. Das Symbol zeigt eine Sprachwelle, die in eine Untertitelzeile übergeht, im Startmenü, in der Taskleiste und auf den Store-Kacheln. Das Fenster folgt nun enger Windows 11, mit einheitlichen Ecken und Schaltflächen, einem Statusindikator im gleichen Stil für jeden Sitzungszustand und Registerkarten in den Einstellungen, die wie Registerkarten aussehen.
+Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
 
-Die Platzierung des Overlays lässt sich leichter beurteilen. Die Vorschau nutzt Ihre Untertitelfarbe, Kontur und Hintergrund und bleibt so selbst auf einer weißen Folie lesbar; die Werkzeugleiste des Verschiebemodus bleibt einzeilig. Untertitelgröße und Hintergrundstärke funktionieren in jedem Bereich gleich und halten an ihren Grenzen an.
+Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung.
 
-Außerdem: übersichtlichere Abstände bei den Whisper-Modelleinstellungen und ein aktualisierter Hinweis in der Vorabprüfung, der auf die Start-Schaltfläche oben im Fenster verweist. Native x64- und ARM64-Versionen; Oberfläche auf Deutsch, Englisch oder Französisch.
+Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
+
+Ein neues App-Symbol und ein Bedienfenster, das Windows 11 enger folgt, mit einer Vorschau im Verschiebemodus, die auch auf einer weißen Folie lesbar bleibt.
+
+Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
 ```
 
 ## Adding the German listing
@@ -203,7 +227,8 @@ Enter each line as a separate requirement (under 200 characters):
 
 ```text
 Windows 11 with Microsoft Edge WebView2 Runtime; native x64 and ARM64 packages
-Whisper: internet for the initial model download (31–182 MiB), then offline CPU transcription
+Whisper: internet for the initial model download (31–182 MiB), then offline transcription or translation into English on the CPU
+Whisper on x64 needs a processor with AVX2, which some budget Celeron and Pentium Silver PCs lack
 Cloud engines: internet, your own compatible provider account and API key; usage charges may apply
 Audio-source access required for speech recognition; a microphone is needed only for microphone capture
 ```
@@ -215,7 +240,8 @@ of real-time processing on all supported hardware. Localized requirements:
 
 ```text
 Windows 11 et Microsoft Edge WebView2 Runtime ; paquets x64 et ARM64 natifs
-Whisper : Internet pour télécharger le modèle (31–182 Mio), puis transcription locale hors ligne sur le processeur
+Whisper : Internet pour télécharger le modèle (31–182 Mio), puis transcription ou traduction vers l'anglais hors ligne sur le processeur
+Whisper sur x64 nécessite un processeur compatible AVX2, absent de certains PC Celeron et Pentium Silver d'entrée de gamme
 Moteurs cloud : Internet, votre compte et clé API compatibles ; des frais d'utilisation peuvent s'appliquer
 Accès à la source audio pour la reconnaissance ; microphone nécessaire uniquement pour la capture du micro
 ```
@@ -224,7 +250,8 @@ Accès à la source audio pour la reconnaissance ; microphone nécessaire unique
 
 ```text
 Windows 11 mit Microsoft Edge WebView2-Runtime; native Pakete für x64 und ARM64
-Whisper: Internet für den Modelldownload (31–182 MiB), danach Offline-Transkription auf der CPU
+Whisper: Internet für den Modelldownload (31–182 MiB), danach Offline-Transkription oder Übersetzung ins Englische auf der CPU
+Whisper auf x64 erfordert einen Prozessor mit AVX2; manche günstigen Celeron- und Pentium-Silver-PCs haben keinen
 Cloud-Engines: Internet, eigenes kompatibles Konto und API-Schlüssel; nutzungsabhängige Kosten möglich
 Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikrofonaufnahme erforderlich
 ```
@@ -232,15 +259,16 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.6.1.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Version 1.6.1 changes the app icon and the interface styling; the test routes below are unchanged from 1.6.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.0, the version in the Store, the app has a new icon and interface styling, offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.0, with a processor note in step 1 and an optional translation route in step 7.
 
 Real speech recognition without a paid account or API key:
-1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
+1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
 2. Choose the spoken language or Detect automatically. Download Tiny (about 31 MiB) for the lightest setup, or Base (about 57 MiB). The initial HTTPS model download needs internet access; the model is not bundled. No account or key is needed.
 3. Start captioning and speak a few sentences or play speech on the selected output. Allow for CPU processing time. Verify captions in the operator window and overlay, elapsed time and input levels.
-4. Use Move overlay to place it, lock it back to click-through, and try Fit window, Compact and Stable reading. Pause blocks new speech entering recognition; existing pending audio can still finish.
+4. Use Move overlay to place it, lock it back to click-through, and try Fit window, Compact and Stable reading. After a restart, the overlay reopens where it was placed. Pause blocks new speech entering recognition; existing pending audio can still finish.
 5. Stop and let Finishing the transcript complete. Export text or Markdown, then SRT or WebVTT. Disconnect the network and repeat with the installed model to verify offline operation.
 6. In Settings, optionally enable transcript history; run a disposable session and reopen, rename, export and delete it. History and recovery are disabled by default. Test the editable filler-word list: it changes only the overlay.
+7. Optional offline translation: choose Translation, then Local Whisper, keep English as the caption language, choose the spoken language or Detect automatically, and download Small (about 182 MiB). Speak or play non-English speech, or click Rehearse to play a bundled French recording with no microphone: English captions appear with no account or key. Tiny and Base also work but translate poorly.
 
 Setup-free display check if capture hardware or model downloads are unavailable:
 In Subtitles, select Built-in demo in the engine list, choose English and click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the first-launch local speech engine.
@@ -248,7 +276,7 @@ In Subtitles, select Built-in demo in the engine list, choose English and click 
 Optional cloud features:
 Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it.
 
-The full-trust desktop process performs WASAPI/microphone capture, CPU Whisper inference, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
+The full-trust desktop process performs WASAPI/microphone capture, CPU Whisper transcription and translation, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
 ```
 
 Resolve cloud test credentials or Microsoft reviewer access requirements before submission;
