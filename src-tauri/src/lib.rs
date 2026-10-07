@@ -4,6 +4,7 @@
 //! Translate over a WebSocket, and renders the returned translation as live captions in a
 //! transparent, always-on-top overlay window.
 
+mod atomic_file;
 mod audio;
 // Compiled in for the tests that keep the handler, the generated permissions and the two
 // capability files in step; `build.rs` reads the same file to generate the permissions.

@@ -5,7 +5,7 @@
 //! `write_history` replaces a whole file; `append_history` adds records to one, so a long
 //! session no longer rewrites everything it has already saved every few seconds. Files from
 //! before the log format are a single JSON object, and are still read and renamed.
-use crate::recovery::{remove_snapshot, replace_snapshot};
+use crate::atomic_file;
 use serde::Serialize;
 use std::{
     collections::{HashMap, HashSet},
@@ -48,7 +48,7 @@ pub async fn write_history(app: AppHandle, id: String, contents: String) -> Resu
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        replace_snapshot(&path, |f| f.write_all(contents.as_bytes())).map_err(|e| e.to_string())
+        atomic_file::replace(&path, contents.as_bytes()).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -234,7 +234,7 @@ fn rename_session(path: &Path, title: &str) -> Result<(), String> {
     let record = session.as_object_mut().ok_or("invalid session")?;
     record.insert("title".into(), title.into());
     let contents = serde_json::to_vec(&session).map_err(|e| e.to_string())?;
-    replace_snapshot(path, |f| f.write_all(&contents)).map_err(|e| e.to_string())
+    atomic_file::replace(path, &contents).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -270,7 +270,7 @@ pub async fn delete_history(app: AppHandle, id: String) -> Result<(), String> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        remove_snapshot(&path).map_err(|e| e.to_string())
+        atomic_file::remove(&path).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -364,10 +364,10 @@ mod tests {
         std::fs::create_dir(&dir).unwrap();
         let first = session_path(&dir, FIRST).unwrap();
         let second = session_path(&dir, SECOND).unwrap();
-        replace_snapshot(&first, |f| f.write_all(b"complete session")).unwrap();
-        replace_snapshot(&second, |f| f.write_all(b"second session")).unwrap();
+        atomic_file::replace(&first, b"complete session").unwrap();
+        atomic_file::replace(&second, b"second session").unwrap();
         // Incomplete writes and unrelated files are never offered as saved sessions.
-        std::fs::write(first.with_extension("json.pending"), "partial").unwrap();
+        std::fs::write(atomic_file::staging_path(&first), "partial").unwrap();
         std::fs::write(dir.join("unrelated.json"), "unrelated").unwrap();
         assert_eq!(list(&dir, &[]).sessions.len(), 2);
         // A corrupt record remains individually deletable without hiding the good one.
@@ -377,8 +377,8 @@ mod tests {
         assert!(reopened
             .iter()
             .any(|s| s.contents.as_deref() == Some("complete session")));
-        remove_snapshot(&first).unwrap();
-        remove_snapshot(&first).unwrap();
+        atomic_file::remove(&first).unwrap();
+        atomic_file::remove(&first).unwrap();
         assert_eq!(list(&dir, &[]).sessions.len(), 1);
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -428,7 +428,7 @@ mod tests {
 
         // A deleted session, and one remembered from a folder that has since gone, are both
         // named as removed rather than silently left out.
-        remove_snapshot(&second).unwrap();
+        atomic_file::remove(&second).unwrap();
         let gone = list(dir.path(), &[(FIRST, 25), (SECOND, 25)]);
         assert_eq!(gone.sessions.len(), 1);
         assert_eq!(gone.removed, vec![SECOND.to_owned()]);
