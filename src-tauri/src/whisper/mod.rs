@@ -578,10 +578,12 @@ mod tests {
         smoke_model(&manager, &dir).await;
         let model = load_lease(manager.lease(&dir, ModelId::Tiny).unwrap()).unwrap();
         for (fixture, language, translate, expected) in [
-            ("rehearsal-en.wav", None, false, "caption"),
-            ("rehearsal-fr.wav", Some("fr"), false, "public"),
-            // Tiny translates poorly — "This is a recording of repetition…" — but in English.
-            ("rehearsal-fr.wav", None, true, "recording"),
+            ("rehearsal-en.wav", None, false, Some("caption")),
+            ("rehearsal-fr.wav", Some("fr"), false, Some("public")),
+            // Tiny translates poorly, and its wording moves with the instruction set: ARM64 said
+            // "This is a recording of repetition…", x64 "This is an arrangement of repetition…".
+            // So the translation is held to being English, not to any one word.
+            ("rehearsal-fr.wav", None, true, None),
         ] {
             let samples = crate::audio::fixture::load_fixture(
                 &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -628,13 +630,50 @@ mod tests {
             .unwrap();
             // The time is the one number CI can compare across instruction-set changes.
             eprintln!("{fixture} ({:.2?}): {text}", started.elapsed());
-            assert!(text.to_lowercase().contains(expected), "{fixture}: {text}");
+            match expected {
+                Some(word) => assert!(text.to_lowercase().contains(word), "{fixture}: {text}"),
+                None => assert!(reads_as_english(&text), "{fixture}: {text}"),
+            }
             assert_eq!(
                 spool.pending_ms(),
                 0,
                 "Stop must drain the final partial window"
             );
         }
+    }
+
+    /// Whether `text` is English rather than French, judged by function words, which survive
+    /// any rewording: plenty of English ones and few French ones.
+    fn reads_as_english(text: &str) -> bool {
+        const ENGLISH: [&str; 7] = ["the", "is", "and", "to", "of", "this", "a"];
+        const FRENCH: [&str; 9] = ["le", "la", "les", "est", "et", "une", "des", "sont", "du"];
+        let lower = text.to_lowercase();
+        let words: Vec<&str> = lower
+            .split(|c: char| !c.is_alphabetic())
+            .filter(|w| !w.is_empty())
+            .collect();
+        let count = |set: &[&str]| words.iter().filter(|w| set.contains(w)).count();
+        let (english, french) = (count(&ENGLISH), count(&FRENCH));
+        english >= 5 && english > 3 * french
+    }
+
+    #[test]
+    fn english_is_told_from_french_by_its_function_words() {
+        // What Tiny produced on the two CI architectures, and the French it was translating.
+        assert!(reads_as_english(concat!(
+            "This is a recording of repetition for the subject system to direct. ",
+            "A portrait is a public and each sentence is translated later. to the screen."
+        )));
+        assert!(reads_as_english(concat!(
+            "This is an arrangement of repetition for the subject system to direct. ",
+            "A portrait is a public and each sentence is translated later. ",
+            "to the screen, then to the screen."
+        )));
+        assert!(!reads_as_english(concat!(
+            "Ceci est un enregistrement de répétition pour le système de sous-titrage en direct. ",
+            "Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à ",
+            "l'écran. Les sous-titres apparaissent juste après les mots."
+        )));
     }
 
     #[test]

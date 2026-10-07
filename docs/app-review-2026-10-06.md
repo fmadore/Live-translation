@@ -319,8 +319,11 @@ pass; `cargo test` 218 passed, 4 ignored (210 before); `cargo fmt --check` and C
 aarch64 and x86_64 pass; `npm run test:style` 117 passed, with the four `idle-translation-*`
 snapshots updated for the new engine card; `npm run test:e2e` 3 passed in 2.0 min (demo,
 Whisper, placement). The smoke test's new case translates the French rehearsal with Tiny:
-French detected (p = 0.99), English out, as weak as Tiny is expected to be. Still needs: the
-smoke case on x64 (CI), Small on real speech, and a laptop at 150% with a projector at 100%.
+French detected (p = 0.99), English out, as weak as Tiny is expected to be. Its wording moves
+with the instruction set ("a recording of repetition" on ARM64, "an arrangement of repetition"
+on x64, which failed the first CI run's check for "recording"), so the case now checks that the
+output reads as English by its function words. Still needs: Small on real speech, and a laptop
+at 150% with a projector at 100%.
 
 ## 1. Defects
 
