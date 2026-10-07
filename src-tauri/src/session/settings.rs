@@ -131,14 +131,16 @@ impl ProviderSettings {
                 host,
                 model,
                 delay_ms,
-            } => io.spawn_realtime(MistralConfig {
-                api_key,
-                model: model.clone(),
-                host: host.clone(),
-                target_streaming_delay_ms: *delay_ms,
-                origin,
-                received_delta: false,
-            }),
+            } => io.spawn_realtime(
+                MistralConfig {
+                    api_key,
+                    model: model.clone(),
+                    host: host.clone(),
+                    target_streaming_delay_ms: *delay_ms,
+                    origin,
+                }
+                .into_client(),
+            ),
             Self::OnDevice => {
                 let config = OnDeviceConfig {
                     origin,

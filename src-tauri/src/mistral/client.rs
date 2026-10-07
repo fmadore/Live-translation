@@ -27,10 +27,17 @@ pub struct MistralConfig {
     pub host: String,
     pub target_streaming_delay_ms: u32,
     pub origin: Origin,
-    pub received_delta: bool,
 }
 
 impl MistralConfig {
+    /// The protocol the realtime runner drives for this source, with nothing heard yet.
+    pub fn into_client(self) -> MistralClient {
+        MistralClient {
+            config: self,
+            received_delta: false,
+        }
+    }
+
     fn ws_url(&self) -> String {
         format!(
             "wss://{}/v1/audio/transcriptions/realtime?model={}",
@@ -39,20 +46,30 @@ impl MistralConfig {
     }
 }
 
-impl RealtimeProtocol for MistralConfig {
+/// One Mistral source: its configuration, plus what the provider has sent on the current
+/// connection that a later event depends on. That part is the protocol's own business, so it
+/// lives here rather than in a configuration the session has to fill in.
+pub struct MistralClient {
+    config: MistralConfig,
+    /// Whether the provider's current session has streamed any transcript delta. Cleared by
+    /// the `session.created` that opens each connection.
+    received_delta: bool,
+}
+
+impl RealtimeProtocol for MistralClient {
     const NAME: &'static str = "Mistral";
 
     fn origin(&self) -> Origin {
-        self.origin
+        self.config.origin
     }
 
     fn connect_request(&self) -> Result<Request> {
-        bearer_request(Self::NAME, &self.ws_url(), &self.api_key)
+        bearer_request(Self::NAME, &self.config.ws_url(), &self.config.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
         Ok(serde_json::to_string(&SessionUpdate::pcm16(
-            self.target_streaming_delay_ms,
+            self.config.target_streaming_delay_ms,
         ))?)
     }
 
@@ -75,7 +92,7 @@ impl RealtimeProtocol for MistralConfig {
         match event.kind.as_str() {
             "session.created" | "session.updated" => {
                 self.received_delta = false;
-                tracing::debug!(origin = ?self.origin, event = %event.kind, "Mistral session ready");
+                tracing::debug!(origin = ?self.config.origin, event = %event.kind, "Mistral session ready");
             }
             "transcription.text.delta" => {
                 if let Some(delta) = event.text.as_deref().filter(|delta| !delta.is_empty()) {
@@ -108,7 +125,7 @@ impl RealtimeProtocol for MistralConfig {
             "error" => {
                 if event.error.as_ref().is_some_and(recoverable) {
                     tracing::warn!(
-                        origin = ?self.origin,
+                        origin = ?self.config.origin,
                         error = ?event.error,
                         "Mistral reported a transient error; reconnecting"
                     );
@@ -184,17 +201,19 @@ mod tests {
             host: DEFAULT_MISTRAL_HOST.to_string(),
             target_streaming_delay_ms: DEFAULT_TARGET_STREAMING_DELAY_MS,
             origin: Origin::Microphone,
-            received_delta: false,
         }
     }
 
-    fn harness() -> Harness<MistralConfig> {
-        Harness::new(config(""))
+    fn harness() -> Harness<MistralClient> {
+        Harness::new(config("").into_client())
     }
 
     #[test]
     fn the_handshake_authenticates_with_a_bearer_header() {
-        let request = config("mistral-test").connect_request().unwrap();
+        let request = config("mistral-test")
+            .into_client()
+            .connect_request()
+            .unwrap();
         assert_eq!(
             handshake(request),
             "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602\n\
@@ -212,14 +231,17 @@ mod tests {
     /// The operator reads these as the reconnecting status's detail.
     #[test]
     fn a_request_that_cannot_be_built_says_which_part_failed() {
-        let error = config("bad\nkey").connect_request().unwrap_err();
+        let error = config("bad\nkey")
+            .into_client()
+            .connect_request()
+            .unwrap_err();
         assert_eq!(
             error.to_string(),
             "Mistral API key is not a valid header value"
         );
         let mut config = config("mistral-test");
         config.host = "not a host".to_string();
-        let error = config.connect_request().unwrap_err();
+        let error = config.into_client().connect_request().unwrap_err();
         assert_eq!(error.to_string(), "failed to build Mistral request");
     }
 
