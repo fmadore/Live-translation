@@ -77,7 +77,12 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - Event glossary for names, institutions, acronyms, and specialist terminology.
 - Privacy-preserving diagnostic export: versions, devices, reconnects, queue drops, and sanitized
   errors, but never keys or audio.
-- Persist overlay position/size across launches and add multi-monitor overlay presets.
+- Multi-monitor overlay presets: named placements to switch between in a running session, such
+  as "bottom of the projector" and "top of the laptop". The overlay already reopens where it was
+  last placed on each display arrangement, clamped to a connected display, and a meeting
+  profile already carries a placement with its setup; what remains is choosing among several
+  without a profile and without move mode, and moving the overlay when a display is connected
+  mid-session.
 - Per-origin caption styling on the overlay, such as a subtle prefix when both sources are live.
 - Measure audio-to-first-caption latency in the operator monitor and make rate-card verification
   dates visible. `timing::SessionClock` already stamps every caption; the missing half is a mark

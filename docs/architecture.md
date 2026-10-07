@@ -261,7 +261,9 @@ property by property, and fails on any element whose content is wider than its b
 minimum window size, apart from two overflows listed as intended. `e2e/native`
 (`npm run test:e2e`) builds a debug exe whose identifier ends in `.e2e`, so its settings,
 history, models and WebView2 profile never touch a developer's own, and drives both real
-windows over WebView2's DevTools port. Both suites test the last `npm run build`.
+windows over WebView2's DevTools port. Each test starts on a first-launch profile and can quit
+and relaunch the app on it, as the placement spec does to check that the overlay reopens where
+it was placed. Both suites test the last `npm run build`.
 
 ESLint (`eslint.config.js`) holds only typed checks that svelte-check cannot make: promises
 nobody handles, and Svelte's reactivity mistakes. Its promise rules cannot see an async
@@ -335,6 +337,19 @@ bounded in-memory history (12,000 characters per origin), their expiry and the r
 presenter; `overlayPlacement.svelte.ts` owns move mode and its keys, and
 `OverlayMoveChrome.svelte` draws it. The persisted `overlay.captionLayout` preference defaults
 to Fit window and reaches the overlay in `OverlayConfig` through `overlayController.svelte.ts`.
+
+The overlay window is created centred (`tauri.conf.json`) and paints nothing until there are
+captions or move mode, neither of which can start before the operator window has mounted. So
+the remembered placement lives in the interface like any other preference:
+`overlayGeometry.ts` keeps physical rectangles under `overlay.geometry`, one per display layout
+and at most eight, most recently used first. A layout is the signature `display_layout`
+(`placement.rs`) builds from the sorted monitors' positions, sizes and scale factors, the work
+area left out. `overlayController.svelte.ts` saves the overlay's rectangle when move mode ends
+with Done or the overlay's own Lock/Enter (not Escape) and after a profile places it, never on
+move events, and restores once as the operator window mounts: the current layout's entry,
+otherwise the most recent, always through `set_overlay_placement`. That command clamps the
+rectangle to a monitor's work area and moves the window before sizing it, because crossing to
+a display with another scale factor makes Windows rescale it (`WM_DPICHANGED`).
 
 - **Fit window.** `OverlayCaptionLine.svelte` measures candidate text in a hidden paragraph
   with the visible text's font, line height, available width and live-caret footprint.

@@ -116,7 +116,10 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, Whisper model and spoken language, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
+provider, Whisper model and spoken language, audio source, language, overlay position and size
+for up to eight display arrangements (each recorded as its displays' positions, resolutions and
+scaling, so the overlay reopens where it was placed on them), caption size,
+layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether

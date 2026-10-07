@@ -50,6 +50,9 @@ notice; application capture remains unselected until the operator explicitly sel
 The preflight must be checked again. A saved overlay rectangle is constrained to an available
 display's work area; a disconnected projector falls back to the primary display. Check placement
 after display or scaling changes. Only the operator window may invoke the placement commands.
+A loaded profile's rectangle also becomes the overlay's remembered placement for the current
+displays, which the next launch reopens without loading the profile again
+([caption layout](caption-layout.md#fit-window)).
 
 ## Reading and saved sessions
 
@@ -111,8 +114,10 @@ move-mode keys are unchanged.
 
 Automated tests cover interim batching without starvation, independent sources, immediate
 finalization, stop cancellation, preference validation, profile round trips and hardware checks,
-profile controls, safe placement, concurrent history renames, search, keyboard guards and live
-status classification. Gemini tests cover Smart final/interim precedence and empty finals.
+profile controls, safe placement, the placement remembered per display layout (its signature,
+saving, the eight-layout cap and the launch restore), concurrent history renames, search,
+keyboard guards and live status classification. Gemini tests cover Smart final/interim
+precedence and empty finals.
 German date regressions cover valid and invalid dates, leap years, calendar event handling,
 inclusive bounds and filter reset.
 
