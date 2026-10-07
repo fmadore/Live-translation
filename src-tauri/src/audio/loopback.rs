@@ -45,9 +45,10 @@ mod windows_impl {
     use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
     use tokio_util::sync::CancellationToken;
-    use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
+    use wasapi::{DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
 
     use crate::audio::capture::CaptureState;
+    use crate::audio::com::Apartment;
     use crate::audio::devices::PresenceCheck;
     use crate::types::{AudioLevel, Origin};
 
@@ -72,18 +73,9 @@ mod windows_impl {
         chunk_tx: crate::audio::sink::AudioSink,
         cancel: &CancellationToken,
     ) -> Result<()> {
-        // COM must be initialised on the capture thread. `initialize_mta` returns an
-        // `HRESULT`; `.ok()` turns it into a `windows::core::Result` that anyhow accepts.
-        initialize_mta()
-            .ok()
-            .context("failed to initialise COM (MTA)")?;
-        struct Apartment;
-        impl Drop for Apartment {
-            fn drop(&mut self) {
-                wasapi::deinitialize();
-            }
-        }
-        let _apartment = Apartment;
+        // COM must be initialised on the capture thread, and left only after every COM
+        // object below is released.
+        let _apartment = Apartment::mta().context("failed to initialise COM (MTA)")?;
 
         use crate::audio::applications::{ProcessGuard, SystemCapture};
         let (device, process, mut audio_client, format, period) = match capture {
