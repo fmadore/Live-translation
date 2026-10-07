@@ -160,9 +160,15 @@ Found on the way in T4 and T5:
   four corners of the language × scale matrix rather than all nine combinations, because the
   values move with language and scale independently; the overflow scan covers every
   combination.
-- WebView2 adds `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` to the arguments Tauri passes rather
-  than replacing them, so driving the app needed no change to it. `--lang=en-GB` makes the
-  first launch English whatever the machine's language.
+- The plan's `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` worked locally and failed on CI: WebView2
+  ignores `WEBVIEW2_*` variables when its host runs elevated, and GitHub's Windows runners run
+  everything elevated. The e2e build now compiles the DevTools port into its window config
+  instead (Tauri's `additionalBrowserArgs`, which goes through WebView2's API), from an
+  override the suite generates out of `tauri.conf.json`. The shipped config is untouched.
+  `--lang=en-GB` rides along, so the first launch is English whatever the machine's language.
+- When the port never opens, the failure now lists the app's processes with their command
+  lines, its windows and the WebView2 runtime; that listing is how the elevation problem
+  showed itself.
 - A debug build reads `.env` from its working directory and every parent, so the fixture
   starts the app in a temporary folder and sets the three key variables blank. Keys saved in
   Credential Manager still reach the e2e app: `secrets.rs` names its keychain service itself,

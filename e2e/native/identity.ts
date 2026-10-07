@@ -16,8 +16,13 @@ interface WindowConfig {
 const override = JSON.parse(readFileSync(OVERRIDE, 'utf8')) as { identifier: string };
 const app = JSON.parse(readFileSync(path.join(ROOT, 'src-tauri', 'tauri.conf.json'), 'utf8')) as {
 	identifier: string;
-	app: { windows: WindowConfig[] };
+	app: { windows: (WindowConfig & { additionalBrowserArgs?: string })[] };
 };
+
+// The e2e windows replace the app's own browser arguments, so the app must not have any yet.
+if (app.app.windows.some((w) => w.additionalBrowserArgs)) {
+	throw new Error('tauri.conf.json sets additionalBrowserArgs: add them to BROWSER_ARGS too');
+}
 
 export const IDENTIFIER = override.identifier;
 
@@ -29,6 +34,35 @@ if (!IDENTIFIER.endsWith('.e2e') || IDENTIFIER === app.identifier) {
 
 /** The title Windows shows on the operator window's frame, which is how a close is aimed. */
 export const OPERATOR_TITLE = app.app.windows.find((w) => w.label === 'operator')!.title;
+
+/** Where the e2e build's WebView2 serves the DevTools protocol. Fixed, because it is compiled
+ *  in; one e2e app runs at a time, so one port is enough. */
+export const DEVTOOLS_PORT = 9347;
+
+/**
+ * The e2e build's WebView2 arguments. They reach WebView2 through Tauri's
+ * `additionalBrowserArgs`, which is its API, and not through the
+ * `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` variable: WebView2 ignores `WEBVIEW2_*` variables
+ * in an elevated process, and GitHub's Windows runners run everything elevated.
+ *
+ * Setting them replaces wry's own (`webview2/mod.rs` in wry 0.57), so those come first:
+ * the mini menu, PDF menu and SmartScreen switched off, and autoplay, which Tauri turns on.
+ * `--lang` makes the first launch English on any machine: the interface follows Windows'
+ * language until the operator picks one.
+ */
+export const BROWSER_ARGS = [
+	'--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection',
+	'--autoplay-policy=no-user-gesture-required',
+	`--remote-debugging-port=${DEVTOOLS_PORT}`,
+	'--lang=en-GB'
+].join(' ');
+
+/** The app's windows as the e2e build declares them: the app's own, with `BROWSER_ARGS`.
+ *  Every webview in a process shares one WebView2 environment, so all of them get the same
+ *  arguments. A config override replaces an array whole, hence every window, copied. */
+export function e2eWindows(): Record<string, unknown>[] {
+	return app.app.windows.map((window) => ({ ...window, additionalBrowserArgs: BROWSER_ARGS }));
+}
 
 /** Tauri's `app_local_data_dir` (models, history, the recovery spool, the export folder
  *  preference and WebView2's `EBWebView` profile) and `app_data_dir`, unused today, so that a

@@ -1,11 +1,9 @@
 // The `app` fixture: the e2e build of the real app, on a first-launch profile, with both of its
 // windows attached over the Chrome DevTools Protocol.
 //
-// WebView2 opens a DevTools port when `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` asks for one.
-// Tauri passes WebView2 arguments of its own (`--disable-features=…`, `--autoplay-policy=…`),
-// and the variable is added to them rather than replaced by them: both reach
-// msedgewebview2.exe, so nothing in the app needs changing for this. Both windows share one
-// WebView2 environment, so one port serves both: `http://tauri.localhost/` is the operator and
+// The e2e build's WebView2 serves DevTools on `DEVTOOLS_PORT`, an argument compiled into its
+// window config (`BROWSER_ARGS` in identity.ts). Both windows share one WebView2 environment,
+// so one port serves both: `http://tauri.localhost/` is the operator and
 // `http://tauri.localhost/overlay` the caption overlay.
 
 import {
@@ -19,10 +17,18 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
 import { copyFile, mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
-import { createServer, type AddressInfo } from 'node:net';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { appExe, assertE2ePath, modelsDir, OPERATOR_TITLE, profileDirs, ROOT } from './identity';
+import {
+	appExe,
+	assertE2ePath,
+	DEVTOOLS_PORT,
+	modelsDir,
+	OPERATOR_TITLE,
+	profileDirs,
+	ROOT
+} from './identity';
 import { describeApp, killTree, requestWindowClose, stopStrayInstances } from './windows';
 
 export { expect };
@@ -81,26 +87,32 @@ async function refillCache(): Promise<void> {
 	await copyFile(installed, path.join(cache, path.basename(installed)));
 }
 
-function freePort(): Promise<number> {
-	return new Promise((resolve, reject) => {
+function portFree(port: number): Promise<boolean> {
+	return new Promise((resolve) => {
 		const server = createServer();
-		server.once('error', reject);
-		server.listen(0, '127.0.0.1', () => {
-			const { port } = server.address() as AddressInfo;
-			server.close(() => resolve(port));
-		});
+		server.once('error', () => resolve(false));
+		server.listen(port, '127.0.0.1', () => server.close(() => resolve(true)));
 	});
 }
 
-function appEnvironment(port: number): NodeJS.ProcessEnv {
-	const env: NodeJS.ProcessEnv = {
-		...process.env,
-		// `--lang` makes the first launch English on any machine, as it is on the runner: the
-		// interface follows Windows' language until the operator picks one.
-		WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port} --lang=en-GB`
-	};
-	// Would move the WebView2 profile out of the e2e app's folder.
+/** Wait for `port` to be released: by the last test's WebView2, which outlives its host for
+ *  a few seconds, or by anything else, which fails here rather than as a timeout later. */
+async function portReleased(port: number): Promise<void> {
+	const deadline = Date.now() + 30_000;
+	while (!(await portFree(port))) {
+		if (Date.now() > deadline) {
+			throw new Error(`Port ${port} is still in use: the e2e app's DevTools port must be free`);
+		}
+		await new Promise((resolve) => setTimeout(resolve, 250));
+	}
+}
+
+function appEnvironment(): NodeJS.ProcessEnv {
+	const env: NodeJS.ProcessEnv = { ...process.env };
+	// Would move the WebView2 profile out of the e2e app's folder, or (in a process that is not
+	// elevated) add a second DevTools port to the one compiled in.
 	delete env.WEBVIEW2_USER_DATA_FOLDER;
+	delete env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS;
 	// The app's own default, plus Tauri's debug lines: they show each window asking for its
 	// page, so the log of a failed launch says how far the windows got.
 	env.RUST_LOG ??= 'live_translation_lib=info,tauri=debug,warn';
@@ -180,7 +192,7 @@ export const test = base.extend<Options & { app: App }>({
 			return true;
 		});
 
-		const port = await freePort();
+		await portReleased(DEVTOOLS_PORT);
 		// A debug build reads `.env` from its working directory and every parent; the
 		// repository's must not reach the app under test.
 		const cwd = await mkdtemp(path.join(tmpdir(), 'lt-e2e-'));
@@ -188,7 +200,7 @@ export const test = base.extend<Options & { app: App }>({
 		const log = createWriteStream(logPath);
 		const child = spawn(exe, [], {
 			cwd,
-			env: appEnvironment(port),
+			env: appEnvironment(),
 			stdio: ['ignore', 'pipe', 'pipe'],
 			windowsHide: true
 		});
@@ -214,7 +226,7 @@ export const test = base.extend<Options & { app: App }>({
 		try {
 			const { operator, overlay } = await base.step('Attach to both windows', async () => {
 				browser = await playwright.chromium.connectOverCDP(
-					await devTools(port, child.pid!, () => exitCode)
+					await devTools(DEVTOOLS_PORT, child.pid!, () => exitCode)
 				);
 				[context] = browser.contexts();
 				// The runner's `trace` option records its own steps and screenshots but not a
