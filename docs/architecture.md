@@ -239,6 +239,16 @@ test plays the core, answering commands and emitting `status` and `caption` even
 `src-tauri` does. `src/routes/OperatorPage.svelte.test.ts` scripts a built-in demo session
 from Start to Stop. These tests query by role and accessible name, not by page structure.
 
+Two Playwright suites run on Windows, outside Vitest. `e2e/style` (`npm run test:style`)
+loads the production bundle in Edge, the engine WebView2 embeds, over a fake core installed
+in the page; its idle answers (`src/lib/testing/idleCore.ts`) are the Vitest mock's too. It
+keeps text snapshots of computed styles in `e2e/style/__snapshots__`, which a failure reports
+property by property, and fails on any element whose content is wider than its box at the
+minimum window size, apart from two overflows listed as intended. `e2e/native`
+(`npm run test:e2e`) builds a debug exe whose identifier ends in `.e2e`, so its settings,
+history, models and WebView2 profile never touch a developer's own, and drives both real
+windows over WebView2's DevTools port. Both suites test the last `npm run build`.
+
 ESLint (`eslint.config.js`) holds only typed checks that svelte-check cannot make: promises
 nobody handles, and Svelte's reactivity mistakes. Its promise rules cannot see an async
 function passed as a Svelte event handler or as a `() => void` prop, because Svelte types
