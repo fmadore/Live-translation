@@ -1,6 +1,6 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
-import { decodeRecovery, readLine } from './document';
+import { readLine } from './document';
 import { asStatus, type AppError } from './errors';
 import { persistedFlag } from './persisted';
 import { api } from './tauri';
@@ -153,31 +153,39 @@ function decodeSessionLog(raw: string, id: string): SavedSession | null {
 	return checked(session, id);
 }
 
-/** A session file written before the log format: one JSON object holding everything. */
+/** A session file written before the log format: one JSON object holding everything, with
+ *  its lines in the same shape as a log's and read the same way. A damaged line makes the
+ *  file unreadable rather than quietly shorter, as it does in a log. */
 function decodeWholeSession(raw: string, id: string): SavedSession | null {
+	let s;
 	try {
-		const s = JSON.parse(raw);
-		const recovered = decodeRecovery(raw);
-		if (!recovered || recovered.lines.length !== s.lines.length) return null;
-		return checked(
-			{
-				version: 1,
-				id: s.id,
-				title: cleanTitle(s.title),
-				startedAt: s.startedAt,
-				savedAt: recovered.savedAt,
-				endedAt: s.endedAt,
-				durationMs: s.durationMs,
-				mode: s.mode,
-				sourceLanguage: s.sourceLanguage,
-				targetLanguage: s.targetLanguage,
-				lines: recovered.lines
-			},
-			id
-		);
+		s = JSON.parse(raw);
 	} catch {
 		return null;
 	}
+	if (s?.version !== 1 || !Array.isArray(s.lines)) return null;
+	const lines: TranscriptLine[] = [];
+	for (const value of s.lines) {
+		const line = readLine(value);
+		if (!line) return null;
+		lines.push(line);
+	}
+	return checked(
+		{
+			version: 1,
+			id: s.id,
+			title: cleanTitle(s.title),
+			startedAt: s.startedAt,
+			savedAt: s.savedAt,
+			endedAt: s.endedAt,
+			durationMs: s.durationMs,
+			mode: s.mode,
+			sourceLanguage: s.sourceLanguage,
+			targetLanguage: s.targetLanguage,
+			lines
+		},
+		id
+	);
 }
 
 export function decodeSession(raw: string, id: string): SavedSession | null {
