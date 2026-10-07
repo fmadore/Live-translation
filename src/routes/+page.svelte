@@ -158,8 +158,8 @@
 
 	// ---- Launching --------------------------------------------------------------
 	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
-	// the whole-session idle status clears it (stores.ts), so it is null exactly when the app is
-	// back at idle — including after a stop, an error, or a backend-side end of session.
+	// the whole-session idle status clears it (sessionStatus.ts), so it is null exactly when the
+	// app is back at idle — including after a stop, an error, or a backend-side end of session.
 	$effect(() => {
 		if ($sessionStartedAt === null) rehearsing = false;
 	});
