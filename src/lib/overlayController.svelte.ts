@@ -32,6 +32,8 @@ import {
 	measureWithCanvas
 } from './captionFont';
 import type { CaptionFace, CaptionFaceId } from './captionFont';
+import { decodePlacement, type Placement } from './profiles';
+import { isLayout, loadGeometry, recall, remember, saveGeometry } from './overlayGeometry';
 
 /** One appearance and window-command owner for the rail, settings and overlay events. */
 export function createOverlayController(port = api) {
@@ -117,8 +119,60 @@ export function createOverlayController(port = api) {
 	// Blanking it covers a coffee break or a video clip without ending the session.
 	let overlayVisible = $state(true);
 
+	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
+	// when the operator finishes placing it and when a profile places it: not on every move,
+	// and not when Escape puts the window back where move mode found it. Restored once, as the
+	// operator window mounts. What places the window waits for that restore, so one still on
+	// its way can never land on top of a placement the operator has just made.
+	let restoring: Promise<void> = Promise.resolve();
+
+	/** Store where the overlay is now, under the current layout. Best effort: a placement that
+	 *  could not be remembered costs a move at the next launch, which is nothing to interrupt
+	 *  an event with. */
+	async function rememberPlacement() {
+		try {
+			const [layout, placement] = await Promise.all([
+				api.displayLayout(),
+				api.getOverlayPlacement()
+			]);
+			const rect = decodePlacement(placement);
+			if (isLayout(layout) && rect) saveGeometry(remember(loadGeometry(), layout, rect));
+		} catch (e) {
+			console.error('Could not remember the overlay placement', e);
+		}
+	}
+
+	/** Put the overlay back where it was last placed on this display layout, or else where it
+	 *  was last placed at all — always through the core, which clamps it to a display that is
+	 *  there. With nothing remembered it stays where it was created, centred. */
+	function restorePlacement(): Promise<void> {
+		restoring = (async () => {
+			const stored = loadGeometry();
+			if (stored.length === 0) return;
+			const layout = await api.displayLayout().then(
+				(signature) => (isLayout(signature) ? signature : null),
+				() => null
+			);
+			const found = recall(stored, layout);
+			if (!found) return;
+			await api.setOverlayPlacement(found.placement);
+			saveGeometry(found.list);
+		})().catch((e: unknown) => console.error('Could not restore the overlay placement', e));
+		return restoring;
+	}
+
+	/** Place the overlay where a meeting profile says, and remember it there: loading a profile
+	 *  is as explicit a placement as finishing move mode. A refused placement is the caller's
+	 *  to report. */
+	async function applyPlacement(placement: Placement) {
+		await restoring;
+		await api.setOverlayPlacement(placement);
+		await rememberPlacement();
+	}
+
 	async function toggleMoveOverlay() {
 		const next = !moveOverlay;
+		await restoring;
 		try {
 			await api.showOverlay(true);
 			overlayVisible = true;
@@ -127,7 +181,10 @@ export function createOverlayController(port = api) {
 			pushOverlayConfig({ interactive: moveOverlay });
 		} catch (e) {
 			statusMessage.set(asStatus(e));
+			return;
 		}
+		// Done: the region is where the operator wants it.
+		if (!next) await rememberPlacement();
 	}
 
 	async function toggleOverlayVisible() {
@@ -153,7 +210,12 @@ export function createOverlayController(port = api) {
 
 	function applyState(msg: OverlayStateMsg) {
 		if (msg.interactive === false) moveOverlay = false;
-		if (msg.placed === true) overlayPlaced.set(true);
+		// Locked from the overlay's own toolbar or Enter key. Escape sends no `placed`: the
+		// window went back where it was, so there is nothing new to remember.
+		if (msg.placed === true) {
+			overlayPlaced.set(true);
+			void rememberPlacement();
+		}
 		if (typeof msg.fontSize === 'number' && Number.isFinite(msg.fontSize))
 			overlayFontSize.set(clampOverlayFont(msg.fontSize));
 	}
@@ -169,6 +231,8 @@ export function createOverlayController(port = api) {
 			return overlayVisible;
 		},
 		initialize,
+		restorePlacement,
+		applyPlacement,
 		applyState,
 		pushOverlayConfig,
 		setAppearance,

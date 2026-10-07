@@ -110,6 +110,9 @@
 		void preflight.refreshWhisperCpu();
 		void recoveryOffer.load();
 		overlay.initialize();
+		// Where the overlay was last placed on these displays. It paints nothing until there are
+		// captions or move mode, so moving it now shows no jump from where it was created.
+		void overlay.restorePlacement();
 
 		const unlisteners: Array<Promise<() => void>> = [
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.

@@ -43,6 +43,7 @@ vi.mock('./overlayController.svelte', () => ({
 	createOverlayController: () => ({
 		captionFaces: [],
 		initialize() {},
+		async restorePlacement() {},
 		pushOverlayConfig() {},
 		applyState() {},
 		overlayVisible: true,

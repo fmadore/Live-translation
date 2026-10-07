@@ -9,6 +9,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { mockTauri, type TauriMock } from '$lib/testing/tauriMock';
+import { IDLE_CORE } from '$lib/testing/idleCore';
+import { OVERLAY_GEOMETRY_KEY } from '$lib/overlayGeometry';
 import type { Caption, StatusUpdate } from '$lib/types';
 
 // The stores read their preferences as they load, and in this pool storage outlives a test
@@ -168,6 +170,20 @@ it('translates into English with local Whisper, with no original line and no sec
 	await screen.findByRole('button', { name: 'Start translating' });
 	// The saved setup still has the second language for the next cloud engine.
 	expect(get(options).secondTargetLanguage).toBe('de');
+});
+
+// F2: the overlay reopens where it was last placed on these displays, as the page mounts and
+// through the command that clamps it to a display that is there.
+it('reopens the overlay where it was last placed on this display layout', async () => {
+	const placement = { x: 48, y: 880, width: 1824, height: 160 };
+	const layout = String(IDLE_CORE.display_layout({}));
+	localStorage.setItem(OVERLAY_GEOMETRY_KEY, JSON.stringify([{ layout, placement }]));
+	try {
+		render(Page);
+		await waitFor(() => expect(core.callsTo('set_overlay_placement')).toEqual([{ placement }]));
+	} finally {
+		localStorage.removeItem(OVERLAY_GEOMETRY_KEY);
+	}
 });
 
 // D19: the monitor is mounted once while a session runs and again after it, and each mount

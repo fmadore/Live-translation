@@ -3,11 +3,31 @@ import { normalizeStartOptions } from './startOptions';
 import type { StartOptions } from './types';
 
 export const PROFILES_KEY = 'meeting.profiles';
+/** The overlay window's rectangle in physical pixels, as `placement.rs` reads and sets it. */
 export interface Placement {
 	x: number;
 	y: number;
 	width: number;
 	height: number;
+}
+
+const isInteger = (value: unknown): value is number => Number.isSafeInteger(value);
+
+/** A stored rectangle, or null when it is not one the core would accept: whole pixels, a
+ *  position that fits its `i32` and a size it can clamp. Shared by profiles and the placement
+ *  remembered per display layout, both of which come out of storage that can hold anything. */
+export function decodePlacement(value: unknown): Placement | null {
+	if (!value || typeof value !== 'object') return null;
+	const { x, y, width, height } = value as Record<string, unknown>;
+	if (!isInteger(x) || !isInteger(y) || !isInteger(width) || !isInteger(height)) return null;
+	const valid =
+		Math.abs(x) <= 2147483647 &&
+		Math.abs(y) <= 2147483647 &&
+		width > 0 &&
+		height > 0 &&
+		width <= 16384 &&
+		height <= 16384;
+	return valid ? { x, y, width, height } : null;
 }
 export interface MeetingProfile {
 	id: string;
@@ -31,23 +51,13 @@ export function decodeProfiles(raw: string | null): MeetingProfile[] {
 			)
 				return [];
 			ids.add(p.id);
-			const g = p.placement;
-			const valid =
-				g &&
-				['x', 'y', 'width', 'height'].every((k) => Number.isSafeInteger(g[k])) &&
-				Math.abs(g.x) <= 2147483647 &&
-				Math.abs(g.y) <= 2147483647 &&
-				g.width > 0 &&
-				g.height > 0 &&
-				g.width <= 16384 &&
-				g.height <= 16384;
 			return [
 				{
 					id: p.id,
 					name: p.name.trim().slice(0, 80),
 					options: normalizeStartOptions(p.options),
 					appearance: normalizeAppearance(p.appearance),
-					placement: valid ? { x: g.x, y: g.y, width: g.width, height: g.height } : null
+					placement: decodePlacement(p.placement)
 				}
 			];
 		});
