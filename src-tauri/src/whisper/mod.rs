@@ -1,5 +1,6 @@
-//! Multilingual, CPU-only local transcription. Capture, disk ingestion and inference run
-//! independently; normal Stop closes input then drains every accepted frame.
+//! Multilingual, CPU-only local transcription, or translation into English with Whisper's
+//! translate task. Capture, disk ingestion and inference run independently; normal Stop closes
+//! input then drains every accepted frame.
 pub mod cpu;
 mod language;
 pub mod models;
@@ -119,6 +120,8 @@ pub struct LocalSession {
     pub app: AppHandle,
     pub model: Arc<LoadedModel>,
     pub language: Option<String>,
+    /// Write English, whatever is spoken, rather than what was said in its own language.
+    pub translate: bool,
     pub origin: Origin,
     pub input: Receiver<TimedChunk>,
     pub spool: Arc<Spool>,
@@ -132,6 +135,7 @@ pub async fn run(config: LocalSession) {
         app,
         model,
         language,
+        translate,
         origin,
         mut input,
         spool,
@@ -193,6 +197,7 @@ pub async fn run(config: LocalSession) {
         transcribe(
             &model,
             language.as_deref(),
+            translate,
             &worker_spool,
             &worker_abort,
             |text, start, end, turn| {
@@ -201,6 +206,8 @@ pub async fn run(config: LocalSession) {
                     Caption {
                         turn_id: turn,
                         text,
+                        // Translating as well: the translate task returns English and no
+                        // transcription of what was said, so there is no original to show.
                         source_text: "",
                         final_: true,
                         origin,
@@ -247,6 +254,7 @@ pub async fn run(config: LocalSession) {
 fn transcribe(
     model: &LoadedModel,
     language: Option<&str>,
+    translate: bool,
     spool: &Spool,
     abort: &CancellationToken,
     mut emit: impl FnMut(&str, u64, u64, u64),
@@ -263,19 +271,7 @@ fn transcribe(
         if window.speech {
             let duration_ms = window.samples.len() as u64 / 16;
             let spoken = languages.for_window(duration_ms);
-            let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-            params.set_language(spoken);
-            // `detect_language=true` asks whisper.cpp to return after detection. Leaving it
-            // false with language=None performs detection followed by transcription.
-            params.set_translate(false);
-            params.set_no_context(true);
-            params.set_n_threads(threads);
-            params.set_print_progress(false);
-            params.set_print_realtime(false);
-            params.set_print_timestamps(false);
-            params.set_print_special(false);
-            params.set_suppress_blank(true);
-            params.set_suppress_nst(true);
+            let mut params = decode_params(spoken, translate, threads);
             // whisper-rs 0.16's closure helper has an incorrect user-data cast and leaks its
             // allocation. Use the C callback with a borrowed, thread-safe token instead.
             // SAFETY: full() is synchronous; abort outlives the entire call, and the callback
@@ -318,6 +314,28 @@ fn transcribe(
         Ok(())
     };
     pump(spool, abort, IDLE, process)
+}
+
+/// How one window is decoded. `spoken` is the language it was spoken in, or `None` to detect
+/// it; `translate` turns the task from transcription into translation into English. Translating
+/// still starts from the spoken language — it is what Whisper translates from — so detection
+/// and the operator's choice mean the same either way, and `Languages` keeps learning from what
+/// whisper.cpp detected.
+fn decode_params(spoken: Option<&str>, translate: bool, threads: i32) -> FullParams<'_, '_> {
+    let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
+    params.set_language(spoken);
+    // `detect_language=true` asks whisper.cpp to return after detection. Leaving it false with
+    // language=None performs detection followed by the task.
+    params.set_translate(translate);
+    params.set_no_context(true);
+    params.set_n_threads(threads);
+    params.set_print_progress(false);
+    params.set_print_realtime(false);
+    params.set_print_timestamps(false);
+    params.set_print_special(false);
+    params.set_suppress_blank(true);
+    params.set_suppress_nst(true);
+    params
 }
 
 /// Feed spooled audio through the segmenter to `process` until input ends or is discarded.
@@ -403,6 +421,20 @@ mod tests {
                 [1, 2, 4, 8, 12, 16].map(inference_threads),
                 [1, 1, 3, 7, 8, 8]
             );
+        }
+    }
+
+    #[test]
+    fn the_task_reaches_whisper_with_the_spoken_language_still_set() {
+        // whisper-rs exposes no getters; its Debug output shows the native parameters.
+        for translate in [false, true] {
+            let params = format!("{:?}", decode_params(Some("fr"), translate, 4));
+            assert!(
+                params.contains(&format!("translate: {translate},")),
+                "{params}"
+            );
+            assert!(params.contains("n_threads: 4,"), "{params}");
+            assert!(params.contains("detect_language: false,"), "{params}");
         }
     }
 
@@ -533,8 +565,8 @@ mod tests {
 
     /// Explicit opt-in: downloads the 31 MiB pinned model (or takes it from CI's cache), then
     /// exercises the production spool, segmentation, inference and EOF-draining path against
-    /// both bundled fixtures. CI runs this on native x64 and ARM64, without a GPU, microphone
-    /// or provider key.
+    /// both bundled fixtures, and translates the French one into English with its language
+    /// detected. CI runs this on native x64 and ARM64, without a GPU, microphone or provider key.
     #[tokio::test]
     #[ignore = "downloads a Whisper model; run with --ignored local_whisper_smoke"]
     async fn local_whisper_smoke() {
@@ -545,9 +577,11 @@ mod tests {
         let manager = ModelManager::default();
         smoke_model(&manager, &dir).await;
         let model = load_lease(manager.lease(&dir, ModelId::Tiny).unwrap()).unwrap();
-        for (fixture, language, expected) in [
-            ("rehearsal-en.wav", None, "caption"),
-            ("rehearsal-fr.wav", Some("fr"), "public"),
+        for (fixture, language, translate, expected) in [
+            ("rehearsal-en.wav", None, false, "caption"),
+            ("rehearsal-fr.wav", Some("fr"), false, "public"),
+            // Tiny translates poorly — "This is a recording of repetition…" — but in English.
+            ("rehearsal-fr.wav", None, true, "recording"),
         ] {
             let samples = crate::audio::fixture::load_fixture(
                 &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -579,6 +613,7 @@ mod tests {
             transcribe(
                 &model,
                 language,
+                translate,
                 &spool,
                 &CancellationToken::new(),
                 |caption, start, end, _| {

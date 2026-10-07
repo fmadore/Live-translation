@@ -98,7 +98,7 @@ pub(super) struct SessionBuilder<'a> {
 
 impl SessionBuilder<'_> {
     pub(super) fn add_source(&mut self, origin: Origin) -> Result<()> {
-        if self.options.provider == Provider::Whisper {
+        if self.options.provider.is_local_whisper() {
             return self.add_local_source(origin);
         }
         let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
@@ -176,6 +176,8 @@ impl SessionBuilder<'_> {
                 app: self.app.clone(),
                 model,
                 language: self.options.spoken_language.clone(),
+                // The only difference between the two Whisper providers.
+                translate: self.options.provider.can_translate(),
                 origin,
                 input,
                 spool,
