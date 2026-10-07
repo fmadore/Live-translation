@@ -149,13 +149,28 @@ impl RealtimeProtocol for MistralClient {
     }
 }
 
+/// Wording that marks a failure inside Mistral's backend rather than in the request: gRPC's
+/// UNAVAILABLE and DEADLINE_EXCEEDED, and a connection reset between its services. Seen live
+/// on 7 October 2026 as code 3803, "gRPC connection error: <AioRpcError … StatusCode.UNAVAILABLE
+/// … Connection reset by peer …>"; a new session reaches a backend that is up. Specific on
+/// purpose: a bare "unavailable" could also describe a model the key cannot use.
+const TRANSIENT_BACKEND: [&str; 5] = [
+    "statuscode.unavailable",
+    "grpc_status:14",
+    "statuscode.deadline_exceeded",
+    "grpc connection error",
+    "connection reset by peer",
+];
+
 /// Whether an `error` event is one a new session can get past. The official SDK types it as
 /// `{ message, code }`: `message` a string or an object, `code` an integer it calls an
 /// internal code for debugging. Codes in HTTP's transient range (timeout, rate limit, server
 /// errors) reconnect, as do the transient `type`/`code` names Mistral's HTTP API uses, should
 /// `message` be such an object. Everything else — authentication, permission, a bad request
 /// or model, an exhausted quota, an unknown code — stays fatal, so a persistent failure
-/// reports itself instead of reconnecting in a loop.
+/// reports itself instead of reconnecting in a loop. One exception by wording: Mistral's own
+/// backend failing to reach an internal service, which it reports under an internal code with
+/// the gRPC failure as the message (`TRANSIENT_BACKEND`).
 fn recoverable(error: &serde_json::Value) -> bool {
     let code = error
         .get("code")
@@ -168,12 +183,18 @@ fn recoverable(error: &serde_json::Value) -> bool {
         .collect();
     let text = message.map(|message| message.to_string().to_lowercase());
     // A 429 is also how an exhausted quota or plan limit is reported; no reconnect fixes that.
-    if text.is_some_and(|text| {
+    if text.as_deref().is_some_and(|text| {
         ["quota", "billing", "payment", "credit"]
             .iter()
             .any(|w| text.contains(w))
     }) {
         return false;
+    }
+    if text
+        .as_deref()
+        .is_some_and(|text| TRANSIENT_BACKEND.iter().any(|w| text.contains(w)))
+    {
+        return true;
     }
     matches!(code, Some(408 | 429 | 500 | 502 | 503 | 504))
         || names.iter().any(|name| {
@@ -311,6 +332,24 @@ mod tests {
             (
                 r#"{"message":{"type":"server_error","detail":"retry"},"code":3000}"#,
                 true,
+            ),
+            // As Mistral sent it on 7 October 2026, mid-session.
+            (
+                concat!(
+                    r#"{"code":3803,"message":"gRPC connection error: <AioRpcError of RPC that "#,
+                    r#"terminated with:\n\tstatus = StatusCode.UNAVAILABLE\n\tdetails = \"failed "#,
+                    r#"to connect to all addresses; last error: UNAVAILABLE: "#,
+                    r#"ipv4:10.235.138.223:50052: recvmsg:Connection reset by peer\"\n\t"#,
+                    r#"debug_error_string = \"UNKNOWN:Error received from peer {grpc_status:14, "#,
+                    r#"grpc_message:\"failed to connect to all addresses; last error: "#,
+                    r#"UNAVAILABLE: ipv4:10.235.138.223:50052: recvmsg:Connection reset by "#,
+                    r#"peer\"}\"\n>"}"#
+                ),
+                true,
+            ),
+            (
+                r#"{"message":"Model voxtral-mini-transcribe is unavailable for this key","code":3001}"#,
+                false,
             ),
             (r#"{"message":"Monthly quota exceeded","code":429}"#, false),
             (r#"{"message":"Unauthorized","code":401}"#, false),
