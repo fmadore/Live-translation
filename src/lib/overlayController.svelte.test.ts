@@ -3,9 +3,11 @@
 // displays. What is checked is what the core is asked to do and what ends up in storage.
 
 import { afterEach, beforeEach, expect, it } from 'vitest';
+import { get } from 'svelte/store';
 import { mockTauri, type TauriMock } from './testing/tauriMock';
 import { createOverlayController } from './overlayController.svelte';
 import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
+import { overlayPlaced } from './preferences';
 import type { Placement } from './profiles';
 
 const LAPTOP = '0,0 2560x1600 150%';
@@ -24,6 +26,7 @@ const store = (value: unknown) => localStorage.setItem(OVERLAY_GEOMETRY_KEY, JSO
 
 beforeEach(() => {
 	localStorage.removeItem(OVERLAY_GEOMETRY_KEY);
+	overlayPlaced.set(false);
 	rect = { ...created };
 	layout = ROOM;
 	core = mockTauri();
@@ -44,10 +47,13 @@ it('remembers the placement under the display layout when the operator presses D
 	// Entering move mode is not a placement.
 	expect(core.callsTo('get_overlay_placement')).toHaveLength(0);
 	expect(stored()).toBeNull();
+	expect(get(overlayPlaced)).toBe(false);
 	rect = strip; // dragged onto the projector
 	await overlay.toggleMoveOverlay();
 	expect(overlay.moveOverlay).toBe(false);
 	expect(stored()).toEqual([{ layout: ROOM, placement: strip }]);
+	// Done counts as placing it, as locking it from the overlay does.
+	expect(get(overlayPlaced)).toBe(true);
 });
 
 it('remembers a placement locked from the overlay, but not one Escape put back', async () => {

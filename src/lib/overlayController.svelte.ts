@@ -183,8 +183,12 @@ export function createOverlayController(port = api) {
 			statusMessage.set(asStatus(e));
 			return;
 		}
-		// Done: the region is where the operator wants it.
-		if (!next) await rememberPlacement();
+		// Done: the region is where the operator wants it, as surely as when it is locked from
+		// the overlay itself, so the preflight stops asking for it to be placed.
+		if (!next) {
+			overlayPlaced.set(true);
+			await rememberPlacement();
+		}
 	}
 
 	async function toggleOverlayVisible() {
