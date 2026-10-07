@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRecoveryCoordinator, RECOVERY_INTERVAL_MS, startRecoverySpool } from './recovery';
+import { describeError } from './errors';
+import { en } from './i18n/en';
+import {
+	createRecoveryCoordinator,
+	RECOVERY_INTERVAL_MS,
+	spoolFailure,
+	startRecoverySpool
+} from './recovery';
 import type { TranscriptLine } from './types';
 
 const lines: TranscriptLine[] = [{ id: 1, text: 'caption', sourceText: '', origin: 'microphone' }];
@@ -75,5 +82,31 @@ describe('recovery coordination', () => {
 		expect(io.writeRecovery).toHaveBeenCalledTimes(1);
 		expect(io.clearRecovery).toHaveBeenCalledTimes(1);
 		expect(onError).not.toHaveBeenCalled();
+	});
+});
+
+describe('a failed spool write', () => {
+	// The structure survives, so the status line words it in whichever language is showing.
+	it('passes on what the core reported', async () => {
+		vi.useFakeTimers();
+		const io = port();
+		const failure = { id: 'error.recoveryWrite', detail: 'C:\\recovery — disk full' };
+		io.writeRecovery.mockRejectedValueOnce(failure);
+		const onError = vi.fn();
+		const stop = startRecoverySpool(() => lines, onError, createRecoveryCoordinator(io));
+		await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+		stop();
+		expect(onError).toHaveBeenCalledWith(failure);
+		expect(spoolFailure(failure)).toBe(failure);
+	});
+
+	it('is still reported as the spool’s when something else stopped it', () => {
+		expect(spoolFailure(new Error('IPC closed'))).toEqual({
+			id: 'error.recoveryWrite',
+			detail: 'IPC closed'
+		});
+		expect(describeError(spoolFailure('IPC closed'), en)).toBe(
+			'The recovery copy could not be written (IPC closed)'
+		);
 	});
 });

@@ -741,8 +741,13 @@ export const fr: Messages = {
 		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',
 		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
 		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
+		operatorWindow: 'La fenêtre principale n’a pas répondu',
 		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',
 		transcriptWrite: 'La transcription n’a pas pu être écrite',
+		recoveryWrite: 'La copie de récupération n’a pas pu être écrite',
+		recoveryRead: 'La copie de récupération de votre dernière session n’a pas pu être lue',
+		recoveryDelete: 'La copie de récupération n’a pas pu être supprimée',
+		historyStorage: 'Le dossier de l’historique n’a pu être ni lu ni modifié',
 		taskFailed: 'Une tâche en arrière-plan s’est arrêtée de façon inattendue',
 		micStream:
 			'Le microphone a cessé d’envoyer de l’audio. Vérifiez la connexion dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',
@@ -753,8 +758,6 @@ export const fr: Messages = {
 		providerRejected:
 			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
 		providerStopped: 'Le fournisseur a mis fin à la session',
-		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours',
-		/** Front-end only: the recovery spool is written from the operator window. */
-		recoveryWrite: (detail: string) => `La copie de récupération n’a pas pu être écrite : ${detail}`
+		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours'
 	}
 };

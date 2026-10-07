@@ -1,6 +1,7 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { decodeRecovery, readLine } from './document';
+import { asStatus, type AppError } from './errors';
 import { persistedFlag } from './persisted';
 import { api } from './tauri';
 import {
@@ -14,7 +15,9 @@ export const HISTORY_ENABLED_KEY = 'transcript.historyEnabled';
 // Read as this module loads, so it goes through `persisted.ts`: storage that refuses access
 // would otherwise throw at import and leave the operator window blank.
 export const historyEnabled = persistedFlag(HISTORY_ENABLED_KEY);
-export const historyError = writable('');
+/** The last save that failed, kept structured like the status line's so the History tab words
+ *  it in whichever language is showing (`describeError`); empty once saving works again. */
+export const historyError = writable<string | AppError>('');
 export const historyRevision = writable(0);
 
 export interface SavedSession {
@@ -418,7 +421,7 @@ export function createHistoryCoordinator(
 export const sessionHistory = createHistoryCoordinator(
 	api,
 	() => get(historyEnabled),
-	(error) => historyError.set(String(error)),
+	(error) => historyError.set(asStatus(error)),
 	(failed) => {
 		if (!failed) historyError.set('');
 		historyRevision.update((n) => n + 1);

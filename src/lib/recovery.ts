@@ -1,4 +1,5 @@
 import { encodeRecovery, newestLineId } from './document';
+import { asStatus, type AppError } from './errors';
 import { api } from './tauri';
 import type { StoredRecovery, TranscriptLine } from './types';
 
@@ -50,6 +51,14 @@ export const recovery = createRecoveryCoordinator({
 });
 
 export const RECOVERY_INTERVAL_MS = 8000;
+
+/** A failed spool write, in the shape the status line holds. The core names its own failure;
+ *  anything else that stopped the write is still reported as the spool's, with what was thrown
+ *  as the detail, so the operator learns what stopped rather than only that something did. */
+export function spoolFailure(error: unknown): string | AppError {
+	const status = asStatus(error);
+	return typeof status === 'string' ? { id: 'error.recoveryWrite', detail: status } : status;
+}
 
 /** Scheduling is separate from the queue so unmounting/re-enabling cannot create a
  * second writer. The queue also serves Save, Clear, Disable, Restore and Quit. */

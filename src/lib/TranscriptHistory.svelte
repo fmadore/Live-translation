@@ -8,6 +8,7 @@
 	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
+	import { asStatus, describeError, type AppError } from './errors';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
 	import {
 		createHistoryCache,
@@ -36,7 +37,9 @@
 	const cache = createHistoryCache();
 	let selectedId = $state('');
 	let busy = $state(false);
-	let error = $state('');
+	// Kept as caught and worded where it is shown, so the core's failures read in the interface
+	// language rather than as "[object Object]".
+	let error = $state.raw<string | AppError>('');
 	let notice = $state('');
 	let confirmDelete = $state('');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
@@ -63,7 +66,7 @@
 			await refresh();
 			notice = $t.usability.titleSaved;
 		} catch (e) {
-			error = String(e);
+			error = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -80,7 +83,7 @@
 			sessions = cache.apply(listing);
 			error = '';
 		} catch (e) {
-			if (current === request) error = String(e);
+			if (current === request) error = asStatus(e);
 		}
 	}
 	// A recording session writes history after every finalized line, and each write bumps the
@@ -148,7 +151,7 @@
 				if (path) notice = `${$t.transcript.savedTo} ${path}`;
 			}
 		} catch (e) {
-			error = String(e);
+			error = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -167,7 +170,7 @@
 			confirmDelete = '';
 			await refresh();
 		} catch (e) {
-			error = String(e);
+			error = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -184,7 +187,7 @@
 	{#if !desktop}<p class="hint">{$t.design.desktopOnly}</p>{/if}
 
 	{#if $historyError}
-		<p role="alert">{$t.history.failed} {$historyError}</p>
+		<p role="alert">{$t.history.failed} {describeError($historyError, $t)}</p>
 		<ToolButton disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}
 			>{$t.history.retry}</ToolButton
 		>
@@ -318,7 +321,7 @@
 			{/if}
 		</div>
 	</div>
-	{#if error}<p role="alert">{$t.history.failed} {error}</p>{/if}
+	{#if error}<p role="alert">{$t.history.failed} {describeError(error, $t)}</p>{/if}
 	<p class="notice" role="status">{notice}</p>
 </section>
 
