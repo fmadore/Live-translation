@@ -1,8 +1,9 @@
 name: CI
 
 # Checks on every push/PR: front-end format/type-check/lint/tests/build, Rust format/lint/tests,
-# with coverage reported in the job summaries. (release.yml builds the installers; this keeps
-# day-to-day changes honest. audit.yml runs the full dependency audit weekly.)
+# with coverage reported in the job summaries, then the interface in Edge and the app end to end
+# on Windows. (release.yml builds the installers; this keeps day-to-day changes honest.
+# audit.yml runs the full dependency audit weekly.)
 
 on:
   push:
@@ -232,6 +233,106 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # A renamed test would match nothing and "pass"; insist that it actually ran.
           if (-not ($output -match '1 passed')) { throw 'The CPU gate test did not run' }
+
+  # The operator window's computed styles and horizontal overflow (`e2e/style`), against the
+  # production bundle in Edge: the engine WebView2 embeds, and already on the runner image, so
+  # Playwright downloads no browser. Snapshots are text and never written on CI.
+  styles:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: production build
+        run: npm run build
+
+      - name: computed styles and overflow (Playwright, Edge)
+        run: npm run test:style
+
+      - name: Upload failure traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: style-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The real app end to end (`e2e/native`): a debug build with its own identifier, driven over
+  # WebView2's DevTools port. Its own job rather than steps on the Windows Rust lane, which it
+  # would have made the slowest: `tauri build` compiles the app with `custom-protocol`, which
+  # the test builds do not, so little of that lane's work carries over anyway.
+  e2e:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # Embedded in the exe; the suite's build step does not run `beforeBuildCommand`.
+      - name: production build
+        run: npm run build
+
+      # As in the rust job.
+      - name: Configure native Whisper compiler
+        shell: pwsh
+        run: |
+          "CC=clang-cl" >> $env:GITHUB_ENV
+          "CXX=clang-cl" >> $env:GITHUB_ENV
+          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
+          "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          # The rust job's prefix, so bumping it there for `.cargo/config.toml` clears this one
+          # too; the job name keeps the two caches apart.
+          prefix-key: whisper-cpu-${{ runner.arch }}-v2
+          cache-on-failure: true
+
+      # The Tiny model the smoke test caches, when there is one: the Whisper spec copies it in
+      # rather than downloading it through the interface. Restored only; the rust job saves it.
+      - name: Restore the smoke-test Whisper model
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/whisper-smoke-model
+          key: whisper-smoke-${{ runner.os }}-${{ hashFiles('src-tauri/src/whisper/models.rs') }}
+
+      - name: end to end (Playwright over WebView2)
+        timeout-minutes: 30
+        env:
+          WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
+        run: npm run test:e2e
+
+      # The app's log, a trace of both windows and screenshots, for a failed test.
+      - name: Upload failure results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
 
   workflow-lint:
     runs-on: ubuntu-latest
