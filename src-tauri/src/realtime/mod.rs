@@ -4,11 +4,13 @@
 //!
 //! `run_session` is the loop; `policy` decides what follows each connection (pure, so pause,
 //! handover and backoff are unit-tested), and `socket` opens, pumps and closes one connection.
+//! `wire` is for the providers: the pieces of a protocol more than one of them speaks.
 
 mod policy;
 mod socket;
 #[cfg(test)]
 mod tests;
+mod wire;
 
 use std::time::Duration;
 
@@ -25,6 +27,7 @@ use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use policy::{After, Reconnect, RunEnd};
 use socket::SocketIo;
+pub use wire::bearer_request;
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -414,7 +417,20 @@ struct Lane {
 /// of emitting them, so each wire format can be tested without an `AppHandle` or a socket.
 #[cfg(test)]
 pub(crate) mod test_support {
+    use tokio_tungstenite::tungstenite::handshake::client::generate_request;
+
     use super::*;
+
+    /// A provider's handshake as its server receives it: the URI the client dials, then the
+    /// request byte for byte, with the per-connection random `Sec-WebSocket-Key` masked. The
+    /// providers pin theirs with it, so a request builder they share cannot change what any one
+    /// of them sends.
+    pub fn handshake(request: Request) -> String {
+        let uri = request.uri().to_string();
+        let (bytes, key) = generate_request(request).expect("a well-formed handshake");
+        let wire = String::from_utf8(bytes).expect("an ASCII handshake");
+        format!("{uri}\n{}", wire.replace(&key, "<key>"))
+    }
 
     /// One caption event as the runner would have emitted it.
     #[derive(Debug, PartialEq, Eq)]

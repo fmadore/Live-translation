@@ -4,14 +4,13 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    bearer_request, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
+    TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -48,14 +47,7 @@ impl RealtimeProtocol for MistralConfig {
     }
 
     fn connect_request(&self) -> Result<Request> {
-        let mut request = self
-            .ws_url()
-            .into_client_request()
-            .context("failed to build Mistral request")?;
-        let bearer = HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-            .context("Mistral API key is not a valid header value")?;
-        request.headers_mut().insert(AUTHORIZATION, bearer);
-        Ok(request)
+        bearer_request(Self::NAME, &self.ws_url(), &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -186,17 +178,52 @@ fn recoverable(error: &serde_json::Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{Emitted, Harness};
+    use crate::realtime::test_support::{handshake, Emitted, Harness};
 
-    fn harness() -> Harness<MistralConfig> {
-        Harness::new(MistralConfig {
-            api_key: String::new(),
+    fn config(api_key: &str) -> MistralConfig {
+        MistralConfig {
+            api_key: api_key.to_string(),
             model: DEFAULT_MISTRAL_MODEL.to_string(),
             host: DEFAULT_MISTRAL_HOST.to_string(),
             target_streaming_delay_ms: DEFAULT_TARGET_STREAMING_DELAY_MS,
             origin: Origin::Microphone,
             received_delta: false,
-        })
+        }
+    }
+
+    fn harness() -> Harness<MistralConfig> {
+        Harness::new(config(""))
+    }
+
+    #[test]
+    fn the_handshake_authenticates_with_a_bearer_header() {
+        let request = config("mistral-test").connect_request().unwrap();
+        assert_eq!(
+            handshake(request),
+            "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602\n\
+             GET /v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602 HTTP/1.1\r\n\
+             Host: api.mistral.ai\r\n\
+             Connection: Upgrade\r\n\
+             Upgrade: websocket\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             Sec-WebSocket-Key: <key>\r\n\
+             authorization: Bearer mistral-test\r\n\
+             \r\n"
+        );
+    }
+
+    /// The operator reads these as the reconnecting status's detail.
+    #[test]
+    fn a_request_that_cannot_be_built_says_which_part_failed() {
+        let error = config("bad\nkey").connect_request().unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Mistral API key is not a valid header value"
+        );
+        let mut config = config("mistral-test");
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(error.to_string(), "failed to build Mistral request");
     }
 
     #[test]

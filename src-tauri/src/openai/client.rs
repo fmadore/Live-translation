@@ -9,14 +9,13 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    bearer_request, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
+    TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -58,14 +57,7 @@ impl RealtimeProtocol for OpenAiConfig {
 
     fn connect_request(&self) -> Result<Request> {
         // OpenAI authenticates the WebSocket with an Authorization header, not a query param.
-        let mut request = self
-            .ws_url()
-            .into_client_request()
-            .context("failed to build OpenAI request")?;
-        let bearer = HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-            .context("OpenAI API key is not a valid header value")?;
-        request.headers_mut().insert(AUTHORIZATION, bearer);
-        Ok(request)
+        bearer_request(Self::NAME, &self.ws_url(), &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -184,17 +176,52 @@ fn error_control(error: &serde_json::Value) -> MessageControl {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{Emitted, Harness};
+    use crate::realtime::test_support::{handshake, Emitted, Harness};
 
-    fn harness() -> Harness<OpenAiConfig> {
-        Harness::new(OpenAiConfig {
-            api_key: String::new(),
+    fn config(api_key: &str) -> OpenAiConfig {
+        OpenAiConfig {
+            api_key: api_key.to_string(),
             model: DEFAULT_OPENAI_TRANSLATE_MODEL.to_string(),
             transcribe_model: DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_OPENAI_HOST.to_string(),
             target_language_code: "en".to_string(),
             origin: Origin::System,
-        })
+        }
+    }
+
+    fn harness() -> Harness<OpenAiConfig> {
+        Harness::new(config(""))
+    }
+
+    #[test]
+    fn the_handshake_authenticates_with_a_bearer_header() {
+        let request = config("sk-test").connect_request().unwrap();
+        assert_eq!(
+            handshake(request),
+            "wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate\n\
+             GET /v1/realtime/translations?model=gpt-realtime-translate HTTP/1.1\r\n\
+             Host: api.openai.com\r\n\
+             Connection: Upgrade\r\n\
+             Upgrade: websocket\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             Sec-WebSocket-Key: <key>\r\n\
+             authorization: Bearer sk-test\r\n\
+             \r\n"
+        );
+    }
+
+    /// The operator reads these as the reconnecting status's detail.
+    #[test]
+    fn a_request_that_cannot_be_built_says_which_part_failed() {
+        let error = config("sk-\ntest").connect_request().unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "OpenAI API key is not a valid header value"
+        );
+        let mut config = config("sk-test");
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(error.to_string(), "failed to build OpenAI request");
     }
 
     #[test]
