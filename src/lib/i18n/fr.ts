@@ -193,10 +193,10 @@ export const fr: Messages = {
 			'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
 		hint: 'Les modèles prennent en charge 99 langues. La précision et la vitesse varient selon la langue et l’ordinateur.',
 		processing: 'Finalisation de la transcription…',
-		pending: 'Son en attente de transcription',
+		pending: 'Son en attente de traitement',
 		discard: 'Abandonner le son restant',
 		discardConfirm:
-			'Abandonner le son restant ? Les sous-titres déjà transcrits seront conservés, mais la transcription sera incomplète.',
+			'Abandonner le son restant ? Les sous-titres déjà produits seront conservés, mais la transcription sera incomplète.',
 		cpuUnsupported: (missing: string) =>
 			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
 		translateTitle: 'Traduction locale vers l’anglais',
@@ -694,7 +694,7 @@ export const fr: Messages = {
 			keep: 'Continuer le sous-titrage',
 			stop: 'Arrêter et fermer',
 			whisperPending: (seconds: number) =>
-				`Whisper local doit encore transcrire ${seconds} s de son. La fermeture lui laisse quelques secondes, puis abandonne le reste ; la transcription sera donc incomplète.`
+				`Whisper local doit encore traiter ${seconds} s de son. La fermeture lui laisse quelques secondes, puis abandonne le reste ; la transcription sera donc incomplète.`
 		},
 		trayHide: {
 			title: 'Live Translation va rester actif',

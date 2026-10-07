@@ -185,10 +185,10 @@ export const en = {
 			'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
 		hint: 'Models support 99 languages. Accuracy and processing speed vary by language and computer.',
 		processing: 'Finishing the transcript…',
-		pending: 'Audio waiting to be transcribed',
+		pending: 'Audio waiting to be processed',
 		discard: 'Discard remaining audio',
 		discardConfirm:
-			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.',
+			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>
@@ -679,7 +679,7 @@ export const en = {
 			keep: 'Keep captioning',
 			stop: 'Stop and close',
 			whisperPending: (seconds: number) =>
-				`Local Whisper still has ${seconds} s of audio to transcribe. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
+				`Local Whisper still has ${seconds} s of audio to process. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
 		},
 		trayHide: {
 			title: 'Live Translation will keep running',

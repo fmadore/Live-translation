@@ -6,7 +6,8 @@
 
 Live Translation & Subtitles is a Windows desktop application with three kinds of operation:
 
-- local multilingual speech transcription using Whisper on the user’s computer;
+- local multilingual speech transcription, or translation into English, using Whisper on the
+  user’s computer;
 - optional cloud speech captioning or translation through a provider selected and configured
   by the user: Google Gemini, OpenAI, or Mistral; and
 - a scripted demonstration of the caption display, overlay, timer, level meter, transcript
@@ -47,7 +48,8 @@ information. While downloading, the file is held as `<model>.part` in the models
 deleted if the download fails or is cancelled, or at the start of the next download if the app
 was closed mid-way. The app verifies model size and SHA-256 before installation and before use.
 Models remain under the application's local-data `whisper-models` folder until removed through
-the model controls. Once installed, local transcription needs no network connection.
+the model controls. Once installed, local transcription and translation need no network
+connection.
 
 ## Captions and transcripts
 
@@ -157,7 +159,8 @@ with that provider. Their terms and privacy policies apply:
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
 - [Mistral AI Privacy Policy](https://mistral.ai/terms/#privacy-policy)
 
-The built-in demonstration and local Whisper transcription contact none of these speech services.
+The built-in demonstration and local Whisper, transcribing or translating, contact none of these
+speech services.
 Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
 
 ## Children

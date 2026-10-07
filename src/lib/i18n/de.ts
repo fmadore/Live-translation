@@ -191,10 +191,10 @@ export const de: Messages = {
 			'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
 		hint: 'Die Modelle unterstützen 99 Sprachen. Genauigkeit und Geschwindigkeit hängen von Sprache und Computer ab.',
 		processing: 'Transkript wird fertiggestellt…',
-		pending: 'Noch zu transkribierendes Audio',
+		pending: 'Noch zu verarbeitendes Audio',
 		discard: 'Restliches Audio verwerfen',
 		discardConfirm:
-			'Restliches Audio verwerfen? Bereits transkribierte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
+			'Restliches Audio verwerfen? Bereits erstellte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
 		cpuUnsupported: (missing: string) =>
 			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
 		translateTitle: 'Lokale Übersetzung ins Englische',
@@ -691,7 +691,7 @@ export const de: Messages = {
 			keep: 'Weiter untertiteln',
 			stop: 'Beenden und schließen',
 			whisperPending: (seconds: number) =>
-				`Lokales Whisper muss noch ${seconds} s Audio transkribieren. Beim Schließen bekommt es dafür einige Sekunden, danach wird der Rest verworfen und das Transkript bleibt unvollständig.`
+				`Lokales Whisper muss noch ${seconds} s Audio verarbeiten. Beim Schließen bekommt es dafür einige Sekunden, danach wird der Rest verworfen und das Transkript bleibt unvollständig.`
 		},
 		trayHide: {
 			title: 'Live Translation läuft weiter',
