@@ -65,7 +65,9 @@ its CI, static-analysis and coverage items in
   other load every build was erratic, because ggml's workers busy-wait.
 
 Still needs Windows hardware or live providers: Gemini Translate's answer to `audioStreamEnd`;
-an OpenAI session past 60 minutes; Mistral's real `error` payloads; pong replies from every
+an OpenAI session past 60 minutes; Mistral's real `error` payloads (one seen on 7 October, in
+1.6.0: code 3803, a gRPC `UNAVAILABLE` inside Mistral's backend, which ended the session; it
+matched none of D1's transient rules, and now reconnects by its wording); pong replies from every
 provider; a live handover; an x64 PC without AVX2 (Whisper unavailable, demo selected); the
 ARM64 Store package (gate and speed on Base and Small); a model download behind a Windows
 proxy; quitting with a large backlog.
