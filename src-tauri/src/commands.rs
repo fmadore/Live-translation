@@ -81,7 +81,7 @@ pub async fn start_session(
 ) -> Result<(), AppError> {
     // Checked before anything is stopped or opened, and given its own sentence: "the session
     // could not be started" would not tell the operator that no retry can help on this PC.
-    if options.provider == Provider::Whisper {
+    if options.provider.is_local_whisper() {
         crate::whisper::cpu::ensure_supported()
             .map_err(|error| AppError::with(id::WHISPER_CPU, error))?;
     }

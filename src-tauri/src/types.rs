@@ -47,6 +47,7 @@ mod language_tests {
                 ("gemini", Provider::Gemini),
                 ("openai", Provider::OpenAi),
                 ("ondevice", Provider::OnDevice),
+                ("whisper-translate", Provider::WhisperTranslate),
             ] {
                 assert_eq!(
                     language.supported_by(provider),
@@ -112,6 +113,11 @@ pub enum Provider {
     /// Bundled deterministic demonstration. Keyless, offline, same-language only.
     OnDevice,
     Whisper,
+    /// Local Whisper with its translate task: the same pipeline, model and download, writing
+    /// English whatever is spoken. A separate variant for the reason the Gemini pair is: it
+    /// serves the other mode, so `can_translate` stays a plain function of the provider.
+    #[serde(rename = "whisper-translate")]
+    WhisperTranslate,
 }
 
 impl Provider {
@@ -124,21 +130,53 @@ impl Provider {
             | Provider::GeminiTranscribe
             | Provider::Mistral
             | Provider::OnDevice
-            | Provider::Whisper => 16_000,
+            | Provider::Whisper
+            | Provider::WhisperTranslate => 16_000,
         }
     }
 
     /// Whether a provider API key must be present before a session can start. The built-in
-    /// demonstration is the one path that works with no credential — which is what keeps
-    /// provider keys out of the app's *primary* functionality.
+    /// demonstration and local Whisper work with no credential — which is what keeps provider
+    /// keys out of the app's *primary* functionality.
     pub fn requires_api_key(self) -> bool {
-        !matches!(self, Provider::OnDevice | Provider::Whisper)
+        !(self == Provider::OnDevice || self.is_local_whisper())
     }
 
     /// Whether the backend can produce translated captions. The built-in demonstration is
-    /// same-language only.
+    /// same-language only, and Whisper's translate task writes English only.
     pub fn can_translate(self) -> bool {
-        matches!(self, Provider::Gemini | Provider::OpenAi)
+        matches!(
+            self,
+            Provider::Gemini | Provider::OpenAi | Provider::WhisperTranslate
+        )
+    }
+
+    /// Whether the session runs the local Whisper pipeline — model, CPU gate, spool, pending
+    /// audio — rather than a realtime client. Both Whisper tasks do; only the task differs.
+    pub fn is_local_whisper(self) -> bool {
+        matches!(self, Provider::Whisper | Provider::WhisperTranslate)
+    }
+}
+
+#[cfg(test)]
+mod provider_tests {
+    use super::*;
+
+    #[test]
+    fn both_whisper_tasks_run_locally_without_a_key_and_only_one_translates() {
+        for (provider, name) in [
+            (Provider::Whisper, "\"whisper\""),
+            (Provider::WhisperTranslate, "\"whisper-translate\""),
+        ] {
+            assert_eq!(serde_json::to_string(&provider).unwrap(), name);
+            assert_eq!(serde_json::from_str::<Provider>(name).unwrap(), provider);
+            assert!(provider.is_local_whisper());
+            assert!(!provider.requires_api_key());
+            assert_eq!(provider.input_sample_rate(), 16_000);
+        }
+        assert!(Provider::WhisperTranslate.can_translate());
+        assert!(!Provider::Whisper.can_translate());
+        assert!(!Provider::Gemini.is_local_whisper() && !Provider::OnDevice.is_local_whisper());
     }
 }
 

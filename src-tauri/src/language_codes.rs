@@ -353,6 +353,10 @@ impl TargetLanguage {
                 Self::En
                     | Self::Fr
             ),
+            Provider::WhisperTranslate => matches!(
+                self,
+                Self::En
+            ),
             Provider::Mistral | Provider::GeminiTranscribe | Provider::Whisper => true,
         }
     }

@@ -88,7 +88,7 @@ impl ProviderSettings {
                     .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS),
             },
             Provider::OnDevice => Self::OnDevice,
-            Provider::Whisper => Self::Whisper,
+            Provider::Whisper | Provider::WhisperTranslate => Self::Whisper,
         })
     }
 

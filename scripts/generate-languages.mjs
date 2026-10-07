@@ -33,10 +33,10 @@ ${codes.map((c) => `            Self::${variant(c)} => "${c}",`).join('\n')}
 
     pub fn supported_by(self, provider: Provider) -> bool {
         match provider {
-${['gemini', 'openai', 'ondevice']
+${['gemini', 'openai', 'ondevice', 'whisper-translate']
 	.map(
 		(p) =>
-			`            Provider::${{ gemini: 'Gemini', openai: 'OpenAi', ondevice: 'OnDevice' }[p]} => matches!(\n                self,\n                ${catalog.languages
+			`            Provider::${{ gemini: 'Gemini', openai: 'OpenAi', ondevice: 'OnDevice', 'whisper-translate': 'WhisperTranslate' }[p]} => matches!(\n                self,\n                ${catalog.languages
 				.filter((l) => l.providers.includes(p))
 				.map((l) => `Self::${variant(l.code)}`)
 				.join('\n                    | ')}\n            ),`
