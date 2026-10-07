@@ -85,9 +85,16 @@ pub async fn set_overlay_placement(app: AppHandle, placement: Placement) -> Resu
             height: area.size.height,
         },
     );
+    // Moved before it is sized. A window that lands on a display with another scale factor is
+    // rescaled by Windows to keep its logical size (WM_DPICHANGED), which would undo a size
+    // set beforehand — and a laptop at 150% beside a projector at 100% is the usual room. The
+    // rescale can shift the window as well, so it is placed again once it has its size.
+    let position = PhysicalPosition::new(safe.x, safe.y);
+    win.set_position(position)
+        .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
     win.set_size(PhysicalSize::new(safe.width, safe.height))
         .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
-    win.set_position(PhysicalPosition::new(safe.x, safe.y))
+    win.set_position(position)
         .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
     Ok(())
 }
