@@ -16,8 +16,9 @@ with `windows-11-arm` on the critical path.
 [#117](https://github.com/fmadore/Live-translation/pull/117). Batch 4 was merged in two parts:
 its CI, static-analysis and coverage items in
 [#118](https://github.com/fmadore/Live-translation/pull/118), and T4 and T5 in
-[#119](https://github.com/fmadore/Live-translation/pull/119). Batch 5 is implemented on
-`review/2026-10-06-batch5`. Batch 6, the features, waits for the maintainer to choose an order.
+[#119](https://github.com/fmadore/Live-translation/pull/119), and batch 5 in
+[#120](https://github.com/fmadore/Live-translation/pull/120). For batch 6 the maintainer chose
+F1 and F2, implemented on `review/2026-10-06-batch6`; F3 to F8 stay open.
 
 ## Implementation tracker — batches 1 and 2
 
@@ -267,6 +268,59 @@ aarch64 and x86_64 pass; `npm run test:style` 117 passed with every snapshot unc
 `npm run test:e2e` 2 passed in 1.4 min, and again after R10, whose quit controller the demo
 spec's close and Discard go through. Still needs a desktop run: a 24-bit microphone (D15);
 the new recovery and history sentences in all three languages.
+
+## Implementation tracker — batch 6
+
+The maintainer chose F1 and F2 on 7 October; F3 to F8 stay open.
+
+| Item | Change | Status |
+| --- | --- | --- |
+| F1 | `Provider::WhisperTranslate` (`whisper-translate`): a keyless, offline translation engine running the local Whisper pipeline with `set_translate(true)`. English is its only caption language and it has no second one. `is_local_whisper()` / `isLocalWhisper()` mark what runs the local pipeline; the subtitle-only branches keep `'whisper'`. The setup sheet offers it in translation mode with "Choose Small: Tiny and Base translate poorly" | Done; needs a check on x64 and with Small |
+| F2 | The overlay reopens where it was last placed, one placement per display layout (at most eight, least recently used dropped), in `overlay.geometry`. A new `display_layout` command names the layout from each monitor's position, size and scale. The placement is saved on Done, on the overlay's Lock or Enter and after a meeting profile places it, and restored once as the operator window mounts, always through `set_overlay_placement`'s clamp | Done; needs a mixed-DPI check |
+
+Found on the way:
+
+- `set_overlay_placement` sized the window, then moved it. Moving onto a display with another
+  scale factor sends `WM_DPICHANGED`, and tao resizes the window to keep its logical size, so a
+  placement on a 100% projector from a 150% laptop landed at two-thirds of its size; that
+  already affected meeting profiles. The window is now moved, sized, then moved again. Move
+  mode's Escape restore had the same order and the same fix.
+- Done in the operator window ended Move mode without marking the overlay placed, so the
+  preflight still said "Not placed yet" after the operator had placed it. Done now counts, like
+  the overlay's own Lock.
+- Whisper's translate task returns English and no source text, so `sourceText` is empty: the
+  overlay draws no original line even with original speech on, the live stage no source line,
+  the monitor hides "Include original", and exports with `original` are byte-identical to those
+  without. Whisper's subtitle captions already had this shape.
+- A second caption language saved for a cloud engine stays in the setup and is neither sent nor
+  counted with Whisper, as in subtitle mode. `providerDetectsLanguage` stays false for the
+  translation engine: the room reads English, so there is nothing to detect there.
+- whisper.cpp still detects the spoken language before translating, so the E2 rule holds.
+  Overlap trimming now compares English, where a rephrased overlap can repeat a phrase at a
+  window boundary; `local-whisper.md` says so.
+- The backlog row, the discard confirmation and the quit prompt said "transcribe" while
+  translating; they now say "process" in all three languages. The privacy policy names
+  translation into English and the remembered overlay placement; its effective date still
+  names 1.6.0 and moves at the next release.
+- The display-layout signature leaves out the work area, so moving the taskbar is not a new
+  layout. A projector whose scale changed between sessions gets a new signature: the most recent
+  placement is restored in physical pixels, so the strip covers the same pixels with larger
+  text, and placing it again saves the new layout.
+- The native e2e fixture gained `relaunch()`, which closes the app as the X does, waits for
+  WebView2 to release its profile and starts again on it; `placement.spec.ts` places the
+  overlay, relaunches and checks it reopened in place. CI has one monitor, so other layouts,
+  the cap and mixed DPI are unit-tested and listed for a manual check in `caption-layout.md`.
+- Left alone: whisper-rs 0.16's `set_language` leaks its C string, a few bytes per window;
+  the first two F1 commits fail `contract.test.ts` until the third adds the TypeScript provider.
+
+Verification, on Windows 11 ARM64: `npm test` 643 passed in 71 files (608 before); `npm run
+check` 0 errors and 0 warnings; `lint`, `knip`, `format:check`, `check:languages` and `build`
+pass; `cargo test` 218 passed, 4 ignored (210 before); `cargo fmt --check` and Clippy for
+aarch64 and x86_64 pass; `npm run test:style` 117 passed, with the four `idle-translation-*`
+snapshots updated for the new engine card; `npm run test:e2e` 3 passed in 2.0 min (demo,
+Whisper, placement). The smoke test's new case translates the French rehearsal with Tiny:
+French detected (p = 0.99), English out, as weak as Tiny is expected to be. Still needs: the
+smoke case on x64 (CI), Small on real speech, and a laptop at 150% with a projector at 100%.
 
 ## 1. Defects
 
