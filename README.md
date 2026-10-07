@@ -90,6 +90,7 @@ npm run knip
 npm run check:languages
 npm test
 npm run build
+npm run test:style
 cargo fmt --manifest-path src-tauri/Cargo.toml --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
@@ -98,9 +99,12 @@ cargo test --manifest-path src-tauri/Cargo.toml
 Build installers with `npm run tauri build`; build Store packages with
 `npm run bundle:msix:arm64` or `npm run bundle:msix:x64` in the matching compiler environment.
 See [MSIX packaging](docs/packaging-msix.md), [architecture](docs/architecture.md),
-[security](SECURITY.md) and the [roadmap](ROADMAP.md). CI checks the frontend, Rust on Linux
-and Windows x64/ARM64, dependencies and workflows, and reports test coverage
-(`npm run test:coverage` locally). Tagged releases build installers and a
+[security](SECURITY.md) and the [roadmap](ROADMAP.md). `npm run test:style` checks the
+operator window's styles and overflow in Edge; `npm run test:e2e` builds a separate debug copy
+of the app and drives it end to end, and needs the Rust toolchain. Both test the last
+`npm run build`. CI checks the frontend, Rust on Linux and Windows x64/ARM64, both Playwright
+suites, dependencies and workflows, and reports test coverage (`npm run test:coverage`
+locally). Tagged releases build installers and a
 combined Store bundle; Partner Center submission is manual.
 
 Originally developed for the workshop *Digital Humanities and Artificial Intelligence in

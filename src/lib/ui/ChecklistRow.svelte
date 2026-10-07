@@ -127,6 +127,9 @@
 		font-size: var(--type-small);
 		line-height: var(--leading-snug);
 		color: var(--text-muted);
+		/* At the window's minimum size and 225% text, German's "Anmeldeinformationsverwaltung"
+		   alone is wider than the column. */
+		overflow-wrap: anywhere;
 	}
 	.check-desc.warn {
 		color: var(--warn);

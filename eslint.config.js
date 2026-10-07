@@ -17,6 +17,8 @@ export default defineConfig(
 			'src-tauri/',
 			'docs/',
 			'coverage/',
+			'test-results/',
+			'playwright-report/',
 			// Agent worktrees: whole checkouts of this repo, linted in their own right. ESLint does
 			// not read git's excludes, so without this it would lint them against this tsconfig.
 			'.claude/'

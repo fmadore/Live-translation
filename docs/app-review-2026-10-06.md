@@ -14,8 +14,9 @@ with `windows-11-arm` on the critical path.
 **Status (7 October 2026):** batches 1 and 2 (§7) were merged in
 [#116](https://github.com/fmadore/Live-translation/pull/116) and batch 3 in
 [#117](https://github.com/fmadore/Live-translation/pull/117). Batch 4's CI, static-analysis and
-coverage items are implemented on `review/2026-10-06-batch4`; T4 and T5 come next, then
-batches 5 and 6.
+coverage items were merged in [#118](https://github.com/fmadore/Live-translation/pull/118); T4
+and T5, its second half, are implemented on `review/2026-10-06-batch4b`. Batches 5 and 6 come
+next.
 
 ## Implementation tracker — batches 1 and 2
 
@@ -109,13 +110,14 @@ History tab updating during a session; quit Save with SRT chosen.
 | Item | Change | Status |
 | --- | --- | --- |
 | Audit gate | Pull requests run `npm audit --omit=dev --audit-level=moderate`; `audit.yml` runs the full audit every Monday and on demand | Done; first scheduled run pending |
-| CI | `fail-fast: false` on the Node matrix; the smoke test takes the Tiny model from `WHISPER_SMOKE_MODEL_CACHE` when it matches the pin, and CI caches that folder | Done; the cache awaits its first CI run |
+| CI | `fail-fast: false` on the Node matrix; the smoke test takes the Tiny model from `WHISPER_SMOKE_MODEL_CACHE` when it matches the pin, and CI caches that folder | Done; `main`'s first run after #118 saved the cache |
 | T6 (TypeScript) | `noUnusedLocals` and `noUnusedParameters`; three dead declarations removed | Done |
 | T6 (ESLint) | `eslint.config.js`, typed: `no-floating-promises`, `no-misused-promises`, `await-thenable`, `svelte/require-each-key`, `prefer-writable-derived`, `infinite-reactive-loop`; four `{#each}` blocks keyed | Done |
 | T6 (knip) | `knip.jsonc` with its plugins only and hints as errors; 20 unused exports and types un-exported or deleted | Done |
 | T6 (Clippy) | `[lints.clippy]`: the four cast lints, `needless_pass_by_value`, `match_same_arms`, `unnecessary_wraps`; 81 findings fixed, 11 `#[expect]` with reasons, 2 Linux-only `#[allow]` | Done |
-| T7 | `@vitest/coverage-v8` on the Node 24 lane, summarised in the job summary by `scripts/coverage-summary.mjs`, with per-file floors on 11 pure modules; `cargo-llvm-cov` replaces `cargo test` on the Ubuntu lane, smoke test included | Done; CI run pending |
-| T4, T5 | Playwright: the native end-to-end run on `windows-latest` and the computed-style and overflow harness | Next |
+| T7 | `@vitest/coverage-v8` on the Node 24 lane, summarised in the job summary by `scripts/coverage-summary.mjs`, with per-file floors on 11 pure modules; `cargo-llvm-cov` replaces `cargo test` on the Ubuntu lane, smoke test included | Done; both summaries appear on `main` |
+| T4 | `e2e/native`, `npm run test:e2e`: a debug exe built with its own identifier (`….live-translation.e2e`), both windows driven over WebView2's DevTools port with Playwright `connectOverCDP`, each test on a first-launch profile. The demo spec: Start, the first line in the overlay, Pause, Resume, Stop, then the frame's X, the unsaved prompt and Discard. The Whisper spec: Tiny on the English rehearsal recording, copied from the smoke test's cache when that holds the pin, otherwise downloaded through the interface. An `e2e` job on `windows-latest` | Done; passes on CI in about 3 min, the model from the cache |
+| T5 | `e2e/style`, `npm run test:style`: the production bundle in Edge against a fake core in the page, whose answers `idleCore.ts` shares with the Vitest mock. Nine states: four idle layouts, a running session and the four settings tabs. Computed-style text snapshots at four corners (EN, FR and DE at 100%, EN at 225%; 36 snapshots), and an overflow scan of every state in EN/FR/DE at 100/150/225% at the minimum window size (81 tests), with the two intended overflows listed and explained. A `styles` job on `windows-latest` | Done; passes on CI in about 2 min |
 
 Found on the way:
 
@@ -142,9 +144,47 @@ Verification: `npm test` 595 passed in 67 files, and under coverage 86.8% of lin
 of branches overall; adding an untested function to a floored module fails the run.
 `npm run check` 0 errors and 0 warnings; `lint`, `knip`, `format:check`, `build` and
 `check:languages` pass; `cargo test` 189 passed, 4 ignored; Clippy passes for aarch64 and
-x86_64; the smoke test passes with the cache empty, filled and unset. Still needs a CI run: the
-instrumented Ubuntu lane, the model cache, both job summaries and actionlint on the new
-workflow.
+x86_64; the smoke test passes with the cache empty, filled and unset. The instrumented Ubuntu
+lane, the model cache, both job summaries and actionlint have since run on `main`.
+
+Found on the way in T4 and T5:
+
+- The overflow scan found two clippings, both in German at 225% in the smallest window. The
+  API-key row's description ran 202 px out of its column, because "Anmeldeinformationsverwaltung"
+  cannot break. The first shortcut cap, "Strg+Umschalt+Leertaste", was 26 px wider than its
+  half of the panel. The description now breaks anywhere as a last resort, and a key cap in the
+  shortcut list breaks after a `+` (`Kbd` marks where). Everywhere else a cap stays whole.
+- Two departures from the plan. There are no `toHaveScreenshot` captures: a computed-value
+  snapshot says what changed (`padding: 12px → 16px — 4 element(s)`) where a pixel diff only
+  says where, and it does not depend on the machine's font rendering. Style snapshots cover
+  four corners of the language × scale matrix rather than all nine combinations, because the
+  values move with language and scale independently; the overflow scan covers every
+  combination.
+- The plan's `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` worked locally and failed on CI: WebView2
+  ignores `WEBVIEW2_*` variables when its host runs elevated, and GitHub's Windows runners run
+  everything elevated. The e2e build now compiles the DevTools port into its window config
+  instead (Tauri's `additionalBrowserArgs`, which goes through WebView2's API), from an
+  override the suite generates out of `tauri.conf.json`. The shipped config is untouched.
+  `--lang=en-GB` rides along, so the first launch is English whatever the machine's language.
+- When the port never opens, the failure now lists the app's processes with their command
+  lines, its windows and the WebView2 runtime; that listing is how the elevation problem
+  showed itself.
+- A debug build reads `.env` from its working directory and every parent, so the fixture
+  starts the app in a temporary folder and sets the three key variables blank. Keys saved in
+  Credential Manager still reach the e2e app: `secrets.rs` names its keychain service itself,
+  not after the identifier. Neither spec needs a key, so neither notices.
+- Playwright strips types without checking them, so `npm run check` now ends with
+  `tsc -p e2e`.
+
+Verification (T4, T5), on Windows 11 ARM64: `npm run test:style` 117 passed (one run lost two
+tests when Edge restarted to update itself, and the reruns passed); `npm run test:e2e` 2 passed
+in 1.1 min after a 38 s incremental build, the first Whisper caption 13.6 s after Rehearse,
+the model downloaded through the interface. `npm test` 595 passed; `check` (with
+`tsc -p e2e`), `lint`, `knip`, `format:check`, `check:languages` and `build` pass; actionlint
+1.7.12 passes. On CI (`windows-latest`, WebView2 153): `styles` passes in about 2 minutes;
+`e2e` in about 3, building in 40 s with the Rust cache warm and taking the model from the
+smoke test's cache, the demo spec in 10 s and the Whisper spec in 25 s (first caption 22 s
+after Rehearse).
 
 ## 1. Defects
 
