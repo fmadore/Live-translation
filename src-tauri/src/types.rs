@@ -117,12 +117,14 @@ pub enum Provider {
 impl Provider {
     /// Sample rate the backend expects on input, in Hz.
     pub fn input_sample_rate(self) -> u32 {
+        // Listed rather than `_`, so a new provider has to state its rate.
         match self {
-            Provider::Gemini => 16_000,
-            Provider::GeminiTranscribe => 16_000,
             Provider::OpenAi => 24_000,
-            Provider::Mistral => 16_000,
-            Provider::OnDevice | Provider::Whisper => 16_000,
+            Provider::Gemini
+            | Provider::GeminiTranscribe
+            | Provider::Mistral
+            | Provider::OnDevice
+            | Provider::Whisper => 16_000,
         }
     }
 

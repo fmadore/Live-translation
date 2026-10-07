@@ -46,6 +46,10 @@ impl PresenceCheck {
 }
 
 #[cfg(not(windows))]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "the Windows build's signature, which can fail"
+)]
 pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
     Ok(Vec::new())
 }
@@ -103,17 +107,18 @@ fn enumerate_outputs() -> anyhow::Result<Vec<AudioDevice>> {
 #[cfg(all(test, windows))]
 mod tests {
     use super::*;
+    use windows_sys::Win32::Foundation::RPC_E_CHANGED_MODE;
 
     #[test]
     fn output_enumeration_does_not_change_the_callers_sta_apartment() {
         std::thread::spawn(|| {
             wasapi::initialize_sta().ok().unwrap();
             // Reproduce the exact error the pooled worker used to produce.
-            assert_eq!(wasapi::initialize_mta().0 as u32, 0x80010106);
+            assert_eq!(wasapi::initialize_mta().0, RPC_E_CHANGED_MODE);
             for _ in 0..3 {
                 assert!(on_mta_thread(|| Ok(wasapi::initialize_sta().is_err())).unwrap());
             }
-            assert_eq!(wasapi::initialize_mta().0 as u32, 0x80010106);
+            assert_eq!(wasapi::initialize_mta().0, RPC_E_CHANGED_MODE);
             wasapi::deinitialize();
         })
         .join()

@@ -78,7 +78,7 @@ fn inference_threads(logical: usize) -> i32 {
     } else {
         logical.saturating_sub(1)
     };
-    threads.clamp(1, 8) as i32
+    i32::try_from(threads).unwrap_or(i32::MAX).clamp(1, 8)
 }
 
 pub fn validate_language(language: Option<&str>) -> Result<()> {
@@ -167,7 +167,7 @@ pub async fn run(config: LocalSession) {
         let result = (|| {
             let mut count = 0usize;
             while let Some(frame) = input.blocking_recv() {
-                ingest_spool.push(frame)?;
+                ingest_spool.push(&frame)?;
                 count += 1;
                 if count.is_multiple_of(10) {
                     progress(&ingest_app, origin, &ingest_spool);
@@ -344,7 +344,7 @@ fn pump(
         segmenter.set_long_windows(spool.pending_ms() > LONG_WINDOW_BACKLOG_MS);
         match spool.next_timeout(idle)? {
             Next::Chunk(frame) => {
-                for window in segmenter.push(frame) {
+                for window in segmenter.push(&frame) {
                     process(window)?;
                 }
             }
@@ -422,7 +422,7 @@ mod tests {
     fn quiet_input_releases_held_speech_without_waiting_for_more_audio() {
         let spool = Arc::new(Spool::new().unwrap());
         for i in 0..20 {
-            spool.push(speech(i * 100)).unwrap();
+            spool.push(&speech(i * 100)).unwrap();
         }
         let (sent, windows) = std::sync::mpsc::channel();
         let reader = spool.clone();
@@ -444,7 +444,7 @@ mod tests {
         assert_eq!(window, (0, 20 * 1600, true));
         assert_eq!(spool.pending_ms(), 0);
         // Resuming after the pause starts a new window at its own time.
-        spool.push(speech(9_000)).unwrap();
+        spool.push(&speech(9_000)).unwrap();
         let window = windows.recv_timeout(Duration::from_secs(10)).unwrap();
         assert_eq!(window, (9_000, 1600, true));
         spool.finish();
@@ -456,7 +456,7 @@ mod tests {
     fn a_backlog_is_worked_through_in_long_windows_then_normal_ones() {
         let spool = Spool::new().unwrap();
         for i in 0..400 {
-            spool.push(speech(i * 100)).unwrap();
+            spool.push(&speech(i * 100)).unwrap();
         }
         spool.finish();
         let mut cuts = Vec::new();
@@ -486,7 +486,7 @@ mod tests {
     #[test]
     fn discarding_stops_the_pump_without_flushing() {
         let spool = Spool::new().unwrap();
-        spool.push(speech(0)).unwrap();
+        spool.push(&speech(0)).unwrap();
         spool.finish();
         let abort = CancellationToken::new();
         abort.cancel();
@@ -512,17 +512,50 @@ mod tests {
         assert_eq!(ids.len(), 99);
     }
 
-    /// Explicit opt-in: downloads the 31 MiB pinned model, then exercises the production
-    /// spool, segmentation, inference and EOF-draining path against both bundled fixtures.
-    /// CI runs this on native x64 and ARM64, without a GPU, microphone or provider key.
+    /// Put the pinned Tiny model in `dir`. Downloading it costs CI 40 to 100 s a lane, so when
+    /// `WHISPER_SMOKE_MODEL_CACHE` names a directory, which CI restores between runs, a copy
+    /// there that matches the pin is used instead, and a download refills it. The download
+    /// itself stays covered, against a local server, by the tests in `models.rs`.
+    async fn smoke_model(manager: &ModelManager, dir: &std::path::Path) {
+        let id = ModelId::Tiny;
+        let Some(cache) =
+            std::env::var_os("WHISPER_SMOKE_MODEL_CACHE").filter(|path| !path.is_empty())
+        else {
+            manager.download(dir, id).await.unwrap();
+            return;
+        };
+        let cache = std::path::PathBuf::from(cache);
+        let cached = cache.join(id.file());
+        let started = std::time::Instant::now();
+        match models::read_verified(&cached, id) {
+            Ok(bytes) => {
+                // The bytes just verified, rather than a second read of the file.
+                std::fs::write(dir.join(id.file()), bytes).unwrap();
+                eprintln!("{} ({:.2?})", cached.display(), started.elapsed());
+                return;
+            }
+            Err(error) => eprintln!("{}: {error:#}; downloading", cached.display()),
+        }
+        manager.download(dir, id).await.unwrap();
+        eprintln!("{} downloaded ({:.2?})", id.file(), started.elapsed());
+        std::fs::create_dir_all(&cache).expect("WHISPER_SMOKE_MODEL_CACHE must be writable");
+        std::fs::copy(dir.join(id.file()), &cached)
+            .expect("WHISPER_SMOKE_MODEL_CACHE must be writable");
+    }
+
+    /// Explicit opt-in: downloads the 31 MiB pinned model (or takes it from CI's cache), then
+    /// exercises the production spool, segmentation, inference and EOF-draining path against
+    /// both bundled fixtures. CI runs this on native x64 and ARM64, without a GPU, microphone
+    /// or provider key.
     #[tokio::test]
     #[ignore = "downloads a Whisper model; run with --ignored local_whisper_smoke"]
     async fn local_whisper_smoke() {
         let temp = tempfile::tempdir().unwrap();
+        // Non-ASCII on purpose: a Windows username can put such characters in the real path.
         let dir = temp.path().join("réunion-日本語");
         std::fs::create_dir(&dir).unwrap();
         let manager = ModelManager::default();
-        manager.download(&dir, ModelId::Tiny).await.unwrap();
+        smoke_model(&manager, &dir).await;
         let model = load_lease(manager.lease(&dir, ModelId::Tiny).unwrap()).unwrap();
         for (fixture, language, expected) in [
             ("rehearsal-en.wav", None, "caption"),
@@ -536,13 +569,18 @@ mod tests {
             .unwrap();
             let spool = Spool::new().unwrap();
             for (i, chunk) in samples.chunks(1600).enumerate() {
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "the fixture is 16-bit PCM over 32768, so this restores it exactly"
+                )]
+                let pcm = chunk
+                    .iter()
+                    .flat_map(|s| ((*s * 32768.0) as i16).to_le_bytes())
+                    .collect();
                 spool
-                    .push(TimedChunk {
+                    .push(&TimedChunk {
                         start_ms: i as u64 * 100,
-                        pcm: chunk
-                            .iter()
-                            .flat_map(|s| ((*s * 32768.0) as i16).to_le_bytes())
-                            .collect(),
+                        pcm,
                     })
                     .unwrap();
             }

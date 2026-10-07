@@ -98,8 +98,7 @@ pub fn clear_api_key(provider: Provider) -> Result<()> {
         let _ = legacy.delete_credential();
     }
     match entry(provider)?.delete_credential() {
-        Ok(()) => Ok(()),
-        Err(keyring::Error::NoEntry) => Ok(()),
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
         Err(e) => Err(e).context("failed to delete key from keychain"),
     }
 }

@@ -364,12 +364,16 @@ impl CaptureTarget {
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
         audio_tx: AudioSink,
-        cancel: CancellationToken,
+        cancel: &CancellationToken,
     ) -> Result<()> {
         match origin {
-            Origin::Microphone => {
-                run_microphone(self.mic_name, target_rate, level_tx, audio_tx, cancel)
-            }
+            Origin::Microphone => run_microphone(
+                self.mic_name.as_deref(),
+                target_rate,
+                level_tx,
+                audio_tx,
+                cancel,
+            ),
             Origin::System => run_system_loopback(
                 self.system_id,
                 self.system_capture,
@@ -671,8 +675,7 @@ impl SessionBuilder<'_> {
                 let handle = std::thread::Builder::new()
                     .name(format!("capture-{origin:?}"))
                     .spawn(move || {
-                        let result =
-                            capture.run(origin, target_rate, level_tx, audio_tx, cancel.clone());
+                        let result = capture.run(origin, target_rate, level_tx, audio_tx, &cancel);
                         if let Some(completion) = &mut capture_completion {
                             completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
                         }
@@ -839,7 +842,7 @@ impl SessionManager {
                         TEST_SAMPLE_RATE,
                         level_tx,
                         audio_tx.into(),
-                        probe_cancel.clone(),
+                        &probe_cancel,
                     );
                     complete_probe(result, origin, &probe_cancel, |update| {
                         let _ = probe_app.emit(events::AUDIO_TEST, update);

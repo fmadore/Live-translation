@@ -159,7 +159,7 @@ fn parse_fixture_wav(bytes: &[u8]) -> Result<Vec<f32>> {
         .as_chunks::<2>()
         .0
         .iter()
-        .map(|frame| i16::from_le_bytes(*frame) as f32 / 32768.0)
+        .map(|frame| f32::from(i16::from_le_bytes(*frame)) / 32768.0)
         .collect())
 }
 
@@ -235,7 +235,7 @@ pub async fn run_rehearsal(
 
     tracing::info!(
         path = %path.display(),
-        seconds = samples.len() as f64 / FIXTURE_RATE as f64,
+        seconds = samples.len() as f64 / f64::from(FIXTURE_RATE),
         "starting rehearsal fixture playback"
     );
 
@@ -284,20 +284,21 @@ mod tests {
         fmt.extend_from_slice(&WAVE_FORMAT_PCM.to_le_bytes());
         fmt.extend_from_slice(&channels.to_le_bytes());
         fmt.extend_from_slice(&rate.to_le_bytes());
-        fmt.extend_from_slice(&(rate * channels as u32 * bits as u32 / 8).to_le_bytes());
+        fmt.extend_from_slice(&(rate * u32::from(channels) * u32::from(bits) / 8).to_le_bytes());
         fmt.extend_from_slice(&(channels * bits / 8).to_le_bytes());
         fmt.extend_from_slice(&bits.to_le_bytes());
         fmt.extend_from_slice(&0u16.to_le_bytes());
 
         let mut out = Vec::new();
         out.extend_from_slice(b"RIFF");
-        out.extend_from_slice(&((4 + 8 + fmt.len() + 8 + data.len()) as u32).to_le_bytes());
+        let riff_size = u32::try_from(4 + 8 + fmt.len() + 8 + data.len()).unwrap();
+        out.extend_from_slice(&riff_size.to_le_bytes());
         out.extend_from_slice(b"WAVE");
         out.extend_from_slice(b"fmt ");
-        out.extend_from_slice(&(fmt.len() as u32).to_le_bytes());
+        out.extend_from_slice(&u32::try_from(fmt.len()).unwrap().to_le_bytes());
         out.extend_from_slice(&fmt);
         out.extend_from_slice(b"data");
-        out.extend_from_slice(&(data.len() as u32).to_le_bytes());
+        out.extend_from_slice(&u32::try_from(data.len()).unwrap().to_le_bytes());
         out.extend_from_slice(&data);
         out
     }

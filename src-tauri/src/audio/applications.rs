@@ -46,6 +46,10 @@ pub fn validate(capture: &SystemCapture) -> anyhow::Result<()> {
 }
 
 #[cfg(not(windows))]
+#[allow(
+    clippy::unnecessary_wraps,
+    reason = "the Windows build's signature, which can fail"
+)]
 pub fn list() -> anyhow::Result<ApplicationList> {
     Ok(ApplicationList {
         supported: false,
@@ -106,9 +110,9 @@ mod platform {
             );
             Ok(ProcessIdentity {
                 pid,
-                created_at: (((created.dwHighDateTime as u64) << 32)
-                    | created.dwLowDateTime as u64)
-                    .to_string(),
+                created_at: ((u64::from(created.dwHighDateTime) << 32)
+                    | u64::from(created.dwLowDateTime))
+                .to_string(),
             })
         }
         pub fn selected(identity: &ProcessIdentity) -> anyhow::Result<Self> {
@@ -129,6 +133,10 @@ mod platform {
     }
     fn supported() -> bool {
         use windows_sys::Win32::System::SystemInformation::OSVERSIONINFOW;
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "a Win32 structure of a few hundred bytes"
+        )]
         let mut version = OSVERSIONINFOW {
             dwOSVersionInfoSize: std::mem::size_of::<OSVERSIONINFOW>() as u32,
             ..Default::default()
@@ -143,10 +151,16 @@ mod platform {
             return 1;
         }
         let mut title = [0u16; 512];
+        #[expect(
+            clippy::cast_possible_truncation,
+            clippy::cast_possible_wrap,
+            reason = "the buffer is 512 units long"
+        )]
         let length = GetWindowTextW(window, title.as_mut_ptr(), title.len() as i32);
-        if length <= 0 {
+        // Zero for an untitled window or a failure; never documented as negative.
+        let Some(length) = usize::try_from(length).ok().filter(|&n| n > 0) else {
             return 1;
-        }
+        };
         let mut pid = 0;
         GetWindowThreadProcessId(window, &mut pid);
         let apps = &mut *(data as *mut Vec<Application>);
@@ -158,7 +172,7 @@ mod platform {
                 if guard.running() {
                     apps.push(Application {
                         process,
-                        name: String::from_utf16_lossy(&title[..length as usize]),
+                        name: String::from_utf16_lossy(&title[..length]),
                     });
                 }
             }
@@ -232,7 +246,7 @@ mod platform {
                 16000,
                 levels,
                 chunks.into(),
-                cancel,
+                &cancel,
             )
         })
         .join()

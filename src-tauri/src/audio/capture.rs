@@ -13,7 +13,7 @@ use tokio::sync::mpsc::{error::TrySendError, Sender};
 use tokio_util::sync::CancellationToken;
 
 use super::devices::PresenceCheck;
-use super::resample::{downmix_to_mono, f32_to_pcm16_le, Resampler};
+use super::resample::{downmix_to_mono, f32_to_pcm16_le, f64_to_f32, Resampler};
 use super::{chunk_samples, AudioChunk};
 use crate::types::{AudioDevice, AudioLevel, Origin};
 
@@ -102,13 +102,13 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
 /// Startup and runtime failures return to the owner. The session owner supplies session
 /// status, while preflight supplies test status; capture itself knows neither UI lifecycle.
 pub fn run_microphone(
-    device_name: Option<String>,
+    device_name: Option<&str>,
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
     chunk_tx: super::sink::AudioSink,
-    cancel: CancellationToken,
+    cancel: &CancellationToken,
 ) -> Result<()> {
-    let device = pick_device(device_name.as_deref())?;
+    let device = pick_device(device_name)?;
     let config = device
         .default_input_config()
         .context("failed to read default input config")?;
@@ -145,7 +145,7 @@ pub fn run_microphone(
         SampleFormat::I16 => device.build_input_stream(
             stream_config,
             move |data: &[i16], _| {
-                state.push_converted(data.iter().map(|&s| s as f32 / 32768.0), channels)
+                state.push_converted(data.iter().map(|&s| f32::from(s) / 32768.0), channels)
             },
             err_fn,
             None,
@@ -154,7 +154,7 @@ pub fn run_microphone(
             stream_config,
             move |data: &[u16], _| {
                 state.push_converted(
-                    data.iter().map(|&s| (s as f32 - 32768.0) / 32768.0),
+                    data.iter().map(|&s| (f32::from(s) - 32768.0) / 32768.0),
                     channels,
                 )
             },
@@ -163,14 +163,16 @@ pub fn run_microphone(
         ),
         SampleFormat::F64 => device.build_input_stream(
             stream_config,
-            move |data: &[f64], _| state.push_converted(data.iter().map(|&s| s as f32), channels),
+            move |data: &[f64], _| {
+                state.push_converted(data.iter().map(|&s| f64_to_f32(s)), channels)
+            },
             err_fn,
             None,
         ),
         SampleFormat::I8 => device.build_input_stream(
             stream_config,
             move |data: &[i8], _| {
-                state.push_converted(data.iter().map(|&s| s as f32 / 128.0), channels)
+                state.push_converted(data.iter().map(|&s| f32::from(s) / 128.0), channels)
             },
             err_fn,
             None,
@@ -188,7 +190,7 @@ pub fn run_microphone(
             move |data: &[i64], _| {
                 state.push_converted(
                     data.iter()
-                        .map(|&s| s as f64 as f32 / 9_223_372_036_854_775_808.0_f32),
+                        .map(|&s| f64_to_f32(s as f64) / 9_223_372_036_854_775_808.0_f32),
                     channels,
                 )
             },
@@ -198,7 +200,10 @@ pub fn run_microphone(
         SampleFormat::U8 => device.build_input_stream(
             stream_config,
             move |data: &[u8], _| {
-                state.push_converted(data.iter().map(|&s| (s as f32 - 128.0) / 128.0), channels)
+                state.push_converted(
+                    data.iter().map(|&s| (f32::from(s) - 128.0) / 128.0),
+                    channels,
+                )
             },
             err_fn,
             None,
@@ -208,7 +213,7 @@ pub fn run_microphone(
             move |data: &[u32], _| {
                 state.push_converted(
                     data.iter()
-                        .map(|&s| (s as f64 - 2_147_483_648.0) as f32 / 2_147_483_648.0),
+                        .map(|&s| f64_to_f32(f64::from(s) - 2_147_483_648.0) / 2_147_483_648.0),
                     channels,
                 )
             },
@@ -220,8 +225,9 @@ pub fn run_microphone(
             move |data: &[u64], _| {
                 state.push_converted(
                     data.iter().map(|&s| {
-                        ((s as f64 - 9_223_372_036_854_775_808.0) / 9_223_372_036_854_775_808.0)
-                            as f32
+                        f64_to_f32(
+                            (s as f64 - 9_223_372_036_854_775_808.0) / 9_223_372_036_854_775_808.0,
+                        )
                     }),
                     channels,
                 )
@@ -327,7 +333,7 @@ impl CaptureState {
             if a > self.peak_accum {
                 self.peak_accum = a;
             }
-            self.sq_sum += (s as f64) * (s as f64);
+            self.sq_sum += f64::from(s) * f64::from(s);
             self.sq_count += 1;
         }
         self.maybe_emit_level();
@@ -372,7 +378,7 @@ impl CaptureState {
         if self.last_level.elapsed() < Duration::from_millis(50) || self.sq_count == 0 {
             return;
         }
-        let rms = (self.sq_sum / self.sq_count as f64).sqrt() as f32;
+        let rms = f64_to_f32((self.sq_sum / self.sq_count as f64).sqrt());
         // Sent through a channel: the webview IPC hop happens on the emitter task, not here
         // on the real-time audio thread.
         let _ = self.level_tx.try_send(AudioLevel {

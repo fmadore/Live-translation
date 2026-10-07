@@ -323,18 +323,7 @@ pub struct ModelLease {
 impl ModelLease {
     /// Check cached bytes too: a corrupt/replaced local file must never reach native inference.
     pub fn read_verified(&self) -> Result<Vec<u8>> {
-        let bytes = fs::metadata(&self.path)?.len();
-        ensure!(
-            bytes == self.id.bytes(),
-            "Model size is wrong; remove and download it again"
-        );
-        let data = fs::read(&self.path)?;
-        verify_digest(
-            self.id,
-            data.len() as u64,
-            &format!("{:x}", Sha256::digest(&data)),
-        )?;
-        Ok(data)
+        read_verified(&self.path, self.id)
     }
 }
 impl Drop for ModelLease {
@@ -344,6 +333,23 @@ impl Drop for ModelLease {
             state.leases.remove(i);
         }
     }
+}
+
+/// The whole file at `path`, provided it is exactly the pinned model `id`. The size is checked
+/// first, so a wrong file is refused before it is read into memory.
+pub(super) fn read_verified(path: &Path, id: ModelId) -> Result<Vec<u8>> {
+    let bytes = fs::metadata(path)?.len();
+    ensure!(
+        bytes == id.bytes(),
+        "Model size is wrong; remove and download it again"
+    );
+    let data = fs::read(path)?;
+    verify_digest(
+        id,
+        data.len() as u64,
+        &format!("{:x}", Sha256::digest(&data)),
+    )?;
+    Ok(data)
 }
 
 fn verify_digest(id: ModelId, bytes: u64, digest: &str) -> Result<()> {

@@ -91,7 +91,7 @@ impl Resampler {
                         prev
                     } else {
                         let cur = *cur.get_or_insert_with(|| dot(&history[end - span..end], taps));
-                        prev + (cur - prev) * self.frac as f32
+                        prev + (cur - prev) * f64_to_f32(self.frac)
                     };
                     out.push(value);
                     self.frac += self.step;
@@ -117,6 +117,11 @@ fn lowpass(in_rate: u32, out_rate: u32) -> Vec<f32> {
     let rate = f64::from(in_rate);
     let cutoff = CUTOFF * f64::from(out_rate) / rate;
     let transition = TRANSITION * f64::from(out_rate) / rate;
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "a positive length of tens to hundreds of taps, and `as` saturates regardless"
+    )]
     let len = ((STOPBAND_DB - 7.95) / (2.285 * 2.0 * PI * transition)).ceil() as usize | 1;
     let beta = 0.1102 * (STOPBAND_DB - 8.7);
     let centre = (len / 2) as f64;
@@ -133,7 +138,7 @@ fn lowpass(in_rate: u32, out_rate: u32) -> Vec<f32> {
         })
         .collect();
     let gain: f64 = taps.iter().sum();
-    taps.iter().map(|&tap| (tap / gain) as f32).collect()
+    taps.iter().map(|&tap| f64_to_f32(tap / gain)).collect()
 }
 
 /// Modified Bessel function of the first kind, order zero, by its power series. The window
@@ -143,7 +148,7 @@ fn bessel_i0(x: f64) -> f64 {
     let half = x / 2.0;
     let (mut sum, mut term) = (1.0, 1.0);
     for k in 1..64 {
-        term *= (half / k as f64).powi(2);
+        term *= (half / f64::from(k)).powi(2);
         sum += term;
         if term < sum * 1e-12 {
             break;
@@ -178,10 +183,25 @@ pub fn downmix_to_mono(interleaved: &[f32], channels: usize, out: &mut Vec<f32>)
     }
 }
 
+/// Narrow a value computed in f64 to the f32 the audio path carries. Rounding to the nearest
+/// f32 is the point: what passes through here is a sample, a filter tap or an interpolation
+/// fraction, all far inside f32's range.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "rounding to the nearest f32 is the intent"
+)]
+pub fn f64_to_f32(value: f64) -> f32 {
+    value as f32
+}
+
 /// Convert f32 [-1, 1] samples to little-endian 16-bit PCM bytes.
 pub fn f32_to_pcm16_le(samples: &[f32], out: &mut Vec<u8>) {
     out.reserve(samples.len() * 2);
     for &s in samples {
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "clamped to ±32767 first, so only the fraction is dropped"
+        )]
         let v = (s.clamp(-1.0, 1.0) * 32767.0) as i16;
         out.extend_from_slice(&v.to_le_bytes());
     }
@@ -199,11 +219,7 @@ mod tests {
         r.process(&input, &mut out);
         // ~1/3 of the input length, allowing for warm-up of one sample.
         let expected = input.len() / 3;
-        assert!(
-            (out.len() as i64 - expected as i64).abs() <= 2,
-            "got {}",
-            out.len()
-        );
+        assert!(out.len().abs_diff(expected) <= 2, "got {}", out.len());
     }
 
     #[test]
@@ -224,7 +240,7 @@ mod tests {
         let input: Vec<f32> = (0..in_rate)
             .map(|i| {
                 let cycles = (f64::from(hz) * f64::from(i) / f64::from(in_rate)).fract();
-                0.5 * (2.0 * std::f64::consts::PI * cycles).sin() as f32
+                0.5 * f64_to_f32((2.0 * std::f64::consts::PI * cycles).sin())
             })
             .collect();
         let mut output = Vec::new();

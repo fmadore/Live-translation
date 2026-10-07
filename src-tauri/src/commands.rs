@@ -99,6 +99,10 @@ pub fn whisper_cpu_support() -> crate::whisper::cpu::CpuSupport {
 
 /// Pause or resume the running session; see `SessionManager::set_paused`.
 #[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri commands receive their arguments by value"
+)]
 pub fn pause_session(
     app: AppHandle,
     manager: State<'_, SessionManager>,
@@ -143,6 +147,10 @@ pub async fn download_whisper_model(
 }
 
 #[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri commands receive their arguments by value"
+)]
 pub fn cancel_whisper_download(manager: State<'_, crate::whisper::models::ModelManager>) {
     manager.cancel_download();
 }
@@ -163,6 +171,10 @@ pub async fn remove_whisper_model(
 }
 
 #[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri commands receive their arguments by value"
+)]
 pub fn discard_whisper_pending(manager: State<'_, SessionManager>) {
     manager.discard_local_pending();
 }

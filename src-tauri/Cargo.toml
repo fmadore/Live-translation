@@ -100,3 +100,20 @@ codegen-units = 1
 # where an aborted process would take it with it. Measured cost: +78% executable size
 # (+43% compressed) — see docs/app-review-2026-09-22.md, D10.
 strip = true
+
+# On top of Clippy's defaults. The cast lints because this crate converts numbers constantly
+# (samples, timestamps, Win32 sizes and handles) and an `as` that truncates, wraps or drops a
+# sign corrupts the value without failing: each conversion is a `From`/`TryFrom` or states why
+# it cannot go wrong. The other three flag signatures that hide what a function needs or can
+# do: owned arguments it only reads, duplicated match arms, results that are always `Ok`.
+# `cast_precision_loss` was tried and left out: all of its findings were integer samples or
+# counts turned into floats, where the lost low bits are far below anything heard or shown.
+# `warn` is the gate, since CI runs Clippy with `-D warnings`.
+[lints.clippy]
+cast_possible_truncation = "warn"
+cast_sign_loss = "warn"
+cast_possible_wrap = "warn"
+cast_lossless = "warn"
+needless_pass_by_value = "warn"
+match_same_arms = "warn"
+unnecessary_wraps = "warn"
