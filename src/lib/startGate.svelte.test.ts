@@ -53,7 +53,8 @@ import Page from '../routes/+page.svelte';
 import { applyStatus, clearTranscript, options } from './stores';
 import { locale } from './i18n';
 import { PROFILES_KEY } from './profiles';
-import { DEFAULT_START_OPTIONS, type StartOptions } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
+import type { StartOptions } from './types';
 
 const translation: StartOptions = {
 	...DEFAULT_START_OPTIONS,

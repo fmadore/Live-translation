@@ -252,6 +252,81 @@ pub struct StatusUpdate {
     pub lane: Option<u8>,
 }
 
+/// One constructor per scope, so every status says what it is about the same way: the whole
+/// session, one source, or one caption language of a source.
+impl StatusUpdate {
+    /// About the whole session, every source at once: the Idle that Stop publishes once every
+    /// client has drained, with the failure that ended the session, if one did.
+    pub(crate) fn session(state: SessionState, message: Option<AppError>) -> Self {
+        Self {
+            state,
+            message,
+            origin: None,
+            lane: None,
+        }
+    }
+
+    /// About one source and every caption language it feeds: a capture failure ends them all,
+    /// a pause holds them all, and the demonstration and Whisper only ever have the one.
+    pub(crate) fn source(origin: Origin, state: SessionState, message: Option<AppError>) -> Self {
+        Self {
+            state,
+            message,
+            origin: Some(origin),
+            lane: None,
+        }
+    }
+
+    /// About one caption language of one source: the realtime client that produces it, which
+    /// connects, reconnects and fails independently of the source's other lane.
+    pub(crate) fn lane(
+        origin: Origin,
+        lane: u8,
+        state: SessionState,
+        message: Option<AppError>,
+    ) -> Self {
+        Self {
+            state,
+            message,
+            origin: Some(origin),
+            lane: Some(lane),
+        }
+    }
+}
+
+#[cfg(test)]
+mod status_tests {
+    use super::*;
+    use crate::errors::id;
+
+    /// The interface tells the three scopes apart by which fields are present at all.
+    #[test]
+    fn each_scope_serializes_only_the_fields_that_address_it() {
+        let json = |update: StatusUpdate| serde_json::to_string(&update).unwrap();
+        assert_eq!(
+            json(StatusUpdate::session(SessionState::Idle, None)),
+            r#"{"state":"idle"}"#
+        );
+        assert_eq!(
+            json(StatusUpdate::source(
+                Origin::Microphone,
+                SessionState::Error,
+                Some(AppError::with(id::MIC_CAPTURE, "unplugged")),
+            )),
+            r#"{"state":"error","message":{"id":"error.micCapture","detail":"unplugged"},"origin":"microphone"}"#
+        );
+        assert_eq!(
+            json(StatusUpdate::lane(
+                Origin::System,
+                1,
+                SessionState::Running,
+                None
+            )),
+            r#"{"state":"running","origin":"system","lane":1}"#
+        );
+    }
+}
+
 /// Level-only capture, started from the preflight so an operator can confirm the room
 /// microphone or the loopback is actually producing sound *before* committing to a session.
 /// It opens the same devices as a session, discards every sample, and never reaches a

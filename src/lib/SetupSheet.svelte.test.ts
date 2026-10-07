@@ -4,7 +4,7 @@ import { get } from 'svelte/store';
 import SetupSheet from './SetupSheet.svelte';
 import { createSetupActions } from './setupActions';
 import { options } from './stores';
-import { DEFAULT_START_OPTIONS } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
 import { setLocale } from './i18n';
 import type { PreflightController } from './preflightController.svelte';
 

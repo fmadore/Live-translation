@@ -127,7 +127,7 @@ impl RealtimeProtocol for Fake {
             "fatal" => MessageOutcome::control(MessageControl::Fatal("refused".into())),
             _ => match text.strip_prefix("text:") {
                 Some(text) => {
-                    acc.translated = text.into();
+                    acc.text = text.into();
                     MessageOutcome::caption(CaptionUpdate::Interim)
                 }
                 None => MessageOutcome::default(),

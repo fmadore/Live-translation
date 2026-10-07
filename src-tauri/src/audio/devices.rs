@@ -68,14 +68,7 @@ fn on_mta_thread<T: Send + 'static>(
     std::thread::Builder::new()
         .name("enumerate-audio-outputs".into())
         .spawn(move || {
-            wasapi::initialize_mta().ok()?;
-            struct Apartment;
-            impl Drop for Apartment {
-                fn drop(&mut self) {
-                    wasapi::deinitialize();
-                }
-            }
-            let _apartment = Apartment;
+            let _apartment = super::com::Apartment::mta()?;
             work()
         })?
         .join()

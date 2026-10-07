@@ -5,7 +5,7 @@ import { createOverlayController } from './overlayController.svelte';
 import { api } from './tauri';
 import { setLocale } from './i18n';
 import { options } from './stores';
-import { DEFAULT_START_OPTIONS } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
 import type { SessionClock } from './sessionClock.svelte';
 
 // One hour streamed, so the estimate reads as the hourly figure times the streams.

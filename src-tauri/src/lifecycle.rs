@@ -14,6 +14,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Manager, State};
 
+use crate::errors::{id, AppError};
 use crate::session::SessionManager;
 
 /// Label of the window the operator drives. The overlay is a caption surface with no
@@ -101,7 +102,7 @@ pub fn show_operator_window(app: &AppHandle) {
 /// Sent the moment the front-end receives a close or quit request, before it starts stopping
 /// the session. It only claims "something is handling this"; the answer follows separately.
 #[tauri::command]
-pub async fn ack_close(close_guard: State<'_, CloseGuard>) -> Result<(), String> {
+pub async fn ack_close(close_guard: State<'_, CloseGuard>) -> Result<(), AppError> {
     close_guard.ack();
     Ok(())
 }
@@ -110,7 +111,7 @@ pub async fn ack_close(close_guard: State<'_, CloseGuard>) -> Result<(), String>
 pub async fn set_close_guard(
     close_guard: State<'_, CloseGuard>,
     guard: bool,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     close_guard.set(guard);
     Ok(())
 }
@@ -121,7 +122,7 @@ pub async fn set_close_guard(
 pub async fn set_close_to_tray(
     close_guard: State<'_, CloseGuard>,
     enabled: bool,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     close_guard.set_close_to_tray(enabled);
     Ok(())
 }
@@ -129,15 +130,17 @@ pub async fn set_close_to_tray(
 /// Put the operator window away without ending anything. The session, the overlay and the
 /// transcript all carry on; the tray is how they come back.
 #[tauri::command]
-pub async fn hide_to_tray(app: AppHandle) -> Result<(), String> {
+pub async fn hide_to_tray(app: AppHandle) -> Result<(), AppError> {
     if let Some(window) = app.get_webview_window(OPERATOR_LABEL) {
-        window.hide().map_err(|error| error.to_string())?;
+        window
+            .hide()
+            .map_err(|error| AppError::with(id::OPERATOR_WINDOW, error))?;
     }
     Ok(())
 }
 
 #[tauri::command]
-pub async fn show_operator(app: AppHandle) -> Result<(), String> {
+pub async fn show_operator(app: AppHandle) -> Result<(), AppError> {
     show_operator_window(&app);
     Ok(())
 }
@@ -158,7 +161,7 @@ pub async fn confirm_close(
     app: AppHandle,
     manager: State<'_, SessionManager>,
     close_guard: State<'_, CloseGuard>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     close_guard.confirm();
     manager.discard_local_pending();
     manager.stop(&app).await;

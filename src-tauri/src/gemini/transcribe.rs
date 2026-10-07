@@ -2,20 +2,20 @@
 //! socket the translate client uses, with the same 16 kHz PCM frame and the same API key.
 //!
 //! Unlike Live Translate, the transcript *is* the audience caption, so it goes in the
-//! accumulator's `translated` field and reaches the export through the ordinary caption
-//! path — the arrangement Mistral already uses.
+//! accumulator's `text`, where Live Translate puts its translation, and reaches the export
+//! through the ordinary caption path — the arrangement Mistral already uses.
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
+use super::gemini_request;
 use super::protocol::{
     RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
 };
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -35,15 +35,6 @@ pub struct GeminiTranscribeConfig {
     pub origin: Origin,
 }
 
-impl GeminiTranscribeConfig {
-    fn ws_url(&self) -> String {
-        format!(
-            "wss://{}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={}",
-            self.host, self.api_key
-        )
-    }
-}
-
 impl RealtimeProtocol for GeminiTranscribeConfig {
     const NAME: &'static str = "Gemini Transcribe";
 
@@ -52,9 +43,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
     }
 
     fn connect_request(&self) -> Result<Request> {
-        self.ws_url()
-            .into_client_request()
-            .context("failed to build Gemini Transcribe request")
+        gemini_request(Self::NAME, &self.host, &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -84,28 +73,12 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let msg: ServerMessage = match serde_json::from_str(text) {
-            Ok(m) => m,
-            Err(e) => {
-                tracing::debug!("unparsed server message: {e} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(msg) = parse_or_log::<ServerMessage>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
-        if msg.setup_complete.is_some() {
-            tracing::debug!(origin = ?self.origin, "Gemini Transcribe setup complete; streaming audio");
-            return MessageOutcome::setup_complete();
-        }
-        // Live transcription sessions cap at 10 minutes, so a long room session reconnects
-        // several times an hour. `goAway` gets us moving before the socket actually drops, and
-        // as a planned handover the runner reconnects at once rather than backing off.
-        if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Handover);
-        }
-        if let Some(error) = msg.error {
-            return MessageOutcome::control(MessageControl::Fatal(format!(
-                "Gemini Transcribe error: {error}"
-            )));
+        if let Some(outcome) = msg.control(self, "Gemini Transcribe error") {
+            return outcome;
         }
 
         let Some(content) = msg.server_content else {
@@ -132,19 +105,19 @@ fn apply_transcription(
     acc: &mut TurnAccumulator,
 ) -> Option<bool> {
     if let Some(final_text) = &content.input_transcription {
-        acc.translated.clone_from(&final_text.text);
+        acc.text.clone_from(&final_text.text);
         return Some(true);
     }
     if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
         if acc.is_empty() {
             return None;
         }
-        acc.translated.clear();
+        acc.text.clear();
         acc.source.clear();
         return Some(true);
     }
     if let Some(interim) = &content.interim_input_transcription {
-        acc.translated.clone_from(&interim.text);
+        acc.text.clone_from(&interim.text);
         return Some(false);
     }
     None
@@ -153,6 +126,7 @@ fn apply_transcription(
 #[cfg(test)]
 mod smart_tests {
     use super::*;
+    use crate::realtime::{MessageControl, Signal};
     fn content(raw: &str) -> super::super::protocol::ServerContent {
         serde_json::from_str::<ServerMessage>(raw)
             .unwrap()
@@ -161,12 +135,12 @@ mod smart_tests {
     }
     #[test]
     fn smart_final_replaces_interim_even_in_the_same_frame() {
-        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
+        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
         let frame = content(
             r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
         );
         assert_eq!(apply_transcription(&frame, &mut acc), Some(true));
-        assert_eq!(acc.translated, "Hello.");
+        assert_eq!(acc.text, "Hello.");
     }
     #[test]
     fn empty_smart_final_and_bare_close_retract_fillers() {
@@ -174,8 +148,8 @@ mod smart_tests {
             r#"{"serverContent":{"inputTranscription":{"text":""}}}"#,
             r#"{"serverContent":{"generationComplete":true}}"#,
         ] {
-            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start());
-            acc.translated = "Um, uh".into();
+            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
+            acc.text = "Um, uh".into();
             assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
             assert!(acc.is_empty());
         }
@@ -190,11 +164,14 @@ mod smart_tests {
             host: crate::gemini::DEFAULT_HOST.to_string(),
             origin: Origin::Microphone,
         });
-        assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
+        assert_eq!(
+            h.send(r#"{"setupComplete":{}}"#).signal,
+            Signal::SetupComplete
+        );
         h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hel"}}}"#);
         h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hello there"}}}"#);
         let last = h.send(r#"{"serverContent":{"inputTranscription":{"text":"Hello there."}}}"#);
-        assert!(last.transcript_activity);
+        assert_eq!(last.signal, Signal::TranscriptActivity);
         // A segment close with nothing pending is not a caption.
         h.send(r#"{"serverContent":{"generationComplete":true}}"#);
         assert_eq!(
@@ -209,6 +186,37 @@ mod smart_tests {
             h.send(r#"{"goAway":{}}"#).control,
             MessageControl::Handover
         ));
+    }
+
+    /// The same endpoint and key as Live Translate; only the setup message tells them apart.
+    #[test]
+    fn the_handshake_matches_live_translate() {
+        use crate::realtime::test_support::handshake;
+        let mut config = GeminiTranscribeConfig {
+            api_key: "gemini-test".to_string(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        };
+        let translate = crate::gemini::GeminiConfig {
+            api_key: config.api_key.clone(),
+            model: crate::gemini::DEFAULT_TRANSLATE_MODEL.to_string(),
+            host: config.host.clone(),
+            target_language_code: "fr".to_string(),
+            origin: Origin::Microphone,
+        };
+        assert_eq!(
+            handshake(config.connect_request().unwrap()),
+            handshake(translate.connect_request().unwrap())
+        );
+
+        // The operator reads this as the reconnecting status's detail.
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "failed to build Gemini Transcribe request"
+        );
     }
 
     #[test]

@@ -5,10 +5,12 @@
 //! `write_history` replaces a whole file; `append_history` adds records to one, so a long
 //! session no longer rewrites everything it has already saved every few seconds. Files from
 //! before the log format are a single JSON object, and are still read and renamed.
-use crate::recovery::{remove_snapshot, replace_snapshot};
+use crate::atomic_file;
+use crate::errors::{id, AppError};
 use serde::Serialize;
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     fs::File,
     io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
@@ -18,7 +20,23 @@ use tauri::{AppHandle, Manager};
 
 static HISTORY_IO: Mutex<()> = Mutex::new(());
 
-fn session_path(dir: &Path, id: &str) -> Result<PathBuf, String> {
+/// Every history failure is the same one to the operator; the detail says what, and why.
+fn storage_error(detail: impl Display) -> AppError {
+    AppError::with(id::HISTORY_STORAGE, detail)
+}
+
+/// A file operation that failed, naming the file as Windows writes its path.
+fn file_error(path: &Path, error: impl Display) -> AppError {
+    storage_error(format!("{} — {error}", path.display()))
+}
+
+/// A blocking history task that panicked or was cancelled. A function of its own because the
+/// commands' `id` argument, named by the renderer, would otherwise sit beside `id::` paths.
+fn task_failed(error: impl Display) -> AppError {
+    AppError::with(id::TASK_FAILED, error)
+}
+
+fn session_path(dir: &Path, id: &str) -> Result<PathBuf, AppError> {
     // UUIDs only; renderer input must never become an arbitrary filesystem path.
     if id.len() != 36
         || !id.bytes().enumerate().all(|(i, b)| {
@@ -29,29 +47,29 @@ fn session_path(dir: &Path, id: &str) -> Result<PathBuf, String> {
             }
         })
     {
-        return Err("invalid session id".into());
+        return Err(storage_error("invalid session id"));
     }
     Ok(dir.join(format!("{id}.json")))
 }
 
-fn directory(app: &AppHandle) -> Result<PathBuf, String> {
+fn directory(app: &AppHandle) -> Result<PathBuf, AppError> {
     app.path()
         .app_local_data_dir()
         .map(|p| p.join("history"))
-        .map_err(|e| e.to_string())
+        .map_err(|e| storage_error(format!("no application data directory: {e}")))
 }
 
 #[tauri::command]
-pub async fn write_history(app: AppHandle, id: String, contents: String) -> Result<(), String> {
+pub async fn write_history(app: AppHandle, id: String, contents: String) -> Result<(), AppError> {
     let dir = directory(&app)?;
     let path = session_path(&dir, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        replace_snapshot(&path, |f| f.write_all(contents.as_bytes())).map_err(|e| e.to_string())
+        std::fs::create_dir_all(&dir).map_err(|e| file_error(&dir, e))?;
+        atomic_file::replace(&path, contents.as_bytes()).map_err(|e| file_error(&path, e))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(task_failed)?
 }
 
 /// Add records to an existing session log and flush them. A missing file is an error rather
@@ -73,14 +91,14 @@ fn append_session(path: &Path, contents: &str) -> std::io::Result<()> {
 }
 
 #[tauri::command]
-pub async fn append_history(app: AppHandle, id: String, contents: String) -> Result<(), String> {
+pub async fn append_history(app: AppHandle, id: String, contents: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        append_session(&path, &contents).map_err(|e| e.to_string())
+        append_session(&path, &contents).map_err(|e| file_error(&path, e))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(task_failed)?
 }
 
 /// One session file as `list_history` reports it. `contents` is left out when the renderer
@@ -130,7 +148,7 @@ fn list_sessions(
     dir: &Path,
     known: &HashMap<String, u64>,
     read: impl Fn(&Path) -> std::io::Result<(String, u64)>,
-) -> Result<HistoryListing, String> {
+) -> std::io::Result<HistoryListing> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -139,7 +157,7 @@ fn list_sessions(
                 removed: known.keys().cloned().collect(),
             })
         }
-        Err(e) => return Err(e.to_string()),
+        Err(e) => return Err(e),
     };
     let mut sessions = vec![];
     for entry in entries {
@@ -213,39 +231,41 @@ fn read_header(reader: &mut impl BufRead) -> std::io::Result<Vec<u8>> {
     Ok(header)
 }
 
-fn rename_session(path: &Path, title: &str) -> Result<(), String> {
+/// Give a session a new title. Everything that can go wrong here is about the one file, so
+/// a malformed record is reported as an I/O error on it, like a locked or missing one.
+fn rename_session(path: &Path, title: &str) -> std::io::Result<()> {
     // Only the header says whether this is a log, and a long session's log runs to megabytes.
-    let mut reader = BufReader::new(File::open(path).map_err(|e| e.to_string())?);
-    let mut raw = read_header(&mut reader).map_err(|e| e.to_string())?;
+    let mut reader = BufReader::new(File::open(path)?);
+    let mut raw = read_header(&mut reader)?;
     let title = title.trim().chars().take(120).collect::<String>();
     // A log takes the rename as one more record; the latest title record wins when it is read.
     if is_log(&raw) {
         drop(reader);
-        let mut record = serde_json::to_string(&serde_json::json!({ "title": title }))
-            .map_err(|e| e.to_string())?;
+        let mut record = serde_json::to_string(&serde_json::json!({ "title": title }))?;
         record.push('\n');
-        return append_session(path, &record).map_err(|e| e.to_string());
+        return append_session(path, &record);
     }
     // A file from before the log format is one JSON object, rewritten whole with its new
     // title, so the rest of it is needed after all.
-    reader.read_to_end(&mut raw).map_err(|e| e.to_string())?;
+    reader.read_to_end(&mut raw)?;
     drop(reader);
-    let mut session: serde_json::Value = serde_json::from_slice(&raw).map_err(|e| e.to_string())?;
-    let record = session.as_object_mut().ok_or("invalid session")?;
+    let mut session: serde_json::Value = serde_json::from_slice(&raw)?;
+    let record = session.as_object_mut().ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "not a session record")
+    })?;
     record.insert("title".into(), title.into());
-    let contents = serde_json::to_vec(&session).map_err(|e| e.to_string())?;
-    replace_snapshot(path, |f| f.write_all(&contents)).map_err(|e| e.to_string())
+    atomic_file::replace(path, &serde_json::to_vec(&session)?)
 }
 
 #[tauri::command]
-pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result<(), String> {
+pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        rename_session(&path, &title)
+        rename_session(&path, &title).map_err(|e| file_error(&path, e))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(task_failed)?
 }
 
 /// List the history folder. `known` is what the renderer already holds, as `[id, length]`
@@ -254,26 +274,26 @@ pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result
 pub async fn list_history(
     app: AppHandle,
     known: Vec<(String, u64)>,
-) -> Result<HistoryListing, String> {
+) -> Result<HistoryListing, AppError> {
     let dir = directory(&app)?;
     let known: HashMap<String, u64> = known.into_iter().collect();
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        list_sessions(&dir, &known, read_text)
+        list_sessions(&dir, &known, read_text).map_err(|e| file_error(&dir, e))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(task_failed)?
 }
 
 #[tauri::command]
-pub async fn delete_history(app: AppHandle, id: String) -> Result<(), String> {
+pub async fn delete_history(app: AppHandle, id: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
         let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
-        remove_snapshot(&path).map_err(|e| e.to_string())
+        atomic_file::remove(&path).map_err(|e| file_error(&path, e))
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(task_failed)?
 }
 
 #[cfg(test)]
@@ -364,10 +384,10 @@ mod tests {
         std::fs::create_dir(&dir).unwrap();
         let first = session_path(&dir, FIRST).unwrap();
         let second = session_path(&dir, SECOND).unwrap();
-        replace_snapshot(&first, |f| f.write_all(b"complete session")).unwrap();
-        replace_snapshot(&second, |f| f.write_all(b"second session")).unwrap();
+        atomic_file::replace(&first, b"complete session").unwrap();
+        atomic_file::replace(&second, b"second session").unwrap();
         // Incomplete writes and unrelated files are never offered as saved sessions.
-        std::fs::write(first.with_extension("json.pending"), "partial").unwrap();
+        std::fs::write(atomic_file::staging_path(&first), "partial").unwrap();
         std::fs::write(dir.join("unrelated.json"), "unrelated").unwrap();
         assert_eq!(list(&dir, &[]).sessions.len(), 2);
         // A corrupt record remains individually deletable without hiding the good one.
@@ -377,8 +397,8 @@ mod tests {
         assert!(reopened
             .iter()
             .any(|s| s.contents.as_deref() == Some("complete session")));
-        remove_snapshot(&first).unwrap();
-        remove_snapshot(&first).unwrap();
+        atomic_file::remove(&first).unwrap();
+        atomic_file::remove(&first).unwrap();
         assert_eq!(list(&dir, &[]).sessions.len(), 1);
         std::fs::remove_dir_all(dir).unwrap();
     }
@@ -428,7 +448,7 @@ mod tests {
 
         // A deleted session, and one remembered from a folder that has since gone, are both
         // named as removed rather than silently left out.
-        remove_snapshot(&second).unwrap();
+        atomic_file::remove(&second).unwrap();
         let gone = list(dir.path(), &[(FIRST, 25), (SECOND, 25)]);
         assert_eq!(gone.sessions.len(), 1);
         assert_eq!(gone.removed, vec![SECOND.to_owned()]);
@@ -541,6 +561,10 @@ mod tests {
         ] {
             assert!(session_path(dir, id).is_err());
         }
+        assert_eq!(
+            session_path(dir, "../transcript").unwrap_err(),
+            storage_error("invalid session id")
+        );
         assert_eq!(
             session_path(dir, "12345678-1234-1234-1234-123456789abc").unwrap(),
             dir.join("12345678-1234-1234-1234-123456789abc.json")

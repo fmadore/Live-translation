@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from '$lib/i18n';
-	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from '$lib/types';
+	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from '$lib/appearance';
 	import Stepper from '$lib/ui/Stepper.svelte';
 	import ToolButton from '$lib/ui/ToolButton.svelte';
 

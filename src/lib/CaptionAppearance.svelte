@@ -11,7 +11,12 @@
 		overlayPalette,
 		overlayContrast
 	} from './stores';
-	import { DEFAULT_APPEARANCE, sameAppearance } from './appearance';
+	import {
+		DEFAULT_APPEARANCE,
+		OVERLAY_FONT_MAX,
+		OVERLAY_FONT_MIN,
+		sameAppearance
+	} from './appearance';
 	import {
 		CAPTION_CONTRAST_TARGET,
 		SCRIM_OPACITY_MIN,
@@ -21,7 +26,6 @@
 	} from './captionColour';
 	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
-	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	let {
 		heading,

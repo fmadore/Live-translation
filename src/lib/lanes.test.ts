@@ -22,10 +22,10 @@ import { createSessionController } from './sessionController';
 import { createCaptionPresenter } from './reading';
 import { decodeRecovery, encodeRecovery } from './document';
 import { DEFAULT_LABELS, formatTranscript, groupTranscript } from './transcript';
+import { normalizeStartOptions } from './startOptions';
 import {
 	laneCount,
 	laneLanguage,
-	normalizeStartOptions,
 	secondCaptionLanguageOf,
 	trackLane,
 	trackOf,

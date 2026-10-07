@@ -7,6 +7,9 @@
 //! a bundled recording so rehearsal mode exercises the pipeline with no audio hardware at all.
 
 pub mod capture;
+// The COM guard for the threads `devices` and `loopback` spawn to use WASAPI directly.
+#[cfg(windows)]
+mod com;
 pub mod fixture;
 pub mod loopback;
 pub mod resample;

@@ -55,11 +55,15 @@ is three parts: `realtime/mod.rs` holds the loop, `realtime/policy.rs` the recon
 as pure functions (what to report, whether to drop or replay queued audio, how long to wait),
 and `realtime/socket.rs` one connection's open, pump and graceful close. It reports through an
 `Events` trait that `AppHandle` implements, so `realtime/tests.rs` drives the whole state
-machine against a loopback WebSocket server on a paused clock.
-`SessionManager::start` builds each source through `SessionBuilder`: a producer (the demo's
-own timeline, the rehearsal fixture or a `CaptureTarget` thread) and one client, spawned by
-`ProviderSettings::spawn_client`. The preflight test opens devices through the same
-`CaptureTarget`.
+machine against a loopback WebSocket server on a paused clock. Every status, from the runner,
+the demonstration, Whisper or the session itself, is built by a `StatusUpdate` constructor
+(`session`, `source` or `lane`, by what it addresses) and leaves through `Events::status`.
+`SessionManager::start` (`session/mod.rs`) builds each source through `SessionBuilder`
+(`session/builder.rs`): a producer (the demo's own timeline, the rehearsal fixture or a
+`CaptureTarget` thread, `session/capture.rs`) and one client, spawned by
+`ProviderSettings::spawn_client` (`session/settings.rs`). Validation and the choice of sources
+are in `session/options.rs`; the preflight test (`session/preflight.rs`) opens devices through
+the same `CaptureTarget`.
 
 ## The transcript document
 
@@ -103,8 +107,8 @@ a plain function of the provider. Live Translate appends transcription deltas; T
 sends a revised hypothesis and then an authoritative final for the same segment, each replacing
 the last. See [`gemini-live-api.md`](gemini-live-api.md).
 
-The subtitle backends and the built-in demo are unavailable in translation mode; `session.rs`
-enforces this through `Provider::can_translate`.
+The subtitle backends and the built-in demo are unavailable in translation mode;
+`session/options.rs` enforces this through `Provider::can_translate`.
 
 A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
 `MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open
@@ -224,9 +228,12 @@ the bound value, and uses a native date input, excluded from the focus cycle, fo
 button; that popup's language can depend on the host runtime.
 
 The eight appearance settings have one schema in `appearance.ts`: `DEFAULT_APPEARANCE`,
-`normalizeAppearance`, `toOverlayConfig` and the reading `PRESETS`. They persist one key each
-through `persisted.ts`, which reads and writes localStorage without ever throwing, and
-`stores.ts` exposes them together as `appearance` with `applyAppearance`. Every other module
+`normalizeAppearance`, `toOverlayConfig`, its inverse `fromOverlayConfig` (which the overlay
+reads each push through, keeping what is on screen for a field that is missing) and the
+reading `PRESETS`. They persist one key each through `persisted.ts`, which reads and writes
+localStorage without ever throwing, and `preferences.ts` exposes them together as `appearance`
+with `applyAppearance`. `stores.ts` re-exports the four store modules: `sessionStatus.ts`,
+`transcriptLog.ts`, `sourceActivity.ts` and `preferences.ts`. Every other module
 that reads storage as it loads (history, the interface language, meeting profiles and the
 export format in `exportFormat.ts`) goes through `persisted.ts` too, so blocked site data
 cannot throw at import and leave a window blank. Names shared with the core (commands, events

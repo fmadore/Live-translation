@@ -4,7 +4,7 @@ import { validateDevices } from './audioDevices';
 import { createPreflightController } from './preflightController.svelte';
 import { api } from './tauri';
 import { options, statusMessage } from './stores';
-import { DEFAULT_START_OPTIONS } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
 
 const mic = { id: 'mic-1', name: 'USB mic', isDefault: true };
 const output = { id: 'render-1', name: 'Dock speakers', isDefault: true };

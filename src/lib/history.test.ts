@@ -350,6 +350,33 @@ describe('session history', () => {
 		expect(decodeSession(legacy, id)).toMatchObject({ title: 'Old meeting', lines: [line] });
 		expect(decodeSession(legacy, id2)).toBeNull();
 	});
+	// It used to be read as a recovery snapshot, parsed a second time for its other fields.
+	// Its lines are now read as a log's are, and only its own version, 1, is accepted.
+	it('reads the lines of a session from before the log format as a log reads them', () => {
+		const whole = (patch: Record<string, unknown>) =>
+			JSON.stringify({
+				version: 1,
+				id,
+				startedAt: start.toISOString(),
+				savedAt: start.toISOString(),
+				endedAt: null,
+				durationMs: 1000,
+				mode: 'translate',
+				sourceLanguage: 'auto',
+				targetLanguage: 'fr',
+				lines: [line],
+				...patch
+			});
+		const second = { ...line, id: 2, lane: 1, language: 'de' };
+		expect(decodeSession(whole({ lines: [second, line] }), id)?.lines).toEqual([second, line]);
+		// A line it cannot read makes the file unreadable, not quietly shorter.
+		expect(
+			decodeSession(whole({ lines: [{ ...line, id: 2, origin: 'stage' }, line] }), id)
+		).toBeNull();
+		for (const bad of [{ version: 2 }, { version: undefined }, { lines: [] }, { lines: 'x' }])
+			expect(decodeSession(whole(bad), id)).toBeNull();
+		for (const raw of ['null', '1', '"text"', '[]']) expect(decodeSession(raw, id)).toBeNull();
+	});
 });
 
 // E6: an open History tab re-read, re-sent and re-decoded every session after each write.

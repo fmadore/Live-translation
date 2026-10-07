@@ -4,11 +4,13 @@
 //!
 //! `run_session` is the loop; `policy` decides what follows each connection (pure, so pause,
 //! handover and backoff are unit-tested), and `socket` opens, pumps and closes one connection.
+//! `wire` is for the providers: the pieces of a protocol more than one of them speaks.
 
 mod policy;
 mod socket;
 #[cfg(test)]
 mod tests;
+mod wire;
 
 use std::time::Duration;
 
@@ -25,12 +27,14 @@ use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use policy::{After, Reconnect, RunEnd};
 use socket::SocketIo;
+pub use wire::{bearer_request, parse_or_log};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
 
 /// Where a client's captions and statuses go. The app's `AppHandle` in production; the runner
-/// tests record them instead, so the state machine runs without Tauri.
+/// tests record them instead, so the state machine runs without Tauri. The demonstration and
+/// Whisper report their statuses through it too, so a status is emitted in one place.
 pub trait Events: Send + Sync {
     fn caption(&self, caption: Caption<'_>);
     fn status(&self, update: StatusUpdate);
@@ -62,10 +66,14 @@ pub async fn wait_for_resume(pause: &mut PauseRx, cancel: &CancellationToken) ->
 
 pub struct TurnAccumulator {
     pub id: u64,
-    /// The caption language this accumulator's captions are in; see `Caption::lane`.
-    pub lane: u8,
+    /// The caption language this accumulator's captions are in; see `Caption::lane`. Fixed
+    /// for its life: a client produces one lane.
+    lane: u8,
+    /// Source-language text for the operator's monitor, from providers that send it.
     pub source: String,
-    pub translated: String,
+    /// The caption itself, whatever the provider makes: a translation from Live Translate and
+    /// OpenAI, a same-language transcript from Transcribe Live and Mistral.
+    pub text: String,
     /// Shared with every other source in this session, so their captions land on one
     /// timeline. Lives here because the accumulator is the thing that outlives a reconnect.
     clock: SessionClock,
@@ -75,12 +83,12 @@ pub struct TurnAccumulator {
 }
 
 impl TurnAccumulator {
-    pub fn new(clock: SessionClock) -> Self {
+    pub fn new(clock: SessionClock, lane: u8) -> Self {
         Self {
             id: 0,
-            lane: 0,
+            lane,
             source: String::new(),
-            translated: String::new(),
+            text: String::new(),
             clock,
             started_ms: None,
         }
@@ -89,12 +97,12 @@ impl TurnAccumulator {
     pub fn next_turn(&mut self) {
         self.id += 1;
         self.source.clear();
-        self.translated.clear();
+        self.text.clear();
         self.started_ms = None;
     }
 
     pub fn is_empty(&self) -> bool {
-        self.source.is_empty() && self.translated.is_empty()
+        self.source.is_empty() && self.text.is_empty()
     }
 }
 
@@ -126,11 +134,25 @@ pub enum CaptionUpdate {
     Final,
 }
 
+/// What else a provider message told the runner, besides its caption and control. One message
+/// never says both: a setup acknowledgement carries no text.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum Signal {
+    #[default]
+    None,
+    /// The provider accepted the session setup, so audio may follow. Read only while the
+    /// runner waits for it; see `RealtimeProtocol::wait_for_setup_complete`.
+    SetupComplete,
+    /// New target-language text, which restarts the provider's idle-finalize timer (see
+    /// `RealtimeProtocol::finalize_after`). Source text alone does not count: it can lead the
+    /// translation by seconds, and would finalize a turn before its translation arrived.
+    TranscriptActivity,
+}
+
 #[derive(Debug, Default)]
 pub struct MessageOutcome {
     pub caption: CaptionUpdate,
-    pub transcript_activity: bool,
-    pub setup_complete: bool,
+    pub signal: Signal,
     pub control: MessageControl,
 }
 
@@ -147,14 +169,14 @@ impl MessageOutcome {
     pub fn activity(caption: CaptionUpdate) -> Self {
         Self {
             caption,
-            transcript_activity: true,
+            signal: Signal::TranscriptActivity,
             ..Self::default()
         }
     }
 
     pub fn setup_complete() -> Self {
         Self {
-            setup_complete: true,
+            signal: Signal::SetupComplete,
             ..Self::default()
         }
     }
@@ -215,17 +237,15 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     // also finalize text before reporting that the source has ended.
     let _capture_guard = cancel.clone().drop_guard();
     let origin = proto.origin();
-    let to = Lane { origin, lane };
     let mut policy = Reconnect::new(origin);
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
-    let mut acc = TurnAccumulator::new(clock);
-    acc.lane = lane;
+    let mut acc = TurnAccumulator::new(clock, lane);
     let mut terminal_error = None;
 
     while !cancel.is_cancelled() {
         // Paused before connecting: at the start, or after a connection closed for it.
         if *pause.borrow() {
-            emit_status(&events, SessionState::Paused, None, to);
+            events.status(StatusUpdate::lane(origin, lane, SessionState::Paused, None));
             if !wait_for_resume(&mut pause, &cancel).await {
                 break;
             }
@@ -233,7 +253,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
         }
         let plan = policy.connect();
         if let Some(state) = plan.status {
-            emit_status(&events, state, None, to);
+            events.status(StatusUpdate::lane(origin, lane, state, None));
         }
         if plan.drain_stale {
             drop_stale_audio(&mut audio_rx, origin);
@@ -279,12 +299,12 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             }
             RunEnd::Failed(error) => {
                 tracing::error!(?origin, "{} stream error: {error:#}", P::NAME);
-                emit_status(
-                    &events,
+                events.status(StatusUpdate::lane(
+                    origin,
+                    lane,
                     SessionState::Reconnecting,
                     Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
-                    to,
-                );
+                ));
             }
         }
         if next == After::Stop {
@@ -316,9 +336,14 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
         || finalize_accumulator(&events, origin, &mut acc),
         || {
             if let Some(error) = terminal_error {
-                emit_status(&events, SessionState::Error, Some(error), to);
+                events.status(StatusUpdate::lane(
+                    origin,
+                    lane,
+                    SessionState::Error,
+                    Some(error),
+                ));
             } else if report_idle {
-                emit_status(&events, SessionState::Idle, None, to);
+                events.status(StatusUpdate::lane(origin, lane, SessionState::Idle, None));
             }
         },
     );
@@ -384,7 +409,7 @@ pub fn emit_caption(events: &impl Events, origin: Origin, acc: &mut TurnAccumula
     let start_ms = *acc.started_ms.get_or_insert(end_ms);
     events.caption(Caption {
         turn_id: acc.id,
-        text: &acc.translated,
+        text: &acc.text,
         source_text: &acc.source,
         final_,
         origin,
@@ -394,27 +419,24 @@ pub fn emit_caption(events: &impl Events, origin: Origin, acc: &mut TurnAccumula
     });
 }
 
-fn emit_status(events: &impl Events, state: SessionState, message: Option<AppError>, to: Lane) {
-    events.status(StatusUpdate {
-        state,
-        message,
-        origin: Some(to.origin),
-        lane: Some(to.lane),
-    });
-}
-
-/// Where a client's statuses are addressed: its source, and its caption language there.
-#[derive(Clone, Copy)]
-struct Lane {
-    origin: Origin,
-    lane: u8,
-}
-
 /// Drives a provider's `handle_message` the way the runner does, recording captions instead
 /// of emitting them, so each wire format can be tested without an `AppHandle` or a socket.
 #[cfg(test)]
 pub(crate) mod test_support {
+    use tokio_tungstenite::tungstenite::handshake::client::generate_request;
+
     use super::*;
+
+    /// A provider's handshake as its server receives it: the URI the client dials, then the
+    /// request byte for byte, with the per-connection random `Sec-WebSocket-Key` masked. The
+    /// providers pin theirs with it, so a request builder they share cannot change what any one
+    /// of them sends.
+    pub fn handshake(request: Request) -> String {
+        let uri = request.uri().to_string();
+        let (bytes, key) = generate_request(request).expect("a well-formed handshake");
+        let wire = String::from_utf8(bytes).expect("an ASCII handshake");
+        format!("{uri}\n{}", wire.replace(&key, "<key>"))
+    }
 
     /// One caption event as the runner would have emitted it.
     #[derive(Debug, PartialEq, Eq)]
@@ -444,7 +466,7 @@ pub(crate) mod test_support {
         }
 
         fn of(acc: &TurnAccumulator, final_: bool) -> Self {
-            Self::new(acc.id, &acc.translated, &acc.source, final_)
+            Self::new(acc.id, &acc.text, &acc.source, final_)
         }
     }
 
@@ -458,7 +480,7 @@ pub(crate) mod test_support {
         pub fn new(proto: P) -> Self {
             Self {
                 proto,
-                acc: TurnAccumulator::new(SessionClock::start()),
+                acc: TurnAccumulator::new(SessionClock::start(), 0),
                 captions: Vec::new(),
             }
         }
@@ -540,7 +562,7 @@ mod unit_tests {
     }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
-        TurnAccumulator::new(SessionClock::at(elapsed_ms))
+        TurnAccumulator::new(SessionClock::at(elapsed_ms), 0)
     }
 
     #[test]
@@ -548,7 +570,7 @@ mod unit_tests {
         let mut acc = accumulator_at(0);
         acc.id = 7;
         acc.source = "hello".into();
-        acc.translated = "bonjour".into();
+        acc.text = "bonjour".into();
         acc.next_turn();
         assert_eq!(acc.id, 8);
         assert!(acc.is_empty());

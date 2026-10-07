@@ -1,6 +1,6 @@
 //! Native Save As and atomic transcript writes. Only the operator may invoke this.
 #[cfg(any(windows, test))]
-use std::io::{self, Write};
+use std::io;
 #[cfg(any(windows, test))]
 use std::path::Path;
 #[cfg(any(windows, test))]
@@ -9,6 +9,9 @@ use std::sync::atomic::{AtomicU64, Ordering};
 #[cfg(any(windows, test))]
 static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
 
+/// `atomic_file::replace_via`, staged under a hidden name of this process's own. The folder is
+/// the operator's, so a name derived from the target's could already belong to one of their
+/// files; this one cannot, and would be refused rather than truncated if it somehow existed.
 #[cfg(any(windows, test))]
 fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
     let parent = path
@@ -19,21 +22,7 @@ fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
         std::process::id(),
         NEXT_FILE.fetch_add(1, Ordering::Relaxed)
     ));
-    // Never truncate an existing staging file, including one left by a crashed process.
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&staging)?;
-    let result = (|| {
-        file.write_all(content)?;
-        file.sync_all()?;
-        drop(file);
-        std::fs::rename(&staging, path)
-    })();
-    if result.is_err() {
-        let _ = std::fs::remove_file(&staging);
-    }
-    result
+    crate::atomic_file::replace_via(path, &staging, content)
 }
 
 #[cfg(windows)]

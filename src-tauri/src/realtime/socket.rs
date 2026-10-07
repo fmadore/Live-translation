@@ -17,11 +17,11 @@ use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
 use super::{
-    apply_caption, emit_caption, emit_status, finalize_accumulator, CaptionUpdate, Events, Lane,
-    MessageControl, MessageOutcome, PauseRx, RealtimeProtocol, TurnAccumulator,
+    apply_caption, emit_caption, finalize_accumulator, CaptionUpdate, Events, MessageControl,
+    MessageOutcome, PauseRx, RealtimeProtocol, Signal, TurnAccumulator,
 };
 use crate::audio::AudioChunk;
-use crate::types::SessionState;
+use crate::types::{SessionState, StatusUpdate};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 pub(super) const SETUP_TIMEOUT: Duration = Duration::from_secs(15);
@@ -133,15 +133,12 @@ pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
 
     let origin = proto.origin();
     tracing::info!(?origin, "{} setup complete; streaming audio", P::NAME);
-    emit_status(
-        io.events,
+    io.events.status(StatusUpdate::lane(
+        origin,
+        acc.lane,
         SessionState::Running,
         None,
-        Lane {
-            origin,
-            lane: acc.lane,
-        },
-    );
+    ));
 
     if backlog.dropped > 0 {
         tracing::warn!(
@@ -269,7 +266,7 @@ async fn open<P: RealtimeProtocol, E: Events>(
 
         let outcome = handle_socket_message(io.events, proto, message, acc);
         match outcome.control {
-            MessageControl::Continue if outcome.setup_complete => return Ok(conn),
+            MessageControl::Continue if outcome.signal == Signal::SetupComplete => return Ok(conn),
             MessageControl::Continue => {}
             MessageControl::Fatal(message) => return Err(RunEnd::Fatal(message)),
             MessageControl::Reconnect | MessageControl::Handover | MessageControl::Closed => {
@@ -357,7 +354,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 if outcome.caption != CaptionUpdate::None {
                     last_caption = Instant::now();
                 }
-                if outcome.transcript_activity {
+                if outcome.signal == Signal::TranscriptActivity {
                     if let Some(after) = finalize_after {
                         finalize.as_mut().reset(Instant::now() + after);
                     }

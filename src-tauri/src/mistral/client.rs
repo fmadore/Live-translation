@@ -1,17 +1,16 @@
 //! Mistral Voxtral Mini realtime transcription. Unlike the translation providers, its
-//! transcript is the audience caption itself, so it is stored in `translated` and exported
-//! through the existing caption/transcript path.
+//! transcript is the audience caption itself: it goes in the accumulator's `text`, where a
+//! translation would, and is exported through the existing caption/transcript path.
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
+    TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -28,10 +27,17 @@ pub struct MistralConfig {
     pub host: String,
     pub target_streaming_delay_ms: u32,
     pub origin: Origin,
-    pub received_delta: bool,
 }
 
 impl MistralConfig {
+    /// The protocol the realtime runner drives for this source, with nothing heard yet.
+    pub fn into_client(self) -> MistralClient {
+        MistralClient {
+            config: self,
+            received_delta: false,
+        }
+    }
+
     fn ws_url(&self) -> String {
         format!(
             "wss://{}/v1/audio/transcriptions/realtime?model={}",
@@ -40,27 +46,30 @@ impl MistralConfig {
     }
 }
 
-impl RealtimeProtocol for MistralConfig {
+/// One Mistral source: its configuration, plus what the provider has sent on the current
+/// connection that a later event depends on. That part is the protocol's own business, so it
+/// lives here rather than in a configuration the session has to fill in.
+pub struct MistralClient {
+    config: MistralConfig,
+    /// Whether the provider's current session has streamed any transcript delta. Cleared by
+    /// the `session.created` that opens each connection.
+    received_delta: bool,
+}
+
+impl RealtimeProtocol for MistralClient {
     const NAME: &'static str = "Mistral";
 
     fn origin(&self) -> Origin {
-        self.origin
+        self.config.origin
     }
 
     fn connect_request(&self) -> Result<Request> {
-        let mut request = self
-            .ws_url()
-            .into_client_request()
-            .context("failed to build Mistral request")?;
-        let bearer = HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-            .context("Mistral API key is not a valid header value")?;
-        request.headers_mut().insert(AUTHORIZATION, bearer);
-        Ok(request)
+        bearer_request(Self::NAME, &self.config.ws_url(), &self.config.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
         Ok(serde_json::to_string(&SessionUpdate::pcm16(
-            self.target_streaming_delay_ms,
+            self.config.target_streaming_delay_ms,
         ))?)
     }
 
@@ -76,23 +85,19 @@ impl RealtimeProtocol for MistralConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let event: ServerEvent = match serde_json::from_str(text) {
-            Ok(event) => event,
-            Err(error) => {
-                tracing::debug!("unparsed Mistral event: {error} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(event) = parse_or_log::<ServerEvent>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
         match event.kind.as_str() {
             "session.created" | "session.updated" => {
                 self.received_delta = false;
-                tracing::debug!(origin = ?self.origin, event = %event.kind, "Mistral session ready");
+                tracing::debug!(origin = ?self.config.origin, event = %event.kind, "Mistral session ready");
             }
             "transcription.text.delta" => {
                 if let Some(delta) = event.text.as_deref().filter(|delta| !delta.is_empty()) {
                     self.received_delta = true;
-                    acc.translated.push_str(delta);
+                    acc.text.push_str(delta);
                     return MessageOutcome::activity(CaptionUpdate::Interim);
                 }
             }
@@ -101,9 +106,9 @@ impl RealtimeProtocol for MistralConfig {
             "transcription.done" => {
                 // `done.text` contains the full session transcript. Only use it when the
                 // server sent no deltas; otherwise idle-finalized turns would be duplicated.
-                if !self.received_delta && acc.translated.is_empty() {
+                if !self.received_delta && acc.text.is_empty() {
                     if let Some(full_text) = event.text {
-                        acc.translated = full_text;
+                        acc.text = full_text;
                     }
                 }
                 let caption = if acc.is_empty() {
@@ -120,7 +125,7 @@ impl RealtimeProtocol for MistralConfig {
             "error" => {
                 if event.error.as_ref().is_some_and(recoverable) {
                     tracing::warn!(
-                        origin = ?self.origin,
+                        origin = ?self.config.origin,
                         error = ?event.error,
                         "Mistral reported a transient error; reconnecting"
                     );
@@ -186,17 +191,58 @@ fn recoverable(error: &serde_json::Value) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{Emitted, Harness};
+    use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::Signal;
 
-    fn harness() -> Harness<MistralConfig> {
-        Harness::new(MistralConfig {
-            api_key: String::new(),
+    fn config(api_key: &str) -> MistralConfig {
+        MistralConfig {
+            api_key: api_key.to_string(),
             model: DEFAULT_MISTRAL_MODEL.to_string(),
             host: DEFAULT_MISTRAL_HOST.to_string(),
             target_streaming_delay_ms: DEFAULT_TARGET_STREAMING_DELAY_MS,
             origin: Origin::Microphone,
-            received_delta: false,
-        })
+        }
+    }
+
+    fn harness() -> Harness<MistralClient> {
+        Harness::new(config("").into_client())
+    }
+
+    #[test]
+    fn the_handshake_authenticates_with_a_bearer_header() {
+        let request = config("mistral-test")
+            .into_client()
+            .connect_request()
+            .unwrap();
+        assert_eq!(
+            handshake(request),
+            "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602\n\
+             GET /v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602 HTTP/1.1\r\n\
+             Host: api.mistral.ai\r\n\
+             Connection: Upgrade\r\n\
+             Upgrade: websocket\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             Sec-WebSocket-Key: <key>\r\n\
+             authorization: Bearer mistral-test\r\n\
+             \r\n"
+        );
+    }
+
+    /// The operator reads these as the reconnecting status's detail.
+    #[test]
+    fn a_request_that_cannot_be_built_says_which_part_failed() {
+        let error = config("bad\nkey")
+            .into_client()
+            .connect_request()
+            .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "Mistral API key is not a valid header value"
+        );
+        let mut config = config("mistral-test");
+        config.host = "not a host".to_string();
+        let error = config.into_client().connect_request().unwrap_err();
+        assert_eq!(error.to_string(), "failed to build Mistral request");
     }
 
     #[test]
@@ -204,7 +250,7 @@ mod tests {
         let mut h = harness();
         let outcome = h.send(r#"{"type":"transcription.text.delta","text":"Hello "}"#);
         assert_eq!(outcome.caption, CaptionUpdate::Interim);
-        assert!(outcome.transcript_activity);
+        assert_eq!(outcome.signal, Signal::TranscriptActivity);
         h.send(r#"{"type":"transcription.text.delta","text":""}"#);
         h.send(r#"{"type":"transcription.text.delta","text":"world"}"#);
         assert_eq!(

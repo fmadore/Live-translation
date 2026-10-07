@@ -736,8 +736,12 @@ export const de: Messages = {
 		sessionPause: 'Die Sitzung konnte nicht pausiert oder fortgesetzt werden',
 		audioTestStart: 'Der Audiotest konnte diese Quelle nicht öffnen',
 		overlayWindow: 'Das Overlay-Fenster hat nicht reagiert',
-		transcriptDir: 'Der Transkriptordner konnte nicht erstellt werden',
+		operatorWindow: 'Das Hauptfenster hat nicht reagiert',
 		transcriptWrite: 'Das Transkript konnte nicht geschrieben werden',
+		recoveryWrite: 'Die Wiederherstellungskopie konnte nicht geschrieben werden',
+		recoveryRead: 'Die Wiederherstellungskopie der letzten Sitzung konnte nicht gelesen werden',
+		recoveryDelete: 'Die Wiederherstellungskopie konnte nicht gelöscht werden',
+		historyStorage: 'Der Verlaufsordner konnte nicht gelesen oder geändert werden',
 		taskFailed: 'Eine Hintergrundaufgabe wurde unerwartet beendet',
 		micStream:
 			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
@@ -748,9 +752,6 @@ export const de: Messages = {
 		providerRejected:
 			'Der Anbieter hat die Verbindung abgelehnt – prüfen Sie den API-Schlüssel und den Modellzugriff',
 		providerStopped: 'Der Anbieter hat die Sitzung beendet',
-		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft',
-		/** Front-end only: the recovery spool is written from the operator window. */
-		recoveryWrite: (detail: string) =>
-			`Die Wiederherstellungskopie konnte nicht geschrieben werden: ${detail}`
+		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft'
 	}
 };

@@ -13,8 +13,8 @@
 	import { languageName, languageRows } from './languages';
 	import { locale, t } from './i18n';
 	import { languageFavourites, micLevel, options, systemLevel } from './stores';
-	import { PROVIDER_META, modelLabel, rateParts } from './providers';
-	import { providerDetectsLanguage, type Provider, type TargetLanguage } from './types';
+	import { PROVIDER_META, modelLabel, providerDetectsLanguage, rateParts } from './providers';
+	import type { Provider, TargetLanguage } from './types';
 	import type { PreflightController } from './preflightController.svelte';
 	import type { SetupActions } from './setupActions';
 

@@ -721,8 +721,12 @@ export const en = {
 		sessionPause: 'The session could not be paused or resumed',
 		audioTestStart: 'The audio test could not open that source',
 		overlayWindow: 'The overlay window did not respond',
-		transcriptDir: 'The transcript folder could not be created',
+		operatorWindow: 'The operator window did not respond',
 		transcriptWrite: 'The transcript could not be written',
+		recoveryWrite: 'The recovery copy could not be written',
+		recoveryRead: 'The recovery copy from your last session could not be read',
+		recoveryDelete: 'The recovery copy could not be deleted',
+		historyStorage: 'The history folder could not be read or changed',
 		taskFailed: 'A background task stopped unexpectedly',
 		micStream:
 			'The microphone stopped sending audio. Check the connection in Windows Settings > System > Sound (ms-settings:sound), then retry',
@@ -732,9 +736,7 @@ export const en = {
 			'System audio capture failed. Check the selected output in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		providerRejected: 'The provider rejected the connection — check the API key and model access',
 		providerStopped: 'The provider ended the session',
-		providerReconnecting: 'The connection dropped; reconnecting',
-		/** Front-end only: the recovery spool is written from the operator window. */
-		recoveryWrite: (detail: string) => `Recovery copy could not be written: ${detail}`
+		providerReconnecting: 'The connection dropped; reconnecting'
 	}
 };
 

@@ -2,13 +2,13 @@
 //! realtime session runner (`crate::realtime`). Sends 16 kHz PCM chunks and turns the
 //! returned transcriptions into caption events.
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
+use super::gemini_request;
 use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage, AUDIO_STREAM_END};
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -26,15 +26,6 @@ pub struct GeminiConfig {
     pub origin: Origin,
 }
 
-impl GeminiConfig {
-    fn ws_url(&self) -> String {
-        format!(
-            "wss://{}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={}",
-            self.host, self.api_key
-        )
-    }
-}
-
 impl RealtimeProtocol for GeminiConfig {
     const NAME: &'static str = "Gemini";
 
@@ -43,9 +34,7 @@ impl RealtimeProtocol for GeminiConfig {
     }
 
     fn connect_request(&self) -> Result<Request> {
-        self.ws_url()
-            .into_client_request()
-            .context("failed to build Gemini request")
+        gemini_request(Self::NAME, &self.host, &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -77,26 +66,12 @@ impl RealtimeProtocol for GeminiConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let msg: ServerMessage = match serde_json::from_str(text) {
-            Ok(m) => m,
-            Err(e) => {
-                tracing::debug!("unparsed server message: {e} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(msg) = parse_or_log::<ServerMessage>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
-        if msg.setup_complete.is_some() {
-            tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
-            return MessageOutcome::setup_complete();
-        }
-        // Live sessions are capped; `goAway` warns ahead of the cut, so move straight away.
-        if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Handover);
-        }
-        if let Some(error) = msg.error {
-            return MessageOutcome::control(MessageControl::Fatal(format!(
-                "Gemini realtime error: {error}"
-            )));
+        if let Some(outcome) = msg.control(self, "Gemini realtime error") {
+            return outcome;
         }
 
         let Some(content) = msg.server_content else {
@@ -114,7 +89,7 @@ impl RealtimeProtocol for GeminiConfig {
             .map(|t| t.text.as_str());
         let got_translation = translated_delta.is_some_and(|s| !s.is_empty());
         if let Some(delta) = translated_delta {
-            acc.translated.push_str(delta);
+            acc.text.push_str(delta);
         }
 
         // Emit whenever we have new text, or to mark the turn final.
@@ -131,16 +106,47 @@ impl RealtimeProtocol for GeminiConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{Emitted, Harness};
+    use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::{MessageControl, Signal};
 
-    fn harness() -> Harness<GeminiConfig> {
-        Harness::new(GeminiConfig {
-            api_key: String::new(),
+    fn config(api_key: &str) -> GeminiConfig {
+        GeminiConfig {
+            api_key: api_key.to_string(),
             model: DEFAULT_TRANSLATE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
             target_language_code: "fr".to_string(),
             origin: Origin::Microphone,
-        })
+        }
+    }
+
+    fn harness() -> Harness<GeminiConfig> {
+        Harness::new(config(""))
+    }
+
+    /// The Live API takes its key as a query parameter; the model goes in the setup message.
+    #[test]
+    fn the_handshake_carries_the_key_in_the_query() {
+        let request = config("gemini-test").connect_request().unwrap();
+        assert_eq!(
+            handshake(request),
+            "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=gemini-test\n\
+             GET /ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=gemini-test HTTP/1.1\r\n\
+             Host: generativelanguage.googleapis.com\r\n\
+             Connection: Upgrade\r\n\
+             Upgrade: websocket\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             Sec-WebSocket-Key: <key>\r\n\
+             \r\n"
+        );
+    }
+
+    /// The operator reads this as the reconnecting status's detail.
+    #[test]
+    fn a_request_that_cannot_be_built_names_the_provider() {
+        let mut config = config("gemini-test");
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(error.to_string(), "failed to build Gemini request");
     }
 
     #[test]
@@ -183,7 +189,10 @@ mod tests {
     #[test]
     fn setup_go_away_and_errors_steer_the_connection() {
         let mut h = harness();
-        assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
+        assert_eq!(
+            h.send(r#"{"setupComplete":{}}"#).signal,
+            Signal::SetupComplete
+        );
         assert!(matches!(
             h.send(r#"{"goAway":{"timeLeft":"10s"}}"#).control,
             MessageControl::Handover

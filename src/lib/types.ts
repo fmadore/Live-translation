@@ -5,8 +5,6 @@ import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
 import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
-import whisperLanguages from './whisperLanguages.json';
-import { readStored } from './persisted';
 
 // Each union below is declared once, as a runtime list, and the type is derived from it.
 // Persisted values are untrusted input and are checked against these lists, and
@@ -21,7 +19,7 @@ export const ORIGINS = ['microphone', 'system'] as const;
 export type Origin = (typeof ORIGINS)[number];
 
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
-import { TARGET_LANGUAGES, type TargetLanguage, type DemoLanguage } from './languages';
+import type { TargetLanguage, DemoLanguage } from './languages';
 export type { TargetLanguage } from './languages';
 
 /** Caption backend. The commercial providers each have their own API key; `ondevice`
@@ -87,32 +85,6 @@ export function describeReadiness(readiness: OnDeviceReadiness | null, m: Messag
 				? catalog.checkFailed
 				: catalog.checking;
 	return readiness.detail ? `${sentence} (${readiness.detail})` : sentence;
-}
-
-/** Backends that produce translated captions. The built-in demo is same-language only. */
-export function providerCanTranslate(provider: Provider): boolean {
-	return provider === 'gemini' || provider === 'openai';
-}
-
-/** Whether an API key must be saved before a session can start. Local Whisper and the
- *  scripted demo need no credential — see `docs/microsoft-store.md`. */
-export function providerRequiresKey(provider: Provider): boolean {
-	return provider !== 'ondevice' && provider !== 'whisper';
-}
-
-/** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
- *  it once covers translation and subtitles. Mirrors `account()` in `src-tauri/src/secrets.rs`. */
-export function providerKeyName(provider: Provider): string {
-	if (provider === 'openai') return 'OpenAI';
-	if (provider === 'mistral') return 'Mistral';
-	return 'Gemini';
-}
-
-/** Whether the backend identifies the spoken language itself, so there is no language for
- *  the operator to choose. True for both subtitle engines; the built-in demo instead picks
- *  which bundled script to play. */
-export function providerDetectsLanguage(provider: Provider): boolean {
-	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
 }
 
 /** Translate speech, or show a same-language transcription as live subtitles. */
@@ -419,172 +391,3 @@ export const EVT = {
 	overlayState: 'overlay-state',
 	textScale: 'text-scale'
 } as const;
-
-/** localStorage key shared by both windows (same origin) for the overlay font size. */
-export const OVERLAY_FONT_KEY = 'overlay.fontSize';
-export const DEFAULT_OVERLAY_FONT = 38;
-export const OVERLAY_FONT_MIN = 20;
-export const OVERLAY_FONT_MAX = 96;
-
-/** Clamp a requested overlay font size to the supported range. */
-export function clampOverlayFont(size: number): number {
-	return Math.max(OVERLAY_FONT_MIN, Math.min(OVERLAY_FONT_MAX, Math.round(size)));
-}
-
-/** Read the persisted overlay font size (shared by both windows via localStorage). */
-export function loadOverlayFont(): number {
-	const v = Number(readStored(OVERLAY_FONT_KEY));
-	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
-}
-
-/**
- * How wide a caption line may run, in `ch`.
- *
- * A typographic measure, not a percentage of the window, and deliberately: `ch` is defined
- * against the font, so a width chosen at 38px still means the same reading length at 72px.
- * A percentage would silently become a different number of words per line every time the
- * operator touched the size control.
- *
- * The range is the useful span between two real rooms. 20ch is a caption beside a video
- * tile, about four words a line and near the floor of what is readable at a glance; 60ch is
- * a wide stage under a 16:9 slide. `ch` is the width of a zero, which is wider than the
- * average lowercase glyph, so the 30ch default holds roughly the 40 characters broadcast
- * subtitling settled on.
- */
-export const OVERLAY_WIDTH_KEY = 'overlay.captionWidth';
-export const DEFAULT_OVERLAY_WIDTH = 30;
-export const OVERLAY_WIDTH_MIN = 20;
-export const OVERLAY_WIDTH_MAX = 60;
-
-export function clampOverlayWidth(width: number): number {
-	return Math.max(OVERLAY_WIDTH_MIN, Math.min(OVERLAY_WIDTH_MAX, Math.round(width)));
-}
-
-export function loadOverlayWidth(): number {
-	const v = Number(readStored(OVERLAY_WIDTH_KEY));
-	return Number.isFinite(v) && v > 0 ? clampOverlayWidth(v) : DEFAULT_OVERLAY_WIDTH;
-}
-
-/**
- * The tail budget for a still-streaming turn, in characters, at a given measure.
- *
- * `MAX_CHARS` in the overlay was a vertical limit wearing a horizontal disguise: it exists
- * so a long turn does not fill the screen, and what fills a screen is *lines*, not
- * characters. Holding it at 220 while the measure moved would have made a wide caption cover
- * less of the slide and a narrow one cover more — the setting quietly changing something
- * nobody asked it to change. Scaling it keeps the block the same number of lines at every
- * width, which is what the constant was protecting. 220 characters over the 30ch default is
- * the ratio being preserved.
- */
-export function captionBudget(width: number): number {
-	return Math.round((220 / DEFAULT_OVERLAY_WIDTH) * clampOverlayWidth(width));
-}
-
-/** Whether the caption region has ever been placed, so the pre-flight check survives a
- *  restart instead of asking the operator to position the overlay again. */
-export const OVERLAY_PLACED_KEY = 'overlay.placed';
-
-/** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
- *  privacy-first default: nothing is written to disk unless the operator asks for it. */
-export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
-
-/** Shared with the overlay, which reads it on load before the operator's first push. */
-export const SHOW_ORIGINAL_KEY = 'overlay.showOriginal';
-
-/** Whether closing the operator window leaves the app running in the tray.
- *
- *  Off by default, so a fresh install keeps ordinary Windows semantics: minimize goes to the
- *  taskbar, and the X closes the app. An app that silently keeps running after you closed it
- *  is a thing you opt into. */
-export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
-
-/** Set once the operator has been told, in as many words, that closing the window is no
- *  longer quitting. Persisted so it is said the first time and never again. */
-export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
-
-/** Fresh-install setup for local speech recognition. The user downloads a model before
- *  starting; opening the app never starts a download or audio capture. */
-export const DEFAULT_START_OPTIONS: StartOptions = {
-	source: 'microphone',
-	mode: 'transcribe',
-	targetLanguage: 'en',
-	provider: 'whisper',
-	whisperModel: 'base',
-	spokenLanguage: null,
-	micDeviceName: null
-};
-
-/** localStorage key for the operator's last setup, so the keyless default above is a first-run
- *  state rather than a reset on every launch. */
-export const SESSION_OPTIONS_KEY = 'session.options';
-
-function oneOf<T extends string>(allowed: readonly T[], value: unknown, fallback: T): T {
-	return typeof value === 'string' && (allowed as readonly string[]).includes(value)
-		? (value as T)
-		: fallback;
-}
-
-/** Read the persisted setup. Absent, unparseable or non-object storage yields the first-run
- *  defaults; otherwise each field falls back to its own default when missing or outside its
- *  union. A stored mode/provider pair that violates `providerCanTranslate` discards the whole
- *  record — the rail offers no such pair, so repairing one field would only guess which of the
- *  two the operator meant. The result is built field by field rather than spread from storage,
- *  so `rehearsal` (never persisted, and meaningless outside the launch that asked for it) can
- *  never come back out of localStorage. */
-export function loadStartOptions(): StartOptions {
-	const raw = readStored(SESSION_OPTIONS_KEY);
-	if (!raw) return { ...DEFAULT_START_OPTIONS };
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(raw);
-	} catch {
-		return { ...DEFAULT_START_OPTIONS };
-	}
-	return normalizeStartOptions(parsed);
-}
-
-export function normalizeStartOptions(parsed: unknown): StartOptions {
-	if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_START_OPTIONS };
-	const stored = parsed as Record<string, unknown>;
-	const loaded: StartOptions = {
-		source: oneOf(AUDIO_SOURCES, stored.source, DEFAULT_START_OPTIONS.source),
-		mode: oneOf(OUTPUT_MODES, stored.mode, DEFAULT_START_OPTIONS.mode),
-		targetLanguage: oneOf(
-			TARGET_LANGUAGES,
-			stored.targetLanguage,
-			DEFAULT_START_OPTIONS.targetLanguage
-		),
-		provider: oneOf(PROVIDERS, stored.provider, DEFAULT_START_OPTIONS.provider),
-		...(stored.provider === 'whisper' || stored.whisperModel !== undefined
-			? {
-					whisperModel: oneOf(WHISPER_MODELS, stored.whisperModel, 'base'),
-					spokenLanguage:
-						typeof stored.spokenLanguage === 'string' &&
-						whisperLanguages.some((l) => l.code === stored.spokenLanguage)
-							? stored.spokenLanguage
-							: null
-				}
-			: {}),
-		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
-		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
-		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null,
-		secondTargetLanguage:
-			typeof stored.secondTargetLanguage === 'string' &&
-			(TARGET_LANGUAGES as readonly string[]).includes(stored.secondTargetLanguage)
-				? (stored.secondTargetLanguage as TargetLanguage)
-				: null,
-		// Remember the privacy choice, never restore a PID across app launches.
-		...((stored.systemCapture as { kind?: string } | null)?.kind === 'application'
-			? { systemCapture: { kind: 'application' as const, process: null } }
-			: {})
-	};
-	// The compatibility id `ondevice` now means the deterministic bundled demonstration.
-	// Repair older saved Windows-speech configurations to its single virtual Demo audio source.
-	if (loaded.provider === 'ondevice') {
-		loaded.source = 'microphone';
-		loaded.micDeviceName = null;
-	}
-	return providerCanTranslate(loaded.provider) === (loaded.mode === 'translate')
-		? loaded
-		: { ...DEFAULT_START_OPTIONS };
-}

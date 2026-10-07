@@ -62,3 +62,22 @@ it('offers nothing when there is no spool, and reports a read failure', async ()
 	await failing.load();
 	expect(get(statusMessage)).toBe('disk gone');
 });
+
+// What the core rejects with: kept whole for the status line to word, never flattened.
+it('keeps a failure the core reports structured, reading and retiring alike', async () => {
+	const unreadable = { id: 'error.recoveryRead', detail: 'C:\\spool.json — Access is denied.' };
+	const reading = createRecoveryOffer({
+		read: vi.fn().mockRejectedValue(unreadable),
+		clear: vi.fn()
+	});
+	await reading.load();
+	expect(get(statusMessage)).toEqual(unreadable);
+
+	const locked = { id: 'error.recoveryDelete', detail: 'C:\\spool.json — file is locked' };
+	const fake = port({ contents: encodeRecovery(lines, new Date()), path: 'C:\\spool.json' });
+	fake.clear.mockRejectedValue(locked);
+	const answering = createRecoveryOffer(fake);
+	await answering.load();
+	await answering.answer(false);
+	expect(get(statusMessage)).toEqual(locked);
+});

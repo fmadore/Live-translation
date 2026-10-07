@@ -4,7 +4,7 @@
 import { fromStore, get } from 'svelte/store';
 import { shouldGuardClose } from './document';
 import { locale, t } from './i18n';
-import { startRecoverySpool } from './recovery';
+import { spoolFailure, startRecoverySpool } from './recovery';
 import {
 	closeToTray,
 	isRunning,
@@ -75,7 +75,7 @@ export function syncNative({
 		if (!spooling.current) return;
 		return startRecoverySpool(
 			() => (get(transcriptDirty) ? get(transcript) : null),
-			(error) => statusMessage.set(get(t).error.recoveryWrite(String(error)))
+			(error) => statusMessage.set(spoolFailure(error))
 		);
 	});
 

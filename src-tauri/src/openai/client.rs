@@ -9,14 +9,13 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
+    TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -58,14 +57,7 @@ impl RealtimeProtocol for OpenAiConfig {
 
     fn connect_request(&self) -> Result<Request> {
         // OpenAI authenticates the WebSocket with an Authorization header, not a query param.
-        let mut request = self
-            .ws_url()
-            .into_client_request()
-            .context("failed to build OpenAI request")?;
-        let bearer = HeaderValue::from_str(&format!("Bearer {}", self.api_key))
-            .context("OpenAI API key is not a valid header value")?;
-        request.headers_mut().insert(AUTHORIZATION, bearer);
-        Ok(request)
+        bearer_request(Self::NAME, &self.ws_url(), &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -82,12 +74,8 @@ impl RealtimeProtocol for OpenAiConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let ev: ServerEvent = match serde_json::from_str(text) {
-            Ok(e) => e,
-            Err(e) => {
-                tracing::debug!("unparsed OpenAI event: {e} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(ev) = parse_or_log::<ServerEvent>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
         if let Some(error) = ev.error {
@@ -118,7 +106,7 @@ impl RealtimeProtocol for OpenAiConfig {
             }
         } else if kind.ends_with("output_transcript.delta") {
             if let Some(t) = ev.payload() {
-                acc.translated.push_str(t);
+                acc.text.push_str(t);
                 return MessageOutcome::activity(CaptionUpdate::Interim);
             }
         } else if kind.ends_with("output_transcript.done")
@@ -126,9 +114,9 @@ impl RealtimeProtocol for OpenAiConfig {
         {
             // Some preview builds send an explicit completion; finalize immediately.
             if !acc.is_empty() {
-                if acc.translated.is_empty() {
+                if acc.text.is_empty() {
                     if let Some(t) = ev.transcript.as_deref() {
-                        acc.translated.push_str(t);
+                        acc.text.push_str(t);
                     }
                 }
                 return MessageOutcome::caption(CaptionUpdate::Final);
@@ -184,17 +172,53 @@ fn error_control(error: &serde_json::Value) -> MessageControl {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{Emitted, Harness};
+    use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::Signal;
 
-    fn harness() -> Harness<OpenAiConfig> {
-        Harness::new(OpenAiConfig {
-            api_key: String::new(),
+    fn config(api_key: &str) -> OpenAiConfig {
+        OpenAiConfig {
+            api_key: api_key.to_string(),
             model: DEFAULT_OPENAI_TRANSLATE_MODEL.to_string(),
             transcribe_model: DEFAULT_OPENAI_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_OPENAI_HOST.to_string(),
             target_language_code: "en".to_string(),
             origin: Origin::System,
-        })
+        }
+    }
+
+    fn harness() -> Harness<OpenAiConfig> {
+        Harness::new(config(""))
+    }
+
+    #[test]
+    fn the_handshake_authenticates_with_a_bearer_header() {
+        let request = config("sk-test").connect_request().unwrap();
+        assert_eq!(
+            handshake(request),
+            "wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate\n\
+             GET /v1/realtime/translations?model=gpt-realtime-translate HTTP/1.1\r\n\
+             Host: api.openai.com\r\n\
+             Connection: Upgrade\r\n\
+             Upgrade: websocket\r\n\
+             Sec-WebSocket-Version: 13\r\n\
+             Sec-WebSocket-Key: <key>\r\n\
+             authorization: Bearer sk-test\r\n\
+             \r\n"
+        );
+    }
+
+    /// The operator reads these as the reconnecting status's detail.
+    #[test]
+    fn a_request_that_cannot_be_built_says_which_part_failed() {
+        let error = config("sk-\ntest").connect_request().unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "OpenAI API key is not a valid header value"
+        );
+        let mut config = config("sk-test");
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(error.to_string(), "failed to build OpenAI request");
     }
 
     #[test]
@@ -202,11 +226,11 @@ mod tests {
         let mut h = harness();
         let source = h.send(r#"{"type":"session.input_transcript.delta","delta":"Bonjour"}"#);
         assert_eq!(source.caption, CaptionUpdate::Interim);
-        assert!(!source.transcript_activity);
+        assert_eq!(source.signal, Signal::None);
 
         let target = h.send(r#"{"type":"session.output_transcript.delta","delta":"Hello"}"#);
         assert_eq!(target.caption, CaptionUpdate::Interim);
-        assert!(target.transcript_activity);
+        assert_eq!(target.signal, Signal::TranscriptActivity);
 
         assert_eq!(
             h.captions,

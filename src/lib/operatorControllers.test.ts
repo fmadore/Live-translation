@@ -4,7 +4,8 @@ import { api } from './tauri';
 import { createPreflightController } from './preflightController.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { options, overlayFontSize, overlayCaptionWidth, statusMessage } from './stores';
-import { DEFAULT_START_OPTIONS, type StartOptions, type WhisperModelInfo } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
+import type { StartOptions, WhisperModelInfo } from './types';
 
 beforeEach(() => {
 	statusMessage.set('');

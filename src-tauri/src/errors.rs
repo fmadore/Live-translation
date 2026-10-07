@@ -65,9 +65,21 @@ pub mod id {
     pub const AUDIO_TEST_START: &str = "error.audioTestStart";
     /// The overlay window refused a window-level change.
     pub const OVERLAY_WINDOW: &str = "error.overlayWindow";
-    /// The transcript folder could not be created.
-    /// The transcript file could not be written.
+    /// The operator window refused to hide itself to the tray.
+    pub const OPERATOR_WINDOW: &str = "error.operatorWindow";
+    /// An export did not reach the file the operator chose in Save As: the write failed, or
+    /// the format or the platform cannot be exported at all.
     pub const TRANSCRIPT_WRITE: &str = "error.transcriptWrite";
+    /// The crash-recovery spool could not be written while the transcript was unsaved.
+    pub const RECOVERY_WRITE: &str = "error.recoveryWrite";
+    /// A spool left by an earlier run could not be read at start-up.
+    pub const RECOVERY_READ: &str = "error.recoveryRead";
+    /// A spool that is no longer needed could not be deleted.
+    pub const RECOVERY_DELETE: &str = "error.recoveryDelete";
+    /// A session file in the history folder could not be read, written or deleted. One id for
+    /// all three, unlike the spool's: the History tab puts its own sentence in front of it, and
+    /// the detail names the file and the reason.
+    pub const HISTORY_STORAGE: &str = "error.historyStorage";
     /// A blocking task panicked or was cancelled. Nothing the operator did.
     pub const TASK_FAILED: &str = "error.taskFailed";
     /// The microphone stopped delivering audio mid-session.

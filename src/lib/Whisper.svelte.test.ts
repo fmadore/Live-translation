@@ -4,7 +4,8 @@ import { get } from 'svelte/store';
 import WhisperModels from './WhisperModels.svelte';
 import WhisperActivity from './WhisperActivity.svelte';
 import { options, whisperModels, statusMessage, originStates } from './stores';
-import { DEFAULT_START_OPTIONS, type WhisperModelInfo, type WhisperProgress } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
+import type { WhisperModelInfo, WhisperProgress } from './types';
 import { setLocale } from './i18n';
 import { whisperPendingSeconds, whisperProgress } from './whisperProgress';
 

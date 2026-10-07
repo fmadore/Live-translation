@@ -6,8 +6,8 @@
 	import { languageName } from './languages';
 	import { locale, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
-	import { estimateSessionCost, formatUsd } from './providers';
-	import { laneCount, providerDetectsLanguage, secondCaptionLanguageOf } from './types';
+	import { estimateSessionCost, formatUsd, providerDetectsLanguage } from './providers';
+	import { laneCount, secondCaptionLanguageOf } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { SessionClock } from './sessionClock.svelte';
 

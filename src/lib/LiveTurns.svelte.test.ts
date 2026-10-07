@@ -4,7 +4,7 @@ import LiveTurns from './LiveTurns.svelte';
 import { setLocale } from './i18n';
 import { currentCaptions, options } from './stores';
 import { CAPTION_TAIL_CHARS } from './captionLayout';
-import { DEFAULT_START_OPTIONS } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
 
 beforeEach(() => {
 	setLocale('en');

@@ -45,9 +45,11 @@ mod windows_impl {
     use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
     use tokio_util::sync::CancellationToken;
-    use wasapi::{initialize_mta, DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
+    use wasapi::{DeviceEnumerator, Direction, SampleType, StreamMode, WaveFormat};
 
+    use crate::audio::applications::{ProcessGuard, ProcessIdentity, SystemCapture};
     use crate::audio::capture::CaptureState;
+    use crate::audio::com::Apartment;
     use crate::audio::devices::PresenceCheck;
     use crate::types::{AudioLevel, Origin};
 
@@ -66,64 +68,120 @@ mod windows_impl {
 
     pub fn run(
         device_id: Option<String>,
-        capture: crate::audio::applications::SystemCapture,
+        capture: SystemCapture,
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
         chunk_tx: crate::audio::sink::AudioSink,
         cancel: &CancellationToken,
     ) -> Result<()> {
-        // COM must be initialised on the capture thread. `initialize_mta` returns an
-        // `HRESULT`; `.ok()` turns it into a `windows::core::Result` that anyhow accepts.
-        initialize_mta()
-            .ok()
-            .context("failed to initialise COM (MTA)")?;
-        struct Apartment;
-        impl Drop for Apartment {
-            fn drop(&mut self) {
-                wasapi::deinitialize();
+        // COM must be initialised on the capture thread, and left only after every COM
+        // object below is released.
+        let _apartment = Apartment::mta().context("failed to initialise COM (MTA)")?;
+
+        let Source {
+            device,
+            process,
+            mut client,
+            format,
+            period,
+        } = match capture {
+            SystemCapture::Output => Source::output(device_id)?,
+            SystemCapture::Application { process } => Source::application(process)?,
+        };
+        let (event, mut reader) = start(&mut client, &format, period)?;
+
+        let mut state =
+            CaptureState::new(Origin::System, reader.rate, target_rate, level_tx, chunk_tx);
+        // The loop wakes on every device period (~100 Hz); the endpoint's state only needs
+        // asking when Windows reports a change, or once a second in case it did not.
+        let mut presence = PresenceCheck::new(Duration::from_secs(1));
+
+        while !cancel.is_cancelled() {
+            ensure_present(device.as_ref(), process.as_ref(), &mut presence)?;
+            reader.forward(&mut state)?;
+
+            // Wake on the audio event; short timeout keeps cancellation responsive.
+            if event.wait_for_event(100).is_err() {
+                // Timeout — loop and re-check cancellation.
             }
         }
-        let _apartment = Apartment;
 
-        use crate::audio::applications::{ProcessGuard, SystemCapture};
-        let (device, process, mut audio_client, format, period) = match capture {
-            SystemCapture::Output => {
-                let enumerator =
-                    DeviceEnumerator::new().ctx("failed to create device enumerator")?;
-                let device = match device_id {
-                    Some(id) => enumerator
-                        .get_device(&id)
-                        .ctx("selected output device unavailable")?,
-                    None => enumerator
-                        .get_default_device(&Direction::Render)
-                        .ctx("no default render device")?,
-                };
-                anyhow::ensure!(
-                    device.get_direction() == Direction::Render,
-                    "selected device is not an output endpoint"
-                );
-                let client = device
-                    .get_iaudioclient()
-                    .ctx("failed to get IAudioClient")?;
-                let format = client.get_mixformat().ctx("failed to get mix format")?;
-                let (_, period) = client
-                    .get_device_period()
-                    .ctx("failed to get device periods")?;
-                (Some(device), None, client, format, period)
-            }
-            SystemCapture::Application { process } => {
-                let identity = process.context("select an application before starting capture")?;
-                let guard = ProcessGuard::selected(&identity)?;
-                let client =
-                    wasapi::AudioClient::new_application_loopback_client(identity.pid, true)
-                        .ctx("failed to capture selected application")?;
-                // Process clients have neither a device mix format nor a device period.
-                let format = WaveFormat::new(32, 32, &SampleType::Float, 48000, 2, None);
-                (None, Some(guard), client, format, 200_000)
-            }
-        };
+        let _ = client.stop_stream();
+        tracing::info!("WASAPI loopback capture stopped");
+        Ok(())
+    }
+
+    /// What loopback captures, and the client, format and buffer duration it opens with.
+    struct Source {
+        /// The output endpoint, watched for removal. `None` when capturing an application.
+        device: Option<wasapi::Device>,
+        /// The captured application, watched for exit. `None` when capturing an output.
+        process: Option<ProcessGuard>,
+        client: wasapi::AudioClient,
+        format: WaveFormat,
+        /// In 100 ns units.
+        period: i64,
+    }
+
+    impl Source {
+        /// The mix of every application playing to the selected output, or the default one.
+        fn output(device_id: Option<String>) -> Result<Self> {
+            let enumerator = DeviceEnumerator::new().ctx("failed to create device enumerator")?;
+            let device = match device_id {
+                Some(id) => enumerator
+                    .get_device(&id)
+                    .ctx("selected output device unavailable")?,
+                None => enumerator
+                    .get_default_device(&Direction::Render)
+                    .ctx("no default render device")?,
+            };
+            anyhow::ensure!(
+                device.get_direction() == Direction::Render,
+                "selected device is not an output endpoint"
+            );
+            let client = device
+                .get_iaudioclient()
+                .ctx("failed to get IAudioClient")?;
+            let format = client.get_mixformat().ctx("failed to get mix format")?;
+            let (_, period) = client
+                .get_device_period()
+                .ctx("failed to get device periods")?;
+            Ok(Self {
+                device: Some(device),
+                process: None,
+                client,
+                format,
+                period,
+            })
+        }
+
+        /// One application's output, through a process loopback client.
+        fn application(process: Option<ProcessIdentity>) -> Result<Self> {
+            let identity = process.context("select an application before starting capture")?;
+            let guard = ProcessGuard::selected(&identity)?;
+            let client = wasapi::AudioClient::new_application_loopback_client(identity.pid, true)
+                .ctx("failed to capture selected application")?;
+            // Process clients have neither a device mix format nor a device period.
+            let format = WaveFormat::new(32, 32, &SampleType::Float, 48000, 2, None);
+            Ok(Self {
+                device: None,
+                process: Some(guard),
+                client,
+                format,
+                period: 200_000,
+            })
+        }
+    }
+
+    /// Log the stream's format, then initialise `client` for event-driven shared capture and
+    /// start it. Returns the event that signals each period and the reader for its packets.
+    fn start(
+        client: &mut wasapi::AudioClient,
+        format: &WaveFormat,
+        period: i64,
+    ) -> Result<(wasapi::Handle, Reader)> {
         let in_rate = format.get_samplespersec();
-        let channels = format.get_nchannels() as usize;
+        let channels = usize::from(format.get_nchannels());
         let bits = format.get_bitspersample();
         let sample_type = format.get_subformat().unwrap_or(SampleType::Float);
 
@@ -140,64 +198,84 @@ mod windows_impl {
             autoconvert: true,
             buffer_duration_hns: period,
         };
-        audio_client
-            .initialize_client(&format, &Direction::Capture, &mode)
+        client
+            .initialize_client(format, &Direction::Capture, &mode)
             .ctx("failed to initialise loopback client")?;
 
-        let event = audio_client
+        let event = client
             .set_get_eventhandle()
             .ctx("failed to set event handle")?;
-        let capture_client = audio_client
+        let capture = client
             .get_audiocaptureclient()
             .ctx("failed to get capture client")?;
 
-        audio_client
+        client
             .start_stream()
             .ctx("failed to start loopback stream")?;
 
-        let mut state = CaptureState::new(Origin::System, in_rate, target_rate, level_tx, chunk_tx);
-        let mut raw: VecDeque<u8> = VecDeque::new();
-        let mut frame: Vec<f32> = Vec::new();
-        // The loop wakes on every device period (~100 Hz); the endpoint's state only needs
-        // asking when Windows reports a change, or once a second in case it did not.
-        let mut presence = PresenceCheck::new(Duration::from_secs(1));
+        let reader = Reader {
+            capture,
+            rate: in_rate,
+            channels,
+            bits,
+            sample_type,
+            raw: VecDeque::new(),
+            frame: Vec::new(),
+        };
+        Ok((event, reader))
+    }
 
-        while !cancel.is_cancelled() {
-            // An endpoint can disappear without producing another audio event. Never reopen
-            // the new default silently: this stream stays pinned to its original endpoint.
-            if presence.due() {
-                anyhow::ensure!(
-                    device
-                        .as_ref()
-                        .is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
-                    "selected output device disconnected or disabled"
-                );
-            }
+    /// Fail once what is being captured has gone. An endpoint can disappear without
+    /// producing another audio event, so its state is asked whenever `presence` is due.
+    /// Never reopen the new default silently: the stream stays pinned to its original
+    /// endpoint.
+    fn ensure_present(
+        device: Option<&wasapi::Device>,
+        process: Option<&ProcessGuard>,
+        presence: &mut PresenceCheck,
+    ) -> Result<()> {
+        if presence.due() {
             anyhow::ensure!(
-                process.as_ref().is_none_or(|p| p.running()),
-                "selected application has closed; select it again"
+                device.is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
+                "selected output device disconnected or disabled"
             );
-            // Drain whatever the device has buffered into `raw`.
-            capture_client
-                .read_from_device_to_deque(&mut raw)
+        }
+        anyhow::ensure!(
+            process.is_none_or(ProcessGuard::running),
+            "selected application has closed; select it again"
+        );
+        Ok(())
+    }
+
+    /// The capture side of a started stream, with the layout of its samples and buffers
+    /// reused across wakes.
+    struct Reader {
+        capture: wasapi::AudioCaptureClient,
+        rate: u32,
+        channels: usize,
+        bits: u16,
+        sample_type: SampleType,
+        raw: VecDeque<u8>,
+        frame: Vec<f32>,
+    }
+
+    impl Reader {
+        /// Decode the endpoint's next packet, if it has one, and feed it to `state`.
+        /// `read_from_device_to_deque` reads a single packet per call, and the packet's
+        /// buffer flags (silent, discontinuity) it returns are not looked at.
+        fn forward(&mut self, state: &mut CaptureState) -> Result<()> {
+            self.capture
+                .read_from_device_to_deque(&mut self.raw)
                 .ctx("failed to read loopback buffer")?;
 
-            if !raw.is_empty() {
-                frame.clear();
-                decode_interleaved(&mut raw, sample_type, bits, &mut frame);
-                raw.clear();
-                state.push_samples(&frame, channels);
+            if !self.raw.is_empty() {
+                self.frame.clear();
+                decode_interleaved(&mut self.raw, self.sample_type, self.bits, &mut self.frame);
+                self.raw.clear();
+                state.push_samples(&self.frame, self.channels);
             }
-
-            // Wake on the audio event; short timeout keeps cancellation responsive.
-            if event.wait_for_event(100).is_err() {
-                // Timeout — loop and re-check cancellation.
-            }
+            Ok(())
         }
-
-        let _ = audio_client.stop_stream();
-        tracing::info!("WASAPI loopback capture stopped");
-        Ok(())
     }
 
     /// Decode raw interleaved endpoint bytes into f32 samples in [-1, 1].

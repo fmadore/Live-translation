@@ -12,7 +12,7 @@
 	import type { OverlayController } from './overlayController.svelte';
 	import type { CaptionLayout } from './captionLayout';
 	import { HOLD_SECONDS_MAX, HOLD_SECONDS_MIN } from './reading';
-	import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './types';
+	import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './appearance';
 	import Field from './ui/Field.svelte';
 	import Select from './ui/Select.svelte';
 	import Stepper from './ui/Stepper.svelte';

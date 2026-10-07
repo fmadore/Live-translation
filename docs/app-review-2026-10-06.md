@@ -13,10 +13,11 @@ with `windows-11-arm` on the critical path.
 
 **Status (7 October 2026):** batches 1 and 2 (§7) were merged in
 [#116](https://github.com/fmadore/Live-translation/pull/116) and batch 3 in
-[#117](https://github.com/fmadore/Live-translation/pull/117). Batch 4's CI, static-analysis and
-coverage items were merged in [#118](https://github.com/fmadore/Live-translation/pull/118); T4
-and T5, its second half, are implemented on `review/2026-10-06-batch4b`. Batches 5 and 6 come
-next.
+[#117](https://github.com/fmadore/Live-translation/pull/117). Batch 4 was merged in two parts:
+its CI, static-analysis and coverage items in
+[#118](https://github.com/fmadore/Live-translation/pull/118), and T4 and T5 in
+[#119](https://github.com/fmadore/Live-translation/pull/119). Batch 5 is implemented on
+`review/2026-10-06-batch5`. Batch 6, the features, waits for the maintainer to choose an order.
 
 ## Implementation tracker — batches 1 and 2
 
@@ -185,6 +186,87 @@ the model downloaded through the interface. `npm test` 595 passed; `check` (with
 `e2e` in about 3, building in 40 s with the Rust cache warm and taking the model from the
 smoke test's cache, the demo spec in 10 s and the Whisper spec in 25 s (first caption 22 s
 after Rehearse).
+
+## Implementation tracker — batch 5
+
+| Item | Change | Status |
+| --- | --- | --- |
+| R2 | `session.rs` is now `session/{mod, settings, options, builder, capture, preflight}.rs`; each test sits beside the code it tests, under its old name. `spawn_producer`'s two completion blocks are one `finish_producer`; `start` works out the session's origins once | Done |
+| `bearer_request`, `gemini_request` | `realtime/wire.rs` builds the OpenAI and Mistral handshake, `gemini/mod.rs` both Gemini ones; tests pin each provider's handshake bytes (the random key masked) and its error text | Done |
+| `parse_or_log<T>` | One copy, in `realtime/wire.rs` | Done |
+| `ServerMessage::control` | One in `gemini/mod.rs` for setup, `goAway` and errors in both Gemini clients; a test pins both error wordings | Done |
+| `MessageOutcome` booleans | `Signal { None, SetupComplete, TranscriptActivity }`: no message ever set both | Done |
+| `MistralConfig.received_delta` | `MistralConfig` holds configuration only; the flag lives in `MistralClient`, made by `into_client()` | Done |
+| `TurnAccumulator` | `translated` is `text`; the lane is a constructor argument and private | Done |
+| `emit_status` | `StatusUpdate::{session, source, lane}` build every status, and every one leaves through `Events::status` | Done |
+| `atomic_write` / `replace_snapshot` | `atomic_file.rs`: exports, recovery and history replace files through one implementation | Done |
+| String errors, `{path:?}` | Recovery, history and window commands reject with `AppError`: five new ids, worded in all three catalogs; details show `path.display()` | Done |
+| D15 and the ten sample-format arms | One generic `build::<T>` with an F32 fast path; I24 and U24 accepted | Done; needs a 24-bit microphone |
+| COM `Apartment` guard | `audio/com.rs`, used by device enumeration and loopback | Done |
+| Long functions | `run_microphone` about 40 lines, loopback's `run` 135 → 44, each split into named steps | Done |
+| Stale docs | `lib.rs` header and panic message, `commands.rs` (four sync commands, not three), one `TRANSCRIPT_WRITE` doc line | Done |
+| R8 | `fromOverlayConfig` in `appearance.ts`, the inverse of `toOverlayConfig`; the overlay keeps one appearance state | Done |
+| R9 | `stores.ts` re-exports `sessionStatus.ts`, `transcriptLog.ts`, `sourceActivity.ts` and `preferences.ts`; `types.ts` lost the provider predicates (to `providers.ts`), the overlay keys and clamps (to `appearance.ts`) and the `StartOptions` defaults (to `startOptions.ts`) | Done |
+| September R8 | Pre-log (v1) history files are read by checking `version === 1` and mapping lines through `readLine`, without the recovery decoder | Done |
+| September R10 | The preflight and quit controllers are classes with `$state` and `$derived` fields, behind their unchanged `create…` factories; the overlay controller stays a closure, as §3 suggests | Done |
+| September R13 | `SystemCapturePicker` uses `Field`. The recovery checkbox stays as it is (see below), and the `Icon` item is closed: only 3 of 27 inline SVG paths repeat | Partly done |
+
+Found on the way:
+
+- A failed export from the History tab showed "[object Object]": `save_transcript` already
+  rejected with an `AppError`, and the tab used `String(e)`. Its four catch sites now keep the
+  structured error, and its two alerts word it at render time, so they follow a change of
+  language.
+- The five new ids are `error.recoveryWrite`, `recoveryRead`, `recoveryDelete`,
+  `historyStorage` and `operatorWindow`. A failed `spawn_blocking` reports `TASK_FAILED`.
+  `tray.rs` had nothing to convert: `set_tray_state` has returned nothing since batch 4. The
+  catalogs' `transcriptDir` sentence, whose id left the core in 1.2.3, is gone.
+- The staging file for an atomic replace is now opened with `create_new`, after deleting a
+  leftover from a crash; `File::create` used to truncate it.
+- The overlay's rules differ from `normalizeAppearance`, so `fromOverlayConfig` takes the
+  current appearance: a missing field keeps what is on screen, a size or width that is not a
+  positive number keeps the current value, and an unparsable colour falls back to the shipped
+  one. A throwaway comparison over 200,000 random pushes found no difference from the old
+  per-field code. The overlay now passes hold, pace and Hide filler words to the caption model
+  on every push; real pushes always carried the full appearance, so only partial pushes in
+  tests behave differently.
+- Every overlay push restarts the hold timers and releases paced text, so changing the font
+  size or toggling Move during a session keeps finished captions up longer and, in steady
+  pace, releases buffered text early. It predates this batch; fixing it changes behaviour.
+- Moving the recovery checkbox onto `Preference` changes its line height, wrapping, checkbox
+  margin and accessible name (the note becomes its description), and renames the element paths
+  in all four `running-*` style snapshots. Keeping the old look would take three rules that
+  undo `Preference`, so it belongs in a batch that allows a visual change. Likewise
+  `SystemCapturePicker` keeps its tighter gap and muted label through a two-line override,
+  while the microphone field above it has the shared look.
+- No style snapshot shows the capture picker; a throwaway spec found identical computed styles
+  and boxes before and after, at 100% and 225%, in both capture modes.
+- cpal 0.18.2 reports I24 for 24-bit PCM and for 32-bit containers with 24 valid bits, and
+  opens both in a 32-bit container. A throwaway test showed the generic conversions give the
+  same bits as the removed arms for every 8- and 16-bit value and 2 million values of each wider
+  format. The loopback output path was checked by a temporary test against this machine's
+  default render device. D14 is untouched; `devices::watch` still joins COM without the guard,
+  because the guard would add a `CoUninitialize` when that app-lifetime thread exits.
+- Left alone: the ignored `openai/language_probe.rs` builds its own bearer request; Gemini's
+  "setup complete" debug line duplicates the runner's info line; `finish_producer` has no unit
+  test (one branch needs an `AppHandle`, the other a real spool); the History tab puts its
+  "could not be updated" sentence in front of export failures too; `TranscriptMonitor` and
+  `quit` tests mock `save_transcript` rejections as `Error` rather than as an `AppError`.
+- The only log change is the debug line for an unparsed frame, now "unparsed {provider}
+  message" for every provider.
+- R10 saves less than the September estimate of about 100 lines (preflight 358 → 334, quit
+  187 → 173): a class needs a constructor and declared private fields. Every public method is
+  an arrow-function field, because the page and components pass several on bare
+  (`onclick={preflight.startAudioTest}`, `onHideWindow={quit.hideWindow}`). One trade-off:
+  state that was read-only outside the closure is now an assignable field; nothing assigns it.
+
+Verification, on Windows 11 ARM64: `npm test` 608 passed in 69 files (595 before); `npm run
+check` 0 errors and 0 warnings; `lint`, `knip`, `format:check`, `check:languages` and `build`
+pass; `cargo test` 210 passed, 4 ignored (189 before); `cargo fmt --check` and Clippy for
+aarch64 and x86_64 pass; `npm run test:style` 117 passed with every snapshot unchanged;
+`npm run test:e2e` 2 passed in 1.4 min, and again after R10, whose quit controller the demo
+spec's close and Discard go through. Still needs a desktop run: a 24-bit microphone (D15);
+the new recovery and history sentences in all three languages.
 
 ## 1. Defects
 

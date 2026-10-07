@@ -5,7 +5,9 @@
 import { get } from 'svelte/store';
 import { nextFavourite } from './languages';
 import { languageFavourites, options } from './stores';
-import { canFlipDirection, DEFAULT_START_OPTIONS, providerCanTranslate } from './types';
+import { DEFAULT_START_OPTIONS } from './startOptions';
+import { providerCanTranslate } from './providers';
+import { canFlipDirection } from './types';
 import type { AudioSource, OutputMode, Provider, TargetLanguage } from './types';
 
 export interface SetupDeps {

@@ -4,11 +4,12 @@ import { asStatus, describeError } from './errors';
 import { t } from './i18n';
 import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
-import { providerRequiresKey } from './types';
+import { providerRequiresKey } from './providers';
 import type {
 	AudioDevice,
 	AudioLevel,
 	AudioTestUpdate,
+	CaptureApplication,
 	OnDeviceReadiness,
 	Provider,
 	StartOptions,
@@ -27,19 +28,40 @@ export interface PreflightGates {
 	holdSelection?: () => boolean;
 }
 
-/** Capture preflight and signal lifetime, independent of the operator's layout. */
-export function createPreflightController(
-	desktop: boolean,
-	{ locked, holdSelection = () => false }: PreflightGates,
-	port = api
-) {
-	const api = port;
-	let microphones = $state<AudioDevice[]>([]);
-	let outputs = $state<AudioDevice[]>([]);
-	let applications = $state<import('./types').CaptureApplication[]>([]);
-	let applicationCaptureSupported = $state<boolean | null>(null);
-	let refreshingApplications = $state(false);
-	function applicationReady(selected: import('./types').StartOptions): boolean {
+// The pre-flight audio check's noise floor, and how long a source still counts as arriving
+// after it last rose above it.
+const SIGNAL_RMS = 0.02;
+const SIGNAL_HOLD_MS = 3000;
+
+/** Capture preflight and signal lifetime, independent of the operator's layout.
+ *
+ *  Every public method is an arrow-function field, so a call site can hand one on bare
+ *  (`onclick={preflight.startAudioTest}`) without losing `this`. */
+export class PreflightController {
+	readonly #desktop: boolean;
+	readonly #locked: () => boolean;
+	readonly #holdSelection: () => boolean;
+	readonly #api: typeof api;
+
+	constructor(
+		desktop: boolean,
+		{ locked, holdSelection = () => false }: PreflightGates,
+		port = api
+	) {
+		this.#desktop = desktop;
+		this.#locked = locked;
+		this.#holdSelection = holdSelection;
+		this.#api = port;
+		// A browser preview has no engine to protect, so it counts as supported.
+		if (!desktop) this.whisperCpu = { supported: true, missing: [] };
+	}
+
+	microphones = $state<AudioDevice[]>([]);
+	outputs = $state<AudioDevice[]>([]);
+	applications = $state<CaptureApplication[]>([]);
+	applicationCaptureSupported = $state<boolean | null>(null);
+	refreshingApplications = $state(false);
+	applicationReady = (selected: StartOptions): boolean => {
 		if (
 			selected.source === 'microphone' ||
 			selected.provider === 'ondevice' ||
@@ -48,113 +70,117 @@ export function createPreflightController(
 			return true;
 		const process = selected.systemCapture.process;
 		return (
-			applicationCaptureSupported === true &&
+			this.applicationCaptureSupported === true &&
 			!!process &&
-			applications.some(
+			this.applications.some(
 				(app) => app.process.pid === process.pid && app.process.createdAt === process.createdAt
 			)
 		);
-	}
-	async function refreshApplications() {
-		if (!desktop || disposed || refreshingApplications) return;
-		refreshingApplications = true;
+	};
+	refreshApplications = async () => {
+		if (!this.#desktop || this.#disposed || this.refreshingApplications) return;
+		this.refreshingApplications = true;
 		try {
-			const result = await api.listApplications();
-			if (disposed) return;
-			applications = result.applications;
-			applicationCaptureSupported = result.supported;
+			const result = await this.#api.listApplications();
+			if (this.#disposed) return;
+			this.applications = result.applications;
+			this.applicationCaptureSupported = result.supported;
 		} catch (error) {
-			if (!disposed) statusMessage.set(asStatus(error));
+			if (!this.#disposed) statusMessage.set(asStatus(error));
 		} finally {
-			refreshingApplications = false;
+			this.refreshingApplications = false;
 		}
-	}
-	let refreshing = $state(false);
-	let loaded = false;
-	let disposed = false;
-	let refreshAgain = false;
-	let localReadiness = $state<OnDeviceReadiness | null>(null);
-	// Null until the core has answered, which blocks a Whisper start in the meantime. A browser
-	// preview has no engine to protect, so it counts as supported.
-	let whisperCpu = $state<WhisperCpuSupport | null>(
-		desktop ? null : { supported: true, missing: [] }
-	);
+	};
+	refreshing = $state(false);
+	#loaded = false;
+	#disposed = false;
+	#refreshAgain = false;
+	localReadiness = $state<OnDeviceReadiness | null>(null);
+	// Null until the core has answered, which blocks a Whisper start in the meantime. The
+	// constructor fills it in at once for a browser preview.
+	whisperCpu = $state<WhisperCpuSupport | null>(null);
+	/** The processor is known to lack what local Whisper needs. */
+	whisperRefused = $derived(this.whisperCpu?.supported === false);
+	/** The first few absent instruction sets, for the one-line reason. A pre-AVX processor
+	 *  lacks most of the list, and all of it would wrap across a card. */
+	whisperCpuMissing = $derived.by(() => {
+		const missing = this.whisperCpu?.missing ?? [];
+		return missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : '');
+	});
 	// The engine whose stored key the key panel last confirmed. Tied to that engine rather than
 	// kept as a bare flag, so switching engines can never borrow the previous one's answer while
 	// the panel is still asking the keychain about the new one.
-	let keyFor = $state<Provider | null>(null);
+	#keyFor = $state<Provider | null>(null);
 
 	/** The key panel's answer for the engine it is showing. */
-	function noteKey(provider: Provider, available: boolean) {
-		keyFor = available ? provider : null;
-	}
+	noteKey = (provider: Provider, available: boolean) => {
+		this.#keyFor = available ? provider : null;
+	};
 
 	/** Whether `selected`'s engine could start now: its key is stored, its Whisper model is
 	 *  installed on a processor that can run it, or the built-in demonstration is ready. Read
 	 *  through a `$derived` on the page, so it follows every input as it changes. */
-	function engineReady(selected: StartOptions, models: readonly WhisperModelInfo[]): boolean {
-		if (providerRequiresKey(selected.provider)) return keyFor === selected.provider;
+	engineReady = (selected: StartOptions, models: readonly WhisperModelInfo[]): boolean => {
+		if (providerRequiresKey(selected.provider)) return this.#keyFor === selected.provider;
 		if (selected.provider === 'whisper') {
 			// Until the core has said this processor can run it, Whisper cannot start.
 			const model = selected.whisperModel ?? 'base';
 			return (
-				whisperCpu?.supported === true &&
+				this.whisperCpu?.supported === true &&
 				models.some((m) => m.id === model && m.installed && !m.downloading)
 			);
 		}
-		return localReadiness?.ready ?? false;
-	}
+		return this.localReadiness?.ready ?? false;
+	};
 	// ---- Pre-flight audio check -------------------------------------------------
 	// A source counts as arriving while it has been above the noise floor recently. Driven by
 	// the level events themselves, so nothing polls while the window sits idle.
-	const SIGNAL_RMS = 0.02;
-	const SIGNAL_HOLD_MS = 3000;
-	let micSignal = $state(false);
-	let systemSignal = $state(false);
-	let micSignalTimer: ReturnType<typeof setTimeout> | undefined;
-	let systemSignalTimer: ReturnType<typeof setTimeout> | undefined;
+	micSignal = $state(false);
+	systemSignal = $state(false);
+	#micSignalTimer: ReturnType<typeof setTimeout> | undefined;
+	#systemSignalTimer: ReturnType<typeof setTimeout> | undefined;
 
-	function noteLevel(level: AudioLevel) {
+	noteLevel = (level: AudioLevel) => {
 		if (level.source === 'microphone') {
 			micLevel.set(level);
 			if (level.rms <= SIGNAL_RMS) return;
-			micSignal = true;
-			micVerified = true;
-			clearTimeout(micSignalTimer);
-			micSignalTimer = setTimeout(() => (micSignal = false), SIGNAL_HOLD_MS);
+			this.micSignal = true;
+			this.micVerified = true;
+			clearTimeout(this.#micSignalTimer);
+			this.#micSignalTimer = setTimeout(() => (this.micSignal = false), SIGNAL_HOLD_MS);
 		} else {
 			systemLevel.set(level);
 			if (level.rms <= SIGNAL_RMS) return;
-			systemSignal = true;
-			systemVerified = true;
-			clearTimeout(systemSignalTimer);
-			systemSignalTimer = setTimeout(() => (systemSignal = false), SIGNAL_HOLD_MS);
+			this.systemSignal = true;
+			this.systemVerified = true;
+			clearTimeout(this.#systemSignalTimer);
+			this.#systemSignalTimer = setTimeout(() => (this.systemSignal = false), SIGNAL_HOLD_MS);
 		}
-	}
+	};
 
 	// ---- Preflight audio test ---------------------------------------------------
 	// Levels only exist while something is capturing, so the idle sheet cannot observe the
 	// room on its own. Rather than implying that it is listening, it offers a deliberate
 	// level-only test: the same devices a session would open, every sample discarded, no
 	// provider contacted and nothing billed or stored. See `SessionManager::start_test`.
-	let audioTesting = $state(false);
-	let audioTestBusy = $state(false);
+	audioTesting = $state(false);
+	audioTestBusy = $state(false);
 	// Latched once a source has genuinely been heard, so the tick survives the test ending.
 	// Dropped whenever the operator changes what is under test.
-	let micVerified = $state(false);
-	let systemVerified = $state(false);
+	micVerified = $state(false);
+	systemVerified = $state(false);
 
-	async function startAudioTest() {
-		if (!desktop || audioTestBusy || audioTesting || locked()) return;
-		if (!applicationReady(get(options))) {
+	startAudioTest = async () => {
+		if (!this.#desktop || this.audioTestBusy || this.audioTesting || this.#locked()) return;
+		if (!this.applicationReady(get(options))) {
 			statusMessage.set(get(t).applications.missing);
 			return;
 		}
-		audioTestBusy = true;
+		this.audioTestBusy = true;
 		statusMessage.set('');
 		try {
 			const selected = get(options);
-			await api.startAudioTest(
+			await this.#api.startAudioTest(
 				selected.source,
 				selected.micDeviceId ?? selected.micDeviceName ?? null,
 				selected.systemDeviceId ?? null,
@@ -163,39 +189,46 @@ export function createPreflightController(
 		} catch (e) {
 			statusMessage.set(asStatus(e));
 		} finally {
-			audioTestBusy = false;
+			this.audioTestBusy = false;
 		}
-	}
+	};
 
-	async function stopAudioTest() {
-		if (!desktop) return;
-		audioTestBusy = true;
+	stopAudioTest = async () => {
+		if (!this.#desktop) return;
+		this.audioTestBusy = true;
 		try {
-			await api.stopAudioTest();
+			await this.#api.stopAudioTest();
 		} catch (e) {
 			statusMessage.set(asStatus(e));
 		} finally {
-			audioTestBusy = false;
+			this.audioTestBusy = false;
 		}
-	}
+	};
 
 	/** A running test holds one specific device. Once the operator changes the source, the
 	 *  device or the provider, that probe is measuring something they are no longer asking
 	 *  about — so release it, and drop the verdict along with it. */
-	function invalidateAudioTest() {
-		micVerified = false;
-		systemVerified = false;
-		micSignal = false;
-		systemSignal = false;
-		clearTimeout(micSignalTimer);
-		clearTimeout(systemSignalTimer);
-		if (audioTesting) void stopAudioTest();
-	}
+	invalidateAudioTest = () => {
+		this.micVerified = false;
+		this.systemVerified = false;
+		this.micSignal = false;
+		this.systemSignal = false;
+		clearTimeout(this.#micSignalTimer);
+		clearTimeout(this.#systemSignalTimer);
+		if (this.audioTesting) void this.stopAudioTest();
+	};
 
-	function validateSelection() {
-		if (!loaded || locked() || holdSelection() || audioTesting || audioTestBusy) return;
+	validateSelection = () => {
+		if (
+			!this.#loaded ||
+			this.#locked() ||
+			this.#holdSelection() ||
+			this.audioTesting ||
+			this.audioTestBusy
+		)
+			return;
 		const current = get(options);
-		const next = validateDevices(current, microphones, outputs);
+		const next = validateDevices(current, this.microphones, this.outputs);
 		if (
 			current.micDeviceId !== next.micDeviceId ||
 			current.systemDeviceId !== next.systemDeviceId ||
@@ -208,45 +241,51 @@ export function createPreflightController(
 			) {
 				statusMessage.set(get(t).devices.idleFallback);
 			}
-			invalidateAudioTest();
+			this.invalidateAudioTest();
 			options.set(next);
 		}
-	}
+	};
 
-	async function refresh() {
-		if (!desktop || disposed) return;
-		if (refreshing) {
-			refreshAgain = true;
+	refresh = async () => {
+		if (!this.#desktop || this.#disposed) return;
+		if (this.refreshing) {
+			this.#refreshAgain = true;
 			return;
 		}
-		refreshing = true;
+		this.refreshing = true;
 		try {
 			do {
-				refreshAgain = false;
-				const [mics, render] = await Promise.all([api.listMicrophones(), api.listOutputs()]);
-				if (disposed) return;
-				if (loaded && JSON.stringify([mics, render]) !== JSON.stringify([microphones, outputs])) {
-					micVerified = false;
-					systemVerified = false;
+				this.#refreshAgain = false;
+				const [mics, render] = await Promise.all([
+					this.#api.listMicrophones(),
+					this.#api.listOutputs()
+				]);
+				if (this.#disposed) return;
+				if (
+					this.#loaded &&
+					JSON.stringify([mics, render]) !== JSON.stringify([this.microphones, this.outputs])
+				) {
+					this.micVerified = false;
+					this.systemVerified = false;
 				}
-				microphones = mics;
-				outputs = render;
-				loaded = true;
-				validateSelection();
-			} while (refreshAgain && !disposed);
+				this.microphones = mics;
+				this.outputs = render;
+				this.#loaded = true;
+				this.validateSelection();
+			} while (this.#refreshAgain && !this.#disposed);
 		} catch (e) {
-			if (!disposed) statusMessage.set(asStatus(e));
+			if (!this.#disposed) statusMessage.set(asStatus(e));
 		} finally {
-			refreshing = false;
+			this.refreshing = false;
 		}
-	}
+	};
 
-	async function refreshLocalReadiness() {
-		if (!desktop) return;
+	refreshLocalReadiness = async () => {
+		if (!this.#desktop) return;
 		try {
-			localReadiness = await api.onDeviceReadiness();
+			this.localReadiness = await this.#api.onDeviceReadiness();
 		} catch (e) {
-			localReadiness = {
+			this.localReadiness = {
 				ready: false,
 				engine: 'none',
 				state: 'check-failed',
@@ -254,105 +293,42 @@ export function createPreflightController(
 				detail: describeError(e, get(t))
 			};
 		}
-	}
+	};
 
 	/** Ask once whether this processor can run local Whisper. The answer cannot change while the
 	 *  app runs. A failed question is treated as supported: the core checks again at Start and
 	 *  refuses with its own sentence, so guessing "no" would only hide a working engine. */
-	async function refreshWhisperCpu() {
-		if (!desktop) return;
+	refreshWhisperCpu = async () => {
+		if (!this.#desktop) return;
 		try {
-			whisperCpu = await api.whisperCpuSupport();
+			this.whisperCpu = await this.#api.whisperCpuSupport();
 		} catch {
-			whisperCpu = { supported: true, missing: [] };
+			this.whisperCpu = { supported: true, missing: [] };
 		}
-	}
+	};
 
-	function applyAudioTest(update: AudioTestUpdate) {
-		audioTesting = update.active;
+	applyAudioTest = (update: AudioTestUpdate) => {
+		this.audioTesting = update.active;
 		if (!update.active) {
-			micSignal = false;
-			systemSignal = false;
-			clearTimeout(micSignalTimer);
-			clearTimeout(systemSignalTimer);
+			this.micSignal = false;
+			this.systemSignal = false;
+			clearTimeout(this.#micSignalTimer);
+			clearTimeout(this.#systemSignalTimer);
 			if (update.message) statusMessage.set(update.message);
 		}
-	}
+	};
 
-	function dispose() {
-		disposed = true;
-		clearTimeout(micSignalTimer);
-		clearTimeout(systemSignalTimer);
-		if (desktop && audioTesting) void stopAudioTest();
-	}
-
-	return {
-		applicationReady,
-		engineReady,
-		noteKey,
-		get applications() {
-			return applications;
-		},
-		get applicationCaptureSupported() {
-			return applicationCaptureSupported;
-		},
-		get refreshingApplications() {
-			return refreshingApplications;
-		},
-		refreshApplications,
-		get outputs() {
-			return outputs;
-		},
-		get refreshing() {
-			return refreshing;
-		},
-		validateSelection,
-		get microphones() {
-			return microphones;
-		},
-		get localReadiness() {
-			return localReadiness;
-		},
-		get whisperCpu() {
-			return whisperCpu;
-		},
-		/** The processor is known to lack what local Whisper needs. */
-		get whisperRefused() {
-			return whisperCpu?.supported === false;
-		},
-		/** The first few absent instruction sets, for the one-line reason. A pre-AVX processor
-		 *  lacks most of the list, and all of it would wrap across a card. */
-		get whisperCpuMissing() {
-			const missing = whisperCpu?.missing ?? [];
-			return missing.slice(0, 3).join(', ') + (missing.length > 3 ? '…' : '');
-		},
-		refreshWhisperCpu,
-		get micSignal() {
-			return micSignal;
-		},
-		get systemSignal() {
-			return systemSignal;
-		},
-		get audioTesting() {
-			return audioTesting;
-		},
-		get audioTestBusy() {
-			return audioTestBusy;
-		},
-		get micVerified() {
-			return micVerified;
-		},
-		get systemVerified() {
-			return systemVerified;
-		},
-		noteLevel,
-		applyAudioTest,
-		startAudioTest,
-		stopAudioTest,
-		invalidateAudioTest,
-		refresh,
-		refreshLocalReadiness,
-		dispose
+	dispose = () => {
+		this.#disposed = true;
+		clearTimeout(this.#micSignalTimer);
+		clearTimeout(this.#systemSignalTimer);
+		if (this.#desktop && this.audioTesting) void this.stopAudioTest();
 	};
 }
-export type PreflightController = ReturnType<typeof createPreflightController>;
+
+/** Built through a factory like the page's other controllers. */
+export function createPreflightController(
+	...args: ConstructorParameters<typeof PreflightController>
+) {
+	return new PreflightController(...args);
+}

@@ -166,6 +166,53 @@ it('shows unreadable records and read errors instead of silently losing history'
 	view.unmount();
 });
 
+// The core rejects with an id and a detail, which `String()` turned into "[object Object]".
+it('words what the core reports in the interface language, whichever way it arrives', async () => {
+	const failure = { id: 'error.historyStorage', detail: 'C:\\History — Access is denied.' };
+	vi.mocked(api.listHistory).mockRejectedValue(failure);
+	const view = render(TranscriptHistory);
+	try {
+		// A failed listing, caught by the view itself.
+		await waitFor(() =>
+			expect(view.getByRole('alert').textContent).toBe(
+				'Transcript history could not be updated. The history folder could not be read or changed (C:\\History — Access is denied.)'
+			)
+		);
+		// A failed save, from the store the history writer reports to.
+		historyError.set(failure);
+		await waitFor(() => expect(view.getAllByRole('alert')).toHaveLength(2));
+		// Kept structured, so both follow a change of interface language.
+		locale.set('fr');
+		await waitFor(() => {
+			for (const alert of view.getAllByRole('alert'))
+				expect(alert.textContent).toContain(
+					'Le dossier de l’historique n’a pu être ni lu ni modifié (C:\\History — Access is denied.)'
+				);
+		});
+		expect(view.container.textContent).not.toContain('[object Object]');
+	} finally {
+		view.unmount();
+		locale.set('en');
+	}
+});
+
+it('words a failed export from a saved session', async () => {
+	vi.mocked(api.saveTranscript).mockRejectedValue({
+		id: 'error.transcriptWrite',
+		detail: 'D:\\Docs — Access is denied.'
+	});
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.click(view.container.querySelector('.session')!);
+	await fireEvent.click(view.getByText('Save as…'));
+	await waitFor(() =>
+		expect(view.getByRole('alert').textContent).toContain(
+			'The transcript could not be written (D:\\Docs — Access is denied.)'
+		)
+	);
+	view.unmount();
+});
+
 it('searches titles, original source and translated text with inclusive local dates', () => {
 	const filter = { query: 'BONJOUR', from: '', to: '', language: 'fr' };
 	expect(matchesSession(saved, filter)).toBe(true);
