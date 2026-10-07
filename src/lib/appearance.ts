@@ -204,6 +204,41 @@ export function toOverlayConfig(a: Readonly<Appearance>): OverlayConfig {
 	};
 }
 
+/** The appearance an overlay push describes, as the overlay reads it on arrival: the inverse
+ *  of `toOverlayConfig`. Validated here as well as at the source, each field on its own, so
+ *  one bad value cannot take the rest down.
+ *
+ *  Not `normalizeAppearance`, which falls back to the shipped appearance: a push is a change
+ *  to what is on screen, so a field that is absent or unusable keeps `current`, and a size
+ *  must be positive before it is clamped. The exceptions come from the shared clamps: a
+ *  colour that is present but unparseable, an opacity that is not a number and a hold that
+ *  is a number but not a finite one fall back to the shipped value. */
+export function fromOverlayConfig(
+	config: Readonly<Partial<OverlayConfig>>,
+	current: Readonly<Appearance>
+): Appearance {
+	const positive = (n: unknown): n is number => Number.isFinite(n) && (n as number) > 0;
+	return {
+		fontSize: positive(config.fontSize) ? clampOverlayFont(config.fontSize) : current.fontSize,
+		width: positive(config.captionWidth) ? clampOverlayWidth(config.captionWidth) : current.width,
+		layout: isCaptionLayout(config.captionLayout) ? config.captionLayout : current.layout,
+		// An id, not a stack: what arrives over the event is checked against the faces this
+		// build knows, so nothing here can put an arbitrary `font-family` on the screen an
+		// audience is reading.
+		face: isCaptionFace(config.captionFace) ? config.captionFace : current.face,
+		// Every value is clamped to something paintable: a caption in an unparsed colour is a
+		// caption in no colour at all.
+		palette: {
+			text: clampHex(config.captionColour ?? current.palette.text, DEFAULT_CAPTION_PALETTE.text),
+			scrim: clampHex(config.scrimColour ?? current.palette.scrim, DEFAULT_CAPTION_PALETTE.scrim),
+			scrimOpacity: clampScrimOpacity(config.scrimOpacity ?? current.palette.scrimOpacity)
+		},
+		cleanSpeech: typeof config.cleanSpeech === 'boolean' ? config.cleanSpeech : current.cleanSpeech,
+		hold: typeof config.holdSeconds === 'number' ? holdSeconds(config.holdSeconds) : current.hold,
+		pace: config.pace === 'steady' || config.pace === 'immediate' ? config.pace : current.pace
+	};
+}
+
 export type PresetId = 'standard' | 'projector' | 'contrast';
 export const PRESET_IDS: readonly PresetId[] = ['standard', 'projector', 'contrast'];
 

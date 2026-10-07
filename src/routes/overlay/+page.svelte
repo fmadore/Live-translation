@@ -5,24 +5,23 @@
 	import { createOverlayCaptions } from './overlayCaptions.svelte';
 	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
 	import { previewContent } from './overlayFixtures';
-	import { clampOverlayFont, loadAppearance, SHOW_ORIGINAL_KEY } from '$lib/appearance';
+	import {
+		clampOverlayFont,
+		fromOverlayConfig,
+		loadAppearance,
+		SHOW_ORIGINAL_KEY,
+		type Appearance
+	} from '$lib/appearance';
 	import { loadFillerWords, normalizeFillerWords } from '$lib/cleanSpeech';
 	import {
 		bottomCaptionHeight,
-		isCaptionLayout,
 		ORIGINAL_GAP,
 		ORIGINAL_SCALE,
 		originalHeight
 	} from '$lib/captionLayout';
 	import { readFlag } from '$lib/persisted';
-	import {
-		captionCssVars,
-		clampHex,
-		clampScrimOpacity,
-		DEFAULT_CAPTION_PALETTE,
-		type CaptionPalette
-	} from '$lib/captionColour';
-	import { captionFaceStack, isCaptionFace, type CaptionFaceId } from '$lib/captionFont';
+	import { captionCssVars } from '$lib/captionColour';
+	import { captionFaceStack } from '$lib/captionFont';
 	import { isLocale, locale, t } from '$lib/i18n';
 	import { isTargetLanguage } from '$lib/languages';
 	import { api, on, isTauri } from '$lib/tauri';
@@ -42,16 +41,18 @@
 	});
 	const placement = createOverlayPlacement();
 
-	let fontSize = $state(initial.fontSize);
+	// The whole appearance as one value, replaced by each push. The reading settings in it are
+	// handed on to `captions`, which needs them to lay its lines out.
+	let appearance = $state.raw<Appearance>(initial);
+	const fontSize = $derived(appearance.fontSize);
+	const captionFace = $derived(appearance.face);
 	let fontsLoaded = $state(0);
-	let captionFace = $state<CaptionFaceId>(initial.face);
 
 	// The ink and the scrim behind it. The overlay keeps the operator's three plain values and
 	// derives its own steps from them, rather than being handed a finished stylesheet — so the
 	// contrast readout on the control panel and the pixels here come out of one function.
-	let palette = $state<CaptionPalette>(initial.palette);
 	const paletteVars = $derived(
-		Object.entries(captionCssVars(palette))
+		Object.entries(captionCssVars(appearance.palette))
 			.map(([name, value]) => `${name}: ${value}`)
 			.join('; ')
 	);
@@ -140,29 +141,18 @@
 		const unlistenCaption = on.caption((c) => captions.push(c));
 		const unlistenStatus = on.status((status) => captions.status(status));
 		const unlistenConfig = on.overlayConfig((cfg) => {
-			if (typeof cfg.holdSeconds === 'number') captions.setHold(cfg.holdSeconds);
-			if (cfg.pace === 'steady' || cfg.pace === 'immediate') captions.setPace(cfg.pace);
-			if (typeof cfg.cleanSpeech === 'boolean') captions.setHideFillers(cfg.cleanSpeech);
+			appearance = fromOverlayConfig(cfg, appearance);
+			// Handed on at every push, changed or not, as every push carries the whole appearance:
+			// setting the hold restarts the expiry timers and setting the pace releases paced
+			// text, and skipping unchanged values would quietly stop both.
+			captions.setHold(appearance.hold);
+			captions.setPace(appearance.pace);
+			captions.setHideFillers(appearance.cleanSpeech);
 			if (Array.isArray(cfg.fillerWords))
 				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
 			if (typeof cfg.showOriginal === 'boolean') captions.setShowOriginal(cfg.showOriginal);
-			if (isCaptionLayout(cfg.captionLayout)) captions.setLayout(cfg.captionLayout);
-			if (Number.isFinite(cfg.fontSize) && cfg.fontSize > 0)
-				fontSize = clampOverlayFont(cfg.fontSize);
-			if (Number.isFinite(cfg.captionWidth) && (cfg.captionWidth ?? 0) > 0)
-				captions.setWidth(cfg.captionWidth as number);
-			// An id, not a stack: what arrives over the event is checked against the faces this
-			// build knows, so nothing here can put an arbitrary `font-family` on the screen an
-			// audience is reading.
-			if (isCaptionFace(cfg.captionFace)) captionFace = cfg.captionFace;
-			// Validated here as well as at the source. Every value is clamped to something
-			// paintable, each independently, so one bad field cannot take the palette down —
-			// a caption in an unparsed colour is a caption in no colour at all.
-			palette = {
-				text: clampHex(cfg.captionColour ?? palette.text, DEFAULT_CAPTION_PALETTE.text),
-				scrim: clampHex(cfg.scrimColour ?? palette.scrim, DEFAULT_CAPTION_PALETTE.scrim),
-				scrimOpacity: clampScrimOpacity(cfg.scrimOpacity ?? palette.scrimOpacity)
-			};
+			captions.setLayout(appearance.layout);
+			captions.setWidth(appearance.width);
 			// The operator owns the interface language; this window follows it.
 			if (isLocale(cfg.locale)) locale.set(cfg.locale);
 			// Unconditional, unlike the rest: an absent caption language is a real answer
@@ -184,7 +174,7 @@
 
 	// Reachable while move mode has the window focused (it's click-through otherwise).
 	function bump(delta: number) {
-		fontSize = clampOverlayFont(fontSize + delta);
+		appearance = { ...appearance, fontSize: clampOverlayFont(appearance.fontSize + delta) };
 		// The operator window owns the size control too; tell it what happened here so the
 		// two readouts never disagree. Fire-and-forget — a dropped event costs nothing.
 		void api.emitOverlayState({ fontSize });
