@@ -67,8 +67,8 @@ pub mod id {
     pub const OVERLAY_WINDOW: &str = "error.overlayWindow";
     /// The operator window refused to hide itself to the tray.
     pub const OPERATOR_WINDOW: &str = "error.operatorWindow";
-    /// The transcript folder could not be created.
-    /// The transcript file could not be written.
+    /// An export did not reach the file the operator chose in Save As: the write failed, or
+    /// the format or the platform cannot be exported at all.
     pub const TRANSCRIPT_WRITE: &str = "error.transcriptWrite";
     /// The crash-recovery spool could not be written while the transcript was unsaved.
     pub const RECOVERY_WRITE: &str = "error.recoveryWrite";

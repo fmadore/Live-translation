@@ -1,8 +1,10 @@
-//! Live Captions — Tauri desktop core for translation and transcription.
+//! Live Translation & Subtitles — the Tauri core behind the operator window and the caption
+//! overlay.
 //!
-//! Captures microphone and system-loopback audio, streams it to Google Gemini 3.5 Live
-//! Translate over a WebSocket, and renders the returned translation as live captions in a
-//! transparent, always-on-top overlay window.
+//! Captures a microphone, Windows system audio or one application's audio and turns it into
+//! captions with the engine the operator chose: Google Gemini, OpenAI or Mistral over a
+//! WebSocket, Whisper locally on the CPU, or the bundled keyless demonstration. The captions
+//! reach the operator's transcript and a transparent, always-on-top, click-through overlay.
 
 mod atomic_file;
 mod audio;

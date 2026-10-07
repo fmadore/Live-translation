@@ -2,8 +2,11 @@
 //! `SessionManager`. Errors are surfaced to JS as an `AppError` — an id the interface
 //! translates plus the untranslated technical detail; see `errors.rs`.
 //!
-//! All commands are `async`; blocking keychain, device, filesystem, and thread-join work is
-//! explicitly delegated to Tauri's blocking pool.
+//! Most commands are `async`, and hand blocking keychain, device, filesystem and thread-join
+//! work to Tauri's blocking pool. Four are synchronous, so Tauri runs them on the main thread:
+//! `whisper_cpu_support`, `pause_session`, `cancel_whisper_download` and
+//! `discard_whisper_pending`. Each only reads an answer worked out once or signals something
+//! already running, which is quicker than handing it to a worker would be.
 
 use tauri::{AppHandle, Manager, State};
 

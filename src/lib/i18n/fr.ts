@@ -742,7 +742,6 @@ export const fr: Messages = {
 		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
 		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
 		operatorWindow: 'La fenêtre principale n’a pas répondu',
-		transcriptDir: 'Le dossier de transcription n’a pas pu être créé',
 		transcriptWrite: 'La transcription n’a pas pu être écrite',
 		recoveryWrite: 'La copie de récupération n’a pas pu être écrite',
 		recoveryRead: 'La copie de récupération de votre dernière session n’a pas pu être lue',

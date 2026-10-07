@@ -737,7 +737,6 @@ export const de: Messages = {
 		audioTestStart: 'Der Audiotest konnte diese Quelle nicht öffnen',
 		overlayWindow: 'Das Overlay-Fenster hat nicht reagiert',
 		operatorWindow: 'Das Hauptfenster hat nicht reagiert',
-		transcriptDir: 'Der Transkriptordner konnte nicht erstellt werden',
 		transcriptWrite: 'Das Transkript konnte nicht geschrieben werden',
 		recoveryWrite: 'Die Wiederherstellungskopie konnte nicht geschrieben werden',
 		recoveryRead: 'Die Wiederherstellungskopie der letzten Sitzung konnte nicht gelesen werden',

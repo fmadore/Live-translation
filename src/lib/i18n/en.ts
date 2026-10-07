@@ -722,7 +722,6 @@ export const en = {
 		audioTestStart: 'The audio test could not open that source',
 		overlayWindow: 'The overlay window did not respond',
 		operatorWindow: 'The operator window did not respond',
-		transcriptDir: 'The transcript folder could not be created',
 		transcriptWrite: 'The transcript could not be written',
 		recoveryWrite: 'The recovery copy could not be written',
 		recoveryRead: 'The recovery copy from your last session could not be read',
