@@ -4,7 +4,8 @@ Included in **1.6.0** ([PR #99](https://github.com/fmadore/Live-translation/pull
 [issue #98](https://github.com/fmadore/Live-translation/issues/98), where
 [@valentinrabot](https://github.com/valentinrabot) suggested local transcription for
 same-language meetings without ongoing API costs. Whisper is an additional **Subtitles**
-provider, and also translates into English offline under **Live translation**; see
+provider, and since 1.7.0 ([PR #121](https://github.com/fmadore/Live-translation/pull/121))
+also translates into English offline under **Live translation**; see
 [translation into English](#translation-into-english).
 
 New installations open on Whisper with Base and automatic language detection selected.
@@ -243,4 +244,4 @@ without AVX2, where Whisper must be listed as unavailable and the demo selected.
 fixtures do not
 establish microphone permissions, actual conference-call capture quality or battery
 performance. Package acceptance is tracked in the
-[release handoff](store-updates.md#release-161-handoff).
+[release handoff](store-updates.md#release-170-handoff).

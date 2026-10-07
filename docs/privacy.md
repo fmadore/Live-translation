@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 4 October 2026 (documents the 1.6.0 release)
+**Effective date:** 7 October 2026 (documents the 1.7.0 release)
 
 ## What this app is
 
@@ -124,8 +124,8 @@ scaling, so the overlay reopens where it was placed on them), caption size,
 layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
-The app also remembers the folder of the last successful transcript export and whether
-system capture uses an output or an application. The selected process identity is not
+The app also remembers the folder of the last successful transcript export, the chosen export
+format, and whether system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch.
 Named meeting profiles additionally store the selected setup, audio device identifiers,
 appearance and overlay rectangle locally in the app's webview storage. Profiles contain no

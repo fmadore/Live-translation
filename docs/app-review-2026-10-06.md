@@ -18,7 +18,10 @@ its CI, static-analysis and coverage items in
 [#118](https://github.com/fmadore/Live-translation/pull/118), and T4 and T5 in
 [#119](https://github.com/fmadore/Live-translation/pull/119), and batch 5 in
 [#120](https://github.com/fmadore/Live-translation/pull/120). For batch 6 the maintainer chose
-F1 and F2, implemented on `review/2026-10-06-batch6`; F3 to F8 stay open.
+F1 and F2, merged in [#121](https://github.com/fmadore/Live-translation/pull/121); F3 to F8 stay
+open. [#122](https://github.com/fmadore/Live-translation/pull/122) reconnects Mistral after the
+3803 error noted under batches 1 and 2. All of it is prepared as
+[1.7.0](store-updates.md#release-170-handoff).
 
 ## Implementation tracker — batches 1 and 2
 

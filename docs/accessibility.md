@@ -155,7 +155,7 @@ region at 225%. The native walk is item 5 of the release checklist.
 [Operator shortcuts](usability.md#keyboard-controls) apply only with the operator window
 focused, outside editable inputs and dialogs. Native screen-reader, contrast-theme, 225%
 Windows text scaling and mixed-DPI acceptance for the final package are tracked in the
-[current release checklist](store-updates.md#release-161-handoff).
+[current release checklist](store-updates.md#release-170-handoff).
 
 ### Settings and date fields
 

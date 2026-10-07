@@ -5,15 +5,24 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.6.1 on GitHub, 1.6.0 in the Store
+## Current status — 1.7.0 in preparation, 1.6.0 in the Store
 
-The latest [GitHub release is **1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) (6 October 2026),
-a maintenance and visual release: the wave-to-words app icon
-([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design review
-([#112](https://github.com/fmadore/Live-translation/pull/112)), with no new features, runtime
-dependency or privacy changes. Its Store submission is pending; the
-[1.6.1 handoff](docs/store-updates.md#release-161-handoff) has the verified bundle and the
-remaining acceptance checks.
+**1.7.0** is prepared and not yet tagged: [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
+the six batches of the [6 October app review](docs/app-review-2026-10-06.md) and a Mistral
+reconnect fix. For operators it brings offline translation into English with Whisper (F1),
+an overlay that reopens where it was last placed on each display layout (F2), cloud sessions
+that reconnect after a mid-stream close, a transient provider error or a stalled network, and
+Whisper built with SIMD behind a runtime processor check: about twice as fast on ARM64, and on
+x64 limited to processors with AVX2. The rest is operator fixes, 24-bit microphones, structure,
+and CI gates with two Playwright suites. The
+[1.7.0 handoff](docs/store-updates.md#release-170-handoff) lists the release-candidate checks
+(`v1.7.0-rc.1`) and the Store steps. Citation metadata records 1.7.0 with a provisional date of
+7 October 2026, to be corrected if the tag lands on another day.
+
+The latest [GitHub release is **1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) (6 October 2026):
+the wave-to-words icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the
+5 October design review ([#112](https://github.com/fmadore/Live-translation/pull/112)). It was
+never submitted to the Store and will not be: 1.7.0 supersedes it there and carries its changes.
 
 The Store serves [**1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
 (MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026. The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its
@@ -24,16 +33,19 @@ Store copy leads with offline captions and optional cloud translation; the scrip
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
 detection, while upgrades preserve saved setups.
 
-Citation metadata records 1.6.1 with its publication date of 6 October 2026.
-
 ## Open verification
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.6.1 handoff](docs/store-updates.md#release-161-handoff) is the current checklist.
+[1.7.0 handoff](docs/store-updates.md#release-170-handoff) is the current checklist.
 
 - **Local Whisper:** live hardware, language and Store-package checks
-  ([local Whisper](docs/local-whisper.md)).
+  ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
+  English, the speed of the SIMD builds on x64 and ARM64, an x64 PC without AVX2, a model
+  download behind a proxy and quitting with a large backlog.
+- **Cloud session resilience** (6 October review, batches 1–2): a live handover, an OpenAI
+  session past 60 minutes, Gemini Translate's answer to `audioStreamEnd`, pong replies from
+  every provider and Mistral's real `error` payloads.
 - **Cloud caption languages** ([#78](https://github.com/fmadore/Live-translation/issues/78)):
   live endpoint and speech acceptance ([language coverage](docs/language-coverage.md)).
 - **Accessibility and tray** ([#24](https://github.com/fmadore/Live-translation/issues/24),
@@ -47,11 +59,13 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - **Audio** ([#27](https://github.com/fmadore/Live-translation/issues/27),
   [#28](https://github.com/fmadore/Live-translation/issues/28)): the application isolation
   matrix and the [hardware matrix](docs/audio-device-testing.md) — Teams/Zoom, browser child
-  processes, device changes, sleep/wake and mixed-DPI displays.
+  processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.24
+  has never run on hardware, and a 24-bit microphone has not been tried.
 - **Export and responsive captions** ([#26](https://github.com/fmadore/Live-translation/issues/26),
   [#77](https://github.com/fmadore/Live-translation/issues/77)): the remaining
   [export checks](docs/transcript-export.md); user feedback, packaged Windows checks and fresh
-  screenshots for the [caption layout](docs/caption-layout.md).
+  screenshots for the [caption layout](docs/caption-layout.md), including the overlay's restore
+  across launches with a 150% laptop and a 100% projector.
 
 ## Planning conventions
 
@@ -74,9 +88,6 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   needs a measured provider-switching design before it becomes a release commitment. Two
   caption languages already serve the bilingual room: both directions run side by side, at
   twice the cost, with no switching to get wrong.
-- Event glossary for names, institutions, acronyms, and specialist terminology.
-- Privacy-preserving diagnostic export: versions, devices, reconnects, queue drops, and sanitized
-  errors, but never keys or audio.
 - Multi-monitor overlay presets: named placements to switch between in a running session, such
   as "bottom of the projector" and "top of the laptop". The overlay already reopens where it was
   last placed on each display arrangement, clamped to a connected display, and a meeting
@@ -84,15 +95,24 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   without a profile and without move mode, and moving the overlay when a display is connected
   mid-session.
 - Per-origin caption styling on the overlay, such as a subtle prefix when both sources are live.
-- Measure audio-to-first-caption latency in the operator monitor and make rate-card verification
-  dates visible. `timing::SessionClock` already stamps every caption; the missing half is a mark
-  on the audio side to measure against.
+- Make rate-card verification dates visible: the rates in `providers.ts` have no in-repo source
+  or date, and Mistral's realtime price is no longer on its pricing page
+  ([6 October review](docs/app-review-2026-10-06.md#5-dependencies-and-provider-drift)).
+- The other feature candidates of the
+  [6 October review](docs/app-review-2026-10-06.md#6-feature-candidates), beyond #12 (its F3)
+  and per-origin styling (F5): captions on attendees' phones over the LAN and an OBS mode (F4),
+  small provider adoptions (F6), an opt-in transcript polish after the session (F7) and
+  research into local text translation (F8).
 - A billable provider smoke workflow: an explicitly manual run of live credentials against a
   golden audio fixture. It is intentionally not automatic because it costs money and CI secrets
   are not available to forked pull requests.
 
 ## Shipped
 
+- **1.6.1** (6 October 2026, GitHub only; superseded in the Store by 1.7.0): the wave-to-words
+  icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design
+  review ([#112](https://github.com/fmadore/Live-translation/pull/112)).
+  [Release body](docs/release-1.6.1.md).
 - **1.6.0** (4 October 2026): local Whisper transcription
   ([#99](https://github.com/fmadore/Live-translation/pull/99)), suggested by @valentinrabot in
   [#98](https://github.com/fmadore/Live-translation/issues/98); two translation targets,

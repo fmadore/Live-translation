@@ -1,6 +1,6 @@
 # Caption language coverage (issue #78)
 
-Current for 1.6.1. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
+Current for 1.7.0. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
 separate spoken-language selector. The dated provider checks below are the latest recorded
 evidence, not fresh endpoint verification.
 

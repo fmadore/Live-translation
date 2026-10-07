@@ -10,19 +10,21 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
-**[1.6.0 is available on GitHub](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)**
-(4 October 2026) and in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X),
-including local Whisper. See the [1.6.0 release notes](docs/release-1.6.0.md). **[1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)**
-(6 October 2026), a maintenance release with a new app icon and a refreshed interface, is on
-GitHub and awaiting Store submission; see its [release notes](docs/release-1.6.1.md) and
-[Store handoff](docs/store-updates.md#release-161-handoff).
+**[1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)** (4 October 2026),
+with local Whisper, is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X);
+**[1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)** (6 October 2026),
+with a new app icon and a refreshed interface, is the latest on GitHub. **1.7.0** is prepared
+but not yet published: offline translation into English with Whisper, an overlay that reopens
+where you placed it, and cloud sessions that reconnect instead of ending. 1.6.1 will not be
+submitted to the Store; 1.7.0 will replace 1.6.0 there. See its
+[release notes](docs/release-1.7.0.md) and [Store handoff](docs/store-updates.md#release-170-handoff).
 
 ## What it does
 
 - **Offline subtitles.** Whisper runs on your CPU with 99 spoken-language choices or automatic
   detection. Download Tiny (31 MiB), Base (57 MiB) or Small (182 MiB) once; then caption without
   an account, API key or internet connection. Speed and accuracy depend on the computer,
-  model and language.
+  model and language; on x64, Whisper needs a processor with AVX2.
 - **Offline translation into English.** Whisper also translates any of those languages into
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.
@@ -32,8 +34,9 @@ GitHub and awaiting Store submission; see its [release notes](docs/release-1.6.1
 - **Your choice of audio.** Capture a microphone, Windows system audio, one application's
   process tree, or microphone and system audio together. Test levels before starting.
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
-  over slides or calls. Adjust fonts, colour, contrast, size and reading pace; choose Fit
-  window, Compact or Stable reading. Right-to-left captions are supported.
+  over slides or calls; it reopens where you last placed it on each display setup. Adjust
+  fonts, colour, contrast, size and reading pace; choose Fit window, Compact or Stable reading.
+  Right-to-left captions are supported.
 - **Bilingual audiences.** Show two translation languages at once, or include the original
   speech beneath translations in Fit window or Compact when the provider supplies it. A second
   translation language opens another cloud session per source and increases provider usage.
@@ -48,8 +51,8 @@ GitHub and awaiting Store submission; see its [release notes](docs/release-1.6.1
 
 1. Install from the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X), or use
    an installer from [GitHub releases](https://github.com/fmadore/Live-translation/releases).
-   Check the release version: Whisper requires 1.6.0. GitHub installers are unsigned; Store
-   packages are signed and update through the Store.
+   Check the release version: Whisper requires 1.6.0, and its translation into English 1.7.0.
+   GitHub installers are unsigned; Store packages are signed and update through the Store.
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
    For translation, choose **Live translation**, Gemini or OpenAI, your key and target language,
