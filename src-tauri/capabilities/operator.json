@@ -28,6 +28,7 @@
     "allow-show-overlay",
  "allow-get-overlay-placement",
  "allow-set-overlay-placement",
+    "allow-display-layout",
     "allow-save-transcript",
     "allow-text-scale-factor",
     "allow-write-recovery",
