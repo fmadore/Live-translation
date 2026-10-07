@@ -27,7 +27,7 @@ use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use policy::{After, Reconnect, RunEnd};
 use socket::SocketIo;
-pub use wire::bearer_request;
+pub use wire::{bearer_request, parse_or_log};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;

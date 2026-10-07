@@ -15,7 +15,7 @@ use super::protocol::{
     RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
 };
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -73,12 +73,8 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let msg: ServerMessage = match serde_json::from_str(text) {
-            Ok(m) => m,
-            Err(e) => {
-                tracing::debug!("unparsed server message: {e} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(msg) = parse_or_log::<ServerMessage>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
         if msg.setup_complete.is_some() {

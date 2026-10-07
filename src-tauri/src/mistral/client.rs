@@ -9,7 +9,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    bearer_request, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
+    bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
     TurnAccumulator,
 };
 use crate::types::Origin;
@@ -68,12 +68,8 @@ impl RealtimeProtocol for MistralConfig {
     }
 
     fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let event: ServerEvent = match serde_json::from_str(text) {
-            Ok(event) => event,
-            Err(error) => {
-                tracing::debug!("unparsed Mistral event: {error} :: {text}");
-                return MessageOutcome::default();
-            }
+        let Some(event) = parse_or_log::<ServerEvent>(Self::NAME, text) else {
+            return MessageOutcome::default();
         };
 
         match event.kind.as_str() {
