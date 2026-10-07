@@ -15,7 +15,7 @@ use super::options::caption_languages;
 use super::settings::ProviderSettings;
 use super::ActiveSession;
 use crate::audio::fixture::run_rehearsal;
-use crate::audio::sink::AudioSink;
+use crate::audio::sink::{AudioSink, CaptureCompletion};
 use crate::audio::AudioChunk;
 use crate::realtime::{run_session, PauseRx, RealtimeProtocol};
 use crate::timing::SessionClock;
@@ -221,16 +221,7 @@ impl SessionBuilder<'_> {
                             cancel.clone(),
                         )
                         .await;
-                        if let Some(completion) = &mut capture_completion {
-                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
-                        }
-                        if let Err(error) = result {
-                            if capture_completion.is_some() {
-                                cancel.cancel();
-                            } else {
-                                report_source_failure(&app, origin, &error, &cancel);
-                            }
-                        }
+                        finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
                     }));
             }
             None => {
@@ -239,22 +230,38 @@ impl SessionBuilder<'_> {
                     .name(format!("capture-{origin:?}"))
                     .spawn(move || {
                         let result = capture.run(origin, target_rate, level_tx, audio_tx, &cancel);
-                        if let Some(completion) = &mut capture_completion {
-                            completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
-                        }
-                        if let Err(error) = result {
-                            if capture_completion.is_some() {
-                                cancel.cancel();
-                            } else {
-                                report_source_failure(&app, origin, &error, &cancel);
-                            }
-                        }
+                        finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
                     })
                     .context("failed to spawn capture thread")?;
                 self.session.capture_threads.push(handle);
             }
         }
         Ok(())
+    }
+}
+
+/// Settle how a producer — capture thread or rehearsal playback — ended. A local source
+/// records the outcome on its spool, where the transcriber picks it up and reports it, so a
+/// failure only has to stop that source's capture here. A realtime source has no such reader,
+/// so its failure goes to the operator directly. The caller keeps the completion guard, so the
+/// local input closes only after this has run.
+fn finish_producer(
+    result: Result<()>,
+    completion: Option<&mut CaptureCompletion>,
+    app: &AppHandle,
+    origin: Origin,
+    cancel: &CancellationToken,
+) {
+    let local = completion.is_some();
+    if let Some(completion) = completion {
+        completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+    }
+    if let Err(error) = result {
+        if local {
+            cancel.cancel();
+        } else {
+            report_source_failure(app, origin, &error, cancel);
+        }
     }
 }
 
