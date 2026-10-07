@@ -391,18 +391,3 @@ export const EVT = {
 	overlayState: 'overlay-state',
 	textScale: 'text-scale'
 } as const;
-
-/** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
- *  privacy-first default: nothing is written to disk unless the operator asks for it. */
-export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
-
-/** Whether closing the operator window leaves the app running in the tray.
- *
- *  Off by default, so a fresh install keeps ordinary Windows semantics: minimize goes to the
- *  taskbar, and the X closes the app. An app that silently keeps running after you closed it
- *  is a thing you opt into. */
-export const CLOSE_TO_TRAY_KEY = 'window.closeToTray';
-
-/** Set once the operator has been told, in as many words, that closing the window is no
- *  longer quitting. Persisted so it is said the first time and never again. */
-export const TRAY_HIDE_EXPLAINED_KEY = 'window.trayHideExplained';
