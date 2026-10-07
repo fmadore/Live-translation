@@ -126,7 +126,7 @@ fn apply_transcription(
 #[cfg(test)]
 mod smart_tests {
     use super::*;
-    use crate::realtime::MessageControl;
+    use crate::realtime::{MessageControl, Signal};
     fn content(raw: &str) -> super::super::protocol::ServerContent {
         serde_json::from_str::<ServerMessage>(raw)
             .unwrap()
@@ -164,11 +164,14 @@ mod smart_tests {
             host: crate::gemini::DEFAULT_HOST.to_string(),
             origin: Origin::Microphone,
         });
-        assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
+        assert_eq!(
+            h.send(r#"{"setupComplete":{}}"#).signal,
+            Signal::SetupComplete
+        );
         h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hel"}}}"#);
         h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"Hello there"}}}"#);
         let last = h.send(r#"{"serverContent":{"inputTranscription":{"text":"Hello there."}}}"#);
-        assert!(last.transcript_activity);
+        assert_eq!(last.signal, Signal::TranscriptActivity);
         // A segment close with nothing pending is not a caption.
         h.send(r#"{"serverContent":{"generationComplete":true}}"#);
         assert_eq!(

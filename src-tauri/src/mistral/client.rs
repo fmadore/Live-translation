@@ -175,6 +175,7 @@ fn recoverable(error: &serde_json::Value) -> bool {
 mod tests {
     use super::*;
     use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::Signal;
 
     fn config(api_key: &str) -> MistralConfig {
         MistralConfig {
@@ -227,7 +228,7 @@ mod tests {
         let mut h = harness();
         let outcome = h.send(r#"{"type":"transcription.text.delta","text":"Hello "}"#);
         assert_eq!(outcome.caption, CaptionUpdate::Interim);
-        assert!(outcome.transcript_activity);
+        assert_eq!(outcome.signal, Signal::TranscriptActivity);
         h.send(r#"{"type":"transcription.text.delta","text":""}"#);
         h.send(r#"{"type":"transcription.text.delta","text":"world"}"#);
         assert_eq!(

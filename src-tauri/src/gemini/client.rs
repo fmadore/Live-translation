@@ -107,7 +107,7 @@ impl RealtimeProtocol for GeminiConfig {
 mod tests {
     use super::*;
     use crate::realtime::test_support::{handshake, Emitted, Harness};
-    use crate::realtime::MessageControl;
+    use crate::realtime::{MessageControl, Signal};
 
     fn config(api_key: &str) -> GeminiConfig {
         GeminiConfig {
@@ -189,7 +189,10 @@ mod tests {
     #[test]
     fn setup_go_away_and_errors_steer_the_connection() {
         let mut h = harness();
-        assert!(h.send(r#"{"setupComplete":{}}"#).setup_complete);
+        assert_eq!(
+            h.send(r#"{"setupComplete":{}}"#).signal,
+            Signal::SetupComplete
+        );
         assert!(matches!(
             h.send(r#"{"goAway":{"timeLeft":"10s"}}"#).control,
             MessageControl::Handover

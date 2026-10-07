@@ -173,6 +173,7 @@ fn error_control(error: &serde_json::Value) -> MessageControl {
 mod tests {
     use super::*;
     use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::Signal;
 
     fn config(api_key: &str) -> OpenAiConfig {
         OpenAiConfig {
@@ -225,11 +226,11 @@ mod tests {
         let mut h = harness();
         let source = h.send(r#"{"type":"session.input_transcript.delta","delta":"Bonjour"}"#);
         assert_eq!(source.caption, CaptionUpdate::Interim);
-        assert!(!source.transcript_activity);
+        assert_eq!(source.signal, Signal::None);
 
         let target = h.send(r#"{"type":"session.output_transcript.delta","delta":"Hello"}"#);
         assert_eq!(target.caption, CaptionUpdate::Interim);
-        assert!(target.transcript_activity);
+        assert_eq!(target.signal, Signal::TranscriptActivity);
 
         assert_eq!(
             h.captions,

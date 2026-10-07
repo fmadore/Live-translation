@@ -129,11 +129,25 @@ pub enum CaptionUpdate {
     Final,
 }
 
+/// What else a provider message told the runner, besides its caption and control. One message
+/// never says both: a setup acknowledgement carries no text.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum Signal {
+    #[default]
+    None,
+    /// The provider accepted the session setup, so audio may follow. Read only while the
+    /// runner waits for it; see `RealtimeProtocol::wait_for_setup_complete`.
+    SetupComplete,
+    /// New target-language text, which restarts the provider's idle-finalize timer (see
+    /// `RealtimeProtocol::finalize_after`). Source text alone does not count: it can lead the
+    /// translation by seconds, and would finalize a turn before its translation arrived.
+    TranscriptActivity,
+}
+
 #[derive(Debug, Default)]
 pub struct MessageOutcome {
     pub caption: CaptionUpdate,
-    pub transcript_activity: bool,
-    pub setup_complete: bool,
+    pub signal: Signal,
     pub control: MessageControl,
 }
 
@@ -150,14 +164,14 @@ impl MessageOutcome {
     pub fn activity(caption: CaptionUpdate) -> Self {
         Self {
             caption,
-            transcript_activity: true,
+            signal: Signal::TranscriptActivity,
             ..Self::default()
         }
     }
 
     pub fn setup_complete() -> Self {
         Self {
-            setup_complete: true,
+            signal: Signal::SetupComplete,
             ..Self::default()
         }
     }
