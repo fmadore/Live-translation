@@ -51,4 +51,11 @@
 		font-weight: 600;
 		line-height: 2;
 	}
+	/* The column is half the panel: at the window's minimum size and 225% text, German's
+	   "Strg+Umschalt+Leertaste" is wider than that. Here a cap may break after a `+` (`Kbd`
+	   marks where), and each piece is drawn as a cap of its own. */
+	dt :global(.ui-kbd) {
+		white-space: normal;
+		box-decoration-break: clone;
+	}
 </style>
