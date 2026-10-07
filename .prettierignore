@@ -7,6 +7,10 @@ node_modules
 .svelte-kit
 build
 coverage
+test-results
+playwright-report
+# Playwright snapshots are compared byte for byte; formatting them would break every one.
+e2e/**/__snapshots__
 package-lock.json
 .impeccable
 # Agent worktrees: whole checkouts of this repo, formatted in their own right.

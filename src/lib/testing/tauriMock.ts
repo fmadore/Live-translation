@@ -12,30 +12,7 @@ import { clearMocks, mockIPC, mockWindows } from '@tauri-apps/api/mocks';
 import { emit } from '@tauri-apps/api/event';
 import type { InvokeArgs, InvokeOptions } from '@tauri-apps/api/core';
 import { vi } from 'vitest';
-
-/** How one command is answered. A thrown error, or a rejected promise, is the command failing. */
-type CommandHandler = (args: Record<string, unknown>) => unknown;
-
-/** What a healthy core says while nothing runs, on a machine with one microphone and one
- *  output. A command not listed here answers `null`, as the core's unit-returning ones do. */
-const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
-	whisper_cpu_support: () => ({ supported: true, missing: [] }),
-	whisper_models: () => [],
-	list_microphones: () => [{ id: 'mic-1', name: 'Lectern microphone', isDefault: true }],
-	list_outputs: () => [{ id: 'render-1', name: 'Room speakers', isDefault: true }],
-	list_applications: () => ({ supported: true, applications: [] }),
-	has_api_key: () => false,
-	ondevice_readiness: () => ({
-		ready: true,
-		engine: 'built-in-demo',
-		state: 'ready',
-		canPrepare: false
-	}),
-	text_scale_factor: () => 1,
-	read_recovery: () => null,
-	list_history: () => ({ sessions: [], removed: [] }),
-	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`
-};
+import { IDLE_CORE, type CommandHandler } from './idleCore';
 
 export interface TauriMock {
 	/** Every command the window invoked, in order. Event plumbing is not included. */
