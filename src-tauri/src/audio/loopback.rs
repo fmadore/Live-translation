@@ -20,7 +20,7 @@ pub fn run_system_loopback(
     _target_rate: u32,
     _level_tx: Sender<AudioLevel>,
     _chunk_tx: crate::audio::sink::AudioSink,
-    _cancel: CancellationToken,
+    _cancel: &CancellationToken,
 ) -> Result<()> {
     anyhow::bail!("System (loopback) capture is only supported on Windows in this build")
 }
@@ -32,7 +32,7 @@ pub fn run_system_loopback(
     target_rate: u32,
     level_tx: Sender<AudioLevel>,
     chunk_tx: crate::audio::sink::AudioSink,
-    cancel: CancellationToken,
+    cancel: &CancellationToken,
 ) -> Result<()> {
     windows_impl::run(device_id, capture, target_rate, level_tx, chunk_tx, cancel)
 }
@@ -70,7 +70,7 @@ mod windows_impl {
         target_rate: u32,
         level_tx: Sender<AudioLevel>,
         chunk_tx: crate::audio::sink::AudioSink,
-        cancel: CancellationToken,
+        cancel: &CancellationToken,
     ) -> Result<()> {
         // COM must be initialised on the capture thread. `initialize_mta` returns an
         // `HRESULT`; `.ok()` turns it into a `windows::core::Result` that anyhow accepts.
@@ -212,7 +212,7 @@ mod windows_impl {
             }
             (SampleType::Int, 16) => {
                 for c in buf.as_chunks::<2>().0 {
-                    out.push(i16::from_le_bytes(*c) as f32 / 32768.0);
+                    out.push(f32::from(i16::from_le_bytes(*c)) / 32768.0);
                 }
             }
             (SampleType::Int, 32) => {

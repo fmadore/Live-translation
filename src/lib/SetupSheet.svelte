@@ -229,7 +229,6 @@
 			outputs={preflight.outputs}
 			applications={preflight.applications}
 			supported={preflight.applicationCaptureSupported}
-			refreshing={preflight.refreshingApplications}
 			refresh={preflight.refreshApplications}
 			changed={preflight.invalidateAudioTest}
 		/>

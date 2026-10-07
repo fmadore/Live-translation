@@ -7,6 +7,7 @@ import type {
 	WhisperModelId,
 	WhisperModelInfo,
 	WhisperProgress,
+	ApplicationList,
 	AudioDevice,
 	AudioSource,
 	AudioTestUpdate,
@@ -19,8 +20,11 @@ import type {
 	StartOptions,
 	StatusUpdate,
 	StoredRecovery,
+	SystemCapture,
 	TrayCommand
 } from './types';
+import type { HistoryListing } from './history';
+import type { Placement } from './profiles';
 import { EVT } from './types';
 
 export const isTauri = (): boolean =>
@@ -60,8 +64,8 @@ export const api = {
 	removeWhisperModel: (model: WhisperModelId) => invoke<void>('remove_whisper_model', { model }),
 	discardWhisperPending: () => invoke<void>('discard_whisper_pending'),
 	renameHistory: (id: string, title: string) => invoke<void>('rename_history', { id, title }),
-	getOverlayPlacement: () => invoke<import('./profiles').Placement>('get_overlay_placement'),
-	setOverlayPlacement: (placement: import('./profiles').Placement) =>
+	getOverlayPlacement: () => invoke<Placement>('get_overlay_placement'),
+	setOverlayPlacement: (placement: Placement) =>
 		invoke<void>('set_overlay_placement', { placement }),
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
 	pauseSession: (paused: boolean) => invoke<void>('pause_session', { paused }),
@@ -69,11 +73,11 @@ export const api = {
 	/** The saved sessions, with contents only for those not in `known` at the same length.
 	 *  See `createHistoryCache`. */
 	listHistory: (known: [id: string, length: number][]) =>
-		invoke<import('./history').HistoryListing>('list_history', { known }),
+		invoke<HistoryListing>('list_history', { known }),
 	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
-	listApplications: () => invoke<import('./types').ApplicationList>('list_applications'),
+	listApplications: () => invoke<ApplicationList>('list_applications'),
 
 	hasApiKey: (provider: Provider) => invoke<boolean>('has_api_key', { provider }),
 	setApiKey: (provider: Provider, key: string) => invoke<void>('set_api_key', { provider, key }),
@@ -89,7 +93,7 @@ export const api = {
 		source: AudioSource,
 		micDeviceName: string | null,
 		systemDeviceId: string | null = null,
-		systemCapture?: import('./types').SystemCapture
+		systemCapture?: SystemCapture
 	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId, systemCapture }),
 	stopAudioTest: () => invoke<void>('stop_audio_test'),
 

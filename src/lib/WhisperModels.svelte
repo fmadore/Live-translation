@@ -82,7 +82,7 @@
 			onchange={(e) =>
 				($options = { ...$options, whisperModel: e.currentTarget.value as WhisperModelId })}
 		>
-			{#each WHISPER_MODELS as id}
+			{#each WHISPER_MODELS as id (id)}
 				<option value={id}
 					>{$t.whisper[id]}{#if $whisperModels.find((m) => m.id === id)}
 						— {Math.ceil($whisperModels.find((m) => m.id === id)!.bytes / 1048576)} MiB{/if}</option

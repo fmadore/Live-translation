@@ -22,7 +22,7 @@ export type Origin = (typeof ORIGINS)[number];
 
 /** BCP-47 codes we use for the two caption languages. The spoken language is auto-detected. */
 import { TARGET_LANGUAGES, type TargetLanguage, type DemoLanguage } from './languages';
-export type { TargetLanguage, DemoLanguage } from './languages';
+export type { TargetLanguage } from './languages';
 
 /** Caption backend. The commercial providers each have their own API key; `ondevice`
  *  is the bundled product demonstration and needs no credential. Mirrors `Provider` in types.rs.
@@ -204,7 +204,7 @@ export function laneLanguage(
  *  language above its second. */
 export const TRACK_ORDER: readonly Track[] = ['system', 'system:1', 'microphone', 'microphone:1'];
 
-export interface ProcessIdentity {
+interface ProcessIdentity {
 	pid: number;
 	createdAt: string;
 }

@@ -11,9 +11,11 @@ Baseline: `npm test` passes 550 tests in 59 files; `npm run check` reports 0 err
 warnings; CI on `main` passes 120 Rust tests (3 ignored) and takes about 5 minutes wall time,
 with `windows-11-arm` on the critical path.
 
-**Status (6 October 2026):** batches 1 and 2 (§7) were merged in
-[#116](https://github.com/fmadore/Live-translation/pull/116); batch 3 is implemented on
-`review/2026-10-06-batch3`; batches 4–6 are not started.
+**Status (7 October 2026):** batches 1 and 2 (§7) were merged in
+[#116](https://github.com/fmadore/Live-translation/pull/116) and batch 3 in
+[#117](https://github.com/fmadore/Live-translation/pull/117). Batch 4's CI, static-analysis and
+coverage items are implemented on `review/2026-10-06-batch4`; T4 and T5 come next, then
+batches 5 and 6.
 
 ## Implementation tracker — batches 1 and 2
 
@@ -101,6 +103,48 @@ in a row; clippy passes for aarch64 and x86_64; in the browser preview the width
 desktop run: Narrator on Pause/Resume, Move/Done and the input-status announcements; the
 primary-filled Resume and Done in a contrast theme; Test audio with the failure banner up; the
 History tab updating during a session; quit Save with SRT chosen.
+
+## Implementation tracker — batch 4
+
+| Item | Change | Status |
+| --- | --- | --- |
+| Audit gate | Pull requests run `npm audit --omit=dev --audit-level=moderate`; `audit.yml` runs the full audit every Monday and on demand | Done; first scheduled run pending |
+| CI | `fail-fast: false` on the Node matrix; the smoke test takes the Tiny model from `WHISPER_SMOKE_MODEL_CACHE` when it matches the pin, and CI caches that folder | Done; the cache awaits its first CI run |
+| T6 (TypeScript) | `noUnusedLocals` and `noUnusedParameters`; three dead declarations removed | Done |
+| T6 (ESLint) | `eslint.config.js`, typed: `no-floating-promises`, `no-misused-promises`, `await-thenable`, `svelte/require-each-key`, `prefer-writable-derived`, `infinite-reactive-loop`; four `{#each}` blocks keyed | Done |
+| T6 (knip) | `knip.jsonc` with its plugins only and hints as errors; 20 unused exports and types un-exported or deleted | Done |
+| T6 (Clippy) | `[lints.clippy]`: the four cast lints, `needless_pass_by_value`, `match_same_arms`, `unnecessary_wraps`; 81 findings fixed, 11 `#[expect]` with reasons, 2 Linux-only `#[allow]` | Done |
+| T7 | `@vitest/coverage-v8` on the Node 24 lane, summarised in the job summary by `scripts/coverage-summary.mjs`, with per-file floors on 11 pure modules; `cargo-llvm-cov` replaces `cargo test` on the Ubuntu lane, smoke test included | Done; CI run pending |
+| T4, T5 | Playwright: the native end-to-end run on `windows-latest` and the computed-style and overflow harness | Next |
+
+Found on the way:
+
+- The promise rules cannot see an async function passed as a Svelte event handler or as a
+  `() => void` prop: `svelte/elements` types handlers as returning `any`. A one-off typed scan
+  found 30 such handlers, and each catches its own errors; `architecture.md` now records that
+  convention, since nothing static enforces it.
+- No defects among the 81 Clippy findings: every cast was in range given its guards.
+  `set_tray_state` returned an always-`Ok` `Result` and now returns nothing (the window already
+  treated it as `void`); placement clamps in `i32` with saturation instead of casting through
+  `i64`; Whisper's centisecond timestamps saturate instead of overflowing on absurd input.
+  `cast_precision_loss` was tried and left out: its 15 findings were all integer samples or
+  counts turned into floats.
+- eslint-plugin-svelte's `recommended` set found five things, all intended (an external link,
+  the overlay's measuring probe, a `prettier-ignore` space), so none of it was adopted.
+- `knip --production` lists 44 exports that only tests import, nearly all the seams pure
+  modules are tested through. Gating it would mean tagging each `@internal`; one dead constant
+  (`cleanSpeech`) moved into its test instead.
+- `tauri.ts` imported three types inline (`import('./x').T`), which knip cannot follow; they are
+  ordinary `import type` now.
+- ESLint 10 needs Node 22.13 on the 22 line, so `engines` and the README now say 22.13.
+
+Verification: `npm test` 595 passed in 67 files, and under coverage 86.8% of lines and 80.4%
+of branches overall; adding an untested function to a floored module fails the run.
+`npm run check` 0 errors and 0 warnings; `lint`, `knip`, `format:check`, `build` and
+`check:languages` pass; `cargo test` 189 passed, 4 ignored; Clippy passes for aarch64 and
+x86_64; the smoke test passes with the cache empty, filled and unset. Still needs a CI run: the
+instrumented Ubuntu lane, the model cache, both job summaries and actionlint on the new
+workflow.
 
 ## 1. Defects
 

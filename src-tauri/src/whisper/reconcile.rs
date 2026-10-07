@@ -58,7 +58,11 @@ impl Reconciler {
         if is_silence(segment) {
             return None;
         }
-        let at = |cs: i64| window_start_ms + (cs.max(0) as u64 * 10).min(duration_ms);
+        // A negative timestamp counts as the window's start.
+        let at = |cs: i64| {
+            let ms = u64::try_from(cs).unwrap_or(0).saturating_mul(10);
+            window_start_ms + ms.min(duration_ms)
+        };
         let (start, end) = (at(segment.start_cs), at(segment.end_cs));
         if end <= self.previous_end {
             return None;

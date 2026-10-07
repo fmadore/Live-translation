@@ -229,12 +229,15 @@ fn request_quit(app: &AppHandle) {
 /// items live, so each write is made directly rather than as a blocking round trip from a
 /// worker thread.
 #[tauri::command]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "Tauri commands receive their arguments by value"
+)]
 pub fn set_tray_state(
     tray: tauri::State<'_, TrayMenu>,
     session_active: bool,
     overlay_visible: bool,
     labels: Option<TrayLabels>,
-) -> Result<(), String> {
+) {
     tray.apply(session_active, overlay_visible, labels);
-    Ok(())
 }

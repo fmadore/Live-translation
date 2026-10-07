@@ -239,6 +239,12 @@ test plays the core, answering commands and emitting `status` and `caption` even
 `src-tauri` does. `src/routes/OperatorPage.svelte.test.ts` scripts a built-in demo session
 from Start to Stop. These tests query by role and accessible name, not by page structure.
 
+ESLint (`eslint.config.js`) holds only typed checks that svelte-check cannot make: promises
+nobody handles, and Svelte's reactivity mistakes. Its promise rules cannot see an async
+function passed as a Svelte event handler or as a `() => void` prop, because Svelte types
+handlers as returning `any`, so every such handler catches its own errors. knip
+(`knip.jsonc`) fails on unused files, exports and dependencies.
+
 `reading.ts` throttles interim presentation per source at 450 ms in Steadier mode; finals
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
 independent of presentation pacing and the display filter. `profiles.ts` validates local

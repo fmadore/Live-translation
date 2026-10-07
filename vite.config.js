@@ -43,6 +43,21 @@ export default defineConfig({
 	// which is faster and means a test cannot start depending on the DOM by accident; anything
 	// that renders a component opts in by being named `*.svelte.test.ts`.
 	test: {
+		// `npm run test:coverage`; CI prints the summary with `scripts/coverage-summary.mjs`.
+		coverage: {
+			provider: 'v8',
+			// Every source file, so a module no test imports shows as uncovered, not absent.
+			include: ['src/**/*.{ts,svelte}'],
+			exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'src/lib/testing/**'],
+			reporter: ['text-summary', 'json-summary', 'html'],
+			// Report-only, except for the pure modules: no Tauri, no DOM, every line reachable from
+			// a plain test, and each fully covered today. A floor there catches a deleted test or a
+			// new untested branch; elsewhere a number would only invite tests written for it.
+			thresholds: {
+				'src/lib/{appearance,captionColour,captionLayout,cleanSpeech,document,errors,historySearch,languages,reading,shortcuts,transcript}.ts':
+					{ perFile: true, lines: 95, statements: 95, functions: 95, branches: 85 }
+			}
+		},
 		projects: [
 			{
 				extends: true,

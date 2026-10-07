@@ -13,7 +13,6 @@ it('requires an explicit application selection and preserves its identity', asyn
 		outputs: [],
 		applications: [{ process, name: 'Teams meeting' }],
 		supported: true,
-		refreshing: false,
 		refresh: vi.fn().mockResolvedValue(undefined),
 		changed
 	});
@@ -38,7 +37,6 @@ it('an unavailable selection remains explicit instead of selecting a replacement
 		outputs: [],
 		applications: [],
 		supported: true,
-		refreshing: false,
 		refresh: vi.fn().mockResolvedValue(undefined),
 		changed: vi.fn()
 	});

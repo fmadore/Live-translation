@@ -245,7 +245,7 @@ export const transcript = writable<TranscriptLine[]>([]);
 // ---- Saved / unsaved document state -----------------------------------------
 
 /** Highest line id written to disk, so a second save with nothing new stays saved. */
-export const savedLineId = writable<number>(NOTHING_SAVED);
+const savedLineId = writable<number>(NOTHING_SAVED);
 
 /** Path of the last successful save, shown next to the saved badge. */
 export const savedPath = writable<string>('');

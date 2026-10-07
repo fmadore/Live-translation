@@ -21,7 +21,7 @@ import { recovery } from './recovery';
 
 /** A provider that never finishes flushing must not hold the window hostage. `stop_session`
  *  bounds its own drain at five seconds; this bounds the wait on the whole call. */
-export const QUIT_DRAIN_TIMEOUT_MS = 8000;
+const QUIT_DRAIN_TIMEOUT_MS = 8000;
 
 /** Claim an intercepted close so the core stops counting down on it.
  *

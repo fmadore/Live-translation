@@ -105,12 +105,12 @@ export const SCRIM_AT_TEXT = 0.42 / 0.72;
 
 /** The tight `text-shadow` ring, `0 1px 3px`. This is the layer the check credits, because
  *  it is the one that actually abuts the glyph. */
-export const HALO_ALPHA = 0.9;
+const HALO_ALPHA = 0.9;
 
 /** The second, softer 14px layer. Painted, but deliberately left out of the model: it only
  *  ever adds contrast, and crediting a wide blurred shadow for legibility it cannot be
  *  relied on to provide is how a check starts flattering the design it is meant to police. */
-export const HALO_SOFT_ALPHA = 0.8;
+const HALO_SOFT_ALPHA = 0.8;
 
 /** The alpha each text step *asks* for, dimmest last. These are the values the overlay has
  *  always used. What changes is that they are alphas of the chosen colour, and that they are
@@ -128,7 +128,7 @@ export const STEP_ALPHA = {
 	lead: 0.52
 } as const;
 
-export type CaptionStep = keyof typeof STEP_ALPHA;
+type CaptionStep = keyof typeof STEP_ALPHA;
 
 /**
  * How far a step may be lifted above the alpha it asks for.
@@ -243,7 +243,7 @@ function localBackdrop(palette: CaptionPalette, slide: Rgb, halo: Rgb): Rgb {
 	return composite(halo, veiled, HALO_ALPHA);
 }
 
-export interface ResolvedStep {
+interface ResolvedStep {
 	step: CaptionStep;
 	/** The alpha actually painted: what the design asked for, or as far up as the bar forced
 	 *  it. Equal to `STEP_ALPHA[step]` for any palette that did not need help. */

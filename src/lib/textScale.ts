@@ -12,7 +12,7 @@
 import { api, isTauri, on } from './tauri';
 
 /** The range of the Windows slider; anything outside it is a corrupt read, not a request. */
-export const TEXT_SCALE_MIN = 1;
+const TEXT_SCALE_MIN = 1;
 export const TEXT_SCALE_MAX = 2.25;
 export const TEXT_SCALE_DEFAULT = 1;
 

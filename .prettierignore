@@ -6,6 +6,7 @@
 node_modules
 .svelte-kit
 build
+coverage
 package-lock.json
 .impeccable
 # Agent worktrees: whole checkouts of this repo, formatted in their own right.

@@ -64,7 +64,7 @@ impl Segmenter {
         }
     }
 
-    pub fn push(&mut self, chunk: TimedChunk) -> Vec<Window> {
+    pub fn push(&mut self, chunk: &TimedChunk) -> Vec<Window> {
         let mut ready = Vec::new();
         // A pause/device gap must not collapse the transcript's time axis. A chunk that starts
         // early (capture delivers in bursts) is jitter, not a gap.
@@ -82,7 +82,7 @@ impl Segmenter {
             .as_chunks::<2>()
             .0
             .iter()
-            .map(|b| i16::from_le_bytes(*b) as f32 / 32768.0)
+            .map(|b| f32::from(i16::from_le_bytes(*b)) / 32768.0)
             .collect();
         let active = samples.iter().copied().any(is_active);
         self.silent = if active {
@@ -161,7 +161,7 @@ mod tests {
         let mut consumed = 0;
         let mut starts = Vec::new();
         for i in 0..205 {
-            for window in segmenter.push(frame(i * 100, 100)) {
+            for window in segmenter.push(&frame(i * 100, 100)) {
                 consumed += window.consumed;
                 starts.push(window.start_ms);
             }
@@ -173,8 +173,8 @@ mod tests {
     #[test]
     fn pause_gap_keeps_elapsed_timestamps_and_silence_does_not_infer() {
         let mut segmenter = Segmenter::default();
-        segmenter.push(frame(1000, 100));
-        let windows = segmenter.push(frame(5000, 0));
+        segmenter.push(&frame(1000, 100));
+        let windows = segmenter.push(&frame(5000, 0));
         assert_eq!(windows[0].start_ms, 1000);
         let tail = segmenter.finish().unwrap();
         assert_eq!(tail.start_ms, 5000);
@@ -185,13 +185,13 @@ mod tests {
     fn a_gap_is_more_than_250_ms_beyond_the_held_audio() {
         // The first frame ends at 100 ms, so 350 ms is exactly 250 ms late: still contiguous.
         let mut segmenter = Segmenter::default();
-        segmenter.push(frame(0, 100));
-        assert!(segmenter.push(frame(350, 100)).is_empty());
+        segmenter.push(&frame(0, 100));
+        assert!(segmenter.push(&frame(350, 100)).is_empty());
         assert_eq!(segmenter.finish().unwrap().consumed, 3200);
 
         let mut segmenter = Segmenter::default();
-        segmenter.push(frame(0, 100));
-        let windows = segmenter.push(frame(351, 100));
+        segmenter.push(&frame(0, 100));
+        let windows = segmenter.push(&frame(351, 100));
         assert_eq!(windows.len(), 1);
         assert_eq!((windows[0].start_ms, windows[0].consumed), (0, 1600));
         assert_eq!(segmenter.finish().unwrap().start_ms, 351);
@@ -205,7 +205,7 @@ mod tests {
         // Bursty delivery: every other chunk is stamped 80 ms earlier than contiguous.
         for i in 0..120u64 {
             let start = i * 100 - if i % 2 == 1 { 80 } else { 0 };
-            for window in segmenter.push(frame(start, 100)) {
+            for window in segmenter.push(&frame(start, 100)) {
                 starts.push(window.start_ms);
                 consumed += window.consumed;
             }
@@ -229,7 +229,7 @@ mod tests {
         let mut segmenter = Segmenter::default();
         let mut starts = Vec::new();
         for i in 0..200u64 {
-            for window in segmenter.push(frame(i * 101, 100)) {
+            for window in segmenter.push(&frame(i * 101, 100)) {
                 starts.push(window.start_ms);
             }
         }
@@ -243,7 +243,7 @@ mod tests {
         segmenter.set_long_windows(true);
         let mut windows = Vec::new();
         for i in 0..600u64 {
-            windows.extend(segmenter.push(frame(i * 100, 100)));
+            windows.extend(segmenter.push(&frame(i * 100, 100)));
         }
         let cuts: Vec<(u64, usize)> = windows
             .iter()
@@ -254,7 +254,7 @@ mod tests {
         segmenter.set_long_windows(false);
         let mut next = Vec::new();
         for i in 600..700u64 {
-            next.extend(segmenter.push(frame(i * 100, 100)));
+            next.extend(segmenter.push(&frame(i * 100, 100)));
         }
         assert_eq!((next[0].start_ms, next[0].samples.len()), (54_000, WINDOW));
     }
@@ -264,7 +264,7 @@ mod tests {
         let mut segmenter = Segmenter::default();
         let mut windows = Vec::new();
         for i in 0..100u64 {
-            windows.extend(segmenter.push(frame(i * 100, 100)));
+            windows.extend(segmenter.push(&frame(i * 100, 100)));
         }
         assert!(windows.pop().unwrap().speech);
         // Input went quiet right after a cut: the held second was in that window already.
@@ -278,7 +278,7 @@ mod tests {
     fn going_quiet_mid_window_releases_the_held_speech() {
         let mut segmenter = Segmenter::default();
         for i in 0..25u64 {
-            assert!(segmenter.push(frame(i * 100, 100)).is_empty());
+            assert!(segmenter.push(&frame(i * 100, 100)).is_empty());
         }
         let window = segmenter.finish().unwrap();
         assert!(window.speech);

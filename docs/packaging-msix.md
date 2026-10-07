@@ -88,7 +88,7 @@ for release packages: build with the normal committed configuration and complete
   the Visual Studio "Desktop development with C++" workload or the standalone SDK. Nothing
   needs to be on `PATH`: the packer resolves the SDK through
   `HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots` → `KitsRoot10`.
-- **Node 22.12+ or 24**, then `npm ci`.
+- **Node 22.13+ or 24**, then `npm ci`.
 - **LLVM/Clang with libclang, CMake and Ninja** for the statically linked Whisper CPU backend.
   Configure the matching Visual Studio target environment as in [local Whisper](local-whisper.md#building).
   Prefer native builds for each architecture, as CI does; cross-compilation also needs the

@@ -74,6 +74,10 @@ pub fn set_no_activate(window: &WebviewWindow, enabled: bool) {
             unsafe {
                 let hwnd = hwnd.0 as _;
                 let current = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+                #[expect(
+                    clippy::cast_possible_wrap,
+                    reason = "0x0800_0000 is clear of the sign bit"
+                )]
                 let bit = WS_EX_NOACTIVATE as isize;
                 let next = if enabled {
                     current | bit

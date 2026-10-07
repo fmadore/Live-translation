@@ -17,15 +17,16 @@ pub struct Placement {
 fn fit(saved: &Placement, bounds: &Placement) -> Placement {
     let width = saved.width.clamp(320, 16384).min(bounds.width);
     let height = saved.height.clamp(160, 16384).min(bounds.height);
+    // The far edge saturates: no position lies past `i32::MAX`, however far the area reaches.
     Placement {
-        x: (saved.x as i64).clamp(
-            bounds.x as i64,
-            bounds.x as i64 + bounds.width as i64 - width as i64,
-        ) as i32,
-        y: (saved.y as i64).clamp(
-            bounds.y as i64,
-            bounds.y as i64 + bounds.height as i64 - height as i64,
-        ) as i32,
+        x: saved.x.clamp(
+            bounds.x,
+            bounds.x.saturating_add_unsigned(bounds.width - width),
+        ),
+        y: saved.y.clamp(
+            bounds.y,
+            bounds.y.saturating_add_unsigned(bounds.height - height),
+        ),
         width,
         height,
     }
@@ -59,13 +60,13 @@ pub async fn set_overlay_placement(app: AppHandle, placement: Placement) -> Resu
         .available_monitors()
         .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
     // A disconnected projector must not leave captions outside every display.
+    let within = |value: i32, start: i32, length: u32| {
+        (i64::from(start)..i64::from(start) + i64::from(length)).contains(&i64::from(value))
+    };
     let monitor = monitors.iter().find(|m| {
         let p = m.position();
         let s = m.size();
-        placement.x as i64 >= p.x as i64
-            && (placement.x as i64) < p.x as i64 + s.width as i64
-            && placement.y as i64 >= p.y as i64
-            && (placement.y as i64) < p.y as i64 + s.height as i64
+        within(placement.x, p.x, s.width) && within(placement.y, p.y, s.height)
     });
     let primary = win
         .primary_monitor()

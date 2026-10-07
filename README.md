@@ -70,7 +70,7 @@ See the [privacy policy](docs/privacy.md) for temporary storage, history and rec
 
 ## Build and contribute
 
-Use Windows with Node 22.12+ or 24, Rust stable (1.90+), Visual Studio C++ Build Tools and the
+Use Windows with Node 22.13+ or 24, Rust stable (1.90+), Visual Studio C++ Build Tools and the
 Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
 [native compiler setup](docs/local-whisper.md#building) before building the desktop app.
 
@@ -85,6 +85,8 @@ Before committing, run:
 ```powershell
 npm run format:check
 npm run check
+npm run lint
+npm run knip
 npm run check:languages
 npm test
 npm run build
@@ -97,7 +99,8 @@ Build installers with `npm run tauri build`; build Store packages with
 `npm run bundle:msix:arm64` or `npm run bundle:msix:x64` in the matching compiler environment.
 See [MSIX packaging](docs/packaging-msix.md), [architecture](docs/architecture.md),
 [security](SECURITY.md) and the [roadmap](ROADMAP.md). CI checks the frontend, Rust on Linux
-and Windows x64/ARM64, dependencies and workflows. Tagged releases build installers and a
+and Windows x64/ARM64, dependencies and workflows, and reports test coverage
+(`npm run test:coverage` locally). Tagged releases build installers and a
 combined Store bundle; Partner Center submission is manual.
 
 Originally developed for the workshop *Digital Humanities and Artificial Intelligence in

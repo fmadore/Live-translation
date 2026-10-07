@@ -267,4 +267,3 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		}
 	};
 }
-export type OverlayCaptions = ReturnType<typeof createOverlayCaptions>;

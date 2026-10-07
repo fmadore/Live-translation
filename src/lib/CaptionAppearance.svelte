@@ -93,7 +93,7 @@
 			</Select>
 		</label>
 		<div class="palette-options">
-			{#each ['text', 'scrim'] as role}
+			{#each ['text', 'scrim'] as role (role)}
 				<div
 					role="group"
 					aria-label={role === 'text'

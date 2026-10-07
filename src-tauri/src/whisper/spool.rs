@@ -66,11 +66,12 @@ impl Spool {
         })
     }
 
-    pub fn push(&self, chunk: TimedChunk) -> Result<()> {
+    pub fn push(&self, chunk: &TimedChunk) -> Result<()> {
         ensure!(
             chunk.pcm.len() <= MAX_CHUNK_BYTES && chunk.pcm.len().is_multiple_of(2),
             "Invalid local audio frame"
         );
+        let length = u32::try_from(chunk.pcm.len())?;
         let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
         let end = data.written + 12 + chunk.pcm.len() as u64;
         ensure!(
@@ -80,8 +81,7 @@ impl Spool {
         let offset = data.written;
         data.file.seek(SeekFrom::Start(offset))?;
         data.file.write_all(&chunk.start_ms.to_le_bytes())?;
-        data.file
-            .write_all(&(chunk.pcm.len() as u32).to_le_bytes())?;
+        data.file.write_all(&length.to_le_bytes())?;
         data.file.write_all(&chunk.pcm)?;
         data.written = end;
         self.queued_samples
@@ -180,9 +180,9 @@ mod tests {
         let spool = Arc::new(Spool::new().unwrap());
         for i in 0..2_000u64 {
             spool
-                .push(TimedChunk {
+                .push(&TimedChunk {
                     start_ms: i * 100,
-                    pcm: (i as i16).to_le_bytes().repeat(1600),
+                    pcm: i16::try_from(i).unwrap().to_le_bytes().repeat(1600),
                 })
                 .unwrap();
         }
@@ -191,7 +191,10 @@ mod tests {
         for i in 0..2_000u64 {
             let frame = spool.next().unwrap().unwrap();
             assert_eq!(frame.start_ms, i * 100);
-            assert_eq!(frame.pcm, (i as i16).to_le_bytes().repeat(1600));
+            assert_eq!(
+                frame.pcm,
+                i16::try_from(i).unwrap().to_le_bytes().repeat(1600)
+            );
             spool.complete(1600);
         }
         assert!(spool.next().unwrap().is_none());
@@ -202,7 +205,7 @@ mod tests {
     fn caught_up_spool_can_be_reused_and_wakes_on_stop() {
         let spool = Arc::new(Spool::new().unwrap());
         for _ in 0..3 {
-            spool.push(chunk(42)).unwrap();
+            spool.push(&chunk(42)).unwrap();
             assert_eq!(spool.next().unwrap().unwrap().start_ms, 42);
             spool.complete(1600);
             assert_eq!(spool.data.lock().unwrap().file.metadata().unwrap().len(), 0);
@@ -227,7 +230,7 @@ mod tests {
         let writer = spool.clone();
         let feeder = std::thread::spawn(move || {
             std::thread::sleep(Duration::from_millis(20));
-            writer.push(chunk(7)).unwrap();
+            writer.push(&chunk(7)).unwrap();
         });
         let Next::Chunk(frame) = spool.next_timeout(Duration::from_secs(10)).unwrap() else {
             panic!("expected the pushed frame");
@@ -235,7 +238,7 @@ mod tests {
         assert_eq!(frame.start_ms, 7);
         feeder.join().unwrap();
 
-        spool.push(chunk(8)).unwrap();
+        spool.push(&chunk(8)).unwrap();
         spool.finish();
         // Queued audio is still delivered after the end of input, then the end itself.
         assert!(matches!(
@@ -252,15 +255,15 @@ mod tests {
     fn the_size_limit_is_a_visible_failure_and_frees_up_once_the_reader_catches_up() {
         // Room for exactly two frames of header plus 3200 bytes.
         let spool = Spool::with_limit(2 * (12 + 3200)).unwrap();
-        spool.push(chunk(0)).unwrap();
-        spool.push(chunk(100)).unwrap();
-        let error = spool.push(chunk(200)).unwrap_err();
+        spool.push(&chunk(0)).unwrap();
+        spool.push(&chunk(100)).unwrap();
+        let error = spool.push(&chunk(200)).unwrap_err();
         assert!(error.to_string().contains("limit"), "{error}");
         spool.next().unwrap().unwrap();
         spool.next().unwrap().unwrap();
         // Caught up: the file is reused from the start, so the limit applies to the backlog.
-        spool.push(chunk(300)).unwrap();
-        spool.push(chunk(400)).unwrap();
-        assert!(spool.push(chunk(500)).is_err());
+        spool.push(&chunk(300)).unwrap();
+        spool.push(&chunk(400)).unwrap();
+        assert!(spool.push(&chunk(500)).is_err());
     }
 }

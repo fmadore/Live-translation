@@ -260,8 +260,6 @@
 	// Every word below comes from the catalog, so a change of interface language re-renders
 	// the rail and the stage without touching the session.
 
-	const stateLabel = $derived<Record<SessionState, string>>($t.state);
-
 	// What a screen reader hears when the session changes state. Deliberately separate from the
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.

@@ -33,7 +33,7 @@
 {:else}
 	<div class="preview-section">
 		<p>{$t.usability.previewHint}</p>
-		{#each ['bright', 'dark'] as background}
+		{#each ['bright', 'dark'] as background (background)}
 			<p>{background === 'bright' ? $t.usability.bright : $t.usability.dark}</p>
 			<div class="preview" class:bright={background === 'bright'} style={vars}>
 				<div
