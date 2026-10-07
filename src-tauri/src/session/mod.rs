@@ -54,6 +54,7 @@ struct ActiveSession {
     local: bool,
     failure: Arc<Mutex<Option<AppError>>>,
     abort: CancellationToken,
+    /// One per source, in the order `start` added them, so `set_paused` can zip the two.
     origins: Vec<Origin>,
     /// Every client holds a receiver; see `SessionManager::set_paused`.
     pause: watch::Sender<bool>,
@@ -116,6 +117,7 @@ impl SessionManager {
         if provider == Provider::Whisper {
             *lock(&self.local_abort) = Some(abort.clone());
         }
+        let origins = session_origins(&options);
         let mut builder = SessionBuilder {
             app,
             options: &options,
@@ -133,7 +135,7 @@ impl SessionManager {
                 local: provider == Provider::Whisper,
                 failure: Arc::new(Mutex::new(None)),
                 abort,
-                origins: session_origins(&options),
+                origins: origins.clone(),
                 pause: watch::Sender::new(false),
                 sources: Vec::new(),
                 capture_threads: Vec::new(),
@@ -143,7 +145,7 @@ impl SessionManager {
             },
             local_model,
         };
-        for origin in session_origins(&options) {
+        for &origin in &origins {
             if let Err(error) = builder.add_source(origin) {
                 // The sources before this one are already capturing and connecting. Release
                 // them as Stop would, so a failed start leaves no thread, task or token behind.
