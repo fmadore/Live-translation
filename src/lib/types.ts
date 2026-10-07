@@ -88,32 +88,6 @@ export function describeReadiness(readiness: OnDeviceReadiness | null, m: Messag
 	return readiness.detail ? `${sentence} (${readiness.detail})` : sentence;
 }
 
-/** Backends that produce translated captions. The built-in demo is same-language only. */
-export function providerCanTranslate(provider: Provider): boolean {
-	return provider === 'gemini' || provider === 'openai';
-}
-
-/** Whether an API key must be saved before a session can start. Local Whisper and the
- *  scripted demo need no credential — see `docs/microsoft-store.md`. */
-export function providerRequiresKey(provider: Provider): boolean {
-	return provider !== 'ondevice' && provider !== 'whisper';
-}
-
-/** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
- *  it once covers translation and subtitles. Mirrors `account()` in `src-tauri/src/secrets.rs`. */
-export function providerKeyName(provider: Provider): string {
-	if (provider === 'openai') return 'OpenAI';
-	if (provider === 'mistral') return 'Mistral';
-	return 'Gemini';
-}
-
-/** Whether the backend identifies the spoken language itself, so there is no language for
- *  the operator to choose. True for both subtitle engines; the built-in demo instead picks
- *  which bundled script to play. */
-export function providerDetectsLanguage(provider: Provider): boolean {
-	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
-}
-
 /** Translate speech, or show a same-language transcription as live subtitles. */
 export const OUTPUT_MODES = ['translate', 'transcribe'] as const;
 export type OutputMode = (typeof OUTPUT_MODES)[number];

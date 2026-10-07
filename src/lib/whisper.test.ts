@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import whisperLanguages from './whisperLanguages.json';
 import { DEFAULT_START_OPTIONS, normalizeStartOptions } from './startOptions';
-import { providerCanTranslate, providerDetectsLanguage, providerRequiresKey } from './types';
+import { providerCanTranslate, providerDetectsLanguage, providerRequiresKey } from './providers';
 import { estimateSessionCost } from './providers';
 
 it('restores every supported Whisper language and model without falling back to the demo', () => {

@@ -4,8 +4,8 @@
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { options, overlayPlaced, statusMessage, whisperModels } from './stores';
-	import { PROVIDER_META, rateText } from './providers';
-	import { describeReadiness, laneCount, providerRequiresKey } from './types';
+	import { PROVIDER_META, providerRequiresKey, rateText } from './providers';
+	import { describeReadiness, laneCount } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { PreflightController } from './preflightController.svelte';
 

@@ -4,14 +4,8 @@
 import whisperLanguages from './whisperLanguages.json';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languages';
 import { readStored } from './persisted';
-import {
-	AUDIO_SOURCES,
-	OUTPUT_MODES,
-	PROVIDERS,
-	providerCanTranslate,
-	WHISPER_MODELS,
-	type StartOptions
-} from './types';
+import { providerCanTranslate } from './providers';
+import { AUDIO_SOURCES, OUTPUT_MODES, PROVIDERS, WHISPER_MODELS, type StartOptions } from './types';
 
 /** Fresh-install setup for local speech recognition. The user downloads a model before
  *  starting; opening the app never starts a download or audio capture. */

@@ -3,8 +3,7 @@
 	import { api, isTauri } from './tauri';
 	import { t } from './i18n';
 	import { asStatus, type AppError } from './errors';
-	import { PROVIDER_META } from './providers';
-	import { providerKeyName } from './types';
+	import { PROVIDER_META, providerKeyName } from './providers';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import type { Provider } from './types';

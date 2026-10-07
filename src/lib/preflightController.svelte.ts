@@ -4,7 +4,7 @@ import { asStatus, describeError } from './errors';
 import { t } from './i18n';
 import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
-import { providerRequiresKey } from './types';
+import { providerRequiresKey } from './providers';
 import type {
 	AudioDevice,
 	AudioLevel,
