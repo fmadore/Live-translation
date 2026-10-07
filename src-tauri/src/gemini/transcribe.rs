@@ -15,7 +15,7 @@ use super::protocol::{
     RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
 };
 use crate::realtime::{
-    parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -77,20 +77,8 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
             return MessageOutcome::default();
         };
 
-        if msg.setup_complete.is_some() {
-            tracing::debug!(origin = ?self.origin, "Gemini Transcribe setup complete; streaming audio");
-            return MessageOutcome::setup_complete();
-        }
-        // Live transcription sessions cap at 10 minutes, so a long room session reconnects
-        // several times an hour. `goAway` gets us moving before the socket actually drops, and
-        // as a planned handover the runner reconnects at once rather than backing off.
-        if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Handover);
-        }
-        if let Some(error) = msg.error {
-            return MessageOutcome::control(MessageControl::Fatal(format!(
-                "Gemini Transcribe error: {error}"
-            )));
+        if let Some(outcome) = msg.control(self, "Gemini Transcribe error") {
+            return outcome;
         }
 
         let Some(content) = msg.server_content else {
@@ -138,6 +126,7 @@ fn apply_transcription(
 #[cfg(test)]
 mod smart_tests {
     use super::*;
+    use crate::realtime::MessageControl;
     fn content(raw: &str) -> super::super::protocol::ServerContent {
         serde_json::from_str::<ServerMessage>(raw)
             .unwrap()

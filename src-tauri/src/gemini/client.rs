@@ -8,7 +8,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use super::gemini_request;
 use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage, AUDIO_STREAM_END};
 use crate::realtime::{
-    parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -70,18 +70,8 @@ impl RealtimeProtocol for GeminiConfig {
             return MessageOutcome::default();
         };
 
-        if msg.setup_complete.is_some() {
-            tracing::debug!(origin = ?self.origin, "Gemini setup complete; streaming audio");
-            return MessageOutcome::setup_complete();
-        }
-        // Live sessions are capped; `goAway` warns ahead of the cut, so move straight away.
-        if msg.go_away.is_some() {
-            return MessageOutcome::control(MessageControl::Handover);
-        }
-        if let Some(error) = msg.error {
-            return MessageOutcome::control(MessageControl::Fatal(format!(
-                "Gemini realtime error: {error}"
-            )));
+        if let Some(outcome) = msg.control(self, "Gemini realtime error") {
+            return outcome;
         }
 
         let Some(content) = msg.server_content else {
@@ -117,6 +107,7 @@ impl RealtimeProtocol for GeminiConfig {
 mod tests {
     use super::*;
     use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::MessageControl;
 
     fn config(api_key: &str) -> GeminiConfig {
         GeminiConfig {
