@@ -112,20 +112,15 @@ pub fn run_microphone(
     let config = device
         .default_input_config()
         .context("failed to read default input config")?;
-    let sample_format = config.sample_format();
-    let channels = config.channels() as usize;
-    let in_rate = config.sample_rate();
-    let stream_config: cpal::StreamConfig = config.into();
-
-    tracing::info!(
-        rate = in_rate,
-        channels,
-        ?sample_format,
-        "starting microphone capture"
-    );
 
     // Per-stream state captured by the callback.
-    let mut state = CaptureState::new(Origin::Microphone, in_rate, target_rate, level_tx, chunk_tx);
+    let state = CaptureState::new(
+        Origin::Microphone,
+        config.sample_rate(),
+        target_rate,
+        level_tx,
+        chunk_tx,
+    );
 
     let stream_error_cancel = cancel.clone();
     let (error_tx, error_rx) = std::sync::mpsc::sync_channel(1);
@@ -135,36 +130,65 @@ pub fn run_microphone(
         handle_stream_error(e, &error_tx, &stream_error_cancel);
     };
 
-    let stream = match sample_format {
+    let stream = open_stream(&device, config, state, err_fn)?;
+    stream.play().context("failed to start microphone stream")?;
+    wait_while_present(&device, cancel)?;
+
+    tracing::info!("microphone capture stopped");
+    match error_rx.try_recv() {
+        Ok(error) => Err(error),
+        Err(_) => Ok(()),
+    }
+}
+
+/// Open `device` in its default format, feeding every buffer it delivers to `state`.
+fn open_stream(
+    device: &cpal::Device,
+    config: cpal::SupportedStreamConfig,
+    mut state: CaptureState,
+    err_fn: impl FnMut(cpal::Error) + Send + 'static,
+) -> Result<cpal::Stream> {
+    let sample_format = config.sample_format();
+    let channels = usize::from(config.channels());
+    tracing::info!(
+        rate = config.sample_rate(),
+        channels,
+        ?sample_format,
+        "starting microphone capture"
+    );
+    let config: cpal::StreamConfig = config.into();
+
+    match sample_format {
         // Already the pipeline's format: no conversion, so no copy through the scratch buffer.
         SampleFormat::F32 => device.build_input_stream(
-            stream_config,
+            config,
             move |data: &[f32], _| state.push_samples(data, channels),
             err_fn,
             None,
         ),
-        SampleFormat::I8 => build::<i8>(&device, stream_config, state, err_fn),
-        SampleFormat::I16 => build::<i16>(&device, stream_config, state, err_fn),
+        SampleFormat::I8 => build::<i8>(device, config, state, err_fn),
+        SampleFormat::I16 => build::<i16>(device, config, state, err_fn),
         // What cpal reports for a 24-bit WASAPI microphone. cpal shifts each sample down out
         // of its 32-bit container before the callback sees it.
-        SampleFormat::I24 => build::<I24>(&device, stream_config, state, err_fn),
-        SampleFormat::I32 => build::<i32>(&device, stream_config, state, err_fn),
-        SampleFormat::I64 => build::<i64>(&device, stream_config, state, err_fn),
-        SampleFormat::U8 => build::<u8>(&device, stream_config, state, err_fn),
-        SampleFormat::U16 => build::<u16>(&device, stream_config, state, err_fn),
-        SampleFormat::U24 => build::<U24>(&device, stream_config, state, err_fn),
-        SampleFormat::U32 => build::<u32>(&device, stream_config, state, err_fn),
-        SampleFormat::U64 => build::<u64>(&device, stream_config, state, err_fn),
-        SampleFormat::F64 => build::<f64>(&device, stream_config, state, err_fn),
+        SampleFormat::I24 => build::<I24>(device, config, state, err_fn),
+        SampleFormat::I32 => build::<i32>(device, config, state, err_fn),
+        SampleFormat::I64 => build::<i64>(device, config, state, err_fn),
+        SampleFormat::U8 => build::<u8>(device, config, state, err_fn),
+        SampleFormat::U16 => build::<u16>(device, config, state, err_fn),
+        SampleFormat::U24 => build::<U24>(device, config, state, err_fn),
+        SampleFormat::U32 => build::<u32>(device, config, state, err_fn),
+        SampleFormat::U64 => build::<u64>(device, config, state, err_fn),
+        SampleFormat::F64 => build::<f64>(device, config, state, err_fn),
         // DSD is a 1-bit bitstream, not PCM, and the enum is non-exhaustive.
         other => return Err(anyhow!("unsupported sample format: {other:?}")),
     }
-    .context("failed to build input stream")?;
+    .context("failed to build input stream")
+}
 
-    stream.play().context("failed to start microphone stream")?;
-
-    // Check availability off the realtime callback, including silent/suspended devices
-    // whose driver fails to deliver an error. The opened device never follows a new default.
+/// Park while the caller's stream runs, until `cancel` fires or `device` disappears. The
+/// check runs off the realtime callback and also catches silent or suspended devices whose
+/// driver fails to deliver an error. The opened device never follows a new default.
+fn wait_while_present(device: &cpal::Device, cancel: &CancellationToken) -> Result<()> {
     let pinned_id = device
         .id()
         .context("failed to identify active microphone")?;
@@ -179,11 +203,7 @@ pub fn run_microphone(
             anyhow::ensure!(available, "selected microphone disconnected or disabled");
         }
     }
-    tracing::info!("microphone capture stopped");
-    match error_rx.try_recv() {
-        Ok(error) => Err(error),
-        Err(_) => Ok(()),
-    }
+    Ok(())
 }
 
 /// Open an input stream whose samples need converting to f32. cpal fixes the sample type of
