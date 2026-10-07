@@ -7,10 +7,10 @@
 
 use std::time::Duration;
 
-use anyhow::{Context, Result};
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
+use super::gemini_request;
 use super::protocol::{
     RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
 };
@@ -35,15 +35,6 @@ pub struct GeminiTranscribeConfig {
     pub origin: Origin,
 }
 
-impl GeminiTranscribeConfig {
-    fn ws_url(&self) -> String {
-        format!(
-            "wss://{}/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key={}",
-            self.host, self.api_key
-        )
-    }
-}
-
 impl RealtimeProtocol for GeminiTranscribeConfig {
     const NAME: &'static str = "Gemini Transcribe";
 
@@ -52,9 +43,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
     }
 
     fn connect_request(&self) -> Result<Request> {
-        self.ws_url()
-            .into_client_request()
-            .context("failed to build Gemini Transcribe request")
+        gemini_request(Self::NAME, &self.host, &self.api_key)
     }
 
     fn setup_json(&self) -> Result<String> {
@@ -209,6 +198,37 @@ mod smart_tests {
             h.send(r#"{"goAway":{}}"#).control,
             MessageControl::Handover
         ));
+    }
+
+    /// The same endpoint and key as Live Translate; only the setup message tells them apart.
+    #[test]
+    fn the_handshake_matches_live_translate() {
+        use crate::realtime::test_support::handshake;
+        let mut config = GeminiTranscribeConfig {
+            api_key: "gemini-test".to_string(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        };
+        let translate = crate::gemini::GeminiConfig {
+            api_key: config.api_key.clone(),
+            model: crate::gemini::DEFAULT_TRANSLATE_MODEL.to_string(),
+            host: config.host.clone(),
+            target_language_code: "fr".to_string(),
+            origin: Origin::Microphone,
+        };
+        assert_eq!(
+            handshake(config.connect_request().unwrap()),
+            handshake(translate.connect_request().unwrap())
+        );
+
+        // The operator reads this as the reconnecting status's detail.
+        config.host = "not a host".to_string();
+        let error = config.connect_request().unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "failed to build Gemini Transcribe request"
+        );
     }
 
     #[test]
