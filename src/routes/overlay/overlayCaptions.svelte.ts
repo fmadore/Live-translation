@@ -10,14 +10,8 @@ import {
 } from '$lib/captionLayout';
 import { createFillerFilter } from '$lib/cleanSpeech';
 import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
-import {
-	captionBudget,
-	clampOverlayWidth,
-	TRACK_ORDER,
-	trackLane,
-	trackOf,
-	trackOrigin
-} from '$lib/types';
+import { captionBudget, clampOverlayWidth } from '$lib/appearance';
+import { TRACK_ORDER, trackLane, trackOf, trackOrigin } from '$lib/types';
 import type { Caption, Lane, Origin, StatusUpdate, Track } from '$lib/types';
 
 /** An in-progress line that stalls (no turn-complete arriving) clears after this. */

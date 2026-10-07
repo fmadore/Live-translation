@@ -15,9 +15,14 @@ import {
 	overlayShowOriginal,
 	statusMessage
 } from './stores';
-import { captionLanguageOf, clampOverlayFont, secondCaptionLanguageOf } from './types';
+import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayConfig, OverlayStateMsg } from './types';
-import { DEFAULT_APPEARANCE, toOverlayConfig, type Appearance } from './appearance';
+import {
+	clampOverlayFont,
+	DEFAULT_APPEARANCE,
+	toOverlayConfig,
+	type Appearance
+} from './appearance';
 import type { CaptionPalette } from './captionColour';
 import { normalizeFillerWords } from './cleanSpeech';
 import {

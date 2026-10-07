@@ -3,7 +3,7 @@
 
 import { api, isTauri } from '$lib/tauri';
 import { writeStored } from '$lib/persisted';
-import { OVERLAY_PLACED_KEY } from '$lib/types';
+import { OVERLAY_PLACED_KEY } from '$lib/appearance';
 
 /** Physical pixels, straight off the window: restoring what was read needs no conversion. */
 interface Geometry {

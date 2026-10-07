@@ -7,7 +7,7 @@ import { api } from './tauri';
 import { setLocale } from './i18n';
 import { overlayCaptionLayout, overlayCaptionWidth, overlayHoldSeconds } from './stores';
 import { HOLD_SECONDS_MAX, HOLD_SECONDS_MIN } from './reading';
-import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './types';
+import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './appearance';
 
 afterEach(() => {
 	setLocale('en');

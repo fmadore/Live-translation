@@ -5,7 +5,6 @@ import type { AppError } from './errors';
 import type { Messages } from './i18n/en';
 import type { Locale } from './i18n';
 import type { CaptionFaceId } from './captionFont';
-import { readStored } from './persisted';
 
 // Each union below is declared once, as a runtime list, and the type is derived from it.
 // Persisted values are untrusted input and are checked against these lists, and
@@ -393,76 +392,9 @@ export const EVT = {
 	textScale: 'text-scale'
 } as const;
 
-/** localStorage key shared by both windows (same origin) for the overlay font size. */
-export const OVERLAY_FONT_KEY = 'overlay.fontSize';
-export const DEFAULT_OVERLAY_FONT = 38;
-export const OVERLAY_FONT_MIN = 20;
-export const OVERLAY_FONT_MAX = 96;
-
-/** Clamp a requested overlay font size to the supported range. */
-export function clampOverlayFont(size: number): number {
-	return Math.max(OVERLAY_FONT_MIN, Math.min(OVERLAY_FONT_MAX, Math.round(size)));
-}
-
-/** Read the persisted overlay font size (shared by both windows via localStorage). */
-export function loadOverlayFont(): number {
-	const v = Number(readStored(OVERLAY_FONT_KEY));
-	return Number.isFinite(v) && v > 0 ? clampOverlayFont(v) : DEFAULT_OVERLAY_FONT;
-}
-
-/**
- * How wide a caption line may run, in `ch`.
- *
- * A typographic measure, not a percentage of the window, and deliberately: `ch` is defined
- * against the font, so a width chosen at 38px still means the same reading length at 72px.
- * A percentage would silently become a different number of words per line every time the
- * operator touched the size control.
- *
- * The range is the useful span between two real rooms. 20ch is a caption beside a video
- * tile, about four words a line and near the floor of what is readable at a glance; 60ch is
- * a wide stage under a 16:9 slide. `ch` is the width of a zero, which is wider than the
- * average lowercase glyph, so the 30ch default holds roughly the 40 characters broadcast
- * subtitling settled on.
- */
-export const OVERLAY_WIDTH_KEY = 'overlay.captionWidth';
-export const DEFAULT_OVERLAY_WIDTH = 30;
-export const OVERLAY_WIDTH_MIN = 20;
-export const OVERLAY_WIDTH_MAX = 60;
-
-export function clampOverlayWidth(width: number): number {
-	return Math.max(OVERLAY_WIDTH_MIN, Math.min(OVERLAY_WIDTH_MAX, Math.round(width)));
-}
-
-export function loadOverlayWidth(): number {
-	const v = Number(readStored(OVERLAY_WIDTH_KEY));
-	return Number.isFinite(v) && v > 0 ? clampOverlayWidth(v) : DEFAULT_OVERLAY_WIDTH;
-}
-
-/**
- * The tail budget for a still-streaming turn, in characters, at a given measure.
- *
- * `MAX_CHARS` in the overlay was a vertical limit wearing a horizontal disguise: it exists
- * so a long turn does not fill the screen, and what fills a screen is *lines*, not
- * characters. Holding it at 220 while the measure moved would have made a wide caption cover
- * less of the slide and a narrow one cover more — the setting quietly changing something
- * nobody asked it to change. Scaling it keeps the block the same number of lines at every
- * width, which is what the constant was protecting. 220 characters over the 30ch default is
- * the ratio being preserved.
- */
-export function captionBudget(width: number): number {
-	return Math.round((220 / DEFAULT_OVERLAY_WIDTH) * clampOverlayWidth(width));
-}
-
-/** Whether the caption region has ever been placed, so the pre-flight check survives a
- *  restart instead of asking the operator to position the overlay again. */
-export const OVERLAY_PLACED_KEY = 'overlay.placed';
-
 /** localStorage key for the opt-in crash-recovery spool. Absent means off, which is the
  *  privacy-first default: nothing is written to disk unless the operator asks for it. */
 export const RECOVERY_ENABLED_KEY = 'recovery.enabled';
-
-/** Shared with the overlay, which reads it on load before the operator's first push. */
-export const SHOW_ORIGINAL_KEY = 'overlay.showOriginal';
 
 /** Whether closing the operator window leaves the app running in the tray.
  *

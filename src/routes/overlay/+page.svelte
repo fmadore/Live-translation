@@ -5,7 +5,7 @@
 	import { createOverlayCaptions } from './overlayCaptions.svelte';
 	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
 	import { previewContent } from './overlayFixtures';
-	import { loadAppearance } from '$lib/appearance';
+	import { clampOverlayFont, loadAppearance, SHOW_ORIGINAL_KEY } from '$lib/appearance';
 	import { loadFillerWords, normalizeFillerWords } from '$lib/cleanSpeech';
 	import {
 		bottomCaptionHeight,
@@ -26,13 +26,7 @@
 	import { isLocale, locale, t } from '$lib/i18n';
 	import { isTargetLanguage } from '$lib/languages';
 	import { api, on, isTauri } from '$lib/tauri';
-	import {
-		clampOverlayFont,
-		SHOW_ORIGINAL_KEY,
-		type Lane,
-		type Origin,
-		type TargetLanguage
-	} from '$lib/types';
+	import type { Lane, Origin, TargetLanguage } from '$lib/types';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
 	// operator), then the operator pushes live updates via the overlay-config event.

@@ -20,17 +20,7 @@ import type {
 	Track,
 	TranscriptLine
 } from './types';
-import {
-	CLOSE_TO_TRAY_KEY,
-	loadOverlayFont,
-	loadOverlayWidth,
-	OVERLAY_FONT_KEY,
-	OVERLAY_WIDTH_KEY,
-	OVERLAY_PLACED_KEY,
-	RECOVERY_ENABLED_KEY,
-	SHOW_ORIGINAL_KEY,
-	TRAY_HIDE_EXPLAINED_KEY
-} from './types';
+import { CLOSE_TO_TRAY_KEY, RECOVERY_ENABLED_KEY, TRAY_HIDE_EXPLAINED_KEY } from './types';
 import { loadStartOptions, SESSION_OPTIONS_KEY } from './startOptions';
 import {
 	CAPTION_SCRIM_KEY,
@@ -44,7 +34,16 @@ import { CAPTION_FACE_KEY, loadCaptionFace } from './captionFont';
 import type { CaptionFaceId } from './captionFont';
 import { isDirty, newestLineId, NOTHING_SAVED } from './document';
 import { persisted, persistedFlag, persistedWith, writeStored } from './persisted';
-import { normalizeAppearance, type Appearance } from './appearance';
+import {
+	loadOverlayFont,
+	loadOverlayWidth,
+	normalizeAppearance,
+	OVERLAY_FONT_KEY,
+	OVERLAY_PLACED_KEY,
+	OVERLAY_WIDTH_KEY,
+	SHOW_ORIGINAL_KEY,
+	type Appearance
+} from './appearance';
 
 // ---- Session status --------------------------------------------------------
 // Up to four backend tasks (two captures + two clients in "Both" mode) report status
