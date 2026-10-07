@@ -1,7 +1,8 @@
 name: CI
 
-# Checks on every push/PR: front-end type-check/build, Rust format/lint/tests.
-# (release.yml builds the installers; this keeps day-to-day changes honest.)
+# Checks on every push/PR: front-end format/type-check/lint/tests/build, Rust format/lint/tests,
+# with coverage reported in the job summaries. (release.yml builds the installers; this keeps
+# day-to-day changes honest. audit.yml runs the full dependency audit weekly.)
 
 on:
   push:
@@ -20,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
+      # A failure on one Node version says nothing about the other: let both finish.
+      fail-fast: false
       matrix:
         node: [22, 24]
     steps:
@@ -39,14 +42,36 @@ jobs:
       - name: svelte-check
         run: npm run check
 
+      # What svelte-check cannot see: unhandled promises, unkeyed lists, reactive loops.
+      - name: eslint
+        run: npm run lint
+
+      - name: unused files, exports and dependencies (knip)
+        run: npm run knip
+
       - name: unit tests
+        if: matrix.node != 24
         run: npm test
+
+      # The same tests, instrumented on one lane only: the report would be identical on both.
+      # Coverage is reported, not gated, apart from per-file floors on the pure modules.
+      - name: unit tests with coverage
+        if: matrix.node == 24
+        run: npm run test:coverage
+
+      - name: coverage summary
+        if: matrix.node == 24
+        run: node scripts/coverage-summary.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: production build
         run: npm run build
 
-      - name: dependency audit (moderate and above)
-        run: npm audit --audit-level=moderate
+      # Only what ships: the app bundles the Tauri API and the fonts, nothing else from npm. The
+      # full audit, dev tooling included, failed unrelated pull requests over advisories that
+      # cannot reach a user (14 of 26 failed runs from August to early October); audit.yml runs
+      # it weekly instead.
+      - name: dependency audit (shipped packages, moderate and above)
+        run: npm audit --omit=dev --audit-level=moderate
 
   rust:
     # No `needs: frontend`: this job builds the frontend it embeds itself, so waiting for the
@@ -96,7 +121,14 @@ jobs:
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
+          # llvm-tools for the instrumented test run on the Ubuntu lane.
+          components: ${{ runner.os == 'Linux' && 'rustfmt, clippy, llvm-tools-preview' || 'rustfmt, clippy' }}
+
+      - name: Install cargo-llvm-cov
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@f7e5d7c961414b23f5b25b2da9294395d08513ad # v2.87.26
+        with:
+          tool: cargo-llvm-cov@0.9.1
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
@@ -117,13 +149,56 @@ jobs:
         working-directory: src-tauri
 
       - name: tests
+        if: runner.os != 'Linux'
         run: cargo test --locked --all-features
         working-directory: src-tauri
 
+      # The Ubuntu lane runs the same tests instrumented, for a coverage report that gates
+      # nothing. The smoke test below adds its profile to the same report. `--no-report` keeps
+      # earlier profiles, so the clean drops any the Rust cache restored (dependencies stay).
+      - name: tests (instrumented)
+        if: runner.os == 'Linux'
+        run: |
+          cargo llvm-cov clean --workspace
+          cargo llvm-cov --no-report --locked --all-features
+        working-directory: src-tauri
+
+      # The smoke test copies a cached model whose hash matches the pin instead of downloading
+      # it again (38–104 s a run); the real download path has its own tests on a local server.
+      - name: Cache the smoke-test Whisper model
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/whisper-smoke-model
+          key: whisper-smoke-${{ runner.os }}-${{ hashFiles('src-tauri/src/whisper/models.rs') }}
+
       - name: Local Whisper multilingual CPU smoke test
+        if: runner.os != 'Linux'
         timeout-minutes: 10
+        env:
+          WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
         run: cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
         working-directory: src-tauri
+
+      - name: Local Whisper multilingual CPU smoke test (instrumented)
+        if: runner.os == 'Linux'
+        timeout-minutes: 10
+        env:
+          WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
+        run: >-
+          cargo llvm-cov test --no-report --locked --all-features local_whisper_smoke
+          -- --ignored --nocapture
+        working-directory: src-tauri
+
+      - name: Rust coverage summary
+        if: runner.os == 'Linux'
+        working-directory: src-tauri
+        run: |
+          {
+            echo '### Rust coverage (Ubuntu lane)'
+            echo '```'
+            cargo llvm-cov report
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # The x64 build compiles ggml for AVX2 (`.cargo/config.toml`), and a processor without it
       # must be refused before any of that code runs. Intel SDE emulates Goldmont Plus, the
