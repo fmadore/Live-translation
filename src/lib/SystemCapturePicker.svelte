@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Field from './ui/Field.svelte';
 	import Select from './ui/Select.svelte';
 	import { onMount } from 'svelte';
 	import { options } from './stores';
@@ -30,8 +31,7 @@
 </script>
 
 <div class="capture-picker">
-	<label>
-		<span>{$t.applications.mode}</span>
+	<Field label={$t.applications.mode}>
 		<Select
 			disabled={locked}
 			value={applicationMode ? 'application' : 'output'}
@@ -49,10 +49,9 @@
 			<option value="output">{$t.applications.output}</option>
 			<option value="application">{$t.applications.application}</option>
 		</Select>
-	</label>
+	</Field>
 	{#if applicationMode}
-		<label>
-			<span>{$t.applications.choose}</span>
+		<Field label={$t.applications.choose}>
 			<Select
 				disabled={locked || supported === false}
 				value={selectionKey}
@@ -77,14 +76,13 @@
 					>
 				{/each}
 			</Select>
-		</label>
+		</Field>
 		{#if supported === false}<p class="hint" role="status">{$t.applications.unsupported}</p>
 		{:else if supported && !applications.length}<p class="hint" role="status">
 				{$t.applications.empty}
 			</p>{/if}
 	{:else}
-		<label>
-			<span>{$t.devices.output}</span>
+		<Field label={$t.devices.output}>
 			<Select
 				disabled={locked}
 				value={$options.systemDeviceId ?? ''}
@@ -101,7 +99,7 @@
 						>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
 					>{/each}
 			</Select>
-		</label>
+		</Field>
 	{/if}
 </div>
 
@@ -111,12 +109,11 @@
 		gap: var(--space-2);
 		min-width: 0;
 	}
-	label {
-		display: grid;
+	/* Tighter and quieter than the shared field: the microphone's field in the same sheet
+	   keeps the shared look. */
+	.capture-picker > :global(.ui-field) {
 		gap: var(--space-1);
 		color: var(--text-muted);
-		font-size: var(--type-small);
-		min-width: 0;
 	}
 	.hint {
 		margin: 0;
