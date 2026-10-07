@@ -8,7 +8,7 @@ export { TARGET_LANGUAGES, type TargetLanguage };
 export const DEMO_LANGUAGES = ['en', 'fr'] as const;
 export type DemoLanguage = (typeof DEMO_LANGUAGES)[number];
 export const LANGUAGE_FAVOURITES_KEY = 'language.favourites';
-export const DEFAULT_FAVOURITES: TargetLanguage[] = ['en', 'fr'];
+const DEFAULT_FAVOURITES: TargetLanguage[] = ['en', 'fr'];
 
 export function isTargetLanguage(value: unknown): value is TargetLanguage {
 	return typeof value === 'string' && (TARGET_LANGUAGES as readonly string[]).includes(value);
@@ -67,7 +67,7 @@ export function captionDirection(code?: string): 'rtl' | 'ltr' | 'auto' {
 	return ['ar', 'he', 'fa', 'ur', 'sd'].includes(code.split('-')[0]) ? 'rtl' : 'ltr';
 }
 
-export function normalizeLanguageSearch(text: string): string {
+function normalizeLanguageSearch(text: string): string {
 	return text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase().trim();
 }
 

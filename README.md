@@ -70,7 +70,7 @@ See the [privacy policy](docs/privacy.md) for temporary storage, history and rec
 
 ## Build and contribute
 
-Use Windows with Node 22.12+ or 24, Rust stable (1.90+), Visual Studio C++ Build Tools and the
+Use Windows with Node 22.13+ or 24, Rust stable (1.90+), Visual Studio C++ Build Tools and the
 Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
 [native compiler setup](docs/local-whisper.md#building) before building the desktop app.
 
@@ -85,6 +85,8 @@ Before committing, run:
 ```powershell
 npm run format:check
 npm run check
+npm run lint
+npm run knip
 npm run check:languages
 npm test
 npm run build

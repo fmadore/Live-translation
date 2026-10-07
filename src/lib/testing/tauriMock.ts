@@ -14,11 +14,11 @@ import type { InvokeArgs, InvokeOptions } from '@tauri-apps/api/core';
 import { vi } from 'vitest';
 
 /** How one command is answered. A thrown error, or a rejected promise, is the command failing. */
-export type CommandHandler = (args: Record<string, unknown>) => unknown;
+type CommandHandler = (args: Record<string, unknown>) => unknown;
 
 /** What a healthy core says while nothing runs, on a machine with one microphone and one
  *  output. A command not listed here answers `null`, as the core's unit-returning ones do. */
-export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
+const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 	whisper_cpu_support: () => ({ supported: true, missing: [] }),
 	whisper_models: () => [],
 	list_microphones: () => [{ id: 'mic-1', name: 'Lectern microphone', isDefault: true }],

@@ -9,7 +9,6 @@
 		outputs,
 		applications,
 		supported,
-		refreshing,
 		refresh,
 		changed
 	}: {
@@ -17,7 +16,6 @@
 		outputs: AudioDevice[];
 		applications: CaptureApplication[];
 		supported: boolean | null;
-		refreshing: boolean;
 		refresh: () => Promise<void>;
 		changed: () => void;
 	} = $props();

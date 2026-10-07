@@ -2,7 +2,6 @@ import { get } from 'svelte/store';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	addFillerWord,
-	cleanSpeech,
 	createFillerFilter,
 	DEFAULT_FILLER_WORDS,
 	FILLER_WORDS_KEY,
@@ -15,6 +14,9 @@ import {
 	saveFillerWords
 } from './cleanSpeech';
 import { persistedWith } from './persisted';
+
+/** The built-in list's filter. */
+const cleanSpeech = createFillerFilter(DEFAULT_FILLER_WORDS);
 
 describe('display-only conservative hesitation cleanup', () => {
 	it('cleans the requested sentence and its punctuation', () => {

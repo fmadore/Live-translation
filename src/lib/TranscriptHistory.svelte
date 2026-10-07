@@ -198,7 +198,8 @@
 		<Field label={$t.usability.language}
 			><Select bind:value={language}
 				><option value="">{$t.usability.allLanguages}</option
-				>{#each TARGET_LANGUAGES as code}<option value={code}>{languageName(code, $locale)}</option
+				>{#each TARGET_LANGUAGES as code (code)}<option value={code}
+						>{languageName(code, $locale)}</option
 					>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
 			></Field
 		>

@@ -86,4 +86,3 @@ export function createDeviceFailure({ stop, start, refreshApplications }: Device
 		reselectApplication
 	};
 }
-export type DeviceFailure = ReturnType<typeof createDeviceFailure>;

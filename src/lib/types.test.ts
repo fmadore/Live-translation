@@ -15,8 +15,7 @@ import {
 	providerCanTranslate,
 	providerDetectsLanguage,
 	providerKeyName,
-	providerRequiresKey,
-	SESSION_OPTIONS_KEY
+	providerRequiresKey
 } from './types';
 import { PROVIDER_META } from './providers';
 

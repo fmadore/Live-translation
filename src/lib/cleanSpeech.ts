@@ -161,6 +161,3 @@ export function createFillerFilter(
 		return /^\p{Lu}/u.test(leading) ? rest.replace(/^\p{Ll}/u, (c) => c.toUpperCase()) : rest;
 	};
 }
-
-/** The built-in list's filter. */
-export const cleanSpeech = createFillerFilter(DEFAULT_FILLER_WORDS);

@@ -1,7 +1,6 @@
 import { normalizeAppearance, type Appearance } from './appearance';
 import { normalizeStartOptions, type StartOptions } from './types';
 
-export { normalizeAppearance, type Appearance };
 export const PROFILES_KEY = 'meeting.profiles';
 export interface Placement {
 	x: number;
