@@ -257,13 +257,6 @@ pub struct StatusUpdate {
 impl StatusUpdate {
     /// About the whole session, every source at once: the Idle that Stop publishes once every
     /// client has drained, with the failure that ended the session, if one did.
-    #[cfg_attr(
-        not(test),
-        expect(
-            dead_code,
-            reason = "session.rs's Stop status adopts it at the batch 5 merge; remove this then"
-        )
-    )]
     pub(crate) fn session(state: SessionState, message: Option<AppError>) -> Self {
         Self {
             state,

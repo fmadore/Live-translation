@@ -14,6 +14,7 @@ use crate::audio::capture::{run_microphone, MicrophoneRuntimeError};
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::sink::AudioSink;
 use crate::errors::{id, AppError};
+use crate::realtime::Events;
 use crate::types::{events, AudioLevel, Origin, SessionState, StartOptions, StatusUpdate};
 
 const LEVEL_CHANNEL_CAPACITY: usize = 8;
@@ -52,16 +53,11 @@ pub(super) fn report_source_failure(
     tracing::error!(?origin, "capture failed: {error:#}");
     cancel.cancel();
     let message = source_failure(origin, error);
-    let _ = app.emit(
-        events::STATUS,
-        StatusUpdate {
-            state: SessionState::Error,
-            message: Some(message),
-            origin: Some(origin),
-            // Every caption language this source fed ends with it.
-            lane: None,
-        },
-    );
+    app.status(StatusUpdate::source(
+        origin,
+        SessionState::Error,
+        Some(message),
+    ));
 }
 
 /// Which devices a live source reads from. Sessions and the preflight test both go through

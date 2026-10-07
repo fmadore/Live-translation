@@ -19,15 +19,16 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio_util::sync::CancellationToken;
 
 use crate::errors::AppError;
+use crate::realtime::Events;
 use crate::secrets;
 use crate::timing::SessionClock;
-use crate::types::{events, Origin, Provider, SessionState, StartOptions, StatusUpdate};
+use crate::types::{Origin, Provider, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
 use builder::SessionBuilder;
 use capture::{join_threads, spawn_level_forwarder, CaptureTarget};
@@ -178,19 +179,12 @@ impl SessionManager {
                 if source.is_cancelled() {
                     continue;
                 }
-                let _ = app.emit(
-                    events::STATUS,
-                    StatusUpdate {
-                        state: if paused {
-                            SessionState::Paused
-                        } else {
-                            SessionState::Running
-                        },
-                        message: None,
-                        origin: Some(*origin),
-                        lane: None,
-                    },
-                );
+                let state = if paused {
+                    SessionState::Paused
+                } else {
+                    SessionState::Running
+                };
+                app.status(StatusUpdate::source(*origin, state, None));
             }
         }
         Ok(())
@@ -216,15 +210,10 @@ impl SessionManager {
         if let Some(session) = session {
             let failure = session.failure.clone();
             self.shutdown(session).await;
-            let _ = app.emit(
-                events::STATUS,
-                StatusUpdate {
-                    state: SessionState::Idle,
-                    message: lock(&failure).clone(),
-                    origin: None,
-                    lane: None,
-                },
-            );
+            app.status(StatusUpdate::session(
+                SessionState::Idle,
+                lock(&failure).clone(),
+            ));
             tracing::info!("session stopped");
         }
     }

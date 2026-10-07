@@ -220,5 +220,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running the Live Captions app");
+        .expect("error while running the Live Translation app");
 }
