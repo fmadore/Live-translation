@@ -23,7 +23,7 @@ import { createServer, type AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { appExe, assertE2ePath, modelsDir, OPERATOR_TITLE, profileDirs, ROOT } from './identity';
-import { killTree, requestWindowClose, stopStrayInstances } from './windows';
+import { describeApp, killTree, requestWindowClose, stopStrayInstances } from './windows';
 
 export { expect };
 
@@ -101,6 +101,9 @@ function appEnvironment(port: number): NodeJS.ProcessEnv {
 	};
 	// Would move the WebView2 profile out of the e2e app's folder.
 	delete env.WEBVIEW2_USER_DATA_FOLDER;
+	// The app's own default, plus Tauri's debug lines: they show each window asking for its
+	// page, so the log of a failed launch says how far the windows got.
+	env.RUST_LOG ??= 'live_translation_lib=info,tauri=debug,warn';
 	// Keyless means keyless: blank, not absent, so a debug build's `.env` lookup cannot fill
 	// them back in (dotenvy never overrides a variable that is set). Saved keys are another
 	// matter: `secrets.rs` names its keychain service itself, not after the identifier.
@@ -110,8 +113,13 @@ function appEnvironment(port: number): NodeJS.ProcessEnv {
 
 /** WebView2's DevTools endpoint, once it answers. A process that exits first fails this at
  *  once rather than at the timeout: the usual cause is another e2e instance holding the
- *  single-instance lock, to which a second launch hands over before exiting with 0. */
-async function devTools(port: number, exitCode: () => number | null | undefined): Promise<string> {
+ *  single-instance lock, to which a second launch hands over before exiting with 0. A
+ *  timeout says what the app's processes and windows were doing instead. */
+async function devTools(
+	port: number,
+	pid: number,
+	exitCode: () => number | null | undefined
+): Promise<string> {
 	const endpoint = `http://127.0.0.1:${port}`;
 	const deadline = Date.now() + 60_000;
 	for (;;) {
@@ -124,7 +132,9 @@ async function devTools(port: number, exitCode: () => number | null | undefined)
 			() => false
 		);
 		if (up) return endpoint;
-		if (Date.now() > deadline) throw new Error('WebView2 opened no DevTools port within 60 s');
+		if (Date.now() > deadline) {
+			throw new Error(`WebView2 opened no DevTools port within 60 s.\n${await describeApp(pid)}`);
+		}
 		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
 }
@@ -203,7 +213,9 @@ export const test = base.extend<Options & { app: App }>({
 		let attached = false;
 		try {
 			const { operator, overlay } = await base.step('Attach to both windows', async () => {
-				browser = await playwright.chromium.connectOverCDP(await devTools(port, () => exitCode));
+				browser = await playwright.chromium.connectOverCDP(
+					await devTools(port, child.pid!, () => exitCode)
+				);
 				[context] = browser.contexts();
 				// The runner's `trace` option records its own steps and screenshots but not a
 				// context it did not create, so this one is traced here: DOM snapshots of both

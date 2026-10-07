@@ -61,6 +61,69 @@ export async function requestWindowClose(pid: number, title: string): Promise<vo
 	await powershell(CLOSE_WINDOW, { E2E_PID: String(pid), E2E_TITLE: title });
 }
 
+// The app's processes and their windows, for a launch that never opened its DevTools port.
+// From outside, a WebView2 that never started, one started without the port on its command
+// line and a message box (`assert_webview_runtime` in lib.rs) all look the same: a quiet app.
+const DESCRIBE_APP = String.raw`
+$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class E2eWindowList {
+	delegate bool EnumProc(IntPtr hwnd, IntPtr param);
+	[DllImport("user32.dll")] static extern bool EnumWindows(EnumProc proc, IntPtr param);
+	[DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint pid);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	static extern int GetWindowText(IntPtr hwnd, StringBuilder text, int max);
+	[DllImport("user32.dll", CharSet = CharSet.Unicode)]
+	static extern int GetClassName(IntPtr hwnd, StringBuilder text, int max);
+	[DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd);
+	public static List<string> Of(uint[] pids) {
+		var found = new List<string>();
+		EnumWindows((hwnd, param) => {
+			uint owner;
+			GetWindowThreadProcessId(hwnd, out owner);
+			if (Array.IndexOf(pids, owner) < 0) return true;
+			var title = new StringBuilder(512);
+			var kind = new StringBuilder(256);
+			GetWindowText(hwnd, title, title.Capacity);
+			GetClassName(hwnd, kind, kind.Capacity);
+			found.Add(String.Format("window of {0}, {1}, class {2}: \"{3}\"", owner,
+				IsWindowVisible(hwnd) ? "visible" : "hidden", kind, title));
+			return true;
+		}, IntPtr.Zero);
+		return found;
+	}
+}
+'@
+$all = @(Get-CimInstance Win32_Process)
+$ids = @([uint32]$env:E2E_PID)
+do {
+	$count = $ids.Count
+	$children = $all | Where-Object { $ids -contains $_.ParentProcessId } | ForEach-Object { [uint32]$_.ProcessId }
+	$ids = @($ids + $children | Select-Object -Unique)
+} while ($ids.Count -gt $count)
+"this shell runs in session $((Get-Process -Id $PID).SessionId)"
+$runtime = 'HKLM:\SOFTWARE\WOW6432Node', 'HKCU:\SOFTWARE' |
+	ForEach-Object { Get-ItemProperty "$_\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" -ErrorAction SilentlyContinue } |
+	Select-Object -First 1
+"WebView2 runtime: $(if ($runtime) { $runtime.pv } else { 'not registered' })"
+foreach ($p in $all | Where-Object { $ids -contains $_.ProcessId }) {
+	"process $($p.ProcessId) $($p.Name), parent $($p.ParentProcessId), session $($p.SessionId): $($p.CommandLine)"
+}
+[E2eWindowList]::Of([uint32[]]$ids)
+`;
+
+/** The process `pid`, its descendants with their command lines, and every window they own. */
+export async function describeApp(pid: number): Promise<string> {
+	return powershell(DESCRIBE_APP, { E2E_PID: String(pid) }).then(
+		(text) => text.trim(),
+		(error: unknown) => `could not describe the app: ${String(error)}`
+	);
+}
+
 // The WebView2 browser process carries the profile on its command line, so it names its host
 // even when nothing else does: renderers have `--type=`, the browser process does not.
 const FIND_INSTANCES = String.raw`
