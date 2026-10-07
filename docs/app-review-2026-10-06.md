@@ -116,8 +116,8 @@ History tab updating during a session; quit Save with SRT chosen.
 | T6 (knip) | `knip.jsonc` with its plugins only and hints as errors; 20 unused exports and types un-exported or deleted | Done |
 | T6 (Clippy) | `[lints.clippy]`: the four cast lints, `needless_pass_by_value`, `match_same_arms`, `unnecessary_wraps`; 81 findings fixed, 11 `#[expect]` with reasons, 2 Linux-only `#[allow]` | Done |
 | T7 | `@vitest/coverage-v8` on the Node 24 lane, summarised in the job summary by `scripts/coverage-summary.mjs`, with per-file floors on 11 pure modules; `cargo-llvm-cov` replaces `cargo test` on the Ubuntu lane, smoke test included | Done; both summaries appear on `main` |
-| T4 | `e2e/native`, `npm run test:e2e`: a debug exe built with its own identifier (`….live-translation.e2e`), both windows driven over WebView2's DevTools port with Playwright `connectOverCDP`, each test on a first-launch profile. The demo spec: Start, the first line in the overlay, Pause, Resume, Stop, then the frame's X, the unsaved prompt and Discard. The Whisper spec: Tiny on the English rehearsal recording, copied from the smoke test's cache when that holds the pin, otherwise downloaded through the interface. An `e2e` job on `windows-latest` | Done; CI run pending |
-| T5 | `e2e/style`, `npm run test:style`: the production bundle in Edge against a fake core in the page, whose answers `idleCore.ts` shares with the Vitest mock. Nine states: four idle layouts, a running session and the four settings tabs. Computed-style text snapshots at four corners (EN, FR and DE at 100%, EN at 225%; 36 snapshots), and an overflow scan of every state in EN/FR/DE at 100/150/225% at the minimum window size (81 tests), with the two intended overflows listed and explained. A `styles` job on `windows-latest` | Done; CI run pending |
+| T4 | `e2e/native`, `npm run test:e2e`: a debug exe built with its own identifier (`….live-translation.e2e`), both windows driven over WebView2's DevTools port with Playwright `connectOverCDP`, each test on a first-launch profile. The demo spec: Start, the first line in the overlay, Pause, Resume, Stop, then the frame's X, the unsaved prompt and Discard. The Whisper spec: Tiny on the English rehearsal recording, copied from the smoke test's cache when that holds the pin, otherwise downloaded through the interface. An `e2e` job on `windows-latest` | Done; passes on CI in about 3 min, the model from the cache |
+| T5 | `e2e/style`, `npm run test:style`: the production bundle in Edge against a fake core in the page, whose answers `idleCore.ts` shares with the Vitest mock. Nine states: four idle layouts, a running session and the four settings tabs. Computed-style text snapshots at four corners (EN, FR and DE at 100%, EN at 225%; 36 snapshots), and an overflow scan of every state in EN/FR/DE at 100/150/225% at the minimum window size (81 tests), with the two intended overflows listed and explained. A `styles` job on `windows-latest` | Done; passes on CI in about 2 min |
 
 Found on the way:
 
@@ -181,8 +181,10 @@ tests when Edge restarted to update itself, and the reruns passed); `npm run tes
 in 1.1 min after a 38 s incremental build, the first Whisper caption 13.6 s after Rehearse,
 the model downloaded through the interface. `npm test` 595 passed; `check` (with
 `tsc -p e2e`), `lint`, `knip`, `format:check`, `check:languages` and `build` pass; actionlint
-1.7.12 passes. Still needs a CI run: both new jobs on `windows-latest`, and the e2e job's
-restore of the model cache.
+1.7.12 passes. On CI (`windows-latest`, WebView2 153): `styles` passes in about 2 minutes;
+`e2e` in about 3, building in 40 s with the Rust cache warm and taking the model from the
+smoke test's cache, the demo spec in 10 s and the Whisper spec in 25 s (first caption 22 s
+after Rehearse).
 
 ## 1. Defects
 
