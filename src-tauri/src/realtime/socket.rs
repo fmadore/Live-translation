@@ -17,11 +17,11 @@ use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
 use super::{
-    apply_caption, emit_caption, emit_status, finalize_accumulator, CaptionUpdate, Events, Lane,
-    MessageControl, MessageOutcome, PauseRx, RealtimeProtocol, Signal, TurnAccumulator,
+    apply_caption, emit_caption, finalize_accumulator, CaptionUpdate, Events, MessageControl,
+    MessageOutcome, PauseRx, RealtimeProtocol, Signal, TurnAccumulator,
 };
 use crate::audio::AudioChunk;
-use crate::types::SessionState;
+use crate::types::{SessionState, StatusUpdate};
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(15);
 pub(super) const SETUP_TIMEOUT: Duration = Duration::from_secs(15);
@@ -133,15 +133,12 @@ pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
 
     let origin = proto.origin();
     tracing::info!(?origin, "{} setup complete; streaming audio", P::NAME);
-    emit_status(
-        io.events,
+    io.events.status(StatusUpdate::lane(
+        origin,
+        acc.lane,
         SessionState::Running,
         None,
-        Lane {
-            origin,
-            lane: acc.lane,
-        },
-    );
+    ));
 
     if backlog.dropped > 0 {
         tracing::warn!(

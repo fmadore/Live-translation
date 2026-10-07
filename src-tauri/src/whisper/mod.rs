@@ -20,6 +20,7 @@ use whisper_rs::{
 };
 
 use crate::errors::{id, AppError};
+use crate::realtime::Events;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};
@@ -114,18 +115,6 @@ fn progress(app: &AppHandle, origin: Origin, spool: &Spool) {
     );
 }
 
-fn status(app: &AppHandle, origin: Origin, state: SessionState, message: Option<AppError>) {
-    let _ = app.emit(
-        events::STATUS,
-        StatusUpdate {
-            state,
-            message,
-            origin: Some(origin),
-            lane: None,
-        },
-    );
-}
-
 pub struct LocalSession {
     pub app: AppHandle,
     pub model: Arc<LoadedModel>,
@@ -150,7 +139,7 @@ pub async fn run(config: LocalSession) {
         abort,
         failure,
     } = config;
-    status(&app, origin, SessionState::Running, None);
+    app.status(StatusUpdate::source(origin, SessionState::Running, None));
     let ingest_spool = spool.clone();
     let ingest_app = app.clone();
     let ingest_cancel = capture_cancel.clone();
@@ -245,14 +234,13 @@ pub async fn run(config: LocalSession) {
     if let Err(error) = result {
         *failure.lock().unwrap_or_else(|e| e.into_inner()) =
             Some(AppError::with(id::WHISPER_SESSION, format!("{error:#}")));
-        status(
-            &app,
+        app.status(StatusUpdate::source(
             origin,
             SessionState::Error,
             Some(AppError::with(id::WHISPER_SESSION, format!("{error:#}"))),
-        );
+        ));
     } else {
-        status(&app, origin, SessionState::Idle, None);
+        app.status(StatusUpdate::source(origin, SessionState::Idle, None));
     }
 }
 

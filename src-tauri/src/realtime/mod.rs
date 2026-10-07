@@ -33,7 +33,8 @@ pub use wire::{bearer_request, parse_or_log};
 pub type PauseRx = watch::Receiver<bool>;
 
 /// Where a client's captions and statuses go. The app's `AppHandle` in production; the runner
-/// tests record them instead, so the state machine runs without Tauri.
+/// tests record them instead, so the state machine runs without Tauri. The demonstration and
+/// Whisper report their statuses through it too, so a status is emitted in one place.
 pub trait Events: Send + Sync {
     fn caption(&self, caption: Caption<'_>);
     fn status(&self, update: StatusUpdate);
@@ -236,7 +237,6 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     // also finalize text before reporting that the source has ended.
     let _capture_guard = cancel.clone().drop_guard();
     let origin = proto.origin();
-    let to = Lane { origin, lane };
     let mut policy = Reconnect::new(origin);
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock, lane);
@@ -245,7 +245,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     while !cancel.is_cancelled() {
         // Paused before connecting: at the start, or after a connection closed for it.
         if *pause.borrow() {
-            emit_status(&events, SessionState::Paused, None, to);
+            events.status(StatusUpdate::lane(origin, lane, SessionState::Paused, None));
             if !wait_for_resume(&mut pause, &cancel).await {
                 break;
             }
@@ -253,7 +253,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
         }
         let plan = policy.connect();
         if let Some(state) = plan.status {
-            emit_status(&events, state, None, to);
+            events.status(StatusUpdate::lane(origin, lane, state, None));
         }
         if plan.drain_stale {
             drop_stale_audio(&mut audio_rx, origin);
@@ -299,12 +299,12 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             }
             RunEnd::Failed(error) => {
                 tracing::error!(?origin, "{} stream error: {error:#}", P::NAME);
-                emit_status(
-                    &events,
+                events.status(StatusUpdate::lane(
+                    origin,
+                    lane,
                     SessionState::Reconnecting,
                     Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
-                    to,
-                );
+                ));
             }
         }
         if next == After::Stop {
@@ -336,9 +336,14 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
         || finalize_accumulator(&events, origin, &mut acc),
         || {
             if let Some(error) = terminal_error {
-                emit_status(&events, SessionState::Error, Some(error), to);
+                events.status(StatusUpdate::lane(
+                    origin,
+                    lane,
+                    SessionState::Error,
+                    Some(error),
+                ));
             } else if report_idle {
-                emit_status(&events, SessionState::Idle, None, to);
+                events.status(StatusUpdate::lane(origin, lane, SessionState::Idle, None));
             }
         },
     );
@@ -412,22 +417,6 @@ pub fn emit_caption(events: &impl Events, origin: Origin, acc: &mut TurnAccumula
         start_ms,
         end_ms,
     });
-}
-
-fn emit_status(events: &impl Events, state: SessionState, message: Option<AppError>, to: Lane) {
-    events.status(StatusUpdate {
-        state,
-        message,
-        origin: Some(to.origin),
-        lane: Some(to.lane),
-    });
-}
-
-/// Where a client's statuses are addressed: its source, and its caption language there.
-#[derive(Clone, Copy)]
-struct Lane {
-    origin: Origin,
-    lane: u8,
 }
 
 /// Drives a provider's `handle_message` the way the runner does, recording captions instead

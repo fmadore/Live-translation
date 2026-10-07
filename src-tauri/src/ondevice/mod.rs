@@ -13,8 +13,7 @@ use tokio::time::{sleep, Duration};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
-use crate::errors::AppError;
-use crate::realtime::{emit_caption, wait_for_resume, PauseRx, TurnAccumulator};
+use crate::realtime::{emit_caption, wait_for_resume, Events, PauseRx, TurnAccumulator};
 use crate::timing::SessionClock;
 use crate::types::{events, AudioLevel, DemoLanguage, Origin, SessionState, StatusUpdate};
 
@@ -110,7 +109,7 @@ pub async fn run_session(
     pause: PauseRx,
 ) {
     let origin = config.origin;
-    emit_status(&app, SessionState::Connecting, None, origin);
+    app.status(StatusUpdate::source(origin, SessionState::Connecting, None));
 
     let mut pacer = Pacer {
         app: &app,
@@ -121,7 +120,7 @@ pub async fn run_session(
     if pacer.delay(Duration::from_millis(250)).await {
         return;
     }
-    emit_status(&app, SessionState::Running, None, origin);
+    app.status(StatusUpdate::source(origin, SessionState::Running, None));
 
     // The demonstration captions in one language, so on the first lane.
     let mut acc = TurnAccumulator::new(clock, 0);
@@ -209,29 +208,25 @@ impl Pacer<'_> {
         if *self.pause.borrow() {
             // A paused demonstration hears nothing, like a paused live source sends nothing.
             self.level(0.0);
-            emit_status(self.app, SessionState::Paused, None, self.origin);
+            self.app.status(StatusUpdate::source(
+                self.origin,
+                SessionState::Paused,
+                None,
+            ));
             if !wait_for_resume(&mut self.pause, self.cancel).await {
                 return true;
             }
-            emit_status(self.app, SessionState::Running, None, self.origin);
+            self.app.status(StatusUpdate::source(
+                self.origin,
+                SessionState::Running,
+                None,
+            ));
         }
         tokio::select! {
             _ = self.cancel.cancelled() => true,
             _ = sleep(duration) => false,
         }
     }
-}
-
-fn emit_status(app: &AppHandle, state: SessionState, message: Option<AppError>, origin: Origin) {
-    let _ = app.emit(
-        events::STATUS,
-        StatusUpdate {
-            state,
-            message,
-            origin: Some(origin),
-            lane: None,
-        },
-    );
 }
 
 #[cfg(test)]
