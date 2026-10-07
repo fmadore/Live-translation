@@ -7,6 +7,7 @@
 // Test-only. Nothing in the app imports this, so it never reaches the bundle.
 
 import type { HistoryListing } from '../history';
+import type { Placement } from '../profiles';
 import type {
 	ApplicationList,
 	AudioDevice,
@@ -19,9 +20,9 @@ import type {
 /** How one command is answered. A thrown error, or a rejected promise, is the command failing. */
 export type CommandHandler = (args: Record<string, unknown>) => unknown;
 
-/** The core on a machine with one microphone and one output, no saved key, no Whisper model
- *  and nothing to recover. A command not listed here answers `null`, as the core's
- *  unit-returning ones do. */
+/** The core on a machine with one microphone, one output and one display, no saved key, no
+ *  Whisper model and nothing to recover. A command not listed here answers `null`, as the
+ *  core's unit-returning ones do. */
 export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 	whisper_cpu_support: (): WhisperCpuSupport => ({ supported: true, missing: [] }),
 	whisper_models: (): WhisperModelInfo[] => [],
@@ -38,6 +39,9 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 		canPrepare: false
 	}),
 	text_scale_factor: () => 1,
+	// One 1920×1080 display at 100%, with the overlay where `tauri.conf.json` creates it.
+	display_layout: () => '0,0 1920x1080 100%',
+	get_overlay_placement: (): Placement => ({ x: 320, y: 460, width: 1280, height: 160 }),
 	read_recovery: (): StoredRecovery | null => null,
 	list_history: (): HistoryListing => ({ sessions: [], removed: [] }),
 	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`

@@ -28,13 +28,15 @@ scripted demo ───────── deterministic caption timeline ──�
    English or French timeline emits the same status, level, partial- and final-caption events
    as a live provider, so it exercises the shipping UI, timer, overlay, transcript and export
    paths on x64 and ARM64. It is presented as a demonstration, not speech recognition.
-4. **Local Whisper.** The `whisper` provider uses 16 kHz PCM16, a bounded writer queue,
-   an anonymous temporary audio file and a separate CPU inference worker per source. A verified
-   multilingual model context is shared, and the sources take turns at inference on it; each
-   source owns its inference state. Capture timestamps travel with the audio, so a slow
-   recognizer preserves meeting timing. ggml is compiled for AVX2 on x64 and for dot-product
-   on ARM64, so `whisper/cpu.rs` refuses an older processor before any native code runs and
-   the interface offers another engine. See [local Whisper](local-whisper.md).
+4. **Local Whisper.** The `whisper` provider (subtitles) and `whisper-translate` (translation
+   into English, whisper.cpp's translate task) share one pipeline, `Provider::is_local_whisper`:
+   16 kHz PCM16, a bounded writer queue, an anonymous temporary audio file and a separate CPU
+   inference worker per source. A verified multilingual model context is shared, and the
+   sources take turns at inference on it; each source owns its inference state. Capture
+   timestamps travel with the audio, so a slow recognizer preserves meeting timing. ggml is
+   compiled for AVX2 on x64 and for dot-product on ARM64, so `whisper/cpu.rs` refuses an older
+   processor before any native code runs and the interface offers another engine. See
+   [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -99,13 +101,18 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
+| Local Whisper translation | Translate, English only | 16 kHz PCM16 | finalized segments in English, no source text | EOF, finish queued audio |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
 
 The two Gemini rows are separate `Provider` variants sharing one endpoint and one stored API
 key, because their wire format, rate and mode differ, and `Provider::can_translate` has to stay
 a plain function of the provider. Live Translate appends transcription deltas; Transcribe Live
 sends a revised hypothesis and then an authoritative final for the same segment, each replacing
-the last. See [`gemini-live-api.md`](gemini-live-api.md).
+the last. See [`gemini-live-api.md`](gemini-live-api.md). The two Whisper rows are split the same
+way, but they are one local pipeline: everything about running it follows
+`Provider::is_local_whisper`, and only the task handed to whisper.cpp follows the mode. The
+translating one captions in English only, so validation refuses any other caption language and
+any second one.
 
 The subtitle backends and the built-in demo are unavailable in translation mode;
 `session/options.rs` enforces this through `Provider::can_translate`.
@@ -254,7 +261,9 @@ property by property, and fails on any element whose content is wider than its b
 minimum window size, apart from two overflows listed as intended. `e2e/native`
 (`npm run test:e2e`) builds a debug exe whose identifier ends in `.e2e`, so its settings,
 history, models and WebView2 profile never touch a developer's own, and drives both real
-windows over WebView2's DevTools port. Both suites test the last `npm run build`.
+windows over WebView2's DevTools port. Each test starts on a first-launch profile and can quit
+and relaunch the app on it, as the placement spec does to check that the overlay reopens where
+it was placed. Both suites test the last `npm run build`.
 
 ESLint (`eslint.config.js`) holds only typed checks that svelte-check cannot make: promises
 nobody handles, and Svelte's reactivity mistakes. Its promise rules cannot see an async
@@ -328,6 +337,19 @@ bounded in-memory history (12,000 characters per origin), their expiry and the r
 presenter; `overlayPlacement.svelte.ts` owns move mode and its keys, and
 `OverlayMoveChrome.svelte` draws it. The persisted `overlay.captionLayout` preference defaults
 to Fit window and reaches the overlay in `OverlayConfig` through `overlayController.svelte.ts`.
+
+The overlay window is created centred (`tauri.conf.json`) and paints nothing until there are
+captions or move mode, neither of which can start before the operator window has mounted. So
+the remembered placement lives in the interface like any other preference:
+`overlayGeometry.ts` keeps physical rectangles under `overlay.geometry`, one per display layout
+and at most eight, most recently used first. A layout is the signature `display_layout`
+(`placement.rs`) builds from the sorted monitors' positions, sizes and scale factors, the work
+area left out. `overlayController.svelte.ts` saves the overlay's rectangle when move mode ends
+with Done or the overlay's own Lock/Enter (not Escape) and after a profile places it, never on
+move events, and restores once as the operator window mounts: the current layout's entry,
+otherwise the most recent, always through `set_overlay_placement`. That command clamps the
+rectangle to a monitor's work area and moves the window before sizing it, because crossing to
+a display with another scale factor makes Windows rescale it (`WM_DPICHANGED`).
 
 - **Fit window.** `OverlayCaptionLine.svelte` measures candidate text in a hidden paragraph
   with the visible text's font, line height, available width and live-caret footprint.

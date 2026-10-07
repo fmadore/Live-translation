@@ -8,7 +8,8 @@ The [6 October app review](app-review-2026-10-06.md) tracks current refactoring,
 
 ## Using the app
 
-- [Local Whisper](local-whisper.md): models, languages, offline setup, pending audio and Stop.
+- [Local Whisper](local-whisper.md): models, languages, offline setup, translation into English,
+  pending audio and Stop.
 - [Language coverage](language-coverage.md): translation targets, spoken-language selection and verification limits.
 - [Audio checks](audio-device-testing.md) and [application capture](application-capture.md).
 - [Meeting controls and profiles](usability.md): Pause, two caption languages and shortcuts.

@@ -9,6 +9,9 @@
 			"url": "https://developers.openai.com/cookbook/examples/voice_solutions/realtime_translation_guide",
 			"verified": "2026-09-22",
 			"probeStatus": "pending"
+		},
+		"whisper-translate": {
+			"note": "Whisper's translate task writes English only, from any of its 99 spoken languages."
 		}
 	},
 	"languages": [
@@ -130,7 +133,7 @@
 			"code": "en",
 			"english": "English",
 			"endonym": "English",
-			"providers": ["gemini", "openai", "ondevice"]
+			"providers": ["gemini", "openai", "ondevice", "whisper-translate"]
 		},
 		{
 			"code": "et",

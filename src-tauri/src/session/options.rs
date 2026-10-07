@@ -15,7 +15,8 @@ fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
 
 pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     validate_provider(options.mode, options.provider)?;
-    if options.provider == Provider::Whisper {
+    // Both tasks take the spoken language: translating, it is the one Whisper translates from.
+    if options.provider.is_local_whisper() {
         whisper::validate_language(options.spoken_language.as_deref())?;
     }
     anyhow::ensure!(
@@ -40,6 +41,12 @@ pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
         anyhow::ensure!(
             options.mode == OutputMode::Translate,
             "A second caption language needs translation mode"
+        );
+        // The local pipeline runs one transcriber per source, with no lanes to relay to, and
+        // Whisper's translate task writes English only.
+        anyhow::ensure!(
+            !options.provider.is_local_whisper(),
+            "Whisper translates into English only; it has no second caption language"
         );
         anyhow::ensure!(
             second != options.target_language,
@@ -98,6 +105,8 @@ mod tests {
             (Provider::GeminiTranscribe, false),
             (Provider::Mistral, false),
             (Provider::OnDevice, false),
+            (Provider::Whisper, false),
+            (Provider::WhisperTranslate, true),
         ] {
             assert_eq!(
                 validate_provider(OutputMode::Translate, provider).is_ok(),
@@ -142,6 +151,49 @@ mod tests {
         // Gemini offers Akan; OpenAI's thirteen targets do not include it.
         assert!(validate_start(&with_second("gemini", "translate", "ak")).is_ok());
         assert!(validate_start(&with_second("openai", "translate", "ak")).is_err());
+    }
+
+    fn local(provider: &str, mode: &str, target: &str) -> StartOptions {
+        serde_json::from_value(serde_json::json!({
+            "source": "microphone",
+            "targetLanguage": target,
+            "provider": provider,
+            "mode": mode,
+            "spokenLanguage": "fr",
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn whisper_translates_into_english_only_and_only_in_translation_mode() {
+        assert!(validate_start(&local("whisper-translate", "translate", "en")).is_ok());
+        for target in ["fr", "de", "ja"] {
+            assert!(validate_start(&local("whisper-translate", "translate", target)).is_err());
+        }
+        assert!(validate_start(&local("whisper-translate", "transcribe", "en")).is_err());
+        // The spoken language is still checked: it is what Whisper translates from.
+        let mut options = local("whisper-translate", "translate", "en");
+        options.spoken_language = Some("fake".into());
+        assert!(validate_start(&options).is_err());
+    }
+
+    #[test]
+    fn whisper_translation_has_no_second_caption_language() {
+        for second in [TargetLanguage::Fr, TargetLanguage::De, TargetLanguage::En] {
+            let mut options = local("whisper-translate", "translate", "en");
+            options.second_target_language = Some(second);
+            let error = validate_start(&options).unwrap_err().to_string();
+            assert!(error.contains("English only"), "{error}");
+        }
+    }
+
+    #[test]
+    fn whisper_subtitles_are_unchanged() {
+        // Subtitles ignore the caption language, whichever one the saved setup holds.
+        for target in ["en", "fr", "ja"] {
+            assert!(validate_start(&local("whisper", "transcribe", target)).is_ok());
+        }
+        assert!(validate_start(&local("whisper", "translate", "en")).is_err());
     }
 
     #[test]

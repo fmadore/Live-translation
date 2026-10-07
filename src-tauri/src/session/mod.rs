@@ -28,7 +28,7 @@ use crate::errors::AppError;
 use crate::realtime::Events;
 use crate::secrets;
 use crate::timing::SessionClock;
-use crate::types::{Origin, Provider, SessionState, StartOptions, StatusUpdate};
+use crate::types::{Origin, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
 use builder::SessionBuilder;
 use capture::{join_threads, spawn_level_forwarder, CaptureTarget};
@@ -100,7 +100,7 @@ impl SessionManager {
             String::new()
         };
         let settings = ProviderSettings::resolve(provider)?;
-        let local_model = if provider == Provider::Whisper {
+        let local_model = if provider.is_local_whisper() {
             let app = app.clone();
             let model = options.whisper_model;
             Some(
@@ -115,7 +115,7 @@ impl SessionManager {
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
         let abort = CancellationToken::new();
-        if provider == Provider::Whisper {
+        if provider.is_local_whisper() {
             *lock(&self.local_abort) = Some(abort.clone());
         }
         let origins = session_origins(&options);
@@ -133,7 +133,7 @@ impl SessionManager {
             level_tx: spawn_level_forwarder(app),
             session: ActiveSession {
                 cancel,
-                local: provider == Provider::Whisper,
+                local: provider.is_local_whisper(),
                 failure: Arc::new(Mutex::new(None)),
                 abort,
                 origins: origins.clone(),

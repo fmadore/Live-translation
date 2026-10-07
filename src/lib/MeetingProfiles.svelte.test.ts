@@ -6,12 +6,14 @@ import { api } from './tauri';
 import { createOverlayController } from './overlayController.svelte';
 import { options, overlayFontSize, overlayPace } from './stores';
 import { PROFILES_KEY } from './profiles';
+import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
 import { blockStorage } from './testing/storage';
 vi.mock('./tauri', () => ({
 	isTauri: () => true,
 	api: {
 		getOverlayPlacement: vi.fn(),
 		setOverlayPlacement: vi.fn(),
+		displayLayout: vi.fn(),
 		listMicrophones: vi.fn(),
 		listOutputs: vi.fn(),
 		setOverlayConfig: vi.fn()
@@ -19,8 +21,10 @@ vi.mock('./tauri', () => ({
 }));
 beforeEach(() => {
 	localStorage.removeItem(PROFILES_KEY);
+	localStorage.removeItem(OVERLAY_GEOMETRY_KEY);
 	vi.mocked(api.getOverlayPlacement).mockResolvedValue({ x: 0, y: 0, width: 900, height: 240 });
 	vi.mocked(api.setOverlayPlacement).mockResolvedValue();
+	vi.mocked(api.displayLayout).mockResolvedValue('0,0 1920x1080 100%');
 	vi.mocked(api.listMicrophones).mockResolvedValue([]);
 	vi.mocked(api.listOutputs).mockResolvedValue([]);
 	vi.mocked(api.setOverlayConfig).mockResolvedValue();
@@ -56,7 +60,12 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	expect(get(overlayFontSize)).toBe(52);
 	expect(get(overlayPace)).toBe('steady');
 	expect(get(options).micDeviceId).toBeNull();
-	expect(api.setOverlayPlacement).toHaveBeenCalled();
+	expect(api.setOverlayPlacement).toHaveBeenCalledWith({ x: 0, y: 0, width: 900, height: 240 });
+	// Loading a profile places the overlay as explicitly as move mode does, so the next launch
+	// on these displays reopens it there.
+	expect(JSON.parse(localStorage.getItem(OVERLAY_GEOMETRY_KEY)!)).toEqual([
+		{ layout: '0,0 1920x1080 100%', placement: { x: 0, y: 0, width: 900, height: 240 } }
+	]);
 	expect(view.getByText(/An audio device is unavailable/)).toBeTruthy();
 	await fireEvent.click(view.getByRole('button', { name: 'Manage profiles: Lecture hall' }));
 	await fireEvent.click(view.getByText('Rename'));

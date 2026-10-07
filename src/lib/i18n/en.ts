@@ -185,17 +185,25 @@ export const en = {
 			'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
 		hint: 'Models support 99 languages. Accuracy and processing speed vary by language and computer.',
 		processing: 'Finishing the transcript…',
-		pending: 'Audio waiting to be transcribed',
+		pending: 'Audio waiting to be processed',
 		discard: 'Discard remaining audio',
 		discardConfirm:
-			'Discard the remaining audio? Captions already transcribed will be kept, but the transcript will be incomplete.',
+			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>
-			`Not available on this processor (it lacks ${missing}). The other engines still work.`
+			`Not available on this processor (it lacks ${missing}). The other engines still work.`,
+		/** The same engine running its translate task: English captions from any of its
+		 *  languages. */
+		translateTitle: 'Local translation into English',
+		translateLanguageHint:
+			'The language Whisper translates from. Choose it when you know it; automatic detection works across the supported languages.',
+		translateHint:
+			'Translates speech in any of the 99 supported languages into English only. Choose Small: Tiny and Base translate poorly.'
 	},
 	engine: {
 		whisper: 'Whisper',
+		'whisper-translate': 'Whisper',
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
@@ -216,6 +224,8 @@ export const en = {
 		unpin: (language: string) => `Unpin ${language}`,
 		unsupported: (engine: string, language: string) =>
 			`${engine} does not support ${language} — choose another language.`,
+		/** In place of the second-language picker, for the engine that writes English only. */
+		englishOnly: 'Whisper translates into English only, so there is no second caption language.',
 		/** Target-language chip when the engine detects the spoken language itself. */
 		auto: 'Auto'
 	},
@@ -223,6 +233,7 @@ export const en = {
 	provider: {
 		vendor: {
 			whisper: 'Local Whisper',
+			'whisper-translate': 'Local Whisper',
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
@@ -233,10 +244,13 @@ export const en = {
 		 *  demonstration has no model, so it describes itself instead. */
 		model: {
 			whisper: 'Multilingual Whisper',
+			'whisper-translate': 'Offline · into English only',
 			ondevice: 'Bundled sample · deterministic'
 		},
 		costNote: {
 			whisper:
+				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
+			'whisper-translate':
 				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
 			gemini:
 				'Gemini: input billed on wall clock, output only while it translates — pauses and slide changes lower this.',
@@ -665,7 +679,7 @@ export const en = {
 			keep: 'Keep captioning',
 			stop: 'Stop and close',
 			whisperPending: (seconds: number) =>
-				`Local Whisper still has ${seconds} s of audio to transcribe. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
+				`Local Whisper still has ${seconds} s of audio to process. Closing gives it a few seconds, then discards the rest, so the transcript will be incomplete.`
 		},
 		trayHide: {
 			title: 'Live Translation will keep running',

@@ -6,7 +6,7 @@ import { get } from 'svelte/store';
 import { nextFavourite } from './languages';
 import { languageFavourites, options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
-import { providerCanTranslate } from './providers';
+import { isLocalWhisper, providerCanTranslate } from './providers';
 import { canFlipDirection } from './types';
 import type { AudioSource, OutputMode, Provider, TargetLanguage } from './types';
 
@@ -69,7 +69,7 @@ export function createSetupActions({
 		if (locked() || provider === current.provider) return;
 		// Each mode accepts only the backends that can serve it.
 		if (providerCanTranslate(provider) !== (current.mode === 'translate')) return;
-		if (provider === 'whisper' && whisperRefused()) return;
+		if (isLocalWhisper(provider) && whisperRefused()) return;
 		invalidateAudioTest();
 		options.set({
 			...current,
@@ -100,7 +100,9 @@ export function createSetupActions({
 	}
 
 	/** Leave Whisper for the built-in demo on a processor that cannot run it: the first-launch,
-	 *  keyless path must work on whatever PC the app is opened on. True when it switched. */
+	 *  keyless path must work on whatever PC the app is opened on. True when it switched. Only
+	 *  Whisper's subtitles: the demo cannot stand in for its translation, which stays selected
+	 *  and refused until the operator picks a cloud engine. */
 	function avoidUnsupportedWhisper(): boolean {
 		const current = get(options);
 		if (locked() || current.provider !== 'whisper' || !whisperRefused()) return false;

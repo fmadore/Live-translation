@@ -4,7 +4,7 @@
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { options, overlayPlaced, statusMessage, whisperModels } from './stores';
-	import { PROVIDER_META, providerRequiresKey, rateText } from './providers';
+	import { PROVIDER_META, isLocalWhisper, providerRequiresKey, rateText } from './providers';
 	import { describeReadiness, laneCount } from './types';
 	import type { OverlayController } from './overlayController.svelte';
 	import type { PreflightController } from './preflightController.svelte';
@@ -27,6 +27,10 @@
 	} = $props();
 
 	const needsKey = $derived(providerRequiresKey($options.provider));
+	const localWhisper = $derived(isLocalWhisper($options.provider));
+	const whisperTitle = $derived(
+		$options.provider === 'whisper-translate' ? $t.whisper.translateTitle : $t.whisper.title
+	);
 
 	// The demo row's sentence. The core names the readiness state and the catalog words it, so
 	// this re-words itself when the interface language changes rather than freezing whatever
@@ -70,20 +74,22 @@
 </script>
 
 <div class="checklist">
-	{#if $options.provider === 'whisper' && preflight.whisperRefused}
-		<!-- Normally replaced by the demo at once; shown while setup is locked and cannot switch. -->
+	{#if localWhisper && preflight.whisperRefused}
+		<!-- Subtitles are normally replaced by the demo at once, and shown here only while setup
+		     is locked and cannot switch. Translation stays, since the demo cannot translate:
+		     the operator chooses a cloud engine instead. -->
 		<ChecklistRow
 			status="wait"
-			title={$t.whisper.title}
+			title={whisperTitle}
 			desc={$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}
 			warn
 		/>
-	{:else if $options.provider === 'whisper'}
+	{:else if localWhisper}
 		<ChecklistRow
 			status={$whisperModels.find((m) => m.id === ($options.whisperModel ?? 'base'))?.installed
 				? 'ok'
 				: 'wait'}
-			title={$t.whisper.title}
+			title={whisperTitle}
 			desc={$whisperModels.find((m) => m.id === ($options.whisperModel ?? 'base'))?.installed
 				? $t.whisper.ready
 				: $t.whisper.missing}
@@ -176,7 +182,7 @@
 		status="neutral"
 		glyph="$"
 		title={$t.preflight.cost.title}
-		desc={$options.provider === 'whisper'
+		desc={localWhisper
 			? $t.whisper.cost
 			: !needsKey
 				? $t.preflight.cost.free

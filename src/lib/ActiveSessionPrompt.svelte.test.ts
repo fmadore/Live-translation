@@ -39,7 +39,7 @@ describe('ActiveSessionPrompt', () => {
 			view.unmount();
 		}
 		expect(mount({ pendingSeconds: 95 }).getByRole('dialog')).toHaveTextContent(
-			'Local Whisper still has 95 s of audio to transcribe'
+			'Local Whisper still has 95 s of audio to process'
 		);
 	});
 

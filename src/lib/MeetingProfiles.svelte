@@ -86,7 +86,8 @@
 			const [mics, outputs] = await Promise.all([api.listMicrophones(), api.listOutputs()]);
 			const saved = normalizeStartOptions(profile.options);
 			const checked = validateDevices(saved, mics, outputs);
-			if (profile.placement) await api.setOverlayPlacement(profile.placement);
+			// Through the controller, which also remembers it for this display layout.
+			if (profile.placement) await overlay.applyPlacement(profile.placement);
 			options.set(checked);
 			applyAppearance(profile.appearance);
 			overlay.initialize();

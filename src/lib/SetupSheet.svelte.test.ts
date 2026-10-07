@@ -76,3 +76,40 @@ describe('the engine step', () => {
 		expect(get(options).provider).toBe('whisper');
 	});
 });
+
+describe('Whisper translation', () => {
+	it('is offered among the translation engines, and not among the subtitle ones', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS });
+		const view = mount(false);
+		expect(view.queryByRole('button', { name: /into English only/ })).toBeNull();
+		await fireEvent.click(view.getByRole('button', { name: /^Live translation/ }));
+		const engine = view.getByRole('button', { name: /^Local Whisper Offline · into English only/ });
+		await fireEvent.click(engine);
+		expect(get(options)).toMatchObject({ mode: 'translate', provider: 'whisper-translate' });
+		expect(engine).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	it('says English is the only caption language instead of offering a second one', () => {
+		options.set({
+			...DEFAULT_START_OPTIONS,
+			mode: 'translate',
+			provider: 'whisper-translate',
+			targetLanguage: 'en',
+			secondTargetLanguage: 'fr'
+		});
+		const view = mount(false);
+		expect(
+			view.getByText(
+				'Whisper translates into English only, so there is no second caption language.'
+			)
+		).toBeInTheDocument();
+		expect(view.queryByRole('combobox', { name: 'Second caption language' })).toBeNull();
+		// Nothing to flip to, so no F2 hint either.
+		expect(view.queryByText(/Swap the first two favourites/)).toBeNull();
+		// It still listens for the spoken language, which it translates from…
+		expect(view.getByRole('combobox', { name: 'Spoken language' })).toBeEnabled();
+		expect(view.getByText(/The language Whisper translates from/)).toBeInTheDocument();
+		// …and the model step says which model translates well.
+		expect(view.getByText(/Choose Small: Tiny and Base translate poorly/)).toBeInTheDocument();
+	});
+});

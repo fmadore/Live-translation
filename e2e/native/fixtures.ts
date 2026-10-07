@@ -1,5 +1,6 @@
 // The `app` fixture: the e2e build of the real app, on a first-launch profile, with both of its
-// windows attached over the Chrome DevTools Protocol.
+// windows attached over the Chrome DevTools Protocol. A test can quit it and start it again on
+// the same profile, to check what outlives a launch.
 //
 // The e2e build's WebView2 serves DevTools on `DEVTOOLS_PORT`, an argument compiled into its
 // window config (`BROWSER_ARGS` in identity.ts). Both windows share one WebView2 environment,
@@ -11,7 +12,9 @@ import {
 	expect,
 	type Browser,
 	type BrowserContext,
-	type Page
+	type Page,
+	type PlaywrightWorkerArgs,
+	type TestInfo
 } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -34,6 +37,7 @@ import { describeApp, killTree, requestWindowClose, stopStrayInstances } from '.
 export { expect };
 
 interface App {
+	/** The windows of the current launch; `relaunch` replaces them. */
 	operator: Page;
 	overlay: Page;
 	/** Whisper Tiny was copied in from the CI cache before launch, so it needs no download. */
@@ -42,6 +46,21 @@ interface App {
 	exitCode(): number | null | undefined;
 	/** Close the operator window the way its X button does. */
 	requestClose(): Promise<void>;
+	/** Close the app that way, wait for it to exit, and start it again on the same profile, as
+	 *  an operator does between one day's event and the next. Nothing must be holding the
+	 *  close: an unsaved transcript would ask first. */
+	relaunch(): Promise<void>;
+}
+
+/** One start of the exe, with both windows attached. */
+interface Launch {
+	operator: Page;
+	overlay: Page;
+	exitCode(): number | null | undefined;
+	requestClose(): Promise<void>;
+	/** Detach and make sure the process has gone, keeping the trace and the log when `failed`.
+	 *  Only the first call does anything. */
+	end(failed: boolean): Promise<void>;
 }
 
 interface Options {
@@ -167,6 +186,100 @@ async function windowAt(context: BrowserContext, url: RegExp): Promise<Page> {
 	return page;
 }
 
+/** Start the exe on whatever profile is there and attach to both windows. `start` numbers the
+ *  launches within a test, so a relaunch keeps its own log and trace beside the first one's. */
+async function launch(
+	playwright: PlaywrightWorkerArgs['playwright'],
+	testInfo: TestInfo,
+	start: number
+): Promise<Launch> {
+	const suffix = start === 1 ? '' : `-${start}`;
+	await portReleased(DEVTOOLS_PORT);
+	// A debug build reads `.env` from its working directory and every parent; the
+	// repository's must not reach the app under test.
+	const cwd = await mkdtemp(path.join(tmpdir(), 'lt-e2e-'));
+	const logPath = testInfo.outputPath(`app${suffix}.log`);
+	const log = createWriteStream(logPath);
+	const child = spawn(appExe(), [], {
+		cwd,
+		env: appEnvironment(),
+		stdio: ['ignore', 'pipe', 'pipe'],
+		windowsHide: true
+	});
+	child.stdout.pipe(log, { end: false });
+	child.stderr.pipe(log, { end: false });
+	let exitCode: number | null | undefined;
+	const exited = new Promise<void>((resolve) => {
+		child.once('exit', (code) => {
+			exitCode = code;
+			resolve();
+		});
+		child.once('error', (error) => {
+			log.write(`spawn failed: ${error.message}\n`);
+			exitCode = null;
+			resolve();
+		});
+	});
+
+	let browser: Browser | undefined;
+	let context: BrowserContext | undefined;
+	let ended = false;
+	async function end(failed: boolean) {
+		if (ended) return;
+		ended = true;
+		// Stopped while the app can still answer. Once it has quit on its own, as the demo
+		// spec makes it, the context and its trace are gone and the app log is what is left.
+		const trace = testInfo.outputPath(`windows-trace${suffix}.zip`);
+		const traced = await context?.tracing.stop(failed ? { path: trace } : {}).then(
+			() => failed,
+			() => false
+		);
+		if (traced) {
+			await testInfo.attach(`trace${suffix}`, { path: trace, contentType: 'application/zip' });
+		}
+		await browser?.close().catch(() => {});
+		// Whatever happened in the test, the app does not outlive it.
+		if (exitCode === undefined && child.pid) await killTree(child.pid);
+		await exited;
+		child.stdout.unpipe(log);
+		child.stderr.unpipe(log);
+		log.end();
+		await rm(cwd, { recursive: true, force: true }).catch(() => {});
+		if (failed) {
+			await testInfo.attach(`app${suffix}.log`, { path: logPath, contentType: 'text/plain' });
+		}
+	}
+
+	try {
+		const step =
+			start === 1 ? 'Attach to both windows' : `Attach to both windows (launch ${start})`;
+		const windows = await base.step(step, async () => {
+			browser = await playwright.chromium.connectOverCDP(
+				await devTools(DEVTOOLS_PORT, child.pid!, () => exitCode)
+			);
+			[context] = browser.contexts();
+			// The runner's `trace` option records its own steps and screenshots but not a
+			// context it did not create, so this one is traced here: DOM snapshots of both
+			// windows and every action, kept only for a failure, as `retain-on-failure` would.
+			await context.tracing.start({ title: testInfo.title, screenshots: true, snapshots: true });
+			return {
+				operator: await windowAt(context, /^http:\/\/tauri\.localhost\/$/),
+				overlay: await windowAt(context, /^http:\/\/tauri\.localhost\/overlay\/?$/)
+			};
+		});
+		return {
+			...windows,
+			exitCode: () => exitCode,
+			requestClose: () => requestWindowClose(child.pid!, OPERATOR_TITLE),
+			end
+		};
+	} catch (error) {
+		// A launch that never got as far as the test is a failure too, and its log is the clue.
+		await end(true);
+		throw error;
+	}
+}
+
 export const test = base.extend<Options & { app: App }>({
 	seedWhisperModel: [false, { option: true }],
 
@@ -192,79 +305,32 @@ export const test = base.extend<Options & { app: App }>({
 			return true;
 		});
 
-		await portReleased(DEVTOOLS_PORT);
-		// A debug build reads `.env` from its working directory and every parent; the
-		// repository's must not reach the app under test.
-		const cwd = await mkdtemp(path.join(tmpdir(), 'lt-e2e-'));
-		const logPath = testInfo.outputPath('app.log');
-		const log = createWriteStream(logPath);
-		const child = spawn(exe, [], {
-			cwd,
-			env: appEnvironment(),
-			stdio: ['ignore', 'pipe', 'pipe'],
-			windowsHide: true
-		});
-		child.stdout.pipe(log, { end: false });
-		child.stderr.pipe(log, { end: false });
-		let exitCode: number | null | undefined;
-		const exited = new Promise<void>((resolve) => {
-			child.once('exit', (code) => {
-				exitCode = code;
-				resolve();
-			});
-			child.once('error', (error) => {
-				log.write(`spawn failed: ${error.message}\n`);
-				exitCode = null;
-				resolve();
-			});
-		});
-
-		let browser: Browser | undefined;
-		let context: BrowserContext | undefined;
-		// A launch that never got as far as the test is a failure too, and its log is the clue.
-		let attached = false;
+		let starts = 1;
+		let current = await launch(playwright, testInfo, starts);
 		try {
-			const { operator, overlay } = await base.step('Attach to both windows', async () => {
-				browser = await playwright.chromium.connectOverCDP(
-					await devTools(DEVTOOLS_PORT, child.pid!, () => exitCode)
-				);
-				[context] = browser.contexts();
-				// The runner's `trace` option records its own steps and screenshots but not a
-				// context it did not create, so this one is traced here: DOM snapshots of both
-				// windows and every action, kept only for a failure, as `retain-on-failure` would.
-				await context.tracing.start({ title: testInfo.title, screenshots: true, snapshots: true });
-				return {
-					operator: await windowAt(context, /^http:\/\/tauri\.localhost\/$/),
-					overlay: await windowAt(context, /^http:\/\/tauri\.localhost\/overlay\/?$/)
-				};
-			});
-			attached = true;
 			await use({
-				operator,
-				overlay,
+				get operator() {
+					return current.operator;
+				},
+				get overlay() {
+					return current.overlay;
+				},
 				seededModel,
-				exitCode: () => exitCode,
-				requestClose: () => requestWindowClose(child.pid!, OPERATOR_TITLE)
+				exitCode: () => current.exitCode(),
+				requestClose: () => current.requestClose(),
+				async relaunch() {
+					await current.requestClose();
+					await expect
+						.poll(() => current.exitCode(), { message: 'the app exits before it starts again' })
+						.toBe(0);
+					await current.end(false);
+					// The next launch waits for the DevTools port, which WebView2 holds until its
+					// browser process has gone — and with it any storage still to be written.
+					current = await launch(playwright, testInfo, ++starts);
+				}
 			});
 		} finally {
-			const failed = !attached || testInfo.status !== testInfo.expectedStatus;
-			// Stopped while the app can still answer. Once it has quit on its own, as the demo
-			// spec makes it, the context and its trace are gone and the app log is what is left.
-			const trace = testInfo.outputPath('windows-trace.zip');
-			const traced = await context?.tracing.stop(failed ? { path: trace } : {}).then(
-				() => failed,
-				() => false
-			);
-			if (traced) await testInfo.attach('trace', { path: trace, contentType: 'application/zip' });
-			await browser?.close().catch(() => {});
-			// Whatever happened in the test, the app does not outlive it.
-			if (exitCode === undefined && child.pid) await killTree(child.pid);
-			await exited;
-			child.stdout.unpipe(log);
-			child.stderr.unpipe(log);
-			log.end();
-			await rm(cwd, { recursive: true, force: true }).catch(() => {});
-			if (failed) await testInfo.attach('app.log', { path: logPath, contentType: 'text/plain' });
+			await current.end(testInfo.status !== testInfo.expectedStatus);
 			if (seedWhisperModel && !seededModel) await refillCache();
 		}
 	}

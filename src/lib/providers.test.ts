@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
 	PROVIDER_META,
+	estimateSessionCost,
+	isLocalWhisper,
+	modelLabel,
 	providerCanTranslate,
 	providerDetectsLanguage,
 	providerKeyName,
-	providerRequiresKey
+	providerRequiresKey,
+	rateText
 } from './providers';
+import { en } from './i18n/en';
+import { PROVIDERS } from './types';
 
 // Gemini appears twice under two different model ids — Live Translate for captions,
 // Transcribe Live for subtitles. These predicates are what keep the two apart everywhere:
@@ -42,5 +48,34 @@ describe('providerDetectsLanguage', () => {
 		expect(providerDetectsLanguage('gemini')).toBe(false);
 		expect(providerDetectsLanguage('openai')).toBe(false);
 		expect(providerDetectsLanguage('ondevice')).toBe(false);
+		// Whisper detects what is spoken, but translating, the room reads English, and that is
+		// the operator's choice like any other caption language.
+		expect(providerDetectsLanguage('whisper-translate')).toBe(false);
+	});
+});
+
+// Whisper serves both modes the way Gemini does, as two ids — but one local engine. What the
+// id decides is the mode; everything about running the engine follows `isLocalWhisper`.
+describe('the two Whisper tasks', () => {
+	it('route each to exactly one mode', () => {
+		expect(providerCanTranslate('whisper')).toBe(false);
+		expect(providerCanTranslate('whisper-translate')).toBe(true);
+	});
+
+	it('run the same keyless local engine, and only they do', () => {
+		expect(PROVIDERS.filter(isLocalWhisper)).toEqual(['whisper', 'whisper-translate']);
+		for (const provider of ['whisper', 'whisper-translate'] as const) {
+			expect(providerRequiresKey(provider)).toBe(false);
+			expect(rateText(PROVIDER_META[provider], en)).toBe(en.cost.free);
+			// Free whatever runs: two sources and an hour cost nothing.
+			expect(estimateSessionCost(provider, 3_600_000, 2)).toBe(0);
+		}
+	});
+
+	it('describes the translating one by what it writes', () => {
+		expect(modelLabel(PROVIDER_META['whisper-translate'], en)).toBe(
+			en.provider.model['whisper-translate']
+		);
+		expect(modelLabel(PROVIDER_META.whisper, en)).toBe(en.provider.model.whisper);
 	});
 });

@@ -2,6 +2,7 @@
 	import WhisperActivity from '$lib/WhisperActivity.svelte';
 	import { whisperModels } from '$lib/stores';
 	import { whisperPendingSeconds } from '$lib/whisperProgress';
+	import { isLocalWhisper } from '$lib/providers';
 	import { onMount } from 'svelte';
 	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
@@ -109,6 +110,9 @@
 		void preflight.refreshWhisperCpu();
 		void recoveryOffer.load();
 		overlay.initialize();
+		// Where the overlay was last placed on these displays. It paints nothing until there are
+		// captions or move mode, so moving it now shows no jump from where it was created.
+		void overlay.restorePlacement();
 
 		const unlisteners: Array<Promise<() => void>> = [
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
@@ -361,7 +365,7 @@
 		</aside>
 
 		<main class="stage">
-			{#if $options.provider === 'whisper'}<WhisperActivity />{/if}
+			{#if isLocalWhisper($options.provider)}<WhisperActivity />{/if}
 			{#if browserMode}
 				<div class="banner">
 					{$t.stage.browserBanner.before}
@@ -425,7 +429,7 @@
 								: $t.preflight.privacy.memoryOnly}
 						{$options.provider === 'ondevice'
 							? $t.preflight.privacy.demo
-							: $options.provider === 'whisper'
+							: isLocalWhisper($options.provider)
 								? $t.whisper.privacy
 								: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
 					</span>
@@ -465,7 +469,7 @@
 	<ActiveSessionPrompt
 		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
-		pendingSeconds={$options.provider === 'whisper' ? $whisperPendingSeconds : 0}
+		pendingSeconds={isLocalWhisper($options.provider) ? $whisperPendingSeconds : 0}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
 {/if}

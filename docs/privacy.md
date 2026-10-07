@@ -6,7 +6,8 @@
 
 Live Translation & Subtitles is a Windows desktop application with three kinds of operation:
 
-- local multilingual speech transcription using Whisper on the user’s computer;
+- local multilingual speech transcription, or translation into English, using Whisper on the
+  user’s computer;
 - optional cloud speech captioning or translation through a provider selected and configured
   by the user: Google Gemini, OpenAI, or Mistral; and
 - a scripted demonstration of the caption display, overlay, timer, level meter, transcript
@@ -47,7 +48,8 @@ information. While downloading, the file is held as `<model>.part` in the models
 deleted if the download fails or is cancelled, or at the start of the next download if the app
 was closed mid-way. The app verifies model size and SHA-256 before installation and before use.
 Models remain under the application's local-data `whisper-models` folder until removed through
-the model controls. Once installed, local transcription needs no network connection.
+the model controls. Once installed, local transcription and translation need no network
+connection.
 
 ## Captions and transcripts
 
@@ -116,7 +118,10 @@ copy, proxy, or store provider keys.
 ## Preferences stored on the device
 
 The app locally stores ordinary interface preferences, including the last selected mode,
-provider, Whisper model and spoken language, audio source, language, overlay position, caption size, layout (Fit window, Compact or Stable reading),
+provider, Whisper model and spoken language, audio source, language, overlay position and size
+for up to eight display arrangements (each recorded as its displays' positions, resolutions and
+scaling, so the overlay reopens where it was placed on them), caption size,
+layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, and whether closing the window leaves the app running in the notification area.
 The app also remembers the folder of the last successful transcript export and whether
@@ -154,7 +159,8 @@ with that provider. Their terms and privacy policies apply:
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
 - [Mistral AI Privacy Policy](https://mistral.ai/terms/#privacy-policy)
 
-The built-in demonstration and local Whisper transcription contact none of these speech services.
+The built-in demonstration and local Whisper, transcribing or translating, contact none of these
+speech services.
 Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
 
 ## Children

@@ -141,8 +141,13 @@ export function createOverlayPlacement(port = api) {
 				const { getCurrentWindow, PhysicalPosition, PhysicalSize } =
 					await import('@tauri-apps/api/window');
 				const win = getCurrentWindow();
+				// Moved back before it is sized, as `set_overlay_placement` does: a window dragged
+				// onto a display with another scale factor is rescaled by Windows on the way back,
+				// which would undo a size set first.
+				const position = new PhysicalPosition(geo.x, geo.y);
+				await win.setPosition(position);
 				await win.setSize(new PhysicalSize(geo.width, geo.height));
-				await win.setPosition(new PhysicalPosition(geo.x, geo.y));
+				await win.setPosition(position);
 			} catch (err) {
 				// A failed restore must not trap the operator in move mode — carry on and exit.
 				console.error('Could not restore the overlay geometry', err);

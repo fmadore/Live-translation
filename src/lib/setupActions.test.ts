@@ -119,6 +119,33 @@ describe('setup actions', () => {
 		expect(actions.avoidUnsupportedWhisper()).toBe(false);
 	});
 
+	it('offers Whisper translation in translation only, and not on a processor that refuses it', () => {
+		const { actions } = setup();
+		actions.setProvider('whisper-translate');
+		// The French target stays, for the language error to explain rather than to guess.
+		expect(get(options)).toMatchObject({ provider: 'whisper-translate', targetLanguage: 'fr' });
+		actions.setMode('transcribe');
+		actions.setProvider('whisper-translate');
+		expect(get(options).provider).toBe('whisper');
+
+		options.set({ ...base });
+		setup(false, true).actions.setProvider('whisper-translate');
+		expect(get(options).provider).toBe('gemini');
+	});
+
+	// The demo cannot translate, so it is no stand-in: the refused engine stays selected, its
+	// card says why, and Start waits for the operator to choose a cloud engine.
+	it('leaves a refused Whisper translation in place rather than switch mode', () => {
+		const translating: StartOptions = {
+			...base,
+			provider: 'whisper-translate',
+			targetLanguage: 'en'
+		};
+		options.set({ ...translating });
+		expect(setup(false, true).actions.avoidUnsupportedWhisper()).toBe(false);
+		expect(get(options)).toEqual(translating);
+	});
+
 	it('flips between the first two favourites the engine supports', () => {
 		const { actions } = setup();
 		actions.flipDirection();

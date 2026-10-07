@@ -20,6 +20,17 @@ default font with one source); new overlays start at 160 pixels high. Drag the e
 for more reading context. Resizing does not create text: a short caption or a new session
 with little history can still leave empty space.
 
+At launch the overlay reopens where it was last placed, remembered separately for each
+arrangement of displays: on the projector whenever the projector is connected, and in the
+laptop's own place when it is not. Connecting a display while the app runs does not move it.
+Finishing placement (**Done**, **Lock into place** or Enter) and loading a meeting profile both
+count as placing it; Escape, which puts the window back, does not. Displays the app has not
+seen yet reopen the most recent placement, kept within a connected display's work area, and
+the first launch is centred. Eight arrangements are kept, the one used longest ago making way.
+A change of Windows scaling counts as a new arrangement: the most recent placement keeps its
+size in physical pixels, so captions there read larger or smaller, and placing the overlay
+again remembers it for the new scaling.
+
 When both sources have visible captions, system audio appears above the microphone,
 with labels, and they share the available height. A single visible source uses the
 available height without an origin label. If the window is too short to fit even one
@@ -163,6 +174,7 @@ browser and native pass was for 1.2.4 (14 September 2026).
 | Compact and reset | Width is adjustable only in Compact; switching retains it; reset returns to Fit window. |
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
 | Placement and locking | Move/resize, Enter, Escape and click-through still work; the move-mode preview stays readable over a white slide (1.6.1). |
+| Placement across launches | Placed on the projector, it reopens there; launched without the projector it opens fully on the laptop, and with the projector reconnected it is back on it. With the laptop at 150% and the projector at 100%, the size is kept, not scaled. No visible jump from the centre at launch. |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
 | Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; changing Hide filler words or its word list changes the live turn and new captions only. |
 | English and French | Labels, keyboard access and layout choice work in both the rail and settings. |

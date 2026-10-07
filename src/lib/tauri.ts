@@ -67,6 +67,9 @@ export const api = {
 	getOverlayPlacement: () => invoke<Placement>('get_overlay_placement'),
 	setOverlayPlacement: (placement: Placement) =>
 		invoke<void>('set_overlay_placement', { placement }),
+	/** A signature of the connected displays, which the remembered overlay placement is kept
+	 *  under. See `overlayGeometry.ts`. */
+	displayLayout: () => invoke<string>('display_layout'),
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
 	pauseSession: (paused: boolean) => invoke<void>('pause_session', { paused }),
 	appendHistory: (id: string, contents: string) => invoke<void>('append_history', { id, contents }),

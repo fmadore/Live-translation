@@ -4,7 +4,7 @@ import { asStatus, describeError } from './errors';
 import { t } from './i18n';
 import { validateDevices } from './audioDevices';
 import { micLevel, systemLevel, options, statusMessage } from './stores';
-import { providerRequiresKey } from './providers';
+import { isLocalWhisper, providerRequiresKey } from './providers';
 import type {
 	AudioDevice,
 	AudioLevel,
@@ -122,7 +122,7 @@ export class PreflightController {
 	 *  through a `$derived` on the page, so it follows every input as it changes. */
 	engineReady = (selected: StartOptions, models: readonly WhisperModelInfo[]): boolean => {
 		if (providerRequiresKey(selected.provider)) return this.#keyFor === selected.provider;
-		if (selected.provider === 'whisper') {
+		if (isLocalWhisper(selected.provider)) {
 			// Until the core has said this processor can run it, Whisper cannot start.
 			const model = selected.whisperModel ?? 'base';
 			return (

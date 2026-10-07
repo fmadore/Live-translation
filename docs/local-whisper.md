@@ -4,7 +4,8 @@ Included in **1.6.0** ([PR #99](https://github.com/fmadore/Live-translation/pull
 [issue #98](https://github.com/fmadore/Live-translation/issues/98), where
 [@valentinrabot](https://github.com/valentinrabot) suggested local transcription for
 same-language meetings without ongoing API costs. Whisper is an additional **Subtitles**
-provider; local translation is out of scope.
+provider, and also translates into English offline under **Live translation**; see
+[translation into English](#translation-into-english).
 
 New installations open on Whisper with Base and automatic language detection selected.
 Downloading a model and starting capture both require the user's action. Saved engine, model,
@@ -13,7 +14,9 @@ language and audio choices are kept on upgrade.
 On a processor that cannot run the Whisper engine (see [processor requirements](#processor-requirements)),
 the setup sheet lists Whisper as unavailable with a one-line reason, Start is not offered for it,
 and a selected Whisper — including the first-launch default — is replaced by the built-in demo,
-so the keyless first launch always opens on something that starts.
+so the keyless first launch always opens on something that starts. Whisper's translation is
+listed as unavailable in the same way, but stays selected until the operator chooses a cloud
+engine: the demo cannot translate, so it is no stand-in.
 
 ## Using it
 
@@ -54,6 +57,50 @@ match; a failed or cancelled download deletes it, and starting a download first 
 partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
 bytes are verified again before passing them to the native loader. Files in use cannot be
 deleted or replaced.
+
+## Translation into English
+
+Whisper's models have a second task besides transcription: translating what is said, in any of
+their 99 languages, into English. The app offers it as **Local Whisper** under **Live
+translation** ("Offline · into English only"), the one translation engine that needs no account,
+API key or internet connection once a model is downloaded. It is a separate provider,
+`whisper-translate`, for the reason the two Gemini engines are: it serves the other mode. It runs
+exactly the pipeline described here — the same models and download, processor check, buffering,
+segmentation, pause, Stop drain, pending-audio discard and close prompt — and differs only in
+the task whisper.cpp is given (`translate`).
+
+1. Choose **Live translation**, the audio source and **Local Whisper**.
+2. Keep **English** as the caption language. Whisper translates into English only: any other
+   caption language is refused with the message every engine gives for a language it cannot
+   write, and Start waits until English is chosen. There is no second caption language, and the
+   F2 swap has nothing to swap to; a second language saved for a cloud engine is kept for it but
+   not used.
+3. Choose the spoken language, or leave **Detect automatically**. It is the language Whisper
+   translates from, and works as for subtitles: a window of 3 seconds or more detects its own
+   language, a shorter one reuses the last detection, and a chosen language is always used.
+   English speech comes out as English.
+4. Choose **Small** and download it. Translation is where the smaller models fall short: Tiny
+   and Base often mistranslate, and the setup sheet says so. Small needs the processor speed
+   discussed under [processor requirements](#processor-requirements) to keep up.
+
+The task returns English and no transcription of what was said, so captions carry no source
+text. The overlay and the operator's stage show the English alone, with no original-speech line
+even when that option is on, and a saved transcript has no original to include, so the
+bilingual export option is not offered. **Rehearse** plays the French recording, as it does for
+any English translation target.
+
+Limits worth knowing before an event:
+
+- **English only.** It does nothing for an audience that reads another language.
+- **Quality follows the model.** The smoke test below translates the French rehearsal recording
+  with Tiny into recognisable but poor English ("This is a recording of repetition for the
+  subject system to direct…"). Use Small for an audience, and test it on the room's own speech
+  first.
+- **Captions per window, not word by word.** As with subtitles, each window of up to roughly
+  10 seconds is captioned when it is finished.
+- **Window boundaries.** The second of overlap between windows is trimmed by comparing the
+  English. A translation of that second can be worded differently in each window, so an
+  occasional repeated phrase at a boundary is more likely than in transcription.
 
 ## Audio handling and limits
 
@@ -163,8 +210,9 @@ Their notices are included under `resources/licenses` and bundled with the app.
 CI builds, lints and tests the application on Linux, Windows x64 and Windows ARM64. The opt-in
 `local_whisper_smoke` test downloads the pinned Tiny model and runs the production buffering,
 segmentation and inference path over bundled English (auto-detect) and French
-(explicit-language) recordings. It checks recognisable transcript content, monotonic
-timestamps and complete EOF draining:
+(explicit-language) recordings, then translates the French one into English with its language
+detected. It checks recognisable transcript content, monotonic timestamps and complete EOF
+draining:
 
 ```sh
 cd src-tauri
@@ -178,9 +226,11 @@ hash mismatch, oversized body, stalled connection, cancellation, partial-file cl
 spool's idle signal and size limit; the segmenter's gap threshold, jittered and drifting
 timestamps, long windows and idle flush; segment reconciliation (overlap by word and by
 character, clamped and monotonic times, broken UTF-8, the no-speech filter); short-window
-language reuse; and thread counts. UI tests cover persisted multilingual settings,
-model/progress controls, the unsupported-processor engine card and the close prompt's pending
-audio. For
+language reuse; thread counts; and the translate task reaching whisper.cpp. Validation tests
+cover translation's English-only target and its lack of a second language. UI tests cover
+persisted multilingual settings, model/progress controls, the unsupported-processor engine
+card, the close prompt's pending audio, and translation's engine card, English-only note and
+captions without original speech. For
 PR #99 (4 October 2026) the smoke test passed on ARM64, including non-ASCII model paths, and
 all seven PR CI jobs passed on
 [run 37196818518](https://github.com/fmadore/Live-translation/actions/runs/37196818518).

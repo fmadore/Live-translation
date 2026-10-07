@@ -77,6 +77,44 @@ it('retains stable captions across pauses, cleans only displayed text, and clear
 	view.unmount();
 });
 
+// Whisper's translate task returns English and no transcription of what was said. With the
+// original speech switched on, such a caption is the caption alone: no empty second line.
+it('shows no original line for a translation that has none, and one for a translation that has', async () => {
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await tick();
+	handlers.config({ fontSize: 38, captionLayout: 'compact', showOriginal: true });
+	const english: Caption = {
+		turnId: 1,
+		text: 'We begin.',
+		sourceText: '',
+		origin: 'system',
+		final: true,
+		startMs: 0,
+		endMs: 1000
+	};
+	handlers.caption(english);
+	await tick();
+	// Fitted text is laid out by measurement, which jsdom cannot do: the structure is the test.
+	expect(view.container.querySelectorAll('.captions .row')).toHaveLength(1);
+	expect(view.container.querySelector('.original')).toBeNull();
+	handlers.caption({ ...english, turnId: 2, text: 'Next.', sourceText: 'Ensuite.' });
+	await tick();
+	expect(view.container.querySelector('.original')).not.toBeNull();
+	view.unmount();
+});
+
 it('restores caption expiry when leaving stable mode after its old timer elapsed', async () => {
 	vi.useFakeTimers();
 	vi.stubGlobal(

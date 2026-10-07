@@ -135,6 +135,7 @@ pub fn run() {
             commands::show_overlay,
             placement::get_overlay_placement,
             placement::set_overlay_placement,
+            placement::display_layout,
             commands::save_transcript,
             commands::text_scale_factor,
             recovery::write_recovery,

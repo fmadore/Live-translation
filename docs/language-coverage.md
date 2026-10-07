@@ -8,7 +8,8 @@ evidence, not fresh endpoint verification.
 | --- | --- |
 | Gemini Live Translate | 78 searchable translation targets |
 | OpenAI Realtime Translate | 13 searchable targets; endpoint code probe pending |
-| Local Whisper | 99 spoken languages or automatic detection; same-language subtitles only |
+| Local Whisper (subtitles) | 99 spoken languages or automatic detection; same-language subtitles |
+| Local Whisper (translation) | English only, translated from 99 spoken languages or automatic detection |
 | Built-in demo | English/French script buttons only |
 | Mistral / Gemini Transcribe | Auto-detection hint, no language selector |
 
