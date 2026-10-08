@@ -2,7 +2,7 @@
 
 Historical implementation record of the **Live Translation UI Audit**, shipped in
 [1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1). Current release status
-and the consolidated native checks are in the [1.6.1 handoff](store-updates.md#release-161-handoff).
+and the consolidated native checks are in the [1.7.0 handoff](store-updates.md#release-170-handoff).
 
 | Finding | Implementation |
 | --- | --- |

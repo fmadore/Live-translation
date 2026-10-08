@@ -58,10 +58,17 @@ object, `code` an integer it describes only as an internal code for debugging. N
 is published, so the classification is deliberately narrow: codes in HTTP's transient range
 (408, 429, 500, 502–504), or a `type`/`code` of `server_error`, `rate_limit_error`,
 `rate_limited`, `timeout` or `session_expired` inside an object `message`, reconnect with
-backoff; a 429 whose message mentions a quota, billing, payment or credit does not. Everything
-else — including any code not listed — stops the source with Mistral's message, as every error
-did before. **Live check pending:** record the first real error payloads seen here and widen
-the list from them.
+backoff; a 429 whose message mentions a quota, billing, payment or credit does not. A failure
+inside Mistral's own backend also reconnects, recognised by its wording rather than its code: a
+gRPC `UNAVAILABLE` or `DEADLINE_EXCEEDED`, `grpc_status:14`, "gRPC connection error" or
+"connection reset by peer" (a bare "unavailable", which could describe a model the key cannot
+use, does not count). Everything else — including any code not listed — stops the source with
+Mistral's message, as every error did before 1.7.0.
+
+One real payload has been seen so far, on 7 October 2026 in 1.6.0, mid-session: code 3803 with
+a gRPC `UNAVAILABLE` from an internal Mistral service. It ended the source then; since
+[#122](https://github.com/fmadore/Live-translation/pull/122) it reconnects, and a test pins it.
+**Live check pending:** record further error payloads here and widen the rules from them.
 
 Long-lived keys are safe here because the Rust backend, not a web page, opens the WebSocket.
 Mistral’s short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is for browser clients that

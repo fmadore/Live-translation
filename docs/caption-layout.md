@@ -156,7 +156,7 @@ telemetry is introduced.
 
 ## Release verification
 
-Repeat this matrix against the final 1.6.1 x64 and ARM64 MSIX packages. The last recorded
+Repeat this matrix against the final 1.7.0 x64 and ARM64 MSIX packages. The last recorded
 browser and native pass was for 1.2.4 (14 September 2026).
 
 | Check | Expected result |
@@ -173,7 +173,7 @@ browser and native pass was for 1.2.4 (14 September 2026).
 | Windows scaling | Check 100%, 150%, 200% display scaling and moving between monitors with different DPI. |
 | Compact and reset | Width is adjustable only in Compact; switching retains it; reset returns to Fit window. |
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
-| Placement and locking | Move/resize, Enter, Escape and click-through still work; the move-mode preview stays readable over a white slide (1.6.1). |
+| Placement and locking | Move/resize, Enter, Escape and click-through still work; the move-mode preview stays readable over a white slide (1.6.1); Done in the operator window marks the overlay placed (1.7.0). |
 | Placement across launches | Placed on the projector, it reopens there; launched without the projector it opens fully on the laptop, and with the projector reconnected it is back on it. With the laptop at 150% and the projector at 100%, the size is kept, not scaled. No visible jump from the centre at launch. |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
 | Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; changing Hide filler words or its word list changes the live turn and new captions only. |
@@ -183,7 +183,7 @@ browser and native pass was for 1.2.4 (14 September 2026).
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-161-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-170-handoff) for the remaining release gates.
 
 ## Reading pace and preview
 

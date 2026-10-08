@@ -24,6 +24,7 @@ Releases without prepared text keep an empty body.
 
 | Release | Date | Body | Summary |
 | --- | --- | --- | --- |
+| v1.7.0 | Prepared 7 October 2026; not yet tagged or published | [release-1.7.0.md](release-1.7.0.md) | Offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect instead of ending. |
 | [v1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) | 6 October 2026 | [release-1.6.1.md](release-1.6.1.md) | The wave-to-words icon and the October design review; no new features. |
 | [v1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) | 4 October 2026 | [release-1.6.0.md](release-1.6.0.md) | Local Whisper, two caption languages, bilingual output, Pause and editable filler words. |
 | [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) | 23 September 2026 | [release-1.5.1.md](release-1.5.1.md) | Audio, safety and history fixes from the September app review. |
