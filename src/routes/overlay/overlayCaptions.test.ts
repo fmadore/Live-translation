@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOverlayCaptions, type ReadingSettings } from './overlayCaptions.svelte';
-import { DEFAULT_FILLER_WORDS } from '$lib/cleanSpeech';
-import { CAPTION_TAIL_CHARS } from '$lib/captionLayout';
-import { captionBudget } from '$lib/appearance';
-import type { Caption, Origin } from '$lib/types';
+import { DEFAULT_FILLER_WORDS } from '#lib/cleanSpeech.js';
+import { CAPTION_TAIL_CHARS } from '#lib/captionLayout.js';
+import { captionBudget } from '#lib/appearance.js';
+import type { Caption, Origin } from '#lib/types.js';
 
 const fit: ReadingSettings = {
 	layout: 'fit',

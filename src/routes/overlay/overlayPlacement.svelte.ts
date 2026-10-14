@@ -1,9 +1,9 @@
 // Move mode for the overlay window: entering it, nudging and snapping the window, and the two
 // ways out — lock the region into place, or cancel and put the window back where it was.
 
-import { api, isTauri } from '$lib/tauri';
-import { writeStored } from '$lib/persisted';
-import { OVERLAY_PLACED_KEY } from '$lib/appearance';
+import { api, isTauri } from '#lib/tauri.js';
+import { writeStored } from '#lib/persisted.js';
+import { OVERLAY_PLACED_KEY } from '#lib/appearance.js';
 
 /** Physical pixels, straight off the window: restoring what was read needs no conversion. */
 interface Geometry {

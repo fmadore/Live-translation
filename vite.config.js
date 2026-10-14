@@ -1,3 +1,5 @@
+import adapter from '@sveltejs/adapter-static';
+import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { sveltekit } from '@sveltejs/kit/vite';
 // vitest's re-export, not vite's: only this one accepts the `test` block below.
 import { defineConfig } from 'vitest/config';
@@ -21,7 +23,18 @@ function woff2Only() {
 }
 
 export default defineConfig({
-	plugins: [woff2Only(), sveltekit()],
+	plugins: [
+		woff2Only(),
+		sveltekit({
+			preprocess: vitePreprocess(),
+			// Tauri serves a static bundle; no Node server at runtime.
+			adapter: adapter({ fallback: 'index.html' }),
+			// A desktop app is updated by its installer, not redeployed under a running window, so
+			// there is nothing for SvelteKit 3's hourly `version.json` poll to find. Focus checks stay:
+			// they read the same bundled file over the app's own origin.
+			version: { pollInterval: 0 }
+		})
+	],
 
 	// Vite options tailored for Tauri development.
 	clearScreen: false,

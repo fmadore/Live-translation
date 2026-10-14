@@ -2,14 +2,14 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Page from './+page.svelte';
-import type { Caption, OverlayConfig, StatusUpdate } from '$lib/types';
+import type { Caption, OverlayConfig, StatusUpdate } from '#lib/types.js';
 
 const handlers = vi.hoisted(() => ({
 	caption: (_: Caption) => {},
 	config: (_: OverlayConfig) => {},
 	status: (_: StatusUpdate) => {}
 }));
-vi.mock('$lib/tauri', () => ({
+vi.mock('#lib/tauri.js', () => ({
 	isTauri: () => true,
 	api: {},
 	on: {

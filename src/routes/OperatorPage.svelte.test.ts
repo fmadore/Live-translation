@@ -1,5 +1,5 @@
 // The operator page against a scripted core. Tauri's own IPC mocks stand in for `src-tauri`
-// (`$lib/testing/tauriMock`), so the real `tauri.ts`, the page's controllers and its child
+// (`#lib/testing/tauriMock`), so the real `tauri.ts`, the page's controllers and its child
 // components all run as they do in the app, and the test plays the core: it answers commands
 // and emits `status` and `caption` events the way the built-in demo does. Everything is found
 // by role and accessible name, so rearranging the page does not break these tests; changing
@@ -8,19 +8,19 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { get } from 'svelte/store';
-import { mockTauri, type TauriMock } from '$lib/testing/tauriMock';
-import { IDLE_CORE } from '$lib/testing/idleCore';
-import { OVERLAY_GEOMETRY_KEY } from '$lib/overlayGeometry';
-import type { Caption, StatusUpdate } from '$lib/types';
+import { mockTauri, type TauriMock } from '#lib/testing/tauriMock.js';
+import { IDLE_CORE } from '#lib/testing/idleCore.js';
+import { OVERLAY_GEOMETRY_KEY } from '#lib/overlayGeometry.js';
+import type { Caption, StatusUpdate } from '#lib/types.js';
 
 // The stores read their preferences as they load, and in this pool storage outlives a test
 // file, so the page is imported only once nothing is stored.
 localStorage.clear();
 const { default: Page } = await import('./+page.svelte');
-const { applyStatus, clearTranscript, options } = await import('$lib/stores');
-const { DEFAULT_START_OPTIONS } = await import('$lib/startOptions');
-const { exportFormat } = await import('$lib/exportFormat');
-const { locale } = await import('$lib/i18n');
+const { applyStatus, clearTranscript, options } = await import('#lib/stores.js');
+const { DEFAULT_START_OPTIONS } = await import('#lib/startOptions.js');
+const { exportFormat } = await import('#lib/exportFormat.js');
+const { locale } = await import('#lib/i18n/index.js');
 
 let core: TauriMock;
 
