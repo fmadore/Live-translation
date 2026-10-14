@@ -136,6 +136,7 @@ pub fn run() {
             placement::get_overlay_placement,
             placement::set_overlay_placement,
             placement::display_layout,
+            placement::recover_overlay_placement,
             commands::save_transcript,
             commands::text_scale_factor,
             recovery::write_recovery,
@@ -214,6 +215,9 @@ pub fn run() {
             // Other topmost windows (Zoom, Teams, a slideshow) jump above the overlay when
             // they are activated, so keep re-raising it for as long as the app runs.
             overlay::spawn_topmost_keeper(app.handle());
+            // Unplugging the display the overlay sits on would otherwise strand the captions
+            // where nobody can see or reach them. See `placement`.
+            placement::spawn_display_watcher(app.handle());
 
             // Windows' accessibility text size does not reach WebView2 content on its own,
             // so the core reads it and the operator window applies it. See `textscale`.

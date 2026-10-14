@@ -13,6 +13,48 @@ interface Geometry {
 	height: number;
 }
 
+/** A display's bounds as `availableMonitors` reports them: physical pixels, like `Geometry`,
+ *  and measured from the primary display's corner — so a display to the left of it or above it
+ *  starts at negative coordinates. */
+interface DisplayBounds {
+	position: { x: number; y: number };
+	size: { width: number; height: number };
+}
+
+/**
+ * Whether the middle of `rect` is on one of `displays`. The centre rather than any overlap: a
+ * window with a sliver on a screen is not one an operator can see or take hold of, and it is
+ * the test the core applies when it decides an overlay is stranded, so the two agree on what
+ * still counts as there.
+ */
+export function centreOnADisplay(rect: Geometry, displays: readonly DisplayBounds[]): boolean {
+	const x = rect.x + rect.width / 2;
+	const y = rect.y + rect.height / 2;
+	return displays.some(
+		({ position, size }) =>
+			x >= position.x &&
+			x < position.x + size.width &&
+			y >= position.y &&
+			y < position.y + size.height
+	);
+}
+
+/** Whether the rect move mode found is still on a display. A projector pulled out during
+ *  move mode takes it away: the core has already brought the window onto a screen that is
+ *  there, and putting it back would strand it again where nobody can see it. When the
+ *  displays cannot be read, assume it is — that is how Escape behaved before it looked. */
+async function stillOnADisplay(
+	geo: Geometry,
+	availableMonitors: () => Promise<DisplayBounds[]>
+): Promise<boolean> {
+	try {
+		return centreOnADisplay(geo, await availableMonitors());
+	} catch (err) {
+		console.error('Could not read the connected displays', err);
+		return true;
+	}
+}
+
 export type OverlayCommand =
 	| { kind: 'bump'; delta: number }
 	| { kind: 'lock' }
@@ -133,26 +175,32 @@ export function createOverlayPlacement(port = api) {
 		void port.emitOverlayState({ interactive: false, placed: true });
 	}
 
-	/** Put the window back where move mode found it and leave without placing it. */
+	/** Move and size the window back to `geo`, unless that is on a display that has gone. */
+	async function restoreGeometry(geo: Geometry) {
+		try {
+			const { getCurrentWindow, availableMonitors, PhysicalPosition, PhysicalSize } =
+				await import('@tauri-apps/api/window');
+			if (!(await stillOnADisplay(geo, availableMonitors))) return;
+			const win = getCurrentWindow();
+			// Moved back before it is sized, as `set_overlay_placement` does: a window dragged
+			// onto a display with another scale factor is rescaled by Windows on the way back,
+			// which would undo a size set first.
+			const position = new PhysicalPosition(geo.x, geo.y);
+			await win.setPosition(position);
+			await win.setSize(new PhysicalSize(geo.width, geo.height));
+			await win.setPosition(position);
+		} catch (err) {
+			// A failed restore must not trap the operator in move mode — carry on and exit.
+			console.error('Could not restore the overlay geometry', err);
+		}
+	}
+
+	/** Put the window back where move mode found it and leave without placing it. Where it was
+	 *  may be on a display that has gone since; then it stays where it is, and the move is
+	 *  abandoned all the same. */
 	async function cancel() {
 		const geo = entryGeometry;
-		if (geo && isTauri()) {
-			try {
-				const { getCurrentWindow, PhysicalPosition, PhysicalSize } =
-					await import('@tauri-apps/api/window');
-				const win = getCurrentWindow();
-				// Moved back before it is sized, as `set_overlay_placement` does: a window dragged
-				// onto a display with another scale factor is rescaled by Windows on the way back,
-				// which would undo a size set first.
-				const position = new PhysicalPosition(geo.x, geo.y);
-				await win.setPosition(position);
-				await win.setSize(new PhysicalSize(geo.width, geo.height));
-				await win.setPosition(position);
-			} catch (err) {
-				// A failed restore must not trap the operator in move mode — carry on and exit.
-				console.error('Could not restore the overlay geometry', err);
-			}
-		}
+		if (geo && isTauri()) await restoreGeometry(geo);
 		try {
 			await port.setOverlayClickThrough(true);
 		} catch (err) {

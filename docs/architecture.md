@@ -351,6 +351,16 @@ otherwise the most recent, always through `set_overlay_placement`. That command 
 rectangle to a monitor's work area and moves the window before sizing it, because crossing to
 a display with another scale factor makes Windows rescale it (`WM_DPICHANGED`).
 
+Displays can also change under a running app (issue #137). `placement.rs` polls the monitors
+about once a second, including their work areas, and once a change has held for two polls it
+rescues an overlay left unusable (its centre on no monitor, or larger than the one it is on)
+into the work area of the monitor nearest its centre, then emits `displays-changed` with the
+new layout signature. The operator window answers that with the layout's own remembered
+placement, if it has one, and never saves the rescued rectangle, so the projector's entry
+survives a lecture given on the laptop alone. `recover_overlay_placement` runs the same rescue
+on demand: before move mode, before showing a hidden overlay and when move mode ends. Escape
+in move mode restores the entry rectangle only if it still lies on a connected monitor.
+
 - **Fit window.** `OverlayCaptionLine.svelte` measures candidate text in a hidden paragraph
   with the visible text's font, line height, available width and live-caret footprint.
   `captionLayout.ts` finds a fitting suffix, preserving the newest words and handling long

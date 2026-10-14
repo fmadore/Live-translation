@@ -2,7 +2,7 @@
 // `tauri.ts` runs, and the test plays a core with one overlay window on a known set of
 // displays. What is checked is what the core is asked to do and what ends up in storage.
 
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import { mockTauri, type TauriMock } from './testing/tauriMock';
 import { createOverlayController } from './overlayController.svelte';
@@ -169,4 +169,146 @@ it('carries on when the placement cannot be read, and remembers nothing', async 
 	await overlay.toggleMoveOverlay();
 	expect(overlay.moveOverlay).toBe(false);
 	expect(stored()).toBeNull();
+});
+
+// Issue #137: a projector unplugged under a running app. The core rescues the window itself
+// when the displays change; these are the operator window's second chances, and what it does
+// with the layout the core announces.
+
+/** The window commands, in order, without the event plumbing around them. */
+const windowCalls = () =>
+	core.calls
+		.map((call) => call.cmd)
+		.filter((cmd) =>
+			['recover_overlay_placement', 'show_overlay', 'set_overlay_click_through'].includes(cmd)
+		);
+
+it('checks the overlay is on a display before entering move mode, not on the way out', async () => {
+	const overlay = createOverlayController();
+	await overlay.toggleMoveOverlay();
+	expect(windowCalls()).toEqual([
+		'recover_overlay_placement',
+		'show_overlay',
+		'set_overlay_click_through'
+	]);
+	await overlay.toggleMoveOverlay();
+	// Done: the window is where the operator just dragged it.
+	expect(windowCalls().filter((cmd) => cmd === 'recover_overlay_placement')).toHaveLength(1);
+});
+
+it('checks a hidden overlay is on a display before showing it, not before hiding it', async () => {
+	const overlay = createOverlayController();
+	await overlay.toggleOverlayVisible();
+	expect(overlay.overlayVisible).toBe(false);
+	expect(windowCalls()).toEqual(['show_overlay']);
+	await overlay.toggleOverlayVisible();
+	expect(overlay.overlayVisible).toBe(true);
+	expect(windowCalls()).toEqual(['show_overlay', 'recover_overlay_placement', 'show_overlay']);
+	expect(core.callsTo('show_overlay')).toEqual([{ visible: false }, { visible: true }]);
+});
+
+it('shows the overlay and enters move mode even when the check fails', async () => {
+	const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+	core.handle('recover_overlay_placement', () => {
+		throw new Error('No display available');
+	});
+	try {
+		const overlay = createOverlayController();
+		await overlay.toggleMoveOverlay();
+		expect(overlay.moveOverlay).toBe(true);
+		expect(core.callsTo('set_overlay_click_through')).toEqual([{ enabled: false }]);
+		await overlay.toggleMoveOverlay();
+		await overlay.toggleOverlayVisible();
+		await overlay.toggleOverlayVisible();
+		expect(overlay.overlayVisible).toBe(true);
+		expect(core.callsTo('show_overlay').at(-1)).toEqual({ visible: true });
+		expect(logged).toHaveBeenCalled();
+	} finally {
+		logged.mockRestore();
+	}
+});
+
+it('checks again when the overlay leaves move mode by itself', async () => {
+	const overlay = createOverlayController();
+	await overlay.toggleMoveOverlay();
+	overlay.applyState({ fontSize: 40 });
+	expect(core.callsTo('recover_overlay_placement')).toHaveLength(1);
+	// Escape: the overlay may have put itself back on a display that went during move mode.
+	overlay.applyState({ interactive: false });
+	await expect.poll(() => core.callsTo('recover_overlay_placement')).toHaveLength(2);
+	expect(overlay.moveOverlay).toBe(false);
+	expect(overlay.overlayVisible).toBe(true);
+});
+
+it('puts the overlay back where the layout had it when its displays return', async () => {
+	store([
+		{ layout: LAPTOP, placement: corner },
+		{ layout: ROOM, placement: strip }
+	]);
+	const overlay = createOverlayController();
+	await overlay.handleDisplaysChanged(ROOM); // the projector is plugged back in
+	expect(core.callsTo('set_overlay_placement')).toEqual([{ placement: strip }]);
+	// A use of the room's layout, and nothing else rewritten: the laptop keeps its own.
+	expect(stored()).toEqual([
+		{ layout: ROOM, placement: strip },
+		{ layout: LAPTOP, placement: corner }
+	]);
+	// Nothing read back to be remembered, and the window's state left as it was.
+	expect(core.callsTo('get_overlay_placement')).toHaveLength(0);
+	expect(windowCalls()).toEqual([]);
+	expect(overlay.overlayVisible).toBe(true);
+	expect(overlay.moveOverlay).toBe(false);
+});
+
+it('leaves the overlay where the core rescued it on displays with no placement of their own', async () => {
+	store([{ layout: ROOM, placement: strip }]);
+	const overlay = createOverlayController();
+	layout = LAPTOP; // the projector is unplugged; the core has already moved the window
+	await overlay.handleDisplaysChanged(LAPTOP);
+	await overlay.handleDisplaysChanged('');
+	expect(core.callsTo('set_overlay_placement')).toHaveLength(0);
+	// The rescue is not a placement: the projector's is still the one remembered.
+	expect(stored()).toEqual([{ layout: ROOM, placement: strip }]);
+
+	// The operator places it on the laptop by hand; that is saved under the laptop's layout.
+	await overlay.toggleMoveOverlay();
+	rect = corner;
+	await overlay.toggleMoveOverlay();
+	expect(stored()).toEqual([
+		{ layout: LAPTOP, placement: corner },
+		{ layout: ROOM, placement: strip }
+	]);
+});
+
+it('does not move the overlay from under the operator in move mode', async () => {
+	store([{ layout: ROOM, placement: strip }]);
+	const overlay = createOverlayController();
+	await overlay.toggleMoveOverlay();
+	await overlay.handleDisplaysChanged(ROOM);
+	expect(core.callsTo('set_overlay_placement')).toHaveLength(0);
+	expect(overlay.moveOverlay).toBe(true);
+});
+
+it('applies a display change only once a restore still under way has landed', async () => {
+	store([
+		{ layout: ROOM, placement: strip },
+		{ layout: LAPTOP, placement: corner }
+	]);
+	let answer!: (signature: string) => void;
+	core.handle('display_layout', () => new Promise<string>((resolve) => (answer = resolve)));
+	const overlay = createOverlayController();
+	const restoring = overlay.restorePlacement();
+	const changing = overlay.handleDisplaysChanged(LAPTOP);
+	await expect.poll(() => answer).toBeDefined();
+	answer(ROOM);
+	await Promise.all([restoring, changing]);
+	expect(core.callsTo('set_overlay_placement')).toEqual([
+		{ placement: strip },
+		{ placement: corner }
+	]);
+	expect(rect).toEqual(corner);
+	expect(stored()).toEqual([
+		{ layout: LAPTOP, placement: corner },
+		{ layout: ROOM, placement: strip }
+	]);
 });

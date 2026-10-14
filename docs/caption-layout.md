@@ -22,7 +22,14 @@ with little history can still leave empty space.
 
 At launch the overlay reopens where it was last placed, remembered separately for each
 arrangement of displays: on the projector whenever the projector is connected, and in the
-laptop's own place when it is not. Connecting a display while the app runs does not move it.
+laptop's own place when it is not. The same holds while the app runs: unplugging the projector
+brings an overlay that was on it back onto a connected display, resized if it no longer fits,
+and plugging it back in returns the overlay to where it was last placed there. An overlay that
+is still fully usable is never moved, a hidden one is recovered without being shown, and
+captioning carries on throughout. **Move overlay** and showing a hidden overlay check its
+position again first, so the window is never placed or shown off every display, and Escape in
+move mode does not put it back on a display that has gone. Moving the overlay back onto the
+laptop does not replace the placement remembered for the projector.
 Finishing placement (**Done**, **Lock into place** or Enter) and loading a meeting profile both
 count as placing it; Escape, which puts the window back, does not. Displays the app has not
 seen yet reopen the most recent placement, kept within a connected display's work area, and
@@ -175,6 +182,7 @@ browser and native pass was for 1.2.4 (14 September 2026).
 | Relaunch | Layout and appearance persist; the fresh session does not resurrect old captions. |
 | Placement and locking | Move/resize, Enter, Escape and click-through still work; the move-mode preview stays readable over a white slide (1.6.1); Done in the operator window marks the overlay placed (1.7.0). |
 | Placement across launches | Placed on the projector, it reopens there; launched without the projector it opens fully on the laptop, and with the projector reconnected it is back on it. With the laptop at 150% and the projector at 100%, the size is kept, not scaled. No visible jump from the centre at launch. |
+| Display changes while running (#137) | With the overlay on the projector, unplug the projector without quitting: within a couple of seconds the overlay is fully on the laptop, and **Move overlay** shows it there, draggable. Plug the projector back in: the overlay returns to its projector placement. Repeat with the overlay hidden (it stays hidden, then shows on the laptop), in move mode (Escape leaves it on the laptop), with a projector to the left of or above the laptop, and by switching Windows projection mode (Win+P: PC screen only, Extend, Second screen only). A running session keeps captioning throughout. |
 | Idle and export | Existing fade-out works; full transcript remains available and exports correctly. |
 | Stable reading, long session | Past 180 hidden lines the context trims with no visible re-wrap; changing Hide filler words or its word list changes the live turn and new captions only. |
 | English and French | Labels, keyboard access and layout choice work in both the rail and settings. |
