@@ -301,7 +301,7 @@ impl ModelManager {
         }
         ensure!(!token.is_cancelled(), "Model download cancelled");
         ensure!(
-            total == transfer.bytes && format!("{:x}", hash.finalize()) == transfer.sha256,
+            total == transfer.bytes && hex(&hash.finalize()) == transfer.sha256,
             "Whisper model integrity check failed; remove and download it again"
         );
         partial.install(&dir.join(id.file()))
@@ -344,12 +344,13 @@ pub(super) fn read_verified(path: &Path, id: ModelId) -> Result<Vec<u8>> {
         "Model size is wrong; remove and download it again"
     );
     let data = fs::read(path)?;
-    verify_digest(
-        id,
-        data.len() as u64,
-        &format!("{:x}", Sha256::digest(&data)),
-    )?;
+    verify_digest(id, data.len() as u64, &hex(&Sha256::digest(&data)))?;
     Ok(data)
+}
+
+/// Lowercase hex, the form the pinned digests are written in.
+fn hex(digest: &[u8]) -> String {
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn verify_digest(id: ModelId, bytes: u64, digest: &str) -> Result<()> {
@@ -456,7 +457,7 @@ mod tests {
         Transfer {
             url,
             bytes: PAYLOAD.len() as u64,
-            sha256: format!("{:x}", Sha256::digest(PAYLOAD)),
+            sha256: hex(&Sha256::digest(PAYLOAD)),
             stall: Duration::from_millis(500),
         }
     }

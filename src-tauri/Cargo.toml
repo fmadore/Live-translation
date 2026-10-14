@@ -52,20 +52,20 @@ whisper-rs-sys = "=0.15.0"
 # The same 0.13 Tauri already compiles. SChannel like the WebSockets, and `system-proxy` so
 # model downloads follow the Windows proxy setting that university networks often require.
 reqwest = { version = "0.13", default-features = false, features = ["native-tls", "system-proxy"] }
-sha2 = "0.10"
+sha2 = "0.11"
 tempfile = "3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # A second launch must reach the running instance rather than open a second capture process
 # against the same devices. Registered first in the builder chain, as the plugin requires.
-tauri-plugin-single-instance = "2.5.1"
+tauri-plugin-single-instance = "2.5.2"
 
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]
 rfd = { version = "0.17.2", default-features = false }
 # Direct event-driven WASAPI access for render-device loopback capture.
-wasapi = "0.24"
+wasapi = "0.25"
 # Win32 z-order/activation control for the caption overlay (`src/overlay.rs`). Already in
 # the dependency graph via tauri/tokio, so this adds no extra compilation.
 windows-sys = { version = "0.61", features = [
