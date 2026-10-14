@@ -17,6 +17,7 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
+		"prepare": "svelte-kit sync || echo ''",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json && tsc -p e2e",
