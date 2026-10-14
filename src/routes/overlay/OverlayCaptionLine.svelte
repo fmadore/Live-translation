@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { captionDirection } from '$lib/languages';
-	import { captionReach, firstOffsetOnLine, fitCaptionTail } from '$lib/captionLayout';
+	import { captionDirection } from '#lib/languages.js';
+	import { captionReach, firstOffsetOnLine, fitCaptionTail } from '#lib/captionLayout.js';
 	let {
 		stable = false,
 		muted = false,
