@@ -1,36 +1,36 @@
 <script lang="ts">
-	import WhisperActivity from '$lib/WhisperActivity.svelte';
-	import { whisperModels } from '$lib/stores';
-	import { whisperPendingSeconds } from '$lib/whisperProgress';
-	import { isLocalWhisper } from '$lib/providers';
+	import WhisperActivity from '#lib/WhisperActivity.svelte';
+	import { whisperModels } from '#lib/stores.js';
+	import { whisperPendingSeconds } from '#lib/whisperProgress.js';
+	import { isLocalWhisper } from '#lib/providers.js';
 	import { onMount } from 'svelte';
-	import MeetingProfiles from '$lib/MeetingProfiles.svelte';
-	import OperatorToolbar from '$lib/OperatorToolbar.svelte';
-	import SessionControls from '$lib/SessionControls.svelte';
-	import DeviceRecoveryBanner from '$lib/DeviceRecoveryBanner.svelte';
-	import LiveTurns from '$lib/LiveTurns.svelte';
-	import LiveRail from '$lib/LiveRail.svelte';
-	import SetupSheet from '$lib/SetupSheet.svelte';
-	import PreflightChecklist from '$lib/PreflightChecklist.svelte';
-	import TranscriptMonitor from '$lib/TranscriptMonitor.svelte';
-	import SettingsDialog, { type SettingsTab } from '$lib/SettingsDialog.svelte';
-	import ActiveSessionPrompt from '$lib/ActiveSessionPrompt.svelte';
-	import RecoveryPrompt from '$lib/RecoveryPrompt.svelte';
-	import TrayHidePrompt from '$lib/TrayHidePrompt.svelte';
-	import UnsavedPrompt from '$lib/UnsavedPrompt.svelte';
-	import { createPreflightController } from '$lib/preflightController.svelte';
-	import { createQuitController } from '$lib/quitController.svelte';
-	import { createOverlayController } from '$lib/overlayController.svelte';
-	import { createSessionClock } from '$lib/sessionClock.svelte';
-	import { createSessionController } from '$lib/sessionController';
-	import { createSetupActions } from '$lib/setupActions';
-	import { createDeviceFailure } from '$lib/deviceFailure.svelte';
-	import { createRecoveryOffer } from '$lib/recoveryOffer.svelte';
-	import { syncNative } from '$lib/nativeSync.svelte';
-	import { captionLanguageError, type DemoLanguage } from '$lib/languages';
-	import { shortcut } from '$lib/shortcuts';
-	import { on, isTauri } from '$lib/tauri';
-	import { describeError } from '$lib/errors';
+	import MeetingProfiles from '#lib/MeetingProfiles.svelte';
+	import OperatorToolbar from '#lib/OperatorToolbar.svelte';
+	import SessionControls from '#lib/SessionControls.svelte';
+	import DeviceRecoveryBanner from '#lib/DeviceRecoveryBanner.svelte';
+	import LiveTurns from '#lib/LiveTurns.svelte';
+	import LiveRail from '#lib/LiveRail.svelte';
+	import SetupSheet from '#lib/SetupSheet.svelte';
+	import PreflightChecklist from '#lib/PreflightChecklist.svelte';
+	import TranscriptMonitor from '#lib/TranscriptMonitor.svelte';
+	import SettingsDialog, { type SettingsTab } from '#lib/SettingsDialog.svelte';
+	import ActiveSessionPrompt from '#lib/ActiveSessionPrompt.svelte';
+	import RecoveryPrompt from '#lib/RecoveryPrompt.svelte';
+	import TrayHidePrompt from '#lib/TrayHidePrompt.svelte';
+	import UnsavedPrompt from '#lib/UnsavedPrompt.svelte';
+	import { createPreflightController } from '#lib/preflightController.svelte.js';
+	import { createQuitController } from '#lib/quitController.svelte.js';
+	import { createOverlayController } from '#lib/overlayController.svelte.js';
+	import { createSessionClock } from '#lib/sessionClock.svelte.js';
+	import { createSessionController } from '#lib/sessionController.js';
+	import { createSetupActions } from '#lib/setupActions.js';
+	import { createDeviceFailure } from '#lib/deviceFailure.svelte.js';
+	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
+	import { syncNative } from '#lib/nativeSync.svelte.js';
+	import { captionLanguageError, type DemoLanguage } from '#lib/languages.js';
+	import { shortcut } from '#lib/shortcuts.js';
+	import { on, isTauri } from '#lib/tauri.js';
+	import { describeError } from '#lib/errors.js';
 	import {
 		sessionState,
 		isRunning,
@@ -44,11 +44,11 @@
 		sessionStartedAt,
 		pauseRequested,
 		pushCaption
-	} from '$lib/stores';
-	import { followTextScale } from '$lib/textScale';
-	import { historyEnabled } from '$lib/history';
-	import type { SessionState } from '$lib/types';
-	import { formatDateTime, localeTag, locale, t } from '$lib/i18n';
+	} from '#lib/stores.js';
+	import { followTextScale } from '#lib/textScale.js';
+	import { historyEnabled } from '#lib/history.js';
+	import type { SessionState } from '#lib/types.js';
+	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is

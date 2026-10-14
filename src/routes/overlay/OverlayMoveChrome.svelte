@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { t } from '$lib/i18n';
-	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from '$lib/appearance';
-	import Stepper from '$lib/ui/Stepper.svelte';
-	import ToolButton from '$lib/ui/ToolButton.svelte';
+	import { t } from '#lib/i18n/index.js';
+	import { OVERLAY_FONT_MAX, OVERLAY_FONT_MIN } from '#lib/appearance.js';
+	import Stepper from '#lib/ui/Stepper.svelte';
+	import ToolButton from '#lib/ui/ToolButton.svelte';
 
 	/** Move mode's placement chrome. The overlay window *is* the caption region, so the chrome
 	 *  hugs the window edges rather than being drawn inside a larger screen. Everything here is

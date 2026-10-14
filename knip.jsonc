@@ -2,9 +2,9 @@
 	"$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
 	// No entry or project patterns: knip's plugins already find every entry point this project
 	// has, and a pattern repeated here is reported as redundant.
-	// - SvelteKit: the routes (`+page.svelte`, `+layout.*`) and the `$lib` alias, taken from
-	//   vite.config.js rather than the generated .svelte-kit/tsconfig.json, so it resolves in a
-	//   fresh clone before `svelte-kit sync` has run.
+	// - SvelteKit: the routes (`+page.svelte`, `+layout.*`) and the `#lib/*` subpath import,
+	//   taken from package.json `imports`, so it resolves in a fresh clone before `svelte-kit sync`
+	//   has run.
 	// - Vitest: both projects in vite.config.js — `*.test.ts`, `*.svelte.test.ts` and the
 	//   component project's vitest-setup-client.ts — and the coverage provider and jsdom.
 	// - package.json scripts: scripts/*.mjs, and the CLI-only devDependencies through the

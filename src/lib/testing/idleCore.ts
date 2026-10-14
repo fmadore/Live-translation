@@ -2,7 +2,7 @@
 // Vitest mock (`tauriMock.ts`) and the Playwright one (`e2e/style/fakeCore.ts`).
 //
 // Dependency-free on purpose: the Playwright suite runs this in Node, outside Vite, so it can
-// import nothing at runtime — no Vitest, no Svelte, no `$lib` alias. Type imports are erased.
+// import nothing at runtime — no Vitest, no Svelte, no `#lib` alias. Type imports are erased.
 //
 // Test-only. Nothing in the app imports this, so it never reaches the bundle.
 

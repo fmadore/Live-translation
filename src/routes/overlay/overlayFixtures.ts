@@ -1,8 +1,8 @@
 // Content for previewing the overlay in a browser, where there is no core to send captions.
 // Labelled preview text for layout and font checks — never evidence of live-provider behaviour.
 
-import { isTargetLanguage } from '$lib/languages';
-import type { Caption, TargetLanguage, Track } from '$lib/types';
+import { isTargetLanguage } from '#lib/languages.js';
+import type { Caption, TargetLanguage, Track } from '#lib/types.js';
 
 const REMOTE_EARLIER =
 	'Bienvenue à cette démonstration des sous-titres. Pendant une réunion, les phrases récentes restent disponibles pour suivre la discussion. Agrandissez la fenêtre pour afficher davantage de contexte, ou réduisez-la pour ne garder que les mots les plus récents. La taille des caractères reste celle que vous avez choisie.';

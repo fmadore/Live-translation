@@ -7,12 +7,12 @@ import {
 	CAPTION_TAIL_CHARS,
 	tail,
 	type CaptionLayout
-} from '$lib/captionLayout';
-import { createFillerFilter } from '$lib/cleanSpeech';
-import { createCaptionPresenter, holdSeconds, type CaptionPace } from '$lib/reading';
-import { captionBudget, clampOverlayWidth } from '$lib/appearance';
-import { TRACK_ORDER, trackLane, trackOf, trackOrigin } from '$lib/types';
-import type { Caption, Lane, Origin, StatusUpdate, Track } from '$lib/types';
+} from '#lib/captionLayout.js';
+import { createFillerFilter } from '#lib/cleanSpeech.js';
+import { createCaptionPresenter, holdSeconds, type CaptionPace } from '#lib/reading.js';
+import { captionBudget, clampOverlayWidth } from '#lib/appearance.js';
+import { TRACK_ORDER, trackLane, trackOf, trackOrigin } from '#lib/types.js';
+import type { Caption, Lane, Origin, StatusUpdate, Track } from '#lib/types.js';
 
 /** An in-progress line that stalls (no turn-complete arriving) clears after this. */
 const INTERIM_HOLD_MS = 3000;

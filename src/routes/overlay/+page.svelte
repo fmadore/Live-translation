@@ -11,21 +11,21 @@
 		loadAppearance,
 		SHOW_ORIGINAL_KEY,
 		type Appearance
-	} from '$lib/appearance';
-	import { loadFillerWords, normalizeFillerWords } from '$lib/cleanSpeech';
+	} from '#lib/appearance.js';
+	import { loadFillerWords, normalizeFillerWords } from '#lib/cleanSpeech.js';
 	import {
 		bottomCaptionHeight,
 		ORIGINAL_GAP,
 		ORIGINAL_SCALE,
 		originalHeight
-	} from '$lib/captionLayout';
-	import { readFlag } from '$lib/persisted';
-	import { captionCssVars } from '$lib/captionColour';
-	import { captionFaceStack } from '$lib/captionFont';
-	import { isLocale, locale, t } from '$lib/i18n';
-	import { isTargetLanguage } from '$lib/languages';
-	import { api, on, isTauri } from '$lib/tauri';
-	import type { Lane, Origin, TargetLanguage } from '$lib/types';
+	} from '#lib/captionLayout.js';
+	import { readFlag } from '#lib/persisted.js';
+	import { captionCssVars } from '#lib/captionColour.js';
+	import { captionFaceStack } from '#lib/captionFont.js';
+	import { isLocale, locale, t } from '#lib/i18n/index.js';
+	import { isTargetLanguage } from '#lib/languages.js';
+	import { api, on, isTauri } from '#lib/tauri.js';
+	import type { Lane, Origin, TargetLanguage } from '#lib/types.js';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
 	// operator), then the operator pushes live updates via the overlay-config event.
