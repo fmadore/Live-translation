@@ -6,7 +6,9 @@
 import { defineConfig } from 'eslint/config';
 import svelte from 'eslint-plugin-svelte';
 import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
+import { loadConfig } from '@sveltejs/load-config';
+
+const svelteConfig = (await loadConfig('./', { traverse: false }))?.config;
 
 export default defineConfig(
 	{
@@ -48,12 +50,7 @@ export default defineConfig(
 		languageOptions: {
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: [
-						'eslint.config.js',
-						'svelte.config.js',
-						'vitest-setup-client.ts',
-						'scripts/*.mjs'
-					],
+					allowDefaultProject: ['eslint.config.js', 'vitest-setup-client.ts', 'scripts/*.mjs'],
 					defaultProject: 'tsconfig.json'
 				},
 				tsconfigRootDir: import.meta.dirname,
