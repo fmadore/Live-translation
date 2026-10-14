@@ -37,6 +37,7 @@ pub const COMMANDS: &[&str] = &[
     "get_overlay_placement",
     "set_overlay_placement",
     "display_layout",
+    "recover_overlay_placement",
     "save_transcript",
     "text_scale_factor",
     "write_recovery",

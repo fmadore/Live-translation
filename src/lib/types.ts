@@ -398,5 +398,6 @@ export const EVT = {
 	trayCommand: 'tray-command',
 	overlayConfig: 'overlay-config',
 	overlayState: 'overlay-state',
-	textScale: 'text-scale'
+	textScale: 'text-scale',
+	displaysChanged: 'displays-changed'
 } as const;

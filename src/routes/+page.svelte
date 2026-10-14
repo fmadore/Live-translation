@@ -141,7 +141,10 @@
 			on.audioTest(preflight.applyAudioTest),
 			// The overlay can be locked, placed and resized from its own toolbar; mirror that
 			// back so the rail and the pre-flight check don't drift out of sync.
-			on.overlayState(overlay.applyState)
+			on.overlayState(overlay.applyState),
+			// A projector unplugged or plugged back in mid-event: put the overlay where this
+			// layout last had it, once the core has made sure it is on a display at all.
+			on.displaysChanged((layout) => void overlay.handleDisplaysChanged(layout))
 		];
 
 		return () => {

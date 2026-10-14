@@ -122,8 +122,9 @@ export function createOverlayController(port = api) {
 	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
 	// when the operator finishes placing it and when a profile places it: not on every move,
 	// and not when Escape puts the window back where move mode found it. Restored once, as the
-	// operator window mounts. What places the window waits for that restore, so one still on
-	// its way can never land on top of a placement the operator has just made.
+	// operator window mounts, and again when the displays change under a running app and the
+	// new layout has a placement of its own. What places the window waits for those restores,
+	// so one still on its way can never land on top of a placement the operator has just made.
 	let restoring: Promise<void> = Promise.resolve();
 
 	/** Store where the overlay is now, under the current layout. Best effort: a placement that
@@ -161,6 +162,54 @@ export function createOverlayController(port = api) {
 		return restoring;
 	}
 
+	/** Make sure the overlay is on a display that is there before the operator is shown it. A
+	 *  projector unplugged under a running app leaves the window on coordinates no screen has
+	 *  any more, and showing it there — or entering move mode there — is a region the operator
+	 *  cannot see, let alone drag. The core moves it into a work area only when it has to: a
+	 *  placement that is still usable stays exactly where it is.
+	 *
+	 *  Best effort, like `rememberPlacement`: the core also rescues the overlay itself when the
+	 *  displays change, so a check that fails here is a missed second chance, not a reason to
+	 *  refuse the operator the overlay. */
+	async function ensureReachable() {
+		await restoring;
+		try {
+			await api.recoverOverlayPlacement();
+		} catch (e) {
+			console.error('Could not check the overlay is on a connected display', e);
+		}
+	}
+
+	/** The displays changed while the app was running: a projector plugged in or pulled out, a
+	 *  dock, Windows' projection mode. By now the core has already brought a stranded overlay
+	 *  back onto a display that is there; what is left is the room's own placement. When this
+	 *  layout has one — the projector is back — the overlay goes back to it. When it has none,
+	 *  the overlay stays where the core's rescue put it: the most recent placement on another
+	 *  layout, which a launch would fall back to, was made for displays that are not these.
+	 *
+	 *  Nothing is remembered here. A rescue lands wherever there is room, not where the operator
+	 *  chose: remembering it would teach a layout a placement nobody made, or, read while the
+	 *  displays are still settling, write the laptop's screen over the projector's own. A later
+	 *  Done saves under the layout it is made on. Nothing is applied in move mode either: the
+	 *  operator is placing the window by hand, and Done or Escape decides where it ends up.
+	 *
+	 *  Chained behind any restore under way, so two changes in quick succession, or one during
+	 *  the launch restore, are applied in the order they came. */
+	function handleDisplaysChanged(layout: string): Promise<void> {
+		restoring = restoring
+			.then(async () => {
+				if (!isLayout(layout) || moveOverlay) return;
+				const stored = loadGeometry();
+				const own = stored.find((entry) => entry.layout === layout);
+				if (!own) return;
+				await api.setOverlayPlacement(own.placement);
+				// Coming back to a layout is a use of it, as at launch.
+				saveGeometry(remember(stored, layout, own.placement));
+			})
+			.catch((e: unknown) => console.error('Could not restore the overlay for these displays', e));
+		return restoring;
+	}
+
 	/** Place the overlay where a meeting profile says, and remember it there: loading a profile
 	 *  is as explicit a placement as finishing move mode. A refused placement is the caller's
 	 *  to report. */
@@ -173,6 +222,9 @@ export function createOverlayController(port = api) {
 	async function toggleMoveOverlay() {
 		const next = !moveOverlay;
 		await restoring;
+		// Entering move mode is the operator asking to see the region: it must be somewhere they
+		// can. Leaving it is not — the window is where they just dragged it.
+		if (next) await ensureReachable();
 		try {
 			await api.showOverlay(true);
 			overlayVisible = true;
@@ -193,6 +245,9 @@ export function createOverlayController(port = api) {
 
 	async function toggleOverlayVisible() {
 		const next = !overlayVisible;
+		// A hidden overlay is still placed, and the display it was placed on may have gone while
+		// it was hidden; hiding needs no such check.
+		if (next) await ensureReachable();
 		try {
 			await api.showOverlay(next);
 			overlayVisible = next;
@@ -213,7 +268,13 @@ export function createOverlayController(port = api) {
 	}
 
 	function applyState(msg: OverlayStateMsg) {
-		if (msg.interactive === false) moveOverlay = false;
+		if (msg.interactive === false) {
+			moveOverlay = false;
+			// Left from the overlay itself. Escape puts the window back where move mode found it
+			// only if that display is still there, but one going between its check and its move
+			// would slip past; check once more.
+			void ensureReachable();
+		}
 		// Locked from the overlay's own toolbar or Enter key. Escape sends no `placed`: the
 		// window went back where it was, so there is nothing new to remember.
 		if (msg.placed === true) {
@@ -236,6 +297,7 @@ export function createOverlayController(port = api) {
 		},
 		initialize,
 		restorePlacement,
+		handleDisplaysChanged,
 		applyPlacement,
 		applyState,
 		pushOverlayConfig,

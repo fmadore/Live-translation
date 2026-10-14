@@ -70,6 +70,10 @@ export const api = {
 	/** A signature of the connected displays, which the remembered overlay placement is kept
 	 *  under. See `overlayGeometry.ts`. */
 	displayLayout: () => invoke<string>('display_layout'),
+	/** Bring the overlay back onto a display that is there when it is not: its centre on no
+	 *  connected display, or larger than the one it is on. True when the core moved it. Leaves
+	 *  a usable placement, visibility and click-through alone. */
+	recoverOverlayPlacement: () => invoke<boolean>('recover_overlay_placement'),
 	writeHistory: (id: string, contents: string) => invoke<void>('write_history', { id, contents }),
 	pauseSession: (paused: boolean) => invoke<void>('pause_session', { paused }),
 	appendHistory: (id: string, contents: string) => invoke<void>('append_history', { id, contents }),
@@ -184,5 +188,9 @@ export const on = {
 	overlayConfig: (h: (c: OverlayConfig) => void) => listen<OverlayConfig>(EVT.overlayConfig, h),
 	overlayState: (h: (m: OverlayStateMsg) => void) => listen<OverlayStateMsg>(EVT.overlayState, h),
 	/** The operator moved Windows' text-size slider while the app was running. */
-	textScale: (h: (factor: number) => void) => listen<number>(EVT.textScale, h)
+	textScale: (h: (factor: number) => void) => listen<number>(EVT.textScale, h),
+	/** A display was connected, disconnected, moved or rescaled while the app ran. Carries the
+	 *  new `display_layout` signature, and arrives after the core has already rescued an
+	 *  overlay left on a display that has gone. */
+	displaysChanged: (h: (layout: string) => void) => listen<string>(EVT.displaysChanged, h)
 };

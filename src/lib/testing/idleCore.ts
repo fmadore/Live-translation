@@ -42,6 +42,8 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 	// One 1920×1080 display at 100%, with the overlay where `tauri.conf.json` creates it.
 	display_layout: () => '0,0 1920x1080 100%',
 	get_overlay_placement: (): Placement => ({ x: 320, y: 460, width: 1280, height: 160 }),
+	// …which is on that display, so there is nothing to recover.
+	recover_overlay_placement: () => false,
 	read_recovery: (): StoredRecovery | null => null,
 	list_history: (): HistoryListing => ({ sessions: [], removed: [] }),
 	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`
