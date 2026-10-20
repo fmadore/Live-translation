@@ -1,11 +1,14 @@
-# Partner Center listing text — 1.7.0
+# Partner Center listing text — 1.7.1
 
-Prepared for **1.7.0 / MSIX 1.7.0.0**, tagged on 20 October 2026; not submitted. The last
+Prepared for **1.7.1 / MSIX 1.7.1.0**, tagged on 20 October 2026; not submitted. The last
 confirmed Store release is 1.6.1 (MSIX 1.6.1.0), which already has the wave-to-words icon and
 the refreshed interface, so What's new covers the changes since 1.6.1. Paste each block into
-its named field after the [release checks](store-updates.md#release-170-handoff).
+its named field after the [release checks](store-updates.md#release-171-handoff).
 These descriptions lead with the actual captioning workflow; the scripted demo is a secondary
 setup aid.
+
+1.7.1 is 1.7.0, which was not submitted, plus a fix that shows the app icon on the taskbar and
+in Start without a coloured square; What's new gains one sentence on it.
 
 For 1.7.0 the descriptions, features, short descriptions and requirements in all three
 languages add offline translation into English with Whisper (which retires the line that
@@ -76,7 +79,7 @@ English, French and German interface; native Windows x64 and ARM64
 Free live captions over meetings, calls and slides. Transcribe offline with Whisper in 99 languages or translate into English, or use your own cloud API key for other languages. Capture a microphone or any app, show two caption languages and export the transcript.
 ```
 
-### What's new in this version — 1.7.0
+### What's new in this version — 1.7.1
 
 ```text
 Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
@@ -84,6 +87,8 @@ Translate into English offline: Local Whisper now turns speech in any of its 99 
 The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling. If the projector is unplugged during a session, the overlay moves onto a connected screen.
 
 Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
+
+The app icon now shows on the taskbar and in Start without a coloured square behind it.
 
 Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
 ```
@@ -138,7 +143,7 @@ Interface en français, anglais et allemand ; versions Windows x64 et ARM64 nati
 Sous-titres en direct gratuits sur vos réunions, appels et présentations. Transcrivez hors ligne avec Whisper en 99 langues ou traduisez vers l'anglais, et vers d'autres langues avec votre clé API cloud. Captez un micro ou une application et exportez la transcription.
 ```
 
-### Nouveautés de cette version — 1.7.0
+### Nouveautés de cette version — 1.7.1
 
 ```text
 Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
@@ -146,6 +151,8 @@ Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la par
 La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
 
 Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
+
+L'icône de l'application s'affiche désormais dans la barre des tâches et le menu Démarrer sans carré coloré derrière elle.
 
 Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
 ```
@@ -200,7 +207,7 @@ Oberfläche auf Deutsch, Englisch und Französisch; native Windows-Versionen fü
 Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprachen transkribieren oder ins Englische übersetzen, andere Sprachen per Cloud mit eigenem API-Schlüssel. Mikrofon oder App-Audio erfassen, zwei Sprachen anzeigen und Transkripte exportieren.
 ```
 
-### Neu in dieser Version — 1.7.0
+### Neu in dieser Version — 1.7.1
 
 ```text
 Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
@@ -208,6 +215,8 @@ Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder s
 Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung. Wird der Projektor während einer Sitzung getrennt, wechselt es auf einen verbundenen Bildschirm.
 
 Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
+
+Das App-Symbol erscheint in der Taskleiste und im Startmenü jetzt ohne farbiges Quadrat dahinter.
 
 Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
 ```
@@ -256,7 +265,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.1, the version in the Store, the app has offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.1, with a processor note in step 1, a restart check in step 4 and an optional translation route in step 7.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.1.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.1, the version in the Store, the app has offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.1, with a processor note in step 1, a restart check in step 4 and an optional translation route in step 7.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.

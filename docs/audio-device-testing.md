@@ -1,7 +1,7 @@
 # Audio devices and native acceptance
 
 Device handling arrived in 1.2.1/1.2.2. The hardware matrix below remains **pending** for the
-1.7.0 packages; automated tests and browser previews do not replace it. Repeat key cases with
+1.7.1 packages; automated tests and browser previews do not replace it. Repeat key cases with
 local Whisper as well as a cloud engine, including Pause and Stop with pending audio.
 
 1.7.0 makes three of these cases more pressing. System capture runs on wasapi 0.26, and its

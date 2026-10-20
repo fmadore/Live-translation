@@ -5,10 +5,16 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.7.0 on GitHub, 1.6.1 in the Store
+## Current status — 1.7.1 on GitHub, 1.6.1 in the Store
 
-The latest [GitHub release is **1.7.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0)
-(20 October 2026), awaiting Store submission: [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
+The latest [GitHub release is **1.7.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)
+(20 October 2026), awaiting Store submission, where it will replace 1.6.1. It is 1.7.0's app
+code with a packaging fix: the taskbar and Start drew the icon on a plate in the Windows accent
+colour, and the package now carries unplated icon sizes and a resource index. The
+[1.7.1 handoff](docs/store-updates.md#release-171-handoff) has the Store steps.
+
+[1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0), published the same day
+on GitHub only, is [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
 the six batches of the [6 October app review](docs/app-review-2026-10-06.md) and a Mistral
 reconnect fix, then overlay recovery when a display is disconnected
 ([#139](https://github.com/fmadore/Live-translation/pull/139)), SvelteKit 3
@@ -19,8 +25,8 @@ display when its own is unplugged, cloud sessions that reconnect after a mid-str
 transient provider error or a stalled network, and Whisper built with SIMD behind a runtime
 processor check: about twice as fast on ARM64, and on x64 limited to processors with AVX2. The
 rest is operator fixes, 24-bit microphones, structure, and CI gates with two Playwright suites.
-The [1.7.0 handoff](docs/store-updates.md#release-170-handoff) has the package evidence and the
-Store steps.
+The [1.7.0 handoff](docs/store-updates.md#release-170-handoff) has its package evidence and the
+manual checks that carry over to 1.7.1.
 
 The Store serves [**1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)
 (6 October 2026, MSIX 1.6.1.0), confirmed by the maintainer on 20 October 2026; its submission
@@ -41,7 +47,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.7.0 handoff](docs/store-updates.md#release-170-handoff) is the current checklist.
+[1.7.1 handoff](docs/store-updates.md#release-171-handoff) is the current checklist.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -115,8 +121,11 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
-- **1.7.0** (20 October 2026, GitHub; Store submission pending): the six batches of the
-  [6 October app review](docs/app-review-2026-10-06.md)
+- **1.7.1** (20 October 2026, GitHub; Store submission pending): 1.7.0's app code with
+  unplated taskbar icon sizes and a resource index in the package, so the taskbar and Start no
+  longer draw the icon on an accent-coloured plate. [Release body](docs/release-1.7.1.md).
+- **1.7.0** (20 October 2026, GitHub only; superseded in the Store by 1.7.1): the six batches
+  of the [6 October app review](docs/app-review-2026-10-06.md)
   ([#116](https://github.com/fmadore/Live-translation/pull/116)–[#121](https://github.com/fmadore/Live-translation/pull/121)),
   with offline Whisper translation into English (F1) and an overlay that reopens where it was
   placed (F2); Mistral reconnects after error 3803

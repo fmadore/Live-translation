@@ -12,11 +12,14 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 
 **[1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)** (6 October 2026),
 with local Whisper, is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X);
-**[1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0)** (20 October 2026)
-is the latest on GitHub: offline translation into English with Whisper, an overlay that reopens
-where you placed it and comes back when a projector is unplugged, and cloud sessions that
-reconnect instead of ending. It is awaiting Store submission and will replace 1.6.1 there. See
-its [release notes](docs/release-1.7.0.md) and [Store handoff](docs/store-updates.md#release-170-handoff).
+**[1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)** (20 October 2026)
+is the latest on GitHub. It brings everything in
+[1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0), published the same day
+on GitHub only: offline translation into English with Whisper, an overlay that reopens where
+you placed it and comes back when a projector is unplugged, and cloud sessions that reconnect
+instead of ending. 1.7.1 adds a fix for the taskbar icon, which no longer sits on a coloured
+square. It is awaiting Store submission and will replace 1.6.1 there. See its
+[release notes](docs/release-1.7.1.md) and [Store handoff](docs/store-updates.md#release-171-handoff).
 
 ## What it does
 

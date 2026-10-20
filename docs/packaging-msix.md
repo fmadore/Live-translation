@@ -5,8 +5,8 @@ install it, and check what CI cannot: microphone capture, WASAPI loopback, Crede
 the overlay and the export path, all running under package identity.
 
 [`microsoft-store.md`](microsoft-store.md) has the certification approach, the assigned identity
-values and the acceptance checklist; the [handoff](store-updates.md#release-170-handoff)
-records the **1.7.0** release's Store status.
+values and the acceptance checklist; the [handoff](store-updates.md#release-171-handoff)
+records the **1.7.1** release's Store status.
 
 ## What is committed
 
@@ -17,9 +17,9 @@ hands it to the Windows SDK's `MakeAppx`.
 
 | Path | What it is |
 | --- | --- |
-| `src-tauri/gen/windows/bundle.config.json` | Publisher, capabilities, signing. Read at build time. |
+| `src-tauri/gen/windows/bundle.config.json` | Publisher, capabilities, signing, resource index. Read at build time. |
 | `src-tauri/gen/windows/AppxManifest.xml.template` | The manifest, with `{{PLACEHOLDER}}`s the bundler fills in per architecture. |
-| `src-tauri/gen/windows/Assets/*.png` | Store logo and tiles, copied into the package verbatim. |
+| `src-tauri/gen/windows/Assets/*.png` | Store logo and tiles, plus the [taskbar icon sizes](#icon-variants-and-resourcespri), copied into the package verbatim. |
 | `src-tauri/icons/{StoreLogo,Square44x44Logo,Square150x150Logo}.png` | `tauri icon` output for the MSIX sizes; the source the bundler regenerates `Assets/` from. |
 | `package.json` → `bundle:msix:{x64,arm64}` | Architecture-specific Store package commands. |
 | `.github/workflows/release.yml` → `msix` job | Native x64 on `windows-latest`, ARM64 on `windows-11-arm`; unsigned release packages. |
@@ -52,7 +52,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.7.0.0"
+  Version="1.7.1.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -64,6 +64,47 @@ at the user's request.
 
 `Version` is the field that moves: the bundler stamps it from `tauri.conf.json`, with a fourth
 component appended.
+
+## Icon variants and `resources.pri`
+
+The manifest names one image per slot (`Square44x44Logo.png`, `Square150x150Logo.png`,
+`Wide310x150Logo.png` and `StoreLogo.png`), and those base files are unchanged. Beside them,
+`Assets/` holds 42 target-size icons that Windows picks by name:
+`Square44x44Logo.targetsize-N.png`, `Square44x44Logo.targetsize-N_altform-unplated.png` and
+`Square44x44Logo.targetsize-N_altform-lightunplated.png` for N = 16, 20, 24, 30, 32, 36, 40, 48,
+60, 64, 72, 80, 96 and 256. These are the sizes the taskbar, Start's app list, Alt+Tab and jump
+lists draw; the `unplated` forms are drawn as they are, with no plate behind them. No logo has
+scale variants.
+
+Windows resolves qualified file names only through the package resource index,
+`resources.pri`. Without it the variants are ignored and Windows falls back to the base
+`Square44x44Logo.png` on a square plate in the accent colour: up to 1.7.0 the package shipped
+only that image, and the taskbar showed the wave-to-words tile's rounded corners in blue.
+`"resourceIndex": { "enabled": true }` in `bundle.config.json` makes the bundler run MakePri,
+so each package carries a single `resources.pri`.
+
+**Do not add scale-qualified assets** (`*.scale-100.png` and so on) without also changing the
+PRI configuration. MakePri's default configuration splits scale-qualified resources into
+`resources.scale-N.pri` files meant for separate resource packages. Inside a single MSIX those
+files are never loaded, so scale variants would be dead weight; with target-size icons only,
+the package carries the one `resources.pri`.
+
+To list the resource index and the icons in a built package, where a `resources.scale-N.pri`
+would also show up:
+
+```powershell
+$version = (Get-Content .\src-tauri\tauri.conf.json -Raw | ConvertFrom-Json).version
+$package = (Resolve-Path ".\src-tauri\target\msix\Live Translation & Subtitles_$version.0_arm64.msix").Path
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [IO.Compression.ZipFile]::OpenRead($package)
+$zip.Entries.FullName | Where-Object { $_ -match '\.pri$|Logo' }
+$zip.Dispose()
+```
+
+The icons are rendered, not drawn by hand, and must be regenerated whenever
+`src-tauri/icons/source.svg` changes, or the taskbar keeps the old icon while the tiles show
+the new one. Render `source.svg` with headless Edge at 1024 px on a transparent background
+(`--default-background-color=00000000`), then downscale that render with Lanczos to each size.
 
 ## Side-by-side test builds
 
@@ -106,15 +147,15 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.7.0.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.7.0.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.7.1.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.7.1.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`; CI renames them (see
 [What CI does](#what-ci-does)). For local verification, use the per-architecture `.msix`, not
 the bundle.
 
-Substitute the current `tauri.conf.json` version for `1.7.0` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.7.1` throughout this file. Every
 release built on this machine stays in `target/msix/`, which is why the commands below derive
 the name instead of spelling it out.
 
