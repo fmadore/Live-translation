@@ -12,13 +12,12 @@ packages are built.
 ## Release 1.7.0 handoff
 
 **Prepared on 7 October 2026, tagged and published on GitHub on 20 October 2026; not yet
-submitted.** Last confirmed live Store version: **1.6.0.0**, confirmed by the maintainer on
-6 October 2026. Target app version: **1.7.0**, MSIX **1.7.0.0**.
+submitted.** Last confirmed live Store version: **1.6.1.0**, confirmed by the maintainer on
+20 October 2026. Target app version: **1.7.0**, MSIX **1.7.0.0**.
 
-**1.7.0 supersedes 1.6.1 in the Store.** 1.6.1 was published on GitHub on 6 October 2026 and
-never submitted, and it will not be. The Store copy therefore covers everything since 1.6.0:
-What's new and the certification notes include 1.6.1's wave-to-words icon and design refresh as
-well as 1.7.0. Its record is under [Release 1.6.1 handoff](#release-161-handoff).
+**1.7.0 replaces 1.6.1 in the Store.** 1.6.1 already brought the wave-to-words icon and the
+design refresh to the Store, so What's new and the certification notes cover the changes since
+1.6.1. Its record is under [Release 1.6.1 handoff](#release-161-handoff).
 
 1.7.0 is [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
 recorded item by item, with what each still needs, in the
@@ -146,10 +145,10 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 - [ ] Run Windows App Certification Kit, which also reports missing package images.
 - [ ] Upload `.github/social-preview.png` in the GitHub repository settings if that is still
   outstanding from 1.6.1. This is manual and not part of the Store.
-- [ ] Submit the single combined bundle in Partner Center with the 1.7.0 What's new, which
-  covers everything since 1.6.0, and the updated descriptions, features, requirements and
-  certification notes; replace any uploaded Store logo with the new icon. Use a gradual
-  rollout (route step 9): this release changes capture and the session lifecycle.
+- [ ] Submit the single combined bundle in Partner Center with the 1.7.0 What's new and the
+  updated descriptions, features, requirements and certification notes; if a Store logo was
+  uploaded separately, check that it shows the wave-to-words icon. Use a gradual rollout
+  (route step 9): this release changes capture and the session lifecycle.
 - [ ] Record submission and certification, and confirm the Store version before marking it live.
 
 ### 1.7.0 artifact verification
@@ -330,8 +329,8 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
-| 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Not submitted; superseded by 1.7.0 | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
-| 1.6.0 | [4 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) · [body](release-1.6.0.md) | Live as 1.6.0.0, confirmed 6 October 2026 | Local Whisper (#99), two translation targets, original speech in overlay and exports, Pause/Resume, editable filler words. |
+| 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026; submission and certification dates not recorded | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
+| 1.6.0 | [4 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) · [body](release-1.6.0.md) | Live as 1.6.0.0, confirmed 6 October 2026; replaced by 1.6.1 | Local Whisper (#99), two translation targets, original speech in overlay and exports, Pause/Resume, editable filler words. |
 | 1.5.1 | [23 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) · [body](release-1.5.1.md) | Live as 1.5.1.0, confirmed 23 September 2026 | Batches 1–2 of the [22 September app review](app-review-2026-09-22.md) (#86): cleaner downsampled audio, release builds ignore `.env` and host overrides, a failing capture or provider thread ends only its source. |
 | 1.5.0 | [22 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0) · [body](release-1.5.0.md) | Not submitted | Searchable provider-scoped caption languages, favourites, F2 favourite swapping and RTL overlay direction (#78). |
 | 1.4.2 | [21 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2) | Not submitted | Start and Stop in a persistent action bar below the header. |
@@ -343,16 +342,18 @@ was submitted were not recorded as done and stay open against the Store build.
 
 ### Release 1.6.1 handoff
 
-Published on GitHub on 6 October 2026 and not submitted to the Store; 1.7.0 supersedes it there
-and carries its icon, interface changes and open checks. Tag `v1.6.1` points to `d206091`.
-Release-commit CI and all four installer/MSIX/bundle jobs passed, and all 37 package checks
-passed on the published assets: GitHub digests, a bundle holding exactly both packages byte for
-byte, 1.6.1.0 manifests with the assigned identity, native PE machine types, only `runFullTrust`
-and `microphone`, rehearsal WAVs and licence notices, no weights or signature, and the four new
-tile images. The bundle was 11,195,249 bytes, SHA-256
+Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026: a Store-signed
+`49346FMadore.LiveTranslationSubtitles_1.6.1.0_arm64` (`SignatureKind` `Store`) was installed on
+the maintainer's PC on 6 October 2026. The submission and certification dates were not
+recorded. It replaced 1.6.0 in the Store; 1.7.0 carries its open checks. Tag `v1.6.1` points to
+`d206091`. Release-commit CI and all four installer/MSIX/bundle jobs passed, and all 37 package
+checks passed on the published assets: GitHub digests, a bundle holding exactly both packages
+byte for byte, 1.6.1.0 manifests with the assigned identity, native PE machine types, only
+`runFullTrust` and `microphone`, rehearsal WAVs and licence notices, no weights or signature,
+and the four new tile images. The bundle was 11,195,249 bytes, SHA-256
 `86ef814f0e53baae6ff821db8cc263efa745982a7dfea945d8fda7d69a6ccea0`. The icon check on both
 architectures, the smoke test of the new styles, screenshots and Windows App Certification Kit
-were not done.
+were not recorded as done before submission.
 
 ### Release 1.6.0 handoff
 

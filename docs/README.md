@@ -3,9 +3,8 @@
 These guides describe **[1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0)**,
 published on GitHub on 20 October 2026: offline translation into English with Whisper, an
 overlay that reopens where it was placed and comes back when a display is unplugged, and cloud
-sessions and Whisper that hold up better through a long meeting. 1.6.1 (6 October 2026) was
-never submitted to the Store; the Store serves **1.6.0**, confirmed live by the maintainer on
-6 October 2026, until 1.7.0 replaces it.
+sessions and Whisper that hold up better through a long meeting. The Store serves **1.6.1**
+(6 October 2026), confirmed by the maintainer on 20 October 2026, until 1.7.0 replaces it.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
@@ -28,7 +27,7 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 ## Release 1.7.0 (awaiting Store submission)
 
 - [Release notes](release-1.7.0.md) and [release handoff](store-updates.md#release-170-handoff).
-- 1.6.1: [release notes](release-1.6.1.md) and [release handoff](store-updates.md#release-161-handoff), GitHub only.
+- 1.6.1, the version in the Store: [release notes](release-1.6.1.md) and [release handoff](store-updates.md#release-161-handoff).
 - 1.6.0: [release notes](release-1.6.0.md) and [release handoff](store-updates.md#release-160-handoff).
 - [Store copy in English, French and German](store-listing.md) and [screenshot plan](store-screenshots/README.md).
 - [MSIX packaging](packaging-msix.md), [Store identity and acceptance](microsoft-store.md),

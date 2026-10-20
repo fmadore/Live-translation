@@ -1,9 +1,9 @@
 # Partner Center listing text — 1.7.0
 
-Prepared for **1.7.0 / MSIX 1.7.0.0**, tagged on 20 October 2026; not submitted. The last confirmed Store release is
-1.6.0. 1.6.1 was published on GitHub only and is superseded in the Store by 1.7.0, so What's
-new covers everything since 1.6.0: 1.6.1's new icon and interface as well as 1.7.0. Paste each
-block into its named field after the [release checks](store-updates.md#release-170-handoff).
+Prepared for **1.7.0 / MSIX 1.7.0.0**, tagged on 20 October 2026; not submitted. The last
+confirmed Store release is 1.6.1 (MSIX 1.6.1.0), which already has the wave-to-words icon and
+the refreshed interface, so What's new covers the changes since 1.6.1. Paste each block into
+its named field after the [release checks](store-updates.md#release-170-handoff).
 These descriptions lead with the actual captioning workflow; the scripted demo is a secondary
 setup aid.
 
@@ -85,8 +85,6 @@ The overlay reopens where you last placed it, remembered for each display setup,
 
 Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
 
-A new app icon, and an operator window that follows Windows 11 more closely, with a move-mode preview that stays readable over a white slide.
-
 Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
 ```
 
@@ -148,8 +146,6 @@ Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la par
 La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
 
 Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
-
-Une nouvelle icône et une fenêtre de contrôle qui suit de plus près Windows 11, avec un aperçu du mode déplacement lisible même sur une diapositive blanche.
 
 Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
 ```
@@ -213,8 +209,6 @@ Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeic
 
 Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
 
-Ein neues App-Symbol und ein Bedienfenster, das Windows 11 enger folgt, mit einer Vorschau im Verschiebemodus, die auch auf einer weißen Folie lesbar bleibt.
-
 Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
 ```
 
@@ -262,7 +256,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.0, the version in the Store, the app has a new icon and interface styling, offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.0, with a processor note in step 1 and an optional translation route in step 7.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.1, the version in the Store, the app has offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.1, with a processor note in step 1, a restart check in step 4 and an optional translation route in step 7.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.

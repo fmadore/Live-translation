@@ -1,26 +1,24 @@
 # Partner Center submission walkthrough — 1.7.0
 
 Target: **Live Translation & Subtitles 1.7.0**, Product ID `9PFB8LR3RR9X`. Tagged on 20 October
-2026, not yet submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer
-on 6 October 2026. 1.6.1 was published on GitHub only and will not be submitted: 1.7.0
-supersedes it. Once the `v1.7.0` release workflow finishes, download the combined x64 + ARM64
+2026, not yet submitted; the Store serves 1.6.1 (MSIX 1.6.1.0), confirmed by the maintainer on
+20 October 2026. Once the `v1.7.0` release workflow finishes, download the combined x64 + ARM64
 bundle from
 `https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle`.
 The [release handoff](store-updates.md#release-170-handoff) has the package evidence and
 outstanding acceptance checks.
 
 1.7.0 adds offline Whisper translation into English, an overlay that reopens where it was placed
-and survives a display being unplugged, and sturdier cloud sessions and Whisper, and it is the
-first Store version with 1.6.1's new icon and refreshed interface. The listing keeps its
-positioning; paste every field again from [store-listing.md](store-listing.md), which notes what
-changed. What's new covers everything since 1.6.0. The screenshots and any separately uploaded
-Store logo also change.
+and survives a display being unplugged, and sturdier cloud sessions and Whisper. The listing
+keeps its positioning; paste every field again from [store-listing.md](store-listing.md), which
+notes what changed. What's new covers the changes since 1.6.1. The screenshots, still 1.2.2
+captures, also need replacing.
 
 ## Before Partner Center
 
 1. Verify the unsigned `Live.Translation_1.7.0.msixbundle` contains both native packages at
    **1.7.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
-   and that both carry the new wave-to-words `Square44x44Logo`, `Square150x150Logo`,
+   and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets.
 2. Test signed per-architecture MSIX packages on x64 and ARM64. Use
    [packaging instructions](packaging-msix.md); the side-by-side Whisper Test app is separate
@@ -29,8 +27,8 @@ Store logo also change.
    offline Whisper transcription and translation after download, cloud features,
    Stop/backlog, overlay placement across launches, export and WACK.
 4. Refresh [screenshots](store-screenshots/README.md) in all three listing languages: the
-   icon and interface changed in 1.6.1, the setup sheet gained Whisper's translation card in
-   1.7.0, and the 1.6.0 capture is still pending.
+   current images are 1.2.2 captures, the 1.6.0 capture is still pending, and the setup sheet
+   gained Whisper's translation card in 1.7.0.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
    reads "7 October 2026 (documents the 1.7.0 release)", including Whisper model downloads
    through a proxy, temporary local audio buffering and the remembered overlay placement.
@@ -79,20 +77,20 @@ that listing if it is not already present. For each language, paste:
 1. **Description**: full paragraphs, up to 10,000 characters.
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.7.0 block, under 1,500 characters. It covers everything since
-   1.6.0, the version the Store serves.
+4. **What's new**: the 1.7.0 block, under 1,500 characters. It covers the changes since
+   1.6.1, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters,
    now including the AVX2 requirement for Whisper on x64.
-6. New packaged-app screenshots with matching localized captions, showing the new icon and
-   refreshed interface.
+6. New packaged-app screenshots with matching localized captions, showing the 1.7.0
+   interface.
 7. **Store logos**: see below.
 
-The package's tiles and `StoreLogo` carry the wave-to-words icon from 1.6.1, which reaches the
-Store for the first time with this submission, so the bundle updates the icon the Store takes
-from the package, unless Partner Center's optional **1:1 App tile icon (300 × 300)** has been
-uploaded, which overrides it. In each listing language's **Store logos**
-section, replace any uploaded app tile icon with a 300 × 300 PNG of the new mark (rendered
-from `src-tauri/icons/source.svg`), or remove it so the Store uses the package image. Check any
+The package's tiles and `StoreLogo` carry the wave-to-words icon, unchanged since 1.6.1, so the
+bundle leaves the icon the Store takes from the package as it is. Partner Center's optional
+**1:1 App tile icon (300 × 300)**, if uploaded, overrides it: in each listing language's
+**Store logos** section, check that any uploaded app tile icon shows the wave-to-words mark. If
+it still shows the old glyph, replace it with a 300 × 300 PNG rendered from
+`src-tauri/icons/source.svg`, or remove it so the Store uses the package image. Check any
 uploaded promotional art for the old glyph too.
 
 Whisper and useful live captions lead the copy. Each full description discloses the initial
@@ -118,7 +116,7 @@ Suggested `runFullTrust` justification:
 ## Final review and submission
 
 Confirm all sections are complete, packages and copy agree on 1.7.0.0, screenshots and Store
-logos match the final UI and new icon, and the privacy page is current. Test both
+logos match the final UI and the wave-to-words icon, and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 

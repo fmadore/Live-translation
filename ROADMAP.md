@@ -5,7 +5,7 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.7.0 on GitHub, 1.6.0 in the Store
+## Current status — 1.7.0 on GitHub, 1.6.1 in the Store
 
 The latest [GitHub release is **1.7.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0)
 (20 October 2026), awaiting Store submission: [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
@@ -22,15 +22,16 @@ rest is operator fixes, 24-bit microphones, structure, and CI gates with two Pla
 The [1.7.0 handoff](docs/store-updates.md#release-170-handoff) has the package evidence and the
 Store steps.
 
-**1.6.1** (6 October 2026), the wave-to-words icon
+The Store serves [**1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)
+(6 October 2026, MSIX 1.6.1.0), confirmed by the maintainer on 20 October 2026; its submission
+and certification dates were not recorded. It added the wave-to-words icon
 ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design review
-([#112](https://github.com/fmadore/Live-translation/pull/112)), was never submitted to the Store
-and will not be: 1.7.0 supersedes it there and carries its changes.
-
-The Store serves [**1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
-(MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026. The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its
-status and the native checks still open against the Store build; its package evidence is in
-that file's git history.
+([#112](https://github.com/fmadore/Live-translation/pull/112)) to
+[1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0), which it replaced in
+the Store. The [1.6.1](docs/store-updates.md#release-161-handoff) and
+[1.6.0](docs/store-updates.md#release-160-handoff) handoffs record their status and the native
+checks still open against the Store build; the 1.6.0 package evidence is in that file's git
+history.
 
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
@@ -123,11 +124,11 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   display is disconnected ([#139](https://github.com/fmadore/Live-translation/pull/139));
   SvelteKit 3 ([#138](https://github.com/fmadore/Live-translation/pull/138)).
   [Release body](docs/release-1.7.0.md).
-- **1.6.1** (6 October 2026, GitHub only; superseded in the Store by 1.7.0): the wave-to-words
-  icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design
+- **1.6.1** (6 October 2026, Store): the wave-to-words icon
+  ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design
   review ([#112](https://github.com/fmadore/Live-translation/pull/112)).
   [Release body](docs/release-1.6.1.md).
-- **1.6.0** (4 October 2026): local Whisper transcription
+- **1.6.0** (4 October 2026, Store): local Whisper transcription
   ([#99](https://github.com/fmadore/Live-translation/pull/99)), suggested by @valentinrabot in
   [#98](https://github.com/fmadore/Live-translation/issues/98); two translation targets,
   original speech in exports and optionally in the overlay, and Pause/Resume (#90); an

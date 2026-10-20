@@ -1,9 +1,9 @@
 # Store screenshots — 1.7.0 capture plan
 
 The existing `en/` and `fr/` images are historical 1.2.2 captures and are **not ready for
-1.7.0**; the `de/` set has not been captured. The 1.6.0 capture was not recorded as done, 1.6.1
-(never submitted) changed the app icon and the interface, and 1.7.0 adds Whisper's translation
-engine card to the setup sheet's translation mode. Retake every set from the final signed 1.7.0
+1.7.0**; the `de/` set has not been captured. The 1.6.0 and 1.6.1 captures were not recorded as
+done, although 1.6.1 changed the app icon and the interface, and 1.7.0 adds Whisper's
+translation engine card to the setup sheet's translation mode. Retake every set from the final signed 1.7.0
 MSIX, with the interface set to each listing language. Browser previews and the separate
 Whisper Test installation do not establish packaged-app appearance.
 

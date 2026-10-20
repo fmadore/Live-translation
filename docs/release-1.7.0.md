@@ -88,8 +88,7 @@ provider account and API key and may incur usage charges.
 For the Microsoft Store, upload
 [Live.Translation_1.7.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle),
 containing native x64 and ARM64 packages at version **1.7.0.0**. The Store signs accepted packages.
-1.6.1 was not submitted, so this is the first Store version with its new icon and refreshed
-interface. Separate MSIX files are provided for per-architecture testing; EXE/MSI installers
-are for installation outside the Store. The
+Separate MSIX files are provided for per-architecture testing; EXE/MSI installers are for
+installation outside the Store. The
 [release handoff](https://github.com/fmadore/Live-translation/blob/main/docs/store-updates.md#release-170-handoff)
 records the package evidence and remaining Store acceptance checks.
