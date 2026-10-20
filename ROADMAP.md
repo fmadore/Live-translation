@@ -63,7 +63,8 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   [#28](https://github.com/fmadore/Live-translation/issues/28)): the application isolation
   matrix and the [hardware matrix](docs/audio-device-testing.md) — Teams/Zoom, browser child
   processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.26
-  has not been recorded as tested on hardware, and a 24-bit microphone has not been tried.
+  has been tested on ARM64 hardware but not on x64, and a 24-bit microphone has not been
+  tried.
 - **Export and responsive captions** ([#26](https://github.com/fmadore/Live-translation/issues/26),
   [#77](https://github.com/fmadore/Live-translation/issues/77)): the remaining
   [export checks](docs/transcript-export.md); user feedback, packaged Windows checks and fresh

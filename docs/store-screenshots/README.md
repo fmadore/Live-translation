@@ -35,6 +35,12 @@ prepared caption is under 200 characters.
 
 ## Capture status
 
+The final package now exists. Copy `Live.Translation_1.7.0_arm64.msix` (or `_x64`) from the
+[v1.7.0 release](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) to
+`src-tauri/target/msix/Live Translation & Subtitles_1.7.0.0_arm64.msix`, run
+[`scripts/install-local-msix.ps1`](../../scripts/install-local-msix.ps1) as Administrator, which
+signs it with the development certificate, then capture each set from that install.
+
 - English: pending final 1.7.0 MSIX capture.
 - French: pending final 1.7.0 MSIX capture.
 - German: pending final 1.7.0 MSIX capture and language review.

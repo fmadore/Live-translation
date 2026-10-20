@@ -100,10 +100,10 @@ tagged from `main` rather than as a second candidate:
 
 Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 
-- [ ] **System audio on hardware**: an output and one application (Teams, Zoom or a browser),
-  alone and with the microphone. The release ships wasapi 0.26 (#151); neither it nor 0.24 has
-  been recorded as tested on hardware, and #120 restructured the loopback runner and its COM
-  guard.
+- [x] **System audio on hardware**: an output and one application (Teams, Zoom or a browser),
+  alone and with the microphone. The release ships wasapi 0.26 (#151), and #120 restructured
+  the loopback runner and its COM guard. Tested by the maintainer on 20 October 2026 on ARM64,
+  with the Local Test build of `f6a2448`; no x64 run is recorded.
 - [ ] **A short live session with each cloud provider**: Gemini Translate, Gemini Transcribe,
   OpenAI and Mistral, with Pause, Resume and Stop. On Gemini Translate, Stop mid-sentence should
   translate the last words, end well before four seconds and log no
