@@ -5,24 +5,27 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.7.0 in preparation, 1.6.0 in the Store
+## Current status — 1.7.0 on GitHub, 1.6.0 in the Store
 
-**1.7.0** is prepared and not yet tagged: [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
+The latest [GitHub release is **1.7.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0)
+(20 October 2026), awaiting Store submission: [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
 the six batches of the [6 October app review](docs/app-review-2026-10-06.md) and a Mistral
-reconnect fix. For operators it brings offline translation into English with Whisper (F1),
-an overlay that reopens where it was last placed on each display layout (F2), cloud sessions
-that reconnect after a mid-stream close, a transient provider error or a stalled network, and
-Whisper built with SIMD behind a runtime processor check: about twice as fast on ARM64, and on
-x64 limited to processors with AVX2. The rest is operator fixes, 24-bit microphones, structure,
-and CI gates with two Playwright suites. The
-[1.7.0 handoff](docs/store-updates.md#release-170-handoff) lists the release-candidate checks
-(`v1.7.0-rc.1`) and the Store steps. Citation metadata records 1.7.0 with a provisional date of
-7 October 2026, to be corrected if the tag lands on another day.
+reconnect fix, then overlay recovery when a display is disconnected
+([#139](https://github.com/fmadore/Live-translation/pull/139)), SvelteKit 3
+([#138](https://github.com/fmadore/Live-translation/pull/138)) and the October dependency
+batches. For operators it brings offline translation into English with Whisper (F1), an overlay
+that reopens where it was last placed on each display layout (F2) and moves onto a connected
+display when its own is unplugged, cloud sessions that reconnect after a mid-stream close, a
+transient provider error or a stalled network, and Whisper built with SIMD behind a runtime
+processor check: about twice as fast on ARM64, and on x64 limited to processors with AVX2. The
+rest is operator fixes, 24-bit microphones, structure, and CI gates with two Playwright suites.
+The [1.7.0 handoff](docs/store-updates.md#release-170-handoff) has the package evidence and the
+Store steps.
 
-The latest [GitHub release is **1.6.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) (6 October 2026):
-the wave-to-words icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the
-5 October design review ([#112](https://github.com/fmadore/Live-translation/pull/112)). It was
-never submitted to the Store and will not be: 1.7.0 supersedes it there and carries its changes.
+**1.6.1** (6 October 2026), the wave-to-words icon
+([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design review
+([#112](https://github.com/fmadore/Live-translation/pull/112)), was never submitted to the Store
+and will not be: 1.7.0 supersedes it there and carries its changes.
 
 The Store serves [**1.6.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0)
 (MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026. The [1.6.0 handoff](docs/store-updates.md#release-160-handoff) records its
@@ -59,13 +62,14 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - **Audio** ([#27](https://github.com/fmadore/Live-translation/issues/27),
   [#28](https://github.com/fmadore/Live-translation/issues/28)): the application isolation
   matrix and the [hardware matrix](docs/audio-device-testing.md) — Teams/Zoom, browser child
-  processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.24
-  has never run on hardware, and a 24-bit microphone has not been tried.
+  processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.26
+  has not been recorded as tested on hardware, and a 24-bit microphone has not been tried.
 - **Export and responsive captions** ([#26](https://github.com/fmadore/Live-translation/issues/26),
   [#77](https://github.com/fmadore/Live-translation/issues/77)): the remaining
   [export checks](docs/transcript-export.md); user feedback, packaged Windows checks and fresh
   screenshots for the [caption layout](docs/caption-layout.md), including the overlay's restore
-  across launches with a 150% laptop and a 100% projector.
+  across launches with a 150% laptop and a 100% projector and its recovery when a display is
+  unplugged mid-session.
 
 ## Planning conventions
 
@@ -91,9 +95,9 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - Multi-monitor overlay presets: named placements to switch between in a running session, such
   as "bottom of the projector" and "top of the laptop". The overlay already reopens where it was
   last placed on each display arrangement, clamped to a connected display, and a meeting
-  profile already carries a placement with its setup; what remains is choosing among several
-  without a profile and without move mode, and moving the overlay when a display is connected
-  mid-session.
+  profile already carries a placement with its setup, and since 1.7.0 a display unplugged or
+  reconnected mid-session moves the overlay off it and back; what remains is choosing among
+  several without a profile and without move mode.
 - Per-origin caption styling on the overlay, such as a subtle prefix when both sources are live.
 - Make rate-card verification dates visible: the rates in `providers.ts` have no in-repo source
   or date, and Mistral's realtime price is no longer on its pricing page
@@ -109,6 +113,15 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
+- **1.7.0** (20 October 2026, GitHub; Store submission pending): the six batches of the
+  [6 October app review](docs/app-review-2026-10-06.md)
+  ([#116](https://github.com/fmadore/Live-translation/pull/116)–[#121](https://github.com/fmadore/Live-translation/pull/121)),
+  with offline Whisper translation into English (F1) and an overlay that reopens where it was
+  placed (F2); Mistral reconnects after error 3803
+  ([#122](https://github.com/fmadore/Live-translation/pull/122)); overlay recovery when a
+  display is disconnected ([#139](https://github.com/fmadore/Live-translation/pull/139));
+  SvelteKit 3 ([#138](https://github.com/fmadore/Live-translation/pull/138)).
+  [Release body](docs/release-1.7.0.md).
 - **1.6.1** (6 October 2026, GitHub only; superseded in the Store by 1.7.0): the wave-to-words
   icon ([#111](https://github.com/fmadore/Live-translation/pull/111)) and the 5 October design
   review ([#112](https://github.com/fmadore/Live-translation/pull/112)).

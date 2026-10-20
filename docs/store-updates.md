@@ -11,9 +11,9 @@ packages are built.
 
 ## Release 1.7.0 handoff
 
-**Prepared on 7 October 2026; not tagged, published or submitted.** Last confirmed live Store
-version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target app version:
-**1.7.0**, MSIX **1.7.0.0**.
+**Prepared on 7 October 2026 and tagged `v1.7.0` on 20 October 2026; not yet submitted.** Last
+confirmed live Store version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target
+app version: **1.7.0**, MSIX **1.7.0.0**.
 
 **1.7.0 supersedes 1.6.1 in the Store.** 1.6.1 was published on GitHub on 6 October 2026 and
 never submitted, and it will not be. The Store copy therefore covers everything since 1.6.0:
@@ -56,13 +56,29 @@ arrangement.
 [GitHub release copy](release-1.7.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
+After `v1.7.0-rc.1`, `main` gained one feature and no fixes to the candidate, so the release is
+tagged from `main` rather than as a second candidate:
+
+- [#139](https://github.com/fmadore/Live-translation/pull/139) (closes #137): a display watcher
+  moves the overlay onto a connected display when the one holding it goes, and back to its
+  remembered placement when it returns; Move overlay, showing a hidden overlay and Escape in
+  move mode check that it is on a display first. The operator window gains one command
+  permission (`recover_overlay_placement`); the overlay's capability and the package's
+  declared capabilities are unchanged.
+- [#138](https://github.com/fmadore/Live-translation/pull/138): the interface builds on
+  SvelteKit 3 and adapter-static 4 (developer-facing).
+- [#135](https://github.com/fmadore/Live-translation/pull/135) and
+  [#151](https://github.com/fmadore/Live-translation/pull/151), the October Dependabot batches:
+  Tauri 2.12.3, tokio 1.53.3, sha2 0.11, tauri-plugin-single-instance 2.5.3 and **wasapi
+  0.24 → 0.26**, which drives system-audio capture.
+
 ### Preparation and validation
 
 - [x] #116 to #122 merged, each after all its CI jobs passed. The release branch is cut from
   `main` at `8e42436`, whose [CI run](https://github.com/fmadore/Live-translation/actions/runs/37657186989)
   passed.
 - [x] App manifests, root lockfile entries and citation set to 1.7.0. The citation date,
-  7 October 2026, is provisional: correct it to the tag date if `v1.7.0` lands on another day.
+  provisionally 7 October 2026, is corrected to the tag date, 20 October 2026.
 - [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`), and
   `cargo check --locked` passes.
 - [x] Frontend validation of the release branch on Windows 11 ARM64: `npm test` 643 passed in
@@ -73,17 +89,21 @@ arrangement.
 
 ### Release-candidate checks
 
-- [ ] Merge this release PR.
-- [ ] Tag `v1.7.0-rc.1` from `main`. A hyphenated tag builds the installers, both MSIX packages
-  and the bundle into a draft prerelease; nothing is published.
-- [ ] Install the candidate's per-architecture MSIX (route step 4) and run the checks below.
-  They gather the review's "still needs" lines; CI cannot do them.
+- [x] Merge this release PR ([#123](https://github.com/fmadore/Live-translation/pull/123),
+  `bffcd31`).
+- [x] Tag `v1.7.0-rc.1` from `main` (8 October 2026, `bffcd31`). A hyphenated tag builds the
+  installers, both MSIX packages and the bundle into a draft prerelease; nothing is published.
+- [x] **Maintainer test, 20 October 2026:** the side-by-side Local Test build of `main` at
+  `f6a2448` (ARM64), which adds #135, #138, #139 and #151 to the candidate, reported working
+  well. The checks below were not itemised in that report, so they stay unticked; any not
+  covered remain open against the Store build.
 
 Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 
 - [ ] **System audio on hardware**: an output and one application (Teams, Zoom or a browser),
-  alone and with the microphone. wasapi 0.24 has never been tested on hardware, and #120
-  restructured the loopback runner and its COM guard.
+  alone and with the microphone. The release ships wasapi 0.26 (#151); neither it nor 0.24 has
+  been recorded as tested on hardware, and #120 restructured the loopback runner and its COM
+  guard.
 - [ ] **A short live session with each cloud provider**: Gemini Translate, Gemini Transcribe,
   OpenAI and Mistral, with Pause, Resume and Stop. On Gemini Translate, Stop mid-sentence should
   translate the last words, end well before four seconds and log no
@@ -94,7 +114,8 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 - [ ] **Whisper Small translating real speech into English**: quality, whether it keeps up, and
   the setup sheet's English-only note.
 - [ ] **Overlay restore with a laptop at 150% and a projector at 100%**: the "Placement across
-  launches" row of the [caption layout matrix](caption-layout.md#release-verification).
+  launches" and "Display changes while running" rows of the
+  [caption layout matrix](caption-layout.md#release-verification).
 - [ ] **An x64 PC without AVX2**, if one is available: Whisper listed as unavailable with its
   reason, a first launch on the built-in demo, and a cloud engine that still starts.
 - [ ] **A model download behind a proxy** set in Windows Settings → Network & internet → Proxy.
@@ -107,14 +128,14 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 - [ ] Carried from 1.6.1, never checked: the new icon in Start, the taskbar, the tray and the
   Store tile; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
   keyboard focus, contrast themes and enlarged text.
-- [ ] Fix what the candidate shows. A fix means a new candidate (`v1.7.0-rc.2`); never move a
-  tag.
+- [x] Fix what the candidate shows. A fix means a new candidate (`v1.7.0-rc.2`); never move a
+  tag. Nothing was reported, so there is no `rc.2`.
 
 ### Release and Store acceptance
 
 - [ ] Tag `v1.7.0` from `main`. Pass release-commit CI and all installer/MSIX/bundle jobs, then
   publish the prepared body: `gh release edit v1.7.0 --notes-file docs/release-1.7.0.md`.
-  Correct the citation date if the tag is not dated 7 October 2026.
+  The citation date is set to the tag date, 20 October 2026.
 - [ ] Verify `Live.Translation_1.7.0.msixbundle` contains native x64 and ARM64 packages at
   **1.7.0.0** with the [assigned identity](microsoft-store.md#store-identity-assigned) and the
   wave-to-words tiles. Record sizes and SHA-256 below.
@@ -133,8 +154,8 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 
 ### 1.7.0 artifact verification
 
-Pending: no tag, release assets or bundle exist yet. After tagging `v1.7.0`, record the tag
-commit, CI runs, bundle and package sizes, SHA-256 digests and manifest values here.
+Pending until the `v1.7.0` release workflow finishes: record the tag commit, CI runs, bundle
+and package sizes, SHA-256 digests and manifest values here.
 
 Check the same points as for 1.6.1: each downloaded file's SHA-256 matches GitHub's asset
 digest; the bundle contains exactly the separately downloaded x64 and ARM64 packages,

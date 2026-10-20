@@ -13,6 +13,12 @@ and cloud sessions and local Whisper that hold up better through a long meeting.
   display arrangement, up to eight. Place it on the projector, and the next launch with the
   projector connected puts it back there; without the projector, it opens on a display that
   is connected. Done, the overlay's own Lock and loading a meeting profile save the placement.
+- **The overlay comes back when a display goes.** Unplug the projector during a session, or
+  switch Windows projection mode with Win+P, and within about two seconds the overlay moves
+  onto a connected display, resized if it no longer fits, without interrupting captions. Plug the projector
+  back in and it returns to its place there. Move overlay and showing a hidden overlay first
+  check that it is on a display, and Escape in move mode no longer sends it back to a display
+  that has gone.
 - **Cloud sessions that keep going.** When a provider closes the session mid-stream, reports a
   transient error or the network stops delivering, that source now reconnects instead of
   ending. This covers OpenAI's session expiry and the Mistral error 3803 seen on 1.6.0. Speech
@@ -66,6 +72,13 @@ whisper.cpp stays at 1.8.3. Each change, its tests and the checks that still nee
 live providers are in the
 [6 October app review](https://github.com/fmadore/Live-translation/blob/main/docs/app-review-2026-10-06.md)
 ([#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122)).
+Since the release candidate, a display watcher recovers the overlay
+([#139](https://github.com/fmadore/Live-translation/pull/139), closing
+[#137](https://github.com/fmadore/Live-translation/issues/137)), the interface builds on
+SvelteKit 3 and adapter-static 4 ([#138](https://github.com/fmadore/Live-translation/pull/138)),
+and the October dependency batches ([#135](https://github.com/fmadore/Live-translation/pull/135),
+[#151](https://github.com/fmadore/Live-translation/pull/151)) bring Tauri 2.12.3 and wasapi
+0.26, which drives system-audio capture.
 
 The [privacy policy](https://fmadore.github.io/Live-translation/privacy) now covers translation
 into English, downloads through a proxy and the remembered overlay placement; the app still

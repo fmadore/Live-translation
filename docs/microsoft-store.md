@@ -1,6 +1,6 @@
 # Microsoft Store submission
 
-**Next target: 1.7.0 / MSIX 1.7.0.0, prepared; not tagged or submitted.** The last confirmed
+**Next target: 1.7.0 / MSIX 1.7.0.0, tagged on 20 October 2026; not yet submitted.** The last confirmed
 Store release is 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer on 6 October 2026.
 1.6.1 was published on GitHub only and will not be submitted; 1.7.0 supersedes it and carries
 its icon and interface changes. See the [current handoff](store-updates.md#release-170-handoff),

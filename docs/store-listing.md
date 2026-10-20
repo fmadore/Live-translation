@@ -1,6 +1,6 @@
 # Partner Center listing text — 1.7.0
 
-Prepared for **1.7.0 / MSIX 1.7.0.0**; not submitted. The last confirmed Store release is
+Prepared for **1.7.0 / MSIX 1.7.0.0**, tagged on 20 October 2026; not submitted. The last confirmed Store release is
 1.6.0. 1.6.1 was published on GitHub only and is superseded in the Store by 1.7.0, so What's
 new covers everything since 1.6.0: 1.6.1's new icon and interface as well as 1.7.0. Paste each
 block into its named field after the [release checks](store-updates.md#release-170-handoff).
@@ -11,7 +11,10 @@ For 1.7.0 the descriptions, features, short descriptions and requirements in all
 languages add offline translation into English with Whisper (which retires the line that
 Whisper does not translate) and the overlay reopening where it was placed, and say that
 Whisper on x64 needs a processor with AVX2. The certification notes add that processor rule
-and an optional translation route. The plain-language pass from 1.6.1 stands. The German
+and an optional translation route. What's new also says that the overlay moves onto a connected
+screen when the projector is unplugged mid-session
+([#139](https://github.com/fmadore/Live-translation/pull/139), merged after the release
+candidate). The plain-language pass from 1.6.1 stands. The German
 edits are parity additions only; the native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
@@ -78,7 +81,7 @@ Free live captions over meetings, calls and slides. Transcribe offline with Whis
 ```text
 Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
 
-The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling.
+The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling. If the projector is unplugged during a session, the overlay moves onto a connected screen.
 
 Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
 
@@ -142,7 +145,7 @@ Sous-titres en direct gratuits sur vos réunions, appels et présentations. Tran
 ```text
 Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
 
-La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente.
+La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
 
 Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
 
@@ -206,7 +209,7 @@ Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprache
 ```text
 Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
 
-Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung.
+Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung. Wird der Projektor während einer Sitzung getrennt, wechselt es auf einen verbundenen Bildschirm.
 
 Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
 

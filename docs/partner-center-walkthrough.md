@@ -1,19 +1,20 @@
 # Partner Center submission walkthrough — 1.7.0
 
-Target: **Live Translation & Subtitles 1.7.0**, Product ID `9PFB8LR3RR9X`. Prepared, not
-tagged or submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer on
-6 October 2026. 1.6.1 was published on GitHub only and will not be submitted: 1.7.0 supersedes
-it. Once `v1.7.0` is tagged and its release workflow finishes, download the combined x64 + ARM64
+Target: **Live Translation & Subtitles 1.7.0**, Product ID `9PFB8LR3RR9X`. Tagged on 20 October
+2026, not yet submitted; the Store serves 1.6.0 (MSIX 1.6.0.0), confirmed live by the maintainer
+on 6 October 2026. 1.6.1 was published on GitHub only and will not be submitted: 1.7.0
+supersedes it. Once the `v1.7.0` release workflow finishes, download the combined x64 + ARM64
 bundle from
 `https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle`.
 The [release handoff](store-updates.md#release-170-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.7.0 adds offline Whisper translation into English, an overlay that reopens where it was
-placed, and sturdier cloud sessions and Whisper, and it is the first Store version with 1.6.1's
-new icon and refreshed interface. The listing keeps its positioning; paste every field again
-from [store-listing.md](store-listing.md), which notes what changed. What's new covers
-everything since 1.6.0. The screenshots and any separately uploaded Store logo also change.
+1.7.0 adds offline Whisper translation into English, an overlay that reopens where it was placed
+and survives a display being unplugged, and sturdier cloud sessions and Whisper, and it is the
+first Store version with 1.6.1's new icon and refreshed interface. The listing keeps its
+positioning; paste every field again from [store-listing.md](store-listing.md), which notes what
+changed. What's new covers everything since 1.6.0. The screenshots and any separately uploaded
+Store logo also change.
 
 ## Before Partner Center
 

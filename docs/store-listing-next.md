@@ -1,11 +1,11 @@
 # Next Store submission — 1.7.0
 
-**Prepared, not tagged or submitted.** The last confirmed Store version is **1.6.0.0**,
-confirmed live by the maintainer on 6 October 2026. The next submission is **1.7.0.0**: one
-unsigned bundle with native x64 and ARM64 packages, at
+**Tagged `v1.7.0` on 20 October 2026; not yet submitted.** The last confirmed Store version is
+**1.6.0.0**, confirmed live by the maintainer on 6 October 2026. The next submission is
+**1.7.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
 `https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle`
-once `v1.7.0` is tagged and its release workflow finishes. 1.6.1 was published on GitHub on
-6 October 2026 and will not be submitted; 1.7.0 supersedes it.
+once the `v1.7.0` release workflow finishes. 1.6.1 was published on GitHub on 6 October 2026
+and will not be submitted; 1.7.0 supersedes it.
 
 The positioning is unchanged: lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -15,9 +15,10 @@ are preserved, and model download and capture remain explicit user actions.
 Because the Store still serves 1.6.0, this submission carries two releases. From 1.6.1: the
 wave-to-words icon and the refreshed interface, so the package tiles change and every listing
 language needs new screenshots. From 1.7.0: offline translation into English with Whisper, an
-overlay that reopens where it was placed, cloud sessions that reconnect instead of ending, and
-faster Whisper, which on x64 now needs a processor with AVX2. The descriptions, features,
-requirements and certification notes say so, and What's new covers both.
+overlay that reopens where it was placed and moves onto a connected screen when its display
+is unplugged, cloud sessions that reconnect instead of ending, and faster Whisper, which on x64
+now needs a processor with AVX2. The descriptions, features, requirements and certification
+notes say so, and What's new covers both.
 
 - [EN/FR/DE descriptions, features, short descriptions and What's new](store-listing.md)
 - [Release notes](release-1.7.0.md)
