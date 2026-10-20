@@ -9,15 +9,81 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.7.1 handoff
+
+**Tagged on 20 October 2026; not yet submitted.** Last confirmed live Store version:
+**1.6.1.0**, confirmed by the maintainer on 20 October 2026. Target app version: **1.7.1**,
+MSIX **1.7.1.0**.
+
+**1.7.1 replaces 1.6.1 in the Store.** [1.7.0](#release-170-handoff) was published on GitHub
+and will not be submitted. 1.7.1 is 1.7.0's app code unchanged plus a packaging fix:
+
+- **The bug.** Installed as an MSIX, the app's icon was drawn on a square plate in the Windows
+  accent colour on the taskbar, in Start's app list, in Alt+Tab and in jump lists, so the
+  rounded corners of the wave-to-words tile showed blue. The package shipped a single
+  `Square44x44Logo.png` and no `targetsize` or `altform-unplated` variants, so Windows fell back
+  to the plated logo. It has been visible since the rounded icon reached the Store in 1.6.1; the
+  asset files are identical in 1.6.1 and 1.7.0. The side-by-side Local Test and NSIS installs
+  use `icon.ico` and were never affected.
+- **The fix.** `src-tauri/gen/windows/Assets/` gains 42 target-size icons:
+  `Square44x44Logo.targetsize-N.png`, `…targetsize-N_altform-unplated.png` and
+  `…targetsize-N_altform-lightunplated.png` for N = 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72,
+  80, 96 and 256. There are no scale variants of any logo. `bundle.config.json` sets
+  `resourceIndex.enabled: true`, so the bundler runs MakePri and each package carries a single
+  `resources.pri`: Windows resolves qualified assets only through it. The manifest and the base
+  images it names are unchanged. How the files are made, and why there are no scale variants,
+  is in [MSIX packaging](packaging-msix.md#icon-variants-and-resourcespri).
+
+1.7.1 changes no app code, so the testing recorded for 1.7.0 carries over: the maintainer's
+test of the Local Test build of `f6a2448` (ARM64) and the system-audio test on ARM64. The open
+checks of the 1.7.0 handoff carry over unchanged and are run against the 1.7.1 packages: the
+manual checks on the candidate, and the sideload test, screenshots, Windows App Certification
+Kit and social preview under its Release and Store acceptance. What's new and the certification
+notes are 1.7.0's, with the version numbers updated and one sentence on the icon added to
+What's new.
+[GitHub release copy](release-1.7.1.md) · [EN/FR/DE Store fields](store-listing.md) ·
+[Partner Center walkthrough](partner-center-walkthrough.md).
+
+### Preparation and validation
+
+- [x] App manifests, root lockfile entries and citation set to 1.7.1; the citation date stays
+  20 October 2026.
+- [ ] The local ARM64 MSIX contains `resources.pri` and the 42 target-size icons.
+- [ ] The installed local ARM64 MSIX shows the icon on the taskbar and in Start without a
+  plate, with the taskbar in both the dark and the light theme.
+
+### Release
+
+- [ ] Tag `v1.7.1-rc.1` and confirm that both MSIX jobs produce packages containing
+  `resources.pri`. A hyphenated tag builds the installers, both MSIX packages and the bundle
+  into a draft prerelease; nothing is published.
+- [ ] Tag `v1.7.1` on the same commit, annotated: "Live Translation & Subtitles v1.7.1". Pass
+  release-commit CI and all installer/MSIX/bundle jobs.
+- [ ] Publish the prepared body: `gh release edit v1.7.1 --notes-file docs/release-1.7.1.md`.
+- [ ] Verify `Live.Translation_1.7.1.msixbundle`: the [1.7.0 checks](#170-artifact-verification)
+  at **1.7.1.0**, plus `resources.pri` and the 42 target-size icons in each package,
+  byte-identical to `src-tauri/gen/windows/Assets/`. Record sizes and SHA-256 below.
+- [ ] Submit the single combined bundle in Partner Center with the 1.7.1 What's new and the
+  updated descriptions, features, requirements and certification notes; if a Store logo was
+  uploaded separately, check that it shows the wave-to-words icon. Use a gradual rollout
+  (route step 9): 1.7.1 brings 1.7.0's capture and session-lifecycle changes to the Store.
+- [ ] Record submission and certification, and confirm the Store version before marking it live.
+
+### 1.7.1 artifact verification
+
+Pending until the `v1.7.1` release workflow finishes.
+
 ## Release 1.7.0 handoff
 
-**Prepared on 7 October 2026, tagged and published on GitHub on 20 October 2026; not yet
-submitted.** Last confirmed live Store version: **1.6.1.0**, confirmed by the maintainer on
-20 October 2026. Target app version: **1.7.0**, MSIX **1.7.0.0**.
+**Prepared on 7 October 2026, tagged and published on GitHub on 20 October 2026; will not be
+submitted.** [1.7.1](#release-171-handoff) replaces it for the Store with the same app code and
+a packaging fix for the taskbar icon; the manual checks below still apply to 1.7.1. Last
+confirmed live Store version: **1.6.1.0**, confirmed by the maintainer on 20 October 2026.
+Target app version was **1.7.0**, MSIX **1.7.0.0**.
 
-**1.7.0 replaces 1.6.1 in the Store.** 1.6.1 already brought the wave-to-words icon and the
-design refresh to the Store, so What's new and the certification notes cover the changes since
-1.6.1. Its record is under [Release 1.6.1 handoff](#release-161-handoff).
+1.6.1 already brought the wave-to-words icon and the design refresh to the Store, so What's new
+and the certification notes cover the changes since 1.6.1. Its record is under
+[Release 1.6.1 handoff](#release-161-handoff).
 
 1.7.0 is [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
 recorded item by item, with what each still needs, in the
@@ -126,7 +192,9 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
   failed history write and a failed export from the History tab.
 - [ ] Carried from 1.6.1, never checked: the new icon in Start, the taskbar, the tray and the
   Store tile; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
-  keyboard focus, contrast themes and enlarged text.
+  keyboard focus, contrast themes and enlarged text. On 20 October 2026 the taskbar and Start
+  were found to draw the icon on an accent-coloured plate; [1.7.1](#release-171-handoff) fixes
+  that.
 - [x] Fix what the candidate shows. A fix means a new candidate (`v1.7.0-rc.2`); never move a
   tag. Nothing was reported, so there is no `rc.2`.
 
@@ -329,6 +397,7 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
+| 1.7.0 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) · [body](release-1.7.0.md) | Not submitted; superseded by 1.7.1 | Offline Whisper translation into English and overlay placement per display layout (#121), overlay recovery when a display goes (#139), cloud sessions that reconnect (#116, #122). |
 | 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026; submission and certification dates not recorded | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
 | 1.6.0 | [4 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) · [body](release-1.6.0.md) | Live as 1.6.0.0, confirmed 6 October 2026; replaced by 1.6.1 | Local Whisper (#99), two translation targets, original speech in overlay and exports, Pause/Resume, editable filler words. |
 | 1.5.1 | [23 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) · [body](release-1.5.1.md) | Live as 1.5.1.0, confirmed 23 September 2026 | Batches 1–2 of the [22 September app review](app-review-2026-09-22.md) (#86): cleaner downsampled audio, release builds ignore `.env` and host overrides, a failing capture or provider thread ends only its source. |

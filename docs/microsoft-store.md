@@ -1,8 +1,9 @@
 # Microsoft Store submission
 
-**Next target: 1.7.0 / MSIX 1.7.0.0, tagged on 20 October 2026; not yet submitted.** The last
+**Next target: 1.7.1 / MSIX 1.7.1.0, tagged on 20 October 2026; not yet submitted.** The last
 confirmed Store release is 1.6.1 (MSIX 1.6.1.0), confirmed by the maintainer on 20 October 2026.
-See the [current handoff](store-updates.md#release-170-handoff),
+1.7.1 is 1.7.0, which was not submitted, plus a packaging fix for the taskbar icon.
+See the [current handoff](store-updates.md#release-171-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -54,9 +55,12 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.7.0; both MSIX manifests and the combined bundle
-  report 1.7.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.7.1; both MSIX manifests and the combined bundle
+  report 1.7.1.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
+- [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
+  taskbar in the dark and the light theme; each package carries `resources.pri` and the
+  [icon variants](packaging-msix.md#icon-variants-and-resourcespri).
 - [ ] Both signed native packages are installed and exercised on their target hardware.
 - [ ] Clean-install Whisper model download, verification, cancellation/removal and offline
   restart work without API keys. Test English and French; record non-Latin language checks.
@@ -79,7 +83,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-170-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-171-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing
