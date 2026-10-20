@@ -48,9 +48,11 @@ What's new.
 
 - [x] App manifests, root lockfile entries and citation set to 1.7.1; the citation date stays
   20 October 2026.
-- [ ] The local ARM64 MSIX contains `resources.pri` and the 42 target-size icons.
-- [ ] The installed local ARM64 MSIX shows the icon on the taskbar and in Start without a
-  plate, with the taskbar in both the dark and the light theme.
+- [x] The local ARM64 MSIX contains a single `resources.pri` (9,296 bytes) that indexes the
+  42 target-size icons, and its 46 `Assets/` files match the repository.
+- [x] Installed (1.7.1.0, developer-signed, ARM64) on 20 October 2026, the running app's taskbar
+  icon shows the tile's transparent corners with no plate, on the maintainer's dark taskbar.
+- [ ] The same in Start's app list and Alt+Tab, and with the taskbar in the light theme.
 
 ### Release
 
