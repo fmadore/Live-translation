@@ -11,7 +11,7 @@ packages are built.
 
 ## Release 1.7.1 handoff
 
-**Tagged on 20 October 2026; not yet submitted.** Last confirmed live Store version:
+**Tagged and published on GitHub on 20 October 2026; not yet submitted.** Last confirmed live Store version:
 **1.6.1.0**, confirmed by the maintainer on 20 October 2026. Target app version: **1.7.1**,
 MSIX **1.7.1.0**.
 
@@ -56,13 +56,14 @@ What's new.
 
 ### Release
 
-- [ ] Tag `v1.7.1-rc.1` and confirm that both MSIX jobs produce packages containing
-  `resources.pri`. A hyphenated tag builds the installers, both MSIX packages and the bundle
+- [x] Tag `v1.7.1-rc.1` and confirm that both MSIX jobs produce packages containing
+  `resources.pri`. Tagged at `2b52552` (the merge of #152); all 50 package checks passed on its
+  draft assets, each package holding a single `resources.pri`. A hyphenated tag builds the installers, both MSIX packages and the bundle
   into a draft prerelease; nothing is published.
-- [ ] Tag `v1.7.1` on the same commit, annotated: "Live Translation & Subtitles v1.7.1". Pass
+- [x] Tag `v1.7.1` on the same commit, annotated: "Live Translation & Subtitles v1.7.1". Pass
   release-commit CI and all installer/MSIX/bundle jobs.
-- [ ] Publish the prepared body: `gh release edit v1.7.1 --notes-file docs/release-1.7.1.md`.
-- [ ] Verify `Live.Translation_1.7.1.msixbundle`: the [1.7.0 checks](#170-artifact-verification)
+- [x] Publish the prepared body: `gh release edit v1.7.1 --notes-file docs/release-1.7.1.md`.
+- [x] Verify `Live.Translation_1.7.1.msixbundle`: the [1.7.0 checks](#170-artifact-verification)
   at **1.7.1.0**, plus `resources.pri` and the 42 target-size icons in each package,
   byte-identical to `src-tauri/gen/windows/Assets/`. Record sizes and SHA-256 below.
 - [ ] Submit the single combined bundle in Partner Center with the 1.7.1 What's new and the
@@ -73,7 +74,29 @@ What's new.
 
 ### 1.7.1 artifact verification
 
-Pending until the `v1.7.1` release workflow finishes.
+Tag `v1.7.1` (annotated) points to `2b525525b5a5125f27a9ffad75ac90e766748060`, the merge of
+[#152](https://github.com/fmadore/Live-translation/pull/152), the same commit as `v1.7.1-rc.1`.
+The [release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39411978613) and
+all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39414595274)
+passed. The GitHub release body is [release-1.7.1.md](release-1.7.1.md).
+
+Upload **[Live.Translation_1.7.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1.msixbundle)**
+to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
+GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
+`src-tauri/target/release-1.7.1/published/`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Live.Translation_1.7.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1.msixbundle) | 11,838,755 | `286ec7b988192e9df680477d6df33d3636c812cbb520fd4c9ea09cdf9b5f2ac9` |
+| [Live.Translation_1.7.1_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1_x64.msix) | 6,038,055 | `59292779c446c612ab3b10f2ab0afa3ec18d67611e12bf32fbf93b9bf9529a35` |
+| [Live.Translation_1.7.1_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1_arm64.msix) | 5,798,695 | `98e61945410b1b0f8078f235564f4bb7cbb5a0d387d09535c5c7dab8fe4fe300` |
+
+All 50 checks passed: the 40 of [1.7.0](#170-artifact-verification) at **1.7.1.0**, and in
+each package an `Assets/` folder holding exactly the 46 files of `src-tauri/gen/windows/Assets/`,
+byte-identical, including the 14 `altform-unplated` sizes, and a single `resources.pri` (9,296
+bytes) that indexes them, with no `resources.scale-N.pri`. Executable PE machine values are
+`0x8664` (x64, 12,401,152 bytes) and `0xAA64` (ARM64, 10,841,088 bytes). This verifies
+packaging, not installed-app behaviour or certification.
 
 ## Release 1.7.0 handoff
 
