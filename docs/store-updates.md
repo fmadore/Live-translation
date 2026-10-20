@@ -11,9 +11,9 @@ packages are built.
 
 ## Release 1.7.0 handoff
 
-**Prepared on 7 October 2026 and tagged `v1.7.0` on 20 October 2026; not yet submitted.** Last
-confirmed live Store version: **1.6.0.0**, confirmed by the maintainer on 6 October 2026. Target
-app version: **1.7.0**, MSIX **1.7.0.0**.
+**Prepared on 7 October 2026, tagged and published on GitHub on 20 October 2026; not yet
+submitted.** Last confirmed live Store version: **1.6.0.0**, confirmed by the maintainer on
+6 October 2026. Target app version: **1.7.0**, MSIX **1.7.0.0**.
 
 **1.7.0 supersedes 1.6.1 in the Store.** 1.6.1 was published on GitHub on 6 October 2026 and
 never submitted, and it will not be. The Store copy therefore covers everything since 1.6.0:
@@ -133,10 +133,10 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.7.0` from `main`. Pass release-commit CI and all installer/MSIX/bundle jobs, then
+- [x] Tag `v1.7.0` from `main`. Pass release-commit CI and all installer/MSIX/bundle jobs, then
   publish the prepared body: `gh release edit v1.7.0 --notes-file docs/release-1.7.0.md`.
   The citation date is set to the tag date, 20 October 2026.
-- [ ] Verify `Live.Translation_1.7.0.msixbundle` contains native x64 and ARM64 packages at
+- [x] Verify `Live.Translation_1.7.0.msixbundle` contains native x64 and ARM64 packages at
   **1.7.0.0** with the [assigned identity](microsoft-store.md#store-identity-assigned) and the
   wave-to-words tiles. Record sizes and SHA-256 below.
 - [ ] Sideload-test the final per-architecture MSIX packages and walk the
@@ -154,19 +154,35 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
 
 ### 1.7.0 artifact verification
 
-Pending until the `v1.7.0` release workflow finishes: record the tag commit, CI runs, bundle
-and package sizes, SHA-256 digests and manifest values here.
+Tag `v1.7.0` (annotated) points to `5ad2a0f6fc5d40a8fcc5a5abe350061f1c974905`, the
+`chore(release): 1.7.0` commit, whose only changes from the tested `f6a2448` are documentation
+and the citation date. The
+[release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39403013613) and all
+four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39403017461)
+passed. The GitHub release body is [release-1.7.0.md](release-1.7.0.md).
 
-Check the same points as for 1.6.1: each downloaded file's SHA-256 matches GitHub's asset
-digest; the bundle contains exactly the separately downloaded x64 and ARM64 packages,
-byte-for-byte; bundle and inner manifests report **1.7.0.0**, identity
-`49346FMadore.LiveTranslationSubtitles`, publisher `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`
-and publisher display name `FMadore`; executable PE machine values are `0x8664` (x64) and
-`0xAA64` (ARM64); each package includes both rehearsal WAVs and all three Whisper licence
-notices, declares only `runFullTrust` and `microphone`, contains no model weights or signature,
-and carries the wave-to-words `Square44x44Logo`, `Square150x150Logo`, `Wide310x150Logo` and
-`StoreLogo`, byte-identical to `src-tauri/gen/windows/Assets/`. This verifies packaging, not
-installed-app behaviour or certification.
+Upload **[Live.Translation_1.7.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle)**
+to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
+GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
+`src-tauri/target/release-1.7.0/published/`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Live.Translation_1.7.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle) | 11,424,375 | `550765859b61c447b65f040b6fec54a47f457019b27194839489312ce5fd042b` |
+| [Live.Translation_1.7.0_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0_x64.msix) | 5,830,917 | `9803668e9aa17fb5e7405af5eaabdd5180f5c6f0db2074f3950dcf5074a2c2fc` |
+| [Live.Translation_1.7.0_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0_arm64.msix) | 5,591,455 | `6465bdc4bf7f44b41cf0f0253db02fdf7c4279c548b6889d251de699224092ce` |
+
+All 40 checks passed. The bundle contains exactly the separately downloaded x64 and ARM64
+packages, byte-for-byte, and carries no signature. Bundle and inner manifests report
+**1.7.0.0**, identity `49346FMadore.LiveTranslationSubtitles` and publisher
+`CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`; each package has publisher display name `FMadore`
+and the matching processor architecture. Executable PE machine values are `0x8664` (x64,
+12,401,664 bytes) and `0xAA64` (ARM64, 10,841,088 bytes). Each package includes both rehearsal
+WAVs and all three Whisper licence notices, declares only `runFullTrust` and `microphone`,
+contains no model weights or signature, and carries the wave-to-words `Square44x44Logo`,
+`Square150x150Logo`, `Wide310x150Logo` and `StoreLogo`, byte-identical to
+`src-tauri/gen/windows/Assets/`. This verifies packaging, not installed-app behaviour or
+certification.
 
 ## The route
 
