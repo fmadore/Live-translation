@@ -118,6 +118,13 @@ export const fr: Messages = {
 		label: 'Langue de l’interface',
 		note: 'Change l’application, pas les sous-titres.'
 	},
+	theme: {
+		label: 'Thème',
+		system: 'Système',
+		light: 'Clair',
+		dark: 'Sombre',
+		note: 'Système suit le mode clair ou sombre choisi dans Windows. La surimpression des sous-titres garde ses propres couleurs.'
+	},
 
 	// The product's own name is not translated — the Store lists it in English, and inventing a
 	// French one would give the same app a third name. The line under it is prose, so it is.

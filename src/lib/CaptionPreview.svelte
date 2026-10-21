@@ -68,6 +68,9 @@
 	}
 	.preview {
 		background: #111;
+		/* An edge, so the slide that matches the window — the dark one in the dark theme, the
+		   white one in the light — still reads as a slide rather than as more panel. */
+		border: 1px solid var(--line-strong);
 		overflow: hidden;
 		border-radius: var(--radius-control);
 	}

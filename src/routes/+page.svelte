@@ -3,7 +3,7 @@
 	import { whisperModels } from '#lib/stores.js';
 	import { whisperPendingSeconds } from '#lib/whisperProgress.js';
 	import { isLocalWhisper } from '#lib/providers.js';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import MeetingProfiles from '#lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '#lib/OperatorToolbar.svelte';
 	import SessionControls from '#lib/SessionControls.svelte';
@@ -48,6 +48,7 @@
 	} from '#lib/stores.js';
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
+	import { followTheme } from '#lib/theme.js';
 	import { historyEnabled } from '#lib/history.js';
 	import type { SessionState } from '#lib/types.js';
 	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
@@ -57,6 +58,9 @@
 	// available on the very first render — which is what keeps a child like ApiKeyPanel from
 	// mounting and firing a Tauri-only command during `npm run dev`.
 	const browserMode = !isTauri();
+	// Light, dark or Windows' app mode, applied before the first paint rather than after mount so
+	// a light desktop never sees a frame of the dark window. The overlay keeps the dark tokens.
+	onDestroy(followTheme());
 	const session = createSessionController();
 	const overlay = createOverlayController();
 	const quit = createQuitController({
