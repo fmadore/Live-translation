@@ -11,8 +11,9 @@ packages are built.
 
 ## Release 1.8.0 handoff
 
-**Tagged and published on GitHub on 21 October 2026; not yet submitted.** Last confirmed live Store version:
-**1.7.1.0**, confirmed by the maintainer on 21 October 2026. Target app version: **1.8.0**,
+**Live in the Store.** Tagged and published on GitHub on 21 October 2026; the maintainer reported
+the Store release, and `Get-AppxPackage` on their machine reports the Store-signed **1.8.0.0**.
+The previous Store version was **1.7.1.0**. Target app version: **1.8.0**,
 MSIX **1.8.0.0**. What's new and the certification notes cover the changes since 1.7.1.
 
 1.8.0 is two features:
@@ -150,12 +151,11 @@ build:
   there, in every language, from the 1.8.0 MSIX. A Transcript-tab screenshot would show the
   new feature; it is optional. See [store-screenshots](store-screenshots/README.md).
 - [ ] Run Windows App Certification Kit.
-- [ ] Submit the single combined bundle in Partner Center with the 1.8.0 What's new and the
+- [x] Submit the single combined bundle in Partner Center with the 1.8.0 What's new and the
   updated descriptions, features and certification notes. Use a gradual rollout (route
   step 9): the realtime runner's line closing changed, and Mistral's model is a preview.
-- [ ] Record submission and certification. Before marking 1.8.0 live, confirm the Store
-  version: `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` should report
-  `SignatureKind` `Store` and Version `1.8.0.0`. A developer-signed sideload does not count.
+- [x] Record submission and certification. Live: `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles`
+  reports `SignatureKind` `Store` and Version `1.8.0.0`.
 
 ### 1.8.0 artifact verification
 
