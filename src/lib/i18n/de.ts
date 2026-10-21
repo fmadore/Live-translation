@@ -356,7 +356,25 @@ export const de: Messages = {
 			`${engine} erkennt die gesprochene Sprache selbst und schreibt Untertitel in derselben Sprache. Eine Zielsprache ist nicht nötig.`,
 		flipHint: 'Vor dem Start die ersten beiden Favoriten tauschen mit',
 		demoLanguageHint:
-			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.'
+			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.',
+
+		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
+		glossary: {
+			heading: 'Namen und Begriffe',
+			hint: 'Voxtral bevorzugt diese Schreibweisen: Namen der Vortragenden, Institutionen, Abkürzungen, Fachbegriffe. Ein Name oder Begriff pro Eintrag. Gilt ab dem nächsten Start.',
+			empty: 'Noch keine Namen oder Begriffe.',
+			add: 'Namen oder Begriff hinzufügen',
+			addButton: 'Hinzufügen',
+			remove: (term: string) => `„${term}“ entfernen`,
+			added: (term: string) => `„${term}“ hinzugefügt.`,
+			removed: (term: string) => `„${term}“ entfernt.`,
+			problem: {
+				length: (max: number) => `Ein Eintrag darf höchstens ${max} Zeichen lang sein.`,
+				duplicate: (term: string) => `„${term}“ steht bereits in der Liste.`,
+				full: (max: number) =>
+					`Die Liste fasst höchstens ${max} Namen und Begriffe. Entfernen Sie zuerst einen.`
+			}
+		}
 	},
 
 	settings: {

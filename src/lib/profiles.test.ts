@@ -72,3 +72,19 @@ it('validates remembered device ids against the current hardware', () => {
 		validateDevices(p.options, [], [{ id: 'present', name: 'Speakers', isDefault: true }])
 	).toMatchObject({ micDeviceId: null, systemDeviceId: 'present' });
 });
+it('keeps a profile’s names and terms for Voxtral, cleaned as the core expects them', () => {
+	const [profile] = decodeProfiles(
+		JSON.stringify([
+			{
+				id: 'one',
+				name: 'Conference',
+				options: {
+					mode: 'transcribe',
+					provider: 'mistral',
+					glossary: [' Ki-Zerbo ', 'ki-zerbo', 3, 'UNESCO']
+				}
+			}
+		])
+	);
+	expect(profile.options.glossary).toEqual(['Ki-Zerbo', 'UNESCO']);
+});

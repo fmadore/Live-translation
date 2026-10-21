@@ -67,7 +67,7 @@ export default defineConfig({
 			// a plain test, and each fully covered today. A floor there catches a deleted test or a
 			// new untested branch; elsewhere a number would only invite tests written for it.
 			thresholds: {
-				'src/lib/{appearance,captionColour,captionLayout,cleanSpeech,document,errors,historySearch,languages,reading,shortcuts,transcript}.ts':
+				'src/lib/{appearance,captionColour,captionLayout,cleanSpeech,document,errors,glossary,historySearch,languages,reading,shortcuts,transcript}.ts':
 					{ perFile: true, lines: 95, statements: 95, functions: 95, branches: 85 }
 			}
 		},

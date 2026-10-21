@@ -86,6 +86,16 @@ aside.rail › section.rail-section:nth(3) › div.step-head { display: flex; al
 aside.rail › section.rail-section:nth(3) › div.step-head › span.step-no { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; color: #5ad1a0; display: block }
 aside.rail › section.rail-section:nth(3) › div.step-head › h2.kicker "Spoken language" { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 aside.rail › section.rail-section:nth(3) › p.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; margin: 0px }
+aside.rail › section.rail-section:nth(3) › div.glossary[role=group] "Names and terms" { font-size: 12px; color: #c3c9d2; display: grid; gap: 8px; min-width: 0px; margin: 8px 0px 0px }
+aside.rail … div.glossary[role=group] "Names and terms" › span.heading { font-weight: 600; display: block }
+aside.rail … div.glossary[role=group] "Names and terms" › p.note:nth(1) { line-height: 1.5; color: #8b93a1; margin: 0px }
+aside.rail … div.glossary[role=group] "Names and terms" › p.note:nth(2) { line-height: 1.5; color: #8b93a1; margin: 0px }
+aside.rail … div.glossary[role=group] "Names and terms" › form { display: grid; align-items: end; grid-template-columns: minmax(0px, 1fr) auto; gap: 8px }
+aside.rail … div.glossary[role=group] "Names and terms" › form › label.ui-field { display: grid; gap: 8px; min-width: 0px }
+aside.rail … div.glossary[role=group] "Names and terms" › form › label.ui-field › span { display: block }
+aside.rail … div.glossary[role=group] "Names and terms" › form › label.ui-field › input[type=text] "Add a name or term" { display: block; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+aside.rail … div.glossary[role=group] "Names and terms" › form › button.ui-tool "Add" { font-weight: 500; line-height: 1; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23; opacity: 0.5 }
+aside.rail … div.glossary[role=group] "Names and terms" › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 aside.rail › div.divider:nth(3) { flex: 0 0 auto; max-width: 380px; height: 1px; background-color: #1f242b }
 aside.rail › section.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }
 aside.rail › section.rail-section:nth(4) › div.step-head { display: flex; align-items: center; gap: 8px }

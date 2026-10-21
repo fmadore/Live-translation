@@ -147,6 +147,10 @@ pub enum Signal {
     /// `RealtimeProtocol::finalize_after`). Source text alone does not count: it can lead the
     /// translation by seconds, and would finalize a turn before its translation arrived.
     TranscriptActivity,
+    /// The provider detected that the speaker finished their turn. The text of their last
+    /// words may still be on its way, so the runner finalizes the turn once this grace has
+    /// passed: no sooner, and no later however much text arrives meanwhile.
+    EndOfTurn(Duration),
 }
 
 #[derive(Debug, Default)]
@@ -221,6 +225,13 @@ pub trait RealtimeProtocol {
 
     fn finalize_after(&self) -> Option<Duration> {
         None
+    }
+
+    /// Whether the idle boundary should leave the turn open for now, because the provider
+    /// says the speaker is in the middle of a sentence. Asked each time the boundary passes,
+    /// and no longer once the text has been still for `MAX_HOLD`.
+    fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
+        false
     }
 }
 

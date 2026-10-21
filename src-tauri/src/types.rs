@@ -224,6 +224,11 @@ pub struct StartOptions {
     pub whisper_model: crate::whisper::models::ModelId,
     #[serde(default)]
     pub spoken_language: Option<String>,
+    /// Names and terms the speech engine should spell as written. Only Mistral uses it,
+    /// sent as `context_bias`; the setup keeps it whatever the engine, so switching away and
+    /// back does not lose it.
+    #[serde(default)]
+    pub glossary: Vec<String>,
 }
 
 /// Borrows the turn's text rather than owning it: a caption is serialized the moment it is

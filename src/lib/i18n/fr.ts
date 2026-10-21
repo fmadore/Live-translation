@@ -357,7 +357,25 @@ export const fr: Messages = {
 			`${engine} détecte lui-même la langue parlée et écrit les sous-titres dans cette même langue. Aucune langue cible n’est nécessaire.`,
 		flipHint: 'Permuter les deux premiers favoris avant de démarrer avec',
 		demoLanguageHint:
-			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.'
+			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.',
+
+		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
+		glossary: {
+			heading: 'Noms et termes',
+			hint: 'Voxtral privilégie ces graphies : noms des intervenants, institutions, sigles, jargon. Un nom ou un terme par entrée. S’applique au prochain démarrage.',
+			empty: 'Aucun nom ni terme pour l’instant.',
+			add: 'Ajouter un nom ou un terme',
+			addButton: 'Ajouter',
+			remove: (term: string) => `Retirer « ${term} »`,
+			added: (term: string) => `« ${term} » ajouté.`,
+			removed: (term: string) => `« ${term} » retiré.`,
+			problem: {
+				length: (max: number) => `Une entrée peut compter au plus ${max} caractères.`,
+				duplicate: (term: string) => `« ${term} » figure déjà dans la liste.`,
+				full: (max: number) =>
+					`La liste contient au plus ${max} noms et termes. Retirez-en un d’abord.`
+			}
+		}
 	},
 
 	settings: {

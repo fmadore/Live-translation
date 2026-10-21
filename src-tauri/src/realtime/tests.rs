@@ -24,7 +24,9 @@ use tokio_tungstenite::{accept_async, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::{INITIAL_BACKOFF, STABLE_CONNECTION};
-use super::socket::{CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT};
+use super::socket::{
+    CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, MAX_HOLD, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT,
+};
 use super::*;
 
 /// Long enough for any step of any test, short enough that a hang fails in seconds.
@@ -80,11 +82,14 @@ impl Events for Recorder {
 }
 
 /// A provider reduced to its control flow. The server speaks in bare words: `ready` confirms
-/// setup, `text:…` revises the turn, `final` completes it, `goaway`/`closed`/`fatal` steer the
+/// setup, `text:…` revises the turn, `more:…` extends it as new transcript (restarting the
+/// idle timer), `turnend` marks the end of the speaker's turn, `hold`/`release` say whether
+/// they are mid-sentence, `final` completes the turn, `goaway`/`closed`/`fatal` steer the
 /// connection. The client sends `setup`, `audio:<base64>`, and `end` to start a close drain,
 /// which completes on the next final.
 struct Fake {
     url: String,
+    hold: bool,
 }
 
 impl RealtimeProtocol for Fake {
@@ -122,19 +127,43 @@ impl RealtimeProtocol for Fake {
         match text {
             "ready" => MessageOutcome::setup_complete(),
             "final" => MessageOutcome::caption(CaptionUpdate::Final),
+            "turnend" => MessageOutcome {
+                signal: Signal::EndOfTurn(TURN_GRACE),
+                ..MessageOutcome::default()
+            },
+            "hold" | "release" => {
+                self.hold = text == "hold";
+                MessageOutcome::default()
+            }
             "goaway" => MessageOutcome::control(MessageControl::Handover),
             "closed" => MessageOutcome::control(MessageControl::Closed),
             "fatal" => MessageOutcome::control(MessageControl::Fatal("refused".into())),
-            _ => match text.strip_prefix("text:") {
-                Some(text) => {
+            _ => {
+                if let Some(text) = text.strip_prefix("text:") {
                     acc.text = text.into();
                     MessageOutcome::caption(CaptionUpdate::Interim)
+                } else if let Some(text) = text.strip_prefix("more:") {
+                    acc.text.push_str(text);
+                    MessageOutcome::activity(CaptionUpdate::Interim)
+                } else {
+                    MessageOutcome::default()
                 }
-                None => MessageOutcome::default(),
-            },
+            }
         }
     }
+
+    fn finalize_after(&self) -> Option<Duration> {
+        Some(FINALIZE_AFTER)
+    }
+
+    fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
+        self.hold
+    }
 }
+
+/// The idle boundary and end-of-turn grace the fake asks for, Mistral's own values.
+const FINALIZE_AFTER: Duration = Duration::from_millis(900);
+const TURN_GRACE: Duration = Duration::from_millis(480);
 
 /// One source's client, driven the way `SessionBuilder` drives it.
 struct Client {
@@ -154,7 +183,10 @@ impl Client {
         let cancel = CancellationToken::new();
         let task = tokio::spawn(run_session(
             Recorder(recorder),
-            Fake { url: url.into() },
+            Fake {
+                url: url.into(),
+                hold: false,
+            },
             audio_rx,
             cancel.clone(),
             SessionClock::start(),
@@ -657,5 +689,81 @@ async fn a_provider_error_while_closing_keeps_the_caption_and_reports_nothing() 
     peer.send("fatal").await;
     assert_eq!(peer.recv().await, Frame::Close);
     client.expect(final_("almost done")).await;
+    client.finished().await;
+}
+
+/// Mistral's `turn.end`: the turn closes a grace after it, although its last words arrive in
+/// between and each would restart the idle timer. The deadline goes with the turn, so the next
+/// one, with no end detected yet, falls back to the idle timer.
+#[tokio::test(start_paused = true)]
+async fn the_end_of_a_turn_finalizes_after_its_grace_whatever_text_follows() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("more:The last words").await;
+    client.expect(interim("The last words")).await;
+
+    peer.send("turnend").await;
+    let ended = Instant::now();
+    assert!(peer.listen_for(Duration::from_millis(300)).await.is_empty());
+    peer.send("more:.").await;
+    client.expect(interim("The last words.")).await;
+    let at = client.expect(final_("The last words.")).await;
+    let after = at - ended;
+    assert!(
+        after >= TURN_GRACE && after < TURN_GRACE + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    peer.send("more:Next").await;
+    let spoke = client.expect(interim("Next")).await;
+    let after = client.expect(final_("Next")).await - spoke;
+    assert!(
+        after >= FINALIZE_AFTER && after < FINALIZE_AFTER + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    // Quiet for long enough that Stop closes without waiting for a drain.
+    assert!(peer.listen_for(QUIET_BEFORE_CLOSE).await.is_empty());
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
+    client.finished().await;
+}
+
+/// Mid-sentence, the idle boundary leaves the turn open and looks again a boundary later; it
+/// closes once the provider no longer holds it, or at the latest once the text has been still
+/// for `MAX_HOLD`.
+#[tokio::test(start_paused = true)]
+async fn a_held_turn_stays_open_until_released_or_too_long_still() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("hold").await;
+    peer.send("more:Utilisez cet").await;
+    client.expect(interim("Utilisez cet")).await;
+    assert!(peer.listen_for(FINALIZE_AFTER * 2).await.is_empty());
+    peer.send("more: enregistrement").await;
+    let spoke = client.expect(interim("Utilisez cet enregistrement")).await;
+    peer.send("release").await;
+    let after = client.expect(final_("Utilisez cet enregistrement")).await - spoke;
+    assert!(
+        after >= FINALIZE_AFTER && after < FINALIZE_AFTER + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    peer.send("hold").await;
+    peer.send("more:Une").await;
+    let spoke = client.expect(interim("Une")).await;
+    let after = client.expect(final_("Une")).await - spoke;
+    assert!(
+        after >= MAX_HOLD && after < MAX_HOLD + FINALIZE_AFTER + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    assert!(peer.listen_for(QUIET_BEFORE_CLOSE).await.is_empty());
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
     client.finished().await;
 }
