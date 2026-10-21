@@ -72,6 +72,10 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
 - 2026-10-04: local ARM64 Whisper fixture inference passed in English with detection and in
   French with an explicit language. That does not establish accuracy in all 99 languages;
   see the [Whisper acceptance plan](local-whisper.md#validation).
+- 2026-10-21: Mistral subtitles moved from Voxtral Realtime 2602 (13 languages) to Realtime 3,
+  which Mistral counts at 45 languages and dialects without publishing the list. Realtime 3
+  accepts a two-letter `language` pin that the app does not send yet; see the
+  [Mistral API notes](mistral-realtime-api.md#session-features-not-used-yet).
 - Tests cover generated catalog parity, persistence/defaults, search ranking, favourites,
   F2, keyboard controls, unsupported options, history and caption direction. Rust tests
   verify provider memberships and every demo script's packaged WAV.

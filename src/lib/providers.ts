@@ -99,9 +99,9 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 	},
 	mistral: {
 		id: 'mistral',
-		modelId: 'voxtral-mini-transcribe-realtime-2602',
-		hourlyRate: '$0.36',
-		hourlyEstimate: 0.36,
+		modelId: 'voxtral-mini-transcribe-realtime-3-0',
+		hourlyRate: '$0.48',
+		hourlyEstimate: 0.48,
 		perStream: true,
 		keyUrl: 'https://console.mistral.ai/api-keys'
 	},

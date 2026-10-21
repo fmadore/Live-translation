@@ -1,4 +1,4 @@
-//! Mistral Voxtral Mini realtime transcription. Unlike the translation providers, its
+//! Mistral Voxtral Mini Transcribe Realtime 3. Unlike the translation providers, its
 //! transcript is the audience caption itself: it goes in the accumulator's `text`, where a
 //! translation would, and is exported through the existing caption/transcript path.
 
@@ -14,7 +14,7 @@ use crate::realtime::{
 };
 use crate::types::Origin;
 
-pub const DEFAULT_MISTRAL_MODEL: &str = "voxtral-mini-transcribe-realtime-2602";
+pub const DEFAULT_MISTRAL_MODEL: &str = "voxtral-mini-transcribe-realtime-3-0";
 pub const DEFAULT_MISTRAL_HOST: &str = "api.mistral.ai";
 /// A small context window keeps subtitles responsive while improving recognition quality.
 pub const DEFAULT_TARGET_STREAMING_DELAY_MS: u32 = 480;
@@ -237,8 +237,8 @@ mod tests {
             .unwrap();
         assert_eq!(
             handshake(request),
-            "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602\n\
-             GET /v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-2602 HTTP/1.1\r\n\
+            "wss://api.mistral.ai/v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-3-0\n\
+             GET /v1/audio/transcriptions/realtime?model=voxtral-mini-transcribe-realtime-3-0 HTTP/1.1\r\n\
              Host: api.mistral.ai\r\n\
              Connection: Upgrade\r\n\
              Upgrade: websocket\r\n\
@@ -349,6 +349,15 @@ mod tests {
             ),
             (
                 r#"{"message":"Model voxtral-mini-transcribe is unavailable for this key","code":3001}"#,
+                false,
+            ),
+            // Session configuration errors, as Mistral documents them for Realtime 3.
+            (
+                r#"{"message":"Session fields cannot be changed after audio has started.","code":3051}"#,
+                false,
+            ),
+            (
+                r#"{"message":"target_streaming_delay_ms must be one of the trained values: ['80-1200', '2400'] (got 1300).","code":3051}"#,
                 false,
             ),
             (r#"{"message":"Monthly quota exceeded","code":429}"#, false),

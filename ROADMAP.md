@@ -56,6 +56,10 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - **Cloud session resilience** (6 October review, batches 1–2): a live handover, an OpenAI
   session past 60 minutes, Gemini Translate's answer to `audioStreamEnd`, pong replies from
   every provider and Mistral's real `error` payloads.
+- **Voxtral Realtime 3** ([#153](https://github.com/fmadore/Live-translation/issues/153)): real
+  French and English conference speech against 2602 at 240, 480 and 960 ms. The
+  [21 October check](docs/mistral-realtime-api.md#live-check-21-october-2026) used the synthetic
+  rehearsal recordings, on which both models were word-perfect.
 - **Cloud caption languages** ([#78](https://github.com/fmadore/Live-translation/issues/78)):
   live endpoint and speech acceptance ([language coverage](docs/language-coverage.md)).
 - **Accessibility and tray** ([#24](https://github.com/fmadore/Live-translation/issues/24),
@@ -107,8 +111,9 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   reconnected mid-session moves the overlay off it and back; what remains is choosing among
   several without a profile and without move mode.
 - Per-origin caption styling on the overlay, such as a subtle prefix when both sources are live.
-- Make rate-card verification dates visible: the rates in `providers.ts` have no in-repo source
-  or date, and Mistral's realtime price is no longer on its pricing page
+- Make rate-card verification dates visible: apart from Mistral's, whose source and date are in
+  the [Mistral API notes](docs/mistral-realtime-api.md#scope), the rates in `providers.ts` have
+  no in-repo source or date
   ([6 October review](docs/app-review-2026-10-06.md#5-dependencies-and-provider-drift)).
 - The other feature candidates of the
   [6 October review](docs/app-review-2026-10-06.md#6-feature-candidates), beyond #12 (its F3)
