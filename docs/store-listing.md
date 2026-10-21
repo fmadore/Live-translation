@@ -27,7 +27,12 @@ breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repos
 Microsoft's [listing field documentation](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/add-and-edit-store-listing-info)
 allows 10,000 characters for Description, 1,500 for What's new, and 20 features of 200
 characters each. Short description accepts 1,000 characters, but only the first 270 appear
-in some views. All three short descriptions below fit within 270 characters.
+in some views. All three short descriptions below fit within 270 characters. Keywords allow
+up to 7 entries of at most 40 characters, with no more than 21 words across all of
+them; enter each line below as one keyword.
+
+Each language's blocks follow Partner Center's field order: Description, What's new,
+Features, Short description, Keywords.
 
 ## English (United States)
 
@@ -51,6 +56,20 @@ With Whisper, audio stays on your PC; speech waiting to be processed sits in a t
 Use the interface in English, French or German, whatever the caption language. The operator window works from the keyboard and with Narrator, and follows Windows text size and contrast themes. An optional English/French demo lets you try the display without any setup; it plays a prepared script and does not recognize speech.
 
 Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
+```
+
+### What's new in this version — 1.7.1
+
+```text
+Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
+
+The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling. If the projector is unplugged during a session, the overlay moves onto a connected screen.
+
+Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
+
+The app icon now shows on the taskbar and in Start without a coloured square behind it.
+
+Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
 ```
 
 ### Features — one feature per line
@@ -79,18 +98,16 @@ English, French and German interface; native Windows x64 and ARM64
 Free live captions over meetings, calls and slides. Transcribe offline with Whisper in 99 languages or translate into English, or use your own cloud API key for other languages. Capture a microphone or any app, show two caption languages and export the transcript.
 ```
 
-### What's new in this version — 1.7.1
+### Keywords — up to 7
 
 ```text
-Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
-
-The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling. If the projector is unplugged during a session, the overlay moves onto a connected screen.
-
-Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
-
-The app icon now shows on the taskbar and in Start without a coloured square behind it.
-
-Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
+live captions
+offline Whisper transcription
+live subtitles
+real-time translation
+speech to text
+meeting accessibility
+on-device speech recognition
 ```
 
 ## Français (France)
@@ -115,6 +132,20 @@ Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement es
 Utilisez l'interface en français, anglais ou allemand, quelle que soit la langue des sous-titres. La fenêtre de contrôle s'utilise au clavier et avec le Narrateur, et suit la taille du texte et les thèmes de contraste de Windows. Une démo facultative en français et en anglais permet d'essayer l'affichage sans configuration ; elle déroule un script préparé et ne reconnaît pas la parole.
 
 Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
+```
+
+### Nouveautés de cette version — 1.7.1
+
+```text
+Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
+
+La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
+
+Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
+
+L'icône de l'application s'affiche désormais dans la barre des tâches et le menu Démarrer sans carré coloré derrière elle.
+
+Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -143,18 +174,16 @@ Interface en français, anglais et allemand ; versions Windows x64 et ARM64 nati
 Sous-titres en direct gratuits sur vos réunions, appels et présentations. Transcrivez hors ligne avec Whisper en 99 langues ou traduisez vers l'anglais, et vers d'autres langues avec votre clé API cloud. Captez un micro ou une application et exportez la transcription.
 ```
 
-### Nouveautés de cette version — 1.7.1
+### Mots clés — 7 au maximum
 
 ```text
-Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
-
-La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
-
-Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
-
-L'icône de l'application s'affiche désormais dans la barre des tâches et le menu Démarrer sans carré coloré derrière elle.
-
-Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
+sous-titres en direct
+transcription Whisper
+sous-titres automatiques
+traduction instantanée
+transcription vocale
+réunions accessibles
+reconnaissance vocale hors ligne
 ```
 
 ## Deutsch (Deutschland)
@@ -179,6 +208,20 @@ Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch g
 Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhängig von der Untertitelsprache. Das Bedienfenster lässt sich per Tastatur und mit der Sprachausgabe bedienen und folgt der Windows-Textgröße und den Kontrastdesigns. Eine optionale skriptbasierte Demo auf Englisch und Französisch zeigt die Anzeigefunktionen ohne Einrichtung; sie erkennt keine Sprache.
 
 Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
+```
+
+### Neu in dieser Version — 1.7.1
+
+```text
+Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
+
+Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung. Wird der Projektor während einer Sitzung getrennt, wechselt es auf einen verbundenen Bildschirm.
+
+Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
+
+Das App-Symbol erscheint in der Taskleiste und im Startmenü jetzt ohne farbiges Quadrat dahinter.
+
+Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -207,25 +250,23 @@ Oberfläche auf Deutsch, Englisch und Französisch; native Windows-Versionen fü
 Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprachen transkribieren oder ins Englische übersetzen, andere Sprachen per Cloud mit eigenem API-Schlüssel. Mikrofon oder App-Audio erfassen, zwei Sprachen anzeigen und Transkripte exportieren.
 ```
 
-### Neu in dieser Version — 1.7.1
+### Suchbegriffe — höchstens 7
 
 ```text
-Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
-
-Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung. Wird der Projektor während einer Sitzung getrennt, wechselt es auf einen verbundenen Bildschirm.
-
-Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
-
-Das App-Symbol erscheint in der Taskleiste und im Startmenü jetzt ohne farbiges Quadrat dahinter.
-
-Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
+Live-Untertitel
+Offline-Transkription mit Whisper
+Live-Transkription
+Echtzeit-Übersetzung
+Sprache zu Text
+barrierefreie Meetings
+Offline-Spracherkennung
 ```
 
 ## Adding the German listing
 
-The interface supports German. Before publishing a German listing, review the German copy
-and capture the final packaged app with its interface set to German. Existing English and
-French images are historical too; see the [screenshot plan](store-screenshots/README.md).
+The interface supports German. Before publishing a German listing, review the German copy.
+The German screenshots are captured from the 1.7.1 MSIX with the interface set to German; see
+the [screenshot notes](store-screenshots/README.md).
 
 ## Additional system requirements
 
@@ -290,15 +331,15 @@ the credential-free Whisper and demo routes do not establish acceptance of cloud
 
 ## Screenshots
 
-Capture real, non-private sessions from the final MSIX, following the
-[screenshot plan](store-screenshots/README.md). These captions describe planned images;
-do not upload them against old screenshots. Each caption is under 200 characters.
+One caption per image in [`store-screenshots/`](store-screenshots/README.md), captured from
+the 1.7.1 MSIX in each listing language. Each caption is under 200 characters.
 
-| Image | English | Français | Deutsch |
-| --- | --- | --- | --- |
-| 1 — Whisper | Offline captions with Whisper: choose a model, spoken language and audio source. | Sous-titres hors ligne avec Whisper : choisissez un modèle, une langue et une source audio. | Offline-Untertitel mit Whisper: Modell, gesprochene Sprache und Audioquelle auswählen. |
-| 2 — Overlay | Keep captions visible over your slides or video call in a transparent, click-through overlay. | Gardez les sous-titres visibles sur vos diapositives ou appels, dans une surimpression traversable par les clics. | Untertitel bleiben über Folien oder Videoanrufen sichtbar, in einem transparenten, durchklickbaren Overlay. |
-| 3 — Bilingual | Show two translation languages and include the original speech when the engine supplies it. | Affichez deux langues de traduction et le texte original lorsque le moteur le fournit. | Zwei Übersetzungssprachen anzeigen und den Originaltext einblenden, wenn die Engine ihn liefert. |
-| 4 — Reading | Adjust caption appearance and reading pace, with presets and your own filler-word list. | Réglez l'apparence et le rythme de lecture, avec des préréglages et votre liste d'hésitations. | Darstellung und Lesetempo anpassen, mit Voreinstellungen und einer eigenen Füllwortliste. |
-| 5 — History | Find a saved session, read its transcript and export text or timed subtitles. | Retrouvez une session, relisez sa transcription et exportez du texte ou des sous-titres minutés. | Gespeicherte Sitzungen finden, Transkripte lesen und Text oder zeitbasierte Untertitel exportieren. |
-| 6 — Optional demo | Try the display controls with a scripted English/French demo, without audio capture or setup. | Essayez l'affichage avec une démo scénarisée en français ou en anglais, sans capture audio ni configuration. | Anzeige mit einer englischen oder französischen Skript-Demo ausprobieren, ohne Audioaufnahme oder Einrichtung. |
+| Image                            | English                                                                                                       | Français                                                                                                                      | Deutsch                                                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1 — Whisper                      | Offline captions with Whisper: choose a model, spoken language and audio source.                              | Sous-titres hors ligne avec Whisper : choisissez un modèle, une langue et une source audio.                                   | Offline-Untertitel mit Whisper: Modell, gesprochene Sprache und Audioquelle auswählen.                                         |
+| 2 — Overlay                      | Keep captions visible over your slides or video call in a transparent, click-through overlay.                 | Gardez les sous-titres visibles sur vos diapositives ou appels, dans une surimpression traversable par les clics.             | Untertitel bleiben über Folien oder Videoanrufen sichtbar, in einem transparenten, durchklickbaren Overlay.                    |
+| 3 — Bilingual                    | Show two translation languages and include the original speech when the engine supplies it.                   | Affichez deux langues de traduction et le texte original lorsque le moteur le fournit.                                        | Zwei Übersetzungssprachen anzeigen und den Originaltext einblenden, wenn die Engine ihn liefert.                               |
+| 4 — Appearance                   | Choose caption size, typeface and colours, with presets previewed on a bright and a dark slide.               | Choisissez la taille, la police et les couleurs, avec des préréglages prévisualisés sur une diapositive claire et une sombre. | Größe, Schrift und Farben wählen, mit Voreinstellungen in der Vorschau auf einer hellen und einer dunklen Folie.               |
+| 5 — Reading                      | Set the reading pace: Stable reading holds captions still, and your own filler-word list hides “um” and “uh”. | Réglez le rythme de lecture : la lecture stable fige les sous-titres, et votre liste masque les « euh ».                      | Lesetempo einstellen: Der ruhige Lesemodus hält Untertitel still, und eine eigene Füllwortliste blendet Verzögerungslaute aus. |
+| 6 — History                      | Find a saved session, read its transcript and export text or timed subtitles.                                 | Retrouvez une session, relisez sa transcription et exportez du texte ou des sous-titres minutés.                              | Gespeicherte Sitzungen finden, Transkripte lesen und Text oder zeitbasierte Untertitel exportieren.                            |
+| 7 — Optional demo (not captured) | Try the display controls with a scripted English/French demo, without audio capture or setup.                 | Essayez l'affichage avec une démo scénarisée en français ou en anglais, sans capture audio ni configuration.                  | Anzeige mit einer englischen oder französischen Skript-Demo ausprobieren, ohne Audioaufnahme oder Einrichtung.                 |

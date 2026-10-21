@@ -233,8 +233,8 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
   wave-to-words tiles. Record sizes and SHA-256 below.
 - [ ] Sideload-test the final per-architecture MSIX packages and walk the
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
-- [ ] Recapture the EN/FR/DE Store screenshots from the signed 1.7.0 MSIX; the
-  [capture plan](store-screenshots/README.md) has been pending since 1.6.0.
+- [x] Recapture the EN/FR/DE Store screenshots: done 21 October 2026 from the 1.7.1 ARM64
+  MSIX, six per language; see [store-screenshots](store-screenshots/README.md).
 - [ ] Run Windows App Certification Kit, which also reports missing package images.
 - [ ] Upload `.github/social-preview.png` in the GitHub repository settings if that is still
   outstanding from 1.6.1. This is manual and not part of the Store.

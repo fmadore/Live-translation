@@ -1,46 +1,38 @@
-# Store screenshots — 1.7.0 capture plan
+# Store screenshots
 
-The existing `en/` and `fr/` images are historical 1.2.2 captures and are **not ready for
-1.7.0**; the `de/` set has not been captured. The 1.6.0 and 1.6.1 captures were not recorded as
-done, although 1.6.1 changed the app icon and the interface, and 1.7.0 adds Whisper's
-translation engine card to the setup sheet's translation mode. Retake every set from the final signed 1.7.0
-MSIX, with the interface set to each listing language. Browser previews and the separate
-Whisper Test installation do not establish packaged-app appearance.
+Captured 21 October 2026 from the sideloaded **1.7.1.0 ARM64 MSIX**
+(`49346FMadore.LiveTranslationSubtitles`), with the interface set to each listing language.
+Display: 3440×1440 at 100% scaling; the window was sized to exactly 1920×1080 and captured
+pixel for pixel. Upload each language's set in filename order, with the matching
+[caption](../store-listing.md#screenshots).
 
-The first images should demonstrate useful captioning, with the scripted demo last if included.
-Capture only disposable, consented speech or the bundled rehearsal material. Do not show
-private meeting transcripts, API keys, account details or personal application titles.
-
-| Upload order / new filename | Capture |
+| File | Shows |
 | --- | --- |
-| `1-whisper.png` | Whisper selected, a verified model installed, spoken language and source visible, actual local captions running, in Subtitles mode as its caption describes. Any frame of translation setup now shows the Local Whisper card beside Gemini and OpenAI. |
-| `2-overlay.png` | Click-through captions over neutral slides or a non-private call; show readable type and placement. |
-| `3-bilingual.png` | Two target languages in a real cloud session, with original speech if available. Requires a configured provider and incurs usage. |
-| `4-reading.png` | Caption previews/presets, Stable reading and the editable filler-word list. Use the matching caption if multiple controls need separate images. |
-| `5-history.png` | A disposable titled session, search and transcript detail/export controls. |
-| `6-demo.png` (optional) | The clearly labelled scripted demo running; keep this after the live-caption examples. |
+| `1-whisper.png` | Subtitles mode after a real Local Whisper session: system audio, spoken language set, Base model ready, all pre-flight checks green, transcript below. |
+| `2-overlay.png` | The click-through overlay locked low over a neutral slide during a live session (Stable reading). Cropped to 2194×1234 to drop the screen edge. |
+| `3-bilingual.png` | A Gemini live-translation session with two target languages, the original speech shown above one of them. |
+| `4-appearance.png` | Settings › Captions: presets, size, typeface, colours, contrast and the bright/dark slide previews. |
+| `5-reading.png` | Settings › Reading: Stable reading and the editable filler-word list. |
+| `6-history.png` | Settings › Transcript history: a titled session found by search, with copy/export controls and the transcript. |
 
-Use the localized [screenshot captions](../store-listing.md#screenshots), adjusting them if a
-frame does not show everything described. Capture at least one frame of the open language
-selector if needed to show the 99 Whisper language choices or translation favourites.
+## Content
 
-Use `en/`, `fr/`, `de/` for the current verified sets, with the same order in each language.
-Replace obsolete filenames when the new captures exist; do not relabel or reuse old images
-as evidence of the new interface. Record package version, architecture, capture date and
-display scaling here when refreshed.
+All speech is a synthesized, neutral talk on community gardens (Windows' Zira, Hortense and
+Hedda voices) played through the default output and captured as system audio. Nothing shows
+a real meeting, API key, account or personal window.
 
-Before capture, check the current Microsoft [screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images)
-and the [Store rules](../store-updates.md#screenshots) summarized for this listing. Each
-prepared caption is under 200 characters.
+| Set | Whisper speech | Bilingual: speech → captions | Overlay: speech → caption |
+| --- | --- | --- | --- |
+| `en/` | English | French → English + German | English (Whisper) |
+| `fr/` | French | English → French + German | English → French (Gemini) |
+| `de/` | German | French → German + English | English → German (Gemini) |
 
-## Capture status
+Whisper ran on the Base model, so its transcripts keep a few recognition slips (for example
+in the German history detail). Gemini wording is as returned, not edited.
 
-The final package now exists. Copy `Live.Translation_1.7.0_arm64.msix` (or `_x64`) from the
-[v1.7.0 release](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) to
-`src-tauri/target/msix/Live Translation & Subtitles_1.7.0.0_arm64.msix`, run
-[`scripts/install-local-msix.ps1`](../../scripts/install-local-msix.ps1) as Administrator, which
-signs it with the development certificate, then capture each set from that install.
+## Recapturing
 
-- English: pending final 1.7.0 MSIX capture.
-- French: pending final 1.7.0 MSIX capture.
-- German: pending final 1.7.0 MSIX capture and language review.
+Re-capture whenever the UI these show changes, from a sideloaded MSIX rather than a dev
+build, and keep the same order and names in every language. Check the current Microsoft
+[screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images)
+and the [Store rules](../store-updates.md#screenshots) first.

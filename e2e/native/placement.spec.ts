@@ -54,9 +54,14 @@ test('the overlay reopens where it was last placed', async ({ app }) => {
 	expect(placed).not.toEqual(created);
 
 	await app.operator.getByRole('button', { name: 'Move overlay' }).click();
+	// Only once move mode is on, as an operator can only drag then: entering it first makes sure
+	// the overlay is reachable, and on a runner narrower than the created overlay that clamps
+	// and moves it — a move that would land on top of a placement sent while it was under way.
+	const done = app.operator.getByRole('button', { name: 'Finish placing the overlay' });
+	await expect(done).toBeVisible();
 	// The drag: the window moves and resizes itself in move mode, through the placement command.
 	await invoke(app.operator, 'set_overlay_placement', { placement: placed });
-	await app.operator.getByRole('button', { name: 'Finish placing the overlay' }).click();
+	await done.click();
 	await expect
 		.poll(() => app.operator.evaluate(() => localStorage.getItem('overlay.geometry')), {
 			message: 'the placement remembered'
