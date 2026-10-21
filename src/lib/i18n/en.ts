@@ -352,7 +352,24 @@ export const en = {
 			`${engine} auto-detects the spoken language and writes same-language subtitles. No translation target is needed.`,
 		flipHint: 'Swap the first two favourites before starting with',
 		demoLanguageHint:
-			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.'
+			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.',
+
+		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
+		glossary: {
+			heading: 'Names and terms',
+			hint: 'Voxtral favours these spellings: speaker names, institutions, acronyms, jargon. One name or term per entry. Applies from the next Start.',
+			empty: 'No names or terms yet.',
+			add: 'Add a name or term',
+			addButton: 'Add',
+			remove: (term: string) => `Remove “${term}”`,
+			added: (term: string) => `“${term}” added.`,
+			removed: (term: string) => `“${term}” removed.`,
+			problem: {
+				length: (max: number) => `An entry can be at most ${max} characters long.`,
+				duplicate: (term: string) => `“${term}” is already in the list.`,
+				full: (max: number) => `The list holds up to ${max} names and terms. Remove one first.`
+			}
+		}
 	},
 
 	settings: {

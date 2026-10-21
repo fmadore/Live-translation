@@ -19,6 +19,10 @@ pub const DEFAULT_MISTRAL_HOST: &str = "api.mistral.ai";
 /// A small context window keeps subtitles responsive while improving recognition quality.
 pub const DEFAULT_TARGET_STREAMING_DELAY_MS: u32 = 480;
 const FINALIZE_AFTER: Duration = Duration::from_millis(900);
+/// The glossary's limits, the same in the setup sheet (`src/lib/glossary.ts`). Its entries
+/// share the model's context window with the audio, so a long list costs recognition.
+pub const MAX_GLOSSARY_TERMS: usize = 100;
+pub const MAX_GLOSSARY_TERM_CHARS: usize = 200;
 
 #[derive(Clone)]
 pub struct MistralConfig {
@@ -26,12 +30,30 @@ pub struct MistralConfig {
     pub model: String,
     pub host: String,
     pub target_streaming_delay_ms: u32,
+    /// The session's glossary, sent as `context_bias`.
+    pub context_bias: Vec<String>,
     pub origin: Origin,
+}
+
+/// Reject a glossary the setup sheet would not have produced.
+pub fn validate_glossary(terms: &[String]) -> Result<()> {
+    anyhow::ensure!(
+        terms.len() <= MAX_GLOSSARY_TERMS,
+        "The glossary holds at most {MAX_GLOSSARY_TERMS} names and terms"
+    );
+    for term in terms {
+        anyhow::ensure!(!term.trim().is_empty(), "A glossary entry is empty");
+        anyhow::ensure!(
+            term.chars().count() <= MAX_GLOSSARY_TERM_CHARS,
+            "A glossary entry is longer than {MAX_GLOSSARY_TERM_CHARS} characters"
+        );
+    }
+    Ok(())
 }
 
 impl MistralConfig {
     /// Realtime 2602, the model before Realtime 3, still reachable through
-    /// `MISTRAL_TRANSCRIBE_MODEL` for comparison. It rejects turn detection.
+    /// `MISTRAL_TRANSCRIBE_MODEL` for comparison. It rejects turn detection and context bias.
     fn is_realtime_2602(&self) -> bool {
         self.model.contains("2602")
     }
@@ -80,9 +102,17 @@ impl RealtimeProtocol for MistralClient {
     fn setup_json(&self) -> Result<String> {
         let update = SessionUpdate::pcm16(self.config.target_streaming_delay_ms);
         if self.config.is_realtime_2602() {
+            if !self.config.context_bias.is_empty() {
+                tracing::warn!(
+                    model = %self.config.model,
+                    "this Mistral model takes no glossary; sending none"
+                );
+            }
             return Ok(serde_json::to_string(&update)?);
         }
-        Ok(serde_json::to_string(&update.with_turn_detection())?)
+        Ok(serde_json::to_string(
+            &update.with_turns_and_bias(&self.config.context_bias),
+        )?)
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {
@@ -267,6 +297,7 @@ mod tests {
             model: DEFAULT_MISTRAL_MODEL.to_string(),
             host: DEFAULT_MISTRAL_HOST.to_string(),
             target_streaming_delay_ms: DEFAULT_TARGET_STREAMING_DELAY_MS,
+            context_bias: Vec::new(),
             origin: Origin::Microphone,
         }
     }
@@ -280,16 +311,22 @@ mod tests {
     }
 
     #[test]
-    fn realtime_3_detects_turns_and_2602_does_not() {
+    fn realtime_3_detects_turns_and_takes_the_glossary() {
         let mut config = config("");
+        config.context_bias = vec!["Voxtral".into(), "Université Joseph Ki-Zerbo".into()];
         let session = &setup(config.clone())["session"];
         assert_eq!(session["turn_detection"], serde_json::json!({}));
+        assert_eq!(
+            session["context_bias"],
+            serde_json::json!(["Voxtral", "Université Joseph Ki-Zerbo"])
+        );
 
         // As Mistral answered on 21 October 2026: "Model '…-2602' does not support turn
-        // detection.", code 3051.
+        // detection." (and the same for context biasing), code 3051.
         config.model = "voxtral-mini-transcribe-realtime-2602".into();
         let session = &setup(config)["session"];
         assert!(session.get("turn_detection").is_none());
+        assert!(session.get("context_bias").is_none());
     }
 
     #[test]
@@ -358,6 +395,17 @@ mod tests {
         for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
             assert!(!ends_sentence(text), "{text}");
         }
+    }
+
+    #[test]
+    fn a_glossary_the_setup_sheet_would_not_make_is_refused() {
+        let term = |chars: usize| "é".repeat(chars);
+        assert!(validate_glossary(&[]).is_ok());
+        assert!(validate_glossary(&[term(MAX_GLOSSARY_TERM_CHARS)]).is_ok());
+        assert!(validate_glossary(&[term(MAX_GLOSSARY_TERM_CHARS + 1)]).is_err());
+        assert!(validate_glossary(&["  ".into()]).is_err());
+        assert!(validate_glossary(&vec!["IWAC".to_string(); MAX_GLOSSARY_TERMS]).is_ok());
+        assert!(validate_glossary(&vec!["IWAC".to_string(); MAX_GLOSSARY_TERMS + 1]).is_err());
     }
 
     #[test]
@@ -542,10 +590,10 @@ mod tests {
         }
     }
 
-    /// The French recording through the real runner, with Realtime 3 accepting turn detection.
-    /// Its text stalls mid-sentence for longer than the idle boundary, yet every caption must
-    /// close on a whole sentence; and the first sentence, the one followed by a detected end of
-    /// turn, sooner than the idle boundary would close it.
+    /// The French recording through the real runner, with Realtime 3 accepting turn detection
+    /// and a glossary. Its text stalls mid-sentence for longer than the idle boundary, yet every
+    /// caption must close on a whole sentence; and the first sentence, the one followed by a
+    /// detected end of turn, sooner than the idle boundary would close it.
     #[tokio::test]
     #[ignore = "streams the bundled fixture to Mistral and bills the key; run with --ignored"]
     async fn realtime_3_closes_a_sentence_at_its_detected_end() {
@@ -553,10 +601,11 @@ mod tests {
         use crate::audio::{chunk_samples, resample::f32_to_pcm16_le, AudioChunk};
 
         let _ = dotenvy::dotenv();
-        let config = config(
+        let mut config = config(
             &std::env::var("MISTRAL_API_KEY")
                 .expect("set MISTRAL_API_KEY, or copy .env.example to .env at the repo root"),
         );
+        config.context_bias = vec!["Voxtral".into(), "sous-titres".into()];
         let samples = load_fixture(std::path::Path::new("resources/fixtures/rehearsal-fr.wav"))
             .expect("the bundled rehearsal fixture should load");
 

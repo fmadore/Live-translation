@@ -113,3 +113,20 @@ describe('Whisper translation', () => {
 		expect(view.getByText(/Choose Small: Tiny and Base translate poorly/)).toBeInTheDocument();
 	});
 });
+
+describe('Voxtral’s names and terms', () => {
+	it('are offered under the auto-detect note with Voxtral, and kept through another engine', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'mistral', glossary: ['UNESCO'] });
+		const view = mount(false);
+		expect(view.getByText(/Voxtral auto-detects the spoken language/)).toBeInTheDocument();
+		expect(view.getByRole('group', { name: 'Names and terms' })).toBeInTheDocument();
+		expect(view.getByRole('button', { name: 'Remove “UNESCO”' })).toBeInTheDocument();
+
+		await fireEvent.click(view.getByRole('button', { name: /^Google Gemini/ }));
+		expect(view.queryByRole('group', { name: 'Names and terms' })).toBeNull();
+		expect(get(options)).toMatchObject({ provider: 'gemini-transcribe', glossary: ['UNESCO'] });
+
+		await fireEvent.click(view.getByRole('button', { name: /^Mistral Voxtral/ }));
+		expect(view.getByRole('button', { name: 'Remove “UNESCO”' })).toBeInTheDocument();
+	});
+});

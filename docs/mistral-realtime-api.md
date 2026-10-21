@@ -55,6 +55,7 @@ being served: `voxtral-mini-transcribe-realtime-3-0-4` on 21 October.
   "session": {
     "audio_format": { "encoding": "pcm_s16le", "sample_rate": 16000 },
     "target_streaming_delay_ms": 480,
+    "context_bias": ["Université Joseph Ki-Zerbo", "IWAC"],
     "turn_detection": {}
   }
 }
@@ -62,16 +63,18 @@ being served: `voxtral-mini-transcribe-realtime-3-0-4` on 21 October.
 
 `turn_detection: {}` turns on end-of-turn detection with Mistral's default thresholds:
 `start_threshold` 0.5, `eager_end_threshold` 0.5, `end_threshold` 0.33, `min_silence_ms`
-500 and `end_timeout_ms` 3000. Realtime 2602 refuses the field with code 3051 and the message
-`Model 'voxtral-mini-transcribe-realtime-2602' does not support turn detection.`, so the client
-does not send it to a 2602 model (`MistralConfig::is_realtime_2602`).
+500 and `end_timeout_ms` 3000. `context_bias` carries the operator's
+[glossary](#glossary) and is left out when the glossary is empty. Realtime 2602 refuses both
+fields with code 3051 and the messages `Model 'voxtral-mini-transcribe-realtime-2602' does not
+support turn detection.` and `… does not support context biasing.`, so the client sends neither
+field to a 2602 model (`MistralConfig::is_realtime_2602`).
 
 Realtime 3 fixes a session's settings when the first audio chunk arrives. A later
 `session.update` gets the error `Session fields cannot be changed after audio has started.` The
 app sends its only `session.update` straight after the handshake, before any audio. It does not
 wait for `session.created`, which Mistral's guide asks for, but the server applies the early
 update: on 21 October `session.updated` echoed the 480 ms delay on both models, and the turn
-detection on Realtime 3. 2602 has accepted the same order since 0.4.0.
+detection and glossary on Realtime 3. 2602 has accepted the same order since 0.4.0.
 
 Each audio chunk is base64 encoded:
 
@@ -109,12 +112,32 @@ comes first ([architecture](architecture.md#provider-contracts) has the runner's
    enough for a `turn.end` would fill one line for minutes: the English rehearsal recording
    has a single `turn.end`, at its very end.
 
+## Glossary
+
+Step 03 of the setup sheet, with Voxtral selected, has a **Names and terms** list (see
+`GlossaryList.svelte`): speaker names, institutions, acronyms and jargon to favour for the
+whole session, sent as `context_bias`.
+
+- **Limits:** up to 100 entries of up to 200 characters each. Duplicates are compared without
+  case. The setup sheet enforces these limits (`glossary.ts`), and the core checks them again
+  at Start (`mistral::validate_glossary`).
+- **Storage:** the list is saved with the last setup and in meeting profiles, and kept when
+  another engine is selected.
+- **Context window:** the entries share Realtime 3's 65,536-token window with the audio. A
+  full list is a few thousand tokens.
+- **Keyphrases or descriptions:** an entry may be a description of the talk, but in realtime
+  Mistral finds keyphrases more reliable, so the hint asks for one name or term per entry.
+- **Changes:** settings are fixed once audio starts, so a change applies from the next Start.
+
+The rehearsal recordings contain no name that the model gets wrong, so the glossary's effect
+on spelling is not measured yet. The live check confirms only that Realtime 3 accepts the
+glossary and echoes it.
+
 ## Session features not used yet
 
 | Field | Shape and default | What it adds |
 | --- | --- | --- |
 | `language` | Two-letter ISO 639-1 code; unset | Pins the spoken language. Unset, the model detects it. The app has no spoken-language selector for Mistral ([language coverage](language-coverage.md)). |
-| `context_bias` | Array of strings; `[]` | Keyphrases (spaces allowed) or a description of the recording, set for the whole session. Entries share the 65,536-token context window with the audio. In realtime, Mistral finds a keyphrase more reliable than a description. Fits a per-session glossary of speaker names, institutions and jargon. Realtime 2602 refuses it (`… does not support context biasing.`, code 3051). |
 | `diarize` | Boolean; `false` | Replaces `transcription.text.delta` with `transcription.segment` events: `{ text, speaker_id, start: null, end: null }`, labels `speaker_1`, `speaker_2`… The client must read these events before diarization is switched on, or every caption goes blank. Labels hold within one session only, so a reconnect renumbers speakers. Cannot share a session with `turn_detection`, so it would cost the end-of-turn line closing above. |
 | `speaker_references` | `{ name: base64 clip }`; unset | Names known speakers: up to 8 clips of 3 to 15 seconds. Requires `diarize`. |
 
@@ -196,9 +219,9 @@ its accuracy cost is unmeasured, since the synthetic voices are too clean to sho
 real-speech comparison is still to do: French and English conference audio, with names and
 room acoustics, at 240, 480 and 960 ms.
 
-### Turn detection
+### Turn detection and the glossary
 
-The same day, with `turn_detection: {}` on Realtime 3:
+The same day, with `turn_detection: {}` and a three-entry glossary on Realtime 3:
 
 - **Turn events:**
   - The French recording ends one turn after its first sentence and another at its close.
@@ -218,4 +241,4 @@ The same day, with `turn_detection: {}` on Realtime 3:
   - The first sentence closed 0.48 to 0.49 s after its last word, through `turn.end`.
   - Without the mid-sentence hold, an earlier run cut captions at `Ceci | est un
     enregistrement de` and `Utilisez cet | enregistrement`.
-- **2602:** refuses the field; see [connection and setup](#connection-and-setup).
+- **2602:** refuses both fields; see [connection and setup](#connection-and-setup).

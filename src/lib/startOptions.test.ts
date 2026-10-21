@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadStartOptions } from './startOptions';
+import { DEFAULT_START_OPTIONS, loadStartOptions, normalizeStartOptions } from './startOptions';
 
 // This project runs in node, so the persisted-setup path needs a stand-in for the one
 // storage method `loadStartOptions` reads.
@@ -114,5 +114,48 @@ describe('first-launch setup', () => {
 			provider: 'ondevice',
 			targetLanguage: 'fr'
 		});
+	});
+});
+
+describe('Voxtral’s names and terms', () => {
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'localStorage');
+	});
+
+	const voxtral = { mode: 'transcribe', provider: 'mistral', source: 'system' } as const;
+
+	it('come back with the saved setup as they were saved', () => {
+		const glossary = ['UNESCO', 'Université Joseph Ki-Zerbo', 'Ouagadougou'];
+		storing({ ...voxtral, targetLanguage: 'en', glossary });
+		const loaded = loadStartOptions();
+		expect(loaded).toMatchObject({ provider: 'mistral', glossary });
+		// The setup is stored as the options store holds it, and read back unchanged.
+		expect(normalizeStartOptions(JSON.parse(JSON.stringify(loaded)))).toEqual(loaded);
+	});
+
+	it('come back trimmed and without anything the core would refuse', () => {
+		expect(
+			normalizeStartOptions({
+				...voxtral,
+				glossary: [' UNESCO ', 7, '', 'unesco', 'x'.repeat(201), null, 'Ki-Zerbo']
+			}).glossary
+		).toEqual(['UNESCO', 'Ki-Zerbo']);
+	});
+
+	it('are kept with another engine selected, for when Voxtral is chosen again', () => {
+		expect(
+			normalizeStartOptions({ mode: 'transcribe', provider: 'whisper', glossary: ['UNESCO'] })
+		).toMatchObject({ provider: 'whisper', glossary: ['UNESCO'] });
+		expect(
+			normalizeStartOptions({ mode: 'translate', provider: 'gemini', glossary: ['UNESCO'] })
+		).toMatchObject({ provider: 'gemini', glossary: ['UNESCO'] });
+	});
+
+	it('stay absent when none were saved, or only unusable ones', () => {
+		for (const glossary of [undefined, [], ['', '  '], 'UNESCO', { 0: 'UNESCO' }]) {
+			const loaded = normalizeStartOptions({ ...voxtral, glossary });
+			expect(loaded).not.toHaveProperty('glossary');
+		}
+		expect(DEFAULT_START_OPTIONS).not.toHaveProperty('glossary');
 	});
 });

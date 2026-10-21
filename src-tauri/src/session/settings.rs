@@ -42,6 +42,8 @@ pub(super) enum ProviderSettings {
         host: String,
         model: String,
         delay_ms: u32,
+        /// The session's glossary; see `with_glossary`.
+        context_bias: Vec<String>,
     },
     OnDevice,
     Whisper,
@@ -86,10 +88,19 @@ impl ProviderSettings {
                     .transpose()
                     .context("MISTRAL_TARGET_STREAMING_DELAY_MS must be an integer")?
                     .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS),
+                context_bias: Vec::new(),
             },
             Provider::OnDevice => Self::OnDevice,
             Provider::Whisper | Provider::WhisperTranslate => Self::Whisper,
         })
+    }
+
+    /// Add the session's glossary, which only Mistral sends; every other provider ignores it.
+    pub(super) fn with_glossary(mut self, glossary: &[String]) -> Self {
+        if let Self::Mistral { context_bias, .. } = &mut self {
+            *context_bias = glossary.to_vec();
+        }
+        self
     }
 
     pub(super) fn spawn_client(
@@ -131,12 +142,14 @@ impl ProviderSettings {
                 host,
                 model,
                 delay_ms,
+                context_bias,
             } => io.spawn_realtime(
                 MistralConfig {
                     api_key,
                     model: model.clone(),
                     host: host.clone(),
                     target_streaming_delay_ms: *delay_ms,
+                    context_bias: context_bias.clone(),
                     origin,
                 }
                 .into_client(),
@@ -201,5 +214,24 @@ mod tests {
             DEFAULT_HOST
         };
         assert_eq!(host, expected);
+    }
+
+    #[test]
+    fn only_mistral_takes_the_glossary() {
+        let glossary = ["IWAC".to_string()];
+        let none = |_: &str| None;
+        let ProviderSettings::Mistral { context_bias, .. } =
+            ProviderSettings::resolve_with(Provider::Mistral, none)
+                .unwrap()
+                .with_glossary(&glossary)
+        else {
+            panic!("wrong provider settings")
+        };
+        assert_eq!(context_bias, glossary);
+        let gemini = ProviderSettings::resolve_with(Provider::GeminiTranscribe, none).unwrap();
+        assert_eq!(
+            gemini.with_glossary(&glossary),
+            ProviderSettings::resolve_with(Provider::GeminiTranscribe, none).unwrap()
+        );
     }
 }

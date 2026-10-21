@@ -1,4 +1,5 @@
 <script lang="ts">
+	import GlossaryList from './GlossaryList.svelte';
 	import LanguagePicker from './LanguagePicker.svelte';
 	import WhisperModels from './WhisperModels.svelte';
 	import whisperLanguages from './whisperLanguages.json';
@@ -65,7 +66,7 @@
 	);
 
 	// Step 03 asks which language to render into, which demo script to play, or nothing when
-	// the backend detects the spoken language itself.
+	// the backend detects the spoken language itself (Voxtral then takes names and terms).
 	const spokenChoices = $derived.by(() => {
 		const names = new Intl.DisplayNames([$locale], { type: 'language', fallback: 'none' });
 		return whisperLanguages
@@ -288,6 +289,9 @@
 		{@render spokenLanguage($t.whisper.languageHint)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
+		<!-- Only Voxtral takes a list of names and terms. The list stays in the setup with any
+		     other engine, so choosing Voxtral again brings it back. -->
+		{#if $options.provider === 'mistral'}<GlossaryList {locked} />{/if}
 	{:else if $options.mode === 'translate'}
 		<LanguagePicker
 			value={$options.targetLanguage}

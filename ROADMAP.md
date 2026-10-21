@@ -58,6 +58,7 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   every provider and Mistral's real `error` payloads.
 - **Voxtral Realtime 3** ([#153](https://github.com/fmadore/Live-translation/issues/153)):
   - Real French and English conference speech against 2602 at 240, 480 and 960 ms.
+  - Whether the glossary fixes names the model gets wrong.
   - Whether lines break at turn ends and sentence ends on a live speaker and in a Q&A.
 
   The [21 October check](docs/mistral-realtime-api.md#live-check-21-october-2026) used the

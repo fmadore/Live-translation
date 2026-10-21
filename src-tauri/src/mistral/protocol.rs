@@ -4,16 +4,19 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
-pub struct SessionUpdate {
+pub struct SessionUpdate<'a> {
     #[serde(rename = "type")]
     pub kind: &'static str,
-    pub session: SessionConfig,
+    pub session: SessionConfig<'a>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct SessionConfig {
+pub struct SessionConfig<'a> {
     pub audio_format: AudioFormat,
     pub target_streaming_delay_ms: u32,
+    /// Names and terms to spell as written, for the whole session.
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    pub context_bias: &'a [String],
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn_detection: Option<TurnDetection>,
 }
@@ -28,7 +31,7 @@ pub struct AudioFormat {
     pub sample_rate: u32,
 }
 
-impl SessionUpdate {
+impl<'a> SessionUpdate<'a> {
     /// 16 kHz PCM16 at this delay, and nothing else: all that Realtime 2602 accepts.
     pub fn pcm16(target_streaming_delay_ms: u32) -> Self {
         Self {
@@ -39,13 +42,16 @@ impl SessionUpdate {
                     sample_rate: 16_000,
                 },
                 target_streaming_delay_ms,
+                context_bias: &[],
                 turn_detection: None,
             },
         }
     }
 
-    /// Realtime 3's end-of-turn detection. 2602 answers it with an error that ends the session.
-    pub fn with_turn_detection(mut self) -> Self {
+    /// Realtime 3's additions: end-of-turn detection, and the session's glossary if it has
+    /// one. 2602 answers either with an error that ends the session.
+    pub fn with_turns_and_bias(mut self, context_bias: &'a [String]) -> Self {
+        self.session.context_bias = context_bias;
         self.session.turn_detection = Some(TurnDetection {});
         self
     }
@@ -96,9 +102,20 @@ mod tests {
     }
 
     #[test]
-    fn realtime_3_setup_turns_on_turn_detection() {
-        let value = serde_json::to_value(SessionUpdate::pcm16(480).with_turn_detection()).unwrap();
+    fn realtime_3_setup_turns_on_turn_detection_and_sends_any_glossary() {
+        let terms = ["Voxtral".to_string(), "Alder Creek Design".to_string()];
+        let value =
+            serde_json::to_value(SessionUpdate::pcm16(480).with_turns_and_bias(&terms)).unwrap();
         assert_eq!(value["session"]["turn_detection"], serde_json::json!({}));
+        assert_eq!(
+            value["session"]["context_bias"],
+            serde_json::json!(["Voxtral", "Alder Creek Design"])
+        );
+
+        let value =
+            serde_json::to_value(SessionUpdate::pcm16(480).with_turns_and_bias(&[])).unwrap();
+        assert_eq!(value["session"]["turn_detection"], serde_json::json!({}));
+        assert!(value["session"].get("context_bias").is_none());
     }
 
     #[test]

@@ -3,7 +3,7 @@
 use anyhow::Result;
 
 use crate::types::{AudioSource, Origin, OutputMode, Provider, StartOptions, TargetLanguage};
-use crate::whisper;
+use crate::{mistral, whisper};
 
 fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
     anyhow::ensure!(
@@ -18,6 +18,9 @@ pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     // Both tasks take the spoken language: translating, it is the one Whisper translates from.
     if options.provider.is_local_whisper() {
         whisper::validate_language(options.spoken_language.as_deref())?;
+    }
+    if options.provider == Provider::Mistral {
+        mistral::validate_glossary(&options.glossary)?;
     }
     anyhow::ensure!(
         options.target_language.supported_by(options.provider),
@@ -185,6 +188,25 @@ mod tests {
             let error = validate_start(&options).unwrap_err().to_string();
             assert!(error.contains("English only"), "{error}");
         }
+    }
+
+    #[test]
+    fn only_mistral_checks_the_glossary_it_sends() {
+        let start = |provider: &str, glossary: serde_json::Value| {
+            let options: StartOptions = serde_json::from_value(serde_json::json!({
+                "source": "microphone",
+                "targetLanguage": "en",
+                "provider": provider,
+                "mode": "transcribe",
+                "glossary": glossary,
+            }))
+            .unwrap();
+            validate_start(&options)
+        };
+        assert!(start("mistral", serde_json::json!(["Voxtral", "IWAC"])).is_ok());
+        assert!(start("mistral", serde_json::json!(["Voxtral", " "])).is_err());
+        // Kept with the setup for when Mistral is chosen again, not sent anywhere else.
+        assert!(start("whisper", serde_json::json!([" "])).is_ok());
     }
 
     #[test]

@@ -2,6 +2,7 @@
 // valid setup: from localStorage at start-up, and from a saved meeting profile.
 
 import whisperLanguages from './whisperLanguages.json';
+import { normalizeGlossary } from './glossary';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languages';
 import { readStored } from './persisted';
 import { isLocalWhisper, providerCanTranslate } from './providers';
@@ -56,6 +57,9 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 	// fallback an unreadable provider gets — or wherever they were saved.
 	const whisperChoices =
 		(provider === stored.provider && isLocalWhisper(provider)) || stored.whisperModel !== undefined;
+	// Voxtral's names and terms come back whatever the engine, so a detour through another one
+	// keeps them. Absent when empty: no list and an emptied one mean the same thing.
+	const glossary = normalizeGlossary(stored.glossary);
 	const loaded: StartOptions = {
 		source: oneOf(AUDIO_SOURCES, stored.source, DEFAULT_START_OPTIONS.source),
 		mode: oneOf(OUTPUT_MODES, stored.mode, DEFAULT_START_OPTIONS.mode),
@@ -83,6 +87,7 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 			(TARGET_LANGUAGES as readonly string[]).includes(stored.secondTargetLanguage)
 				? (stored.secondTargetLanguage as TargetLanguage)
 				: null,
+		...(glossary.length ? { glossary } : {}),
 		// Remember the privacy choice, never restore a PID across app launches.
 		...((stored.systemCapture as { kind?: string } | null)?.kind === 'application'
 			? { systemCapture: { kind: 'application' as const, process: null } }

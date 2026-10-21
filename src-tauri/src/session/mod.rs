@@ -99,7 +99,7 @@ impl SessionManager {
         } else {
             String::new()
         };
-        let settings = ProviderSettings::resolve(provider)?;
+        let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
         let local_model = if provider.is_local_whisper() {
             let app = app.clone();
             let model = options.whisper_model;
