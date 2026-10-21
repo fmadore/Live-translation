@@ -14,6 +14,7 @@
 	import KeyboardHelp from './KeyboardHelp.svelte';
 	import { LOCALE_NAMES, LOCALES, locale, setLocale, t } from './i18n';
 	import { closeToTray, overlayPlaced } from './stores';
+	import { THEMES, theme } from './theme';
 	import type { OverlayController } from './overlayController.svelte';
 
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
@@ -44,6 +45,7 @@
 	// that says what those buttons are choosing between.
 	const idBase = $props.id();
 	const localeHeadingId = `${idBase}-locale`;
+	const themeHeadingId = `${idBase}-theme`;
 </script>
 
 <!-- Modal for the focus handling rather than because it demands an answer, so Escape and
@@ -143,6 +145,45 @@
 				</div>
 
 				<div class="divider"></div>
+				<!-- The operator window only: the overlay's captions have their own palette. -->
+				<div class="rail-section">
+					<h2 class="kicker" id={themeHeadingId}>{$t.theme.label}</h2>
+					<div class="theme-cards" role="group" aria-labelledby={themeHeadingId}>
+						{#each THEMES as choice (choice)}
+							<button
+								class="theme-card ui-card"
+								aria-pressed={$theme === choice}
+								onclick={() => theme.set(choice)}
+							>
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="1.75"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									aria-hidden="true"
+								>
+									{#if choice === 'system'}
+										<rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" />
+									{:else if choice === 'light'}
+										<circle cx="12" cy="12" r="4" /><path
+											d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"
+										/>
+									{:else}
+										<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+									{/if}
+								</svg>
+								<span>{$t.theme[choice]}</span>
+							</button>
+						{/each}
+					</div>
+					<p class="hint">{$t.theme.note}</p>
+				</div>
+
+				<div class="divider"></div>
 				<div class="rail-section">
 					<h2 class="kicker">{$t.window.heading}</h2>
 					<ToolButton wide disabled={browserMode} onclick={onHideWindow}>
@@ -203,5 +244,32 @@
 		grid-auto-flow: column;
 		grid-auto-columns: 1fr;
 		gap: var(--space-2);
+	}
+	/* The theme choice, laid out like the language cards above it: one row, equal columns. */
+	.theme-cards {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--space-2);
+	}
+	.theme-card {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-3);
+		font-size: var(--type-body);
+		font-weight: 500;
+		line-height: 1;
+		color: var(--text-secondary);
+	}
+	.theme-card svg {
+		flex: 0 0 auto;
+		color: var(--text-muted);
+	}
+	.theme-card[aria-pressed='true'] {
+		color: var(--text-body);
+		font-weight: 600;
+	}
+	.theme-card[aria-pressed='true'] svg {
+		color: var(--accent-soft);
 	}
 </style>

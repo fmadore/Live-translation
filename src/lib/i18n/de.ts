@@ -118,6 +118,13 @@ export const de: Messages = {
 		label: 'Sprache der Oberfläche',
 		note: 'Ändert die App, nicht die Untertitel.'
 	},
+	theme: {
+		label: 'Farbschema',
+		system: 'System',
+		light: 'Hell',
+		dark: 'Dunkel',
+		note: 'System folgt dem hellen oder dunklen App-Modus von Windows. Das Untertitel-Overlay behält seine eigenen Farben.'
+	},
 
 	app: {
 		name: 'Live Translation & Subtitles'

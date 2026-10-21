@@ -16,7 +16,7 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 
 | Concern | Where it lives |
 | --- | --- |
-| Text contrast | `src/app.css` — four text levels (bright, body, secondary, muted), every one of which clears 4.5:1 on each of the three surfaces; the muted level also clears it on every tinted wash the stylesheet names. `--faint` carries no text; it is the idle status dot at the 3:1 non-text target. No component paints with a hex literal, so every colour on screen is one the checks have seen. |
+| Text contrast | `src/app.css` — four text levels (bright, body, secondary, muted), every one of which clears 4.5:1 on each of the three surfaces; the muted level also clears it on every tinted wash the stylesheet names. `--faint` carries no text; it is the idle status dot at the 3:1 non-text target. No component paints with a hex literal, so every colour on screen is one the checks have seen. The light theme (`:root[data-theme='light']`, chosen in Settings → App → Theme or followed from Windows' app mode) re-declares every colour and is held to the same floors. |
 | Text size | `src/app.css` — seven type roles (caption 11, small 12, body 13, label 14, title 17, heading 21, display 27px at 100%), each a multiple of `--text-scale`. Spacing is a six-step `rem` scale, so the space around text grows with it too. No component declares its own pixel size or spacing. |
 | Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
@@ -39,7 +39,8 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 
 ## What is checked automatically
 
-- `npm test` → `src/lib/palette.test.ts` reads the tokens out of `app.css` and fails if any
+- `npm test` → `src/lib/palette.test.ts` reads the tokens out of `app.css`, for the dark and
+  the light theme alike, and fails if the light block leaves a colour undeclared or if any
   text token drops below 4.5:1 on any surface, if the muted level drops below it on any tinted
   wash, or if any non-text mark drops below 3:1. It pins the ramps (four text levels, three
   surfaces, three lines), and it reads every component stylesheet: a hex literal, or a text
@@ -88,6 +89,9 @@ treats the window.
    selected mode, source, language and engine stay distinguishable; the Start button is
    readable; the level meter is visible; the status pill keeps an edge. The overlay's audience
    view keeps its own colours — that is deliberate.
+   Repeat the pass with Settings → App → Theme on **Light**, and once on **System** while
+   switching Windows between light and dark app mode: the operator window and its title bar
+   follow, and the overlay's move-mode toolbar stays dark.
 4. **Caption colours over real slides.** With the overlay placed, put a **bright** deck
    behind it and then a **dark** one, and read the captions from the back of the room in both.
    Include a finished line and a trailing previous line, which are the dimmest text on screen

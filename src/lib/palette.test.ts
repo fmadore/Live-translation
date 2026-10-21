@@ -12,29 +12,46 @@ import { describe, expect, it } from 'vitest';
 // `docs/accessibility.md`.
 
 const CSS = readFileSync(new URL('../app.css', import.meta.url), 'utf8');
-const ROOT = CSS.slice(CSS.indexOf(':root'), CSS.indexOf('\n}'));
+/** The body of the first rule whose selector starts at `selector`. */
+function block(selector: string): string {
+	const start = CSS.indexOf(`${selector} {`);
+	return CSS.slice(start, CSS.indexOf('\n}', start));
+}
+const ROOT = block(':root');
+const LIGHT = block(":root[data-theme='light']");
 
-/** Every `--name: #rrggbb` in `:root`, with `--name: var(--other)` aliases resolved. Non-hex
- *  values (rgba washes) are skipped. */
-function palette(): Record<string, string> {
+/** Every `--name: #rrggbb` in `css`. Non-hex values (rgba washes, aliases) are skipped. */
+function hexes(css: string): Record<string, string> {
 	const out: Record<string, string> = {};
-	for (const [, name, hex] of ROOT.matchAll(/(--[\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
+	for (const [, name, hex] of css.matchAll(/(--[\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)) {
 		out[name] = hex;
 	}
+	return out;
+}
+
+/** The palette a theme paints with. The light block only re-declares colours, so it sits on
+ *  top of `:root`; an alias declared in `:root` (`--focus`) resolves against whichever values
+ *  are in force, as `var()` does on the element. */
+function palette(theme: 'dark' | 'light' = 'dark'): Record<string, string> {
+	const out = { ...hexes(ROOT), ...(theme === 'light' ? hexes(LIGHT) : {}) };
 	for (const [, name, target] of ROOT.matchAll(/(--[\w-]+):\s*var\((--[\w-]+)\)\s*;/g)) {
 		if (out[target]) out[name] = out[target];
 	}
 	return out;
 }
 
-/** Every `--name: rgba(r, g, b, a)` in `:root` other than a border: the tinted washes chips,
- *  cards and buttons sit on. */
-function washes(): Record<string, { rgb: number[]; alpha: number }> {
+/** Every `--name-wash` and `--name-chip` in a theme: the tinted washes chips, cards and buttons
+ *  sit on. Borders are edges and the modal scrim carries no text, so neither is a ground. */
+function washes(
+	theme: 'dark' | 'light' = 'dark'
+): Record<string, { rgb: number[]; alpha: number }> {
 	const out: Record<string, { rgb: number[]; alpha: number }> = {};
-	for (const [, name, r, g, b, a] of ROOT.matchAll(
-		/(--[\w-]+):\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)\s*;/g
-	)) {
-		if (!name.endsWith('-border')) out[name] = { rgb: [r, g, b].map(Number), alpha: Number(a) };
+	for (const css of theme === 'light' ? [ROOT, LIGHT] : [ROOT]) {
+		for (const [, name, r, g, b, a] of css.matchAll(
+			/(--[\w-]+-(?:wash|chip)):\s*rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)\s*;/g
+		)) {
+			out[name] = { rgb: [r, g, b].map(Number), alpha: Number(a) };
+		}
 	}
 	return out;
 }
@@ -87,8 +104,8 @@ const TEXT = [
 /** Not text: a status dot, a ring, a fill. WCAG AA for a meaningful non-text mark is 3:1. */
 const MARKS = ['--faint', '--focus', '--room'];
 
-describe('the palette', () => {
-	const tokens = palette();
+describe.each(['dark', 'light'] as const)('the %s palette', (theme) => {
+	const tokens = palette(theme);
 
 	it('defines every token these checks reason about', () => {
 		for (const name of [...SURFACES, ...TEXT, ...MARKS]) {
@@ -110,6 +127,15 @@ describe('the palette', () => {
 		]);
 	});
 
+	// A colour the light block forgets is a dark-theme value on a white page — usually a near-
+	// black line or a pale tint that vanishes — and nothing above would notice, because the
+	// merged palette still has a value for it.
+	it.runIf(theme === 'light')('re-declares every colour the dark theme sets', () => {
+		const colour = /(--[\w-]+):\s*(?:#[0-9a-fA-F]{6}|rgba\([^)]*\)|0 [^;]*rgba\([^)]*\))\s*;/g;
+		const names = (css: string) => [...css.matchAll(colour)].map(([, name]) => name);
+		expect(names(LIGHT)).toEqual(names(ROOT));
+	});
+
 	it.each(TEXT)('%s reads at 4.5:1 or better on every surface', (name) => {
 		for (const surface of SURFACES) {
 			const ratio = contrast(tokens[name], tokens[surface]);
@@ -124,7 +150,7 @@ describe('the palette', () => {
 	// The dimmest text level has to survive every one of them, so a component never needs a
 	// brighter grey of its own to stay legible on one.
 	it('keeps the dimmest text legible on every tinted wash', () => {
-		const tints = washes();
+		const tints = washes(theme);
 		expect(Object.keys(tints).length).toBeGreaterThanOrEqual(5);
 		for (const [name, wash] of Object.entries(tints)) {
 			for (const surface of ['--surface-0', '--surface-1']) {

@@ -110,6 +110,13 @@ export const en = {
 		label: 'Interface language',
 		note: 'Changes the app, not the captions.'
 	},
+	theme: {
+		label: 'Theme',
+		system: 'System',
+		light: 'Light',
+		dark: 'Dark',
+		note: 'System follows the light or dark app mode set in Windows. The caption overlay keeps its own colours.'
+	},
 
 	app: {
 		name: 'Live Translation & Subtitles'

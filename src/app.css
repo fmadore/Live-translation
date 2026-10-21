@@ -152,6 +152,63 @@
 		sans-serif;
 }
 
+/* The light theme: the same roles, re-declared for a white page (`src/lib/theme.ts` sets the
+   attribute on the operator window; the overlay never carries it, so its move-mode chrome
+   stays dark over whatever slide it sits on). Only colours change — spacing, type and
+   geometry are the theme-free tokens above. `palette.test.ts` holds this block to the same
+   floors as the dark one, so the differences below are what a white ground costs:
+   - the ground is a light grey and panels are white, so a panel still lifts off the window;
+     raised marks are a step darker than the ground rather than lighter;
+   - every hue that carries text is darkened until it reads on white, which is why the mint
+     of a filled button is a deep green here, with white on it;
+   - -soft stays "the hue's text tint", which on a white page means darker, not lighter;
+   - the washes keep their 8 / 14 / 40% strengths, laid in a brighter pigment of each hue so
+     an 8% tint still reads as colour rather than as grey. */
+:root[data-theme='light'] {
+	color-scheme: light;
+
+	--surface-0: #f3f4f6;
+	--surface-1: #ffffff;
+	--surface-2: #e8ebef;
+
+	--line: #e1e4e9;
+	--line-strong: #cdd2da;
+	--line-hover: #9aa2ae;
+
+	--room: #2f6fe0;
+	--room-soft: #2356b8;
+	--room-chip: rgba(47, 111, 224, 0.14);
+
+	--accent: #0b7550;
+	--accent-soft: #0a6646;
+	--accent-deep: #0a6646;
+	--on-accent: #ffffff;
+	--accent-wash: rgba(16, 158, 104, 0.08);
+	--accent-chip: rgba(16, 158, 104, 0.14);
+	--accent-border: rgba(16, 158, 104, 0.4);
+
+	--warn: #995200;
+	--warn-soft: #8a4a00;
+	--warn-wash: rgba(224, 138, 0, 0.08);
+	--warn-chip: rgba(224, 138, 0, 0.14);
+	--warn-border: rgba(224, 138, 0, 0.4);
+
+	--danger: #c4282c;
+	--danger-soft: #b02226;
+	--danger-wash: rgba(214, 48, 52, 0.08);
+	--danger-chip: rgba(214, 48, 52, 0.14);
+	--danger-border: rgba(214, 48, 52, 0.4);
+
+	--text-bright: #0d1015;
+	--text-body: #1a1e25;
+	--text-secondary: #394150;
+	--text-muted: #555e6c;
+	--faint: #7b8390;
+
+	--modal-scrim: rgba(14, 17, 22, 0.42);
+	--shadow-flyout: 0 24px 64px -16px rgba(16, 22, 32, 0.28);
+}
+
 * {
 	box-sizing: border-box;
 }
