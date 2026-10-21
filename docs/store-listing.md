@@ -28,7 +28,7 @@ Microsoft's [listing field documentation](https://learn.microsoft.com/en-us/wind
 allows 10,000 characters for Description, 1,500 for What's new, and 20 features of 200
 characters each. Short description accepts 1,000 characters, but only the first 270 appear
 in some views. All three short descriptions below fit within 270 characters. Keywords allow
-up to 7 entries of at most 40 characters, with no more than 21 distinct words across all of
+up to 7 entries of at most 40 characters, with no more than 21 words across all of
 them; enter each line below as one keyword.
 
 Each language's blocks follow Partner Center's field order: Description, What's new,
@@ -178,11 +178,11 @@ Sous-titres en direct gratuits sur vos réunions, appels et présentations. Tran
 
 ```text
 sous-titres en direct
-transcription Whisper hors ligne
+transcription Whisper
 sous-titres automatiques
-traduction en temps réel
+traduction instantanée
 transcription vocale
-accessibilité des réunions
+réunions accessibles
 reconnaissance vocale hors ligne
 ```
 
