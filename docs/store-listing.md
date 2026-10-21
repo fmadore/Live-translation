@@ -1,24 +1,20 @@
-# Partner Center listing text — 1.7.1
+# Partner Center listing text — 1.8.0
 
-Prepared for **1.7.1 / MSIX 1.7.1.0**, tagged on 20 October 2026; not submitted. The last
-confirmed Store release is 1.6.1 (MSIX 1.6.1.0), which already has the wave-to-words icon and
-the refreshed interface, so What's new covers the changes since 1.6.1. Paste each block into
-its named field after the [release checks](store-updates.md#release-171-handoff).
-These descriptions lead with the actual captioning workflow; the scripted demo is a secondary
-setup aid.
+Prepared for **1.8.0 / MSIX 1.8.0.0**, not yet tagged; not submitted. The last confirmed Store
+release is 1.7.1 (MSIX 1.7.1.0), live as confirmed by the maintainer on 21 October 2026, so
+What's new covers only the changes since 1.7.1. Paste each block into its named field after the
+[release checks](store-updates.md#release-180-handoff). These descriptions lead with the actual
+captioning workflow; the scripted demo is a secondary setup aid.
 
-1.7.1 is 1.7.0, which was not submitted, plus a fix that shows the app icon on the taskbar and
-in Start without a coloured square; What's new gains one sentence on it.
-
-For 1.7.0 the descriptions, features, short descriptions and requirements in all three
-languages add offline translation into English with Whisper (which retires the line that
-Whisper does not translate) and the overlay reopening where it was placed, and say that
-Whisper on x64 needs a processor with AVX2. The certification notes add that processor rule
-and an optional translation route. What's new also says that the overlay moves onto a connected
-screen when the projector is unplugged mid-session
-([#139](https://github.com/fmadore/Live-translation/pull/139), merged after the release
-candidate). The plain-language pass from 1.6.1 stands. The German
-edits are parity additions only; the native-speaker review is still pending.
+For 1.8.0, What's new is replaced in all three languages: reading and copying the transcript
+during a session ([#155](https://github.com/fmadore/Live-translation/pull/155)), and Mistral
+subtitles on Voxtral Realtime 3, with lines that end at the speaker's turn, a names-and-terms
+list and a higher Mistral rate ([#156](https://github.com/fmadore/Live-translation/pull/156)).
+The descriptions and features add the Transcript tab with Copy and the names-and-terms list; the
+short descriptions, keywords and requirements are unchanged. The certification notes add a
+Transcript and Copy check to the Whisper route and the Voxtral changes to the cloud features.
+The plain-language pass from 1.6.1 stands. The German edits are parity additions only; the
+native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -45,11 +41,11 @@ Captions appear in a transparent overlay that stays on top of your slides, call 
 
 For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your CPU with no account, API key or internet connection. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly. For any other language, use cloud translation.
 
-For multilingual audiences, translate with Gemini into 78 languages or with OpenAI into 13. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key.
+For multilingual audiences, translate with Gemini into 78 languages or with OpenAI into 13. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key; for Mistral, a list of names and terms helps it spell speaker names, institutions and acronyms.
 
 Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Choose Fit window, Compact or Stable reading, with support for right-to-left scripts. The optional filler filter hides hesitations from the overlay; edit its word list while the raw transcript stays intact. Save meeting profiles for the rooms you use often, and pause during breaks without splitting the session.
 
-Export transcripts as text, Markdown, SRT or WebVTT. Turn on local history to save finalized captions as you go, then name, search, reopen, copy, export and delete past sessions. History and crash recovery stay off until you enable them. With Whisper, Stop lets queued audio finish so the transcript is complete.
+During a session, the Transcript tab shows everything said so far, and Copy puts the last 5, 10 or 30 minutes, or the whole transcript, on the clipboard as plain text. Export transcripts as text, Markdown, SRT or WebVTT. Turn on local history to save finalized captions as you go, then name, search, reopen, copy, export and delete past sessions. History and crash recovery stay off until you enable them. With Whisper, Stop lets queued audio finish so the transcript is complete.
 
 With Whisper, audio stays on your PC; speech waiting to be processed sits in a temporary file that is deleted automatically. With a cloud engine, audio goes straight to the provider you chose. API keys are kept in Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry, and the app sells no subscriptions, credits or API access.
 
@@ -58,18 +54,14 @@ Use the interface in English, French or German, whatever the caption language. T
 Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
 ```
 
-### What's new in this version — 1.7.1
+### What's new in this version — 1.8.0
 
 ```text
-Translate into English offline: Local Whisper now turns speech in any of its 99 languages into English captions on your PC, with no account, API key or internet connection once a model is downloaded. Choose the Small model; Tiny and Base translate poorly.
+Read and copy the transcript during a session: switch the stage from Live to Transcript to read the whole session so far, with lines still being spoken shown at the bottom. Copy puts the last 5, 10 or 30 minutes, or the whole transcript, on the clipboard as plain text, during the session or after Stop. Selecting text keeps your place while new captions arrive, and the app remembers the tab you chose.
 
-The overlay reopens where you last placed it, remembered for each display setup, and keeps its size when moved between screens with different scaling. If the projector is unplugged during a session, the overlay moves onto a connected screen.
+Mistral subtitles now use Voxtral Realtime 3, Mistral's new realtime model, which Mistral lists as a public preview and counts at 45 languages and dialects, up from 13. Lines end when the speaker finishes instead of breaking mid-sentence when the text pauses. Mistral now charges $0.48 per hour of audio, up from $0.36; the app shows the rate on the engine card, and you pay Mistral directly with your own key.
 
-Cloud sessions now reconnect on their own when a provider drops the connection, reports a temporary error or the network stalls, and Gemini waits for the translation of the last words on Pause or Stop. Whisper is faster, about twice as fast in our ARM64 tests, downloads models through your Windows proxy and captions the last words before a pause straight away. On x64, Whisper now needs a processor with AVX2.
-
-The app icon now shows on the taskbar and in Start without a coloured square behind it.
-
-Also: support for 24-bit microphones, both caption languages in history, a remembered export format, quicker quitting during a long Whisper backlog, and fixes for Test audio and Narrator labels.
+With Mistral selected, the setup has a new Names and terms list: up to 100 speaker names, institutions, acronyms or jargon that Voxtral is asked to favour for the whole session, to steer its spelling. The list is saved with your setup and in meeting profiles, and applies from the next Start.
 ```
 
 ### Features — one feature per line
@@ -79,6 +71,7 @@ Offline Whisper captions in 99 spoken languages, or automatic language detection
 Download Tiny, Base or Small once, then transcribe without an account, API key or internet
 Offline translation into English with Whisper, from any of its 99 languages, with no API key
 Cloud translation with your own Gemini or OpenAI key; provider usage charges may apply
+Cloud subtitles with your own Gemini or Mistral key; Mistral takes a list of names and terms to favour
 Two translation languages at once, plus optional original speech when available
 Capture a microphone, system audio, a single app, or microphone and system audio together
 Transparent, always-on-top, click-through captions over slides and video calls
@@ -86,6 +79,7 @@ Overlay reopens where you last placed it, remembered for each display setup
 Fit window, Compact and Stable reading, with adjustable appearance and right-to-left support
 Pause and resume, reusable meeting profiles, searchable languages and favourites
 Editable filler-word filter for the overlay, with raw transcripts preserved
+Read the whole transcript during a session and copy the last 5, 10 or 30 minutes, or all of it
 Text, Markdown, SRT and WebVTT export, including available original speech
 Optional local transcript history with titles, search, reopening and deletion
 Keyboard shortcuts and Narrator support; follows Windows text size and contrast themes
@@ -121,11 +115,11 @@ Les sous-titres s'affichent dans une surimpression transparente qui reste au-des
 
 Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base et Small se téléchargent séparément et pèsent environ 31, 57 et 182 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur le processeur de votre PC, sans compte, clé API ni connexion Internet. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal. Pour toute autre langue, utilisez la traduction cloud.
 
-Pour un public multilingue, traduisez avec Gemini vers 78 langues ou avec OpenAI vers 13. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API.
+Pour un public multilingue, traduisez avec Gemini vers 78 langues ou avec OpenAI vers 13. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API ; pour Mistral, une liste de noms et termes l'aide à écrire correctement les noms d'intervenants, les institutions et les sigles.
 
 Adaptez les sous-titres à la salle : police, taille, couleurs, fond, durée d'affichage et rythme des mises à jour. Choisissez Adapter à la fenêtre, Compact ou Lecture stable, avec prise en charge des écritures de droite à gauche. Le filtre d'hésitations facultatif les masque dans la surimpression, et vous pouvez modifier sa liste de mots sans toucher à la transcription originale. Enregistrez des profils de réunion pour vos salles habituelles et faites une pause sans scinder la session.
 
-Exportez les transcriptions en texte, Markdown, SRT ou WebVTT. Activez l'historique local pour enregistrer les sous-titres finalisés au fil de la session, puis nommez, recherchez, rouvrez, copiez, exportez et supprimez vos sessions. L'historique et la copie de récupération restent désactivés tant que vous ne les activez pas. Avec Whisper, la commande Arrêter laisse l'audio en attente finir son traitement pour que la transcription soit complète.
+Pendant une session, l'onglet Transcription affiche tout ce qui a été dit, et Copier place les 5, 10 ou 30 dernières minutes, ou toute la transcription, dans le presse-papiers en texte brut. Exportez les transcriptions en texte, Markdown, SRT ou WebVTT. Activez l'historique local pour enregistrer les sous-titres finalisés au fil de la session, puis nommez, recherchez, rouvrez, copiez, exportez et supprimez vos sessions. L'historique et la copie de récupération restent désactivés tant que vous ne les activez pas. Avec Whisper, la commande Arrêter laisse l'audio en attente finir son traitement pour que la transcription soit complète.
 
 Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement est placée dans un fichier temporaire supprimé automatiquement. Avec un moteur cloud, l'audio est envoyé directement au fournisseur choisi. Les clés API sont conservées dans le Gestionnaire d'informations d'identification Windows. Le développeur ne reçoit ni audio, ni clé, ni transcription, ni télémétrie, et l'application ne vend ni abonnement, ni crédits, ni accès API.
 
@@ -134,18 +128,14 @@ Utilisez l'interface en français, anglais ou allemand, quelle que soit la langu
 Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
 ```
 
-### Nouveautés de cette version — 1.7.1
+### Nouveautés de cette version — 1.8.0
 
 ```text
-Traduisez vers l'anglais hors ligne : Whisper local transforme désormais la parole de l'une de ses 99 langues en sous-titres anglais sur votre PC, sans compte, clé API ni connexion Internet une fois le modèle téléchargé. Choisissez le modèle Small ; Tiny et Base traduisent mal.
+Relisez et copiez la transcription en cours de session : passez de l'onglet En direct à l'onglet Transcription pour relire toute la session, avec en bas les phrases encore en cours de parole. Copier place les 5, 10 ou 30 dernières minutes, ou toute la transcription, dans le presse-papiers en texte brut, pendant la session ou après l'arrêt. Quand du texte est sélectionné, les nouveaux sous-titres ne déplacent pas la position de lecture, et l'onglet choisi est mémorisé.
 
-La surimpression se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans, et garde sa taille quand vous la déplacez entre des écrans à mise à l'échelle différente. Si le projecteur est débranché en cours de session, elle passe sur un écran connecté.
+Les sous-titres Mistral utilisent désormais Voxtral Realtime 3, le nouveau modèle temps réel de Mistral, que Mistral présente comme une préversion publique et qui couvre selon lui 45 langues et dialectes, contre 13 auparavant. Les lignes se terminent quand l'intervenant a fini de parler, au lieu de se couper en pleine phrase lorsque le texte marque une pause. Mistral facture désormais 0,48 $ US par heure d'audio, contre 0,36 $ US ; l'application affiche ce tarif sur la carte du moteur, et vous payez Mistral directement avec votre propre clé.
 
-Les sessions cloud se reconnectent d'elles-mêmes lorsqu'un fournisseur coupe la connexion, signale une erreur temporaire ou que le réseau se bloque, et Gemini attend la traduction des derniers mots lors d'une pause ou d'un arrêt. Whisper est plus rapide, environ deux fois plus dans nos tests sur ARM64, télécharge les modèles via le proxy de Windows et sous-titre aussitôt les derniers mots avant une pause. Sur x64, Whisper nécessite désormais un processeur compatible AVX2.
-
-L'icône de l'application s'affiche désormais dans la barre des tâches et le menu Démarrer sans carré coloré derrière elle.
-
-Également : prise en charge des micros 24 bits, deux langues de sous-titres dans l'historique, format d'export mémorisé, fermeture plus rapide pendant un long traitement Whisper et corrections du test audio et des libellés lus par le Narrateur.
+Avec Mistral, la configuration propose une nouvelle liste Noms et termes : jusqu'à 100 noms d'intervenants, institutions, sigles ou termes de jargon que Voxtral est invité à privilégier pendant toute la session, pour orienter son orthographe. La liste est enregistrée avec la configuration et dans les profils de réunion, et s'applique au prochain démarrage.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -155,6 +145,7 @@ Sous-titres Whisper hors ligne dans 99 langues parlées, ou détection automatiq
 Téléchargez Tiny, Base ou Small, puis transcrivez sans compte, clé API ni connexion Internet
 Traduction hors ligne vers l'anglais avec Whisper, depuis ses 99 langues, sans clé API
 Traduction cloud avec votre clé Gemini ou OpenAI ; des frais d'utilisation peuvent s'appliquer
+Sous-titres cloud avec votre clé Gemini ou Mistral, et une liste de noms et termes à privilégier pour Mistral
 Deux langues de traduction à la fois et affichage facultatif du texte original disponible
 Captez un microphone, l'audio système, une application précise, ou le microphone et l'audio système ensemble
 Sous-titres transparents, toujours visibles et traversables par les clics, sur vos diapositives et appels
@@ -162,6 +153,7 @@ La surimpression se rouvre là où vous l'avez placée, pour chaque configuratio
 Adapter à la fenêtre, Compact et Lecture stable ; apparence réglable et écritures de droite à gauche
 Pause et reprise, profils de réunion, recherche de langues et favoris
 Liste d'hésitations modifiable pour la surimpression, avec conservation de la transcription originale
+Relecture de toute la transcription en cours de session et copie des 5, 10 ou 30 dernières minutes, ou de l'ensemble
 Export texte, Markdown, SRT et WebVTT, avec texte original lorsqu'il est disponible
 Historique local facultatif avec titres, recherche, réouverture et suppression
 Raccourcis clavier et prise en charge du Narrateur ; suit la taille du texte et les thèmes de contraste de Windows
@@ -197,11 +189,11 @@ Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf od
 
 Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base und Small werden separat heruntergeladen (etwa 31, 57 und 182 MiB). Danach läuft die Erkennung auf der CPU Ihres PCs, ohne Konto, API-Schlüssel oder Internetverbindung. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
 
-Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini oder OpenAI. Die App bietet 78 Zielsprachen für Gemini und 13 für OpenAI. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache.
+Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini oder OpenAI. Die App bietet 78 Zielsprachen für Gemini und 13 für OpenAI. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache; für Mistral hilft eine Liste mit Namen und Begriffen bei der Schreibweise von Namen der Vortragenden, Institutionen und Abkürzungen.
 
 Passen Sie Schrift, Größe, Farbe, Kontrast, Anzeigedauer und Aktualisierungstempo an. Wählen Sie An Fenster anpassen, Kompakt oder Ruhiger Lesemodus, auch für Text von rechts nach links. Bearbeiten Sie die Wörter des optionalen Füllwortfilters, während das Originaltranskript erhalten bleibt. Nutzen Sie gespeicherte Besprechungsprofile und pausieren Sie, ohne die Sitzung aufzuteilen.
 
-Exportieren Sie Transkripte als Text, Markdown, SRT oder WebVTT. Der optionale lokale Verlauf speichert abgeschlossene Untertitel fortlaufend; Sie können Sitzungen benennen, durchsuchen, erneut öffnen, kopieren, exportieren und löschen. Verlauf und Wiederherstellungskopie sind standardmäßig deaktiviert. Bei Whisper verarbeitet Stopp noch ausstehendes Audio, bevor das Transkript vollständig ist.
+Während einer Sitzung zeigt die Ansicht Transkript alles bisher Gesagte, und Kopieren legt die letzten 5, 10 oder 30 Minuten oder das ganze Transkript als reinen Text in die Zwischenablage. Exportieren Sie Transkripte als Text, Markdown, SRT oder WebVTT. Der optionale lokale Verlauf speichert abgeschlossene Untertitel fortlaufend; Sie können Sitzungen benennen, durchsuchen, erneut öffnen, kopieren, exportieren und löschen. Verlauf und Wiederherstellungskopie sind standardmäßig deaktiviert. Bei Whisper verarbeitet Stopp noch ausstehendes Audio, bevor das Transkript vollständig ist.
 
 Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch gelöschten temporären Datei gepuffert. Cloud-Audio geht direkt an den gewählten Anbieter. API-Schlüssel liegen in der Windows-Anmeldeinformationsverwaltung. Der Entwickler erhält weder Audio noch Schlüssel, Transkripte oder Telemetrie. Die App verkauft keine Abonnements, Guthaben oder API-Zugänge.
 
@@ -210,18 +202,14 @@ Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhäng
 Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
 ```
 
-### Neu in dieser Version — 1.7.1
+### Neu in dieser Version — 1.8.0
 
 ```text
-Offline ins Englische übersetzen: Lokales Whisper übersetzt Sprache in jeder seiner 99 Sprachen jetzt direkt auf Ihrem PC in englische Untertitel, ohne Konto, API-Schlüssel oder Internetverbindung, sobald ein Modell heruntergeladen ist. Wählen Sie das Modell Small; Tiny und Base übersetzen schlecht.
+Transkript während der Sitzung lesen und kopieren: Wechseln Sie in der Ansicht von Live zu Transkript, um die ganze bisherige Sitzung zu lesen; was noch gesprochen wird, steht am Ende. Kopieren legt die letzten 5, 10 oder 30 Minuten oder das ganze Transkript als reinen Text in die Zwischenablage, während der Sitzung oder nach Stopp. Solange Text markiert ist, verschieben neue Untertitel die Leseposition nicht, und die gewählte Ansicht wird gespeichert.
 
-Das Overlay öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung, und behält seine Größe beim Verschieben zwischen Bildschirmen mit unterschiedlicher Skalierung. Wird der Projektor während einer Sitzung getrennt, wechselt es auf einen verbundenen Bildschirm.
+Mistral-Untertitel nutzen jetzt Voxtral Realtime 3, das neue Echtzeitmodell von Mistral. Mistral führt es als öffentliche Vorschau und gibt 45 Sprachen und Dialekte an, statt bisher 13. Zeilen enden jetzt, wenn die sprechende Person fertig ist, statt mitten im Satz abzubrechen, wenn der Text stockt. Mistral berechnet jetzt 0,48 US-Dollar pro Stunde Audio statt 0,36 US-Dollar; die App zeigt den Preis auf der Engine-Karte, und Sie zahlen direkt bei Mistral mit Ihrem eigenen Schlüssel.
 
-Cloud-Sitzungen verbinden sich selbstständig neu, wenn ein Anbieter die Verbindung trennt, einen vorübergehenden Fehler meldet oder das Netzwerk hängt, und Gemini wartet bei Pause oder Stopp auf die Übersetzung der letzten Wörter. Whisper ist schneller, in unseren ARM64-Tests etwa doppelt so schnell, lädt Modelle über den Windows-Proxy herunter und zeigt die letzten Wörter vor einer Pause sofort an. Auf x64 benötigt Whisper jetzt einen Prozessor mit AVX2.
-
-Das App-Symbol erscheint in der Taskleiste und im Startmenü jetzt ohne farbiges Quadrat dahinter.
-
-Außerdem: Unterstützung für 24-Bit-Mikrofone, beide Untertitelsprachen im Verlauf, ein gespeichertes Exportformat, schnelleres Beenden bei langem Whisper-Rückstand und Korrekturen beim Audiotest und bei den Beschriftungen für die Sprachausgabe.
+Ist Mistral ausgewählt, bietet die Einrichtung die neue Liste Namen und Begriffe: bis zu 100 Namen von Vortragenden, Institutionen, Abkürzungen oder Fachbegriffe, die Voxtral für die ganze Sitzung bevorzugen soll, um seine Schreibweise zu lenken. Die Liste wird mit der Einrichtung und in Besprechungsprofilen gespeichert und gilt ab dem nächsten Start.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -231,6 +219,7 @@ Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkenn
 Tiny, Base oder Small herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
 Offline-Übersetzung ins Englische mit Whisper aus allen 99 Sprachen, ohne API-Schlüssel
 Cloud-Übersetzung mit eigenem Gemini- oder OpenAI-Schlüssel; nutzungsabhängige Kosten möglich
+Cloud-Untertitel mit eigenem Gemini- oder Mistral-Schlüssel; für Mistral eine Liste mit Namen und Begriffen
 Zwei Übersetzungssprachen gleichzeitig und optional der verfügbare Originaltext
 Mikrofon, Systemaudio, eine Anwendung mit Unterprozessen oder Mikrofon und Systemaudio gemeinsam
 Transparente, durchklickbare Untertitel im Vordergrund über Folien und Videoanrufen
@@ -238,6 +227,7 @@ Das Overlay öffnet sich dort, wo Sie es zuletzt platziert haben, für jede Bild
 An Fenster anpassen, Kompakt und Ruhiger Lesemodus; anpassbare Darstellung und Text von rechts nach links
 Pause und Fortsetzen, Besprechungsprofile, Sprachsuche und Favoriten
 Bearbeitbarer Füllwortfilter für das Overlay; das Originaltranskript bleibt erhalten
+Transkript während der Sitzung lesen und die letzten 5, 10 oder 30 Minuten oder alles kopieren
 Export als Text, Markdown, SRT und WebVTT, einschließlich verfügbarem Originaltext
 Optionaler lokaler Transkriptverlauf mit Titeln, Suche, erneutem Öffnen und Löschen
 Tastenkombinationen und Unterstützung der Sprachausgabe; folgt Windows-Textgröße und Kontrastdesigns
@@ -306,12 +296,12 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.7.1.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.6.1, the version in the Store, the app has offline Whisper translation into English, an overlay that reopens where it was placed, and cloud sessions that reconnect after a provider error. The test routes below are those of 1.6.1, with a processor note in step 1, a restart check in step 4 and an optional translation route in step 7.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.8.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.7.1, the version in the Store, the app has Live and Transcript tabs for reading and copying the transcript during a session, and Mistral subtitles use Voxtral Realtime 3 with an optional list of names and terms. The test routes below are those of 1.7.1, with a Transcript and Copy check added in step 3.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
 2. Choose the spoken language or Detect automatically. Download Tiny (about 31 MiB) for the lightest setup, or Base (about 57 MiB). The initial HTTPS model download needs internet access; the model is not bundled. No account or key is needed.
-3. Start captioning and speak a few sentences or play speech on the selected output. Allow for CPU processing time. Verify captions in the operator window and overlay, elapsed time and input levels.
+3. Start captioning and speak a few sentences or play speech on the selected output. Allow for CPU processing time. Verify captions in the operator window and overlay, elapsed time and input levels. Then select the Transcript tab to read the session so far, choose Last 5 minutes beside Copy, click Copy and paste into Notepad: the captions arrive as plain text.
 4. Use Move overlay to place it, lock it back to click-through, and try Fit window, Compact and Stable reading. After a restart, the overlay reopens where it was placed. Pause blocks new speech entering recognition; existing pending audio can still finish.
 5. Stop and let Finishing the transcript complete. Export text or Markdown, then SRT or WebVTT. Disconnect the network and repeat with the installed model to verify offline operation.
 6. In Settings, optionally enable transcript history; run a disposable session and reopen, rename, export and delete it. History and recovery are disabled by default. Test the editable filler-word list: it changes only the overlay.
@@ -321,7 +311,7 @@ Setup-free display check if capture hardware or model downloads are unavailable:
 In Subtitles, select Built-in demo in the engine list, choose English and click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the first-launch local speech engine.
 
 Optional cloud features:
-Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it.
+Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it. Mistral subtitles now use Voxtral Realtime 3 (voxtral-mini-transcribe-realtime-3-0), which Mistral lists as a public preview. Entries in the optional Names and terms list, shown in the setup when Mistral is selected, are sent to Mistral with the session.
 
 The full-trust desktop process performs WASAPI/microphone capture, CPU Whisper transcription and translation, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
 ```
@@ -332,7 +322,9 @@ the credential-free Whisper and demo routes do not establish acceptance of cloud
 ## Screenshots
 
 One caption per image in [`store-screenshots/`](store-screenshots/README.md), captured from
-the 1.7.1 MSIX in each listing language. Each caption is under 200 characters.
+the 1.7.1 MSIX in each listing language. Each caption is under 200 characters. The images
+predate the Live and Transcript tabs of 1.8.0, so none of them shows the tabs; the captions are
+unchanged.
 
 | Image                            | English                                                                                                       | Français                                                                                                                      | Deutsch                                                                                                                        |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
