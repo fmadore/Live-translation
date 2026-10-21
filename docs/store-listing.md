@@ -1,6 +1,6 @@
 # Partner Center listing text — 1.8.0
 
-Prepared for **1.8.0 / MSIX 1.8.0.0**, not yet tagged; not submitted. The last confirmed Store
+Prepared for **1.8.0 / MSIX 1.8.0.0**, tagged on 21 October 2026; not submitted. The last confirmed Store
 release is 1.7.1 (MSIX 1.7.1.0), live as confirmed by the maintainer on 21 October 2026, so
 What's new covers only the changes since 1.7.1. Paste each block into its named field after the
 [release checks](store-updates.md#release-180-handoff). These descriptions lead with the actual

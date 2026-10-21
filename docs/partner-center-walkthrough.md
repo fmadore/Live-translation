@@ -1,9 +1,8 @@
 # Partner Center submission walkthrough — 1.8.0
 
-Target: **Live Translation & Subtitles 1.8.0**, Product ID `9PFB8LR3RR9X`. Prepared on
-21 October 2026, not yet tagged; the Store serves 1.7.1 (MSIX 1.7.1.0), confirmed by the
-maintainer on 21 October 2026. Once the `v1.8.0` release workflow finishes, download the
-combined x64 + ARM64 bundle from
+Target: **Live Translation & Subtitles 1.8.0**, Product ID `9PFB8LR3RR9X`. Published on
+GitHub on 21 October 2026, not yet submitted; the Store serves 1.7.1 (MSIX 1.7.1.0), confirmed
+by the maintainer on 21 October 2026. Download the combined x64 + ARM64 bundle from
 `https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle`.
 The [release handoff](store-updates.md#release-180-handoff) has the package evidence and
 outstanding acceptance checks.

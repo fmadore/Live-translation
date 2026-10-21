@@ -1,10 +1,10 @@
 # Next Store submission — 1.8.0
 
-**Prepared on 21 October 2026; not yet tagged.** The last confirmed Store version is
+**Tagged `v1.8.0` and published on GitHub on 21 October 2026; not yet submitted.** The last
+confirmed Store version is
 **1.7.1.0**, confirmed by the maintainer on 21 October 2026. The next submission is
 **1.8.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle`
-once the `v1.8.0` release workflow finishes.
+`https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle`.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display

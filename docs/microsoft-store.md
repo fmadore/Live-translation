@@ -1,6 +1,6 @@
 # Microsoft Store submission
 
-**Next target: 1.8.0 / MSIX 1.8.0.0, prepared on 21 October 2026; not yet tagged.** The last
+**Next target: 1.8.0 / MSIX 1.8.0.0, published on GitHub on 21 October 2026; not yet submitted.** The last
 confirmed Store release is 1.7.1 (MSIX 1.7.1.0), confirmed by the maintainer on 21 October 2026.
 1.8.0 adds reading and copying the transcript during a session, and moves Mistral subtitles to
 Voxtral Realtime 3 with turn-end line breaks and a names-and-terms list.

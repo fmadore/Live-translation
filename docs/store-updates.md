@@ -11,7 +11,7 @@ packages are built.
 
 ## Release 1.8.0 handoff
 
-**Prepared on 21 October 2026; not yet tagged.** Last confirmed live Store version:
+**Tagged and published on GitHub on 21 October 2026; not yet submitted.** Last confirmed live Store version:
 **1.7.1.0**, confirmed by the maintainer on 21 October 2026. Target app version: **1.8.0**,
 MSIX **1.8.0.0**. What's new and the certification notes cover the changes since 1.7.1.
 
@@ -65,13 +65,15 @@ Windows clipboard.
     preparation changes no code.
 - [x] The Store fields are within Partner Center's limits.
 
-### Release-candidate checks
+### Testing
 
-- [ ] Merge this release PR.
-- [ ] Tag `v1.8.0-rc.1` from `main`. A hyphenated tag builds the installers, both MSIX packages
-  and the bundle into a draft prerelease; nothing is published.
-- [ ] **Maintainer test** of the candidate: the side-by-side Local Test build, or the
-  candidate's MSIX.
+- [x] Merge the release PR ([#157](https://github.com/fmadore/Live-translation/pull/157),
+  `502ba34`).
+- [x] **No release candidate.** At the maintainer's request, `v1.8.0` was tagged straight from
+  the merge of #157. A `v1.8.0-rc.1` tag pushed first was deleted, and its build cancelled,
+  before it created a draft.
+- [ ] **Maintainer test** of the side-by-side Local Test build of `502ba34` (ARM64), installed
+  on 21 October 2026. Not reported yet.
 
 Manual checks new in 1.8.0, on x64 and ARM64 unless a line says otherwise:
 
@@ -119,15 +121,17 @@ build:
 - [ ] **The icon** in Start's app list, Alt+Tab, the tray and the Store tile, and on a light
   taskbar; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
   keyboard focus, contrast themes and enlarged text.
-- [ ] Fix what the candidate shows. A fix means a new candidate (`v1.8.0-rc.2`); never move a
+- [ ] Fix what testing shows. `v1.8.0` is published, so a fix ships as 1.8.1; never move a
   tag.
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.8.0` (annotated: "Live Translation & Subtitles v1.8.0"), set the citation date to
-  the tag date, and pass release-commit CI and all installer/MSIX/bundle jobs.
-- [ ] Publish the prepared body: `gh release edit v1.8.0 --notes-file docs/release-1.8.0.md`.
-- [ ] Verify `Live.Translation_1.8.0.msixbundle` against
+- [x] Tag `v1.8.0` (annotated: "Live Translation & Subtitles v1.8.0") on `502ba34`; the
+  citation date, 21 October 2026, is the tag date. Release-commit CI and all installer/MSIX/bundle
+  jobs passed.
+- [x] Publish the prepared body: `gh release edit v1.8.0 --notes-file docs/release-1.8.0.md`,
+  with the title "Live Translation & Subtitles 1.8.0".
+- [x] Verify `Live.Translation_1.8.0.msixbundle` against
   [the 1.7.1 checks](#release-171-handoff), at **1.8.0.0**:
   - GitHub's asset digests;
   - a bundle holding exactly both packages, byte for byte, with no signature;
@@ -155,7 +159,37 @@ build:
 
 ### 1.8.0 artifact verification
 
-Filled in after tagging.
+Tag `v1.8.0` (annotated) points to `502ba346b19223fec5fc32e0f3bc2a0d7df9fe79`, the merge of
+[#157](https://github.com/fmadore/Live-translation/pull/157). The
+[release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39581397954) and
+all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39581877713)
+passed. The GitHub release body is [release-1.8.0.md](release-1.8.0.md).
+
+Upload **[Live.Translation_1.8.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle)**
+to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
+GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
+`src-tauri/target/release-1.8.0/published/`.
+
+| Artifact | Bytes | SHA-256 |
+| --- | ---: | --- |
+| [Live.Translation_1.8.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle) | 11,855,153 | `a8eaa3bd42e21cc10f344cf99b950adbaf914256994d2da6b4e4740102591121` |
+| [Live.Translation_1.8.0_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0_x64.msix) | 6,044,339 | `8b0ecb08b4f482c8d6e3143f579e3163a322d0c20795a6661d1f9cc06dca9b2a` |
+| [Live.Translation_1.8.0_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0_arm64.msix) | 5,808,806 | `89be2f3c48b334a26de1e4a5dce35a52f1277cba4490aa6b96b7ddde0a002fd6` |
+
+All 36 checks passed:
+- **Digests:** GitHub's digests match for the bundle and both packages.
+- **Bundle:** it holds exactly both packages, byte for byte, with no signature. Its 1.8.0.0
+  manifest has the assigned identity and publisher.
+- **Each package:**
+  - the assigned identity, publisher, display name `FMadore`, version 1.8.0.0 and
+    architecture;
+  - only `runFullTrust` and `microphone`, and no signature;
+  - both rehearsal WAVs and the three Whisper licence notices, and no model weights;
+  - the 46 `Assets/` files, byte-identical to the repository, and a single `resources.pri`.
+- **Executables:** PE machine `0x8664` (x64, 12,412,416 bytes) and `0xAA64` (ARM64,
+  10,852,352 bytes).
+
+This verifies packaging, not installed-app behaviour or certification.
 
 ## The route
 

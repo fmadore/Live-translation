@@ -5,10 +5,10 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.7.1 in the Store, 1.8.0 in preparation
+## Current status — 1.7.1 in the Store, 1.8.0 on GitHub
 
 The Store serves [**1.7.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)
-(20 October 2026, MSIX 1.7.1.0), the latest GitHub release. The maintainer confirmed it live on
+(20 October 2026, MSIX 1.7.1.0). The maintainer confirmed it live on
 21 October 2026; its submission and certification dates were not recorded. It replaced 1.6.1
 and carries [1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0), which
 went out on GitHub only:
@@ -25,7 +25,8 @@ The [1.7.1](docs/store-updates.md#release-171-handoff) and
 [1.7.0](docs/store-updates.md#release-170-handoff) handoffs record their package evidence. The
 manual checks not recorded as done carry over to 1.8.0.
 
-**1.8.0** is in preparation ([handoff](docs/store-updates.md#release-180-handoff),
+**[1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0)** was published on GitHub on 21 October 2026 and awaits Store
+submission ([handoff](docs/store-updates.md#release-180-handoff),
 [release notes](docs/release-1.8.0.md)):
 - [#155](https://github.com/fmadore/Live-translation/pull/155): a Transcript tab for reading
   and copying the transcript during a session.
@@ -125,6 +126,12 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
+- **1.8.0** (21 October 2026, GitHub; Store submission pending): a Transcript tab for reading
+  and copying the transcript during a session
+  ([#155](https://github.com/fmadore/Live-translation/pull/155)); Mistral subtitles on Voxtral
+  Realtime 3, with lines closed at the speaker's turn and a names-and-terms list
+  ([#156](https://github.com/fmadore/Live-translation/pull/156)).
+  [Release body](docs/release-1.8.0.md).
 - **1.7.1** (20 October 2026; live in the Store, confirmed 21 October 2026): 1.7.0's app code
   with unplated taskbar icon sizes and a resource index in the package, so the taskbar and Start
   no longer draw the icon on an accent-coloured plate. [Release body](docs/release-1.7.1.md).

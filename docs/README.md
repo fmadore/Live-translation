@@ -1,6 +1,7 @@
 # Documentation
 
-These guides describe **1.8.0**, in preparation since 21 October 2026. It adds a Transcript tab
+These guides describe **[1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0)**, published on GitHub on 21 October 2026
+and awaiting Store submission. It adds a Transcript tab
 for reading and copying the transcript during a session. It also moves Mistral subtitles to
 Voxtral Realtime 3, with lines that end at the speaker's turn and a list of names and terms. The
 Store and GitHub serve **[1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)**
@@ -24,7 +25,7 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md).
 - [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
 
-## Release 1.8.0 (in preparation)
+## Release 1.8.0 (awaiting Store submission)
 
 - [Release notes](release-1.8.0.md) and [release handoff](store-updates.md#release-180-handoff).
 - 1.7.1, the version in the Store: [release notes](release-1.7.1.md) and [release handoff](store-updates.md#release-171-handoff).

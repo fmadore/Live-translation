@@ -11,10 +11,11 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
 **[1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)** (20 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) and the
-latest on GitHub. It brings offline translation into English with Whisper, an overlay that
-reopens where you placed it and comes back when a projector is unplugged, and cloud sessions
-that reconnect instead of ending. **1.8.0** is in preparation. It adds a Transcript tab for
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X). It
+brings offline translation into English with Whisper, an overlay that reopens where you placed
+it and comes back when a projector is unplugged, and cloud sessions that reconnect instead of
+ending. **[1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0)** (21 October 2026) is the latest on GitHub and awaits
+Store submission. It adds a Transcript tab for
 reading and copying the transcript during a session. It also moves Mistral subtitles to Voxtral
 Realtime 3, with lines that end at the speaker's turn and a list of names and terms. See its
 [release notes](docs/release-1.8.0.md) and [Store handoff](docs/store-updates.md#release-180-handoff).
