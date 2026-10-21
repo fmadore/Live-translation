@@ -17,7 +17,7 @@ import type { Caption, StatusUpdate } from '#lib/types.js';
 // file, so the page is imported only once nothing is stored.
 localStorage.clear();
 const { default: Page } = await import('./+page.svelte');
-const { applyStatus, clearTranscript, options } = await import('#lib/stores.js');
+const { applyStatus, clearTranscript, options, stageView } = await import('#lib/stores.js');
 const { DEFAULT_START_OPTIONS } = await import('#lib/startOptions.js');
 const { exportFormat } = await import('#lib/exportFormat.js');
 const { locale } = await import('#lib/i18n/index.js');
@@ -30,6 +30,7 @@ beforeEach(() => {
 	applyStatus({ state: 'idle' });
 	options.set({ ...DEFAULT_START_OPTIONS });
 	exportFormat.set('markdown');
+	stageView.set('live');
 	// jsdom has no canvas. The caption-face probe already treats a missing context as nothing
 	// to measure with; this only keeps jsdom from complaining about it.
 	vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
@@ -112,6 +113,37 @@ it('runs the built-in demo from Start to Stop and keeps its transcript', async (
 	expect(kept).toHaveTextContent(DEMO_LINES[0][1]);
 	expect(kept).toHaveTextContent(DEMO_LINES[1][1]);
 	expect(within(screen.getByRole('main')).getByText('Unsaved')).toBeInTheDocument();
+});
+
+// Issue #124: the whole transcript in the stage while the meeting goes on, with the turn still
+// being spoken at its foot, and the choice kept for the next session.
+it('reads the transcript in the stage instead of the live turns, and remembers the choice', async () => {
+	render(Page);
+	await chooseDemo();
+	await runDemo();
+	expect(screen.getByRole('heading', { name: 'On screen now' })).toBeInTheDocument();
+
+	await fireEvent.click(screen.getByRole('tab', { name: 'Transcript' }));
+	expect(get(stageView)).toBe('transcript');
+	expect(screen.getByRole('tabpanel', { name: 'Transcript' })).toBeInTheDocument();
+	expect(screen.queryByRole('heading', { name: 'On screen now' })).toBeNull();
+	await core.emit('caption', {
+		turnId: 3,
+		text: 'A third line still being spoken',
+		sourceText: '',
+		final: false,
+		origin: 'microphone',
+		lane: 0,
+		startMs: 6000,
+		endMs: 6500
+	} satisfies Caption);
+	const log = screen.getByRole('region', { name: 'Transcript' });
+	await waitFor(() => expect(log).toHaveTextContent('A third line still being spoken'));
+	expect(log).toHaveTextContent(DEMO_LINES[0][1]);
+
+	await stop();
+	await runDemo();
+	expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
 });
 
 // Whisper's translate task: English captions with no original speech under them. The caption

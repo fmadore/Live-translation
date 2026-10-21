@@ -225,6 +225,17 @@ const STATES = {
 			);
 		}
 	},
+	/** The same session read back in the stage's transcript reader (issue #124). */
+	'running-transcript': {
+		prepare: (core) => STATES.running.prepare(core),
+		async reach(app) {
+			await STATES.running.reach(app);
+			await press(app.page, 'tab', app.t.stage.view.transcript);
+			await expect(
+				app.page.getByRole('tab', { name: app.t.stage.view.transcript })
+			).toHaveAttribute('aria-selected', 'true');
+		}
+	},
 	'settings-captions': {
 		scope: DIALOG,
 		reach: (app) => openSettings(app, app.t.design.captions)

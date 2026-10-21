@@ -12,6 +12,7 @@ import {
 	pauseRequested,
 	clearTranscript,
 	flushTranscript,
+	inFlightLines,
 	markTranscriptSaved,
 	pushCaption,
 	restoreTranscript,
@@ -83,6 +84,35 @@ describe('caption timing', () => {
 		const byOrigin = Object.fromEntries(get(transcript).map((l) => [l.origin, l.startMs]));
 		expect(byOrigin.microphone).toBe(2000);
 		expect(byOrigin.system).toBe(2400);
+	});
+});
+
+// Issue #124: in continuous speech a turn streams for minutes before it is final, and the
+// transcript reader and its Copy would otherwise be missing all of it.
+describe('turns still being spoken', () => {
+	it('are the interims only, numbered after every finalized line', () => {
+		pushCaption(caption(1, 'said and done'));
+		pushCaption({ ...caption(1, 'still going', false), origin: 'system' });
+
+		const [line] = get(inFlightLines);
+		expect(get(inFlightLines)).toHaveLength(1);
+		expect(line).toMatchObject({ text: 'still going', origin: 'system', startMs: 1000 });
+		expect(line.id).toBeGreaterThan(get(transcript)[0].id);
+	});
+
+	it('move past the id a commit takes', () => {
+		pushCaption(caption(1, 'first', false));
+		pushCaption(caption(2, 'second', false));
+
+		expect(get(transcript)[0].text).toBe('first');
+		expect(get(inFlightLines)[0]).toMatchObject({ text: 'second' });
+		expect(get(inFlightLines)[0].id).toBeGreaterThan(get(transcript)[0].id);
+	});
+
+	it('are none once the turn is final', () => {
+		pushCaption(caption(1, 'partial', false));
+		pushCaption(caption(1, 'partial, then final'));
+		expect(get(inFlightLines)).toEqual([]);
 	});
 });
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, waitFor, within } from '@testing-library/svelte';
 
 const mocks = vi.hoisted(() => ({
 	saveTranscript: vi.fn(),
@@ -16,6 +16,7 @@ const TranscriptMonitor = (await import('./TranscriptMonitor.svelte')).default;
 const {
 	clearTranscript,
 	exportOriginal,
+	pushCaption,
 	recoveryEnabled,
 	restoreTranscript,
 	transcript,
@@ -38,10 +39,10 @@ function seed(count: number): TranscriptLine[] {
 	return lines;
 }
 
-function mount(lines: TranscriptLine[]) {
+function mount(lines: TranscriptLine[], extra: { live?: boolean; reader?: boolean } = {}) {
 	const onError = vi.fn();
 	const view = render(TranscriptMonitor, {
-		props: { mode: 'transcribe' as const, transcript: lines, onError }
+		props: { mode: 'transcribe' as const, transcript: lines, onError, ...extra }
 	});
 	return { ...view, onError };
 }
@@ -63,14 +64,18 @@ describe('saved / unsaved state', () => {
 		});
 		expect(getByRole('button', { name: 'Save as…' })).toBeDisabled();
 		expect(getByText(/recovered transcript has no timing/)).toBeInTheDocument();
-		await fireEvent.change(getByRole('combobox'), { target: { value: 'text' } });
+		await fireEvent.change(getByRole('combobox', { name: 'Export format' }), {
+			target: { value: 'text' }
+		});
 		expect(getByRole('button', { name: 'Save as…' })).toBeEnabled();
 	});
 	it('exports the selected timed format through Save As', async () => {
 		const lines = seed(1).map((line) => ({ ...line, startMs: 0, endMs: 1000 }));
 		restoreTranscript(lines);
 		const { getByRole } = mount(lines);
-		await fireEvent.change(getByRole('combobox'), { target: { value: 'vtt' } });
+		await fireEvent.change(getByRole('combobox', { name: 'Export format' }), {
+			target: { value: 'vtt' }
+		});
 		await fireEvent.click(getByRole('button', { name: 'Save as…' }));
 		await waitFor(() => expect(mocks.saveTranscript).toHaveBeenCalled());
 		const [content, filename] = mocks.saveTranscript.mock.lastCall!;
@@ -293,5 +298,153 @@ describe('the bilingual export option', () => {
 		const lines = seed(2).map((line) => ({ ...line, sourceText: '' }));
 		const { queryByRole } = mount(lines);
 		expect(queryByRole('checkbox', { name: 'Include original speech' })).toBeNull();
+	});
+});
+
+// Issue #124: the operator reads back during the meeting and hands the last few minutes to an
+// assistant, without stopping the session.
+describe('copying', () => {
+	const writeText = vi.fn();
+	beforeEach(() => {
+		writeText.mockReset().mockResolvedValue(undefined);
+		Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+	});
+
+	function timed(): TranscriptLine[] {
+		const lines: TranscriptLine[] = [
+			{
+				id: 2,
+				text: 'the late remark',
+				sourceText: '',
+				origin: 'system',
+				startMs: 400_000,
+				endMs: 410_000
+			},
+			{
+				id: 1,
+				text: 'the early remark',
+				sourceText: '',
+				origin: 'system',
+				startMs: 0,
+				endMs: 60_000
+			}
+		];
+		restoreTranscript(lines);
+		return lines;
+	}
+
+	it('takes the last minutes of a timed log', async () => {
+		const { getByRole, getByText } = mount(timed());
+		await fireEvent.change(getByRole('combobox', { name: 'What to copy' }), {
+			target: { value: '5' }
+		});
+		await fireEvent.click(getByRole('button', { name: 'Copy' }));
+
+		await waitFor(() => expect(writeText).toHaveBeenCalled());
+		expect(writeText.mock.lastCall![0]).toContain('the late remark');
+		expect(writeText.mock.lastCall![0]).not.toContain('the early remark');
+		expect(getByText('Copied the last 5 minutes.', { selector: '[aria-hidden]' })).toBeVisible();
+	});
+
+	it('copies a log without timing whole, and says so in the range it shows', async () => {
+		const { getByRole } = mount(seed(3));
+		const range = getByRole('combobox', { name: 'What to copy' });
+		expect(range).toBeDisabled();
+		expect(range).toHaveValue('0');
+
+		await fireEvent.click(getByRole('button', { name: 'Copy' }));
+
+		await waitFor(() => expect(writeText).toHaveBeenCalled());
+		for (const n of [1, 2, 3]) expect(writeText.mock.lastCall![0]).toContain(`utterance ${n}`);
+	});
+
+	it('includes the turn still being spoken while a session runs', async () => {
+		const lines = timed();
+		pushCaption({
+			turnId: 9,
+			text: 'a sentence still going',
+			sourceText: '',
+			final: false,
+			origin: 'microphone',
+			startMs: 405_000,
+			endMs: 420_000
+		});
+		const { getByRole } = mount(lines, { live: true });
+		await fireEvent.click(getByRole('button', { name: 'Copy' }));
+
+		await waitFor(() => expect(writeText).toHaveBeenCalled());
+		const text = writeText.mock.lastCall![0] as string;
+		expect(text.indexOf('a sentence still going')).toBeGreaterThan(text.indexOf('the late remark'));
+	});
+
+	it('reports a refused clipboard', async () => {
+		writeText.mockRejectedValue(new Error('clipboard refused'));
+		const { getByRole, onError } = mount(seed(1));
+		await fireEvent.click(getByRole('button', { name: 'Copy' }));
+		await waitFor(() =>
+			expect(onError).toHaveBeenCalledWith(expect.stringContaining('clipboard refused'))
+		);
+	});
+});
+
+describe('the transcript reader', () => {
+	const interim = {
+		turnId: 4,
+		text: 'and the budget for next year',
+		sourceText: 'et le budget de l’an prochain',
+		final: false,
+		origin: 'system' as const,
+		startMs: 1000,
+		endMs: 2000
+	};
+
+	it('shows the turn still being spoken at the foot of the log', () => {
+		pushCaption(interim);
+		const { getByRole } = mount(seed(2), { live: true, reader: true });
+		const rows = within(getByRole('region', { name: 'Transcript' })).getAllByRole('listitem');
+		expect(rows.at(-1)).toHaveTextContent(interim.text);
+		expect(rows.at(-1)).toHaveAccessibleDescription('Still being spoken');
+	});
+
+	it('leaves the turn being spoken to the live view', () => {
+		pushCaption(interim);
+		const { queryByText } = mount(seed(2), { live: true });
+		expect(queryByText(interim.text)).toBeNull();
+	});
+
+	it('shows the original speech exactly when it would be exported', async () => {
+		exportOriginal.set(false);
+		const { queryByText } = mount(seed(2), { reader: true });
+		expect(queryByText(/source 2/, { selector: '.original' })).toBeNull();
+		exportOriginal.set(true);
+		await waitFor(() =>
+			expect(queryByText(/source 2/, { selector: '.original' })).toBeInTheDocument()
+		);
+		exportOriginal.set(false);
+	});
+
+	it('holds still while the operator is selecting text at the bottom', async () => {
+		const { getByRole, rerender } = mount(seed(10), { reader: true });
+		const log = getByRole('region', { name: 'Transcript' });
+		Object.defineProperties(log, {
+			scrollHeight: { configurable: true, value: 1000 },
+			clientHeight: { configurable: true, value: 1000 }
+		});
+		document.getSelection()!.selectAllChildren(log.querySelector('li')!);
+		Object.defineProperty(log, 'scrollHeight', { value: 1400 });
+		log.scrollTop = 0;
+		await rerender({ mode: 'transcribe', transcript: seed(11), onError: vi.fn(), reader: true });
+		expect(log.scrollTop).toBe(0);
+		document.getSelection()!.removeAllRanges();
+	});
+
+	it('selects only the log on Ctrl+A', async () => {
+		const { getByRole } = mount(seed(2), { reader: true });
+		const log = getByRole('region', { name: 'Transcript' });
+		await fireEvent.keyDown(log, { key: 'a', ctrlKey: true });
+		const selected = document.getSelection()!.toString();
+		expect(selected).toContain('utterance 2');
+		expect(selected).not.toContain('recovery copy');
+		document.getSelection()!.removeAllRanges();
 	});
 });

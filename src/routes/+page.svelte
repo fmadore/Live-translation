@@ -43,8 +43,10 @@
 		noteActivity,
 		sessionStartedAt,
 		pauseRequested,
-		pushCaption
+		pushCaption,
+		stageView
 	} from '#lib/stores.js';
+	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
 	import { historyEnabled } from '#lib/history.js';
 	import type { SessionState } from '#lib/types.js';
@@ -378,19 +380,43 @@
 			{/if}
 
 			{#if $isRunning}
-				<LiveTurns />
-
-				{#if $statusMessage}
-					<p class="status-msg" aria-hidden="true">{statusText}</p>
-				{/if}
-
-				<span class="grow"></span>
-
-				<TranscriptMonitor
-					mode={$options.mode}
-					transcript={$transcript}
-					onError={(message) => statusMessage.set(message)}
+				<!-- Issue #124: the turns on screen, or the whole transcript to read back and copy
+				     from while the meeting goes on. -->
+				<Tabs
+					tabs={[
+						{ id: 'live', label: $t.stage.view.live },
+						{ id: 'transcript', label: $t.stage.view.transcript }
+					]}
+					bind:selected={$stageView}
+					label={$t.stage.view.label}
+					idPrefix="stage-view"
+					panelId="stage-panel"
 				/>
+				<div
+					class="stage-panel"
+					class:reading={$stageView === 'transcript'}
+					id="stage-panel"
+					role="tabpanel"
+					aria-labelledby="stage-view-{$stageView}"
+				>
+					{#if $stageView === 'live'}
+						<LiveTurns />
+					{/if}
+
+					{#if $statusMessage}
+						<p class="status-msg" aria-hidden="true">{statusText}</p>
+					{/if}
+
+					{#if $stageView === 'live'}<span class="grow"></span>{/if}
+
+					<TranscriptMonitor
+						mode={$options.mode}
+						transcript={$transcript}
+						onError={(message) => statusMessage.set(message)}
+						live
+						reader={$stageView === 'transcript'}
+					/>
+				</div>
 			{:else}
 				<span class="kicker">{$t.preflight.kicker}</span>
 				<h2 class="ready">{$t.preflight.heading}</h2>
@@ -585,6 +611,20 @@
 	}
 
 	/* ---- Stage -------------------------------------------------------------- */
+
+	/* The running stage under its tabs. Live, it is the scrolling column it always was: its
+	   blocks keep their height and the transcript sits at the foot. Reading, it gives the
+	   transcript the stage's height, which the reader passes on to its log. */
+	.stage-panel {
+		display: flex;
+		flex-direction: column;
+		flex: 1 0 auto;
+		margin-top: var(--space-4);
+	}
+	.stage-panel.reading {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
 
 	.banner {
 		background: var(--surface-1);

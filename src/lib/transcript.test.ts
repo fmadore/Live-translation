@@ -4,6 +4,7 @@ import {
 	formatTranscript,
 	groupTranscript,
 	hasOriginalSpeech,
+	recentLines,
 	transcriptFilename
 } from './transcript';
 import type { TranscriptLine } from './types';
@@ -259,5 +260,26 @@ describe('bilingual export', () => {
 			expect(asked).not.toContain('Original');
 			expect(asked).not.toContain('<i>');
 		}
+	});
+});
+
+describe('recentLines', () => {
+	const line = (id: number, startMs?: number, endMs?: number): TranscriptLine => ({
+		id,
+		text: `line ${id}`,
+		sourceText: '',
+		origin: 'system',
+		...(startMs === undefined ? {} : { startMs, endMs })
+	});
+
+	it('keeps what reaches into the window before the latest line ends', () => {
+		const lines = [line(3, 600_000, 610_000), line(2, 250_000, 320_000), line(1, 0, 60_000)];
+		// The window opens at 310 s: line 2 is still running then, so it is kept whole.
+		expect(recentLines(lines, 300_000).map((l) => l.id)).toEqual([3, 2]);
+	});
+
+	it('keeps everything when nothing can be placed on the timeline', () => {
+		const lines = [line(2), line(1)];
+		expect(recentLines(lines, 60_000)).toEqual(lines);
 	});
 });
