@@ -336,6 +336,15 @@
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: var(--space-2);
 	}
+	/* A label that wraps (the search one does in French) would stretch its neighbours and
+	   push their controls off the line: the label row takes the slack and its text sits at
+	   the bottom, so every control starts at the same height. */
+	.filters > :global(.ui-field) {
+		grid-template-rows: 1fr auto;
+	}
+	.filters > :global(.ui-field > :first-child) {
+		align-self: end;
+	}
 	.history-browser {
 		display: grid;
 		grid-template-columns: minmax(11rem, 0.8fr) minmax(0, 1.4fr);
