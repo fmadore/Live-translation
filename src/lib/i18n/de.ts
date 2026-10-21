@@ -485,6 +485,11 @@ export const de: Messages = {
 			command: 'npm run tauri dev',
 			after: 'für Audioaufnahme, Übersetzung und Untertitel.'
 		},
+		view: {
+			label: 'Ansicht',
+			live: 'Live',
+			transcript: 'Transkript'
+		},
 		onScreen: 'Jetzt auf dem Bildschirm',
 		newestLast: 'Neueste unten',
 		twoSpeakers: 'Zwei Sprechende · neueste unten',
@@ -611,6 +616,12 @@ export const de: Messages = {
 	transcript: {
 		heading: 'Transkript',
 		jumpToLatest: 'Zum Neuesten springen',
+		copy: 'Kopieren',
+		copyRange: 'Kopierumfang',
+		copyWindow: (minutes: number) => (minutes ? `Letzte ${minutes} Minuten` : 'Ganzes Transkript'),
+		copied: (minutes: number) =>
+			minutes ? `Letzte ${minutes} Minuten kopiert.` : 'Ganzes Transkript kopiert.',
+		inProgress: 'Wird noch gesprochen',
 		lines: (n: number) => (n === 1 ? '1 Zeile' : `${n} Zeilen`),
 		unsaved: 'Nicht gespeichert',
 		saved: 'Gespeichert',

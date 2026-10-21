@@ -90,7 +90,12 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 - **Reading long transcripts.** Paragraphs break on a source change, a five-second pause,
   a backwards timestamp, or before aggregation would exceed 600 characters. Individual
   caption lines remain intact. The monitor follows incoming text only while the operator
-  is at the bottom, and provides a localized keyboard-accessible Jump to latest control.
+  is at the bottom and not selecting there, and provides a localized keyboard-accessible
+  Jump to latest control. While a session runs, the stage's **Transcript** tab (issue #124,
+  remembered in `stage.view`) replaces the live turns with the whole log at the stage's full
+  height, with the turns still being spoken (`inFlightLines`) at its foot. **Copy** puts the
+  last 5, 10 or 30 minutes, or everything, on the clipboard as plain text, in-flight turns
+  included.
 
 ## Provider contracts
 

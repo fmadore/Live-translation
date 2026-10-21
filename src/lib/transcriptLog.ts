@@ -52,10 +52,10 @@ const pending: Partial<Record<Track, Caption>> = {};
 let nextLineId = 1;
 let transcriptTimeOffset = 0;
 
-function commit(c: Caption) {
-	if (!c.text.trim()) return;
-	const line: TranscriptLine = {
-		id: nextLineId++,
+/** A caption as the log line it becomes, on the document's timeline. */
+function toLine(c: Caption, id: number): TranscriptLine {
+	return {
+		id,
 		text: c.text.trim(),
 		sourceText: c.sourceText.trim(),
 		origin: c.origin,
@@ -67,9 +67,27 @@ function commit(c: Caption) {
 		startMs: c.startMs === undefined ? undefined : c.startMs + transcriptTimeOffset,
 		endMs: c.endMs === undefined ? undefined : c.endMs + transcriptTimeOffset
 	};
+}
+
+function commit(c: Caption) {
+	if (!c.text.trim()) return;
+	const line = toLine(c, nextLineId++);
 	transcript.update((list) => [line, ...list]);
 	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
 }
+
+/**
+ * The turns still being spoken, as the lines they will become, oldest first — so the
+ * transcript reader and its Copy can include them. In continuous speech a turn can stream
+ * for minutes before it is final, and all of that would otherwise be missing from the log.
+ * The ids follow the log's, so ordering by id puts them after every finalized line; it reads
+ * the log too, so a commit that takes the next id also moves these past it.
+ */
+export const inFlightLines = derived([currentCaptions, transcript], ([captions]) =>
+	Object.values(captions)
+		.filter((c): c is Caption => !!c && !c.final && !!c.text.trim())
+		.map((c, i) => toLine(c, nextLineId + i))
+);
 
 export function pushCaption(c: Caption) {
 	noteActivity(c.origin, 'caption');

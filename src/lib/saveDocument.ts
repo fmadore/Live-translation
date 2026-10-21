@@ -9,7 +9,24 @@ import { languageName } from './languages';
 import { exportOriginal, markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
 import { recovery } from './recovery';
-import { formatTranscript, transcriptFilename, type TranscriptFormat } from './transcript';
+import {
+	formatTranscript,
+	transcriptFilename,
+	type TranscriptFormat,
+	type TranscriptLabels
+} from './transcript';
+
+/** What a document written now calls itself and its speakers, in the interface language. */
+export function exportLabels(): TranscriptLabels {
+	const messages = get(t);
+	return {
+		title: messages.export.title,
+		origin: messages.export.origin,
+		original: messages.export.original,
+		language: (code) => languageName(code, get(locale)),
+		tag: messages.locale.tag
+	};
+}
 
 /**
  * Write the whole log and record what reached disk. Returns the path, or an empty string when
@@ -25,21 +42,8 @@ export async function saveTranscriptDocument(
 ): Promise<string> {
 	const lines = get(transcript);
 	if (!lines.length) return '';
-	const messages = get(t);
 	const path = await api.saveTranscript(
-		formatTranscript(
-			lines,
-			format,
-			now,
-			{
-				title: messages.export.title,
-				origin: messages.export.origin,
-				original: messages.export.original,
-				language: (code) => languageName(code, get(locale)),
-				tag: messages.locale.tag
-			},
-			{ original: get(exportOriginal) }
-		),
+		formatTranscript(lines, format, now, exportLabels(), { original: get(exportOriginal) }),
 		transcriptFilename(now, format)
 	);
 	if (!path) return '';

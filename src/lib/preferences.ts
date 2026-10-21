@@ -26,7 +26,7 @@ import { CAPTION_FACE_KEY, loadCaptionFace, type CaptionFaceId } from './caption
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout, type CaptionLayout } from './captionLayout';
 import { CLEAN_SPEECH_KEY, loadCleanSpeech, loadFillerWords, saveFillerWords } from './cleanSpeech';
 import { LANGUAGE_FAVOURITES_KEY, loadLanguageFavourites } from './languages';
-import { persisted, persistedFlag, persistedWith, writeStored } from './persisted';
+import { persisted, persistedFlag, persistedWith, readStored, writeStored } from './persisted';
 import { HOLD_KEY, loadHoldSeconds, loadPace, PACE_KEY, type CaptionPace } from './reading';
 import { loadStartOptions, SESSION_OPTIONS_KEY } from './startOptions';
 import type { StartOptions } from './types';
@@ -109,6 +109,17 @@ export const exportOriginal = persistedFlag('transcript.includeOriginal');
 
 /** Show the original speech as a smaller line under each translated caption. */
 export const overlayShowOriginal = persistedFlag(SHOW_ORIGINAL_KEY);
+
+// ---- Running stage -------------------------------------------------------------
+// What the stage shows while a session runs: the turns on screen, or the whole transcript
+// as a reader (issue #124). Persisted, so an operator who reads along keeps the reader from
+// one meeting to the next; anything unknown is the live view a fresh install starts on.
+
+export type StageView = 'live' | 'transcript';
+const STAGE_VIEW_KEY = 'stage.view';
+export const stageView = persisted<StageView>(STAGE_VIEW_KEY, () =>
+	readStored(STAGE_VIEW_KEY) === 'transcript' ? 'transcript' : 'live'
+);
 
 // ---- Window and tray ----------------------------------------------------------
 // Off by default, so a fresh install keeps ordinary Windows semantics: minimize goes to the

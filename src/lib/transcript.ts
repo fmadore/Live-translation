@@ -16,6 +16,19 @@ export function hasTranscriptTiming(lines: TranscriptLine[]): boolean {
 	);
 }
 
+/**
+ * The lines that reach into the last `windowMs` of the transcript's timeline, which ends
+ * where its latest line does. A line that began earlier but is still running inside the
+ * window is kept whole: a copied excerpt never starts mid-sentence. Lines without timing
+ * cannot be placed, so they are all kept — callers offer the window only for timed logs.
+ */
+export function recentLines(lines: TranscriptLine[], windowMs: number): TranscriptLine[] {
+	const latest = lines.reduce((end, line) => Math.max(end, line.endMs ?? -Infinity), -Infinity);
+	if (latest === -Infinity) return lines;
+	const from = latest - windowMs;
+	return lines.filter((line) => line.endMs === undefined || line.endMs >= from);
+}
+
 function cueTime(ms: number, separator: string): string {
 	const hours = Math.floor(ms / 3600000);
 	const minutes = Math.floor(ms / 60000) % 60;

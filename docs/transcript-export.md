@@ -33,6 +33,23 @@ cue; idle time between sessions is omitted. Older recovery files without timing 
 exportable as Markdown/text, with timed export disabled and an explanation rather than guessed
 timestamps or silently omitted text.
 
+## Reading back and copying during a session — issue #124
+
+While a session runs, the stage has two tabs: **Live** (the turns on screen, with the
+transcript under them) and **Transcript**, which gives the whole log the stage's height and
+width. The choice is remembered. The reader shows each turn still being spoken at its foot,
+and the original speech under each paragraph when **Include original speech** is on, so what
+is on screen is what Save and Copy write. New text does not move the log while the operator
+is scrolled up or has text selected in it; **Jump to latest** returns to the bottom, and
+Ctrl+A in the log selects the log only.
+
+**Copy** writes plain text to the clipboard — the same text as a plain-text export, with
+speaker labels and no header — for pasting into a chat or an assistant mid-meeting. It takes
+the last 5, 10 or 30 minutes of the caption timeline, or the whole transcript, and includes
+the turns still being spoken. A caption that began before the window but runs into it is
+copied whole. A recovered transcript without timing can only be copied whole, and the range
+says so. Copy does not mark the transcript saved.
+
 Session titles, history search, reading pace, hold duration and the local filler filter never
 change exported text or the date-based filename. Raw export text is what the provider
 returned: Gemini Smart transcription may already have removed fillers and false starts. See

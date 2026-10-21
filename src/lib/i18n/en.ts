@@ -480,6 +480,11 @@ export const en = {
 			command: 'npm run tauri dev',
 			after: 'for audio capture, translation, and subtitles.'
 		},
+		view: {
+			label: 'Stage view',
+			live: 'Live',
+			transcript: 'Transcript'
+		},
 		onScreen: 'On screen now',
 		newestLast: 'Newest at the bottom',
 		twoSpeakers: 'Two speakers · newest at the bottom',
@@ -602,6 +607,13 @@ export const en = {
 	transcript: {
 		heading: 'Transcript',
 		jumpToLatest: 'Jump to latest',
+		copy: 'Copy',
+		copyRange: 'What to copy',
+		/** A copy window in minutes; 0 is the whole transcript. */
+		copyWindow: (minutes: number) => (minutes ? `Last ${minutes} minutes` : 'Whole transcript'),
+		copied: (minutes: number) =>
+			minutes ? `Copied the last ${minutes} minutes.` : 'Copied the whole transcript.',
+		inProgress: 'Still being spoken',
 		lines: (n: number) => (n === 1 ? '1 line' : `${n} lines`),
 		unsaved: 'Unsaved',
 		saved: 'Saved',

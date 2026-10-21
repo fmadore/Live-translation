@@ -7,17 +7,20 @@
 	import {
 		clearTranscript as clearTranscriptStore,
 		exportOriginal,
+		inFlightLines,
 		recoveryEnabled,
 		savedPath,
 		transcriptDirty
 	} from './stores';
 	import { TRANSCRIPT_WARN_LINES } from './document';
 	import { exportFormat, isTimedFormat } from './exportFormat';
-	import { saveTranscriptDocument } from './saveDocument';
+	import { exportLabels, saveTranscriptDocument } from './saveDocument';
 	import {
+		formatTranscript,
 		groupTranscript,
 		hasOriginalSpeech,
 		hasTranscriptTiming,
+		recentLines,
 		type TranscriptFormat
 	} from './transcript';
 	import type { Origin, OutputMode, TranscriptLine } from './types';
@@ -28,9 +31,15 @@
 		mode: OutputMode;
 		transcript: TranscriptLine[];
 		onError: (message: string | AppError) => void;
+		/** A session is running, so turns still being spoken belong in what Copy takes. */
+		live?: boolean;
+		/** The stage's transcript reader (issue #124): the log fills the stage instead of six
+		 *  rows under the live turns, shows the turns still being spoken at its foot, and the
+		 *  original speech under each paragraph when it is set to be exported. */
+		reader?: boolean;
 	}
 
-	let { mode, transcript, onError }: Props = $props();
+	let { mode, transcript, onError, live = false, reader = false }: Props = $props();
 	// A browser preview has no filesystem to spool to, and inviting the operator to switch on a
 	// feature whose only outcome would be an IPC error is the mistake issue #29 fixed elsewhere.
 	const desktop = isTauri();
@@ -59,6 +68,25 @@
 	// paragraphs, newest at the bottom.
 	const paragraphs = $derived(groupTranscript(transcript));
 
+	// Turns not yet final. Only a running session has any: after Stop they are committed.
+	const pending = $derived(live ? $inFlightLines : []);
+	const shownPending = $derived(reader ? pending : []);
+	// The reader shows what Save and Copy will write, so the original speech appears under
+	// each paragraph exactly when it would be exported.
+	const showOriginal = $derived(reader && bilingual && $exportOriginal);
+
+	// Copy takes the end of the conversation for an assistant or a chat (issue #124). A time
+	// window needs every line placed on the timeline; a recovered log without timing is
+	// copied whole.
+	const COPY_WINDOWS = [5, 10, 30, 0] as const;
+	let copyMinutes = $state<(typeof COPY_WINDOWS)[number]>(10);
+	const copyTimed = $derived(hasTranscriptTiming(transcript));
+	const copyWindow = $derived(copyTimed ? copyMinutes : 0);
+	let copying = $state(false);
+	let copyNotice = $state('');
+	let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+	$effect(() => () => clearTimeout(noticeTimer));
+
 	// What a screen reader hears after a save. Empty while there is nothing new to report, so
 	// the region stays silent between saves.
 	const saveAnnouncement = $derived(
@@ -73,6 +101,7 @@
 	let following = $state(true);
 	const idBase = $props.id();
 	const logId = `${idBase}-transcript-log`;
+	const pendingNoteId = `${idBase}-in-progress`;
 
 	function noteScroll() {
 		if (logEl) following = logEl.scrollHeight - logEl.clientHeight - logEl.scrollTop <= 24;
@@ -86,12 +115,49 @@
 		}
 	}
 
+	/** Whether the operator has text selected in the log, which a scroll would drag along. */
+	function selecting(): boolean {
+		const selection = document.getSelection();
+		return !!logEl && !!selection && !selection.isCollapsed && logEl.contains(selection.anchorNode);
+	}
+
 	$effect(() => {
-		// Follow incoming text only while the operator is already at the bottom.
-		paragraphs;
-		if (!paragraphs.length) following = true;
-		if (logEl && untrack(() => following)) logEl.scrollTop = logEl.scrollHeight;
+		// Follow incoming text only while the operator is already at the bottom, and not
+		// while they are selecting there. A change of view resizes the log, so it pins again.
+		void [paragraphs, shownPending, reader];
+		if (!paragraphs.length && !shownPending.length) following = true;
+		if (logEl && untrack(() => following) && !selecting()) logEl.scrollTop = logEl.scrollHeight;
 	});
+
+	/** Ctrl+A in the log selects the log, not the whole window around it. */
+	function selectLog(event: KeyboardEvent) {
+		if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'a' || !logEl) return;
+		event.preventDefault();
+		document.getSelection()?.selectAllChildren(logEl);
+	}
+
+	async function copy() {
+		if (copying) return;
+		copying = true;
+		clearTimeout(noticeTimer);
+		copyNotice = '';
+		try {
+			// Newest first, like the log: the turns still being spoken are the newest text.
+			const lines = [...pending].reverse().concat(transcript);
+			const excerpt = copyWindow ? recentLines(lines, copyWindow * 60_000) : lines;
+			await navigator.clipboard.writeText(
+				formatTranscript(excerpt, 'text', new Date(), exportLabels(), {
+					original: $exportOriginal
+				})
+			);
+			copyNotice = $t.transcript.copied(copyWindow);
+			noticeTimer = setTimeout(() => (copyNotice = ''), 4000);
+		} catch (error) {
+			onError(asStatus(error));
+		} finally {
+			copying = false;
+		}
+	}
 
 	async function save(format: TranscriptFormat) {
 		if (!transcript.length || saving) return;
@@ -125,7 +191,7 @@
 	}
 </script>
 
-<section class="monitor">
+<section class="monitor" class:reader>
 	<div class="head">
 		<h2 class="kicker">{$t.transcript.heading}</h2>
 		<span class="count">{$t.transcript.lines(transcript.length)}</span>
@@ -137,6 +203,28 @@
 			</span>
 		{/if}
 		<div class="spacer"></div>
+		<div class="copy">
+			<!-- Shows the window Copy will actually use: the whole log when it has no timing. -->
+			<select
+				aria-label={$t.transcript.copyRange}
+				value={copyWindow}
+				disabled={copying || !copyTimed}
+				onchange={(e) => (copyMinutes = Number(e.currentTarget.value) as typeof copyMinutes)}
+			>
+				{#each COPY_WINDOWS as minutes (minutes)}
+					<option value={minutes}>{$t.transcript.copyWindow(minutes)}</option>
+				{/each}
+			</select>
+			<ToolButton
+				variant="ghost"
+				size="sm"
+				disabled={(!transcript.length && !pending.length) || copying}
+				aria-busy={copying}
+				onclick={copy}
+			>
+				{$t.transcript.copy}
+			</ToolButton>
+		</div>
 		<select aria-label={$t.transcript.format} bind:value={$exportFormat} disabled={saving}>
 			<option value="markdown">Markdown (.md)</option>
 			<option value="text">{$t.transcript.plainText} (.txt)</option>
@@ -175,6 +263,12 @@
 	     same moment as its text is routinely missed, and this one is out of flow, so it costs
 	     the layout nothing between saves. The visible lines below repeat it for the eye. -->
 	<p class="sr-only" role="status">{saveAnnouncement}</p>
+	<!-- The same arrangement for Copy, which a screen reader otherwise does not hear at all. -->
+	<p class="sr-only" role="status">{copyNotice}</p>
+	{#if copyNotice}<p class="saved" aria-hidden="true">{copyNotice}</p>{/if}
+	<!-- Read out with each turn still being spoken, rather than written into the text a
+	     selection would copy. -->
+	<span id={pendingNoteId} hidden>{$t.transcript.inProgress}</span>
 	{#if $savedPath && !$transcriptDirty}
 		<p class="saved" aria-hidden="true">{$t.transcript.savedTo} <code>{$savedPath}</code></p>
 	{:else if $savedPath}
@@ -188,8 +282,8 @@
 		<p class="warn" role="status">{$t.transcript.longSession(TRANSCRIPT_WARN_LINES)}</p>
 	{/if}
 
-	{#if paragraphs.length}
-		<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable transcript needs keyboard scrolling and a focus target after Jump to latest.) -->
+	{#if paragraphs.length || shownPending.length}
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Scrollable transcript needs keyboard scrolling, a focus target after Jump to latest, and Ctrl+A that selects only the log.) -->
 		<div
 			class="log-scroll"
 			id={logId}
@@ -197,6 +291,7 @@
 			aria-label={$t.transcript.heading}
 			tabindex="0"
 			onscroll={noteScroll}
+			onkeydown={selectLog}
 			bind:this={logEl}
 		>
 			<ul class="log">
@@ -207,7 +302,27 @@
 									>{paragraph.language}</span
 								>{/if}</span
 						>
-						<span class="text">{paragraph.text}</span>
+						<span class="text"
+							>{paragraph.text}{#if showOriginal && paragraph.lane === 0 && paragraph.sourceText}<span
+									class="original">{paragraph.sourceText}</span
+								>{/if}</span
+						>
+					</li>
+				{/each}
+				<!-- Keyed by track: a turn keeps its row while it streams, whatever id it has. -->
+				{#each shownPending as line (`${line.origin}-${line.lane ?? 0}`)}
+					<li class="origin-{line.origin} pending" aria-describedby={pendingNoteId}>
+						<span class="side"
+							>{sideLabel[line.origin]}{#if line.language}<span class="language"
+									>{line.language}</span
+								>{/if}</span
+						>
+						<span class="text"
+							>{line.text}<span class="caret" aria-hidden="true"
+							></span>{#if showOriginal && (line.lane ?? 0) === 0 && line.sourceText}<span
+									class="original">{line.sourceText}</span
+								>{/if}</span
+						>
 					</li>
 				{/each}
 			</ul>
@@ -405,5 +520,62 @@
 		line-height: var(--leading-body);
 		color: var(--text-muted);
 		text-wrap: pretty;
+	}
+
+	.copy {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+	}
+
+	/* ---- Transcript reader ------------------------------------------------------ */
+
+	/* The stage's whole height, its own scrollbar for the log, and the rest of the block at
+	   its natural height around it. No rule above: the tabs already divide it from the bar. */
+	.monitor.reader {
+		flex: 1 1 auto;
+		min-height: 0;
+		margin-top: var(--space-4);
+		padding-top: 0;
+		border-top: 0;
+	}
+	/* Stacked, the page scrolls as a whole and the stage has no height of its own to fill,
+	   so the log takes most of the window and keeps its own scrollbar. */
+	.reader .log-scroll {
+		flex: 1 1 auto;
+		min-height: 11.25em;
+		max-height: max(11.25em, 70vh);
+	}
+	@container window (min-width: 53.75em) {
+		.reader .log-scroll {
+			max-height: none;
+		}
+	}
+	/* The text being read, not a record of what has gone by: body colour, not muted. */
+	.reader .text {
+		color: var(--text-body);
+	}
+	.reader .log {
+		gap: var(--space-3);
+	}
+	.original {
+		display: block;
+		margin-top: var(--space-1);
+		font-size: var(--type-small);
+		color: var(--text-muted);
+	}
+	.caret {
+		display: inline-block;
+		width: 3px;
+		height: 0.9em;
+		background: var(--accent);
+		margin-left: var(--space-2);
+		vertical-align: -2px;
+		animation: blink 1.1s steps(1) infinite;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.caret {
+			animation: none;
+		}
 	}
 </style>
