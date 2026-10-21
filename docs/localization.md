@@ -120,8 +120,6 @@ English and French both name the month, which is what `formatDateTime`'s test as
 The German Store copy (description, features, short description, release note and screenshot
 descriptions) is in `docs/store-listing.md`. Still open:
 
-- German screenshots in `docs/store-screenshots/de/`, captured from the final MSIX with the
-  interface set to German.
 - A native German speaker reviews the catalog and the Store copy.
 - **German subtitles are unverified.** Both subtitle engines detect the spoken language and
   Gemini documents over 70, so they most likely work already, but nobody has put German speech
