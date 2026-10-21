@@ -1,24 +1,23 @@
-# Partner Center submission walkthrough — 1.7.1
+# Partner Center submission walkthrough — 1.8.0
 
-Target: **Live Translation & Subtitles 1.7.1**, Product ID `9PFB8LR3RR9X`. Tagged on 20 October
-2026, not yet submitted; the Store serves 1.6.1 (MSIX 1.6.1.0), confirmed by the maintainer on
-20 October 2026. Once the `v1.7.1` release workflow finishes, download the combined x64 + ARM64
-bundle from
-`https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1.msixbundle`.
-The [release handoff](store-updates.md#release-171-handoff) has the package evidence and
+Target: **Live Translation & Subtitles 1.8.0**, Product ID `9PFB8LR3RR9X`. Prepared on
+21 October 2026, not yet tagged; the Store serves 1.7.1 (MSIX 1.7.1.0), confirmed by the
+maintainer on 21 October 2026. Once the `v1.8.0` release workflow finishes, download the
+combined x64 + ARM64 bundle from
+`https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle`.
+The [release handoff](store-updates.md#release-180-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.7.1 carries 1.7.0, which was not submitted: offline Whisper translation into English, an
-overlay that reopens where it was placed and survives a display being unplugged, and sturdier
-cloud sessions and Whisper. It also shows the icon on the taskbar and in Start without an
-accent-coloured plate. The listing keeps its positioning; paste every field again from
-[store-listing.md](store-listing.md), which notes what changed. What's new covers the changes
-since 1.6.1. The screenshots, still 1.2.2 captures, also need replacing.
+1.8.0 adds a Transcript tab for reading and copying the transcript during a session, and moves
+Mistral subtitles to Voxtral Realtime 3, with lines that end at the speaker's turn and a
+names-and-terms list. The listing keeps its positioning; paste the descriptions, features, What's
+new and certification notes again from [store-listing.md](store-listing.md), which notes what
+changed. What's new covers the changes since 1.7.1.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.7.1.msixbundle` contains both native packages at
-   **1.7.1.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.8.0.msixbundle` contains both native packages at
+   **1.8.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`.
@@ -26,14 +25,14 @@ since 1.6.1. The screenshots, still 1.2.2 captures, also need replacing.
    [packaging instructions](packaging-msix.md); the side-by-side Whisper Test app is separate
    evidence and must not be uploaded as the Store package.
 3. Complete the [acceptance checklist](microsoft-store.md#acceptance-checklist), including
-   offline Whisper transcription and translation after download, cloud features,
-   Stop/backlog, overlay placement across launches, export and WACK.
-4. Refresh [screenshots](store-screenshots/README.md) in all three listing languages: the
-   current images are 1.2.2 captures, the 1.6.0 capture is still pending, and the setup sheet
-   gained Whisper's translation card in 1.7.0.
+   offline Whisper transcription and translation after download, cloud features, the
+   Transcript tab and Copy, Stop/backlog, overlay placement across launches, export and WACK.
+4. Refresh [screenshots](store-screenshots/README.md) where the interface changed: the
+   21 October 2026 set, from the 1.7.1 MSIX, predates the Live and Transcript tabs shown while
+   a session runs, so retake `3-bilingual.png` in all three listing languages.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "7 October 2026 (documents the 1.7.0 release)", including Whisper model downloads
-   through a proxy, temporary local audio buffering and the remembered overlay placement.
+   reads "21 October 2026 (documents the 1.8.0 release)", including the names and terms sent to
+   Mistral and Copy placing transcript text on the clipboard.
 
 ## Pricing and properties
 
@@ -49,7 +48,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 | Purchases outside Microsoft commerce | No in-product offering; provider dependencies and charges disclosed in listing |
 | Accessibility certification | Do not claim certification without a completed audit |
 | Generative AI | Yes: optional Gemini/OpenAI translation and local Whisper translation into English generate text |
-| Personal-information transmission | Cloud modes send selected audio directly to third parties; local Whisper does not |
+| Personal-information transmission | Cloud modes send selected audio directly to third parties, and Mistral also receives any names and terms entered for it; local Whisper does not |
 | Recommended memory | 8 GB; model/CPU determine Whisper speed |
 
 Review the current age-rating questionnaire for third-party connections: cloud providers and
@@ -59,7 +58,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.7.1.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.8.0.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -67,7 +66,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.7.1.0` |
+| Version | `1.8.0.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -79,12 +78,11 @@ that listing if it is not already present. For each language, paste:
 1. **Description**: full paragraphs, up to 10,000 characters.
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.7.1 block, under 1,500 characters. It covers the changes since
-   1.6.1, the version the Store serves.
+4. **What's new**: the 1.8.0 block, under 1,500 characters. It covers the changes since
+   1.7.1, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters,
-   now including the AVX2 requirement for Whisper on x64.
-6. New packaged-app screenshots with matching localized captions, showing the 1.7.1
-   interface.
+   unchanged since 1.7.1.
+6. Packaged-app screenshots with matching localized captions, showing the 1.8.0 interface.
 7. **Store logos**: see below.
 
 The package's tiles and `StoreLogo` carry the wave-to-words icon, unchanged since 1.6.1, so the
@@ -119,11 +117,11 @@ Suggested `runFullTrust` justification:
 
 ## Final review and submission
 
-Confirm all sections are complete, packages and copy agree on 1.7.1.0, screenshots and Store
+Confirm all sections are complete, packages and copy agree on 1.8.0.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Submit manually when the [handoff checklist](store-updates.md#release-171-handoff) is complete,
-and record the submission date and certification result there. Do not mark 1.7.1 live until
+Submit manually when the [handoff checklist](store-updates.md#release-180-handoff) is complete,
+and record the submission date and certification result there. Do not mark 1.8.0 live until
 Partner Center or the public listing confirms publication.

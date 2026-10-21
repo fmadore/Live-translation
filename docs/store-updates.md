@@ -9,198 +9,99 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Release 1.7.1 handoff
+## Release 1.8.0 handoff
 
-**Tagged and published on GitHub on 20 October 2026; not yet submitted.** Last confirmed live Store version:
-**1.6.1.0**, confirmed by the maintainer on 20 October 2026. Target app version: **1.7.1**,
-MSIX **1.7.1.0**.
+**Prepared on 21 October 2026; not yet tagged.** Last confirmed live Store version:
+**1.7.1.0**, confirmed by the maintainer on 21 October 2026. Target app version: **1.8.0**,
+MSIX **1.8.0.0**. What's new and the certification notes cover the changes since 1.7.1.
 
-**1.7.1 replaces 1.6.1 in the Store.** [1.7.0](#release-170-handoff) was published on GitHub
-and will not be submitted. 1.7.1 is 1.7.0's app code unchanged plus a packaging fix:
+1.8.0 is two features:
 
-- **The bug.** Installed as an MSIX, the app's icon was drawn on a square plate in the Windows
-  accent colour on the taskbar, in Start's app list, in Alt+Tab and in jump lists, so the
-  rounded corners of the wave-to-words tile showed blue. The package shipped a single
-  `Square44x44Logo.png` and no `targetsize` or `altform-unplated` variants, so Windows fell back
-  to the plated logo. It has been visible since the rounded icon reached the Store in 1.6.1; the
-  asset files are identical in 1.6.1 and 1.7.0. The side-by-side Local Test and NSIS installs
-  use `icon.ico` and were never affected.
-- **The fix.** `src-tauri/gen/windows/Assets/` gains 42 target-size icons:
-  `Square44x44Logo.targetsize-N.png`, `…targetsize-N_altform-unplated.png` and
-  `…targetsize-N_altform-lightunplated.png` for N = 16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72,
-  80, 96 and 256. There are no scale variants of any logo. `bundle.config.json` sets
-  `resourceIndex.enabled: true`, so the bundler runs MakePri and each package carries a single
-  `resources.pri`: Windows resolves qualified assets only through it. The manifest and the base
-  images it names are unchanged. How the files are made, and why there are no scale variants,
-  is in [MSIX packaging](packaging-msix.md#icon-variants-and-resourcespri).
+- [#155](https://github.com/fmadore/Live-translation/pull/155) (closes #124): **Live** and
+  **Transcript** tabs while a session runs. Transcript gives the whole log the full stage, with
+  the turns still being spoken at its foot. **Copy** writes the last 5, 10 or 30 minutes, or the
+  whole transcript, as plain text, during a session and after Stop. Selecting text holds the
+  reading position, Ctrl+A selects only the log, and original speech shows under each
+  paragraph when exports include it. Interface only; see [transcript export](transcript-export.md).
+- [#156](https://github.com/fmadore/Live-translation/pull/156) (closes #153): Mistral subtitles
+  move to **Voxtral Mini Transcribe Realtime 3** (`voxtral-mini-transcribe-realtime-3-0`).
+  - **Rate:** $0.48 an hour of audio instead of $0.36.
+  - **Languages:** 45 languages and dialects by Mistral's count, instead of 13.
+  - **Line closing:** a line closes at Mistral's detected end of turn, and is held open
+    mid-sentence. The shared realtime runner gains the mechanism (`Signal::EndOfTurn`,
+    `keeps_turn_open`), which only Mistral uses.
+  - **Names and terms:** a list in step 03 of the setup is sent as `context_bias`, and is
+    saved with the setup and in meeting profiles.
+  - See the [Mistral API notes](mistral-realtime-api.md).
 
-1.7.1 changes no app code, so the testing recorded for 1.7.0 carries over: the maintainer's
-test of the Local Test build of `f6a2448` (ARM64) and the system-audio test on ARM64. The open
-checks of the 1.7.0 handoff carry over unchanged and are run against the 1.7.1 packages: the
-manual checks on the candidate, and the sideload test, screenshots, Windows App Certification
-Kit and social preview under its Release and Store acceptance. What's new and the certification
-notes are 1.7.0's, with the version numbers updated and one sentence on the icon added to
-What's new.
-[GitHub release copy](release-1.7.1.md) · [EN/FR/DE Store fields](store-listing.md) ·
+**Known risk:** Mistral lists Realtime 3 as a **public preview**. The app pins `-3-0`, and
+release builds cannot override the model. If Mistral withdraws or changes the preview, Mistral
+subtitles stop with Mistral's error until an update ships. Whisper, Gemini, OpenAI and the demo
+are unaffected.
+
+**Unchanged:**
+- No dependency changes.
+- No new command permissions: Copy uses the webview's clipboard API.
+- The package still declares only `runFullTrust` and `microphone`.
+
+The [privacy policy](privacy.md) takes effect on 21 October 2026. It adds the names-and-terms
+list, which is kept locally and sent to Mistral, and Copy, which puts transcript text on the
+Windows clipboard.
+[GitHub release copy](release-1.8.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ### Preparation and validation
 
-- [x] App manifests, root lockfile entries and citation set to 1.7.1; the citation date stays
-  20 October 2026.
-- [x] The local ARM64 MSIX contains a single `resources.pri` (9,296 bytes) that indexes the
-  42 target-size icons, and its 46 `Assets/` files match the repository.
-- [x] Installed (1.7.1.0, developer-signed, ARM64) on 20 October 2026, the running app's taskbar
-  icon shows the tile's transparent corners with no plate, on the maintainer's dark taskbar.
-- [ ] The same in Start's app list and Alt+Tab, and with the taskbar in the light theme.
-
-### Release
-
-- [x] Tag `v1.7.1-rc.1` and confirm that both MSIX jobs produce packages containing
-  `resources.pri`. Tagged at `2b52552` (the merge of #152); all 50 package checks passed on its
-  draft assets, each package holding a single `resources.pri`. A hyphenated tag builds the installers, both MSIX packages and the bundle
-  into a draft prerelease; nothing is published.
-- [x] Tag `v1.7.1` on the same commit, annotated: "Live Translation & Subtitles v1.7.1". Pass
-  release-commit CI and all installer/MSIX/bundle jobs.
-- [x] Publish the prepared body: `gh release edit v1.7.1 --notes-file docs/release-1.7.1.md`.
-- [x] Verify `Live.Translation_1.7.1.msixbundle`: the [1.7.0 checks](#170-artifact-verification)
-  at **1.7.1.0**, plus `resources.pri` and the 42 target-size icons in each package,
-  byte-identical to `src-tauri/gen/windows/Assets/`. Record sizes and SHA-256 below.
-- [ ] Submit the single combined bundle in Partner Center with the 1.7.1 What's new and the
-  updated descriptions, features, requirements and certification notes; if a Store logo was
-  uploaded separately, check that it shows the wave-to-words icon. Use a gradual rollout
-  (route step 9): 1.7.1 brings 1.7.0's capture and session-lifecycle changes to the Store.
-- [ ] Record submission and certification, and confirm the Store version before marking it live.
-
-### 1.7.1 artifact verification
-
-Tag `v1.7.1` (annotated) points to `2b525525b5a5125f27a9ffad75ac90e766748060`, the merge of
-[#152](https://github.com/fmadore/Live-translation/pull/152), the same commit as `v1.7.1-rc.1`.
-The [release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39411978613) and
-all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39414595274)
-passed. The GitHub release body is [release-1.7.1.md](release-1.7.1.md).
-
-Upload **[Live.Translation_1.7.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1.msixbundle)**
-to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
-GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
-`src-tauri/target/release-1.7.1/published/`.
-
-| Artifact | Bytes | SHA-256 |
-| --- | ---: | --- |
-| [Live.Translation_1.7.1.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1.msixbundle) | 11,838,755 | `286ec7b988192e9df680477d6df33d3636c812cbb520fd4c9ea09cdf9b5f2ac9` |
-| [Live.Translation_1.7.1_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1_x64.msix) | 6,038,055 | `59292779c446c612ab3b10f2ab0afa3ec18d67611e12bf32fbf93b9bf9529a35` |
-| [Live.Translation_1.7.1_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.1/Live.Translation_1.7.1_arm64.msix) | 5,798,695 | `98e61945410b1b0f8078f235564f4bb7cbb5a0d387d09535c5c7dab8fe4fe300` |
-
-All 50 checks passed: the 40 of [1.7.0](#170-artifact-verification) at **1.7.1.0**, and in
-each package an `Assets/` folder holding exactly the 46 files of `src-tauri/gen/windows/Assets/`,
-byte-identical, including the 14 `altform-unplated` sizes, and a single `resources.pri` (9,296
-bytes) that indexes them, with no `resources.scale-N.pri`. Executable PE machine values are
-`0x8664` (x64, 12,401,152 bytes) and `0xAA64` (ARM64, 10,841,088 bytes). This verifies
-packaging, not installed-app behaviour or certification.
-
-## Release 1.7.0 handoff
-
-**Prepared on 7 October 2026, tagged and published on GitHub on 20 October 2026; will not be
-submitted.** [1.7.1](#release-171-handoff) replaces it for the Store with the same app code and
-a packaging fix for the taskbar icon; the manual checks below still apply to 1.7.1. Last
-confirmed live Store version: **1.6.1.0**, confirmed by the maintainer on 20 October 2026.
-Target app version was **1.7.0**, MSIX **1.7.0.0**.
-
-1.6.1 already brought the wave-to-words icon and the design refresh to the Store, so What's new
-and the certification notes cover the changes since 1.6.1. Its record is under
-[Release 1.6.1 handoff](#release-161-handoff).
-
-1.7.0 is [#116](https://github.com/fmadore/Live-translation/pull/116)–[#122](https://github.com/fmadore/Live-translation/pull/122),
-recorded item by item, with what each still needs, in the
-[6 October app review](app-review-2026-10-06.md):
-
-- #116, batches 1–2: a mid-stream close, a transient provider error or a stalled socket
-  reconnects; drains end on the provider's own signal; Pause works during connect; a handover
-  keeps up to three seconds of audio. Whisper is built with SIMD behind a runtime CPU gate (x64
-  needs AVX2, with the demo as the keyless fallback): about twice as fast with Tiny on a
-  Snapdragon X, unmeasured on x64. Downloads follow the Windows proxy with no total timeout and
-  clean up partial files; the last words before Pause are captioned; overlap is trimmed by
-  words; quit no longer waits for the backlog.
-- #117, batch 3: Test audio after a device failure, the rehearsal cost estimate, history with
-  two caption languages, a persisted export format that quit Save uses, storage reads kept out
-  of module load, accessibility labels and an incremental History tab.
-- #118 and #119, batch 4: CI gates, static analysis, coverage and the two Playwright suites
-  (developer-facing).
-- #120, batch 5: structure, plus 24-bit microphones, recovery, history and window errors worded
-  in the interface language, and a fix for the History tab's "[object Object]" export error.
-- #121, batch 6: **F1**, offline translation into English with Whisper (`whisper-translate`,
-  English only, Small recommended); **F2**, the overlay reopens where it was last placed on each
-  display layout; the overlay keeps its size across displays with different scaling; Done in
-  move mode marks the overlay placed.
-- #122: Mistral reconnects when its backend reports a gRPC `UNAVAILABLE` (code 3803, seen live
-  on 1.6.0).
-
-Runtime dependencies: reqwest 0.12 → 0.13 with `system-proxy` (the copy Tauri already compiles,
-so the build has one reqwest instead of two), and `whisper-rs-sys` pinned at 0.15.0, which keeps
-whisper.cpp at 1.8.3. Everything new in `package.json` is a devDependency. The operator window
-gains two command permissions (`whisper_cpu_support`, `display_layout`); the package still
-declares only `runFullTrust` and `microphone`. The [privacy policy](privacy.md) takes effect on
-7 October 2026 and covers translation into English, downloads through a proxy, discarding
-pending audio on quit, the remembered export format and the overlay placement per display
-arrangement.
-[GitHub release copy](release-1.7.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
-[Partner Center walkthrough](partner-center-walkthrough.md).
-
-After `v1.7.0-rc.1`, `main` gained one feature and no fixes to the candidate, so the release is
-tagged from `main` rather than as a second candidate:
-
-- [#139](https://github.com/fmadore/Live-translation/pull/139) (closes #137): a display watcher
-  moves the overlay onto a connected display when the one holding it goes, and back to its
-  remembered placement when it returns; Move overlay, showing a hidden overlay and Escape in
-  move mode check that it is on a display first. The operator window gains one command
-  permission (`recover_overlay_placement`); the overlay's capability and the package's
-  declared capabilities are unchanged.
-- [#138](https://github.com/fmadore/Live-translation/pull/138): the interface builds on
-  SvelteKit 3 and adapter-static 4 (developer-facing).
-- [#135](https://github.com/fmadore/Live-translation/pull/135) and
-  [#151](https://github.com/fmadore/Live-translation/pull/151), the October Dependabot batches:
-  Tauri 2.12.3, tokio 1.53.3, sha2 0.11, tauri-plugin-single-instance 2.5.3 and **wasapi
-  0.24 → 0.26**, which drives system-audio capture.
-
-### Preparation and validation
-
-- [x] #116 to #122 merged, each after all its CI jobs passed. The release branch is cut from
-  `main` at `8e42436`, whose [CI run](https://github.com/fmadore/Live-translation/actions/runs/37657186989)
-  passed.
-- [x] App manifests, root lockfile entries and citation set to 1.7.0. The citation date,
-  provisionally 7 October 2026, is corrected to the tag date, 20 October 2026.
+- [x] #155 and #156 merged, each after all its CI jobs passed.
+- [x] App manifests, root lockfile entries and citation set to 1.8.0. The citation date,
+  provisionally 21 October 2026, is corrected to the tag date when tagging.
 - [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`), and
   `cargo check --locked` passes.
-- [x] Frontend validation of the release branch on Windows 11 ARM64: `npm test` 643 passed in
-  71 files; `check` (0 errors, 0 warnings), `lint`, `knip`, `format:check`, `check:languages`
-  and `build` pass; the Store fields are within Partner Center's limits.
-- [x] Rust tests, Clippy, both Playwright suites and the Whisper smoke test are recorded per
-  batch in the review and passed in CI on every PR; this preparation changes no code.
+- [x] Validation of the release branch on Windows 11 ARM64:
+  - `npm test`: 699 passed in 74 files.
+  - `check` (0 errors, 0 warnings), `lint`, `knip`, `format:check`, `check:languages` and
+    `build` pass.
+  - Rust tests, Clippy and the style suite passed on #155 and #156 and in their CI runs; this
+    preparation changes no code.
+- [x] The Store fields are within Partner Center's limits.
 
 ### Release-candidate checks
 
-- [x] Merge this release PR ([#123](https://github.com/fmadore/Live-translation/pull/123),
-  `bffcd31`).
-- [x] Tag `v1.7.0-rc.1` from `main` (8 October 2026, `bffcd31`). A hyphenated tag builds the
-  installers, both MSIX packages and the bundle into a draft prerelease; nothing is published.
-- [x] **Maintainer test, 20 October 2026:** the side-by-side Local Test build of `main` at
-  `f6a2448` (ARM64), which adds #135, #138, #139 and #151 to the candidate, reported working
-  well. The checks below were not itemised in that report, so they stay unticked; any not
-  covered remain open against the Store build.
+- [ ] Merge this release PR.
+- [ ] Tag `v1.8.0-rc.1` from `main`. A hyphenated tag builds the installers, both MSIX packages
+  and the bundle into a draft prerelease; nothing is published.
+- [ ] **Maintainer test** of the candidate: the side-by-side Local Test build, or the
+  candidate's MSIX.
 
-Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
+Manual checks new in 1.8.0, on x64 and ARM64 unless a line says otherwise:
 
-- [x] **System audio on hardware**: an output and one application (Teams, Zoom or a browser),
-  alone and with the microphone. The release ships wasapi 0.26 (#151), and #120 restructured
-  the loopback runner and its COM guard. Tested by the maintainer on 20 October 2026 on ARM64,
-  with the Local Test build of `f6a2448`; no x64 run is recorded.
-- [ ] **A short live session with each cloud provider**: Gemini Translate, Gemini Transcribe,
-  OpenAI and Mistral, with Pause, Resume and Stop. On Gemini Translate, Stop mid-sentence should
-  translate the last words, end well before four seconds and log no
-  `provider error while closing`. On Mistral, a reconnect should resume captions: drop the
-  network briefly, and note any 3803 in the log.
-- [ ] **A 24-bit microphone** (a USB interface or headset set to 24-bit in Sound settings):
-  levels, Test audio and captions.
+- [ ] **Mistral on real speech**, in French and in English:
+  - a few names in the glossary, including one the model gets wrong without it;
+  - captions and their line breaks, at the ends of sentences and of turns, including a quick
+    Q&A exchange;
+  - Pause, Resume and Stop;
+  - a brief network drop, after which captions should resume.
+
+  Note any `error` payload in the log, and whether the glossary fixed the name. This is also
+  the open verification in the [roadmap](../ROADMAP.md#open-verification).
+- [ ] **The Transcript tab in a long session**:
+  - switching tabs while captions arrive;
+  - each Copy window pasted into Notepad;
+  - a selection holding still while new text arrives;
+  - Copy after Stop;
+  - with Both sources, and with two caption languages.
+- [ ] **Narrator** on the Live and Transcript tabs, the row still being spoken, the Copy menu,
+  and the glossary's added and removed announcements.
+
+Carried over from 1.7.0 and 1.7.1, never recorded as done and still open against the Store
+build:
+
+- [ ] **A short live session with each other cloud provider** (Gemini Translate, Gemini
+  Transcribe and OpenAI) with Pause, Resume and Stop. On Gemini Translate, Stop mid-sentence
+  should translate the last words and end well before four seconds.
+- [ ] **System audio on x64**: an output and one application, alone and with the microphone
+  (ARM64 was tested on 20 October 2026).
+- [ ] **A 24-bit microphone**: levels, Test audio and captions.
 - [ ] **Whisper Small translating real speech into English**: quality, whether it keeps up, and
   the setup sheet's English-only note.
 - [ ] **Overlay restore with a laptop at 150% and a projector at 100%**: the "Placement across
@@ -208,73 +109,53 @@ Manual checks on the candidate, on x64 and ARM64 unless a line says otherwise:
   [caption layout matrix](caption-layout.md#release-verification).
 - [ ] **An x64 PC without AVX2**, if one is available: Whisper listed as unavailable with its
   reason, a first launch on the built-in demo, and a cloud engine that still starts.
-- [ ] **A model download behind a proxy** set in Windows Settings → Network & internet → Proxy.
+- [ ] **A model download behind a proxy** set in Windows Settings.
 - [ ] **Quitting with a large Whisper backlog**: the prompt gives the seconds pending, and the
   app exits a few seconds after closing.
-- [ ] **Narrator** on Pause/Resume and Move overlay/Done, which should no longer say "pressed",
-  and on the input-status announcements.
-- [ ] **The new error sentences in English, French and German**: a failed recovery write, a
+- [ ] **Narrator** on Pause/Resume and Move overlay/Done, and on the input-status
+  announcements.
+- [ ] **The error sentences in English, French and German**: a failed recovery write, a
   failed history write and a failed export from the History tab.
-- [ ] Carried from 1.6.1, never checked: the new icon in Start, the taskbar, the tray and the
-  Store tile; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
-  keyboard focus, contrast themes and enlarged text. On 20 October 2026 the taskbar and Start
-  were found to draw the icon on an accent-coloured plate; [1.7.1](#release-171-handoff) fixes
-  that.
-- [x] Fix what the candidate shows. A fix means a new candidate (`v1.7.0-rc.2`); never move a
-  tag. Nothing was reported, so there is no `rc.2`.
+- [ ] **The icon** in Start's app list, Alt+Tab, the tray and the Store tile, and on a light
+  taskbar; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
+  keyboard focus, contrast themes and enlarged text.
+- [ ] Fix what the candidate shows. A fix means a new candidate (`v1.8.0-rc.2`); never move a
+  tag.
 
 ### Release and Store acceptance
 
-- [x] Tag `v1.7.0` from `main`. Pass release-commit CI and all installer/MSIX/bundle jobs, then
-  publish the prepared body: `gh release edit v1.7.0 --notes-file docs/release-1.7.0.md`.
-  The citation date is set to the tag date, 20 October 2026.
-- [x] Verify `Live.Translation_1.7.0.msixbundle` contains native x64 and ARM64 packages at
-  **1.7.0.0** with the [assigned identity](microsoft-store.md#store-identity-assigned) and the
-  wave-to-words tiles. Record sizes and SHA-256 below.
+- [ ] Tag `v1.8.0` (annotated: "Live Translation & Subtitles v1.8.0"), set the citation date to
+  the tag date, and pass release-commit CI and all installer/MSIX/bundle jobs.
+- [ ] Publish the prepared body: `gh release edit v1.8.0 --notes-file docs/release-1.8.0.md`.
+- [ ] Verify `Live.Translation_1.8.0.msixbundle` against
+  [the 1.7.1 checks](#release-171-handoff), at **1.8.0.0**:
+  - GitHub's asset digests;
+  - a bundle holding exactly both packages, byte for byte, with no signature;
+  - manifests with the [assigned identity](microsoft-store.md#store-identity-assigned) and
+    publisher;
+  - native PE machine types;
+  - only `runFullTrust` and `microphone`;
+  - the rehearsal WAVs and Whisper licence notices, and no model weights;
+  - the 46 `Assets/` files byte-identical to the repository, and a single `resources.pri`.
+
+  Record sizes and SHA-256 below.
 - [ ] Sideload-test the final per-architecture MSIX packages and walk the
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
-- [x] Recapture the EN/FR/DE Store screenshots: done 21 October 2026 from the 1.7.1 ARM64
-  MSIX, six per language; see [store-screenshots](store-screenshots/README.md).
-- [ ] Run Windows App Certification Kit, which also reports missing package images.
-- [ ] Upload `.github/social-preview.png` in the GitHub repository settings if that is still
-  outstanding from 1.6.1. This is manual and not part of the Store.
-- [ ] Submit the single combined bundle in Partner Center with the 1.7.0 What's new and the
-  updated descriptions, features, requirements and certification notes; if a Store logo was
-  uploaded separately, check that it shows the wave-to-words icon. Use a gradual rollout
-  (route step 9): this release changes capture and the session lifecycle.
-- [ ] Record submission and certification, and confirm the Store version before marking it live.
+- [ ] **Screenshots:** the 21 October 2026 set predates the Live and Transcript tabs. Retake
+  `3-bilingual.png`, which shows a running session, and `1-whisper.png` if the tabs show
+  there, in every language, from the 1.8.0 MSIX. A Transcript-tab screenshot would show the
+  new feature; it is optional. See [store-screenshots](store-screenshots/README.md).
+- [ ] Run Windows App Certification Kit.
+- [ ] Submit the single combined bundle in Partner Center with the 1.8.0 What's new and the
+  updated descriptions, features and certification notes. Use a gradual rollout (route
+  step 9): the realtime runner's line closing changed, and Mistral's model is a preview.
+- [ ] Record submission and certification. Before marking 1.8.0 live, confirm the Store
+  version: `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` should report
+  `SignatureKind` `Store` and Version `1.8.0.0`. A developer-signed sideload does not count.
 
-### 1.7.0 artifact verification
+### 1.8.0 artifact verification
 
-Tag `v1.7.0` (annotated) points to `5ad2a0f6fc5d40a8fcc5a5abe350061f1c974905`, the
-`chore(release): 1.7.0` commit, whose only changes from the tested `f6a2448` are documentation
-and the citation date. The
-[release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39403013613) and all
-four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39403017461)
-passed. The GitHub release body is [release-1.7.0.md](release-1.7.0.md).
-
-Upload **[Live.Translation_1.7.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle)**
-to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
-GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
-`src-tauri/target/release-1.7.0/published/`.
-
-| Artifact | Bytes | SHA-256 |
-| --- | ---: | --- |
-| [Live.Translation_1.7.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0.msixbundle) | 11,424,375 | `550765859b61c447b65f040b6fec54a47f457019b27194839489312ce5fd042b` |
-| [Live.Translation_1.7.0_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0_x64.msix) | 5,830,917 | `9803668e9aa17fb5e7405af5eaabdd5180f5c6f0db2074f3950dcf5074a2c2fc` |
-| [Live.Translation_1.7.0_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.7.0/Live.Translation_1.7.0_arm64.msix) | 5,591,455 | `6465bdc4bf7f44b41cf0f0253db02fdf7c4279c548b6889d251de699224092ce` |
-
-All 40 checks passed. The bundle contains exactly the separately downloaded x64 and ARM64
-packages, byte-for-byte, and carries no signature. Bundle and inner manifests report
-**1.7.0.0**, identity `49346FMadore.LiveTranslationSubtitles` and publisher
-`CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86`; each package has publisher display name `FMadore`
-and the matching processor architecture. Executable PE machine values are `0x8664` (x64,
-12,401,664 bytes) and `0xAA64` (ARM64, 10,841,088 bytes). Each package includes both rehearsal
-WAVs and all three Whisper licence notices, declares only `runFullTrust` and `microphone`,
-contains no model weights or signature, and carries the wave-to-words `Square44x44Logo`,
-`Square150x150Logo`, `Wide310x150Logo` and `StoreLogo`, byte-identical to
-`src-tauri/gen/windows/Assets/`. This verifies packaging, not installed-app behaviour or
-certification.
+Filled in after tagging.
 
 ## The route
 
@@ -422,8 +303,9 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
+| 1.7.1 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) · [body](release-1.7.1.md) | Live as 1.7.1.0, confirmed by the maintainer on 21 October 2026; submission and certification dates not recorded | 1.7.0's app code, with the icon shown on the taskbar and in Start without an accent-coloured plate (#152). |
 | 1.7.0 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) · [body](release-1.7.0.md) | Not submitted; superseded by 1.7.1 | Offline Whisper translation into English and overlay placement per display layout (#121), overlay recovery when a display goes (#139), cloud sessions that reconnect (#116, #122). |
-| 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026; submission and certification dates not recorded | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
+| 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026; submission and certification dates not recorded; replaced by 1.7.1 | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
 | 1.6.0 | [4 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) · [body](release-1.6.0.md) | Live as 1.6.0.0, confirmed 6 October 2026; replaced by 1.6.1 | Local Whisper (#99), two translation targets, original speech in overlay and exports, Pause/Resume, editable filler words. |
 | 1.5.1 | [23 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) · [body](release-1.5.1.md) | Live as 1.5.1.0, confirmed 23 September 2026 | Batches 1–2 of the [22 September app review](app-review-2026-09-22.md) (#86): cleaner downsampled audio, release builds ignore `.env` and host overrides, a failing capture or provider thread ends only its source. |
 | 1.5.0 | [22 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0) · [body](release-1.5.0.md) | Not submitted | Searchable provider-scoped caption languages, favourites, F2 favourite swapping and RTL overlay direction (#78). |
@@ -433,6 +315,43 @@ was submitted were not recorded as done and stay open against the Store build.
 | 1.3.0 | [19 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0) | Not submitted | Transcript history (#81), Stable reading (#79), overlay filler cleanup (#80) and the German interface. |
 | 1.2.4 | [14 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.4) | Live; acceptance date not recorded | Responsive captions: Fit window and optional Compact layout (#77). |
 | 1.2.3 | [8 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.3) | No submission recorded | Native Save As with timed SRT/VTT export (#26); capture of a selected application (#27). |
+
+### Release 1.7.1 handoff
+
+**Live as 1.7.1.0**, confirmed by the maintainer on 21 October 2026; the submission and
+certification dates were not recorded.
+- **What it shipped:** it replaced 1.6.1 in the Store, bringing 1.7.0's app code (1.7.0 itself
+  was not submitted) and the unplated taskbar icon
+  ([#152](https://github.com/fmadore/Live-translation/pull/152)).
+- **Tags:** `v1.7.1` (annotated) and `v1.7.1-rc.1` both point to `2b52552`, the merge of #152.
+- **Build:** release-commit CI and all four installer/MSIX/bundle jobs passed.
+- **Package checks:** all 50 passed on the published assets. They are the 40 checks of 1.7.0
+  at 1.7.1.0. In each package, the 46 `Assets/` files are byte-identical to the repository,
+  and a single `resources.pri` (9,296 bytes) indexes the 14 unplated sizes.
+- **Bundle:** 11,838,755 bytes, SHA-256
+  `286ec7b988192e9df680477d6df33d3636c812cbb520fd4c9ea09cdf9b5f2ac9`.
+- **Checked:** the taskbar icon, on ARM64 with a dark taskbar. The EN/FR/DE screenshots were
+  recaptured from the 1.7.1 ARM64 MSIX on 21 October 2026
+  ([#154](https://github.com/fmadore/Live-translation/pull/154)).
+- **Not recorded:** the icon in Start, in Alt+Tab and on a light taskbar, and the 1.7.0 manual
+  checks. They carry over to [1.8.0](#release-180-handoff).
+
+### Release 1.7.0 handoff
+
+**Published on GitHub on 20 October 2026 and not submitted;** 1.7.1 took its app code to the
+Store.
+- **Tags:** `v1.7.0` (annotated) points to `5ad2a0f`, the `chore(release): 1.7.0` commit.
+  `v1.7.0-rc.1` points to `bffcd31`.
+- **Build:** release-commit CI and all four installer/MSIX/bundle jobs passed.
+- **Package checks:** all 40 passed. The bundle holds exactly both packages, byte for byte,
+  with no signature. Manifests report 1.7.0.0 with the assigned identity, PE machine types are
+  native, the package declares only `runFullTrust` and `microphone`, and it carries the
+  rehearsal WAVs and licence notices but no weights.
+- **Bundle:** 11,424,375 bytes, SHA-256
+  `550765859b61c447b65f040b6fec54a47f457019b27194839489312ce5fd042b`.
+- **Maintainer test:** the Local Test build of `f6a2448` on ARM64, on 20 October 2026,
+  including system audio on wasapi 0.26. No x64 run is recorded. The other manual checks were
+  not itemised and carry over to [1.8.0](#release-180-handoff).
 
 ### Release 1.6.1 handoff
 

@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 7 October 2026 (documents the 1.7.0 release)
+**Effective date:** 21 October 2026 (documents the 1.8.0 release)
 
 ## What this app is
 
@@ -63,6 +63,12 @@ show more captions. Stable reading drops the oldest hidden lines as its buffer f
 in the full session transcript. The layout feature creates no additional disk history or
 network requests.
 
+**Copy**, in the session transcript or a saved session's transcript, places the chosen part of
+the transcript on the Windows clipboard as plain text, only when the user chooses it. From there
+other applications can read it. If the user has turned on clipboard history or clipboard sync
+across devices in Windows Settings, Windows keeps or syncs it as it would any copied text. The
+app writes to the clipboard but never reads it.
+
 Closing the app with unsaved caption text asks whether to save or discard it first.
 
 ## Optional local recovery copy
@@ -123,11 +129,14 @@ for up to eight display arrangements (each recorded as its displays' positions, 
 scaling, so the overlay reopens where it was placed on them), caption size,
 layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
-copy is enabled, and whether closing the window leaves the app running in the notification area.
+copy is enabled, whether a running session shows the Live or the Transcript view, the names and
+terms entered for Mistral subtitles, and whether closing the window leaves the app running in
+the notification area.
 The app also remembers the folder of the last successful transcript export, the chosen export
 format, and whether system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch.
-Named meeting profiles additionally store the selected setup, audio device identifiers,
+Named meeting profiles additionally store the selected setup (including any names and terms),
+audio device identifiers,
 appearance and overlay rectangle locally in the app's webview storage. Profiles contain no
 API key, captured audio or caption text. Selected application process identities and rehearsal
 mode are not saved. Profiles remain until deleted with confirmation in Meeting profiles.
@@ -153,7 +162,10 @@ API keys, device identifiers, or usage data from the application.
 ## Third-party processing
 
 Starting a cloud session sends audio directly to the chosen provider under the user’s relationship
-with that provider. Their terms and privacy policies apply:
+with that provider. With Mistral, the names and terms entered for its subtitles, if any, are sent
+to Mistral at the start of each session, together with the audio, so that its model favours
+those spellings. They may include the names of the people speaking; enter only what may be
+shared with Mistral. The providers' terms and privacy policies apply:
 
 - [Google Privacy Policy](https://policies.google.com/privacy)
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
