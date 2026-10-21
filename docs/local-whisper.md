@@ -244,4 +244,4 @@ without AVX2, where Whisper must be listed as unavailable and the demo selected.
 fixtures do not
 establish microphone permissions, actual conference-call capture quality or battery
 performance. Package acceptance is tracked in the
-[release handoff](store-updates.md#release-171-handoff).
+[release handoff](store-updates.md#release-180-handoff).

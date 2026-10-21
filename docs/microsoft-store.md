@@ -1,9 +1,10 @@
 # Microsoft Store submission
 
-**Next target: 1.7.1 / MSIX 1.7.1.0, tagged on 20 October 2026; not yet submitted.** The last
-confirmed Store release is 1.6.1 (MSIX 1.6.1.0), confirmed by the maintainer on 20 October 2026.
-1.7.1 is 1.7.0, which was not submitted, plus a packaging fix for the taskbar icon.
-See the [current handoff](store-updates.md#release-171-handoff),
+**Next target: 1.8.0 / MSIX 1.8.0.0, prepared on 21 October 2026; not yet tagged.** The last
+confirmed Store release is 1.7.1 (MSIX 1.7.1.0), confirmed by the maintainer on 21 October 2026.
+1.8.0 adds reading and copying the transcript during a session, and moves Mistral subtitles to
+Voxtral Realtime 3 with turn-end line breaks and a names-and-terms list.
+See the [current handoff](store-updates.md#release-180-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -55,8 +56,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.7.1; both MSIX manifests and the combined bundle
-  report 1.7.1.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.8.0; both MSIX manifests and the combined bundle
+  report 1.8.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -74,7 +75,11 @@ before submission; a passing local check does not imply certification.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.
 - [ ] Cloud transcription and translation work with suitable credentials, including a
-  non-EN/FR target, two targets, original speech where supplied, and Pause/Resume.
+  non-EN/FR target, two targets, original speech where supplied, and Pause/Resume. Mistral
+  subtitles on Voxtral Realtime 3 start with a names-and-terms list, and close lines at the
+  speaker's turn ends rather than mid-sentence.
+- [ ] The Transcript tab shows the whole session during a run; Copy writes each time window as
+  plain text, during a session and after Stop.
 - [ ] Scripted demo starts with no hardware, network or credentials, in English and French.
 - [ ] Overlay placement, its restore across launches and mixed-DPI displays, all reading
   modes, RTL text, filler list, profiles and shortcuts pass the
@@ -83,7 +88,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-171-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-180-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing

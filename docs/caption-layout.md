@@ -163,7 +163,7 @@ telemetry is introduced.
 
 ## Release verification
 
-Repeat this matrix against the final 1.7.1 x64 and ARM64 MSIX packages. The last recorded
+Repeat this matrix against the final 1.8.0 x64 and ARM64 MSIX packages. The last recorded
 browser and native pass was for 1.2.4 (14 September 2026).
 
 | Check | Expected result |
@@ -191,7 +191,7 @@ browser and native pass was for 1.2.4 (14 September 2026).
 The built-in demo provides a free first check. Use live speech for continuous long-turn,
 two-source and meeting tests; those use the operator's chosen provider and account.
 See [accessibility](accessibility.md#release-checklist-manual-on-windows) and the
-[release handoff](store-updates.md#release-171-handoff) for the remaining release gates.
+[release handoff](store-updates.md#release-180-handoff) for the remaining release gates.
 
 ## Reading pace and preview
 

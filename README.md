@@ -10,16 +10,14 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
-**[1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1)** (6 October 2026),
-with local Whisper, is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X);
 **[1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1)** (20 October 2026)
-is the latest on GitHub. It brings everything in
-[1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0), published the same day
-on GitHub only: offline translation into English with Whisper, an overlay that reopens where
-you placed it and comes back when a projector is unplugged, and cloud sessions that reconnect
-instead of ending. 1.7.1 adds a fix for the taskbar icon, which no longer sits on a coloured
-square. It is awaiting Store submission and will replace 1.6.1 there. See its
-[release notes](docs/release-1.7.1.md) and [Store handoff](docs/store-updates.md#release-171-handoff).
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) and the
+latest on GitHub. It brings offline translation into English with Whisper, an overlay that
+reopens where you placed it and comes back when a projector is unplugged, and cloud sessions
+that reconnect instead of ending. **1.8.0** is in preparation. It adds a Transcript tab for
+reading and copying the transcript during a session. It also moves Mistral subtitles to Voxtral
+Realtime 3, with lines that end at the speaker's turn and a list of names and terms. See its
+[release notes](docs/release-1.8.0.md) and [Store handoff](docs/store-updates.md#release-180-handoff).
 
 ## What it does
 
@@ -31,8 +29,9 @@ square. It is awaiting Store submission and will replace 1.6.1 there. See its
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets and OpenAI 13 in
-  the app's catalog. Gemini and Mistral also offer same-language subtitles. Cloud engines
-  need your own compatible account, API key and internet connection; provider usage charges apply.
+  the app's catalog. Gemini and Mistral also offer same-language subtitles; with Mistral, a list
+  of names and terms helps it spell speakers, institutions and jargon. Cloud engines need your
+  own compatible account, API key and internet connection; provider usage charges apply.
 - **Your choice of audio.** Capture a microphone, Windows system audio, one application's
   process tree, or microphone and system audio together. Test levels before starting.
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
@@ -45,9 +44,10 @@ square. It is awaiting Store submission and will replace 1.6.1 there. See its
 - **Meeting controls.** Pause and resume without splitting the transcript, reuse named meeting
   profiles, and search or pin caption languages. Customize the overlay's filler-word filter
   while keeping the raw transcript intact.
-- **A transcript you can keep.** Export text, Markdown, SRT or WebVTT. Optional local history
-  adds session titles, search and reopening; optional recovery protects unsaved captions.
-  Both are off by default.
+- **A transcript you can keep.** Read the whole transcript in its own tab during a session, and
+  copy the last 5, 10 or 30 minutes as plain text. Export text, Markdown, SRT or WebVTT.
+  Optional local history adds session titles, search and reopening; optional recovery protects
+  unsaved captions. Both are off by default.
 
 ## Start captioning
 
