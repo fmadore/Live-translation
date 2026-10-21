@@ -41,6 +41,11 @@ const PING_INTERVAL: Duration = Duration::from_secs(15);
 /// the operating system has not noticed yet.
 pub(super) const INBOUND_TIMEOUT: Duration = Duration::from_secs(30);
 const IDLE: Duration = Duration::from_secs(24 * 60 * 60);
+/// The longest the idle boundary leaves a turn open at the provider's word that the speaker is
+/// mid-sentence (`keeps_turn_open`), counted from the turn's last text. Mistral ends a turn
+/// after three seconds of silence whatever its model thinks, so a turn still held past this
+/// has lost its end, not merely paused.
+pub(super) const MAX_HOLD: Duration = Duration::from_secs(4);
 /// Four queued 100 ms chunks means the five-slot producer queue was effectively full.
 const STALE_AUDIO_BACKLOG: usize = 4;
 /// About three seconds of 100 ms chunks: a handover's TLS handshake and setup round trip, with
@@ -296,6 +301,11 @@ async fn pump<P: RealtimeProtocol, E: Events>(
     let finalize_after = proto.finalize_after();
     let finalize = sleep(IDLE);
     tokio::pin!(finalize);
+    // Set by `Signal::EndOfTurn` until the turn is finalized: a deadline later text cannot
+    // push back, as it pushes back the idle timer.
+    let mut turn_end: Option<Instant> = None;
+    // When the turn last grew, for `MAX_HOLD`.
+    let mut last_activity = Instant::now();
     let mut ping = tokio::time::interval_at(Instant::now() + PING_INTERVAL, PING_INTERVAL);
     ping.set_missed_tick_behavior(MissedTickBehavior::Delay);
     // Re-armed lazily from `last_inbound` when it fires, rather than reset on every frame.
@@ -354,10 +364,23 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 if outcome.caption != CaptionUpdate::None {
                     last_caption = Instant::now();
                 }
-                if outcome.signal == Signal::TranscriptActivity {
-                    if let Some(after) = finalize_after {
-                        finalize.as_mut().reset(Instant::now() + after);
+                match outcome.signal {
+                    Signal::TranscriptActivity => {
+                        last_activity = Instant::now();
+                        if let Some(after) = finalize_after {
+                            let idle = Instant::now() + after;
+                            finalize.as_mut().reset(turn_end.map_or(idle, |end| end.min(idle)));
+                        }
                     }
+                    Signal::EndOfTurn(grace) => {
+                        let end = Instant::now() + grace;
+                        let end = turn_end.map_or(end, |earlier| earlier.min(end));
+                        turn_end = Some(end);
+                        if end < finalize.deadline() {
+                            finalize.as_mut().reset(end);
+                        }
+                    }
+                    Signal::None | Signal::SetupComplete => {}
                 }
                 match outcome.control {
                     MessageControl::Continue => {}
@@ -394,8 +417,22 @@ async fn pump<P: RealtimeProtocol, E: Events>(
             }
 
             () = &mut finalize => {
-                finalize_accumulator(events, origin, acc);
-                finalize.as_mut().reset(Instant::now() + IDLE);
+                let now = Instant::now();
+                let ended = turn_end.is_some_and(|end| end <= now);
+                let hold = finalize_after.filter(|_| {
+                    !ended
+                        && now.duration_since(last_activity) < MAX_HOLD
+                        && proto.keeps_turn_open(acc)
+                });
+                if let Some(after) = hold {
+                    // Mid-sentence: look again a boundary later.
+                    let again = now + after;
+                    finalize.as_mut().reset(turn_end.map_or(again, |end| end.min(again)));
+                } else {
+                    finalize_accumulator(events, origin, acc);
+                    turn_end = None;
+                    finalize.as_mut().reset(now + IDLE);
+                }
             }
         }
     }

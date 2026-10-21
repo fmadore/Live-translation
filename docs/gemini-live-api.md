@@ -182,8 +182,9 @@ without a space (`…Use this recording toThe overlay before…`), breaks can fa
 (`…every sentence is` / `described and shown on screen…`, from "transcribed"), and segmentation
 varies between runs on identical audio. A caption therefore grows until the model closes the
 segment — on continuous speech, a paragraph. The client does not re-split: that would invent
-sentence boundaries and make text still being revised jump. Voxtral's 900 ms idle finalization
-gives shorter lines, a fair reason to prefer it for a speaker who rarely pauses.
+sentence boundaries and make text still being revised jump. Voxtral closes a line at a pause
+after a sentence or at a detected turn end, which gives shorter lines: a fair reason to prefer
+it for a speaker who rarely pauses.
 
 ### The ten-minute cap
 

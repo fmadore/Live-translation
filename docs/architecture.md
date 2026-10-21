@@ -103,7 +103,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | --- | --- | --- | --- | --- |
 | Google Gemini Live Translate | Translate | 16 kHz PCM16 | output transcription | audio stream end, drain to turn complete |
 | OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
-| Mistral Voxtral Realtime | Transcribe | 16 kHz PCM16 | transcription deltas | flush, end, drain |
+| Mistral Voxtral Realtime 3 | Transcribe | 16 kHz PCM16 | transcription deltas, lines closed at detected turn ends | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
 | Local Whisper translation | Translate, English only | 16 kHz PCM16 | finalized segments in English, no source text | EOF, finish queued audio |
@@ -121,6 +121,21 @@ any second one.
 
 The subtitle backends and the built-in demo are unavailable in translation mode;
 `session/options.rs` enforces this through `Provider::can_translate`.
+
+Providers whose text has no turn boundary of its own close a line in the runner. Three rules
+apply, each opt-in through `RealtimeProtocol`:
+
+- **Idle boundary:** a line closes once new caption text has stopped for `finalize_after`
+  (900 ms for OpenAI and Mistral).
+- **End of turn:** `Signal::EndOfTurn(grace)` sets a hard deadline: the line closes after the
+  grace, however much text arrives meanwhile. Mistral sends it on `turn.end`, with its
+  streaming delay as the grace, because the speaker's last words are still on their way.
+- **Mid-sentence hold:** `keeps_turn_open` lets the provider hold a line at the idle boundary
+  while the speaker is mid-sentence. The boundary looks again one interval later, and stops
+  holding once the text has been still for `MAX_HOLD` (4 s). Mistral holds while turn
+  detection says the speaker is talking and the text does not end a sentence.
+
+See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes).
 
 A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
 `MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open

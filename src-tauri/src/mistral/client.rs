@@ -10,7 +10,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
     bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
-    TurnAccumulator,
+    Signal, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -30,11 +30,18 @@ pub struct MistralConfig {
 }
 
 impl MistralConfig {
+    /// Realtime 2602, the model before Realtime 3, still reachable through
+    /// `MISTRAL_TRANSCRIBE_MODEL` for comparison. It rejects turn detection.
+    fn is_realtime_2602(&self) -> bool {
+        self.model.contains("2602")
+    }
+
     /// The protocol the realtime runner drives for this source, with nothing heard yet.
     pub fn into_client(self) -> MistralClient {
         MistralClient {
             config: self,
             received_delta: false,
+            mid_turn: false,
         }
     }
 
@@ -54,6 +61,9 @@ pub struct MistralClient {
     /// Whether the provider's current session has streamed any transcript delta. Cleared by
     /// the `session.created` that opens each connection.
     received_delta: bool,
+    /// Whether turn detection last said the speaker is talking: after `turn.start` or
+    /// `turn.resume`, until `turn.eager_end` or `turn.end`. Never set on Realtime 2602.
+    mid_turn: bool,
 }
 
 impl RealtimeProtocol for MistralClient {
@@ -68,9 +78,11 @@ impl RealtimeProtocol for MistralClient {
     }
 
     fn setup_json(&self) -> Result<String> {
-        Ok(serde_json::to_string(&SessionUpdate::pcm16(
-            self.config.target_streaming_delay_ms,
-        ))?)
+        let update = SessionUpdate::pcm16(self.config.target_streaming_delay_ms);
+        if self.config.is_realtime_2602() {
+            return Ok(serde_json::to_string(&update)?);
+        }
+        Ok(serde_json::to_string(&update.with_turn_detection())?)
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {
@@ -92,14 +104,31 @@ impl RealtimeProtocol for MistralClient {
         match event.kind.as_str() {
             "session.created" | "session.updated" => {
                 self.received_delta = false;
+                self.mid_turn = false;
                 tracing::debug!(origin = ?self.config.origin, event = %event.kind, "Mistral session ready");
             }
+            "turn.start" | "turn.resume" => self.mid_turn = true,
+            // Most pauses between sentences send one, followed by `turn.resume`.
+            "turn.eager_end" => self.mid_turn = false,
             "transcription.text.delta" => {
                 if let Some(delta) = event.text.as_deref().filter(|delta| !delta.is_empty()) {
                     self.received_delta = true;
                     acc.text.push_str(delta);
                     return MessageOutcome::activity(CaptionUpdate::Interim);
                 }
+            }
+            // The speaker finished. Their last words are written a streaming delay after
+            // they were spoken, so they can still follow this event; anything spoken after
+            // it arrives later than that. The turn closes once the delay has passed.
+            "turn.end" => {
+                self.mid_turn = false;
+                tracing::debug!(origin = ?self.config.origin, reason = ?event.end_reason, "Mistral end of turn");
+                return MessageOutcome {
+                    signal: Signal::EndOfTurn(Duration::from_millis(u64::from(
+                        self.config.target_streaming_delay_ms,
+                    ))),
+                    ..MessageOutcome::default()
+                };
             }
             // The drain's end after `input_audio.end`. Mid-stream the final caption still goes
             // out, and the runner moves to a new session rather than ending the source.
@@ -147,6 +176,23 @@ impl RealtimeProtocol for MistralClient {
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
     }
+
+    /// Text can stall for longer than the idle boundary in the middle of a sentence. When turn
+    /// detection says the speaker is still talking and the text has not ended a sentence, the
+    /// line stays open; a sentence that has ended still closes at the boundary, so a speaker
+    /// who never pauses for a turn end does not make one endless line.
+    fn keeps_turn_open(&self, acc: &TurnAccumulator) -> bool {
+        self.mid_turn && !ends_sentence(&acc.text)
+    }
+}
+
+/// Whether the text ends a sentence, closing quotes and brackets aside, and the (often
+/// non-breaking) space French sets before them.
+fn ends_sentence(text: &str) -> bool {
+    text.trim_end_matches(|c: char| {
+        c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
+    })
+    .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
 }
 
 /// Wording that marks a failure inside Mistral's backend rather than in the request: gRPC's
@@ -227,6 +273,91 @@ mod tests {
 
     fn harness() -> Harness<MistralClient> {
         Harness::new(config("").into_client())
+    }
+
+    fn setup(config: MistralConfig) -> serde_json::Value {
+        serde_json::from_str(&config.into_client().setup_json().unwrap()).unwrap()
+    }
+
+    #[test]
+    fn realtime_3_detects_turns_and_2602_does_not() {
+        let mut config = config("");
+        let session = &setup(config.clone())["session"];
+        assert_eq!(session["turn_detection"], serde_json::json!({}));
+
+        // As Mistral answered on 21 October 2026: "Model '…-2602' does not support turn
+        // detection.", code 3051.
+        config.model = "voxtral-mini-transcribe-realtime-2602".into();
+        let session = &setup(config)["session"];
+        assert!(session.get("turn_detection").is_none());
+    }
+
+    #[test]
+    fn the_end_of_a_turn_finalizes_after_the_streaming_delay() {
+        let mut h = harness();
+        h.send(r#"{"type":"turn.start","time_s":0.0}"#);
+        h.send(r#"{"type":"transcription.text.delta","text":"Ceci est en direct"}"#);
+        for kind in ["turn.eager_end", "turn.resume"] {
+            let outcome = h.send(&format!(r#"{{"type":"{kind}","time_s":4.72}}"#));
+            assert_eq!(outcome.signal, Signal::None, "{kind}");
+        }
+        let outcome = h.send(r#"{"type":"turn.end","time_s":5.28,"end_reason":"threshold"}"#);
+        assert_eq!(outcome.caption, CaptionUpdate::None);
+        assert_eq!(
+            outcome.signal,
+            Signal::EndOfTurn(Duration::from_millis(480))
+        );
+        // The turn's last word, after its end (seen live on 21 October 2026).
+        h.send(r#"{"type":"transcription.text.delta","text":"."}"#);
+        h.finalize_idle();
+        assert_eq!(
+            h.captions.last(),
+            Some(&Emitted::final_(0, "Ceci est en direct.", ""))
+        );
+    }
+
+    /// Seen live on 21 October 2026: text stalls for over a second inside a sentence ("Une |
+    /// oratrice", "Utilisez cet | enregistrement"), long enough for the idle boundary to cut it.
+    #[test]
+    fn a_sentence_stays_open_while_the_speaker_is_mid_turn() {
+        let mut h = harness();
+        let open = |h: &Harness<MistralClient>| h.proto.keeps_turn_open(&h.acc);
+        h.send(r#"{"type":"transcription.text.delta","text":" Une"}"#);
+        assert!(!open(&h), "no turn detection, nothing held");
+
+        h.send(r#"{"type":"turn.start","time_s":5.44}"#);
+        assert!(open(&h));
+        h.send(r#"{"type":"transcription.text.delta","text":" oratrice s'adresse au public."}"#);
+        assert!(!open(&h), "a finished sentence closes at the boundary");
+        h.send(r#"{"type":"transcription.text.delta","text":" Utilisez cet"}"#);
+        assert!(open(&h));
+        h.send(r#"{"type":"turn.eager_end","time_s":20.1}"#);
+        assert!(!open(&h), "the speaker has probably finished");
+        h.send(r#"{"type":"turn.resume","time_s":20.2}"#);
+        assert!(open(&h));
+        h.send(r#"{"type":"turn.end","time_s":20.9,"end_reason":"timeout"}"#);
+        assert!(!open(&h));
+
+        h.send(r#"{"type":"turn.start","time_s":21.0}"#);
+        h.send(r#"{"type":"session.created"}"#);
+        assert!(!open(&h), "a new session starts with no turn");
+    }
+
+    #[test]
+    fn sentence_ends_include_closing_quotes_and_other_scripts() {
+        for text in [
+            "direct\u{a0}?",
+            "« Bonjour.\u{a0}»",
+            "(fin.)",
+            "完了。",
+            "انتهى؟",
+            "Ende!  ",
+        ] {
+            assert!(ends_sentence(text), "{text}");
+        }
+        for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
+            assert!(!ends_sentence(text), "{text}");
+        }
     }
 
     #[test]
@@ -388,5 +519,93 @@ mod tests {
             h.send(r#"{"type":"error"}"#).control,
             MessageControl::Fatal(_)
         ));
+    }
+
+    /// Records what `run_session` reports, with when, for the live check below.
+    struct Live(std::sync::mpsc::Sender<(std::time::Instant, String, bool)>);
+
+    impl crate::realtime::Events for Live {
+        fn caption(&self, caption: crate::types::Caption<'_>) {
+            let event = (
+                std::time::Instant::now(),
+                caption.text.to_string(),
+                caption.final_,
+            );
+            let _ = self.0.send(event);
+        }
+
+        fn status(&self, update: crate::types::StatusUpdate) {
+            if let Some(error) = update.message {
+                let detail = format!("{:?}: {}", update.state, error.detail.unwrap_or_default());
+                let _ = self.0.send((std::time::Instant::now(), detail, false));
+            }
+        }
+    }
+
+    /// The French recording through the real runner, with Realtime 3 accepting turn detection.
+    /// Its text stalls mid-sentence for longer than the idle boundary, yet every caption must
+    /// close on a whole sentence; and the first sentence, the one followed by a detected end of
+    /// turn, sooner than the idle boundary would close it.
+    #[tokio::test]
+    #[ignore = "streams the bundled fixture to Mistral and bills the key; run with --ignored"]
+    async fn realtime_3_closes_a_sentence_at_its_detected_end() {
+        use crate::audio::fixture::load_fixture;
+        use crate::audio::{chunk_samples, resample::f32_to_pcm16_le, AudioChunk};
+
+        let _ = dotenvy::dotenv();
+        let config = config(
+            &std::env::var("MISTRAL_API_KEY")
+                .expect("set MISTRAL_API_KEY, or copy .env.example to .env at the repo root"),
+        );
+        let samples = load_fixture(std::path::Path::new("resources/fixtures/rehearsal-fr.wav"))
+            .expect("the bundled rehearsal fixture should load");
+
+        let (events, recorded) = std::sync::mpsc::channel();
+        let (audio, audio_rx) = tokio::sync::mpsc::channel(5);
+        let (_pause, pause_rx) = tokio::sync::watch::channel(false);
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let session = tokio::spawn(crate::realtime::run_session(
+            Live(events),
+            config.into_client(),
+            audio_rx,
+            cancel.clone(),
+            crate::timing::SessionClock::start(),
+            pause_rx,
+            0,
+        ));
+        // At the pace of speech: a recording sent at once is not what a room sounds like.
+        for chunk in samples.chunks(chunk_samples(16_000)) {
+            let mut pcm_le = Vec::new();
+            f32_to_pcm16_le(chunk, &mut pcm_le);
+            audio.send(AudioChunk { pcm_le }).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        cancel.cancel();
+        session.await.unwrap();
+
+        let events: Vec<_> = recorded.try_iter().collect();
+        let finals: Vec<_> = events.iter().filter(|(_, _, final_)| *final_).collect();
+        for (at, text, _) in &finals {
+            println!("{:>12?} {text}", at.duration_since(events[0].0));
+        }
+        assert!(
+            finals.len() >= 2,
+            "expected the first sentence as a caption of its own: {events:#?}"
+        );
+        for (_, text, _) in &finals {
+            assert!(ends_sentence(text), "cut mid-sentence: {text}");
+        }
+        let (closed, first, _) = finals[0];
+        assert!(first.contains("en direct"), "{first}");
+        let (spoken, _, _) = events
+            .iter()
+            .rfind(|(at, text, final_)| !final_ && at < closed && text == first)
+            .expect("the sentence was shown before it was closed");
+        let after = closed.duration_since(*spoken);
+        println!("closed {after:?} after its last word");
+        assert!(
+            after < FINALIZE_AFTER,
+            "closed by the idle boundary instead"
+        );
     }
 }

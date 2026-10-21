@@ -56,10 +56,13 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - **Cloud session resilience** (6 October review, batches 1–2): a live handover, an OpenAI
   session past 60 minutes, Gemini Translate's answer to `audioStreamEnd`, pong replies from
   every provider and Mistral's real `error` payloads.
-- **Voxtral Realtime 3** ([#153](https://github.com/fmadore/Live-translation/issues/153)): real
-  French and English conference speech against 2602 at 240, 480 and 960 ms. The
-  [21 October check](docs/mistral-realtime-api.md#live-check-21-october-2026) used the synthetic
-  rehearsal recordings, on which both models were word-perfect.
+- **Voxtral Realtime 3** ([#153](https://github.com/fmadore/Live-translation/issues/153)):
+  - Real French and English conference speech against 2602 at 240, 480 and 960 ms.
+  - Whether lines break at turn ends and sentence ends on a live speaker and in a Q&A.
+
+  The [21 October check](docs/mistral-realtime-api.md#live-check-21-october-2026) used the
+  synthetic rehearsal recordings: both models were word-perfect, and every caption closed on a
+  whole sentence.
 - **Cloud caption languages** ([#78](https://github.com/fmadore/Live-translation/issues/78)):
   live endpoint and speech acceptance ([language coverage](docs/language-coverage.md)).
 - **Accessibility and tray** ([#24](https://github.com/fmadore/Live-translation/issues/24),

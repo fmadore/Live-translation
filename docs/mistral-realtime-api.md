@@ -54,17 +54,24 @@ being served: `voxtral-mini-transcribe-realtime-3-0-4` on 21 October.
   "type": "session.update",
   "session": {
     "audio_format": { "encoding": "pcm_s16le", "sample_rate": 16000 },
-    "target_streaming_delay_ms": 480
+    "target_streaming_delay_ms": 480,
+    "turn_detection": {}
   }
 }
 ```
+
+`turn_detection: {}` turns on end-of-turn detection with Mistral's default thresholds:
+`start_threshold` 0.5, `eager_end_threshold` 0.5, `end_threshold` 0.33, `min_silence_ms`
+500 and `end_timeout_ms` 3000. Realtime 2602 refuses the field with code 3051 and the message
+`Model 'voxtral-mini-transcribe-realtime-2602' does not support turn detection.`, so the client
+does not send it to a 2602 model (`MistralConfig::is_realtime_2602`).
 
 Realtime 3 fixes a session's settings when the first audio chunk arrives. A later
 `session.update` gets the error `Session fields cannot be changed after audio has started.` The
 app sends its only `session.update` straight after the handshake, before any audio. It does not
 wait for `session.created`, which Mistral's guide asks for, but the server applies the early
-update: on 21 October `session.updated` echoed the 480 ms delay on both models. 2602 has
-accepted the same order since 0.4.0.
+update: on 21 October `session.updated` echoed the 480 ms delay on both models, and the turn
+detection on Realtime 3. 2602 has accepted the same order since 0.4.0.
 
 Each audio chunk is base64 encoded:
 
@@ -72,23 +79,43 @@ Each audio chunk is base64 encoded:
 { "type": "input_audio.append", "audio": "<base64 PCM16>" }
 ```
 
-The server emits `session.created`, `session.updated`, and incremental
-`transcription.text.delta` events whose `text` is displayed directly. Deltas only append: one
-never corrects earlier text, and each carries its own spaces and punctuation. Pauses finalize a
-subtitle line through the shared 900 ms idle boundary.
+The server emits `session.created`, `session.updated`, incremental `transcription.text.delta`
+events whose `text` is displayed directly, and the turn events `turn.start`,
+`turn.eager_end`, `turn.resume` and `turn.end`. Deltas only append: one never corrects earlier
+text, and each carries its own spaces and punctuation. Turn events carry `time_s`, the position
+in the audio in seconds, and `turn.end` also has an `end_reason` of `threshold` (the model
+judged the turn over) or `timeout` (the pause reached `end_timeout_ms`). Most pauses between
+sentences send a `turn.eager_end` followed by a `turn.resume`.
+
+## How a subtitle line closes
+
+A subtitle line, and so a transcript entry and an export cue, closes on whichever of these
+comes first ([architecture](architecture.md#provider-contracts) has the runner's side):
+
+1. **End of turn.** A `turn.end` closes the line one streaming delay later (480 ms by
+   default), however much text arrives meanwhile. Turn events follow the audio, but text runs
+   a streaming delay behind it. So the turn's last words can still arrive after `turn.end`,
+   while anything spoken after it arrives later than that delay. Mistral's guide also suggests
+   closing at the next `turn.start`. The client does not: at longer delays, the last words of
+   the previous turn can arrive after a quick `turn.start`.
+2. **Idle boundary.** The line closes once text has stopped for 900 ms, as before Realtime 3.
+3. **Mid-sentence hold.** At the idle boundary the line stays open if the last turn event was
+   `turn.start` or `turn.resume` and the text does not end a sentence (`.`, `?`, `!`, `…` and
+   their CJK, Arabic and Devanagari forms, closing quotes and brackets aside). The boundary
+   checks again after another 900 ms. The line closes anyway once its text has been still
+   for four seconds. Text stalls for more than 900 ms inside sentences on both models: on the
+   rehearsal recordings, `Une | oratrice` and `Utilisez cet | enregistrement`. A line that
+   ends a sentence still closes at the idle boundary. Otherwise a speaker who never pauses long
+   enough for a `turn.end` would fill one line for minutes: the English rehearsal recording
+   has a single `turn.end`, at its very end.
 
 ## Session features not used yet
-
-Realtime 3 adds these `session.update` fields. They are listed here for the follow-ups in
-[#153](https://github.com/fmadore/Live-translation/issues/153). The client ignores event types
-it does not know, so nothing changes until the app sends a field.
 
 | Field | Shape and default | What it adds |
 | --- | --- | --- |
 | `language` | Two-letter ISO 639-1 code; unset | Pins the spoken language. Unset, the model detects it. The app has no spoken-language selector for Mistral ([language coverage](language-coverage.md)). |
-| `context_bias` | Array of strings; `[]` | Keyphrases (spaces allowed) or a description of the recording, set for the whole session. Entries share the 65,536-token context window with the audio. In realtime, Mistral finds a keyphrase more reliable than a description. Fits a per-session glossary of speaker names, institutions and jargon. |
-| `turn_detection` | Object; unset | `{}` applies the defaults: `start_threshold` 0.5, `eager_end_threshold` 0.5, `end_threshold` 0.33, `min_silence_ms` 500, `end_timeout_ms` 3000. Adds `turn.start`, `turn.eager_end`, `turn.resume` and `turn.end` events. Each carries `time_s` in audio time, and `turn.end` also carries an `end_reason` of `threshold` or `timeout`. The last words of a turn arrive in deltas *after* `turn.end`: keep appending until the streaming delay has passed or the next `turn.start`. This could finalize a line instead of the 900 ms idle timer alone. |
-| `diarize` | Boolean; `false` | Replaces `transcription.text.delta` with `transcription.segment` events: `{ text, speaker_id, start: null, end: null }`, labels `speaker_1`, `speaker_2`… The client must read these events before diarization is switched on, or every caption goes blank. Labels hold within one session only, so a reconnect renumbers speakers. Cannot share a session with `turn_detection`. |
+| `context_bias` | Array of strings; `[]` | Keyphrases (spaces allowed) or a description of the recording, set for the whole session. Entries share the 65,536-token context window with the audio. In realtime, Mistral finds a keyphrase more reliable than a description. Fits a per-session glossary of speaker names, institutions and jargon. Realtime 2602 refuses it (`… does not support context biasing.`, code 3051). |
+| `diarize` | Boolean; `false` | Replaces `transcription.text.delta` with `transcription.segment` events: `{ text, speaker_id, start: null, end: null }`, labels `speaker_1`, `speaker_2`… The client must read these events before diarization is switched on, or every caption goes blank. Labels hold within one session only, so a reconnect renumbers speakers. Cannot share a session with `turn_detection`, so it would cost the end-of-turn line closing above. |
 | `speaker_references` | `{ name: base64 clip }`; unset | Names known speakers: up to 8 clips of 3 to 15 seconds. Requires `diarize`. |
 
 `session.created` also reports an undocumented `verbatim: false` on both models.
@@ -168,3 +195,27 @@ the first word. The default stays at 480 ms. A shorter delay would bring words 0
 its accuracy cost is unmeasured, since the synthetic voices are too clean to show one. A
 real-speech comparison is still to do: French and English conference audio, with names and
 room acoustics, at 240, 480 and 960 ms.
+
+### Turn detection
+
+The same day, with `turn_detection: {}` on Realtime 3:
+
+- **Turn events:**
+  - The French recording ends one turn after its first sentence and another at its close.
+  - The English recording ends a turn only at its close. Every pause between sentences sent
+    a `turn.eager_end` and `turn.resume` pair instead.
+  - A sentence's closing full stop arrived together with `turn.end` or up to 0.3 s after it.
+    The next sentence's first word came 0.9 to 1.1 s after `turn.end`.
+- **The whole client:** the ignored test
+  `mistral::client::tests::realtime_3_closes_a_sentence_at_its_detected_end` streams the French
+  recording through the real runner:
+
+  ```bash
+  cargo test --lib realtime_3_closes -- --ignored --nocapture
+  ```
+
+  - In three runs, all four sentences closed as four whole-sentence captions.
+  - The first sentence closed 0.48 to 0.49 s after its last word, through `turn.end`.
+  - Without the mid-sentence hold, an earlier run cut captions at `Ceci | est un
+    enregistrement de` and `Utilisez cet | enregistrement`.
+- **2602:** refuses the field; see [connection and setup](#connection-and-setup).
