@@ -710,7 +710,9 @@ export const de: Messages = {
 		recovery: {
 			title: 'Transkript der letzten Sitzung wiederherstellen?',
 			body: (lines: number, savedAt: string) =>
-				`Die App wurde mit ${lines === 1 ? '1 nicht gespeicherten Zeile' : `${lines} nicht gespeicherten Zeilen`} im Protokoll geschlossen. Sie wurden um ${savedAt} lokal zwischengespeichert und haben diesen PC nicht verlassen.`,
+				lines === 1
+					? `Die App wurde mit 1 nicht gespeicherten Zeile im Protokoll geschlossen. Sie wurde um ${savedAt} lokal zwischengespeichert und hat diesen PC nicht verlassen.`
+					: `Die App wurde mit ${lines} nicht gespeicherten Zeilen im Protokoll geschlossen. Sie wurden um ${savedAt} lokal zwischengespeichert und haben diesen PC nicht verlassen.`,
 			restore: 'Transkript wiederherstellen',
 			delete: 'Löschen',
 			noteBefore: 'Beide Antworten entfernen die Zwischenspeicherdatei unter',

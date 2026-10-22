@@ -650,7 +650,8 @@ export const fr: Messages = {
 		copied: (minutes: number) =>
 			minutes ? `${minutes} dernières minutes copiées.` : 'Transcription entière copiée.',
 		inProgress: 'En cours de parole',
-		lines: (n: number) => (n === 1 ? '1 ligne' : `${n} lignes`),
+		// French puts zero in the singular as well: 0 ligne, not 0 lignes.
+		lines: (n: number) => (n < 2 ? `${n} ligne` : `${n} lignes`),
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',
 		saveAs: 'Enregistrer sous…',
@@ -700,8 +701,8 @@ export const fr: Messages = {
 			title: 'Enregistrer cette transcription avant de fermer ?',
 			sessionEnded: 'La session a été arrêtée et les derniers sous-titres ont été récupérés.',
 			body: (lines: number) =>
-				lines === 1
-					? '1 ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.'
+				lines < 2
+					? `${lines} ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.`
 					: `${lines} lignes n’ont pas été enregistrées. Fermer sans enregistrer les supprime.`,
 			failed: (error: string) => `Enregistrement impossible : ${error}`,
 			save: 'Enregistrer et fermer',
@@ -713,7 +714,9 @@ export const fr: Messages = {
 		recovery: {
 			title: 'Récupérer la transcription de votre dernière session ?',
 			body: (lines: number, savedAt: string) =>
-				`L’application s’est fermée alors que ${lines === 1 ? '1 ligne non enregistrée était encore' : `${lines} lignes non enregistrées étaient encore`} dans le journal. Elles ont été copiées localement à ${savedAt} et n’ont pas quitté ce PC.`,
+				lines < 2
+					? `L’application s’est fermée alors que ${lines} ligne non enregistrée était encore dans le journal. Elle a été copiée localement à ${savedAt} et n’a pas quitté ce PC.`
+					: `L’application s’est fermée alors que ${lines} lignes non enregistrées étaient encore dans le journal. Elles ont été copiées localement à ${savedAt} et n’ont pas quitté ce PC.`,
 			restore: 'Restaurer la transcription',
 			delete: 'La supprimer',
 			noteBefore: 'Les deux réponses suppriment le fichier de récupération situé à',

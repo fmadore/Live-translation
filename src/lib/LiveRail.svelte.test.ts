@@ -48,6 +48,16 @@ it('bills a live run on both sources as two streams', () => {
 	view.unmount();
 });
 
+// Review U11: `$3.46` in a French rail, beside a contrast figure written `4,5`.
+it('writes the estimate the way the interface language writes money', async () => {
+	const view = rail(false);
+	setLocale('fr');
+	// Testing Library folds the non-breaking space into a plain one; `formatUsd`'s own test
+	// checks which space it is.
+	await waitFor(() => expect(view.getByText('3,46 $')).toBeInTheDocument());
+	view.unmount();
+});
+
 // Review D17: the estimate and the tag followed the saved source, so a rehearsal with Both
 // saved showed twice what it was streaming.
 it('bills a rehearsal as the one System stream it is', () => {

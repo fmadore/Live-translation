@@ -699,7 +699,9 @@ export const en = {
 		recovery: {
 			title: 'Recover the transcript from your last session?',
 			body: (lines: number, savedAt: string) =>
-				`The app closed with ${lines === 1 ? '1 unsaved line' : `${lines} unsaved lines`} still in the log. They were spooled locally at ${savedAt} and have not left this PC.`,
+				lines === 1
+					? `The app closed with 1 unsaved line still in the log. It was spooled locally at ${savedAt} and has not left this PC.`
+					: `The app closed with ${lines} unsaved lines still in the log. They were spooled locally at ${savedAt} and have not left this PC.`,
 			restore: 'Restore the transcript',
 			delete: 'Delete it',
 			noteBefore: 'Either answer removes the spool file at',
