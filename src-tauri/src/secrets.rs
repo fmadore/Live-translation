@@ -78,12 +78,56 @@ fn take_legacy_key(provider: Provider) -> Option<String> {
     Some(key)
 }
 
-/// Store the provider's key in the OS keychain.
+/// A character in a pasted key that no provider issues, and where it is. Its `Display` is the
+/// operator's detail for `error.apiKeyFormat`, so it says which character and where without
+/// repeating the key: a status line gets screenshotted and pasted into tickets.
+#[derive(Debug, PartialEq, Eq)]
+pub struct KeyFormat {
+    character: char,
+    /// One-based, in characters of the trimmed key.
+    position: usize,
+}
+
+impl std::fmt::Display for KeyFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "character U+{:04X} at position {}",
+            u32::from(self.character),
+            self.position
+        )
+    }
+}
+
+impl std::error::Error for KeyFormat {}
+
+/// Refuse a key that cannot be one. Every provider's keys are printable ASCII without spaces,
+/// and a character outside that — a zero-width space or a line break picked up with the paste,
+/// a space where a wrapped key was rejoined — can never authenticate. Saved anyway, it made a
+/// header or a URL that could not be built, which the source then retried every 16 seconds
+/// for the rest of the event.
+fn check_format(key: &str) -> std::result::Result<(), KeyFormat> {
+    match key
+        .chars()
+        .zip(1..)
+        .find(|(character, _)| !matches!(character, '!'..='~'))
+    {
+        Some((character, position)) => Err(KeyFormat {
+            character,
+            position,
+        }),
+        None => Ok(()),
+    }
+}
+
+/// Store the provider's key in the OS keychain. Whitespace around it is dropped, as a paste
+/// often brings some; anything else a key cannot contain is refused with a `KeyFormat`.
 pub fn set_api_key(provider: Provider, key: &str) -> Result<()> {
     let key = key.trim();
     if key.is_empty() {
         anyhow::bail!("API key is empty");
     }
+    check_format(key)?;
     entry(provider)?
         .set_password(key)
         .context("failed to write key to keychain")?;
@@ -135,4 +179,65 @@ pub fn has_api_key(provider: Provider) -> bool {
         return true;
     }
     resolve_api_key(provider).is_ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn keys_as_the_providers_issue_them_pass() {
+        for key in [
+            "AIzaSyA-1b2C3d4E5f6G7h8I9j0K_lMnOpQrStU",
+            "sk-proj-Ab3dEf_gH1jK-lMn0pQ",
+            "x8Yq2LmN4pR6sT0vW3zA5bC7dE9fG1hJ",
+        ] {
+            assert_eq!(check_format(key), Ok(()), "{key}");
+        }
+    }
+
+    #[test]
+    fn a_character_no_key_contains_is_named_with_its_position() {
+        for (key, character, position) in [
+            // Picked up with a paste from a web page or a chat.
+            ("sk-abc\u{200B}def", '\u{200B}', 7),
+            // A key wrapped across two lines and rejoined.
+            ("sk-abc def", ' ', 7),
+            ("sk-abc\ndef", '\n', 7),
+            ("\tsk", '\t', 1),
+            ("sk-abcé", 'é', 7),
+        ] {
+            assert_eq!(
+                check_format(key),
+                Err(KeyFormat {
+                    character,
+                    position
+                }),
+                "{key:?}"
+            );
+        }
+    }
+
+    /// The detail reaches a status line; the key must not.
+    #[test]
+    fn the_detail_names_the_character_and_never_the_key() {
+        let error = check_format("sk-secret\u{200B}value").unwrap_err();
+        let detail = error.to_string();
+        assert_eq!(detail, "character U+200B at position 10");
+        assert!(!detail.contains("secret"));
+    }
+
+    /// Refused before Credential Manager is opened, and surrounding whitespace is still only
+    /// trimmed: positions count from the key's first real character.
+    #[test]
+    fn a_malformed_key_is_refused_before_anything_is_stored() {
+        let error = set_api_key(Provider::OpenAi, "  sk-abc def\n").unwrap_err();
+        assert_eq!(
+            error.downcast_ref::<KeyFormat>(),
+            Some(&KeyFormat {
+                character: ' ',
+                position: 7
+            })
+        );
+    }
 }

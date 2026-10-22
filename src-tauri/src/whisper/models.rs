@@ -17,6 +17,11 @@ const REVISION: &str = "5359861c739e955e79d9a303bcbc70fb988958b1";
 /// A connection that stops delivering is what fails, after this long without a byte.
 const STALL: Duration = Duration::from_secs(60);
 
+/// How much of the body is gathered before it is written. Every write goes to the blocking
+/// pool rather than a runtime worker, so one per network chunk — a few kilobytes — would be
+/// thousands of round trips per model; a mebibyte makes it a couple of hundred.
+const WRITE_BATCH: usize = 1 << 20;
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ModelId {
@@ -131,44 +136,80 @@ fn remove_partials(dir: &Path) {
 
 /// The download in progress. Removed on every way out except a verified install, including an
 /// error, a cancellation or an unwind.
+///
+/// Its file work runs on the blocking pool, not on the runtime worker the download is awaited
+/// on: creating the file, each write and the closing `sync_all` of 190 MB can each stall for
+/// seconds on a slow disk or under an antivirus scan, and that worker may be carrying a cloud
+/// session's audio meanwhile.
 struct Partial {
     path: PathBuf,
-    file: Option<File>,
+    /// Shared with the write in flight, if any, which holds it only for that write.
+    file: Option<Arc<File>>,
+    /// Received but not yet written; see `WRITE_BATCH`.
+    pending: Vec<u8>,
 }
 
 impl Partial {
-    fn create(path: PathBuf) -> Result<Self> {
-        let file = File::create(&path)?;
-        Ok(Self {
-            path,
-            file: Some(file),
+    /// Clear what earlier downloads left behind, then start this one's file.
+    async fn create(dir: &Path, id: ModelId) -> Result<Self> {
+        let dir = dir.to_owned();
+        tokio::task::spawn_blocking(move || {
+            remove_partials(&dir);
+            let path = dir.join(id.partial());
+            let file = File::create(&path)?;
+            Ok(Self {
+                path,
+                file: Some(Arc::new(file)),
+                pending: Vec::with_capacity(WRITE_BATCH),
+            })
         })
+        .await?
     }
 
-    fn write(&mut self, bytes: &[u8]) -> Result<()> {
-        self.file
-            .as_mut()
-            .context("The partial download was already closed")?
-            .write_all(bytes)?;
+    async fn write(&mut self, bytes: &[u8]) -> Result<()> {
+        self.pending.extend_from_slice(bytes);
+        if self.pending.len() >= WRITE_BATCH {
+            self.flush().await?;
+        }
         Ok(())
     }
 
-    /// Flush, close, then rename over the final name: a reader sees either no model or a
-    /// complete, verified one.
-    fn install(mut self, destination: &Path) -> Result<()> {
+    async fn flush(&mut self) -> Result<()> {
+        if self.pending.is_empty() {
+            return Ok(());
+        }
         let file = self
             .file
-            .take()
+            .clone()
             .context("The partial download was already closed")?;
-        file.sync_all()?;
-        drop(file);
-        fs::rename(&self.path, destination).context("Could not install the verified model")
+        let bytes = std::mem::replace(&mut self.pending, Vec::with_capacity(WRITE_BATCH));
+        tokio::task::spawn_blocking(move || (&*file).write_all(&bytes)).await??;
+        Ok(())
+    }
+
+    /// Write what is left, flush, close, then rename over the final name: a reader sees either
+    /// no model or a complete, verified one.
+    async fn install(mut self, destination: PathBuf) -> Result<()> {
+        self.flush().await?;
+        // Moved to the blocking pool whole, so a failure there removes the file there too.
+        tokio::task::spawn_blocking(move || {
+            let file = self
+                .file
+                .take()
+                .context("The partial download was already closed")?;
+            file.sync_all()?;
+            drop(file);
+            fs::rename(&self.path, destination).context("Could not install the verified model")
+        })
+        .await?
     }
 }
 
 impl Drop for Partial {
     fn drop(&mut self) {
-        // Close first: Windows only finishes deleting a file once its last handle is gone.
+        // Close first: Windows only finishes deleting a file once its last handle is gone. The
+        // delete itself stays here, on whichever thread drops this: it is one metadata call,
+        // and the error paths that reach it must not return before the file has gone.
         drop(self.file.take());
         let _ = fs::remove_file(&self.path);
     }
@@ -255,8 +296,7 @@ impl ModelManager {
         }
         // RAII clears the operation even on error/unwind; `Partial` does the same for the file.
         let _operation = DownloadGuard(self.clone());
-        remove_partials(dir);
-        let mut partial = Partial::create(dir.join(id.partial()))?;
+        let mut partial = Partial::create(dir, id).await?;
         let client = reqwest::Client::builder()
             // Plain HTTP exists only for the local test server.
             .https_only(cfg!(not(test)))
@@ -294,7 +334,7 @@ impl ModelManager {
                 "The model exceeds its expected size"
             );
             hash.update(&chunk);
-            partial.write(&chunk)?;
+            partial.write(&chunk).await?;
             if let Some(download) = &mut self.0.lock().unwrap_or_else(|e| e.into_inner()).download {
                 download.2 = total;
             }
@@ -304,7 +344,7 @@ impl ModelManager {
             total == transfer.bytes && hex(&hash.finalize()) == transfer.sha256,
             "Whisper model integrity check failed; remove and download it again"
         );
-        partial.install(&dir.join(id.file()))
+        partial.install(dir.join(id.file())).await
     }
 }
 
@@ -496,6 +536,32 @@ mod tests {
         assert!(manager.list(dir.path()).iter().all(|m| !m.downloading));
     }
 
+    /// A model is hundreds of write batches; the stand-in above is less than one. Several
+    /// batches, the last one partial, must land whole and in order.
+    #[tokio::test]
+    async fn a_body_of_several_write_batches_is_installed_whole() {
+        let body: Vec<u8> = (0..WRITE_BATCH * 2 + 12_345)
+            .map(|i| u8::try_from(i % 251).unwrap())
+            .collect();
+        let pieces = body
+            .chunks(64 * 1024)
+            .map(|piece| (Duration::ZERO, piece.to_vec()))
+            .collect();
+        let dir = tempfile::tempdir().unwrap();
+        let large = Transfer {
+            url: serve(ok(pieces, Some(body.len()), false)),
+            bytes: body.len() as u64,
+            sha256: hex(&Sha256::digest(&body)),
+            stall: Duration::from_secs(10),
+        };
+        ModelManager::default()
+            .download_from(dir.path(), ModelId::Tiny, &large)
+            .await
+            .unwrap();
+        assert_eq!(files(dir.path()), [ModelId::Tiny.file()]);
+        assert!(fs::read(dir.path().join(ModelId::Tiny.file())).unwrap() == body);
+    }
+
     #[tokio::test]
     async fn a_hash_mismatch_installs_nothing_and_leaves_no_partial_file() {
         let dir = tempfile::tempdir().unwrap();
@@ -581,7 +647,7 @@ mod tests {
             let dir = dir.path().to_owned();
             tokio::spawn(async move { manager.download_from(&dir, ModelId::Tiny, &slow).await })
         };
-        // Wait until the first bytes are on disk, so the cancel lands mid-transfer.
+        // Wait until the first bytes have arrived, so the cancel lands mid-transfer.
         let deadline = Instant::now() + Duration::from_secs(10);
         while manager
             .list(dir.path())

@@ -55,7 +55,17 @@ pub async fn set_api_key(provider: Provider, key: String) -> Result<(), AppError
     tauri::async_runtime::spawn_blocking(move || secrets::set_api_key(provider, &key))
         .await
         .map_err(|error| AppError::with(id::KEYCHAIN, error))?
-        .map_err(|error| AppError::with(id::KEYCHAIN, error))
+        .map_err(|error| key_error(&error))
+}
+
+/// A key refused for its format never reached Credential Manager, so it gets its own sentence:
+/// "Windows Credential Manager refused the request" would send the operator looking in the
+/// wrong place.
+fn key_error(error: &anyhow::Error) -> AppError {
+    match error.downcast_ref::<secrets::KeyFormat>() {
+        Some(format) => AppError::with(id::API_KEY_FORMAT, format),
+        None => AppError::chain(id::KEYCHAIN, error),
+    }
 }
 
 #[tauri::command]
@@ -63,7 +73,7 @@ pub async fn clear_api_key(provider: Provider) -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(move || secrets::clear_api_key(provider))
         .await
         .map_err(|error| AppError::with(id::KEYCHAIN, error))?
-        .map_err(|error| AppError::with(id::KEYCHAIN, error))
+        .map_err(|error| AppError::chain(id::KEYCHAIN, &error))
 }
 
 #[tauri::command]
@@ -129,16 +139,18 @@ pub async fn whisper_models(
     })
     .await
     .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
-    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+    .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
 }
 
+/// Failures keep reqwest's whole cause chain (B7): behind a proxy, "error sending request"
+/// alone cannot tell a refused tunnel from a certificate the proxy substituted.
 #[tauri::command]
 pub async fn download_whisper_model(
     app: AppHandle,
     model: crate::whisper::models::ModelId,
 ) -> Result<(), AppError> {
     let dir = crate::whisper::models::directory(&app)
-        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?;
+        .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))?;
     let manager = app
         .state::<crate::whisper::models::ModelManager>()
         .inner()
@@ -146,7 +158,7 @@ pub async fn download_whisper_model(
     manager
         .download(&dir, model)
         .await
-        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+        .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
 }
 
 #[tauri::command]
@@ -170,7 +182,7 @@ pub async fn remove_whisper_model(
     })
     .await
     .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
-    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
+    .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
 }
 
 #[tauri::command]
@@ -274,4 +286,32 @@ pub async fn save_transcript(
     })
     .await
     .map_err(|error| AppError::with(id::TASK_FAILED, error))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_malformed_key_gets_its_own_sentence_and_names_the_character() {
+        let refused = secrets::set_api_key(Provider::Mistral, "abc\u{200B}def").unwrap_err();
+        assert_eq!(
+            key_error(&refused),
+            AppError::with(id::API_KEY_FORMAT, "character U+200B at position 4")
+        );
+    }
+
+    /// Anything else is Credential Manager's, with the Windows error that explains it.
+    #[test]
+    fn a_keychain_failure_keeps_the_windows_error() {
+        let failed = anyhow::anyhow!("Access is denied. (0x80070005)")
+            .context("failed to write key to keychain");
+        assert_eq!(
+            key_error(&failed),
+            AppError::with(
+                id::KEYCHAIN,
+                "failed to write key to keychain: Access is denied. (0x80070005)"
+            )
+        );
+    }
 }

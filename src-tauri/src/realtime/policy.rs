@@ -29,6 +29,10 @@ pub(super) enum RunEnd {
     Fatal(String),
     /// The handshake was refused with an HTTP status that will not improve on retry.
     Rejected(u16),
+    /// What this source sends could not be built from its settings: the connect request (a
+    /// stored key that is not a valid header value, say) or the setup message. Every retry
+    /// would build the same thing, so none is made.
+    Malformed(anyhow::Error),
     /// A connect, read or send failed. Retried with backoff, and shown to the operator.
     Failed(anyhow::Error),
 }
@@ -133,7 +137,9 @@ impl Reconnect {
             self.backoff = INITIAL_BACKOFF;
         }
         match end {
-            RunEnd::Stopped | RunEnd::Fatal(_) | RunEnd::Rejected(_) => After::Stop,
+            RunEnd::Stopped | RunEnd::Fatal(_) | RunEnd::Rejected(_) | RunEnd::Malformed(_) => {
+                After::Stop
+            }
             RunEnd::Paused => {
                 // Also covers a resume that arrived while the close was draining.
                 self.fresh = true;
@@ -286,6 +292,7 @@ mod tests {
             RunEnd::Stopped,
             RunEnd::Fatal("bad request".into()),
             RunEnd::Rejected(401),
+            RunEnd::Malformed(anyhow::anyhow!("API key is not a valid header value")),
         ] {
             assert_eq!(policy.after(&end, LONG), After::Stop);
         }

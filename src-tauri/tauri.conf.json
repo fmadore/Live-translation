@@ -12,7 +12,7 @@
   "app": {
     "withGlobalTauri": false,
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
     },
     "windows": [
       {
@@ -38,6 +38,7 @@
         "shadow": false,
         "skipTaskbar": true,
         "resizable": true,
+        "maximizable": false,
         "focus": false,
         "center": true
       }

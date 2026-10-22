@@ -231,7 +231,9 @@ impl SessionBuilder<'_> {
                 let handle = std::thread::Builder::new()
                     .name(format!("capture-{origin:?}"))
                     .spawn(move || {
-                        let result = capture.run(origin, target_rate, level_tx, audio_tx, &cancel);
+                        let result = catching_panics(|| {
+                            capture.run(origin, target_rate, level_tx, audio_tx, &cancel)
+                        });
                         finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
                     })
                     .context("failed to spawn capture thread")?;
@@ -240,6 +242,26 @@ impl SessionBuilder<'_> {
         }
         Ok(())
     }
+}
+
+/// Run a capture thread's work, turning a panic into an error so `finish_producer` always
+/// runs. One that unwound past it — wasapi's `ReleaseBuffer(..).unwrap()` on an invalidated
+/// device, say — closed the audio channel the way Stop does, and a cloud source went quietly
+/// Idle mid-session instead of saying its capture had died. A local source was covered by its
+/// completion guard, but only with a generic message; it now records the panic's own.
+///
+/// `AssertUnwindSafe` is sound here: the device, the audio channel and the meter go down with
+/// the closure, and the one thing used after it, the cancellation token, is synchronised
+/// internally, so an unwind cannot leave it half-updated.
+fn catching_panics(produce: impl FnOnce() -> Result<()>) -> Result<()> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(produce)).unwrap_or_else(|payload| {
+        let message = payload
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+            .unwrap_or("no message");
+        Err(anyhow::anyhow!("the capture thread panicked: {message}"))
+    })
 }
 
 /// Settle how a producer — capture thread or rehearsal playback — ended. A local source
@@ -275,6 +297,39 @@ mod tests {
 
     fn chunk(tag: u8) -> AudioChunk {
         AudioChunk { pcm_le: vec![tag] }
+    }
+
+    #[test]
+    fn a_panicking_capture_thread_ends_as_an_error_that_says_why() {
+        // A formatted message, as `unwrap` and `expect` make: the payload is a `String`.
+        let code = "AUDCLNT_E_DEVICE_INVALIDATED";
+        let error = catching_panics(|| panic!("ReleaseBuffer failed: {code}")).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "the capture thread panicked: ReleaseBuffer failed: AUDCLNT_E_DEVICE_INVALIDATED"
+        );
+        // A literal: the payload is a `&'static str`.
+        let error = catching_panics(|| panic!("device lost")).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "the capture thread panicked: device lost"
+        );
+    }
+
+    /// Ordinary endings pass through untouched: a device error keeps its own type, which
+    /// `source_failure` reads to choose the operator's sentence.
+    #[test]
+    fn a_capture_thread_that_returns_is_passed_through() {
+        use crate::audio::capture::MicrophoneRuntimeError;
+
+        assert!(catching_panics(|| Ok(())).is_ok());
+        let error = catching_panics(|| {
+            Err(anyhow::Error::new(MicrophoneRuntimeError(
+                cpal::Error::new(cpal::ErrorKind::DeviceNotAvailable),
+            )))
+        })
+        .unwrap_err();
+        assert!(error.downcast_ref::<MicrophoneRuntimeError>().is_some());
     }
 
     #[tokio::test]
