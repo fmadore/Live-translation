@@ -130,6 +130,7 @@ aside.rail › section.rail-section:nth(4) › div.models › p.hint[role=status
 aside.rail › section.rail-section:nth(4) › div.models › div.actions { display: flex; gap: 8px }
 aside.rail › section.rail-section:nth(4) › div.models › div.actions › button.ui-tool "Télécharger le modèle" { font-size: 12px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 main.stage { display: flex; flex-direction: column; overflow: auto; padding: 32px }
+main.stage › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 main.stage › span.kicker { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #8b93a1; display: block; flex: 0 0 auto }
 main.stage › h2.ready "Prêt quand vous l’êtes" { font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -0.54px; flex: 0 0 auto; margin: 16px 0px 0px }
 main.stage › p.intro { font-size: 13px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; max-width: 357.552px; margin: 8px 0px 0px }

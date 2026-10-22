@@ -129,6 +129,7 @@ aside.rail › section.rail-section:nth(4) › div.models › p.hint[role=status
 aside.rail › section.rail-section:nth(4) › div.models › div.actions { display: flex; gap: 18px }
 aside.rail › section.rail-section:nth(4) › div.models › div.actions › button.ui-tool "Download model" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 main.stage { display: flex; flex-direction: column; padding: 72px }
+main.stage › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 main.stage › span.kicker { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; display: block; flex: 0 0 auto }
 main.stage › h2.ready "Ready when you are" { font-size: 60.75px; font-weight: 600; line-height: 1.2; letter-spacing: -1.215px; flex: 0 0 auto; margin: 36px 0px 0px }
 main.stage › p.intro { font-size: 29.25px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; max-width: 804.492px; margin: 18px 0px 0px }
