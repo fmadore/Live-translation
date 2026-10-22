@@ -7,8 +7,9 @@ only the changes since 1.8.0. Paste each block into its named field after the
 workflow; the scripted demo is a secondary setup aid.
 
 For 1.9.0, What's new is replaced in all three languages: the light theme
-([#159](https://github.com/fmadore/Live-translation/pull/159)), with the History filter fix
-([#158](https://github.com/fmadore/Live-translation/pull/158)). It says plainly that System is
+([#159](https://github.com/fmadore/Live-translation/pull/159)), then one paragraph of fixes from
+the [22 October review](app-review-2026-10-22.md), the History filter fix
+([#158](https://github.com/fmadore/Live-translation/pull/158)) among them. It says plainly that System is
 the default, so a reader whose Windows is in light mode knows why the app now opens light and
 how to keep the dark look. The features add one line for the theme; the descriptions, short
 descriptions, keywords, requirements and certification notes are unchanged. The German
@@ -57,7 +58,7 @@ Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and
 ```text
 Light theme: the operator window can now be light as well as dark. Settings › App › Theme offers System, Light and Dark. System is the default and follows the light or dark app mode set in Windows, so if Windows is in light mode, the app now opens light; choose Dark to keep the previous look. The title bar follows the theme, and the caption overlay keeps its own colours over any slide.
 
-In Transcript history, the filter controls stay lined up when a label wraps onto two lines.
+Fixes: closing the caption overlay with Alt+F4 now hides it instead of removing it until restart. An API key pasted with a space or an invisible character is refused when you save it. Mistral lines no longer close before their last words. Rehearse after a failed session plays the sample again. No false "no captions" warning after a pause. Narrator no longer repeats the Whisper backlog and download progress, and keyboard focus moves to Stop or Start as a session begins or ends. Sums of money follow the interface language, and history shows sessions over an hour as hours, with filters that stay lined up.
 ```
 
 ### Features — one feature per line
@@ -130,7 +131,7 @@ Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 e
 ```text
 Thème clair : la fenêtre de contrôle peut désormais être claire ou sombre. Paramètres › Application › Thème propose Système, Clair et Sombre. Système, le réglage par défaut, suit le mode d'application clair ou sombre choisi dans Windows : si Windows est en mode clair, l'application s'ouvre désormais en clair ; choisissez Sombre pour garder l'apparence précédente. La barre de titre suit le thème, et la surimpression des sous-titres garde ses propres couleurs sur toute diapositive.
 
-Dans l'Historique des transcriptions, les filtres restent alignés lorsqu'un libellé passe sur deux lignes.
+Corrections : fermer la surimpression avec Alt+F4 la masque au lieu de la retirer jusqu'au redémarrage. Une clé API collée avec un espace ou un caractère invisible est refusée à l'enregistrement. Les lignes Mistral ne se ferment plus avant leurs derniers mots. Répéter après une session en échec rejoue l'enregistrement d'exemple. Plus de fausse alerte « aucun sous-titre » après une pause. Le Narrateur ne répète plus l'audio en attente de Whisper ni la progression du téléchargement, et le focus clavier reste sur les boutons de session quand une session commence ou se termine. Les montants suivent la langue de l'interface, et l'historique affiche en heures les sessions de plus d'une heure, avec des filtres qui restent alignés.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -203,7 +204,7 @@ Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und AR
 ```text
 Heller Farbmodus: Das Bedienfenster kann jetzt hell oder dunkel sein. Einstellungen › App › Farbmodus bietet System, Hell und Dunkel. System ist voreingestellt und folgt dem hellen oder dunklen App-Modus von Windows; ist Windows hell eingestellt, öffnet sich die App jetzt hell. Wählen Sie Dunkel, um das bisherige Aussehen zu behalten. Die Titelleiste folgt dem Farbmodus, und das Untertitel-Overlay behält über jeder Folie seine eigenen Farben.
 
-Im Transkriptverlauf bleiben die Filter ausgerichtet, wenn eine Beschriftung auf zwei Zeilen umbricht.
+Korrekturen: Alt+F4 auf dem Untertitel-Overlay blendet es aus, statt es bis zum Neustart zu entfernen. Ein API-Schlüssel mit Leerzeichen oder unsichtbarem Zeichen wird beim Speichern abgelehnt. Mistral-Zeilen schließen nicht mehr vor ihren letzten Wörtern. Ein Probelauf nach einer fehlgeschlagenen Sitzung spielt wieder die Beispielaufnahme. Keine falsche Warnung „keine Untertitel“ mehr nach einer Pause. Die Sprachausgabe wiederholt nicht mehr das wartende Audio von Whisper und den Downloadfortschritt, und der Tastaturfokus bleibt beim Starten und Beenden einer Sitzung auf den Sitzungsschaltflächen. Beträge folgen der Sprache der Oberfläche, und der Transkriptverlauf zeigt Sitzungen über eine Stunde in Stunden, mit Filtern, die ausgerichtet bleiben.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
