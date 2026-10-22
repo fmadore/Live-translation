@@ -9,187 +9,108 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Release 1.8.0 handoff
+## Release 1.9.0 handoff
 
-**Live in the Store.** Tagged and published on GitHub on 21 October 2026; the maintainer reported
-the Store release, and `Get-AppxPackage` on their machine reports the Store-signed **1.8.0.0**.
-The previous Store version was **1.7.1.0**. Target app version: **1.8.0**,
-MSIX **1.8.0.0**. What's new and the certification notes cover the changes since 1.7.1.
+**Tagged on 22 October 2026; Store submission pending.** The Store serves **1.8.0.0**. Target
+app version: **1.9.0**, MSIX **1.9.0.0**. What's new and the certification notes cover the
+changes since 1.8.0.
 
-1.8.0 is two features:
+1.9.0 is a light theme and a set of fixes:
 
-- [#155](https://github.com/fmadore/Live-translation/pull/155) (closes #124): **Live** and
-  **Transcript** tabs while a session runs. Transcript gives the whole log the full stage, with
-  the turns still being spoken at its foot. **Copy** writes the last 5, 10 or 30 minutes, or the
-  whole transcript, as plain text, during a session and after Stop. Selecting text holds the
-  reading position, Ctrl+A selects only the log, and original speech shows under each
-  paragraph when exports include it. Interface only; see [transcript export](transcript-export.md).
-- [#156](https://github.com/fmadore/Live-translation/pull/156) (closes #153): Mistral subtitles
-  move to **Voxtral Mini Transcribe Realtime 3** (`voxtral-mini-transcribe-realtime-3-0`).
-  - **Rate:** $0.48 an hour of audio instead of $0.36.
-  - **Languages:** 45 languages and dialects by Mistral's count, instead of 13.
-  - **Line closing:** a line closes at Mistral's detected end of turn, and is held open
-    mid-sentence. The shared realtime runner gains the mechanism (`Signal::EndOfTurn`,
-    `keeps_turn_open`), which only Mistral uses.
-  - **Names and terms:** a list in step 03 of the setup is sent as `context_bias`, and is
-    saved with the setup and in meeting profiles.
-  - See the [Mistral API notes](mistral-realtime-api.md).
+- [#159](https://github.com/fmadore/Live-translation/pull/159): **System, Light or Dark**
+  (Settings › App › Theme). System is the default and follows Windows' app mode, so an
+  upgrade on a light-mode PC opens light; What's new says so and how to keep the dark look.
+  The title bar follows an explicit choice; the caption overlay is unchanged in every theme.
+- [#160](https://github.com/fmadore/Live-translation/pull/160): batches 1 and 2 of the
+  [22 October review](app-review-2026-10-22.md). The overlay hides on Alt+F4 instead of being
+  destroyed, a malformed key fails once, errors keep their cause, Mistral turns keep their last
+  words, Rehearse after a failed session, Narrator and focus fixes, and localized money and
+  durations. The release workflow now publishes only after the Store bundle is attached (C1).
+- [#162](https://github.com/fmadore/Live-translation/pull/162): batch 3, CI and tooling only
+  (the Rust toolchain pinned at 1.99.1, `cargo audit`, Dependabot groups, a stricter style
+  probe and version check).
+- [#169](https://github.com/fmadore/Live-translation/pull/169): Tauri 2.12.4 and the week's
+  dev-tool updates; [#168](https://github.com/fmadore/Live-translation/pull/168) keeps `sha2`
+  on 0.10.
 
-**Known risk:** Mistral lists Realtime 3 as a **public preview**. The app pins `-3-0`, and
-release builds cannot override the model. If Mistral withdraws or changes the preview, Mistral
-subtitles stop with Mistral's error until an update ships. Whisper, Gemini, OpenAI and the demo
-are unaffected.
-
-**Unchanged:**
-- No dependency changes.
-- No new command permissions: Copy uses the webview's clipboard API.
+**Changed under the surface:**
+- The operator window gains one permission, `core:window:allow-set-theme`, for its own title
+  bar. The overlay's permissions are unchanged.
+- The CSP adds `object-src`, `base-uri`, `form-action` and `frame-src 'none'`.
 - The package still declares only `runFullTrust` and `microphone`.
 
-The [privacy policy](privacy.md) takes effect on 21 October 2026. It adds the names-and-terms
-list, which is kept locally and sent to Mistral, and Copy, which puts transcript text on the
-Windows clipboard.
-[GitHub release copy](release-1.8.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
+**First real run of draft-first publishing.** `release.yml` now checks the tag against the
+manifests, builds into a draft and publishes it with `docs/release-1.9.0.md` once the bundle is
+attached. Watch that run: if a job fails, the release stays a draft and the failed job is
+re-run.
+
+The [privacy policy](privacy.md) is unchanged: the theme is a local preference.
+[GitHub release copy](release-1.9.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ### Preparation and validation
 
-- [x] #155 and #156 merged, each after all its CI jobs passed.
-- [x] App manifests, root lockfile entries and citation set to 1.8.0. The citation date,
-  provisionally 21 October 2026, is corrected to the tag date when tagging.
-- [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`), and
-  `cargo check --locked` passes.
+- [x] #159, #160 and #162 merged, each after all its CI jobs passed; then #168 and #169.
+- [x] App manifests, root lockfile entries and citation set to 1.9.0; `npm test` checks that
+  all six agree. The citation date, 22 October 2026, is the planned tag date.
+- [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
 - [x] Validation of the release branch on Windows 11 ARM64:
-  - `npm test`: 699 passed in 74 files.
-  - `check` (0 errors, 0 warnings), `lint`, `knip`, `format:check`, `check:languages` and
-    `build` pass.
-  - Rust tests, Clippy and the style suite passed on #155 and #156 and in their CI runs; this
-    preparation changes no code.
-- [x] The Store fields are within Partner Center's limits.
+  - `npm run test:coverage`: 771 passed, 1 skipped, in 76 files.
+  - `check` (0 errors, 0 warnings, `--fail-on-warnings`), `lint`, `knip`, `format:check`,
+    `check:languages` and `build` pass; `test:style`: 143 passed.
+  - `cargo fmt --check`, Clippy with `-D warnings` and `cargo test --locked` (258 passed,
+    5 ignored) on the pinned 1.99.1 toolchain; `test:e2e`: 4 passed.
+- [x] The Store fields are within Partner Center's limits; the certification notes name
+  1.9.0.0.
 
 ### Testing
 
-- [x] Merge the release PR ([#157](https://github.com/fmadore/Live-translation/pull/157),
-  `502ba34`).
-- [x] **No release candidate.** At the maintainer's request, `v1.8.0` was tagged straight from
-  the merge of #157. A `v1.8.0-rc.1` tag pushed first was deleted, and its build cancelled,
-  before it created a draft.
-- [ ] **Maintainer test** of the side-by-side Local Test build of `502ba34` (ARM64), installed
-  on 21 October 2026. Not reported yet.
+- [ ] Merge the release PR.
+- [ ] **No release candidate.** Tag `v1.9.0` straight from the merge. A bug found afterwards
+  ships as 1.9.1; never move a tag.
+- [ ] **Maintainer test** of the side-by-side Local Test build of the merge commit (ARM64):
+  - Light, Dark, and System while switching Windows' app mode; the title bar follows;
+  - first launch on a light desktop, with no dark frame;
+  - the overlay's move toolbar stays dark; Alt+F4 in move mode hides the overlay, Show overlay
+    brings it back, and Windows snap still behaves with the overlay no longer maximizable;
+  - a contrast theme, and every Settings tab in Light;
+  - the History filter row in French;
+  - **a Mistral rehearsal** (B9): the last words and the full stop stay on their line;
+  - **Narrator** (U4): focus moves to Stop on Start and back to Start on Stop.
 
-Manual checks new in 1.8.0, on x64 and ARM64 unless a line says otherwise:
+Still open from the [1.8.0 handoff](#release-180-handoff), never recorded as done, on x64 and
+ARM64 unless a line says otherwise:
 
-- [ ] **Mistral on real speech**, in French and in English:
-  - a few names in the glossary, including one the model gets wrong without it;
-  - captions and their line breaks, at the ends of sentences and of turns, including a quick
-    Q&A exchange;
-  - Pause, Resume and Stop;
-  - a brief network drop, after which captions should resume.
-
-  Note any `error` payload in the log, and whether the glossary fixed the name. This is also
-  the open verification in the [roadmap](../ROADMAP.md#open-verification).
-- [ ] **The Transcript tab in a long session**:
-  - switching tabs while captions arrive;
-  - each Copy window pasted into Notepad;
-  - a selection holding still while new text arrives;
-  - Copy after Stop;
-  - with Both sources, and with two caption languages.
-- [ ] **Narrator** on the Live and Transcript tabs, the row still being spoken, the Copy menu,
-  and the glossary's added and removed announcements.
-
-Carried over from 1.7.0 and 1.7.1, never recorded as done and still open against the Store
-build:
-
-- [ ] **A short live session with each other cloud provider** (Gemini Translate, Gemini
-  Transcribe and OpenAI) with Pause, Resume and Stop. On Gemini Translate, Stop mid-sentence
-  should translate the last words and end well before four seconds.
-- [ ] **System audio on x64**: an output and one application, alone and with the microphone
-  (ARM64 was tested on 20 October 2026).
-- [ ] **A 24-bit microphone**: levels, Test audio and captions.
-- [ ] **Whisper Small translating real speech into English**: quality, whether it keeps up, and
-  the setup sheet's English-only note.
-- [ ] **Overlay restore with a laptop at 150% and a projector at 100%**: the "Placement across
-  launches" and "Display changes while running" rows of the
-  [caption layout matrix](caption-layout.md#release-verification).
-- [ ] **An x64 PC without AVX2**, if one is available: Whisper listed as unavailable with its
-  reason, a first launch on the built-in demo, and a cloud engine that still starts.
-- [ ] **A model download behind a proxy** set in Windows Settings.
-- [ ] **Quitting with a large Whisper backlog**: the prompt gives the seconds pending, and the
-  app exits a few seconds after closing.
-- [ ] **Narrator** on Pause/Resume and Move overlay/Done, and on the input-status
-  announcements.
-- [ ] **The error sentences in English, French and German**: a failed recovery write, a
-  failed history write and a failed export from the History tab.
-- [ ] **The icon** in Start's app list, Alt+Tab, the tray and the Store tile, and on a light
-  taskbar; move mode over a white and a dark slide; Settings tabs, steppers at their limits,
-  keyboard focus, contrast themes and enlarged text.
-- [ ] Fix what testing shows. `v1.8.0` is published, so a fix ships as 1.8.1; never move a
-  tag.
+- [ ] Mistral on real French and English speech: the glossary, line breaks at sentence and turn
+  ends, Pause/Resume/Stop and a brief network drop.
+- [ ] The Transcript tab in a long session, and Narrator on the Live and Transcript tabs.
+- [ ] A short live session with Gemini Translate, Gemini Transcribe and OpenAI.
+- [ ] System audio on x64; a 24-bit microphone; Whisper Small translating real speech.
+- [ ] Overlay restore with a laptop at 150% and a projector at 100%; an x64 PC without AVX2.
+- [ ] A model download behind a proxy (now diagnosable: errors keep their cause); quitting with
+  a large Whisper backlog.
+- [ ] The error sentences in English, French and German; the icon in Start, Alt+Tab, the tray
+  and on a light taskbar.
 
 ### Release and Store acceptance
 
-- [x] Tag `v1.8.0` (annotated: "Live Translation & Subtitles v1.8.0") on `502ba34`; the
-  citation date, 21 October 2026, is the tag date. Release-commit CI and all installer/MSIX/bundle
-  jobs passed.
-- [x] Publish the prepared body: `gh release edit v1.8.0 --notes-file docs/release-1.8.0.md`,
-  with the title "Live Translation & Subtitles 1.8.0".
-- [x] Verify `Live.Translation_1.8.0.msixbundle` against
-  [the 1.7.1 checks](#release-171-handoff), at **1.8.0.0**:
-  - GitHub's asset digests;
-  - a bundle holding exactly both packages, byte for byte, with no signature;
-  - manifests with the [assigned identity](microsoft-store.md#store-identity-assigned) and
-    publisher;
-  - native PE machine types;
-  - only `runFullTrust` and `microphone`;
-  - the rehearsal WAVs and Whisper licence notices, and no model weights;
-  - the 46 `Assets/` files byte-identical to the repository, and a single `resources.pri`.
-
-  Record sizes and SHA-256 below.
-- [ ] Sideload-test the final per-architecture MSIX packages and walk the
+- [ ] Tag `v1.9.0` (annotated: "Live Translation & Subtitles v1.9.0") on the merge commit,
+  after its CI run finishes green and uncancelled.
+- [ ] The workflow publishes the release with its body once the bundle is attached.
+- [ ] Verify `Live.Translation_1.9.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
+  at **1.9.0.0**, and record sizes and SHA-256 here.
+- [ ] Sideload-test the per-architecture MSIX packages and walk the
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
-- [ ] **Screenshots:** the 21 October 2026 set predates the Live and Transcript tabs. Retake
-  `3-bilingual.png`, which shows a running session, and `1-whisper.png` if the tabs show
-  there, in every language, from the 1.8.0 MSIX. A Transcript-tab screenshot would show the
-  new feature; it is optional. See [store-screenshots](store-screenshots/README.md).
+- [ ] **Screenshots:** retake from the 1.9.0 MSIX in EN/FR/DE with Settings › App › Theme on
+  **Dark**, whatever mode the PC is in; optionally add one of the Theme setting. See
+  [store-screenshots](store-screenshots/README.md).
 - [ ] Run Windows App Certification Kit.
-- [x] Submit the single combined bundle in Partner Center with the 1.8.0 What's new and the
-  updated descriptions, features and certification notes. Use a gradual rollout (route
-  step 9): the realtime runner's line closing changed, and Mistral's model is a preview.
-- [x] Record submission and certification. Live: `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles`
-  reports `SignatureKind` `Store` and Version `1.8.0.0`.
-
-### 1.8.0 artifact verification
-
-Tag `v1.8.0` (annotated) points to `502ba346b19223fec5fc32e0f3bc2a0d7df9fe79`, the merge of
-[#157](https://github.com/fmadore/Live-translation/pull/157). The
-[release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39581397954) and
-all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39581877713)
-passed. The GitHub release body is [release-1.8.0.md](release-1.8.0.md).
-
-Upload **[Live.Translation_1.8.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle)**
-to Partner Center. These are the published CI assets; each downloaded file's SHA-256 matches
-GitHub's asset digest. Local copies and `verification.json` are in the ignored directory
-`src-tauri/target/release-1.8.0/published/`.
-
-| Artifact | Bytes | SHA-256 |
-| --- | ---: | --- |
-| [Live.Translation_1.8.0.msixbundle](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle) | 11,855,153 | `a8eaa3bd42e21cc10f344cf99b950adbaf914256994d2da6b4e4740102591121` |
-| [Live.Translation_1.8.0_x64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0_x64.msix) | 6,044,339 | `8b0ecb08b4f482c8d6e3143f579e3163a322d0c20795a6661d1f9cc06dca9b2a` |
-| [Live.Translation_1.8.0_arm64.msix](https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0_arm64.msix) | 5,808,806 | `89be2f3c48b334a26de1e4a5dce35a52f1277cba4490aa6b96b7ddde0a002fd6` |
-
-All 36 checks passed:
-- **Digests:** GitHub's digests match for the bundle and both packages.
-- **Bundle:** it holds exactly both packages, byte for byte, with no signature. Its 1.8.0.0
-  manifest has the assigned identity and publisher.
-- **Each package:**
-  - the assigned identity, publisher, display name `FMadore`, version 1.8.0.0 and
-    architecture;
-  - only `runFullTrust` and `microphone`, and no signature;
-  - both rehearsal WAVs and the three Whisper licence notices, and no model weights;
-  - the 46 `Assets/` files, byte-identical to the repository, and a single `resources.pri`.
-- **Executables:** PE machine `0x8664` (x64, 12,412,416 bytes) and `0xAA64` (ARM64,
-  10,852,352 bytes).
-
-This verifies packaging, not installed-app behaviour or certification.
+- [ ] Submit the single combined bundle in Partner Center with the 1.9.0 What's new, the added
+  feature line and the updated certification notes. Use a gradual rollout (route step 9): the
+  session lifecycle and capture-thread handling changed.
+- [ ] Record submission and certification, and confirm with
+  `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` (`SignatureKind` `Store`, Version
+  `1.9.0.0`).
 
 ## The route
 
@@ -347,7 +268,8 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
-| 1.7.1 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) · [body](release-1.7.1.md) | Live as 1.7.1.0, confirmed by the maintainer on 21 October 2026; submission and certification dates not recorded | 1.7.0's app code, with the icon shown on the taskbar and in Start without an accent-coloured plate (#152). |
+| 1.8.0 | [21 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) · [body](release-1.8.0.md) | Live as 1.8.0.0, reported by the maintainer on 21 October 2026 and confirmed with `Get-AppxPackage`; submission and certification dates not recorded | The Transcript tab with Copy (#155) and Mistral subtitles on Voxtral Realtime 3 (#156). |
+| 1.7.1 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) · [body](release-1.7.1.md) | Live as 1.7.1.0, confirmed by the maintainer on 21 October 2026; submission and certification dates not recorded; replaced by 1.8.0 | 1.7.0's app code, with the icon shown on the taskbar and in Start without an accent-coloured plate (#152). |
 | 1.7.0 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) · [body](release-1.7.0.md) | Not submitted; superseded by 1.7.1 | Offline Whisper translation into English and overlay placement per display layout (#121), overlay recovery when a display goes (#139), cloud sessions that reconnect (#116, #122). |
 | 1.6.1 | [6 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) · [body](release-1.6.1.md) | Live as 1.6.1.0, confirmed by the maintainer on 20 October 2026; submission and certification dates not recorded; replaced by 1.7.1 | The wave-to-words icon (#111) and the 5 October design review (#112); no new features. |
 | 1.6.0 | [4 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) · [body](release-1.6.0.md) | Live as 1.6.0.0, confirmed 6 October 2026; replaced by 1.6.1 | Local Whisper (#99), two translation targets, original speech in overlay and exports, Pause/Resume, editable filler words. |
@@ -359,6 +281,36 @@ was submitted were not recorded as done and stay open against the Store build.
 | 1.3.0 | [19 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0) | Not submitted | Transcript history (#81), Stable reading (#79), overlay filler cleanup (#80) and the German interface. |
 | 1.2.4 | [14 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.4) | Live; acceptance date not recorded | Responsive captions: Fit window and optional Compact layout (#77). |
 | 1.2.3 | [8 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.3) | No submission recorded | Native Save As with timed SRT/VTT export (#26); capture of a selected application (#27). |
+
+### Release 1.8.0 handoff
+
+**Live as 1.8.0.0**, reported by the maintainer on 21 October 2026; `Get-AppxPackage` reports
+`SignatureKind` `Store`. It replaced 1.7.1.
+- **What it shipped:** the Live and Transcript tabs, with Copy
+  ([#155](https://github.com/fmadore/Live-translation/pull/155)), and Mistral subtitles on
+  Voxtral Mini Transcribe Realtime 3 (`voxtral-mini-transcribe-realtime-3-0`, $0.48 an hour,
+  45 languages), with lines closed at the end of turn and a names-and-terms list sent as
+  `context_bias` ([#156](https://github.com/fmadore/Live-translation/pull/156)).
+- **Known risk:** Mistral lists Realtime 3 as a public preview, and release builds pin `-3-0`.
+  If Mistral withdraws it, Mistral subtitles stop with Mistral's error until an update ships.
+- **Tags:** `v1.8.0` (annotated) points to `502ba34`, the merge of
+  [#157](https://github.com/fmadore/Live-translation/pull/157). A `v1.8.0-rc.1` tag was deleted
+  before its build made a draft.
+- **Build:** the [release-commit CI](https://github.com/fmadore/Live-translation/actions/runs/39581397954)
+  and all four [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39581877713)
+  passed.
+- **Package checks:** all 36 passed on the published assets:
+  - GitHub's digests match;
+  - the bundle holds exactly both packages, byte for byte, with no signature;
+  - the assigned identity and publisher, at 1.8.0.0;
+  - native PE machine types;
+  - only `runFullTrust` and `microphone`;
+  - the rehearsal WAVs and licence notices, and no weights;
+  - the 46 `Assets/` files byte-identical to the repository, with a single `resources.pri`.
+- **Bundle:** 11,855,153 bytes, SHA-256
+  `a8eaa3bd42e21cc10f344cf99b950adbaf914256994d2da6b4e4740102591121`.
+- **Not recorded:** the maintainer's test of the Local Test build, the sideload test, WACK,
+  the screenshot retake and the manual checks. They carry over to [1.9.0](#release-190-handoff).
 
 ### Release 1.7.1 handoff
 

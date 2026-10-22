@@ -1,6 +1,6 @@
 # Partner Center listing text — 1.9.0
 
-Prepared for **1.9.0 / MSIX 1.9.0.0**; not yet tagged. The last confirmed Store release is 1.8.0
+Prepared for **1.9.0 / MSIX 1.9.0.0**, tagged on 22 October 2026. The last confirmed Store release is 1.8.0
 (MSIX 1.8.0.0), live as confirmed by the maintainer on 21 October 2026, so What's new covers
 only the changes since 1.8.0. Paste each block into its named field after the
 [release checks](store-updates.md). These descriptions lead with the actual captioning
@@ -12,7 +12,8 @@ the [22 October review](app-review-2026-10-22.md), the History filter fix
 ([#158](https://github.com/fmadore/Live-translation/pull/158)) among them. It says plainly that System is
 the default, so a reader whose Windows is in light mode knows why the app now opens light and
 how to keep the dark look. The features add one line for the theme; the descriptions, short
-descriptions, keywords, requirements and certification notes are unchanged. The German
+descriptions, keywords and requirements are unchanged. The certification notes change only in
+their first paragraph: the version, and what is new since 1.8.0. The German
 addition is parity only; the native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
@@ -292,7 +293,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.8.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.7.1, the version in the Store, the app has Live and Transcript tabs for reading and copying the transcript during a session, and Mistral subtitles use Voxtral Realtime 3 with an optional list of names and terms. The test routes below are those of 1.7.1, with a Transcript and Copy check added in step 3.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.9.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.8.0, the version in the Store, the operator window has a light theme (Settings > App > Theme: System, Light or Dark; System, the default, follows the Windows light or dark app mode), and a set of reliability fixes; the caption overlay looks the same in every theme. The test routes below are those of 1.8.0.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.

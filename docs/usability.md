@@ -1,7 +1,7 @@
 # Meeting profiles and live controls
 
 The controls an operator uses to set up and run a meeting. Native acceptance is tracked in the
-[current release checklist](store-updates.md#release-180-handoff).
+[current release checklist](store-updates.md#release-190-handoff).
 
 ## Session controls
 

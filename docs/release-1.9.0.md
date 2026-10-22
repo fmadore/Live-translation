@@ -59,9 +59,10 @@ gains one permission, `core:window:allow-set-theme`, for its own title bar; the 
 permissions are unchanged ([#159](https://github.com/fmadore/Live-translation/pull/159)). The
 content security policy also forbids plugins, `<base>`, form targets and frames; a trace log
 never records the WebSocket handshake, which carries the provider key; model downloads write to
-disk off the async runtime; a capture thread that panics reports a capture error. Two Rust
-dependencies changed in the lockfile only: `sha2` back to a single 0.10 copy, and `chacha20`
-from a yanked 0.10.1 to 0.10.2. The MSIX capabilities are the same as in 1.8.0. The
+disk off the async runtime; a capture thread that panics reports a capture error. Tauri moves
+to 2.12.4 (the `tauri` crate and `@tauri-apps/api`), and `tauri-plugin-single-instance` to
+2.5.4. Two other Rust dependencies changed in the lockfile only: `sha2` back to a single
+0.10 copy, and `chacha20` from a yanked 0.10.1 to 0.10.2. The MSIX capabilities are the same as in 1.8.0. The
 [22 October review](https://github.com/fmadore/Live-translation/blob/main/docs/app-review-2026-10-22.md)
 lists what was changed and what is left.
 

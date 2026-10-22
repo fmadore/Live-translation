@@ -1,22 +1,23 @@
-# Partner Center submission walkthrough — 1.8.0
+# Partner Center submission walkthrough — 1.9.0
 
-Target: **Live Translation & Subtitles 1.8.0**, Product ID `9PFB8LR3RR9X`. Published on
-GitHub on 21 October 2026, not yet submitted; the Store serves 1.7.1 (MSIX 1.7.1.0), confirmed
+Target: **Live Translation & Subtitles 1.9.0**, Product ID `9PFB8LR3RR9X`. Published on
+GitHub on 22 October 2026, not yet submitted; the Store serves 1.8.0 (MSIX 1.8.0.0), confirmed
 by the maintainer on 21 October 2026. Download the combined x64 + ARM64 bundle from
-`https://github.com/fmadore/Live-translation/releases/download/v1.8.0/Live.Translation_1.8.0.msixbundle`.
-The [release handoff](store-updates.md#release-180-handoff) has the package evidence and
+`https://github.com/fmadore/Live-translation/releases/download/v1.9.0/Live.Translation_1.9.0.msixbundle`.
+The [release handoff](store-updates.md#release-190-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.8.0 adds a Transcript tab for reading and copying the transcript during a session, and moves
-Mistral subtitles to Voxtral Realtime 3, with lines that end at the speaker's turn and a
-names-and-terms list. The listing keeps its positioning; paste the descriptions, features, What's
-new and certification notes again from [store-listing.md](store-listing.md), which notes what
-changed. What's new covers the changes since 1.7.1.
+1.9.0 adds a light theme for the operator window (Settings › App › Theme: System, Light or
+Dark; System, the default, follows Windows' app mode), with the caption overlay unchanged in
+every theme, and fixes from the [22 October review](app-review-2026-10-22.md). The listing
+keeps its positioning; paste What's new, the features and the certification notes again from
+[store-listing.md](store-listing.md), which notes what changed. What's new covers the changes
+since 1.8.0; the certification notes already name 1.9.0.0.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.8.0.msixbundle` contains both native packages at
-   **1.8.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.9.0.msixbundle` contains both native packages at
+   **1.9.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`.
@@ -25,13 +26,15 @@ changed. What's new covers the changes since 1.7.1.
    evidence and must not be uploaded as the Store package.
 3. Complete the [acceptance checklist](microsoft-store.md#acceptance-checklist), including
    offline Whisper transcription and translation after download, cloud features, the
-   Transcript tab and Copy, Stop/backlog, overlay placement across launches, export and WACK.
-4. Refresh [screenshots](store-screenshots/README.md) where the interface changed: the
-   21 October 2026 set, from the 1.7.1 MSIX, predates the Live and Transcript tabs shown while
-   a session runs, so retake `3-bilingual.png` in all three listing languages.
+   Transcript tab and Copy, the theme in Light, Dark and System, Stop/backlog, overlay
+   placement across launches, export and WACK.
+4. Retake the [screenshots](store-screenshots/README.md) from the 1.9.0 MSIX in all three
+   listing languages, with Settings › App › Theme set to **Dark** whatever mode the PC is in,
+   so the set shows one theme. The 21 October 2026 set, from the 1.7.1 MSIX, also predates the
+   Live and Transcript tabs. An extra shot of the Theme setting is optional.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "21 October 2026 (documents the 1.8.0 release)", including the names and terms sent to
-   Mistral and Copy placing transcript text on the clipboard.
+   still reads "21 October 2026 (documents the 1.8.0 release)": 1.9.0 changes nothing the app
+   sends or stores, and the theme is a local preference.
 
 ## Pricing and properties
 
@@ -57,7 +60,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.8.0.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.9.0.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -65,7 +68,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.8.0.0` |
+| Version | `1.9.0.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -77,11 +80,12 @@ that listing if it is not already present. For each language, paste:
 1. **Description**: full paragraphs, up to 10,000 characters.
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.8.0 block, under 1,500 characters. It covers the changes since
-   1.7.1, the version the Store serves.
+4. **What's new**: the 1.9.0 block, under 1,500 characters. It covers the changes since
+   1.8.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters,
    unchanged since 1.7.1.
-6. Packaged-app screenshots with matching localized captions, showing the 1.8.0 interface.
+6. Packaged-app screenshots with matching localized captions, showing the 1.9.0 interface in
+   the Dark theme.
 7. **Store logos**: see below.
 
 The package's tiles and `StoreLogo` carry the wave-to-words icon, unchanged since 1.6.1, so the
@@ -116,11 +120,14 @@ Suggested `runFullTrust` justification:
 
 ## Final review and submission
 
-Confirm all sections are complete, packages and copy agree on 1.8.0.0, screenshots and Store
+Confirm all sections are complete, packages and copy agree on 1.9.0.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Submit manually when the [handoff checklist](store-updates.md#release-180-handoff) is complete,
-and record the submission date and certification result there. Do not mark 1.8.0 live until
+Set a gradual rollout, starting at 10% ([route step 9](store-updates.md#the-route)): the
+session lifecycle and capture-thread handling changed in 1.9.0.
+
+Submit manually when the [handoff checklist](store-updates.md#release-190-handoff) is complete,
+and record the submission date and certification result there. Do not mark 1.9.0 live until
 Partner Center or the public listing confirms publication.
