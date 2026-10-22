@@ -1,20 +1,18 @@
-# Partner Center listing text — 1.8.0
+# Partner Center listing text — 1.9.0
 
-Prepared for **1.8.0 / MSIX 1.8.0.0**, tagged on 21 October 2026; not submitted. The last confirmed Store
-release is 1.7.1 (MSIX 1.7.1.0), live as confirmed by the maintainer on 21 October 2026, so
-What's new covers only the changes since 1.7.1. Paste each block into its named field after the
-[release checks](store-updates.md#release-180-handoff). These descriptions lead with the actual
-captioning workflow; the scripted demo is a secondary setup aid.
+Prepared for **1.9.0 / MSIX 1.9.0.0**; not yet tagged. The last confirmed Store release is 1.8.0
+(MSIX 1.8.0.0), live as confirmed by the maintainer on 21 October 2026, so What's new covers
+only the changes since 1.8.0. Paste each block into its named field after the
+[release checks](store-updates.md). These descriptions lead with the actual captioning
+workflow; the scripted demo is a secondary setup aid.
 
-For 1.8.0, What's new is replaced in all three languages: reading and copying the transcript
-during a session ([#155](https://github.com/fmadore/Live-translation/pull/155)), and Mistral
-subtitles on Voxtral Realtime 3, with lines that end at the speaker's turn, a names-and-terms
-list and a higher Mistral rate ([#156](https://github.com/fmadore/Live-translation/pull/156)).
-The descriptions and features add the Transcript tab with Copy and the names-and-terms list; the
-short descriptions, keywords and requirements are unchanged. The certification notes add a
-Transcript and Copy check to the Whisper route and the Voxtral changes to the cloud features.
-The plain-language pass from 1.6.1 stands. The German edits are parity additions only; the
-native-speaker review is still pending.
+For 1.9.0, What's new is replaced in all three languages: the light theme
+([#159](https://github.com/fmadore/Live-translation/pull/159)), with the History filter fix
+([#158](https://github.com/fmadore/Live-translation/pull/158)). It says plainly that System is
+the default, so a reader whose Windows is in light mode knows why the app now opens light and
+how to keep the dark look. The features add one line for the theme; the descriptions, short
+descriptions, keywords, requirements and certification notes are unchanged. The German
+addition is parity only; the native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -54,14 +52,12 @@ Use the interface in English, French or German, whatever the caption language. T
 Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
 ```
 
-### What's new in this version — 1.8.0
+### What's new in this version — 1.9.0
 
 ```text
-Read and copy the transcript during a session: switch the stage from Live to Transcript to read the whole session so far, with lines still being spoken shown at the bottom. Copy puts the last 5, 10 or 30 minutes, or the whole transcript, on the clipboard as plain text, during the session or after Stop. Selecting text keeps your place while new captions arrive, and the app remembers the tab you chose.
+Light theme: the operator window can now be light as well as dark. Settings › App › Theme offers System, Light and Dark. System is the default and follows the light or dark app mode set in Windows, so if Windows is in light mode, the app now opens light; choose Dark to keep the previous look. The title bar follows the theme, and the caption overlay keeps its own colours over any slide.
 
-Mistral subtitles now use Voxtral Realtime 3, Mistral's new realtime model, which Mistral lists as a public preview and counts at 45 languages and dialects, up from 13. Lines end when the speaker finishes instead of breaking mid-sentence when the text pauses. Mistral now charges $0.48 per hour of audio, up from $0.36; the app shows the rate on the engine card, and you pay Mistral directly with your own key.
-
-With Mistral selected, the setup has a new Names and terms list: up to 100 speaker names, institutions, acronyms or jargon that Voxtral is asked to favour for the whole session, to steer its spelling. The list is saved with your setup and in meeting profiles, and applies from the next Start.
+In Transcript history, the filter controls stay lined up when a label wraps onto two lines.
 ```
 
 ### Features — one feature per line
@@ -83,6 +79,7 @@ Read the whole transcript during a session and copy the last 5, 10 or 30 minutes
 Text, Markdown, SRT and WebVTT export, including available original speech
 Optional local transcript history with titles, search, reopening and deletion
 Keyboard shortcuts and Narrator support; follows Windows text size and contrast themes
+Light or dark operator window, or follow the light or dark app mode set in Windows
 English, French and German interface; native Windows x64 and ARM64
 ```
 
@@ -128,14 +125,12 @@ Utilisez l'interface en français, anglais ou allemand, quelle que soit la langu
 Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
 ```
 
-### Nouveautés de cette version — 1.8.0
+### Nouveautés de cette version — 1.9.0
 
 ```text
-Relisez et copiez la transcription en cours de session : passez de l'onglet En direct à l'onglet Transcription pour relire toute la session, avec en bas les phrases encore en cours de parole. Copier place les 5, 10 ou 30 dernières minutes, ou toute la transcription, dans le presse-papiers en texte brut, pendant la session ou après l'arrêt. Quand du texte est sélectionné, les nouveaux sous-titres ne déplacent pas la position de lecture, et l'onglet choisi est mémorisé.
+Thème clair : la fenêtre de contrôle peut désormais être claire ou sombre. Paramètres › Application › Thème propose Système, Clair et Sombre. Système, le réglage par défaut, suit le mode d'application clair ou sombre choisi dans Windows : si Windows est en mode clair, l'application s'ouvre désormais en clair ; choisissez Sombre pour garder l'apparence précédente. La barre de titre suit le thème, et la surimpression des sous-titres garde ses propres couleurs sur toute diapositive.
 
-Les sous-titres Mistral utilisent désormais Voxtral Realtime 3, le nouveau modèle temps réel de Mistral, que Mistral présente comme une préversion publique et qui couvre selon lui 45 langues et dialectes, contre 13 auparavant. Les lignes se terminent quand l'intervenant a fini de parler, au lieu de se couper en pleine phrase lorsque le texte marque une pause. Mistral facture désormais 0,48 $ US par heure d'audio, contre 0,36 $ US ; l'application affiche ce tarif sur la carte du moteur, et vous payez Mistral directement avec votre propre clé.
-
-Avec Mistral, la configuration propose une nouvelle liste Noms et termes : jusqu'à 100 noms d'intervenants, institutions, sigles ou termes de jargon que Voxtral est invité à privilégier pendant toute la session, pour orienter son orthographe. La liste est enregistrée avec la configuration et dans les profils de réunion, et s'applique au prochain démarrage.
+Dans l'Historique des transcriptions, les filtres restent alignés lorsqu'un libellé passe sur deux lignes.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -157,6 +152,7 @@ Relecture de toute la transcription en cours de session et copie des 5, 10 ou 30
 Export texte, Markdown, SRT et WebVTT, avec texte original lorsqu'il est disponible
 Historique local facultatif avec titres, recherche, réouverture et suppression
 Raccourcis clavier et prise en charge du Narrateur ; suit la taille du texte et les thèmes de contraste de Windows
+Fenêtre de contrôle claire ou sombre, ou qui suit le mode d'application clair ou sombre de Windows
 Interface en français, anglais et allemand ; versions Windows x64 et ARM64 natives
 ```
 
@@ -202,14 +198,12 @@ Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhäng
 Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
 ```
 
-### Neu in dieser Version — 1.8.0
+### Neu in dieser Version — 1.9.0
 
 ```text
-Transkript während der Sitzung lesen und kopieren: Wechseln Sie in der Ansicht von Live zu Transkript, um die ganze bisherige Sitzung zu lesen; was noch gesprochen wird, steht am Ende. Kopieren legt die letzten 5, 10 oder 30 Minuten oder das ganze Transkript als reinen Text in die Zwischenablage, während der Sitzung oder nach Stopp. Solange Text markiert ist, verschieben neue Untertitel die Leseposition nicht, und die gewählte Ansicht wird gespeichert.
+Heller Farbmodus: Das Bedienfenster kann jetzt hell oder dunkel sein. Einstellungen › App › Farbmodus bietet System, Hell und Dunkel. System ist voreingestellt und folgt dem hellen oder dunklen App-Modus von Windows; ist Windows hell eingestellt, öffnet sich die App jetzt hell. Wählen Sie Dunkel, um das bisherige Aussehen zu behalten. Die Titelleiste folgt dem Farbmodus, und das Untertitel-Overlay behält über jeder Folie seine eigenen Farben.
 
-Mistral-Untertitel nutzen jetzt Voxtral Realtime 3, das neue Echtzeitmodell von Mistral. Mistral führt es als öffentliche Vorschau und gibt 45 Sprachen und Dialekte an, statt bisher 13. Zeilen enden jetzt, wenn die sprechende Person fertig ist, statt mitten im Satz abzubrechen, wenn der Text stockt. Mistral berechnet jetzt 0,48 US-Dollar pro Stunde Audio statt 0,36 US-Dollar; die App zeigt den Preis auf der Engine-Karte, und Sie zahlen direkt bei Mistral mit Ihrem eigenen Schlüssel.
-
-Ist Mistral ausgewählt, bietet die Einrichtung die neue Liste Namen und Begriffe: bis zu 100 Namen von Vortragenden, Institutionen, Abkürzungen oder Fachbegriffe, die Voxtral für die ganze Sitzung bevorzugen soll, um seine Schreibweise zu lenken. Die Liste wird mit der Einrichtung und in Besprechungsprofilen gespeichert und gilt ab dem nächsten Start.
+Im Transkriptverlauf bleiben die Filter ausgerichtet, wenn eine Beschriftung auf zwei Zeilen umbricht.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -231,6 +225,7 @@ Transkript während der Sitzung lesen und die letzten 5, 10 oder 30 Minuten oder
 Export als Text, Markdown, SRT und WebVTT, einschließlich verfügbarem Originaltext
 Optionaler lokaler Transkriptverlauf mit Titeln, Suche, erneutem Öffnen und Löschen
 Tastenkombinationen und Unterstützung der Sprachausgabe; folgt Windows-Textgröße und Kontrastdesigns
+Bedienfenster hell oder dunkel, oder passend zum hellen oder dunklen App-Modus von Windows
 Oberfläche auf Deutsch, Englisch und Französisch; native Windows-Versionen für x64 und ARM64
 ```
 

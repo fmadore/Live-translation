@@ -28,7 +28,7 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
 | Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
 | Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. The running rail's input labels are not live, because they flip with every pause in speech; a separate region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. |
-| Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine and interface-language cards, presets, swatches and pinned languages. |
+| Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine, interface-language and theme cards, presets, swatches and pinned languages. |
 | Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
 | Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes. |
@@ -42,11 +42,16 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 - `npm test` → `src/lib/palette.test.ts` reads the tokens out of `app.css`, for the dark and
   the light theme alike, and fails if the light block leaves a colour undeclared or if any
   text token drops below 4.5:1 on any surface, if the muted level drops below it on any tinted
-  wash, or if any non-text mark drops below 3:1. It pins the ramps (four text levels, three
-  surfaces, three lines), and it reads every component stylesheet: a hex literal, or a text
-  colour that is not a token, fails it, and so does an overlay toolbar that a white slide
-  would lift above `--surface-2`. It exists because the contrast failures behind issue #24
-  arrived one shade at a time, and nothing could see them.
+  wash, or if any non-text mark drops below 3:1. In each theme the selected edge
+  (`--accent-border`) has to stand out more than the grey edge of a card under the pointer, so
+  hovering never makes the wrong card look chosen. It pins the ramps (four text levels, three
+  surfaces, three lines), and it reads every component stylesheet: a hex literal, a text
+  colour that is not a token, or a `prefers-color-scheme` rule fails it, and so does an overlay
+  toolbar that a white slide would lift above `--surface-2`. It exists because the contrast
+  failures behind issue #24 arrived one shade at a time, and nothing could see them.
+- `npm run test:style` records the operator window's computed styles in the light theme as
+  well as the dark one, checks that a light desktop gets a light first frame before the app's
+  scripts have loaded, and that the overlay keeps the dark tokens when Light is chosen.
 - `npm test` → `src/lib/captionColour.test.ts` is the same guard for the overlay, which
   `palette.test.ts` cannot reach because its colours are no longer in the stylesheet. It fails
   if the shipped default drops below 4.5:1 at any step over either slide, if the default stops
@@ -91,7 +96,10 @@ treats the window.
    view keeps its own colours — that is deliberate.
    Repeat the pass with Settings → App → Theme on **Light**, and once on **System** while
    switching Windows between light and dark app mode: the operator window and its title bar
-   follow, and the overlay's move-mode toolbar stays dark.
+   follow, and the overlay's move-mode toolbar stays dark. In Light, the selected mode, source,
+   engine and preset are as easy to pick out as in Dark, and a card under the pointer never
+   looks more chosen than the selected one. Under a contrast theme Windows reports light app
+   mode, so System resolves to Light; the contrast theme repaints the window either way.
 4. **Caption colours over real slides.** With the overlay placed, put a **bright** deck
    behind it and then a **dark** one, and read the captions from the back of the room in both.
    Include a finished line and a trailing previous line, which are the dimmest text on screen
