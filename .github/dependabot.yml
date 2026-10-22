@@ -45,6 +45,12 @@ updates:
       cargo-patch:
         update-types:
           - patch
+    # wry and secret-service pin sha2 0.10; moving ours ahead ships two copies in the exe
+    # (B15 in docs/app-review-2026-10-22.md). Lift this once they move to 0.11.
+    ignore:
+      - dependency-name: sha2
+        versions:
+          - ">= 0.11"
 
   # The pinned Rust toolchain (rust-toolchain.toml). Each new release comes as its own pull
   # request, which is where its Clippy's new lints show up rather than on main. Dependabot
