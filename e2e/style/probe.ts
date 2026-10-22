@@ -231,16 +231,26 @@ function installProbe(): void {
 		'visibility'
 	];
 	/** Everything else, against what the browser gives the same tag unstyled. Grouped four
-	 *  sides at a time where CSS has a shorthand, so a diff reads as a padding change. */
+	 *  sides at a time where CSS has a shorthand, so a diff reads as a padding change.
+	 *  Placement and stacking are here as well as the box: a row track or an `align-self`
+	 *  that moves a footer to the bottom of its column changes no size, padding or colour,
+	 *  so without them a regression of that kind leaves every snapshot as it was. */
 	const OWN = [
 		'display',
 		'position',
+		'z-index',
 		'flex-direction',
 		'flex-wrap',
 		'align-items',
+		'align-content',
 		'justify-content',
 		'flex',
 		'grid-template-columns',
+		'grid-template-rows',
+		'grid-row',
+		'grid-column',
+		'align-self',
+		'justify-self',
 		'gap',
 		'width',
 		'min-width',
@@ -258,6 +268,7 @@ function installProbe(): void {
 		'background-image',
 		'box-shadow',
 		'opacity',
+		'transform',
 		'text-decoration-line',
 		'text-overflow'
 	];
@@ -297,10 +308,11 @@ function installProbe(): void {
 	type Read = (property: string) => string;
 
 	// Typed OM only for the properties `getComputedStyle` would resolve to geometry: lengths
-	// that can be `auto` or a percentage, the track list, a unitless line height. The rest go
-	// through `getComputedStyle`, which already gives their computed values.
+	// that can be `auto` or a percentage, the track lists, a unitless line height, and a
+	// transform, which `getComputedStyle` gives as a pixel `matrix()`. The rest go through
+	// `getComputedStyle`, which already gives their computed values.
 	const TYPED =
-		/^(width|height|min-width|max-width|margin-.*|padding-.*|grid-template-columns|flex-basis|line-height|row-gap|column-gap)$/;
+		/^(width|height|min-width|max-width|margin-.*|padding-.*|grid-template-(columns|rows)|flex-basis|line-height|row-gap|column-gap|transform)$/;
 
 	function reader(el: Element, pseudo?: string): Read {
 		const style = getComputedStyle(el, pseudo);
@@ -346,6 +358,9 @@ function installProbe(): void {
 			}
 			case 'flex':
 				return `${read('flex-grow')} ${read('flex-shrink')} ${read('flex-basis')}`;
+			case 'grid-row':
+			case 'grid-column':
+				return `${read(`${property}-start`)} / ${read(`${property}-end`)}`;
 			case 'white-space':
 				return `${read('white-space-collapse')} ${read('text-wrap-mode')}`;
 			default:

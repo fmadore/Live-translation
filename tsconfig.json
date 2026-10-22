@@ -5,6 +5,11 @@
 		"strict": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitReturns": true,
+		"noImplicitOverride": true,
+		// Not `noUncheckedIndexedAccess`: most of what it finds (about 150 sites in October 2026)
+		// is a test indexing a fixture it has just built, where the guard would only be a `!`.
 		"types": ["$app/types", "node", "vite/client"]
 	},
 	"include": ["src", "vite.config.js"]

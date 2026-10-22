@@ -63,7 +63,15 @@ export default defineConfig(
 			// by default): it shows a reader that dropping the result was a decision.
 			'@typescript-eslint/no-floating-promises': 'error',
 			'@typescript-eslint/no-misused-promises': 'error',
-			'@typescript-eslint/await-thenable': 'error'
+			'@typescript-eslint/await-thenable': 'error',
+			// Several unions mirror a Rust enum (`Provider`, `SessionState`, `ThemeChoice`…), and
+			// a variant added on the Rust side should stop every switch that has not heard of it.
+			// So a `default` does not count as handling a union (it would take the new variant in
+			// silently), while a switch over a plain string still needs no `default` at all.
+			'@typescript-eslint/switch-exhaustiveness-check': [
+				'error',
+				{ considerDefaultExhaustiveForUnions: false }
+			]
 		}
 	},
 
@@ -72,7 +80,12 @@ export default defineConfig(
 		rules: {
 			'svelte/require-each-key': 'error',
 			'svelte/prefer-writable-derived': 'error',
-			'svelte/infinite-reactive-loop': 'error'
+			'svelte/infinite-reactive-loop': 'error',
+			// An ignore that no longer silences anything hides the next real warning on that line.
+			'svelte/no-unused-svelte-ignore': 'error',
+			// Captions and transcripts are speech from strangers, and translations of it: text that
+			// must never be parsed as markup. None of it goes through `{@html}` today.
+			'svelte/no-at-html-tags': 'error'
 		}
 	}
 );

@@ -91,8 +91,13 @@ function applyRenameAll(variant: string, rule: string | undefined): string {
 			return variant.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 		case 'camelCase':
 			return variant[0].toLowerCase() + variant.slice(1);
-		default:
+		// No `rename_all`: serde keeps the variant's name as written.
+		case undefined:
 			return variant;
+		// A rule this helper has not learnt would otherwise read as no rule at all, and the
+		// comparison below would fail on every variant instead of naming the cause.
+		default:
+			throw new Error(`#[serde(rename_all = "${rule}")] is not handled here`);
 	}
 }
 

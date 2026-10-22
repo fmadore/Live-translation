@@ -4,7 +4,7 @@
 html { font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 36px; color: #ffffff; height: 100% }
 body { color: #e9ebef; height: 100%; margin: 0px; background-color: #0e1013 }
 body › div { display: contents }
-body › div › div.app { display: grid; height: 820px; background-color: #0e1013 }
+body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #0e1013 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 27px; padding: 18px 54px; background-color: #111419 }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 54px; height: 54px; border: 1px solid #262b33; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
 header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
@@ -27,10 +27,10 @@ aside.rail { display: flex; flex-direction: column; gap: 36px; padding: 54px; bo
 aside.rail › section.profiles "Meeting profiles" { font-size: 27px; color: #c3c9d2; min-width: 0px; max-width: 855px; padding: 0px 0px 36px; border-bottom: 1px solid #1f242b }
 aside.rail … section.profiles "Meeting profiles" › div.picker { display: grid; align-items: stretch; grid-template-columns: minmax(0px, 1fr) auto; gap: 18px }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field { display: contents; gap: 18px; min-width: 0px }
-aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span { display: block }
+aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span { display: block; grid-column: 1 / -1 }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › select "Meeting profiles" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail … section.profiles "Meeting profiles" › div.picker › button.ui-tool "Manage profiles" { font-weight: 500; line-height: 1; text-align: center; display: grid; align-items: center; justify-content: center; gap: 18px; width: 81px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail … button.ui-tool "Manage profiles" › svg { display: block; width: 14px; height: 14px }
 aside.rail › section.rail-section:nth(1) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; max-width: 855px }
@@ -71,7 +71,7 @@ aside.rail › section.rail-section:nth(2) › div.meters { display: flex; flex-
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter { display: grid; align-items: center; grid-template-columns: 243px 1fr; gap: 18px }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › span.label { font-size: 24.75px; font-weight: 500; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › div.track[role=meter] "Demo audio" { position: relative; height: 8px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
-aside.rail … div.track[role=meter] "Demo audio" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454) }
+aside.rail … div.track[role=meter] "Demo audio" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0, 1) }
 aside.rail … div.track[role=meter] "Demo audio" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #0e1013 5px, #0e1013 7px) }
 aside.rail › div.divider:nth(2) { flex: 0 0 auto; max-width: 855px; height: 1px; background-color: #1f242b }
 aside.rail › section.rail-section:nth(3) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; max-width: 855px }
