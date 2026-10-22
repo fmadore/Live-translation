@@ -16,6 +16,23 @@ describe('describing a failure', () => {
 		expect(describeError({ id: 'error.keychain' }, en)).toBe(en.error.keychain);
 	});
 
+	// `set_api_key` refuses a key with whitespace or a character outside printable ASCII — a
+	// paste that picked up a space, a line break or a zero-width character. The detail names the
+	// character and where it is, never the key, and lands right after the reason.
+	it.each([
+		['en', en, 'contains a space or a character no API key has (character U+200B at position 41)'],
+		['fr', fr, 'qu’aucune clé API ne comporte (character U+200B at position 41)'],
+		['de', de, 'das in keinem API-Schlüssel vorkommt (character U+200B at position 41)']
+	] as const)('says in %s why a pasted key was refused', (_, catalog, ending) => {
+		const text = describeError(
+			{ id: 'error.apiKeyFormat', detail: 'character U+200B at position 41' },
+			catalog
+		);
+		// The catalog's sentence, not the bare detail an unknown id falls back to.
+		expect(text).toBe(`${catalog.error.apiKeyFormat} (character U+200B at position 41)`);
+		expect(text.endsWith(ending), text).toBe(true);
+	});
+
 	// A core that has learned a new failure must still say something an operator can act on.
 	// `error.somethingNew` on screen would help nobody; the Windows message might.
 	it('falls back to the detail for an id the catalog has never heard of', () => {

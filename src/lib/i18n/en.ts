@@ -766,6 +766,8 @@ export const en = {
 			'Local Whisper cannot run on this processor; choose another engine, such as the built-in demo',
 		deviceEnumeration: 'Windows could not list the audio devices',
 		keychain: 'Windows Credential Manager refused the request',
+		apiKeyFormat:
+			'The API key was not saved. Copy it again from the provider’s page: this one contains a space or a character no API key has',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',
 		sessionPause: 'The session could not be paused or resumed',

@@ -779,6 +779,8 @@ export const de: Messages = {
 			'Die lokale Transkription konnte nicht abgeschlossen werden; das Transkript ist möglicherweise unvollständig',
 		deviceEnumeration: 'Windows konnte die Audiogeräte nicht auflisten',
 		keychain: 'Die Windows-Anmeldeinformationsverwaltung hat die Anfrage abgelehnt',
+		apiKeyFormat:
+			'Der API-Schlüssel wurde nicht gespeichert. Kopieren Sie ihn erneut von der Seite des Anbieters: Dieser enthält ein Leerzeichen oder ein Zeichen, das in keinem API-Schlüssel vorkommt',
 		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',
 		sessionStart: 'Die Sitzung konnte nicht gestartet werden',
 		sessionPause: 'Die Sitzung konnte nicht pausiert oder fortgesetzt werden',

@@ -784,6 +784,8 @@ export const fr: Messages = {
 			'Whisper local ne peut pas fonctionner sur ce processeur ; choisissez un autre moteur, par exemple la démonstration intégrée',
 		deviceEnumeration: 'Windows n’a pas pu énumérer les appareils audio',
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
+		apiKeyFormat:
+			'La clé API n’a pas été enregistrée. Copiez-la de nouveau depuis la page du fournisseur : celle-ci contient un espace ou un caractère qu’aucune clé API ne comporte',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',
 		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',
