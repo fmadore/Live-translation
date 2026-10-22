@@ -196,6 +196,8 @@ export const en = {
 		discard: 'Discard remaining audio',
 		discardConfirm:
 			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
+		/** Announced once a discard is confirmed, while the core stops working through it. */
+		discarding: 'Discarding the remaining audio…',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>

@@ -202,6 +202,7 @@ export const de: Messages = {
 		discard: 'Restliches Audio verwerfen',
 		discardConfirm:
 			'Restliches Audio verwerfen? Bereits erstellte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
+		discarding: 'Restliches Audio wird verworfen…',
 		cpuUnsupported: (missing: string) =>
 			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
 		translateTitle: 'Lokale Übersetzung ins Englische',

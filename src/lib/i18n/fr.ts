@@ -204,6 +204,7 @@ export const fr: Messages = {
 		discard: 'Abandonner le son restant',
 		discardConfirm:
 			'Abandonner le son restant ? Les sous-titres déjà produits seront conservés, mais la transcription sera incomplète.',
+		discarding: 'Abandon du son restant…',
 		cpuUnsupported: (missing: string) =>
 			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
 		translateTitle: 'Traduction locale vers l’anglais',
