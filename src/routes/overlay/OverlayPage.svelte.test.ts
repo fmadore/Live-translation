@@ -254,3 +254,21 @@ it('starts from the stored word list and follows the lists the operator pushes',
 	expect(c).toMatchObject({ text: 'Bah, um, voilà.', sourceText: 'Bah, euh, voilà.' });
 	view.unmount();
 });
+
+// The theme setting is the operator window's. The overlay's move-mode chrome sits over a slide
+// nobody controls, so it keeps the dark tokens whatever the operator picked.
+it('keeps the dark tokens when the operator picked the light theme', async () => {
+	document.documentElement.removeAttribute('data-theme');
+	localStorage.setItem('appearance.theme', 'light');
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	render(Page);
+	await tick();
+	expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+});

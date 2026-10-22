@@ -123,7 +123,7 @@ export const fr: Messages = {
 		system: 'Système',
 		light: 'Clair',
 		dark: 'Sombre',
-		note: 'Système suit le mode clair ou sombre choisi dans Windows. La surimpression des sous-titres garde ses propres couleurs.'
+		note: '« Système » suit le mode d’application clair ou sombre de Windows. La surimpression des sous-titres garde ses propres couleurs.'
 	},
 
 	// The product's own name is not translated — the Store lists it in English, and inventing a

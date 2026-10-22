@@ -105,13 +105,14 @@
 		padding: var(--space-2) var(--space-5);
 		background: var(--surface-1);
 	}
-	/* The app icon in miniature, so it rounds by the icon's own proportion (224 of 1024) rather
-	   than by a step of the radius scale, and the two read as one shape. */
+	/* The app icon in miniature, in its own colours whatever the theme, so it rounds by the
+	   icon's own proportion (224 of 1024) rather than by a step of the radius scale, and the
+	   two read as one shape. */
 	.brand {
 		width: 1.5rem;
 		height: 1.5rem;
 		border-radius: 21.875%;
-		background: linear-gradient(var(--surface-2), var(--surface-0));
+		background: linear-gradient(var(--brand-tile), var(--brand-ground));
 		border: 1px solid var(--line-strong);
 		display: flex;
 		align-items: center;
@@ -119,10 +120,10 @@
 		flex: 0 0 auto;
 	}
 	.brand .wave {
-		stroke: var(--accent);
+		stroke: var(--brand-wave);
 	}
 	.brand .line {
-		stroke: var(--text-body);
+		stroke: var(--brand-line);
 	}
 	/* Pushed to the far end, and kept there with the gear when the bar wraps. */
 	.pill {
@@ -171,7 +172,7 @@
 	}
 	.pill.live .pill-dot {
 		background: var(--accent);
-		box-shadow: 0 0 8px var(--accent);
+		box-shadow: var(--accent-glow);
 		animation: breathe 2.4s ease-in-out infinite;
 	}
 	.pill.live .pill-label,

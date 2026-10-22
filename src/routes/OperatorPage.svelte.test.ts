@@ -243,3 +243,42 @@ it('keeps the chosen export format through Start and Stop, and saves it on quit'
 	expect(saved.content).toMatch(/^1\n00:00:00,000 --> 00:00:02,400\n/);
 	expect(saved.content).toContain(DEMO_LINES[1][1]);
 });
+
+// The theme is the operator's window only: picking one repaints the page, tells the native
+// title bar, and is kept for the next launch, where `app.html` reads it before the first frame.
+it('applies a chosen theme to the page and its title bar, and keeps it', async () => {
+	const { theme } = await import('#lib/theme.js');
+	try {
+		render(Page);
+		await fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+		await fireEvent.click(await screen.findByRole('tab', { name: 'App' }));
+		const choices = within(screen.getByRole('group', { name: 'Theme' }));
+		expect(choices.getByRole('button', { name: 'System' })).toHaveAttribute('aria-pressed', 'true');
+
+		await fireEvent.click(choices.getByRole('button', { name: 'Light' }));
+		expect(choices.getByRole('button', { name: 'Light' })).toHaveAttribute('aria-pressed', 'true');
+		expect(choices.getByRole('button', { name: 'System' })).toHaveAttribute(
+			'aria-pressed',
+			'false'
+		);
+		expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+		expect(localStorage.getItem('appearance.theme')).toBe('light');
+		await waitFor(() =>
+			expect(core.callsTo('plugin:window|set_theme').at(-1)).toEqual({
+				label: 'operator',
+				value: 'light'
+			})
+		);
+
+		// "System" hands the title bar back to Windows rather than naming a mode.
+		await fireEvent.click(choices.getByRole('button', { name: 'System' }));
+		await waitFor(() =>
+			expect(core.callsTo('plugin:window|set_theme').at(-1)).toEqual({
+				label: 'operator',
+				value: null
+			})
+		);
+	} finally {
+		theme.set('system');
+	}
+});

@@ -119,7 +119,7 @@ export const de: Messages = {
 		note: 'Ändert die App, nicht die Untertitel.'
 	},
 	theme: {
-		label: 'Farbschema',
+		label: 'Farbmodus',
 		system: 'System',
 		light: 'Hell',
 		dark: 'Dunkel',

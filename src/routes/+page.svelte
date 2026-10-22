@@ -58,8 +58,8 @@
 	// available on the very first render — which is what keeps a child like ApiKeyPanel from
 	// mounting and firing a Tauri-only command during `npm run dev`.
 	const browserMode = !isTauri();
-	// Light, dark or Windows' app mode, applied before the first paint rather than after mount so
-	// a light desktop never sees a frame of the dark window. The overlay keeps the dark tokens.
+	// Light, dark or Windows' app mode. `app.html` sets it before the first frame; this keeps it
+	// in step with the setting and with Windows from here on. The overlay keeps the dark tokens.
 	onDestroy(followTheme());
 	const session = createSessionController();
 	const overlay = createOverlayController();
