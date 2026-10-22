@@ -44,6 +44,10 @@ concurrency:
   group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
+env:
+  # dtolnay/rust-toolchain used to set this; rustup, which installs the toolchain now, does not.
+  CARGO_TERM_COLOR: always
+
 jobs:
   # Cheap checks before an hour of Windows build time, then the one release every later job
   # uploads to. Three files carry the version: the bundle takes its name and /bv from
@@ -56,10 +60,14 @@ jobs:
     outputs:
       release_id: ${{ steps.release.outputs.id }}
     steps:
+      # No job here needs git credentials after the checkout, so none keeps the token in
+      # .git/config: `git ls-remote` below reads a public repository, and `gh` and tauri-action
+      # take the token from their environment.
       - name: Checkout
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
 
       - name: Check the tag against the version files
         id: version
@@ -178,11 +186,12 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
 
-      - name: Install Rust (stable + target)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      # The toolchain CI tested: the version, components and targets (both Windows ones)
+      # pinned in rust-toolchain.toml, which rustup reads from the checkout.
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
 
       - name: Configure native Whisper compiler
         shell: pwsh
@@ -194,10 +203,14 @@ jobs:
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           prefix-key: whisper-cpu-x64-v2
+          # Restore only. A cache saved by a tag run is scoped to that tag, so no other run can
+          # restore it: the tag caches had filled 5.6 GB of the repository's 10 GB and pushed
+          # CI's caches from main out. Release builds start cold either way.
+          save-if: false
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -211,7 +224,7 @@ jobs:
       # With a release id, tauri-action skips its own release lookup and only uploads, replacing
       # assets of the same name. Draft or published is decided by `prepare` and `bundle`.
       - name: Build app and attach installers to the release
-        uses: tauri-apps/tauri-action@action-v1.0.0
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -238,20 +251,19 @@ jobs:
         include:
           - arch: x64
             runner: windows-latest
-            target: x86_64-pc-windows-msvc
           - arch: arm64
             runner: windows-11-arm
-            target: aarch64-pc-windows-msvc
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
 
-      - name: Install Rust (stable + target)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      # As in `build`: the toolchain rust-toolchain.toml pins. Each runner builds for its own
+      # architecture.
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
 
       - name: Configure native Whisper compiler
         shell: pwsh
@@ -263,12 +275,14 @@ jobs:
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           # Keep the native Windows package lanes separate. Bump with `.cargo/config.toml`:
           # whisper-rs-sys does not rebuild ggml when its GGML_* variables change.
           prefix-key: whisper-cpu-${{ matrix.arch }}-v2
+          # Restore only, as in `build`.
+          save-if: false
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -333,6 +347,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
 
       - name: Download both architectures
         uses: actions/download-artifact@v8

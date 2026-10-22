@@ -28,6 +28,12 @@ U6, U9, U11, U13 and C12's type fix and `ModelId` check. Notes from doing it:
 - **Still to check by hand:** B9 with a Mistral rehearsal, U4 with Narrator, and the
   non-maximizable overlay against Windows snap.
 
+Batch 3 is on `ci/review-batch-3`, on top of batch 2: C2, C3, C4, C5, C6's `cargo audit`, C7, C8,
+C9, C10, C11's audit swap, C14, C15 (without `noUncheckedIndexedAccess`: 156 sites, mostly tests),
+C19 and C20. The toolchain is pinned at 1.99.1 and `rust-version` follows it. C6's GitHub
+settings and C17's leftovers are the maintainer's. Secret-scanning alert #1 was the made-up key
+in B6's own test, which matched Google's key pattern; the test now joins it from two literals.
+
 Labels: **verified** findings were traced in the code; **plausible** ones need a run, hardware
 or a live provider to confirm. **Rechecked** means the orchestrating pass confirmed the finding
 independently (in the code, the built app, the browser preview or GitHub) after a reviewer

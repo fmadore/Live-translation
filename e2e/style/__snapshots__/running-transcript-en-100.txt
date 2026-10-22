@@ -4,7 +4,7 @@
 html { font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #ffffff; height: 100% }
 body { color: #e9ebef; height: 100%; margin: 0px; background-color: #0e1013 }
 body › div { display: contents }
-body › div › div.app { display: grid; height: 820px; background-color: #0e1013 }
+body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #0e1013 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 24px; background-color: #111419 }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 24px; height: 24px; border: 1px solid #262b33; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
 header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
@@ -58,15 +58,15 @@ aside.rail › div.rail-section:nth(1) › p.sr-only[role=status] { white-space:
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › div.track[role=meter] "Room" { position: relative; height: 10px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
-aside.rail … div.track[role=meter] "Room" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454) }
-aside.rail … div.track[role=meter] "Room" › div.peak { position: absolute }
+aside.rail … div.track[role=meter] "Room" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0.424, 1) }
+aside.rail … div.track[role=meter] "Room" › div.peak { position: absolute; transform: translate(54.77%, 0px) }
 aside.rail … div.track[role=meter] "Room" › div.peak::before { content: ""; display: block; position: absolute; border: none; border-radius: 0px; background-color: #e9ebef; background-image: none; box-shadow: none; opacity: 0.7 }
 aside.rail … div.track[role=meter] "Room" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #0e1013 5px, #0e1013 7px) }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › div.track[role=meter] "Remote" { position: relative; height: 10px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
-aside.rail … div.track[role=meter] "Remote" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454) }
-aside.rail … div.track[role=meter] "Remote" › div.peak { position: absolute }
+aside.rail … div.track[role=meter] "Remote" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0.566, 1) }
+aside.rail … div.track[role=meter] "Remote" › div.peak { position: absolute; transform: translate(70.71%, 0px) }
 aside.rail … div.track[role=meter] "Remote" › div.peak::before { content: ""; display: block; position: absolute; border: none; border-radius: 0px; background-color: #e9ebef; background-image: none; box-shadow: none; opacity: 0.7 }
 aside.rail … div.track[role=meter] "Remote" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #0e1013 5px, #0e1013 7px) }
 aside.rail › div.cost-card { display: flex; flex-direction: column; flex: 0 0 auto; gap: 12px; max-width: 380px; padding: 12px 16px; border: 1px solid #1f242b; border-radius: 4px; background-color: #111419 }
@@ -89,7 +89,7 @@ aside.rail … div.ui-stepper[role=group] "Caption size" › button.ui-tool.sm "
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label { font-size: 12px; color: #c3c9d2; display: grid; gap: 8px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › select "Caption typeface" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › div.palette-options { display: grid; gap: 12px }
 aside.rail … div[role=group] "Caption colour" › span.swatch-label { font-size: 12px; line-height: 1.2; color: #c3c9d2 }
 aside.rail … div[role=group] "Caption colour" › div.swatches { display: flex; gap: 8px; margin: 8px 0px 0px }

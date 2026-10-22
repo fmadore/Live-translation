@@ -1,10 +1,26 @@
 version: 2
 updates:
+  # Groups keep the weekly batch to a few pull requests, each of which runs the full CI. A
+  # dependency goes to the first group that matches it, so the Tauri groups come first.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      # Tauri's JavaScript half. Groups cannot span ecosystems, so its Rust half arrives as
+      # `tauri-cargo` below: merge the two together, since the Tauri CLI refuses to build with
+      # @tauri-apps/api and the tauri crate on different minor versions.
+      tauri-npm:
+        patterns:
+          - "@tauri-apps/*"
+      # Build and test tooling, none of which ships: minor and patch releases in one pull
+      # request. Majors still come one by one.
+      npm-dev-minor-patch:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
     # Runtime/compiler majors must move with the supported toolchain rather than
     # independently: mismatched Node types can expose unavailable APIs, and
     # TypeScript majors require SvelteKit/svelte-check peer support.
@@ -21,7 +37,26 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    groups:
+      # Tauri's Rust half (tauri, tauri-build, tauri-plugin-*); see `tauri-npm` above.
+      tauri-cargo:
+        patterns:
+          - "tauri*"
+      cargo-patch:
+        update-types:
+          - patch
 
+  # The pinned Rust toolchain (rust-toolchain.toml). Each new release comes as its own pull
+  # request, which is where its Clippy's new lints show up rather than on main. Dependabot
+  # edits only that file: in the same pull request, set `rust-version` in
+  # src-tauri/Cargo.toml to the new version.
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Third-party actions are pinned to commit SHAs with the version in a comment; Dependabot
+  # moves both together.
   - package-ecosystem: github-actions
     directory: /
     schedule:

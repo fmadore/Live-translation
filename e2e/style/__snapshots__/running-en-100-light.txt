@@ -4,7 +4,7 @@
 html { font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; height: 100% }
 body { color: #1a1e25; height: 100%; margin: 0px; background-color: #f3f4f6 }
 body › div { display: contents }
-body › div › div.app { display: grid; height: 820px; background-color: #f3f4f6 }
+body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #f3f4f6 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 24px; background-color: #ffffff }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 24px; height: 24px; border: 1px solid #cdd2da; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
 header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
@@ -58,15 +58,15 @@ aside.rail › div.rail-section:nth(1) › p.sr-only[role=status] { white-space:
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #555e6c; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › div.track[role=meter] "Room" { position: relative; height: 10px; overflow: hidden; border: 1px solid #e1e4e9; border-radius: 4px; background-color: #e8ebef }
-aside.rail … div.track[role=meter] "Room" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200) }
-aside.rail … div.track[role=meter] "Room" › div.peak { position: absolute }
+aside.rail … div.track[role=meter] "Room" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200); transform: scale(0.424, 1) }
+aside.rail … div.track[role=meter] "Room" › div.peak { position: absolute; transform: translate(54.77%, 0px) }
 aside.rail … div.track[role=meter] "Room" › div.peak::before { content: ""; display: block; position: absolute; border: none; border-radius: 0px; background-color: #1a1e25; background-image: none; box-shadow: none; opacity: 0.7 }
 aside.rail … div.track[role=meter] "Room" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #f3f4f6 5px, #f3f4f6 7px) }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #555e6c; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › div.track[role=meter] "Remote" { position: relative; height: 10px; overflow: hidden; border: 1px solid #e1e4e9; border-radius: 4px; background-color: #e8ebef }
-aside.rail … div.track[role=meter] "Remote" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200) }
-aside.rail … div.track[role=meter] "Remote" › div.peak { position: absolute }
+aside.rail … div.track[role=meter] "Remote" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200); transform: scale(0.566, 1) }
+aside.rail … div.track[role=meter] "Remote" › div.peak { position: absolute; transform: translate(70.71%, 0px) }
 aside.rail … div.track[role=meter] "Remote" › div.peak::before { content: ""; display: block; position: absolute; border: none; border-radius: 0px; background-color: #1a1e25; background-image: none; box-shadow: none; opacity: 0.7 }
 aside.rail … div.track[role=meter] "Remote" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #f3f4f6 5px, #f3f4f6 7px) }
 aside.rail › div.cost-card { display: flex; flex-direction: column; flex: 0 0 auto; gap: 12px; max-width: 380px; padding: 12px 16px; border: 1px solid #e1e4e9; border-radius: 4px; background-color: #ffffff }
@@ -89,7 +89,7 @@ aside.rail … div.ui-stepper[role=group] "Caption size" › button.ui-tool.sm "
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label { font-size: 12px; color: #394150; display: grid; gap: 8px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › select "Caption typeface" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #cdd2da; border-radius: 4px }
-aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › div.palette-options { display: grid; gap: 12px }
 aside.rail … div[role=group] "Caption colour" › span.swatch-label { font-size: 12px; line-height: 1.2; color: #394150 }
 aside.rail … div[role=group] "Caption colour" › div.swatches { display: flex; gap: 8px; margin: 8px 0px 0px }
@@ -140,14 +140,14 @@ div.stage-panel[role=tabpanel] "Live" › div.stage-head › span.stage-note { f
 div.stage-panel[role=tabpanel] "Live" › div.turns { display: flex; flex-direction: column; flex: 0 0 auto; margin: 8px 0px 0px }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) { display: grid; grid-template-columns: 96px minmax(0px, 1fr); gap: 16px; padding: 24px 0px; border-bottom: 1px solid #e1e4e9 }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-who { display: flex; flex-direction: column; gap: 8px; padding: 4px 0px 0px }
-div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-who › span.origin-chip.microphone { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #2356b8; display: block; padding: 4px 8px; border-radius: 4px; background-color: rgba(47, 111, 224, 0.14) }
+div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-who › span.origin-chip.microphone { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #2356b8; display: block; align-self: flex-start; padding: 4px 8px; border-radius: 4px; background-color: rgba(47, 111, 224, 0.14) }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-who › span.origin-sub { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1; color: #555e6c; display: block }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-text { display: flex; flex-direction: column; gap: 8px; max-width: 550.08px }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-text › p.turn-source { font-size: 13px; line-height: 1.5; text-wrap-style: pretty; color: #555e6c; margin: 0px }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(1) › div.turn-text › p.turn-caption { font-size: 27px; font-weight: 600; line-height: 1.3; letter-spacing: -0.405px; text-wrap-style: pretty; color: #394150; margin: 0px }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) { display: grid; grid-template-columns: 96px minmax(0px, 1fr); gap: 16px; padding: 24px 0px; border-bottom: 1px solid #e1e4e9 }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-who { display: flex; flex-direction: column; gap: 8px; padding: 4px 0px 0px }
-div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-who › span.origin-chip.system { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #394150; display: block; padding: 4px 8px; border-radius: 4px; background-color: #e8ebef }
+div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-who › span.origin-chip.system { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #394150; display: block; align-self: flex-start; padding: 4px 8px; border-radius: 4px; background-color: #e8ebef }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-who › span.origin-sub { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1; color: #555e6c; display: block }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-text { display: flex; flex-direction: column; gap: 8px; max-width: 550.08px }
 div.stage-panel[role=tabpanel] "Live" › div.turns › article.turn:nth(2) › div.turn-text › p.turn-source { font-size: 13px; line-height: 1.5; text-wrap-style: pretty; color: #555e6c; margin: 0px }

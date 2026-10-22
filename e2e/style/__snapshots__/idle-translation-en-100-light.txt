@@ -4,7 +4,7 @@
 html { font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; height: 100% }
 body { color: #1a1e25; height: 100%; margin: 0px; background-color: #f3f4f6 }
 body › div { display: contents }
-body › div › div.app { display: grid; height: 820px; background-color: #f3f4f6 }
+body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #f3f4f6 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 24px; background-color: #ffffff }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 24px; height: 24px; border: 1px solid #cdd2da; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
 header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
@@ -28,10 +28,10 @@ aside.rail { display: flex; flex-direction: column; gap: 16px; overflow: auto; p
 aside.rail › section.profiles "Meeting profiles" { font-size: 12px; color: #394150; min-width: 0px; max-width: 380px; padding: 0px 0px 16px; border-bottom: 1px solid #e1e4e9 }
 aside.rail … section.profiles "Meeting profiles" › div.picker { display: grid; align-items: stretch; grid-template-columns: minmax(0px, 1fr) auto; gap: 8px }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field { display: contents; gap: 8px; min-width: 0px }
-aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span { display: block }
+aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span { display: block; grid-column: 1 / -1 }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › select "Meeting profiles" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #cdd2da; border-radius: 4px }
-aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail … section.profiles "Meeting profiles" › div.picker › button.ui-tool "Manage profiles" { font-weight: 500; line-height: 1; text-align: center; display: grid; align-items: center; justify-content: center; gap: 8px; width: 36px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #cdd2da; border-radius: 4px; background-color: #e8ebef }
 aside.rail … button.ui-tool "Manage profiles" › svg { display: block; width: 14px; height: 14px }
 aside.rail › section.rail-section:nth(1) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }
@@ -72,13 +72,13 @@ aside.rail › section.rail-section:nth(2) › label.ui-field { font-size: 12px;
 aside.rail › section.rail-section:nth(2) › label.ui-field › span { display: block }
 aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › select "Microphone device" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #cdd2da; border-radius: 4px }
-aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail › section.rail-section:nth(2) › button.ui-tool "Refresh devices" { font-size: 12px; font-weight: 500; line-height: 1; text-align: center; color: #394150; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #cdd2da; border-radius: 4px; background-color: #e8ebef }
 aside.rail › section.rail-section:nth(2) › div.meters { display: flex; flex-direction: column; gap: 8px; margin: 8px 0px 0px }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #555e6c; display: block }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › div.track[role=meter] "Room mic" { position: relative; height: 8px; overflow: hidden; border: 1px solid #e1e4e9; border-radius: 4px; background-color: #e8ebef }
-aside.rail … div.track[role=meter] "Room mic" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200) }
+aside.rail … div.track[role=meter] "Room mic" › div.fill { position: absolute; background-image: linear-gradient(90deg, #0b7550, #0b7550 78%, #995200); transform: scale(0, 1) }
 aside.rail … div.track[role=meter] "Room mic" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #f3f4f6 5px, #f3f4f6 7px) }
 aside.rail › div.divider:nth(2) { flex: 0 0 auto; max-width: 380px; height: 1px; background-color: #e1e4e9 }
 aside.rail › section.rail-section:nth(3) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }
@@ -95,7 +95,7 @@ aside.rail › section.rail-section:nth(3) › label.ui-field { font-size: 12px;
 aside.rail › section.rail-section:nth(3) › label.ui-field › span { display: block }
 aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › select "Second caption language" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #cdd2da; border-radius: 4px }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px }
+aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › svg { color: #555e6c; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail › section.rail-section:nth(3) › p.hint { font-size: 12px; line-height: 1.5; color: #555e6c; margin: 0px }
 aside.rail › div.divider:nth(3) { flex: 0 0 auto; max-width: 380px; height: 1px; background-color: #e1e4e9 }
 aside.rail › section.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }

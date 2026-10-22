@@ -13,9 +13,17 @@ on:
 permissions:
   contents: read
 
+# A pull request's new push supersedes its running checks. A push to main never does: with one
+# group for main, a second merge within minutes cancelled the release merge's run (or, queued
+# behind it, could be replaced by a third), leaving the commit to tag without a green run. So
+# each main commit gets a group of its own and runs to the end.
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # dtolnay/rust-toolchain used to set this; rustup, which installs the toolchain now, does not.
+  CARGO_TERM_COLOR: always
 
 jobs:
   frontend:
@@ -27,7 +35,11 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
+      # No job in this workflow pushes, so no checkout leaves the token in .git/config for a
+      # later step (or a compromised dependency) to read.
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -43,7 +55,8 @@ jobs:
       - name: svelte-check
         run: npm run check
 
-      # What svelte-check cannot see: unhandled promises, unkeyed lists, reactive loops.
+      # What svelte-check cannot see: unhandled promises, unkeyed lists, reactive loops, a
+      # switch that misses a case of a union, a stale svelte-ignore, {@html}.
       - name: eslint
         run: npm run lint
 
@@ -75,8 +88,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=moderate
 
   rust:
-    # No `needs: frontend`: this job builds the frontend it embeds itself, so waiting for the
-    # frontend checks only delayed the slow Windows lane.
+    # No `needs: frontend`: waiting for the frontend checks only delayed the slow Windows lanes,
+    # and nothing here uses their output.
     # The Windows lane is essential: the WASAPI loopback implementation is behind
     # cfg(windows), so an Ubuntu-only job never even compiles the event-day audio path.
     strategy:
@@ -84,23 +97,30 @@ jobs:
       matrix:
         # Exercise the portable logic and both supported Windows architectures, including
         # native WASAPI and Win32/WinRT bindings. Packaging still runs in release.yml.
-        os: [ubuntu-latest, windows-latest, windows-11-arm]
+        # Ubuntu by version, not `ubuntu-latest`: this lane apt-installs WebKitGTK 4.1 and GTK 3
+        # by package name, and `ubuntu-latest` moving to a new release (26.04, from 19 October
+        # 2026) can rename or drop them under it. Move it on purpose, with those packages.
+        os: [ubuntu-24.04, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-
-      # `tauri::generate_context!()` validates and embeds `frontendDist` during Rust
-      # compilation, so the production frontend must exist even for Clippy and tests.
-      - uses: actions/setup-node@v7
         with:
-          node-version: 24
-          cache: npm
+          persist-credentials: false
 
-      - run: npm ci
-
-      - name: Build frontend for Tauri context
-        run: npm run build
+      # `tauri::generate_context!()` embeds `frontendDist` (`../build`) when the crate compiles
+      # with `custom-protocol`, which `--all-features` turns on, and fails if the folder is
+      # missing. Nothing this job runs reads what is in it: Clippy and the tests open no window
+      # and serve no asset, and the only files the Rust code includes or opens are sources
+      # (`src/lib/*.json`, the capability files, `tauri.conf.json`) and the audio fixtures in
+      # src-tauri/resources/. So a one-page stub stands in for `npm ci` and `npm run build`,
+      # which cost the ARM64 lane, the slowest, 2–2.5 minutes a run. The e2e job and
+      # release.yml embed the real build.
+      - name: Stub the frontend for the Tauri context
+        shell: bash
+        run: |
+          mkdir -p build
+          printf '%s\n' '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Live Translation</title></head><body></body></html>' > build/index.html
 
       - name: Install Tauri system dependencies
         if: runner.os == 'Linux'
@@ -119,11 +139,13 @@ jobs:
           "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # llvm-tools for the instrumented test run on the Ubuntu lane.
-          components: ${{ runner.os == 'Linux' && 'rustfmt, clippy, llvm-tools-preview' || 'rustfmt, clippy' }}
+      # The version, components and targets pinned in rust-toolchain.toml, which rustup reads
+      # from the working directory. llvm-tools is for the Ubuntu lane's instrumented tests.
+      - name: Install Rust (rust-toolchain.toml)
+        shell: bash
+        run: |
+          rustup toolchain install
+          if [ "$RUNNER_OS" = Linux ]; then rustup component add llvm-tools-preview; fi
 
       - name: Install cargo-llvm-cov
         if: runner.os == 'Linux'
@@ -132,7 +154,7 @@ jobs:
           tool: cargo-llvm-cov@0.9.1
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           # Bump when `.cargo/config.toml` changes: whisper-rs-sys does not rebuild ggml when
@@ -140,6 +162,10 @@ jobs:
           prefix-key: whisper-cpu-${{ runner.arch }}-v2
           # Preserve the native dependency build when an app lint/test fails.
           cache-on-failure: true
+          # Only main saves. A pull request can restore main's cache but not another pull
+          # request's, so what each one saved (about 660 MB on the ARM64 lane) only pushed
+          # main's entries out of the 10 GB the repository gets.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: rustfmt
         run: cargo fmt --check
@@ -166,6 +192,9 @@ jobs:
 
       # The smoke test copies a cached model whose hash matches the pin instead of downloading
       # it again (38–104 s a run); the real download path has its own tests on a local server.
+      # Unlike the Rust cache, pull requests may save this one: it is saved only on a miss and
+      # its key changes only with the model pin, so it is 31 MiB once per pin, and a pull
+      # request that changes the pin would otherwise download the model on every push.
       - name: Cache the smoke-test Whisper model
         uses: actions/cache@v6
         with:
@@ -242,6 +271,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -274,6 +305,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -296,17 +329,20 @@ jobs:
           "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
           "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
 
-      - name: Install Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      # As in the rust job: what rust-toolchain.toml pins.
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
 
       - name: Cache Rust build
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           # The rust job's prefix, so bumping it there for `.cargo/config.toml` clears this one
           # too; the job name keeps the two caches apart.
           prefix-key: whisper-cpu-${{ runner.arch }}-v2
           cache-on-failure: true
+          # Only main saves, as in the rust job.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # The Tiny model the smoke test caches, when there is one: the Whisper spec copies it in
       # rather than downloading it through the interface. Restored only; the rust job saves it.
@@ -339,21 +375,36 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # By digest, like the SHA-pinned actions: a tag can be moved, a digest cannot. Dependabot
+      # does not update `docker://` references, so take the new digest from Docker Hub when
+      # moving to a new actionlint.
       - name: actionlint
-        uses: docker://rhysd/actionlint:1.7.12
+        uses: docker://rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 # 1.7.12
         with:
           args: -color
 
+  # RustSec advisories against src-tauri/Cargo.lock, with the Linux-only ones that cannot reach
+  # the Windows app ignored, each with its reason, in src-tauri/.cargo/audit.toml. A prebuilt,
+  # checksum-verified cargo-audit rather than rustsec/audit-check, which compiled it on every
+  # run (about 3 minutes) and targets Node 20.
   rust-security:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    permissions:
-      contents: read
-      checks: write
     steps:
       - uses: actions/checkout@v7
-      - name: RustSec audit
-        uses: rustsec/audit-check@v2.0.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          working-directory: src-tauri
+          persist-credentials: false
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
+        with:
+          tool: cargo-audit@0.22.2
+
+      # `cargo-audit audit` is what `cargo audit` runs. Called directly because `cargo` is a
+      # rustup proxy that would first install the whole pinned toolchain, which reading a
+      # lockfile does not need. Fails on a vulnerability; warnings are listed in the log.
+      - name: RustSec audit
+        run: cargo-audit audit
+        working-directory: src-tauri

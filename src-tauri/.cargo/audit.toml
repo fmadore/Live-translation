@@ -1,0 +1,29 @@
+# cargo-audit's settings. It reads `./.cargo/audit.toml` from the directory it runs in, not
+# from the parents as cargo does, and every cargo command here runs from src-tauri/, so this
+# sits beside Cargo.lock rather than in the root .cargo/ next to config.toml.
+#
+# Cargo.lock lists the dependencies of every platform, so the audit also reports crates that
+# only Linux builds compile: the CI lane that checks the portable code builds against GTK and
+# D-Bus. Each advisory below is reached only through a dependency declared for Linux and the
+# BSDs (checked edge by edge against the crates.io index for the locked versions): none of
+# these crates is compiled into the Windows app. To check again after a dependency update,
+# `cargo tree --target x86_64-pc-windows-msvc -i <crate>` from src-tauri/ should find nothing
+# for each one; remove the entry when the crate leaves Cargo.lock.
+[advisories]
+ignore = [
+    # zbus_names, zvariant and zvariant_derive are unmaintained: merged into zbus 6. They come
+    # from zbus 5, which keyring 4 uses for the Secret Service on Linux
+    # (`cfg(all(unix, not(any(target_os = "macos", …))))`) and tauri-plugin-single-instance
+    # uses for D-Bus on Linux (`cfg(target_os = "linux")`). On Windows, keyring uses the
+    # Credential Manager and the plugin a named mutex and window messages.
+    "RUSTSEC-2026-0371", # zbus_names
+    "RUSTSEC-2026-0370", # zvariant
+    "RUSTSEC-2026-0372", # zvariant_derive
+    # glib 0.18: `VariantStrIter` is unsound. glib comes with GTK 3 and WebKitGTK, which tauri,
+    # tao, wry, muda and tray-icon depend on only for Linux and the BSDs; on Windows the
+    # webview is WebView2.
+    "RUSTSEC-2024-0429",
+    # proc-macro-error is unmaintained. A build-time procedural macro, used only by glib-macros
+    # and gtk3-macros in the same Linux-only GTK tree.
+    "RUSTSEC-2024-0370",
+]

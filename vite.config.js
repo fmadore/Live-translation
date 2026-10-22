@@ -63,12 +63,21 @@ export default defineConfig({
 			include: ['src/**/*.{ts,svelte}'],
 			exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'src/lib/testing/**'],
 			reporter: ['text-summary', 'json-summary', 'html'],
-			// Report-only, except for the pure modules: no Tauri, no DOM, every line reachable from
-			// a plain test, and each fully covered today. A floor there catches a deleted test or a
-			// new untested branch; elsewhere a number would only invite tests written for it.
+			// Per file only for the pure modules: no Tauri, no DOM, every line reachable from a
+			// plain test, and each fully covered today. A floor there catches a deleted test or a
+			// new untested branch; elsewhere a per-file number would only invite tests written for
+			// it.
 			thresholds: {
 				'src/lib/{appearance,captionColour,captionLayout,cleanSpeech,document,errors,glossary,historySearch,languages,reading,shortcuts,transcript}.ts':
-					{ perFile: true, lines: 95, statements: 95, functions: 95, branches: 85 }
+					{ perFile: true, lines: 95, statements: 95, functions: 95, branches: 85 },
+				// The whole of `src`, a point or so under the totals of 22 October 2026 (90.97% of
+				// lines, 90.32% of statements, 87.76% of functions, 84.21% of branches). A ratchet
+				// against a total that falls, not a target: raise it when the totals rise, and never
+				// write a test just to clear it.
+				lines: 90,
+				statements: 89,
+				functions: 87,
+				branches: 83
 			}
 		},
 		projects: [
@@ -94,6 +103,10 @@ export default defineConfig({
 					// ordinary way: sharing a context there lets `vi.mock` leak between files.
 					pool: 'vmThreads',
 					clearMocks: true,
+					// The first test in a file pays for compiling the page it mounts, about half a
+					// second alone but past Vitest's 5 s default on a machine busy with a Rust
+					// build. A hang still fails, just later.
+					testTimeout: 15_000,
 					include: ['src/**/*.svelte.test.ts'],
 					setupFiles: ['./vitest-setup-client.ts']
 				}

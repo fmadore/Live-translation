@@ -194,13 +194,14 @@ This verifies packaging, not installed-app behaviour or certification.
 ## The route
 
 1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml` and
-   `src-tauri/tauri.conf.json`, and synchronize the root app versions in `package-lock.json`
-   and `src-tauri/Cargo.lock`. All three manifests must match and be **higher than the
-   version already in the Store** — Partner Center rejects a package that does not increase.
-   The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z`, with
-   the release body in `docs/release-X.Y.Z.md` ([`release-notes.md`](release-notes.md) has the
-   register). The body has to be **in the tagged commit**: the workflow publishes it from
-   there, and refuses a plain tag without it.
+   `src-tauri/tauri.conf.json`, synchronize the root app versions in `package-lock.json`
+   and `src-tauri/Cargo.lock`, and set `version` and `date-released` in `CITATION.cff`.
+   `npm test` fails until all six files agree (`src/lib/version.test.ts`). All three manifests
+   must match and be **higher than the version already in the Store** — Partner Center
+   rejects a package that does not increase. The first segment can never be `0`. Commit them
+   together as `chore(release): X.Y.Z`, with the release body in `docs/release-X.Y.Z.md`
+   ([`release-notes.md`](release-notes.md) has the register). The body has to be **in the
+   tagged commit**: the workflow publishes it from there, and refuses a plain tag without it.
 2. **Tag and push after manual testing**: `git tag vX.Y.Z` then `git push origin vX.Y.Z`,
    with the tested version; never reuse a published tag. The
    [`Release installers`](../.github/workflows/release.yml) workflow first checks that the tag

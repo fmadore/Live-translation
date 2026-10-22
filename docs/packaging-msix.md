@@ -124,7 +124,7 @@ for release packages: build with the normal committed configuration and complete
 
 ## Prerequisites
 
-- **Rust stable (1.90 or newer)** with both Store targets: `rustup target add x86_64-pc-windows-msvc aarch64-pc-windows-msvc`.
+- **Rust through rustup.** `rust-toolchain.toml` at the repository root pins the version and lists both Store targets, so rustup installs them with the toolchain on the first `cargo` or `tauri` command.
 - **Windows SDK**, for `MakeAppx.exe` (packing) and `SignTool.exe` (signing). Installed by
   the Visual Studio "Desktop development with C++" workload or the standalone SDK. Nothing
   needs to be on `PATH`: the packer resolves the SDK through
