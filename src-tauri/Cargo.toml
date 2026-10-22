@@ -52,7 +52,7 @@ whisper-rs-sys = "=0.15.0"
 # The same 0.13 Tauri already compiles. SChannel like the WebSockets, and `system-proxy` so
 # model downloads follow the Windows proxy setting that university networks often require.
 reqwest = { version = "0.13", default-features = false, features = ["native-tls", "system-proxy"] }
-sha2 = "0.10"
+sha2 = "0.11"
 tempfile = "3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
