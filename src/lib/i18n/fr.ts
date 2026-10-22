@@ -407,6 +407,7 @@ export const fr: Messages = {
 		refresh: 'Actualiser',
 		empty: 'Aucune session enregistrée.',
 		failed: 'Impossible de mettre à jour l’historique.',
+		actionFailed: 'La dernière action sur cette session n’a pas abouti.',
 		auto: 'Langue détectée automatiquement',
 		sameLanguage: 'Sous-titres dans la même langue',
 		unfinished: 'En cours ou interrompue · durée au dernier enregistrement',

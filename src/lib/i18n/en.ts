@@ -402,6 +402,8 @@ export const en = {
 		refresh: 'Refresh',
 		empty: 'No saved sessions yet.',
 		failed: 'Transcript history could not be updated.',
+		/** In front of a failed copy, export, rename or delete; `failed` is for the listing. */
+		actionFailed: 'The last action on this session did not complete.',
 		auto: 'Auto-detected speech',
 		sameLanguage: 'Same-language captions',
 		unfinished: 'In progress or interrupted · duration through last save',

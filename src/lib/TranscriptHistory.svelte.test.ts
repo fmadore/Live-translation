@@ -213,6 +213,84 @@ it('words a failed export from a saved session', async () => {
 	view.unmount();
 });
 
+// Review U13: a failed copy, export, rename or delete was headed "Transcript history could not
+// be updated.", which is what a failed listing says.
+it('heads a failed action on a session apart from a failed listing', async () => {
+	const headline = 'The last action on this session did not complete.';
+	vi.mocked(api.saveTranscript).mockRejectedValue({
+		id: 'error.transcriptWrite',
+		detail: 'D:\\Docs — Access is denied.'
+	});
+	const writeText = vi.fn().mockRejectedValue(new Error('Clipboard blocked'));
+	Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+	const locked = { id: 'error.historyStorage', detail: 'C:\\History — in use' };
+	const rename = vi.spyOn(sessionHistory, 'rename').mockRejectedValue(locked);
+	const deletion = vi.spyOn(sessionHistory, 'delete').mockRejectedValue(locked);
+	const view = render(TranscriptHistory);
+	// As it reads: the markup's line breaks collapse on screen.
+	const text = (element: HTMLElement) => element.textContent?.replace(/\s+/g, ' ').trim();
+	const alert = () => text(view.getByRole('alert'));
+	try {
+		await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+		await fireEvent.click(view.container.querySelector('.session')!);
+
+		await fireEvent.click(view.getByRole('button', { name: 'Save as…' }));
+		await waitFor(() =>
+			expect(alert()).toBe(
+				`${headline} The transcript could not be written (D:\\Docs — Access is denied.)`
+			)
+		);
+		await fireEvent.click(view.getByRole('button', { name: 'Copy transcript' }));
+		await waitFor(() => expect(alert()).toBe(`${headline} Clipboard blocked`));
+		await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Workshop' } });
+		await fireEvent.click(view.getByRole('button', { name: 'Save title' }));
+		const storage = `${headline} The history folder could not be read or changed (C:\\History — in use)`;
+		await waitFor(() => expect(rename).toHaveBeenCalled());
+		await waitFor(() => expect(alert()).toBe(storage));
+		await fireEvent.click(view.getByRole('button', { name: 'Delete' }));
+		await fireEvent.click(view.getByRole('button', { name: 'Delete permanently' }));
+		await waitFor(() => expect(deletion).toHaveBeenCalledWith(saved.id));
+		await waitFor(() => expect(alert()).toBe(storage));
+
+		// Worded where it is shown, so it follows a change of language.
+		locale.set('fr');
+		await waitFor(() =>
+			expect(alert()).toContain('La dernière action sur cette session n’a pas abouti.')
+		);
+		locale.set('en');
+		await waitFor(() => expect(alert()).toBe(storage));
+
+		// A listing that fails keeps its own headline, beside the action's.
+		vi.mocked(api.listHistory).mockRejectedValue(new Error('Access denied'));
+		await fireEvent.click(view.getByRole('button', { name: 'Refresh' }));
+		await waitFor(() => expect(view.getAllByRole('alert')).toHaveLength(2));
+		expect(text(view.getAllByRole('alert')[0])).toBe(
+			'Transcript history could not be updated. Access denied'
+		);
+		expect(text(view.getAllByRole('alert')[1])).toBe(storage);
+
+		// The action's headline says "this session", so it goes with the selection.
+		await fireEvent.click(view.container.querySelector('.session')!);
+		expect(view.getAllByRole('alert')).toHaveLength(1);
+		expect(alert()).not.toContain(headline);
+	} finally {
+		rename.mockRestore();
+		deletion.mockRestore();
+		view.unmount();
+		locale.set('en');
+	}
+});
+
+// Review U11: durations were written m:ss, so a two-hour session read "121:05".
+it('writes a long session’s duration in hours', async () => {
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: saved.id, contents: JSON.stringify({ ...saved, durationMs: 7_265_000 }) })
+	);
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.getByText(/^2:01:05 · /)).toBeInTheDocument());
+	view.unmount();
+});
+
 it('searches titles, original source and translated text with inclusive local dates', () => {
 	const filter = { query: 'BONJOUR', from: '', to: '', language: 'fr' };
 	expect(matchesSession(saved, filter)).toBe(true);

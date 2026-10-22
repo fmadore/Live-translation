@@ -406,6 +406,7 @@ export const de: Messages = {
 		refresh: 'Aktualisieren',
 		empty: 'Noch keine gespeicherten Sitzungen.',
 		failed: 'Der Transkriptverlauf konnte nicht aktualisiert werden.',
+		actionFailed: 'Die letzte Aktion für diese Sitzung ist fehlgeschlagen.',
 		auto: 'Automatisch erkannte Sprache',
 		sameLanguage: 'Gleichsprachige Untertitel',
 		unfinished: 'Laufend oder unterbrochen · Dauer bis zur letzten Speicherung',
