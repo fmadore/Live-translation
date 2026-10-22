@@ -2,7 +2,9 @@ name: Dependency audit
 
 # The pull-request gate in ci.yml audits only the npm packages that ship. This is the full
 # audit, dev tooling included, once a week: a dev-only advisory still gets seen, without
-# failing pull requests that did not cause it. RustSec still runs on every pull request.
+# failing pull requests that did not cause it. RustSec runs on every pull request too, and here
+# as well, so an advisory published in a quiet week is caught without waiting for a pull
+# request.
 
 on:
   schedule:
@@ -18,6 +20,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -26,3 +30,24 @@ jobs:
       # npm audit reads the lockfile; nothing needs installing.
       - name: npm audit (all dependencies, moderate and above)
         run: npm audit --audit-level=moderate
+
+  # The same check as ci.yml's rust-security job, with the same ignores
+  # (src-tauri/.cargo/audit.toml).
+  rust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
+        with:
+          tool: cargo-audit@0.22.2
+
+      # Not `cargo audit`: `cargo` is a rustup proxy that would first install the toolchain
+      # rust-toolchain.toml pins, which reading a lockfile does not need.
+      - name: RustSec audit
+        run: cargo-audit audit
+        working-directory: src-tauri

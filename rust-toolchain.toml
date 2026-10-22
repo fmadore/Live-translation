@@ -1,0 +1,22 @@
+# The one Rust toolchain for this repository: CI's Rust lanes, the e2e build, the release builds
+# and local work. Here at the root rather than in src-tauri/ because rustup looks in the current
+# directory and its parents, so this covers cargo run from src-tauri/ as well as the Tauri CLI
+# and Swatinem/rust-cache (which reads `rustc -vV`) run from the root.
+#
+# Pinned rather than `stable`, and bumped on purpose: CI runs Clippy with `-D warnings`, and a
+# new release's lints used to be able to turn CI red on the day it shipped. Dependabot proposes
+# each new release as its own pull request (the `rust-toolchain` entry in
+# .github/dependabot.yml), so the new lints show up there, not on main. It only edits this
+# file: set `rust-version` in src-tauri/Cargo.toml to the same version in that pull request,
+# since this is the only version CI tests.
+[toolchain]
+channel = "1.99.1"
+# rustc, cargo and the standard library, without the local documentation the default profile
+# downloads on every CI run.
+profile = "minimal"
+# `cargo fmt --check` and Clippy. Anything only one job needs (llvm-tools for the Ubuntu lane's
+# coverage) is added by that job.
+components = ["clippy", "rustfmt"]
+# Both architectures the app ships for, so either machine can build the other's package (the
+# x64 build on an ARM64 machine, for instance). rustup adds the host's own target anyway.
+targets = ["x86_64-pc-windows-msvc", "aarch64-pc-windows-msvc"]
