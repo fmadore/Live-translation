@@ -25,6 +25,7 @@ Releases without prepared text keep an empty body.
 
 | Release | Date | Body | Summary |
 | --- | --- | --- | --- |
+| [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 22 October 2026 | [release-1.9.0.md](release-1.9.0.md) | A light theme that follows Windows' app mode by default, and the fixes of the 22 October review: an overlay that survives Alt+F4, keys that fail once, causes that reach the operator. |
 | [v1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) | 21 October 2026 | [release-1.8.0.md](release-1.8.0.md) | Read and copy the transcript during a session; Mistral subtitles on Voxtral Realtime 3, with lines that end at the speaker's turn and a names-and-terms list. |
 | [v1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) | 20 October 2026 | [release-1.7.1.md](release-1.7.1.md) | 1.7.0 with the taskbar and Start icon shown without an accent-coloured plate. |
 | [v1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) | 20 October 2026 | [release-1.7.0.md](release-1.7.0.md) | Offline Whisper translation into English, an overlay that reopens where it was placed and survives a display being unplugged, and cloud sessions that reconnect instead of ending. |
