@@ -1,6 +1,6 @@
 name: Release installers
 
-# Builds the x64 one-click installers and attaches them to the GitHub release, then packages
+# Builds the x64 one-click installers and attaches them to a draft GitHub release, then packages
 # native x64 and ARM64 MSIX packages and combines them into one unsigned multi-architecture
 # .msixbundle for the Microsoft Store (see docs/microsoft-store.md, docs/packaging-msix.md
 # and docs/store-updates.md).
@@ -11,9 +11,17 @@ name: Release installers
 # Release assets: Live.Translation_<version>_<arch>.msix  — sideload/verification packages
 #                 Live.Translation_<version>.msixbundle   — the Store submission artifact
 #
-# Normal flow:   git tag v0.1.2 && git push origin v0.1.2  -> builds + publishes.
-# Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass
-# an existing tag (e.g. v0.1.1) to add the other platforms' installers to it.
+# Normal flow:   git tag v0.1.2 && git push origin v0.1.2. `prepare` checks the tag against
+# the version files and creates the release as a draft; `build` attaches the installers, `msix`
+# the x64 and ARM64 packages and `bundle` the Store bundle. Only then does `bundle` publish the
+# release, with docs/release-<version>.md from the tagged commit as its body. Until that last
+# step nothing is public, so a failed job leaves a draft to re-run rather than a spent version.
+# A hyphenated tag (v1.0.0-rc1, v0.5.4-arm64-check) is a pre-release or a build validation: it
+# gets the same assets in a draft prerelease, which stays unpublished until a human promotes it.
+#
+# Backfill a tag: run this workflow manually (Actions tab -> Run workflow) and pass an existing
+# tag (e.g. v0.1.1) to rebuild and re-attach its assets. A release that is already published
+# keeps its title, body and state; only its assets are replaced.
 #
 # Submitting the bundle to the Store is done by hand in Partner Center — the submission API is
 # a Company-account feature and this is an Individual account. docs/store-updates.md has the
@@ -37,7 +45,125 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Cheap checks before an hour of Windows build time, then the one release every later job
+  # uploads to. Three files carry the version: the bundle takes its name and /bv from
+  # package.json, the MSIX packages theirs from tauri.conf.json, and Cargo.toml has the crate's
+  # own. A tag or a file that disagrees with the others would ship mislabelled packages.
+  prepare:
+    name: Version check and draft release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Check the tag against the version files
+        id: version
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          package=$(jq -r .version package.json)
+          tauri=$(jq -r .version src-tauri/tauri.conf.json)
+          # The first `version =` under [package], not a dependency's.
+          cargo=$(awk -F'"' '/^\[/ { in_package = /^\[package\]/ } in_package && /^version[[:space:]]*=/ { print $2; exit }' src-tauri/Cargo.toml)
+
+          if [ "$package" != "$tauri" ] || [ "$package" != "$cargo" ]; then
+            echo "::error::The version files disagree: package.json says $package, src-tauri/tauri.conf.json $tauri and src-tauri/Cargo.toml ${cargo:-no [package] version}. Bump all three together."
+            exit 1
+          fi
+
+          # A suffix after a hyphen is allowed: hyphenated tags are validation builds.
+          case "$TAG" in
+            "v$package" | "v$package"-?*) ;;
+            *)
+              echo "::error::Tag $TAG does not match the version files: expected v$package, or v$package-<suffix> for a validation build."
+              exit 1
+              ;;
+          esac
+
+          # A release created for a tag that does not exist would create the tag on publishing,
+          # on the default branch.
+          if ! git ls-remote --exit-code --tags origin "refs/tags/$TAG" > /dev/null; then
+            echo "::error::$TAG is not a tag on GitHub."
+            exit 1
+          fi
+
+          echo "version=$package" >> "$GITHUB_OUTPUT"
+
+      # tauri-action could create the release itself, but not safely here. Given a tag and
+      # releaseDraft, it looks only for a draft, so beside a published release (a backfill) it
+      # opens a second draft and uploads there. Without releaseDraft it overwrites a published
+      # release's title and body with its own inputs, which here were the tag and nothing. So the
+      # release is found or created here, and every job uploads to that one.
+      - name: Find or create the draft release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # GET /releases/tags/{tag} does not return drafts, so list every release instead.
+          listing=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --jq '.[] | [.tag_name, (.id | tostring), (.draft | tostring)] | @tsv')
+          mapfile -t matches < <(awk -F'\t' -v tag="$TAG" '$1 == tag' <<< "$listing")
+
+          case ${#matches[@]} in
+            0) id='' state=none ;;
+            1)
+              IFS=$'\t' read -r _ id draft <<< "${matches[0]}"
+              if [ "$draft" = true ]; then state=draft; else state=published; fi
+              ;;
+            *)
+              # `gh release upload` finds a release by its tag, so two would split the assets.
+              echo "::error::$TAG has ${#matches[@]} releases. Delete the stray draft on the Releases page, then re-run."
+              exit 1
+              ;;
+          esac
+
+          prerelease=false
+          if [[ "$TAG" == *-* ]]; then prerelease=true; fi
+
+          # The `bundle` job publishes a plain tag's release with this file as its body, so it
+          # must be in the tagged commit. A release that is already published keeps its body.
+          notes="docs/release-$VERSION.md"
+          if [ "$prerelease" = false ] && [ "$state" != published ] && [ ! -s "$notes" ]; then
+            echo "::error::$notes is missing or empty in $TAG. It becomes the release body, so it has to be in the tagged commit."
+            exit 1
+          fi
+
+          case $state in
+            none)
+              if [ "$prerelease" = true ]; then
+                title=$TAG
+              else
+                title="Live Translation & Subtitles $VERSION"
+              fi
+              id=$(gh api "repos/$GITHUB_REPOSITORY/releases" \
+                -f tag_name="$TAG" -f name="$title" -F draft=true -F prerelease="$prerelease" \
+                --jq .id)
+              echo "Created draft release $id for $TAG."
+              ;;
+            draft) echo "Reusing draft release $id for $TAG." ;;
+            published)
+              echo "::notice::$TAG is already published; its assets are replaced and its title, body and state are left alone."
+              ;;
+          esac
+
+          # Without an id tauri-action would skip its uploads silently.
+          if ! [[ "$id" =~ ^[0-9]+$ ]]; then
+            echo "::error::No release id for $TAG."
+            exit 1
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -82,18 +208,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build app and publish installers to the release
+      # With a release id, tauri-action skips its own release lookup and only uploads, replacing
+      # assets of the same name. Draft or published is decided by `prepare` and `bundle`.
+      - name: Build app and attach installers to the release
         uses: tauri-apps/tauri-action@action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ inputs.tag || github.ref_name }}
-          releaseName: ${{ inputs.tag || github.ref_name }}
-          # A hyphenated tag (v1.0.0-rc1, v0.5.4-arm64-check) is a pre-release or a build
-          # validation, so it stays an unpublished draft until a human promotes it. Plain
-          # version tags publish as before.
-          releaseDraft: ${{ contains(inputs.tag || github.ref_name, '-') }}
-          prerelease: ${{ contains(inputs.tag || github.ref_name, '-') }}
+          releaseId: ${{ needs.prepare.outputs.release_id }}
           args: --target ${{ matrix.target }}
 
   # Microsoft Store package. Tauri has no MSIX bundle target, so @choochmeque/tauri-windows-bundle
@@ -102,8 +224,9 @@ jobs:
   # populated on windows-latest — nothing to install). The package is left unsigned on purpose:
   # the Store re-signs it, and an unsigned package is what Partner Center expects.
   #
-  # Runs after `build` because it uploads to the release that job creates. Each architecture
-  # has its own Rust cache.
+  # Runs after `build` and uploads to the same release, which is still a draft for a new tag.
+  # `gh release upload` finds a draft by its tag as well as a published release. Each
+  # architecture has its own Rust cache.
   msix:
     name: MSIX package (${{ matrix.arch }})
     needs: build
@@ -249,3 +372,27 @@ jobs:
         run: >-
           gh release upload "${{ inputs.tag || github.ref_name }}"
           "${{ steps.bundle.outputs.bundle }}" --clobber
+
+      # The last step of a release: every asset is attached, so the draft can go public, with the
+      # prepared body from the tagged commit (`prepare` checked it is there). A hyphenated tag is
+      # never published here. A release that is already published (a backfill, or a re-run after
+      # this step) is left as it is, so its body is never rewritten.
+      - name: Publish the release
+        if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          $isDraft = gh release view $env:TAG --json isDraft --jq .isDraft
+          if ($LASTEXITCODE -ne 0) { throw "Could not read the release for $env:TAG." }
+          if ($isDraft -ne 'true') {
+            Write-Output "::notice::$env:TAG is already published; its title and body are left as they are."
+            exit 0
+          }
+
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          gh release edit $env:TAG --draft=false --latest `
+            --title "Live Translation & Subtitles $version" `
+            --notes-file "docs/release-${version}.md"
+          if ($LASTEXITCODE -ne 0) { throw "Publishing $env:TAG failed with exit code $LASTEXITCODE." }

@@ -8,9 +8,10 @@ someone who already has the app, or who is looking at the source. It can name ve
 issues and say what changed under the surface. It should still not be a commit log — the
 commit log is one click away and nobody wants it twice.
 
-Each body is written before tagging, in its own `release-X.Y.Z.md` file. The
-[`Release installers`](../.github/workflows/release.yml) workflow creates the release with an
-empty body; set it once the workflow has finished, so no build job recreates the release first:
+Each body is written before tagging, in its own `release-X.Y.Z.md` file, and committed with the
+version bump. The [`Release installers`](../.github/workflows/release.yml) workflow publishes
+the release with that file, from the tagged commit, as its body once every asset is attached,
+and refuses a plain tag without it. To correct a published body, edit the file and run
 `gh release edit vX.Y.Z --notes-file docs/release-X.Y.Z.md`. Store status for each version is in
 the [Store release history](store-updates.md#release-history).
 
