@@ -33,6 +33,9 @@ in the German history detail). Gemini wording is as returned, not edited.
 ## Recapturing
 
 Re-capture whenever the UI these show changes, from a sideloaded MSIX rather than a dev
-build, and keep the same order and names in every language. Check the current Microsoft
+build, and keep the same order and names in every language. Since 1.9.0 the window follows
+Windows' light or dark app mode by default, so set Settings › App › Theme to **Dark** before
+capturing, whatever mode the capture PC is in: the whole set has to show one theme, and the
+current shots are dark. Check the current Microsoft
 [screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images)
 and the [Store rules](../store-updates.md#screenshots) first.

@@ -94,15 +94,21 @@
 	<p class="hint">
 		{$options.provider === 'whisper-translate' ? $t.whisper.translateHint : $t.whisper.hint}
 	</p>
+	<!-- A live region, so it says the model's state and nothing that ticks: the download is
+	     polled every 500 ms, and the percentage is the progress bar's to carry. -->
 	<p class="hint" role="status">
 		{model?.downloading
-			? `${$t.whisper.downloading} ${percent}%`
+			? $t.whisper.downloading
 			: model?.installed
 				? $t.whisper.ready
 				: $t.whisper.missing}
 	</p>
 	{#if model?.downloading}
-		<progress value={model.downloadedBytes} max={model.bytes} aria-label={$t.whisper.downloading}
+		<progress
+			value={model.downloadedBytes}
+			max={model.bytes}
+			aria-label={$t.whisper.downloading}
+			aria-valuetext="{percent}%"
 		></progress>
 	{/if}
 	<div class="actions">

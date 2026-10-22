@@ -4,7 +4,7 @@
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
 	import { languageName } from './languages';
-	import { locale, t } from './i18n';
+	import { locale, localeTag, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
 	import {
 		estimateSessionCost,
@@ -133,7 +133,7 @@
 			<div class="figure">
 				<span class="chip-label">{$t.cost.estimate}</span>
 				<span class="figure-value mint">
-					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams))}
+					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams), $localeTag)}
 				</span>
 			</div>
 			{#if sources === 2 && !isLocalWhisper($options.provider)}

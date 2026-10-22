@@ -83,13 +83,32 @@ impl Events for Recorder {
 
 /// A provider reduced to its control flow. The server speaks in bare words: `ready` confirms
 /// setup, `text:…` revises the turn, `more:…` extends it as new transcript (restarting the
-/// idle timer), `turnend` marks the end of the speaker's turn, `hold`/`release` say whether
-/// they are mid-sentence, `final` completes the turn, `goaway`/`closed`/`fatal` steer the
-/// connection. The client sends `setup`, `audio:<base64>`, and `end` to start a close drain,
-/// which completes on the next final.
+/// idle timer), `turnend` marks the end of the speaker's turn (`turnend:<ms>` with a grace of
+/// its own), `hold`/`release` say whether they are mid-sentence, `final` completes the turn,
+/// `goaway`/`closed`/`fatal` steer the connection. The client sends `setup`, `audio:<base64>`,
+/// and `end` to start a close drain, which completes on the next final.
 struct Fake {
     url: String,
     hold: bool,
+    /// The setup message cannot be built, as a provider's could not from bad settings.
+    broken_setup: bool,
+}
+
+impl Fake {
+    fn new(url: &str) -> Self {
+        Self {
+            url: url.into(),
+            hold: false,
+            broken_setup: false,
+        }
+    }
+}
+
+fn end_of_turn(grace: Duration) -> MessageOutcome {
+    MessageOutcome {
+        signal: Signal::EndOfTurn(grace),
+        ..MessageOutcome::default()
+    }
 }
 
 impl RealtimeProtocol for Fake {
@@ -104,6 +123,7 @@ impl RealtimeProtocol for Fake {
     }
 
     fn setup_json(&self) -> anyhow::Result<String> {
+        anyhow::ensure!(!self.broken_setup, "the setup could not be serialized");
         Ok("setup".into())
     }
 
@@ -127,10 +147,7 @@ impl RealtimeProtocol for Fake {
         match text {
             "ready" => MessageOutcome::setup_complete(),
             "final" => MessageOutcome::caption(CaptionUpdate::Final),
-            "turnend" => MessageOutcome {
-                signal: Signal::EndOfTurn(TURN_GRACE),
-                ..MessageOutcome::default()
-            },
+            "turnend" => end_of_turn(TURN_GRACE),
             "hold" | "release" => {
                 self.hold = text == "hold";
                 MessageOutcome::default()
@@ -145,6 +162,8 @@ impl RealtimeProtocol for Fake {
                 } else if let Some(text) = text.strip_prefix("more:") {
                     acc.text.push_str(text);
                     MessageOutcome::activity(CaptionUpdate::Interim)
+                } else if let Some(ms) = text.strip_prefix("turnend:") {
+                    end_of_turn(Duration::from_millis(ms.parse().unwrap()))
                 } else {
                     MessageOutcome::default()
                 }
@@ -176,6 +195,10 @@ struct Client {
 
 impl Client {
     fn start(url: &str) -> Self {
+        Self::start_with(Fake::new(url))
+    }
+
+    fn start_with(fake: Fake) -> Self {
         let (recorder, events) = mpsc::unbounded_channel();
         // The producer queue's real size: what a handover can hold without the runner's help.
         let (audio, audio_rx) = mpsc::channel(5);
@@ -183,10 +206,7 @@ impl Client {
         let cancel = CancellationToken::new();
         let task = tokio::spawn(run_session(
             Recorder(recorder),
-            Fake {
-                url: url.into(),
-                hold: false,
-            },
+            fake,
             audio_rx,
             cancel.clone(),
             SessionClock::start(),
@@ -758,6 +778,111 @@ async fn a_held_turn_stays_open_until_released_or_too_long_still() {
     let after = client.expect(final_("Une")).await - spoke;
     assert!(
         after >= MAX_HOLD && after < MAX_HOLD + FINALIZE_AFTER + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    assert!(peer.listen_for(QUIET_BEFORE_CLOSE).await.is_empty());
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
+    client.finished().await;
+}
+
+/// A key with a space or a zero-width character in it made a header (or, for Gemini, a URL)
+/// that could not be built, and the source retried it every 16 seconds for the rest of the
+/// event. Here the address itself has the space.
+#[tokio::test(start_paused = true)]
+async fn a_request_that_cannot_be_built_ends_the_source_without_retrying() {
+    tick_clock();
+    let mut client = Client::start("ws://not a host");
+    client.expect(status(SessionState::Connecting)).await;
+    client
+        .expect(Event::Status(
+            SessionState::Error,
+            Some(id::PROVIDER_REJECTED),
+        ))
+        .await;
+    client.finished().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_setup_that_cannot_be_built_ends_the_source_before_connecting() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        broken_setup: true,
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    client
+        .expect(Event::Status(
+            SessionState::Error,
+            Some(id::PROVIDER_REJECTED),
+        ))
+        .await;
+    client.finished().await;
+    assert!(
+        timeout(Duration::from_secs(1), server.listener.accept())
+            .await
+            .is_err(),
+        "a socket was opened for a setup that could not be sent"
+    );
+}
+
+/// The idle boundary from the turn's last text falls inside the grace that `turn.end` starts.
+/// The turn still waits the grace out: closing at the idle boundary is what left the final
+/// "." on a line of its own.
+#[tokio::test(start_paused = true)]
+async fn the_end_of_a_turn_waits_out_its_grace_when_the_idle_boundary_comes_first() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("more:The last words").await;
+    client.expect(interim("The last words")).await;
+    // The idle boundary is now 300 ms after the `turn.end` below, inside its 480 ms grace.
+    assert!(peer
+        .listen_for(FINALIZE_AFTER - Duration::from_millis(300))
+        .await
+        .is_empty());
+
+    peer.send("turnend").await;
+    let ended = Instant::now();
+    // Past that boundary, and still inside the grace.
+    assert!(peer.listen_for(Duration::from_millis(400)).await.is_empty());
+    peer.send("more:.").await;
+    client.expect(interim("The last words.")).await;
+    let after = client.expect(final_("The last words.")).await - ended;
+    assert!(
+        after >= TURN_GRACE && after < TURN_GRACE + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    assert!(peer.listen_for(QUIET_BEFORE_CLOSE).await.is_empty());
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
+    client.finished().await;
+}
+
+/// Mistral's grace is its streaming delay, which can be 2.4 seconds: longer than the idle
+/// boundary that text arriving inside it would set. That text must not bring the end forward.
+#[tokio::test(start_paused = true)]
+async fn text_inside_a_long_grace_does_not_close_the_turn_early() {
+    const LONG_GRACE: Duration = Duration::from_millis(2_400);
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("more:Une phrase").await;
+    client.expect(interim("Une phrase")).await;
+
+    peer.send("turnend:2400").await;
+    let ended = Instant::now();
+    assert!(peer.listen_for(Duration::from_millis(500)).await.is_empty());
+    peer.send("more: entière.").await;
+    client.expect(interim("Une phrase entière.")).await;
+    let after = client.expect(final_("Une phrase entière.")).await - ended;
+    assert!(
+        after >= LONG_GRACE && after < LONG_GRACE + Duration::from_millis(50),
         "took {after:?}"
     );
 

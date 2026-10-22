@@ -1,11 +1,13 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 import {
 	applyStatus,
 	beginSession,
 	isRunning,
 	micLevel,
+	runningSince,
 	sessionStartedAt,
+	statusMessage,
 	sessionState,
 	streamedMs,
 	pausedTime,
@@ -146,6 +148,87 @@ describe('source failure lifecycle', () => {
 		expect(get(isRunning)).toBe(true);
 		expect(get(sessionStartedAt)).toBe(startedAt);
 		applyStatus({ state: 'idle' });
+	});
+
+	// Review U1: every source failed, so the core still holds that session, and the next start
+	// stops it first. Its whole-session Idle, with its failure, lands after `beginSession`.
+	it('leaves a new run alone when the session its start replaced reports Idle', () => {
+		const failure = { id: 'error.whisperSession', detail: 'decoder stalled' };
+		applyStatus({ state: 'idle' });
+		beginSession();
+		applyStatus({ state: 'running', origin: 'microphone' });
+		applyStatus({ state: 'error', origin: 'microphone', message: failure });
+		expect(get(statusMessage)).toEqual(failure);
+
+		statusMessage.set('');
+		beginSession();
+		const startedAt = get(sessionStartedAt);
+		applyStatus({ state: 'idle', message: failure }, { starting: true });
+		expect(get(sessionStartedAt)).toBe(startedAt);
+		expect(get(statusMessage)).toBe('');
+		applyStatus({ state: 'running', origin: 'system' });
+		expect(get(isRunning)).toBe(true);
+
+		// Once the start has been answered, an Idle is this run's own end again.
+		applyStatus({ state: 'idle' });
+		expect(get(isRunning)).toBe(false);
+		expect(get(sessionStartedAt)).toBeNull();
+	});
+});
+
+// Review U6: the wait for captions is measured from here.
+describe('when a source last came to be running', () => {
+	it('is set as it starts, and again on Resume and after a reconnect', () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		try {
+			vi.setSystemTime(1_000);
+			beginSession();
+			expect(get(runningSince)).toEqual({});
+			applyStatus({ state: 'connecting', origin: 'microphone' });
+			expect(get(runningSince)).toEqual({});
+			vi.setSystemTime(2_000);
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(runningSince)).toEqual({ microphone: 2_000 });
+
+			// Still running: a repeat is not a new start.
+			vi.setSystemTime(3_000);
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(runningSince).microphone).toBe(2_000);
+
+			applyStatus({ state: 'paused', origin: 'microphone' });
+			vi.setSystemTime(90_000);
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(runningSince).microphone).toBe(90_000);
+
+			applyStatus({ state: 'reconnecting', origin: 'microphone' });
+			vi.setSystemTime(95_000);
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(runningSince).microphone).toBe(95_000);
+
+			applyStatus({ state: 'idle' });
+			expect(get(runningSince)).toEqual({});
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('follows the source rather than one of its caption languages', () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		try {
+			vi.setSystemTime(1_000);
+			beginSession();
+			applyStatus({ state: 'running', origin: 'system', lane: 0 });
+			applyStatus({ state: 'running', origin: 'system', lane: 1 });
+			expect(get(runningSince).system).toBe(1_000);
+			// The second language reconnects; the source is not running until it is back.
+			applyStatus({ state: 'reconnecting', origin: 'system', lane: 1 });
+			vi.setSystemTime(40_000);
+			applyStatus({ state: 'running', origin: 'system', lane: 1 });
+			expect(get(runningSince).system).toBe(40_000);
+			applyStatus({ state: 'idle' });
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });
 

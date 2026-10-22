@@ -33,6 +33,15 @@ impl AppError {
             detail: Some(detail.to_string()),
         }
     }
+
+    /// `with`, keeping every cause rather than only the outermost context: "WebSocket connect
+    /// failed" alone cannot say whether it was DNS, TLS, a proxy or a 429, and the cause is
+    /// what makes the report actionable. Anyhow's alternate form, `outer: cause: root`, walks
+    /// the context chain and then each underlying error's `source()`, so a reqwest or keyring
+    /// error inside keeps its own causes too.
+    pub fn chain(id: &'static str, error: &anyhow::Error) -> Self {
+        Self::with(id, format!("{error:#}"))
+    }
 }
 
 impl std::fmt::Display for AppError {
@@ -55,6 +64,10 @@ pub mod id {
     pub const DEVICE_ENUMERATION: &str = "error.deviceEnumeration";
     /// Windows Credential Manager refused a read or a write.
     pub const KEYCHAIN: &str = "error.keychain";
+    /// A pasted API key holds a character no provider key has — whitespace inside it, or
+    /// anything outside printable ASCII — so it was not saved. The detail says which and
+    /// where, never the key.
+    pub const API_KEY_FORMAT: &str = "error.apiKeyFormat";
     /// The bundled demonstration could not be prepared or inspected.
     pub const DEMO_UNAVAILABLE: &str = "error.demoUnavailable";
     /// A session could not be started — bad options, no key, no device.
@@ -125,6 +138,47 @@ mod tests {
         assert_eq!(
             error.detail.as_deref(),
             Some("Access is denied. (0x80070005)")
+        );
+    }
+
+    /// `with` keeps only the outermost context, which is how "model download behind a proxy"
+    /// became a report nobody could act on.
+    #[test]
+    fn a_chain_keeps_every_cause() {
+        let error = anyhow::anyhow!("No such host is known. (os error 11001)")
+            .context("WebSocket connect failed");
+        assert_eq!(
+            AppError::chain(id::PROVIDER_RECONNECTING, &error).detail,
+            Some("WebSocket connect failed: No such host is known. (os error 11001)".into())
+        );
+        assert_eq!(
+            AppError::with(id::PROVIDER_RECONNECTING, &error).detail,
+            Some("WebSocket connect failed".into())
+        );
+    }
+
+    /// A plain `std::error::Error` underneath — reqwest's, keyring's — names its own cause
+    /// through `source()`, and that survives as well.
+    #[test]
+    fn a_chain_walks_the_sources_of_an_error_underneath() {
+        #[derive(Debug)]
+        struct Request(std::io::Error);
+        impl std::fmt::Display for Request {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str("error sending request")
+            }
+        }
+        impl std::error::Error for Request {
+            fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+                Some(&self.0)
+            }
+        }
+
+        let refused = std::io::Error::other("proxy refused the tunnel");
+        let error = anyhow::Error::new(Request(refused)).context("Model download failed");
+        assert_eq!(
+            AppError::chain(id::WHISPER_MODEL, &error).detail,
+            Some("Model download failed: error sending request: proxy refused the tunnel".into())
         );
     }
 }

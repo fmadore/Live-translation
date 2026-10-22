@@ -41,7 +41,7 @@
 		recoveryEnabled,
 		overlayFontSize,
 		noteActivity,
-		sessionStartedAt,
+		describeStatus,
 		pauseRequested,
 		pushCaption,
 		stageView
@@ -58,8 +58,8 @@
 	// available on the very first render — which is what keeps a child like ApiKeyPanel from
 	// mounting and firing a Tauri-only command during `npm run dev`.
 	const browserMode = !isTauri();
-	// Light, dark or Windows' app mode, applied before the first paint rather than after mount so
-	// a light desktop never sees a frame of the dark window. The overlay keeps the dark tokens.
+	// Light, dark or Windows' app mode. `app.html` sets it before the first frame; this keeps it
+	// in step with the setting and with Windows from here on. The overlay keeps the dark tokens.
 	onDestroy(followTheme());
 	const session = createSessionController();
 	const overlay = createOverlayController();
@@ -68,6 +68,7 @@
 		toggleOverlayVisible: () => overlay.toggleOverlayVisible()
 	});
 	const sessionBusy = session.busy;
+	const sessionStarting = session.starting;
 	let profileBusy = $state(false);
 	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
 	// Test audio follows `controlsLocked`, as its button does. A capture failure holds only the
@@ -95,18 +96,23 @@
 	// Ticks only while a session is open.
 	const clock = createSessionClock();
 
-	// True for the duration of a rehearsal run — a session fed by the bundled sample recording
+	// Whether the last launch was a rehearsal — a session fed by the bundled sample recording
 	// instead of live audio. It only ever reaches the backend as one extra field on the start
 	// call: writing it into the options store would persist it, and the next launch would
 	// silently rehearse instead of captioning the room. Declared here because the meter gates
 	// below depend on it.
+	//
+	// Set by every launch and never reset, so it is read only together with `$isRunning`:
+	// nothing about how a run ends, or about the Idle a start receives from the session it
+	// replaces, can take the rehearsal's rail from it while it runs.
 	let rehearsing = $state(false);
+	const rehearsalRunning = $derived(rehearsing && $isRunning);
 
 	// A rehearsal is a single System-origin stream no matter what source is saved, so the
 	// meters follow the fixture rather than showing a dead Room meter. Idle is unaffected
-	// (`rehearsing` is false there, so the pre-flight audio check keeps its semantics).
-	const usesMic = $derived(!rehearsing && $options.source !== 'system');
-	const usesSystem = $derived(rehearsing || $options.source !== 'microphone');
+	// (`rehearsalRunning` is false there, so the pre-flight audio check keeps its semantics).
+	const usesMic = $derived(!rehearsalRunning && $options.source !== 'system');
+	const usesSystem = $derived(rehearsalRunning || $options.source !== 'microphone');
 
 	onMount(() => {
 		if (browserMode) return;
@@ -131,7 +137,7 @@
 				if (l.rms > 0.02 && $isRunning) noteActivity(l.source, 'audio');
 			}),
 			on.status((s) => {
-				applyStatus(s);
+				applyStatus(s, { starting: $sessionStarting });
 				device.noteStatus(s);
 			}),
 			on.devicesChanged(() => void preflight.refresh()),
@@ -170,12 +176,6 @@
 	syncNative({ desktop: !browserMode, overlay, clock });
 
 	// ---- Launching --------------------------------------------------------------
-	// The session's own clock is what settles back after a run: `beginSession()` sets it, and
-	// the whole-session idle status clears it (sessionStatus.ts), so it is null exactly when the
-	// app is back at idle — including after a stop, an error, or a backend-side end of session.
-	$effect(() => {
-		if ($sessionStartedAt === null) rehearsing = false;
-	});
 
 	/** Which language the sample recording should be spoken in. Translation rehearses on the
 	 *  language the room is *not* reading, so the operator sees real translation rather than a
@@ -223,20 +223,20 @@
 
 	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
 	// The buttons are already disabled for every blocker. The shortcut is not, so the two
-	// blockers an operator can act on from here say why rather than doing nothing.
+	// blockers an operator can act on from here say why rather than doing nothing — worded
+	// where the status line shows them, so a change of interface language re-words them too.
 	async function launch(rehearsal?: DemoLanguage) {
 		if (rehearsal === undefined ? !canStart : !canRehearse) {
 			if (startBlockers.busy || startBlockers.engine) return;
-			if (startBlockers.language) statusMessage.set(startBlockers.language);
-			else if (rehearsal === undefined) statusMessage.set($t.applications.missing);
+			const setup = $options;
+			if (startBlockers.language)
+				statusMessage.set((m, tag) => captionLanguageError(setup, m, tag));
+			else if (rehearsal === undefined) statusMessage.set((m) => m.applications.missing);
 			return;
 		}
 		rehearsing = rehearsal !== undefined;
 		device.clear();
-		const started = await session.start(
-			rehearsal === undefined ? $options : { ...$options, rehearsal }
-		);
-		if (!started) rehearsing = false;
+		await session.start(rehearsal === undefined ? $options : { ...$options, rehearsal });
 	}
 
 	const start = () => launch();
@@ -264,9 +264,11 @@
 	let settingsTab = $state<SettingsTab>('captions');
 
 	// The status line: plain text as it stands, a core failure as the sentence for its id plus
-	// the technical detail. Derived rather than stored, so switching language re-words a
-	// message that is already on screen.
-	const statusText = $derived($statusMessage ? describeError($statusMessage, $t) : '');
+	// the technical detail, a message of the window's own as the catalog words it. Derived
+	// rather than stored, so switching language re-words a message that is already on screen.
+	const statusText = $derived($statusMessage ? describeStatus($statusMessage, $t, $locale) : '');
+	// The quit prompt's failed save, likewise.
+	const closeErrorText = $derived(quit.closeError ? describeError(quit.closeError, $t) : '');
 
 	// ---- Display labels ---------------------------------------------------------
 	//
@@ -359,7 +361,7 @@
 				/>
 			{/if}
 			{#if $isRunning}
-				<LiveRail {overlay} {clock} {rehearsing} {usesMic} {usesSystem} />
+				<LiveRail {overlay} {clock} rehearsing={rehearsalRunning} {usesMic} {usesSystem} />
 			{:else}
 				<SetupSheet
 					{actions}
@@ -511,8 +513,8 @@
 	<UnsavedPrompt
 		lines={$transcript.length}
 		endedSession={quit.closeEndedSession}
-		saving={quit.closeSaving}
-		error={quit.closeError}
+		answering={quit.closeAnswering}
+		error={closeErrorText}
 		onChoice={(choice) => void quit.onCloseChoice(choice)}
 	/>
 {/if}

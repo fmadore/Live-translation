@@ -98,6 +98,16 @@
 	   the move-mode toolbar are the same kind of surface. */
 	--modal-scrim: rgba(8, 9, 11, 0.78);
 	--shadow-flyout: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+	/* The halo of the live status dot. */
+	--accent-glow: 0 0 8px rgba(90, 209, 160, 1);
+
+	/* The app icon's own colours (`src-tauri/icons/source.svg`), for the toolbar badge. They
+	   are not a theme's: the badge is the icon the title bar and the taskbar show, so the
+	   light theme re-declares them unchanged. */
+	--brand-tile: #191d23;
+	--brand-ground: #0e1013;
+	--brand-wave: #5ad1a0;
+	--brand-line: #e9ebef;
 
 	/* Focus. One ring for both windows: 10:1 or better on every surface, and thick enough to
 	   survive a contrast theme, where it is re-declared as the system Highlight colour. */
@@ -163,7 +173,10 @@
      of a filled button is a deep green here, with white on it;
    - -soft stays "the hue's text tint", which on a white page means darker, not lighter;
    - the washes keep their 8 / 14 / 40% strengths, laid in a brighter pigment of each hue so
-     an 8% tint still reads as colour rather than as grey. */
+     an 8% tint still reads as colour rather than as grey;
+   - except the accent's edge, which marks what is selected: a 40% edge fades on white until
+     the grey edge of a card under the pointer outdraws it, so it is the accent itself at
+     75%, and `palette.test.ts` keeps it the stronger of the two. */
 :root[data-theme='light'] {
 	color-scheme: light;
 
@@ -185,7 +198,7 @@
 	--on-accent: #ffffff;
 	--accent-wash: rgba(16, 158, 104, 0.08);
 	--accent-chip: rgba(16, 158, 104, 0.14);
-	--accent-border: rgba(16, 158, 104, 0.4);
+	--accent-border: rgba(11, 117, 80, 0.75);
 
 	--warn: #995200;
 	--warn-soft: #8a4a00;
@@ -207,6 +220,13 @@
 
 	--modal-scrim: rgba(14, 17, 22, 0.42);
 	--shadow-flyout: 0 24px 64px -16px rgba(16, 22, 32, 0.28);
+	/* A full-strength halo of deep green on white reads as a smudge, not a light. */
+	--accent-glow: 0 0 6px rgba(16, 158, 104, 0.5);
+
+	--brand-tile: #191d23;
+	--brand-ground: #0e1013;
+	--brand-wave: #5ad1a0;
+	--brand-line: #e9ebef;
 }
 
 * {

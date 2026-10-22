@@ -297,6 +297,15 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
                     format!("{} — HTTP {status}", P::NAME),
                 ));
             }
+            // Almost always the stored key, so the rejection's sentence, which says to check
+            // it, is the one that helps.
+            RunEnd::Malformed(error) => {
+                tracing::error!(?origin, "{} request could not be built: {error:#}", P::NAME);
+                terminal_error = Some(AppError::with(
+                    id::PROVIDER_REJECTED,
+                    format!("{} — {error:#}", P::NAME),
+                ));
+            }
             RunEnd::Reconnect => {
                 tracing::warn!(?origin, "{} stream closed; reconnecting", P::NAME);
             }
@@ -314,7 +323,9 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
                     origin,
                     lane,
                     SessionState::Reconnecting,
-                    Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
+                    // The whole chain: "WebSocket connect failed" alone hides whether it was
+                    // DNS, TLS, a proxy or a refused handshake.
+                    Some(AppError::chain(id::PROVIDER_RECONNECTING, &error)),
                 ));
             }
         }

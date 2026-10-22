@@ -15,11 +15,23 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, State};
 
 use crate::errors::{id, AppError};
+use crate::overlay::OVERLAY_LABEL;
 use crate::session::SessionManager;
 
 /// Label of the window the operator drives. The overlay is a caption surface with no
 /// controls, so it is never the window an answer is wanted from.
 pub const OPERATOR_LABEL: &str = "operator";
+
+/// What a close request — the window's X, Alt+F4, Task View's X — does to a window.
+#[derive(Debug, PartialEq, Eq)]
+pub enum OnClose {
+    /// Let the window close.
+    Close,
+    /// Hold it and ask the front-end, which may be holding something the operator would lose.
+    Ask,
+    /// Hide it instead of closing it.
+    Hide,
+}
 
 /// How long an intercepted close waits for the front-end to say it is on it. Generous next to
 /// an event-loop round trip and short next to a person noticing a window that did not close.
@@ -59,6 +71,22 @@ impl CloseGuard {
     pub fn should_intercept(&self) -> bool {
         !self.confirmed.load(Ordering::Relaxed)
             && (self.guard.load(Ordering::Relaxed) || self.close_to_tray.load(Ordering::Relaxed))
+    }
+
+    /// What a close request on the window labelled `label` should do.
+    ///
+    /// The overlay is hidden, always. It is created once, from `tauri.conf.json`, and nothing
+    /// creates it again: closed, it left Show overlay doing nothing and placing it failing
+    /// until a restart that ends the session. Yet in move mode it takes focus, and tao keeps
+    /// the system menu on an undecorated window, so Alt+F4 and Task View's X reach it. Quitting
+    /// never asks it: `app.exit` ends the event loop without a close request to any window,
+    /// and the operator window's `Destroyed` is what calls it.
+    pub fn on_close_requested(&self, label: &str) -> OnClose {
+        match label {
+            OVERLAY_LABEL => OnClose::Hide,
+            OPERATOR_LABEL if self.should_intercept() => OnClose::Ask,
+            _ => OnClose::Close,
+        }
     }
 
     /// Record an interception and return its number, for the watchdog to check against.
@@ -221,6 +249,28 @@ mod tests {
         assert!(!guard.acknowledged(attempt));
         guard.release();
         assert!(!guard.should_intercept());
+    }
+
+    /// The overlay is hidden whatever the guard says, even once the operator has chosen to
+    /// quit: the quit itself never asks it to close.
+    #[test]
+    fn closing_the_overlay_hides_it_and_never_destroys_it() {
+        let guard = CloseGuard::default();
+        assert_eq!(guard.on_close_requested(OVERLAY_LABEL), OnClose::Hide);
+        guard.set(true);
+        assert_eq!(guard.on_close_requested(OVERLAY_LABEL), OnClose::Hide);
+        guard.confirm();
+        assert_eq!(guard.on_close_requested(OVERLAY_LABEL), OnClose::Hide);
+    }
+
+    #[test]
+    fn closing_the_operator_window_asks_only_while_something_would_be_lost() {
+        let guard = CloseGuard::default();
+        assert_eq!(guard.on_close_requested(OPERATOR_LABEL), OnClose::Close);
+        guard.set(true);
+        assert_eq!(guard.on_close_requested(OPERATOR_LABEL), OnClose::Ask);
+        guard.confirm();
+        assert_eq!(guard.on_close_requested(OPERATOR_LABEL), OnClose::Close);
     }
 
     /// A second click on the window's X while the prompt is already up must not be satisfied

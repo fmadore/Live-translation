@@ -119,7 +119,7 @@ export const de: Messages = {
 		note: 'Ändert die App, nicht die Untertitel.'
 	},
 	theme: {
-		label: 'Farbschema',
+		label: 'Farbmodus',
 		system: 'System',
 		light: 'Hell',
 		dark: 'Dunkel',
@@ -202,6 +202,7 @@ export const de: Messages = {
 		discard: 'Restliches Audio verwerfen',
 		discardConfirm:
 			'Restliches Audio verwerfen? Bereits erstellte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
+		discarding: 'Restliches Audio wird verworfen…',
 		cpuUnsupported: (missing: string) =>
 			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
 		translateTitle: 'Lokale Übersetzung ins Englische',
@@ -405,6 +406,7 @@ export const de: Messages = {
 		refresh: 'Aktualisieren',
 		empty: 'Noch keine gespeicherten Sitzungen.',
 		failed: 'Der Transkriptverlauf konnte nicht aktualisiert werden.',
+		actionFailed: 'Die letzte Aktion für diese Sitzung ist fehlgeschlagen.',
 		auto: 'Automatisch erkannte Sprache',
 		sameLanguage: 'Gleichsprachige Untertitel',
 		unfinished: 'Laufend oder unterbrochen · Dauer bis zur letzten Speicherung',
@@ -709,7 +711,9 @@ export const de: Messages = {
 		recovery: {
 			title: 'Transkript der letzten Sitzung wiederherstellen?',
 			body: (lines: number, savedAt: string) =>
-				`Die App wurde mit ${lines === 1 ? '1 nicht gespeicherten Zeile' : `${lines} nicht gespeicherten Zeilen`} im Protokoll geschlossen. Sie wurden um ${savedAt} lokal zwischengespeichert und haben diesen PC nicht verlassen.`,
+				lines === 1
+					? `Die App wurde mit 1 nicht gespeicherten Zeile im Protokoll geschlossen. Sie wurde um ${savedAt} lokal zwischengespeichert und hat diesen PC nicht verlassen.`
+					: `Die App wurde mit ${lines} nicht gespeicherten Zeilen im Protokoll geschlossen. Sie wurden um ${savedAt} lokal zwischengespeichert und haben diesen PC nicht verlassen.`,
 			restore: 'Transkript wiederherstellen',
 			delete: 'Löschen',
 			noteBefore: 'Beide Antworten entfernen die Zwischenspeicherdatei unter',
@@ -779,6 +783,8 @@ export const de: Messages = {
 			'Die lokale Transkription konnte nicht abgeschlossen werden; das Transkript ist möglicherweise unvollständig',
 		deviceEnumeration: 'Windows konnte die Audiogeräte nicht auflisten',
 		keychain: 'Die Windows-Anmeldeinformationsverwaltung hat die Anfrage abgelehnt',
+		apiKeyFormat:
+			'Der API-Schlüssel wurde nicht gespeichert. Kopieren Sie ihn erneut von der Seite des Anbieters: Dieser enthält ein Leerzeichen oder ein Zeichen, das in keinem API-Schlüssel vorkommt',
 		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',
 		sessionStart: 'Die Sitzung konnte nicht gestartet werden',
 		sessionPause: 'Die Sitzung konnte nicht pausiert oder fortgesetzt werden',

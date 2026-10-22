@@ -170,7 +170,11 @@ async fn open<P: RealtimeProtocol, E: Events>(
     catch_up: bool,
     backlog: &mut Backlog,
 ) -> Result<Connection, RunEnd> {
-    let request = proto.connect_request()?;
+    // Both are built from the source's settings alone, so one that cannot be built now never
+    // can: through the ordinary error path, a key with a space in it reconnected every 16
+    // seconds for the rest of the event. Built before connecting, so failing costs no socket.
+    let request = proto.connect_request().map_err(RunEnd::Malformed)?;
+    let setup = proto.setup_json().map_err(RunEnd::Malformed)?;
     // Nagle off: each 100 ms audio frame ends in a part-filled segment, which Nagle would hold
     // until the provider acknowledged the previous one — a round trip of added latency, or a
     // delayed-ACK timer, on every chunk of live speech.
@@ -203,11 +207,8 @@ async fn open<P: RealtimeProtocol, E: Events>(
         read,
         last_inbound: Instant::now(),
     };
-    conn.send(
-        Message::Text(proto.setup_json()?.into()),
-        "failed to send setup",
-    )
-    .await?;
+    conn.send(Message::Text(setup.into()), "failed to send setup")
+        .await?;
 
     let origin = proto.origin();
     tracing::info!(?origin, "connected to {}; waiting for setup", P::NAME);
@@ -301,8 +302,9 @@ async fn pump<P: RealtimeProtocol, E: Events>(
     let finalize_after = proto.finalize_after();
     let finalize = sleep(IDLE);
     tokio::pin!(finalize);
-    // Set by `Signal::EndOfTurn` until the turn is finalized: a deadline later text cannot
-    // push back, as it pushes back the idle timer.
+    // Set by `Signal::EndOfTurn` until the turn is finalized, and from then on the finalize
+    // deadline itself: later text pushes it neither back, as it pushes back the idle timer,
+    // nor forward to an idle boundary that falls inside the grace.
     let mut turn_end: Option<Instant> = None;
     // When the turn last grew, for `MAX_HOLD`.
     let mut last_activity = Instant::now();
@@ -367,18 +369,19 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 match outcome.signal {
                     Signal::TranscriptActivity => {
                         last_activity = Instant::now();
-                        if let Some(after) = finalize_after {
-                            let idle = Instant::now() + after;
-                            finalize.as_mut().reset(turn_end.map_or(idle, |end| end.min(idle)));
+                        // Text inside a turn's grace is its last words arriving; the end
+                        // already set is when they have had time to.
+                        if let (Some(after), None) = (finalize_after, turn_end) {
+                            finalize.as_mut().reset(Instant::now() + after);
                         }
                     }
                     Signal::EndOfTurn(grace) => {
                         let end = Instant::now() + grace;
                         let end = turn_end.map_or(end, |earlier| earlier.min(end));
                         turn_end = Some(end);
-                        if end < finalize.deadline() {
-                            finalize.as_mut().reset(end);
-                        }
+                        // Even when the idle boundary would come first: closing there is
+                        // what made the final "." a line of its own.
+                        finalize.as_mut().reset(end);
                     }
                     Signal::None | Signal::SetupComplete => {}
                 }
@@ -426,8 +429,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 });
                 if let Some(after) = hold {
                     // Mid-sentence: look again a boundary later.
-                    let again = now + after;
-                    finalize.as_mut().reset(turn_end.map_or(again, |end| end.min(again)));
+                    finalize.as_mut().reset(turn_end.unwrap_or(now + after));
                 } else {
                     finalize_accumulator(events, origin, acc);
                     turn_end = None;

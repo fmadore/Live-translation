@@ -1,10 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/svelte';
-import { createRawSnippet } from 'svelte';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
+import { createRawSnippet, tick } from 'svelte';
 import SessionControls from './SessionControls.svelte';
 import OperatorToolbar from './OperatorToolbar.svelte';
 import { setLocale } from './i18n';
 import { originStates } from './stores';
+
+/** Idle and ready to start. */
+const idle = {
+	busy: false,
+	startDisabled: false,
+	rehearseDisabled: false,
+	paused: false,
+	onStart: vi.fn(),
+	onRehearse: vi.fn(),
+	onStop: vi.fn(),
+	onPause: vi.fn()
+};
 
 function controls(paused = false, onPause = vi.fn()) {
 	return render(SessionControls, {
@@ -68,6 +80,79 @@ describe('the session actions', () => {
 	it('leave Rehearse without a shortcut of its own', () => {
 		const rehearse = controls().getAllByRole('button')[1];
 		expect(rehearse).not.toHaveAttribute('aria-keyshortcuts');
+	});
+
+	// Review U4: a disabled button drops the focus it holds, so the one pressed stays focusable
+	// while it is busy and ignores presses instead.
+	it('stay focusable while busy, and ignore a press', async () => {
+		const onStart = vi.fn();
+		const onRehearse = vi.fn();
+		const view = render(SessionControls, {
+			props: {
+				...idle,
+				busy: true,
+				startDisabled: true,
+				rehearseDisabled: true,
+				onStart,
+				onRehearse
+			}
+		});
+		const [start, rehearse] = view.getAllByRole('button');
+		for (const button of [start, rehearse]) {
+			expect(button).not.toBeDisabled();
+			expect(button).toHaveAttribute('aria-disabled', 'true');
+			expect(button).toHaveAttribute('aria-busy', 'true');
+			expect(button).toHaveAccessibleName('Starting…');
+			await fireEvent.click(button);
+		}
+		expect(onStart).not.toHaveBeenCalled();
+		expect(onRehearse).not.toHaveBeenCalled();
+	});
+
+	it('are disabled outright for anything else that blocks a start', () => {
+		const view = render(SessionControls, {
+			props: { ...idle, startDisabled: true, rehearseDisabled: true }
+		});
+		for (const button of view.getAllByRole('button')) {
+			expect(button).toBeDisabled();
+			expect(button).not.toHaveAttribute('aria-disabled');
+		}
+	});
+
+	it('hand the keyboard from Start to Stop as the run begins, and back as it ends', async () => {
+		const view = render(SessionControls, { props: { ...idle, busy: true } });
+		// Start, pressed: Rehearse says "Starting…" as well.
+		const [start] = view.getAllByRole('button', { name: 'Starting…' });
+		start.focus();
+
+		originStates.set({ microphone: 'connecting' });
+		await waitFor(() => expect(view.getByRole('button', { name: 'Stopping…' })).toHaveFocus());
+		await view.rerender({ busy: false });
+		const stop = view.getByRole('button', { name: /Stop captions/ });
+		expect(stop).toHaveFocus();
+
+		originStates.set({ microphone: 'error' });
+		await waitFor(() =>
+			expect(view.getByRole('button', { name: /Start subtitles/ })).toHaveFocus()
+		);
+	});
+
+	// A run that ends by itself while the operator is in the setup or the transcript leaves the
+	// keyboard where it is.
+	it('leave focus alone when it was somewhere else', async () => {
+		const elsewhere = document.createElement('input');
+		document.body.append(elsewhere);
+		try {
+			originStates.set({ microphone: 'running' });
+			const view = render(SessionControls, { props: idle });
+			elsewhere.focus();
+			originStates.set({ microphone: 'error' });
+			await view.findByRole('button', { name: /Start subtitles/ });
+			await tick();
+			expect(elsewhere).toHaveFocus();
+		} finally {
+			elsewhere.remove();
+		}
 	});
 });
 

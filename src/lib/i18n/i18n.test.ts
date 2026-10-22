@@ -174,6 +174,36 @@ describe('French typography', () => {
 	});
 });
 
+// Review U11: each language decides its own plural, and the whole sentence follows the count,
+// not only the noun beside it.
+describe('counted messages', () => {
+	it('speak of one recovered line in the singular, in every catalog', () => {
+		const at = '09:30';
+		expect(en.prompt.recovery.body(1, at)).toContain('1 unsaved line still in the log. It was');
+		expect(en.prompt.recovery.body(1, at)).toContain('has not left this PC');
+		expect(en.prompt.recovery.body(3, at)).toContain('3 unsaved lines still in the log. They were');
+		expect(en.prompt.recovery.body(3, at)).toContain('have not left this PC');
+
+		expect(fr.prompt.recovery.body(1, at)).toContain('1 ligne non enregistrée était encore');
+		expect(fr.prompt.recovery.body(1, at)).toContain('Elle a été copiée localement');
+		expect(fr.prompt.recovery.body(1, at)).toContain('n’a pas quitté ce PC');
+		expect(fr.prompt.recovery.body(3, at)).toContain('Elles ont été copiées localement');
+
+		expect(de.prompt.recovery.body(1, at)).toContain('Sie wurde um 09:30');
+		expect(de.prompt.recovery.body(1, at)).toContain('hat diesen PC nicht verlassen');
+		expect(de.prompt.recovery.body(3, at)).toContain('Sie wurden um 09:30');
+	});
+
+	// French puts zero in the singular; English and German do not.
+	it('count zero lines the way each language does', () => {
+		expect(fr.transcript.lines(0)).toBe('0 ligne');
+		expect(fr.transcript.lines(1)).toBe('1 ligne');
+		expect(fr.transcript.lines(2)).toBe('2 lignes');
+		expect(en.transcript.lines(0)).toBe('0 lines');
+		expect(de.transcript.lines(0)).toBe('0 Zeilen');
+	});
+});
+
 describe('choosing a locale', () => {
 	const storage = new Map<string, string>();
 

@@ -28,6 +28,10 @@ export const MINIMUM_WINDOW = { width: 980, height: 660 };
 /** `LOCALE_KEY` in `src/lib/i18n/index.ts`: where the app keeps the interface language. */
 const LOCALE_KEY = 'ui.locale';
 
+/** `THEME_KEY` in `src/lib/theme.ts`: where the app keeps the operator's theme. */
+const THEME_KEY = 'appearance.theme';
+export type Theme = 'light' | 'dark';
+
 /** A fixed clock, so the session timer and every date on screen read the same on each run. */
 const NOW = new Date('2026-10-07T09:30:00Z');
 
@@ -269,26 +273,30 @@ export const scopeOf = (state: StateName): string | undefined => (STATES[state] 
 /**
  * Load the operator window in `locale` at `scale`, reach `state`, and wait until it is still.
  *
- * Both settings go in the way the app takes them: the interface language from its stored
- * choice, the text scale from the core's `text_scale_factor` answer, which `textScale.ts`
- * writes onto the root as `--text-scale`. Each is checked on the page before going further.
+ * Every setting goes in the way the app takes it: the interface language and the theme from
+ * their stored choices, the text scale from the core's `text_scale_factor` answer, which
+ * `textScale.ts` writes onto the root as `--text-scale`. Each is checked on the page before
+ * going further. With no theme the window follows the browser's colour scheme, as it follows
+ * Windows' app mode in the app; the config pins that to dark.
  */
 export async function openOperator(
 	page: Page,
-	{ state, locale, scale }: { state: StateName; locale: Locale; scale: Scale }
+	{ state, locale, scale, theme }: { state: StateName; locale: Locale; scale: Scale; theme?: Theme }
 ): Promise<Operator> {
 	const t = CATALOGS[locale];
 	const core = await FakeCore.install(page);
 	core.handle('text_scale_factor', () => scale);
 	(STATES[state] as State).prepare?.(core);
-	await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
-		LOCALE_KEY,
-		locale
-	] as const);
+	const stored: [string, string][] = [[LOCALE_KEY, locale]];
+	if (theme) stored.push([THEME_KEY, theme]);
+	await page.addInitScript((entries) => {
+		for (const [key, value] of entries) localStorage.setItem(key, value);
+	}, stored);
 	await page.clock.setFixedTime(NOW);
 	await page.goto('/');
 
 	await expect(page.locator('html')).toHaveAttribute('lang', t.locale.tag);
+	if (theme) await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 	// Read from the root's own style, where only `applyTextScale` writes: the stylesheet's
 	// `--text-scale: 1` would satisfy a computed read at 100% without the app doing anything.
 	await expect

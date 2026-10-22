@@ -56,6 +56,13 @@ function washes(
 	return out;
 }
 
+/** A translucent `--name: rgba(...)` as a theme declares it. */
+function translucent(name: string, theme: 'dark' | 'light'): { rgb: number[]; alpha: number } {
+	const pattern = new RegExp(`${name}:\\s*rgba\\((\\d+),\\s*(\\d+),\\s*(\\d+),\\s*([\\d.]+)\\)`);
+	const [, r, g, b, a] = (theme === 'light' && LIGHT.match(pattern)) || ROOT.match(pattern)!;
+	return { rgb: [r, g, b].map(Number), alpha: Number(a) };
+}
+
 function rgb(hex: string): number[] {
 	return [0, 1, 2].map((i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16));
 }
@@ -164,6 +171,19 @@ describe.each(['dark', 'light'] as const)('the %s palette', (theme) => {
 		}
 	});
 
+	// A selected card or a pressed toggle is told apart by its accent edge over a faint wash;
+	// an unselected one under the pointer takes the grey hover edge. If the grey outdrew the
+	// accent, the card under the pointer would read as the chosen one — which a 40% edge does
+	// on white.
+	it('keeps the selected edge stronger than the hover edge', () => {
+		const edge = translucent('--accent-border', theme);
+		for (const surface of ['--surface-0', '--surface-1']) {
+			const selected = contrast(over(edge, tokens[surface]), tokens[surface]);
+			const hovered = contrast(tokens['--line-hover'], tokens[surface]);
+			expect(selected, `--accent-border over ${surface}`).toBeGreaterThan(hovered);
+		}
+	});
+
 	it.each(MARKS)('%s stays visible at 3:1 on every surface', (name) => {
 		for (const surface of SURFACES) {
 			const ratio = contrast(tokens[name], tokens[surface]);
@@ -226,6 +246,16 @@ describe('the component stylesheets', () => {
 				if (CONTENT[file]?.includes(value.trim())) continue;
 				expect(value.trim(), file).toMatch(/^(var\(--[\w-]+\)|[a-zA-Z]+)$/);
 			}
+		}
+	});
+
+	// `setTheme` on the operator window sets WebView2's preferred colour scheme for the whole
+	// profile, which the overlay shares, so a `prefers-color-scheme` rule anywhere would follow
+	// the operator's choice into the overlay. The theme is the `data-theme` attribute instead,
+	// which only the operator window carries.
+	it('never style by prefers-color-scheme', () => {
+		for (const { file, style } of [...files, { file: 'app.css', style: CSS }]) {
+			expect(style.includes('prefers-color-scheme'), file).toBe(false);
 		}
 	});
 

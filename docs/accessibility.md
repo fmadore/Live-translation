@@ -25,11 +25,11 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 | Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesized bold at projector size is a legibility failure, not a cosmetic one. |
 | Reaching the controls | The caption appearance controls are one snippet rendered in two places — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. |
-| Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. |
+| Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. Start and Rehearse make way for Stop and Pause as a run begins, and back as it ends: when the keyboard was on one of them, focus moves to the counterpart (Stop after a start, Start after a stop) instead of falling to the page. |
 | Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
-| Announcements | Two `role="status"` regions in the operator window — session state and the last status message — plus one in the transcript panel for a completed save. They hold nothing that changes on a timer. The running rail's input labels are not live, because they flip with every pause in speech; a separate region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. |
-| Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine and interface-language cards, presets, swatches and pinned languages. |
-| Progress | `aria-busy` on Start, Stop, the audio test, and both save buttons. |
+| Announcements | A live region says that something changed state, never how far something has got, and none holds anything that changes on a timer. Two are always present in the operator window: session state and the last status message. The running rail's input labels are not live, because they flip with every pause in speech; a region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. Local Whisper's waiting-audio strip is not live either, because its seconds move with every progress report; it appears only once Whisper falls behind (more than 21 s waiting, two of its 10-second windows) or while it finishes, and a region beside it speaks once when finishing starts and once when a discard is confirmed. The Whisper model's status says that the model is missing, downloading or ready, once each; the download's percentage is its progress bar's value. The transcript panel announces a completed save and a copy, and has a status for the long-session warning and the missing-timing note. The rest answer the operator's own edits where they happen: glossary and filler-word changes, profile and history notices, the language picker's error and empty filter, the setup's language error, the capture picker's notes, and each stepper's new value (an `<output>`). A failure that needs an answer — a rejected entry, a failed profile or history action, the discard question, a failed save when quitting — is `role="alert"`. |
+| Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine, interface-language and theme cards, presets, swatches and pinned languages. |
+| Progress | `aria-busy` on Start, Rehearse, Stop, the audio test, and the save buttons. While a start or stop is under way, Start, Rehearse and Stop are `aria-disabled` rather than `disabled`, so the button keeps the focus it holds until the swap hands it on; a press is ignored, and a contrast theme greys them as it greys a disabled button. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
 | Modal prompts | `role="dialog"`, `aria-modal`, a Tab trap, focus on the safe answer, Escape where a safe dismissal exists, and focus returned to the opener on close. Written once in `src/lib/ModalPrompt.svelte` and shared by the two decisions and the settings panel, so the chrome an accessible dialog is judged on cannot drift between them. When dialogs stack — a quit prompt over Settings — only the topmost handles Escape and Tab, and the one beneath gets the keyboard back when it closes. |
 | Shortcuts | One table in `src/lib/shortcuts.ts`: the listener matches it, `aria-keyshortcuts` on Start and Stop announces it, and the key caps print it in the interface language's key names (`Strg+Umschalt+Leertaste`). The printed copy inside a button is `aria-hidden`, so it never becomes part of the button's name. |
@@ -42,11 +42,16 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 - `npm test` → `src/lib/palette.test.ts` reads the tokens out of `app.css`, for the dark and
   the light theme alike, and fails if the light block leaves a colour undeclared or if any
   text token drops below 4.5:1 on any surface, if the muted level drops below it on any tinted
-  wash, or if any non-text mark drops below 3:1. It pins the ramps (four text levels, three
-  surfaces, three lines), and it reads every component stylesheet: a hex literal, or a text
-  colour that is not a token, fails it, and so does an overlay toolbar that a white slide
-  would lift above `--surface-2`. It exists because the contrast failures behind issue #24
-  arrived one shade at a time, and nothing could see them.
+  wash, or if any non-text mark drops below 3:1. In each theme the selected edge
+  (`--accent-border`) has to stand out more than the grey edge of a card under the pointer, so
+  hovering never makes the wrong card look chosen. It pins the ramps (four text levels, three
+  surfaces, three lines), and it reads every component stylesheet: a hex literal, a text
+  colour that is not a token, or a `prefers-color-scheme` rule fails it, and so does an overlay
+  toolbar that a white slide would lift above `--surface-2`. It exists because the contrast
+  failures behind issue #24 arrived one shade at a time, and nothing could see them.
+- `npm run test:style` records the operator window's computed styles in the light theme as
+  well as the dark one, checks that a light desktop gets a light first frame before the app's
+  scripts have loaded, and that the overlay keeps the dark tokens when Light is chosen.
 - `npm test` → `src/lib/captionColour.test.ts` is the same guard for the overlay, which
   `palette.test.ts` cannot reach because its colours are no longer in the stylesheet. It fails
   if the shipped default drops below 4.5:1 at any step over either slide, if the default stops
@@ -91,7 +96,10 @@ treats the window.
    view keeps its own colours — that is deliberate.
    Repeat the pass with Settings → App → Theme on **Light**, and once on **System** while
    switching Windows between light and dark app mode: the operator window and its title bar
-   follow, and the overlay's move-mode toolbar stays dark.
+   follow, and the overlay's move-mode toolbar stays dark. In Light, the selected mode, source,
+   engine and preset are as easy to pick out as in Dark, and a card under the pointer never
+   looks more chosen than the selected one. Under a contrast theme Windows reports light app
+   mode, so System resolves to Light; the contrast theme repaints the window either way.
 4. **Caption colours over real slides.** With the overlay placed, put a **bright** deck
    behind it and then a **dark** one, and read the captions from the back of the room in both.
    Include a finished line and a trailing previous line, which are the dimmest text on screen
@@ -192,6 +200,8 @@ bundled Archivo face falls back to the system for uncovered scripts.
 
 Test keyboard access to Whisper's spoken-language and model selectors, Download/Cancel/Remove,
 and the model's ready/error status. Verify that the pending-audio duration and finishing state
-are readable and that the discard confirmation keeps focus inside the active dialog. Check
+are readable, that Narrator says "Finishing the transcript" and "Downloading model" once rather
+than with every second or percent, and that the discard confirmation keeps focus inside the
+active dialog. Check
 Pause/Resume labels and Ctrl+Shift+P without losing access to Stop. These native checks remain
 part of final-package acceptance, including Narrator and enlarged Windows text.

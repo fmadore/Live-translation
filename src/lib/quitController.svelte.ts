@@ -1,7 +1,6 @@
 import { get } from 'svelte/store';
 import { api } from './tauri';
-import { asStatus, describeError } from './errors';
-import { t } from './i18n';
+import { asStatus, type AppError } from './errors';
 import { closeToTray, trayHideExplained, statusMessage } from './stores';
 import { closeAction, type CloseChoice } from './document';
 import { acknowledgeClose, endsLiveSession, prepareClose, resolveClose } from './quit';
@@ -25,8 +24,12 @@ class QuitController {
 
 	closePrompt = $state(false);
 	closeEndedSession = $state(false);
-	closeSaving = $state(false);
-	closeError = $state('');
+	/** The answer being carried out: the transcript being written, or the spool being cleared
+	 *  on the way out. The prompt takes no other answer meanwhile. */
+	closeAnswering = $state<Exclude<CloseChoice, 'cancel'> | null>(null);
+	/** The last save's failure as it was caught, worded where it is shown so a change of
+	 *  interface language re-words it; empty when there is none. */
+	closeError = $state<string | AppError>('');
 	#answeringClose = false;
 
 	// Leaving is asked about in stages, and each stage is one question: may this session end,
@@ -147,22 +150,25 @@ class QuitController {
 	};
 
 	onCloseChoice = async (choice: CloseChoice) => {
+		// One answer at a time: a Cancel or a Discard taken while a Save is being written would
+		// close the prompt over a quit that is still going ahead, or start a second one.
+		if (this.closeAnswering) return;
 		if (choice === 'cancel') {
 			this.closePrompt = false;
 			this.closeEndedSession = false;
 			this.closeError = '';
 			return;
 		}
-		this.closeSaving = choice === 'save';
+		this.closeAnswering = choice;
 		this.closeError = '';
 		try {
 			if (await resolveClose(choice)) this.closePrompt = false;
 		} catch (e) {
 			// Stay open on a failed write: quitting here would lose exactly what the operator
 			// just asked to keep.
-			this.closeError = describeError(e, get(t));
+			this.closeError = asStatus(e);
 		} finally {
-			this.closeSaving = false;
+			this.closeAnswering = null;
 		}
 	};
 }

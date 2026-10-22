@@ -243,6 +243,15 @@ warning, danger and room families), seven type roles, a six-step `rem` spacing s
 radii. `palette.test.ts`, `typeScale.test.ts` and `spacing.test.ts` read the component
 stylesheets and fail on a value that bypasses them.
 
+The colours come in two themes. `:root` is the dark one; `:root[data-theme='light']`
+re-declares every colour for a white page and nothing else. `theme.ts` resolves the operator's
+choice (System, Light or Dark) against Windows' app mode, writes `light` or `dark` onto the
+root and tells the native title bar; an inline script in `src/app.html` makes the same
+decision before the first frame, so a light desktop never sees the dark ground while the
+modules load. The overlay carries no attribute and keeps the dark tokens. `setTheme` changes
+WebView2's preferred colour scheme for the profile both windows share, which is why nothing
+styles by `prefers-color-scheme`.
+
 `shortcuts.ts` holds the one table of shortcuts that the listener, `aria-keyshortcuts` and the
 printed key caps all read, and guards them against editable controls, dialogs, repeated keys
 and IME composition. `CaptionAppearance.svelte` renders the same appearance controls in the

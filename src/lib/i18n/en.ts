@@ -196,6 +196,8 @@ export const en = {
 		discard: 'Discard remaining audio',
 		discardConfirm:
 			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
+		/** Announced once a discard is confirmed, while the core stops working through it. */
+		discarding: 'Discarding the remaining audio…',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>
@@ -400,6 +402,8 @@ export const en = {
 		refresh: 'Refresh',
 		empty: 'No saved sessions yet.',
 		failed: 'Transcript history could not be updated.',
+		/** In front of a failed copy, export, rename or delete; `failed` is for the listing. */
+		actionFailed: 'The last action on this session did not complete.',
 		auto: 'Auto-detected speech',
 		sameLanguage: 'Same-language captions',
 		unfinished: 'In progress or interrupted · duration through last save',
@@ -697,7 +701,9 @@ export const en = {
 		recovery: {
 			title: 'Recover the transcript from your last session?',
 			body: (lines: number, savedAt: string) =>
-				`The app closed with ${lines === 1 ? '1 unsaved line' : `${lines} unsaved lines`} still in the log. They were spooled locally at ${savedAt} and have not left this PC.`,
+				lines === 1
+					? `The app closed with 1 unsaved line still in the log. It was spooled locally at ${savedAt} and has not left this PC.`
+					: `The app closed with ${lines} unsaved lines still in the log. They were spooled locally at ${savedAt} and have not left this PC.`,
 			restore: 'Restore the transcript',
 			delete: 'Delete it',
 			noteBefore: 'Either answer removes the spool file at',
@@ -766,6 +772,8 @@ export const en = {
 			'Local Whisper cannot run on this processor; choose another engine, such as the built-in demo',
 		deviceEnumeration: 'Windows could not list the audio devices',
 		keychain: 'Windows Credential Manager refused the request',
+		apiKeyFormat:
+			'The API key was not saved. Copy it again from the provider’s page: this one contains a space or a character no API key has',
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',
 		sessionPause: 'The session could not be paused or resumed',

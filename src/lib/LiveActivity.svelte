@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { t } from './i18n';
-	import { originState, originStates, activityTimes, options, sessionStartedAt } from './stores';
+	import { originState, originStates, activityTimes, options, runningSince } from './stores';
 	import { activity } from './liveActivity';
 	import { ORIGINS, type Origin } from './types';
 	let { now, microphone, system }: { now: number; microphone: boolean; system: boolean } = $props();
@@ -11,7 +11,7 @@
 			activity: activity(
 				originState($originStates, origin),
 				now,
-				$sessionStartedAt ?? now,
+				$runningSince[origin] ?? now,
 				$activityTimes[origin]?.audio ?? 0,
 				$activityTimes[origin]?.caption ?? 0
 			)

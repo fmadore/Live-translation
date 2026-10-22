@@ -33,8 +33,9 @@ mod types;
 mod whisper;
 
 use tauri::{Emitter, Manager};
+use tracing_subscriber::prelude::*;
 
-use lifecycle::{show_operator_window, CloseGuard, ACK_TIMEOUT, OPERATOR_LABEL};
+use lifecycle::{show_operator_window, CloseGuard, OnClose, ACK_TIMEOUT, OPERATOR_LABEL};
 use overlay::OVERLAY_LABEL;
 use session::SessionManager;
 use tray::TrayMenu;
@@ -84,6 +85,23 @@ fn assert_webview_runtime() {
     std::process::exit(1);
 }
 
+/// Crates that, at debug and trace, log the WebSocket handshake whole — OpenAI's and Mistral's
+/// `Authorization: Bearer` key included.
+const HANDSHAKE_LOGGERS: [&str; 2] = ["tungstenite", "tokio_tungstenite"];
+
+/// Whether an event may be written at all, whatever `RUST_LOG` asks for. Someone asked to run
+/// with `RUST_LOG=trace` and send the log would otherwise be sending their provider key. A cap
+/// after the filter rather than an `EnvFilter` directive: a more specific target in `RUST_LOG`,
+/// `tungstenite::handshake=trace`, outranks any directive added for the crate as a whole.
+fn may_log(target: &str, level: tracing::Level) -> bool {
+    level <= tracing::Level::INFO
+        || !HANDSHAKE_LOGGERS.iter().any(|krate| {
+            target
+                .strip_prefix(krate)
+                .is_some_and(|rest| rest.is_empty() || rest.starts_with("::"))
+        })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Load .env for development (GEMINI_API_KEY etc.); ignored if absent. Debug builds only:
@@ -97,6 +115,10 @@ pub fn run() {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "live_translation_lib=info,warn".into()),
         )
+        .finish()
+        .with(tracing_subscriber::filter::filter_fn(|event| {
+            may_log(event.target(), *event.level())
+        }))
         .init();
 
     assert_webview_runtime();
@@ -156,16 +178,26 @@ pub fn run() {
             tray::set_tray_state,
         ])
         .on_window_event(|window, event| {
-            // The overlay is a caption surface with no controls; only the operator window
-            // can be holding an answer the app needs.
-            if window.label() != OPERATOR_LABEL {
-                return;
-            }
             match event {
                 tauri::WindowEvent::CloseRequested { api, .. } => {
-                    // Intercept only while the front-end says there is something to lose.
-                    if !window.state::<CloseGuard>().should_intercept() {
-                        return;
+                    match window
+                        .state::<CloseGuard>()
+                        .on_close_requested(window.label())
+                    {
+                        OnClose::Close => return,
+                        // As Hide overlay would: the session and its captions carry on, and
+                        // the window keeps its place for Show overlay. The front-end is not
+                        // told, so its toggle reads Hide overlay until clicked once.
+                        OnClose::Hide => {
+                            api.prevent_close();
+                            if let Err(error) = window.hide() {
+                                tracing::warn!("could not hide the overlay: {error}");
+                            }
+                            return;
+                        }
+                        // The operator window, while the front-end says there is something
+                        // to lose.
+                        OnClose::Ask => {}
                     }
                     api.prevent_close();
                     let attempt = window.state::<CloseGuard>().begin_attempt();
@@ -195,7 +227,9 @@ pub fn run() {
                 // outliving the operator window would leave a caption layer floating over
                 // everything with nothing left that can dismiss it. Hiding to the tray does
                 // not come through here: that window is hidden, never destroyed.
-                tauri::WindowEvent::Destroyed => window.app_handle().exit(0),
+                tauri::WindowEvent::Destroyed if window.label() == OPERATOR_LABEL => {
+                    window.app_handle().exit(0);
+                }
                 _ => {}
             }
         })
@@ -226,4 +260,39 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running the Live Translation app");
+}
+
+#[cfg(test)]
+mod tests {
+    use tracing::Level;
+
+    use super::may_log;
+
+    /// tungstenite traces the request it sends, headers and all, from
+    /// `tungstenite::handshake::client`.
+    #[test]
+    fn the_websocket_handshake_is_never_logged_below_info() {
+        for target in [
+            "tungstenite",
+            "tungstenite::handshake::client",
+            "tokio_tungstenite",
+            "tokio_tungstenite::compat",
+        ] {
+            assert!(!may_log(target, Level::TRACE), "{target}");
+            assert!(!may_log(target, Level::DEBUG), "{target}");
+            assert!(may_log(target, Level::INFO), "{target}");
+            assert!(may_log(target, Level::WARN), "{target}");
+        }
+    }
+
+    #[test]
+    fn everything_else_is_left_to_the_filter() {
+        for target in [
+            "live_translation_lib::realtime::socket",
+            "reqwest::connect",
+            "tungstenite_lookalike",
+        ] {
+            assert!(may_log(target, Level::TRACE), "{target}");
+        }
+    }
 }

@@ -30,8 +30,11 @@ describe('RecoveryPrompt', () => {
 		expect(dialog).toHaveTextContent('recovery\\transcript.json');
 	});
 
+	// Review U11: the second sentence said "They were spooled" of one line.
 	it('reads correctly for a single line', () => {
-		expect(mount({ lines: 1 }).getByRole('dialog')).toHaveTextContent('1 unsaved line');
+		const dialog = mount({ lines: 1 }).getByRole('dialog');
+		expect(dialog).toHaveTextContent('1 unsaved line still in the log. It was spooled');
+		expect(dialog).toHaveTextContent('has not left this PC');
 	});
 
 	it('says the spool never left the machine', () => {

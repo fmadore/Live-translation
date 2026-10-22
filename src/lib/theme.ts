@@ -10,6 +10,17 @@
 // and its move-mode chrome sits over a slide nobody controls; with no attribute on its root it
 // keeps the dark tokens whatever the operator picks, the same reason it opts out of the text
 // size and of contrast themes.
+//
+// One reach this module cannot avoid: `setTheme` sets WebView2's preferred colour scheme on
+// the profile, and both windows share it, so the overlay's `prefers-color-scheme` follows the
+// operator's choice. Nothing styles by that query (`palette.test.ts` keeps it that way), and
+// the overlay's `color-scheme` is dark alone, so it changes nothing there. It does mean the
+// query here reports the last explicit choice, not Windows, until `setTheme(null)` lands —
+// switching back to System can show the old theme for that round trip before `onSystem`
+// corrects it.
+//
+// `src/app.html` sets the attribute once before anything else runs, so the first frame is
+// already right; it mirrors `loadTheme` and `resolveTheme`, and `theme.test.ts` runs it.
 
 import { persisted, readStored } from './persisted';
 import { isTauri } from './tauri';
@@ -18,7 +29,7 @@ export const THEMES = ['system', 'light', 'dark'] as const;
 export type ThemeChoice = (typeof THEMES)[number];
 export type Theme = Exclude<ThemeChoice, 'system'>;
 
-const THEME_KEY = 'appearance.theme';
+export const THEME_KEY = 'appearance.theme';
 
 /** The stored choice, or `system` for nothing or anything this version does not know. */
 export function loadTheme(): ThemeChoice {
@@ -47,9 +58,9 @@ export function applyTheme(resolved: Theme, root?: ThemeTarget): void {
  * Apply the operator's theme and keep following both the setting and Windows. Returns an
  * unsubscribe.
  *
- * Synchronous on purpose, and called at component init rather than in `onMount`: the attribute
- * has to be on the root before the first paint, or someone on a light desktop would be shown a
- * frame of the dark window first.
+ * Synchronous on purpose, and called at component init rather than in `onMount`, so the
+ * attribute `src/app.html` set is never left standing while the page renders against a
+ * setting it no longer matches.
  *
  * The native title bar is told too. `null` hands it back to Windows, so on "system" it follows
  * the app mode by itself instead of through this listener.
@@ -80,7 +91,10 @@ async function titleBar(choice: ThemeChoice): Promise<void> {
 	try {
 		const { getCurrentWindow } = await import('@tauri-apps/api/window');
 		await getCurrentWindow().setTheme(choice === 'system' ? null : choice);
-	} catch {
+	} catch (e) {
 		// A title bar left in the other mode is cosmetic; the window itself has already changed.
+		// Logged rather than shown, but logged: a missing `core:window:allow-set-theme` in
+		// `capabilities/operator.json` fails here and nowhere else.
+		console.error('Could not set the title bar theme', e);
 	}
 }

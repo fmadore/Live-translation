@@ -120,8 +120,8 @@
 			{:else if tab === 'history'}
 				<TranscriptHistory />
 			{:else}
-				<!-- What belongs to the app rather than to a session: neither of these touches
-				     capture, so both stay usable mid-session. -->
+				<!-- What belongs to the app rather than to a session: none of these touches
+				     capture, so all of them stay usable mid-session. -->
 				<div class="divider"></div>
 				<!-- The interface language, not the caption language. -->
 				<div class="rail-section">

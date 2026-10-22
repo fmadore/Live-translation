@@ -128,8 +128,16 @@ export function estimateSessionCost(
 	return meta.hourlyEstimate * hours * (meta.perStream ? streams : 1);
 }
 
-export function formatUsd(n: number): string {
-	return '$' + n.toFixed(2);
+/** A sum in US dollars, written the way the interface language writes money: `$3.46`,
+ *  `3,46 $`. `tag` is the catalog's BCP 47 tag (`localeTag`). The narrow symbol keeps the
+ *  English figure as it was and matches the published rates beside it, which print `$` too;
+ *  the currency is never in doubt, because every provider bills in dollars. */
+export function formatUsd(n: number, tag: string): string {
+	return new Intl.NumberFormat(tag, {
+		style: 'currency',
+		currency: 'USD',
+		currencyDisplay: 'narrowSymbol'
+	}).format(n);
 }
 
 /** The published rate, split so the unit can be dimmed: `['$3.06', '/hr']`, or the word for

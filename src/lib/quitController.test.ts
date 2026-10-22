@@ -41,6 +41,41 @@ it('asks before stopping a live session, then retains unsaved text on save failu
 	mocks.resolveClose.mockRejectedValue(new Error('Disk full'));
 	await controller.onCloseChoice('save');
 	expect(controller.closePrompt).toBe(true);
-	expect(controller.closeError).not.toBe('');
-	expect(controller.closeSaving).toBe(false);
+	expect(controller.closeError).toBe('Disk full');
+	expect(controller.closeAnswering).toBeNull();
+});
+
+// U11: kept as it was caught, so the prompt words it in whatever language is active.
+it('keeps a failed save as the core reported it, for the prompt to word', async () => {
+	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	await controller.onCloseRequested();
+	const failure = { id: 'error.transcriptWrite', detail: 'disk full' };
+	mocks.resolveClose.mockRejectedValue(failure);
+	await controller.onCloseChoice('save');
+	expect(controller.closeError).toEqual(failure);
+
+	await controller.onCloseChoice('cancel');
+	expect(controller.closePrompt).toBe(false);
+	expect(controller.closeError).toBe('');
+});
+
+// U9: one answer at a time. A Cancel while Save is writing used to close the prompt over a quit
+// that was still going ahead, and a Discard started a second one.
+it('takes no other answer while one is being carried out', async () => {
+	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	await controller.onCloseRequested();
+	let finish!: (quit: boolean) => void;
+	mocks.resolveClose.mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+
+	const saving = controller.onCloseChoice('save');
+	expect(controller.closeAnswering).toBe('save');
+	await controller.onCloseChoice('cancel');
+	await controller.onCloseChoice('discard');
+	expect(controller.closePrompt).toBe(true);
+	expect(mocks.resolveClose).toHaveBeenCalledTimes(1);
+
+	finish(true);
+	await saving;
+	expect(controller.closeAnswering).toBeNull();
+	expect(controller.closePrompt).toBe(false);
 });

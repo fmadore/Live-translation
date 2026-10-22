@@ -69,8 +69,9 @@
 	.preview {
 		background: #111;
 		/* An edge, so the slide that matches the window — the dark one in the dark theme, the
-		   white one in the light — still reads as a slide rather than as more panel. */
-		border: 1px solid var(--line-strong);
+		   white one in the light — still reads as a slide rather than as more panel. The
+		   hover grey, because the quiet card edge all but vanishes against a white slide. */
+		border: 1px solid var(--line-hover);
 		overflow: hidden;
 		border-radius: var(--radius-control);
 	}

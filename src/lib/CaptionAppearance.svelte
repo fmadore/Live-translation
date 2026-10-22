@@ -231,10 +231,10 @@
 		border-radius: var(--radius-control);
 		forced-color-adjust: none;
 	}
-	/* Chosen is drawn inside the swatch — a mint ring, parted from the colour by a dark one so it
-	   shows on white and on black alike — and never outside it, where the focus ring goes. The
-	   two used to be the same outline, so a keyboard operator could not tell which swatch was
-	   chosen and which was merely focused. */
+	/* Chosen is drawn inside the swatch — an accent ring, parted from the colour by a ring of
+	   the window's ground so it shows on white and on black alike — and never outside it,
+	   where the focus ring goes. The two used to be the same outline, so a keyboard operator
+	   could not tell which swatch was chosen and which was merely focused. */
 	.colour-choice[aria-pressed='true'] {
 		box-shadow:
 			inset 0 0 0 2px var(--accent-soft),

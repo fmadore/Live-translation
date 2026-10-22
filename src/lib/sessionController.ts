@@ -23,16 +23,23 @@ export function createSessionController(
 	}
 ) {
 	const busy = writable(false);
+	/** From `beginSession` until the core has answered the start. The core stops the session it
+	 *  still holds before it starts the next, and that session's whole-session Idle lands in
+	 *  this window; the page hands this to `applyStatus`, so the Idle is not taken for the new
+	 *  run's end. */
+	const starting = writable(false);
 	let operation: Promise<unknown> | null = null;
 	let stopping: Promise<void> | null = null;
 
 	return {
 		busy,
+		starting,
 		async start(options: StartOptions): Promise<boolean> {
 			if (operation || stopping || get(isRunning)) return false;
-			const languageError = captionLanguageError(options, get(t), get(locale));
-			if (languageError) {
-				statusMessage.set(languageError);
+			if (captionLanguageError(options, get(t), get(locale))) {
+				// Worded where it is shown, from the setup that was refused, so a change of
+				// interface language re-words it there.
+				statusMessage.set((m, tag) => captionLanguageError(options, m, tag));
 				return false;
 			}
 			const second = secondCaptionLanguageOf(options);
@@ -42,6 +49,7 @@ export function createSessionController(
 			// changes, so switching back restores it; only a run that can use it sends it.
 			const run: StartOptions = { ...options, secondTargetLanguage: second ?? null };
 			beginSession(run);
+			starting.set(true);
 			const work = Promise.resolve().then(() => port.startSession(run));
 			operation = work;
 			try {
@@ -52,6 +60,7 @@ export function createSessionController(
 				statusMessage.set(asStatus(error));
 				return false;
 			} finally {
+				starting.set(false);
 				operation = null;
 				if (!stopping) busy.set(false);
 			}

@@ -197,15 +197,24 @@ This verifies packaging, not installed-app behaviour or certification.
    `src-tauri/tauri.conf.json`, and synchronize the root app versions in `package-lock.json`
    and `src-tauri/Cargo.lock`. All three manifests must match and be **higher than the
    version already in the Store** — Partner Center rejects a package that does not increase.
-   The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z`.
+   The first segment can never be `0`. Commit them together as `chore(release): X.Y.Z`, with
+   the release body in `docs/release-X.Y.Z.md` ([`release-notes.md`](release-notes.md) has the
+   register). The body has to be **in the tagged commit**: the workflow publishes it from
+   there, and refuses a plain tag without it.
 2. **Tag and push after manual testing**: `git tag vX.Y.Z` then `git push origin vX.Y.Z`,
    with the tested version; never reuse a published tag. The
-   [`Release installers`](../.github/workflows/release.yml) workflow builds the NSIS installer,
-   both architectures' `.msix`, and one multi-architecture
-   `Live.Translation_<version>.msixbundle`, and attaches them to the GitHub release. Download
-   the bundle from there.
-3. **Paste the release body.** The workflow creates the release with an empty one; the
-   paste-ready text and how to apply it are in [`release-notes.md`](release-notes.md).
+   [`Release installers`](../.github/workflows/release.yml) workflow first checks that the tag
+   is `v` followed by the version in all three manifests, before anything is built. It then
+   creates the GitHub release as a **draft** and attaches the NSIS and MSI installers, both
+   architectures' `.msix` and one multi-architecture `Live.Translation_<version>.msixbundle`.
+   Only once the bundle is attached does it publish the release, titled "Live Translation &
+   Subtitles X.Y.Z", with `docs/release-X.Y.Z.md` as the body. Download the bundle from there.
+3. **If a job fails, nothing is public.** The release stays a draft; re-run the failed jobs,
+   and the `bundle` job publishes it when it passes. If the version check fails, nothing was
+   built and no release exists for the tag, so it can be deleted (`git push origin --delete
+   vX.Y.Z` and `git tag -d vX.Y.Z`) and the fixed commit tagged again. A hyphenated tag
+   (`vX.Y.Z-rc.1`) builds the same assets into a draft prerelease, which is never published
+   automatically.
 4. **Sideload-test before submitting.** Install the bare per-architecture `.msix` with
    [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1), *not* the bundle —
    signing a bundle does not sign the packages inside it. Walk the manual release checklist in

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	PROVIDER_META,
 	estimateSessionCost,
+	formatUsd,
 	isLocalWhisper,
 	modelLabel,
 	providerCanTranslate,
@@ -77,5 +78,18 @@ describe('the two Whisper tasks', () => {
 			en.provider.model['whisper-translate']
 		);
 		expect(modelLabel(PROVIDER_META.whisper, en)).toBe(en.provider.model.whisper);
+	});
+});
+
+// Review U11: the running estimate printed `$0.32` in French and German, beside figures those
+// languages write with a decimal comma.
+describe('the running estimate', () => {
+	it('writes dollars the way the interface language writes money', () => {
+		expect(formatUsd(3.456, 'en-GB')).toBe('$3.46');
+		expect(formatUsd(0, 'en-GB')).toBe('$0.00');
+		// The symbol follows the number, after a space that cannot break off on its own line.
+		expect(formatUsd(0.32, 'fr-FR')).toMatch(/^0,32[  ]\$$/);
+		expect(formatUsd(0.32, 'de-DE')).toMatch(/^0,32[  ]\$$/);
+		expect(formatUsd(1234.5, 'de-DE')).toMatch(/^1\.234,50[  ]\$$/);
 	});
 });

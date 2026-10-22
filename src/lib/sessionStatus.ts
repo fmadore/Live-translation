@@ -4,7 +4,8 @@
 // this module sits above `transcriptLog.ts` and `sourceActivity.ts`, never below them.
 
 import { derived, get, writable } from 'svelte/store';
-import type { AppError } from './errors';
+import { describeError, type AppError } from './errors';
+import type { Messages } from './i18n/en';
 import { options } from './preferences';
 import { activityTimes, micLevel, systemLevel } from './sourceActivity';
 import {
@@ -86,10 +87,24 @@ export function streamedMs(
 	return Math.max(0, elapsedMs - paused.totalMs - current);
 }
 
-// Either plain text or the core's structured error. Structured, because the sentence for an
-// id belongs to the interface language and is chosen where it is rendered — see
-// `describeError`.
-export const statusMessage = writable<string | AppError>('');
+/** A message the window makes itself, worded from the catalog where it is shown — and so
+ *  again when the interface language changes — rather than stored as a finished sentence in
+ *  whichever language was active when it was set. */
+export type WordedMessage = (m: Messages, locale: string) => string;
+
+// Plain text, the core's structured error, or a message the window words itself. Structured
+// or worded, because the sentence belongs to the interface language and is chosen where it is
+// rendered — see `describeStatus`.
+export const statusMessage = writable<string | AppError | WordedMessage>('');
+
+/** The status line as the operator reads it, in the interface language of the moment. */
+export function describeStatus(
+	message: string | AppError | WordedMessage,
+	m: Messages,
+	locale: string
+): string {
+	return typeof message === 'function' ? message(m, locale) : describeError(message, m);
+}
 
 /** Wall-clock start of the current run, or null when idle. Drives the elapsed timer and the
  *  running cost estimate. */
@@ -101,8 +116,15 @@ export const sessionStartedAt = writable<number | null>(null);
  *  before this run's first active status — and must not be taken for this run ending. */
 let runHadActiveSource = false;
 
-/** Apply one status event from the Rust core. */
-export function applyStatus(u: StatusUpdate) {
+/** When each source last came to be running — at the start, on Resume, after a reconnect.
+ *  "No captions for 15 seconds" is measured from here rather than from the run's start:
+ *  capture keeps metering while a source is paused or reconnecting, so a coffee break longer
+ *  than that raised the alert, and Narrator spoke it, the moment the source resumed. */
+export const runningSince = writable<Partial<Record<Origin, number>>>({});
+
+/** Apply one status event from the Rust core. `starting` says it arrived while a start is in
+ *  flight (the session controller's `starting`), when a whole-session Idle is not this run's. */
+export function applyStatus(u: StatusUpdate, { starting = false }: { starting?: boolean } = {}) {
 	if (u.origin) {
 		const origin = u.origin;
 		// A status with no lane is about the source itself — a capture failure — and so about
@@ -119,6 +141,11 @@ export function applyStatus(u: StatusUpdate) {
 			for (const track of tracks) next[track] = u.state;
 			return next;
 		});
+		// Per source, as the activity row reads it: a second caption language back from a
+		// reconnect brings the source back to running, though the first never left.
+		const nowRunning = originState(get(originStates), origin) === 'running';
+		if (nowRunning && originState(known, origin) !== 'running')
+			runningSince.update((m) => ({ ...m, [origin]: Date.now() }));
 		if (u.state === 'error' || u.state === 'idle') {
 			const level = { source: origin, rms: 0, peak: 0 };
 			(origin === 'microphone' ? micLevel : systemLevel).set(level);
@@ -144,10 +171,17 @@ export function applyStatus(u: StatusUpdate) {
 			if (get(sessionStartedAt) === null) sessionStartedAt.set(Date.now());
 		}
 	} else if (u.state === 'idle') {
+		// A start first stops whatever the core still holds, and a session whose every source
+		// ended by itself is still held — so that session's Idle, with its failure, arrives
+		// after `beginSession`. It is the old run's end, not this one's: taken for this run's,
+		// it stopped the new clock and put the old failure back on the status line as the new
+		// run began. A start that fails sends no Idle of its own; the controller reports it.
+		if (starting) return;
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
 		activityTimes.set({});
+		runningSince.set({});
 		pauseRequested.set(false);
 		runHadActiveSource = false;
 		flushTranscript();
@@ -168,6 +202,7 @@ export function beginSession(sessionOptions = get(options)) {
 	beginTranscriptRun(sessionOptions);
 	runHadActiveSource = false;
 	originStates.set({});
+	runningSince.set({});
 	pauseRequested.set(false);
 	pausedTime.set({ totalMs: 0, since: null });
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });

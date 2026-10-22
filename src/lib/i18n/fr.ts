@@ -123,7 +123,7 @@ export const fr: Messages = {
 		system: 'Système',
 		light: 'Clair',
 		dark: 'Sombre',
-		note: 'Système suit le mode clair ou sombre choisi dans Windows. La surimpression des sous-titres garde ses propres couleurs.'
+		note: '« Système » suit le mode d’application clair ou sombre de Windows. La surimpression des sous-titres garde ses propres couleurs.'
 	},
 
 	// The product's own name is not translated — the Store lists it in English, and inventing a
@@ -204,6 +204,7 @@ export const fr: Messages = {
 		discard: 'Abandonner le son restant',
 		discardConfirm:
 			'Abandonner le son restant ? Les sous-titres déjà produits seront conservés, mais la transcription sera incomplète.',
+		discarding: 'Abandon du son restant…',
 		cpuUnsupported: (missing: string) =>
 			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
 		translateTitle: 'Traduction locale vers l’anglais',
@@ -406,6 +407,7 @@ export const fr: Messages = {
 		refresh: 'Actualiser',
 		empty: 'Aucune session enregistrée.',
 		failed: 'Impossible de mettre à jour l’historique.',
+		actionFailed: 'La dernière action sur cette session n’a pas abouti.',
 		auto: 'Langue détectée automatiquement',
 		sameLanguage: 'Sous-titres dans la même langue',
 		unfinished: 'En cours ou interrompue · durée au dernier enregistrement',
@@ -649,7 +651,8 @@ export const fr: Messages = {
 		copied: (minutes: number) =>
 			minutes ? `${minutes} dernières minutes copiées.` : 'Transcription entière copiée.',
 		inProgress: 'En cours de parole',
-		lines: (n: number) => (n === 1 ? '1 ligne' : `${n} lignes`),
+		// French puts zero in the singular as well: 0 ligne, not 0 lignes.
+		lines: (n: number) => (n < 2 ? `${n} ligne` : `${n} lignes`),
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',
 		saveAs: 'Enregistrer sous…',
@@ -699,8 +702,8 @@ export const fr: Messages = {
 			title: 'Enregistrer cette transcription avant de fermer ?',
 			sessionEnded: 'La session a été arrêtée et les derniers sous-titres ont été récupérés.',
 			body: (lines: number) =>
-				lines === 1
-					? '1 ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.'
+				lines < 2
+					? `${lines} ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.`
 					: `${lines} lignes n’ont pas été enregistrées. Fermer sans enregistrer les supprime.`,
 			failed: (error: string) => `Enregistrement impossible : ${error}`,
 			save: 'Enregistrer et fermer',
@@ -712,7 +715,9 @@ export const fr: Messages = {
 		recovery: {
 			title: 'Récupérer la transcription de votre dernière session ?',
 			body: (lines: number, savedAt: string) =>
-				`L’application s’est fermée alors que ${lines === 1 ? '1 ligne non enregistrée était encore' : `${lines} lignes non enregistrées étaient encore`} dans le journal. Elles ont été copiées localement à ${savedAt} et n’ont pas quitté ce PC.`,
+				lines < 2
+					? `L’application s’est fermée alors que ${lines} ligne non enregistrée était encore dans le journal. Elle a été copiée localement à ${savedAt} et n’a pas quitté ce PC.`
+					: `L’application s’est fermée alors que ${lines} lignes non enregistrées étaient encore dans le journal. Elles ont été copiées localement à ${savedAt} et n’ont pas quitté ce PC.`,
 			restore: 'Restaurer la transcription',
 			delete: 'La supprimer',
 			noteBefore: 'Les deux réponses suppriment le fichier de récupération situé à',
@@ -784,6 +789,8 @@ export const fr: Messages = {
 			'Whisper local ne peut pas fonctionner sur ce processeur ; choisissez un autre moteur, par exemple la démonstration intégrée',
 		deviceEnumeration: 'Windows n’a pas pu énumérer les appareils audio',
 		keychain: 'Le Gestionnaire d’informations d’identification Windows a refusé la demande',
+		apiKeyFormat:
+			'La clé API n’a pas été enregistrée. Copiez-la de nouveau depuis la page du fournisseur : celle-ci contient un espace ou un caractère qu’aucune clé API ne comporte',
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',
 		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',

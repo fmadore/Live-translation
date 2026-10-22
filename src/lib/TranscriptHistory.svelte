@@ -10,6 +10,7 @@
 	import { api, isTauri } from './tauri';
 	import { asStatus, describeError, type AppError } from './errors';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
+	import { formatElapsed } from './sessionClock.svelte';
 	import {
 		createHistoryCache,
 		historyEnabled,
@@ -38,8 +39,11 @@
 	let selectedId = $state('');
 	let busy = $state(false);
 	// Kept as caught and worded where it is shown, so the core's failures read in the interface
-	// language rather than as "[object Object]".
+	// language rather than as "[object Object]". A failed listing and a failed action on the
+	// selected session are told apart: each has its own headline, and a listing that succeeds
+	// clears only its own failure, not the one an action is still reporting.
 	let error = $state.raw<string | AppError>('');
+	let actionError = $state.raw<string | AppError>('');
 	let notice = $state('');
 	let confirmDelete = $state('');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
@@ -59,14 +63,14 @@
 	async function rename() {
 		if (!selected || busy) return;
 		busy = true;
-		error = '';
+		actionError = '';
 		try {
 			await sessionHistory.rename(selected, title);
 			cache.forget(selected.id);
 			await refresh();
 			notice = $t.usability.titleSaved;
 		} catch (e) {
-			error = asStatus(e);
+			actionError = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -137,7 +141,7 @@
 	async function action(kind: 'copy' | 'export') {
 		if (!selected || busy) return;
 		busy = true;
-		error = '';
+		actionError = '';
 		notice = '';
 		try {
 			if (kind === 'copy') {
@@ -151,7 +155,7 @@
 				if (path) notice = `${$t.transcript.savedTo} ${path}`;
 			}
 		} catch (e) {
-			error = asStatus(e);
+			actionError = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -162,7 +166,7 @@
 			return;
 		}
 		busy = true;
-		error = '';
+		actionError = '';
 		notice = '';
 		try {
 			await sessionHistory.delete(id);
@@ -170,7 +174,7 @@
 			confirmDelete = '';
 			await refresh();
 		} catch (e) {
-			error = asStatus(e);
+			actionError = asStatus(e);
 		} finally {
 			busy = false;
 		}
@@ -230,6 +234,8 @@
 							title = entry.session?.title ?? '';
 							confirmDelete = '';
 							notice = '';
+							// Its headline says "this session", so it goes with the selection.
+							actionError = '';
 						}}
 					>
 						{#if entry.session}
@@ -241,9 +247,8 @@
 									>{formatDateTime(entry.session.startedAt, $localeTag)}</span
 								>{/if}
 							<span
-								>{Math.floor(entry.session.durationMs / 60000)}:{String(
-									Math.floor(entry.session.durationMs / 1000) % 60
-								).padStart(2, '0')} · {entry.session.sourceLanguage === 'auto'
+								>{formatElapsed(entry.session.durationMs)} · {entry.session.sourceLanguage ===
+								'auto'
 									? $t.history.auto
 									: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
 									entry.session
@@ -322,6 +327,10 @@
 		</div>
 	</div>
 	{#if error}<p role="alert">{$t.history.failed} {describeError(error, $t)}</p>{/if}
+	{#if actionError}<p role="alert">
+			{$t.history.actionFailed}
+			{describeError(actionError, $t)}
+		</p>{/if}
 	<p class="notice" role="status">{notice}</p>
 </section>
 
