@@ -11,7 +11,8 @@ import { get } from 'svelte/store';
 import { mockTauri, type TauriMock } from '#lib/testing/tauriMock.js';
 import { IDLE_CORE } from '#lib/testing/idleCore.js';
 import { OVERLAY_GEOMETRY_KEY } from '#lib/overlayGeometry.js';
-import type { Caption, StatusUpdate } from '#lib/types.js';
+import type { AppError } from '#lib/errors.js';
+import type { Caption, StatusUpdate, WhisperModelInfo } from '#lib/types.js';
 
 // The stores read their preferences as they load, and in this pool storage outlives a test
 // file, so the page is imported only once nothing is stored.
@@ -115,6 +116,40 @@ it('runs the built-in demo from Start to Stop and keeps its transcript', async (
 	expect(within(screen.getByRole('main')).getByText('Unsaved')).toBeInTheDocument();
 });
 
+// U4: Start makes way for Stop as the run begins, and Stop for Start as it ends. The button
+// pressed goes with that swap, so the keyboard is handed to the one that replaced it rather
+// than dropped on the page — and the pressed button stays focusable while it is busy, or the
+// keyboard would be gone before the swap.
+it('hands the keyboard from Start to Stop as the session starts, and back as it stops', async () => {
+	render(Page);
+	await chooseDemo();
+	let answer!: () => void;
+	core.handle('start_session', () => new Promise<void>((resolve) => (answer = resolve)));
+	const start = screen.getByRole('button', { name: 'Start demo subtitles' });
+	await waitFor(() => expect(start).toBeEnabled());
+	start.focus();
+	await fireEvent.click(start);
+
+	await waitFor(() => expect(core.callsTo('start_session')).toHaveLength(1));
+	expect(start).toHaveAccessibleName('Starting…');
+	expect(start).toHaveAttribute('aria-disabled', 'true');
+	expect(start).toHaveAttribute('aria-busy', 'true');
+	expect(start).toHaveFocus();
+	// Unavailable all the same: a second press does not start a second session.
+	await fireEvent.click(start);
+	expect(core.callsTo('start_session')).toHaveLength(1);
+
+	await core.emit('status', { state: 'connecting', origin: 'microphone' } satisfies StatusUpdate);
+	answer();
+	await core.emit('status', { state: 'running', origin: 'microphone' } satisfies StatusUpdate);
+	const stopButton = await screen.findByRole('button', { name: 'Stop captions' });
+	await waitFor(() => expect(stopButton).toHaveFocus());
+
+	await fireEvent.click(stopButton);
+	const startAgain = await screen.findByRole('button', { name: 'Start demo subtitles' });
+	await waitFor(() => expect(startAgain).toHaveFocus());
+});
+
 // Issue #124: the whole transcript in the stage while the meeting goes on, with the turn still
 // being spoken at its foot, and the choice kept for the next session.
 it('reads the transcript in the stage instead of the live turns, and remembers the choice', async () => {
@@ -146,21 +181,22 @@ it('reads the transcript in the stage instead of the live turns, and remembers t
 	expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
 });
 
+/** Whisper's base model, downloaded, so the default engine can start. */
+const BASE_INSTALLED: WhisperModelInfo = {
+	id: 'base',
+	bytes: 59_707_625,
+	installed: true,
+	downloading: false,
+	downloadedBytes: 0,
+	inUse: false
+};
+
 // Whisper's translate task: English captions with no original speech under them. The caption
 // language follows the rule every engine does, and a second language saved for a cloud engine
 // stays in the setup but is never sent.
 it('translates into English with local Whisper, with no original line and no second language', async () => {
 	options.set({ ...DEFAULT_START_OPTIONS, targetLanguage: 'fr', secondTargetLanguage: 'de' });
-	core.handle('whisper_models', () => [
-		{
-			id: 'base',
-			bytes: 59_707_625,
-			installed: true,
-			downloading: false,
-			downloadedBytes: 0,
-			inUse: false
-		}
-	]);
+	core.handle('whisper_models', () => [BASE_INSTALLED]);
 	render(Page);
 	await fireEvent.click(await screen.findByRole('button', { name: /^Live translation/ }));
 	await fireEvent.click(screen.getByRole('button', { name: /^Local Whisper/ }));
@@ -202,6 +238,95 @@ it('translates into English with local Whisper, with no original line and no sec
 	await screen.findByRole('button', { name: 'Start translating' });
 	// The saved setup still has the second language for the next cloud engine.
 	expect(get(options).secondTargetLanguage).toBe('de');
+});
+
+// U1: every source of a run fails, and the core keeps what is left of that session until the
+// next start stops it — so the stop's whole-session Idle, carrying the old failure, reaches the
+// window while the rehearsal is starting. It used to take the rehearsal's rail with it (the
+// saved source, its meter and its cost) and put the old failure back on the status line.
+it('rehearses on the sample after a run that ended by itself, without its old failure', async () => {
+	core.handle('whisper_models', () => [BASE_INSTALLED]);
+	render(Page);
+	const start = await screen.findByRole('button', { name: 'Start subtitles' });
+	await waitFor(() => expect(start).toBeEnabled());
+	await fireEvent.click(start);
+	await waitFor(() => expect(core.callsTo('start_session')).toHaveLength(1));
+	await core.emit('status', { state: 'running', origin: 'microphone' } satisfies StatusUpdate);
+	await screen.findByRole('button', { name: 'Stop captions' });
+	const failure: AppError = { id: 'error.whisperSession', detail: 'decoder stalled' };
+	await core.emit('status', {
+		state: 'error',
+		origin: 'microphone',
+		message: failure
+	} satisfies StatusUpdate);
+	const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+	expect(screen.getAllByText(/decoder stalled/).length).toBeGreaterThan(0);
+
+	// As `SessionManager::start` does with a session nobody stopped: `stop_active` first.
+	core.handle('start_session', async () => {
+		await core.emit('status', { state: 'idle', message: failure } satisfies StatusUpdate);
+	});
+	await waitFor(() => expect(rehearse).toBeEnabled());
+	await fireEvent.click(rehearse);
+	await waitFor(() => expect(core.callsTo('start_session')).toHaveLength(2));
+	expect(core.callsTo('start_session')[1].options).toMatchObject({ rehearsal: 'en' });
+	await core.emit('status', { state: 'connecting', origin: 'system' } satisfies StatusUpdate);
+	await core.emit('status', { state: 'running', origin: 'system' } satisfies StatusUpdate);
+	await screen.findByRole('button', { name: 'Stop captions' });
+
+	expect(
+		screen.getByText('A sample recording is playing — nothing in the room is being captured.')
+	).toBeInTheDocument();
+	expect(screen.getByText('Sample')).toBeInTheDocument();
+	expect(screen.getByRole('meter', { name: 'Remote' })).toBeInTheDocument();
+	expect(screen.queryByRole('meter', { name: 'Room' })).toBeNull();
+	expect(screen.queryAllByText(/decoder stalled/)).toHaveLength(0);
+});
+
+// U11: a message the window makes itself is worded where it is shown, as the core's are, so a
+// change of interface language re-words the one already on screen.
+it('re-words a blocked start on the status line when the interface language changes', async () => {
+	options.set({ ...DEFAULT_START_OPTIONS, targetLanguage: 'fr' });
+	core.handle('whisper_models', () => [BASE_INSTALLED]);
+	render(Page);
+	await fireEvent.click(await screen.findByRole('button', { name: /^Live translation/ }));
+	await fireEvent.click(screen.getByRole('button', { name: /^Local Whisper/ }));
+	const english = 'Whisper does not support French — choose another language.';
+	// The setup sheet says it already; the shortcut, which Start's disabled state cannot
+	// stop, says it again on the status line once the model list has made the engine ready.
+	await waitFor(async () => {
+		await fireEvent.keyDown(window, { code: 'Space', ctrlKey: true, shiftKey: true });
+		expect(screen.getAllByText(english)).toHaveLength(3);
+	});
+	expect(core.callsTo('start_session')).toHaveLength(0);
+
+	locale.set('fr');
+	await waitFor(() => expect(screen.queryAllByText(english)).toHaveLength(0));
+	expect(screen.getAllByText(/^Whisper ne prend pas en charge la langue français/)).toHaveLength(3);
+});
+
+it('re-words a failed save in the quit prompt when the interface language changes', async () => {
+	render(Page);
+	await chooseDemo();
+	await runDemo();
+	await stop();
+	core.handle('save_transcript', () => {
+		throw { id: 'error.transcriptWrite', detail: 'disk full' } satisfies AppError;
+	});
+
+	await core.emit('close-requested');
+	await fireEvent.click(await screen.findByRole('button', { name: 'Save and close' }));
+	expect(await screen.findByRole('alert')).toHaveTextContent(
+		'Could not save: The transcript could not be written (disk full)'
+	);
+	expect(core.callsTo('confirm_close')).toHaveLength(0);
+
+	locale.set('fr');
+	await waitFor(() =>
+		expect(screen.getByRole('alert')).toHaveTextContent(
+			'Enregistrement impossible : La transcription n’a pas pu être écrite (disk full)'
+		)
+	);
 });
 
 // F2: the overlay reopens where it was last placed on these displays, as the page mounts and

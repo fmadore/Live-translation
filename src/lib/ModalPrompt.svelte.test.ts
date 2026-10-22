@@ -17,7 +17,7 @@ function stack() {
 	});
 	const onChoice = vi.fn();
 	const view = render(UnsavedPrompt, {
-		props: { lines: 3, endedSession: false, saving: false, error: '', onChoice }
+		props: { lines: 3, endedSession: false, answering: null, error: '', onChoice }
 	});
 	return { ...view, onSettingsDismiss, onChoice };
 }

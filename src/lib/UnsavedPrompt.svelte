@@ -13,14 +13,17 @@
 		/** True when the close arrived mid-session and capture has just been drained, so the
 		 *  count can be explained rather than appearing from nowhere. */
 		endedSession: boolean;
-		/** Set while the transcript is being written, so Save cannot be pressed twice. */
-		saving: boolean;
+		/** The answer being carried out: Save while the transcript is written, Discard while the
+		 *  spool is cleared and the app quits. Every answer is locked meanwhile, Escape too, so
+		 *  nothing can be pressed twice or taken back halfway through. */
+		answering: Exclude<CloseChoice, 'cancel'> | null;
 		/** Last save failure — kept on screen rather than quitting on a write that did not land. */
 		error: string;
 		onChoice: (choice: CloseChoice) => void;
 	}
 
-	let { lines, endedSession, saving, error, onChoice }: Props = $props();
+	let { lines, endedSession, answering, error, onChoice }: Props = $props();
+	const busy = $derived(answering !== null);
 
 	let saveEl = $state<HTMLButtonElement | null>(null);
 
@@ -31,7 +34,10 @@
 	});
 </script>
 
-<ModalPrompt title={$t.prompt.unsaved.title} onDismiss={() => onChoice('cancel')}>
+<ModalPrompt
+	title={$t.prompt.unsaved.title}
+	onDismiss={busy ? undefined : () => onChoice('cancel')}
+>
 	<p>
 		{#if endedSession}{$t.prompt.unsaved.sessionEnded}{/if}
 		{$t.prompt.unsaved.body(lines)}
@@ -46,15 +52,22 @@
 			variant="primary"
 			size="lg"
 			bind:element={saveEl}
-			disabled={saving}
+			disabled={busy}
+			aria-busy={answering === 'save'}
 			onclick={() => onChoice('save')}
 		>
-			{saving ? $t.prompt.unsaved.saving : $t.prompt.unsaved.save}
+			{answering === 'save' ? $t.prompt.unsaved.saving : $t.prompt.unsaved.save}
 		</ToolButton>
-		<ToolButton variant="danger" size="lg" disabled={saving} onclick={() => onChoice('discard')}>
+		<ToolButton
+			variant="danger"
+			size="lg"
+			disabled={busy}
+			aria-busy={answering === 'discard'}
+			onclick={() => onChoice('discard')}
+		>
 			{$t.prompt.unsaved.discard}
 		</ToolButton>
-		<ToolButton variant="ghost" size="lg" disabled={saving} onclick={() => onChoice('cancel')}
+		<ToolButton variant="ghost" size="lg" disabled={busy} onclick={() => onChoice('cancel')}
 			>{$t.prompt.unsaved.cancel}</ToolButton
 		>
 	</div>

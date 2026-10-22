@@ -5,7 +5,7 @@ import UnsavedPrompt from './UnsavedPrompt.svelte';
 function mount(props: Partial<Parameters<typeof render<typeof UnsavedPrompt>>[1]> = {}) {
 	const onChoice = vi.fn();
 	const view = render(UnsavedPrompt, {
-		props: { lines: 12, endedSession: false, saving: false, error: '', onChoice, ...props }
+		props: { lines: 12, endedSession: false, answering: null, error: '', onChoice, ...props }
 	});
 	return { ...view, onChoice };
 }
@@ -65,11 +65,28 @@ describe('UnsavedPrompt', () => {
 		expect(onChoice).toHaveBeenCalledWith('cancel');
 	});
 
-	it('locks the answers while the file is being written', () => {
-		const { getByRole } = mount({ saving: true });
+	// U9: the quit is under way for either answer, so neither a button nor Escape can be taken
+	// back or pressed twice halfway through it.
+	it('locks every answer, Escape too, while the file is being written', async () => {
+		const { getByRole, onChoice } = mount({ answering: 'save' });
 		expect(getByRole('button', { name: 'Saving…' })).toBeDisabled();
+		expect(getByRole('button', { name: 'Saving…' })).toHaveAttribute('aria-busy', 'true');
 		expect(getByRole('button', { name: 'Discard and close' })).toBeDisabled();
 		expect(getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(onChoice).not.toHaveBeenCalled();
+	});
+
+	it('locks every answer, Escape too, while a discard is quitting', async () => {
+		const { getByRole, onChoice } = mount({ answering: 'discard' });
+		expect(getByRole('button', { name: 'Save and close' })).toBeDisabled();
+		expect(getByRole('button', { name: 'Discard and close' })).toBeDisabled();
+		expect(getByRole('button', { name: 'Discard and close' })).toHaveAttribute('aria-busy', 'true');
+		expect(getByRole('button', { name: 'Cancel' })).toBeDisabled();
+
+		await fireEvent.keyDown(window, { key: 'Escape' });
+		expect(onChoice).not.toHaveBeenCalled();
 	});
 
 	// A write that did not land must be visible, not quietly followed by a quit.
