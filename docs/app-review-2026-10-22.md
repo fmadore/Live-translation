@@ -12,6 +12,22 @@ preview edge), L7, L9, L10, L11 and C1, with the 1.9.0 release body and What's n
 and text-field borders were left as they are: the light `--warn` is the theme's amber, and the
 field edges predate the theme.
 
+Batch 2 is on the same branch: B3, B6, B7, B8, B9, B11, B12 (log cap), B14, B15, C11, U1, U2, U4,
+U6, U9, U11, U13 and C12's type fix and `ModelId` check. Notes from doing it:
+
+- **B3** leaves one gap: after Alt+F4 hides the overlay, the operator's toggle still reads "Hide
+  overlay", so bringing it back takes one extra click. Telling the operator needs a new core
+  event or a visibility check, so it was left for later. The overlay is also no longer
+  maximizable, which stops a double-click in move mode from maximising it.
+- **B6** reports a stored key that cannot form a request as `error.providerRejected` ("check the
+  API key"), not as the provider ending the session.
+- **U2's** strip appears only past 21 s of backlog, not the 12 s suggested above: a session that
+  keeps up holds up to 20 s, one 10 s window being transcribed while the next fills.
+- **U11** leaves two finished strings in `preflightController.svelte.ts` (`applications.missing`,
+  `devices.idleFallback`), which can move to the new worded-message form the same way.
+- **Still to check by hand:** B9 with a Mistral rehearsal, U4 with Narrator, and the
+  non-maximizable overlay against Windows snap.
+
 Labels: **verified** findings were traced in the code; **plausible** ones need a run, hardware
 or a live provider to confirm. **Rechecked** means the orchestrating pass confirmed the finding
 independently (in the code, the built app, the browser preview or GitHub) after a reviewer
