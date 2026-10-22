@@ -5,6 +5,8 @@ import { createPreflightController } from './preflightController.svelte';
 import { createOverlayController } from './overlayController.svelte';
 import { options, overlayFontSize, overlayCaptionWidth, statusMessage } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
+import { describeError } from './errors';
+import { en } from './i18n/en';
 import type { StartOptions, WhisperModelInfo } from './types';
 
 beforeEach(() => {
@@ -46,12 +48,16 @@ it('prevents overlapping test starts and leaves native events authoritative', as
 	expect(startAudioTest).toHaveBeenCalledTimes(1);
 	expect(probe.audioTestBusy).toBe(true);
 	probe.applyAudioTest({ active: true });
-	probe.applyAudioTest({ active: false, message: 'Device disconnected' });
+	// Review C12: the core sends its error, not a sentence (`Option<AppError>` in types.rs), and
+	// it reaches the status line still structured, to be worded in the interface language.
+	const failure = { id: 'error.micStream', detail: 'Device disconnected' };
+	probe.applyAudioTest({ active: false, message: failure });
 	release();
 	await starting;
 	expect(probe.audioTesting).toBe(false);
 	expect(probe.audioTestBusy).toBe(false);
-	expect(get(statusMessage)).toBe('Device disconnected');
+	expect(get(statusMessage)).toEqual(failure);
+	expect(describeError(get(statusMessage), en)).toBe(`${en.error.micStream} (Device disconnected)`);
 });
 
 it('asks the core once whether this processor can run local Whisper', async () => {

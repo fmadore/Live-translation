@@ -287,11 +287,12 @@ export interface StatusUpdate {
 }
 
 /** Preflight level test. Deliberately not a `StatusUpdate`: a test is not a session and must
- *  never move the session state machine. `message` is set only when a device failed.
+ *  never move the session state machine. `message` is present only when a device failed, and
+ *  like a status it is the core's error, worded by the catalog where it is shown.
  *  Mirrors `AudioTestUpdate` in types.rs. */
 export interface AudioTestUpdate {
 	active: boolean;
-	message?: string | null;
+	message?: AppError;
 }
 
 export interface AudioDevice {

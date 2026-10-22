@@ -7,7 +7,8 @@ import {
 	OUTPUT_MODES,
 	PROVIDERS,
 	SESSION_STATES,
-	TRAY_COMMANDS
+	TRAY_COMMANDS,
+	WHISPER_MODELS
 } from './types';
 import { DEMO_LANGUAGES } from './languages';
 
@@ -111,7 +112,9 @@ describe('shared enums', () => {
 		['OutputMode', types, OUTPUT_MODES],
 		['SessionState', types, SESSION_STATES],
 		['DemoLanguage', types, DEMO_LANGUAGES],
-		['TrayCommand', rust('tray.rs'), TRAY_COMMANDS]
+		['TrayCommand', rust('tray.rs'), TRAY_COMMANDS],
+		// The model picker's ids, which the model commands and the start options carry.
+		['ModelId', rust('whisper/models.rs'), WHISPER_MODELS]
 	] as const)('%s has the same values on both sides', (name, source, values) => {
 		expect(sorted(values)).toEqual(sorted(serdeVariants(source, name)));
 	});
