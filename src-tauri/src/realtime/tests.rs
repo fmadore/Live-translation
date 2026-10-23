@@ -87,7 +87,8 @@ impl Events for Recorder {
 /// setup, `text:…` revises the turn, `more:…` extends it as new transcript (restarting the
 /// idle timer), `turnend` marks the end of the speaker's turn (`turnend:<ms>` with a grace of
 /// its own), `hold`/`release` say whether they are mid-sentence, `final` completes the turn,
-/// `goaway` (`goaway:<ms>` with the time it has left)/`closed`/`fatal` steer the connection. The client sends `setup`, `audio:<base64>`,
+/// `goaway` (`goaway:<ms>` with the time it has left)/`closed`/`retry`/`fatal` steer the
+/// connection. The client sends `setup`, `audio:<base64>`,
 /// and `end` to start a close drain, which completes on the next final.
 struct Fake {
     url: String,
@@ -157,6 +158,7 @@ impl RealtimeProtocol for Fake {
             "goaway" => MessageOutcome::control(MessageControl::Handover { time_left: None }),
             "closed" => MessageOutcome::control(MessageControl::Closed),
             "fatal" => MessageOutcome::control(MessageControl::Fatal("refused".into())),
+            "retry" => MessageOutcome::control(MessageControl::Reconnect),
             _ => {
                 if let Some(text) = text.strip_prefix("text:") {
                     acc.text = text.into();
@@ -687,6 +689,49 @@ async fn a_close_worth_retrying_during_setup_reconnects_with_backoff() {
     client.expect(status(SessionState::Running)).await;
 
     drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// A provider's own transient error in answer to setup — Gemini's UNAVAILABLE, as
+/// `classify_json` reads it — is a failed setup, not the end of the source; and once a setup
+/// is accepted, the failures before it no longer count towards the cap.
+#[tokio::test(start_paused = true)]
+async fn a_transient_error_during_setup_is_retried_and_an_accepted_setup_resets_the_count() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    for _ in 1..MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        peer.send("retry").await;
+        client
+            .expect(Event::Status(
+                SessionState::Reconnecting,
+                Some(id::PROVIDER_RECONNECTING),
+            ))
+            .await;
+        client.expect(status(SessionState::Reconnecting)).await;
+    }
+    let mut accepted = server.accept().await;
+    accepted.ready().await;
+    client.expect(status(SessionState::Running)).await;
+    accepted.0.close(None).await.unwrap();
+    client.expect(status(SessionState::Reconnecting)).await;
+
+    // As many failures again, and still retrying: the count started over.
+    for _ in 1..MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        peer.send("retry").await;
+        client
+            .expect(Event::Status(
+                SessionState::Reconnecting,
+                Some(id::PROVIDER_RECONNECTING),
+            ))
+            .await;
+        client.expect(status(SessionState::Reconnecting)).await;
+    }
+
     client.cancel.cancel();
     client.finished().await;
 }
