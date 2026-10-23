@@ -1,5 +1,6 @@
 import { encodeRecovery, newestLineId } from './document';
 import { asStatus, type AppError } from './errors';
+import { writable } from 'svelte/store';
 import { api } from './tauri';
 import type { StoredRecovery, TranscriptLine } from './types';
 
@@ -60,8 +61,21 @@ export function spoolFailure(error: unknown): string | AppError {
 	return typeof status === 'string' ? { id: 'error.recoveryWrite', detail: status } : status;
 }
 
+/** The longest the spool waits between attempts while its writes keep failing. */
+export const RECOVERY_MAX_BACKOFF_MS = 64_000;
+
+/** Why the spool's last write failed, while it keeps failing; empty while it works, and while
+ *  it is off. Held for as long as the failure lasts, so the transcript can say so beside its
+ *  save badge rather than only on the status line, which the next status overwrites. */
+export const recoveryFailure = writable<string | AppError>('');
+
 /** Scheduling is separate from the queue so unmounting/re-enabling cannot create a
- * second writer. The queue also serves Save, Clear, Disable, Restore and Quit. */
+ * second writer. The queue also serves Save, Clear, Disable, Restore and Quit.
+ *
+ * A failed write does not stop the spool: a full disk gets space back, a locked file is let
+ * go. It tries again after twice the wait each time, up to `RECOVERY_MAX_BACKOFF_MS`, and
+ * reports once per run of failures rather than on every attempt. A write that succeeds — or
+ * nothing left unsaved to protect — ends the run. */
 export function startRecoverySpool(
 	readUnsaved: () => TranscriptLine[] | null,
 	onError: (error: unknown) => void,
@@ -69,17 +83,33 @@ export function startRecoverySpool(
 ) {
 	let writing = false;
 	let stopped = false;
+	let failures = 0;
+	let retryAt = 0;
+	const recovered = () => {
+		failures = 0;
+		retryAt = 0;
+		recoveryFailure.set('');
+	};
 	const timer = setInterval(() => {
-		if (writing || stopped) return;
+		if (writing || stopped || Date.now() < retryAt) return;
 		const lines = readUnsaved();
-		if (!lines?.length) return;
+		if (!lines?.length) {
+			if (failures) recovered();
+			return;
+		}
 		writing = true;
 		void coordinator
 			.write(lines)
+			.then(() => {
+				if (!stopped && failures) recovered();
+			})
 			.catch((error) => {
 				if (stopped) return;
-				stopped = true;
-				onError(error);
+				failures++;
+				retryAt =
+					Date.now() + Math.min(RECOVERY_INTERVAL_MS * 2 ** failures, RECOVERY_MAX_BACKOFF_MS);
+				recoveryFailure.set(spoolFailure(error));
+				if (failures === 1) onError(error);
 			})
 			.finally(() => {
 				writing = false;
@@ -88,5 +118,7 @@ export function startRecoverySpool(
 	return () => {
 		stopped = true;
 		clearInterval(timer);
+		// Switched off, the spool is not failing: there is nothing it is meant to be writing.
+		recoveryFailure.set('');
 	};
 }

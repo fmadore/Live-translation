@@ -3,6 +3,7 @@
 	import { historyEnabled } from './history';
 	import { isLocalWhisper } from './providers';
 	import { options, recoveryEnabled, statusMessage } from './stores';
+	import { recoveryFailure } from './recovery';
 
 	/** The idle stage's foot: the status line, then what a rehearsal plays and where the
 	 *  captions go — kept in memory, spooled for crash recovery, stored in history — and who
@@ -28,7 +29,9 @@
 		{$historyEnabled
 			? $t.history.stored
 			: $recoveryEnabled
-				? $t.preflight.privacy.spooled
+				? $recoveryFailure
+					? $t.preflight.privacy.spoolFailing
+					: $t.preflight.privacy.spooled
 				: $t.preflight.privacy.memoryOnly}
 		{$options.provider === 'ondevice'
 			? $t.preflight.privacy.demo

@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { isTauri } from './tauri';
-	import { recovery } from './recovery';
+	import { recovery, recoveryFailure } from './recovery';
+	import { historyEnabled, historyError } from './history';
 	import { t } from './i18n';
-	import { asStatus, type AppError } from './errors';
+	import { asStatus, describeError, type AppError } from './errors';
 	import {
 		clearTranscript as clearTranscriptStore,
 		exportOriginal,
+		recoveryEnabled,
 		savedPath,
 		transcriptDirty
 	} from './stores';
@@ -72,6 +74,13 @@
 		$savedPath && !$transcriptDirty ? $t.transcript.savedAnnouncement($savedPath) : ''
 	);
 
+	// Background saving that keeps failing says so here for as long as it lasts (review U3):
+	// the status line words a spool failure once, and the next status overwrites it, and a
+	// history failure was shown only in Settings. Each is the failure as last caught, so the
+	// tooltip carries its detail.
+	const spoolFailing = $derived($recoveryEnabled && !!$recoveryFailure);
+	const historyFailing = $derived($historyEnabled && !!$historyError);
+
 	// Nothing is ever dropped (issue #25), but a log this long is a session worth putting on
 	// disk before something else decides for the operator.
 	const veryLong = $derived(transcript.length >= TRANSCRIPT_WARN_LINES);
@@ -133,6 +142,12 @@
 			{$transcriptDirty ? $t.transcript.unsaved : $t.transcript.saved}
 		</span>
 	{/if}
+	{#if spoolFailing}<span class="state failing" title={describeError($recoveryFailure, $t)}
+			>{$t.transcript.recoveryFailing}</span
+		>{/if}
+	{#if historyFailing}<span class="state failing" title={describeError($historyError, $t)}
+			>{$t.transcript.historyFailing}</span
+		>{/if}
 	<div class="spacer"></div>
 	<div class="copy">
 		<!-- Shows the window Copy will actually use: the whole log when it has no timing. -->
@@ -192,6 +207,9 @@
 <!-- The same arrangement for Copy, which a screen reader otherwise does not hear at all. -->
 <p class="sr-only" role="status">{copyNotice}</p>
 {#if copyNotice}<p class="saved" aria-hidden="true">{copyNotice}</p>{/if}
+<!-- History saving that starts failing, said once. A failing recovery copy needs no region of
+     its own: its first failure reaches the window's status line, which is one already. -->
+<p class="sr-only" role="status">{historyFailing ? $t.transcript.historyFailing : ''}</p>
 {#if $savedPath && !$transcriptDirty}
 	<p class="saved" aria-hidden="true">{$t.transcript.savedTo} <code>{$savedPath}</code></p>
 {:else if $savedPath}
@@ -245,7 +263,8 @@
 		color: var(--accent-soft);
 		background: var(--accent-chip);
 	}
-	.state.unsaved {
+	.state.unsaved,
+	.state.failing {
 		color: var(--warn-soft);
 		background: var(--warn-chip);
 	}

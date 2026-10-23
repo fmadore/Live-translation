@@ -6,6 +6,7 @@ import { operatorContextMap } from './operatorContext';
 import { createOverlayController } from './overlayController.svelte';
 import { options, recoveryEnabled, statusMessage } from './stores';
 import { historyEnabled } from './history';
+import { recoveryFailure } from './recovery';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { setLocale } from './i18n';
 import type { PreflightController } from './preflightController.svelte';
@@ -56,6 +57,12 @@ describe('the launch notes', () => {
 				view.getByText(/^Transcript is held in memory and spooled locally/)
 			).toBeInTheDocument()
 		);
+		// Review U3: a recovery copy that keeps failing is not described as being kept.
+		recoveryFailure.set({ id: 'error.recoveryWrite', detail: 'disk full' });
+		await waitFor(() =>
+			expect(view.getByText(/Its local recovery copy is failing\./)).toBeInTheDocument()
+		);
+		recoveryFailure.set('');
 		historyEnabled.set(true);
 		await waitFor(() =>
 			expect(view.getByText(/^Transcript history is saved locally/)).toBeInTheDocument()

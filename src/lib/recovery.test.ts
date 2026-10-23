@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { describeError } from './errors';
 import { en } from './i18n/en';
+import { get } from 'svelte/store';
 import {
 	createRecoveryCoordinator,
 	RECOVERY_INTERVAL_MS,
+	RECOVERY_MAX_BACKOFF_MS,
+	recoveryFailure,
 	spoolFailure,
 	startRecoverySpool
 } from './recovery';
@@ -98,6 +101,69 @@ describe('a failed spool write', () => {
 		stop();
 		expect(onError).toHaveBeenCalledWith(failure);
 		expect(spoolFailure(failure)).toBe(failure);
+	});
+
+	// Review U3: the first failure used to stop the spool for good, with one message on a status
+	// line that the next status overwrote.
+	it('keeps trying, further apart each time, and reports once per run of failures', async () => {
+		vi.useFakeTimers();
+		const io = port();
+		const failure = { id: 'error.recoveryWrite', detail: 'disk full' };
+		io.writeRecovery
+			.mockRejectedValueOnce(failure)
+			.mockRejectedValueOnce(failure)
+			.mockRejectedValueOnce(failure);
+		const onError = vi.fn();
+		let unsaved = lines;
+		const stop = startRecoverySpool(() => unsaved, onError, createRecoveryCoordinator(io));
+		try {
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(1);
+			expect(get(recoveryFailure)).toEqual(failure);
+			// Twice the interval before the next attempt, then four times, then the cap.
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(1);
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(2);
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS * 4);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(3);
+			await vi.advanceTimersByTimeAsync(RECOVERY_MAX_BACKOFF_MS - RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(3);
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(4);
+			// The fourth went through: the run is over, and the next tick is on time again.
+			expect(onError).toHaveBeenCalledOnce();
+			expect(get(recoveryFailure)).toBe('');
+
+			// A new failure is a new run, reported again.
+			unsaved = [{ ...lines[0], id: 2 }];
+			io.writeRecovery.mockRejectedValueOnce(new Error('IPC closed'));
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(io.writeRecovery).toHaveBeenCalledTimes(5);
+			expect(onError).toHaveBeenCalledTimes(2);
+			expect(get(recoveryFailure)).toEqual({ id: 'error.recoveryWrite', detail: 'IPC closed' });
+		} finally {
+			stop();
+		}
+		// Switched off, nothing is failing.
+		expect(get(recoveryFailure)).toBe('');
+	});
+
+	it('stops counting as failing once nothing is left unsaved to protect', async () => {
+		vi.useFakeTimers();
+		const io = port();
+		io.writeRecovery.mockRejectedValueOnce(new Error('locked'));
+		let unsaved: TranscriptLine[] | null = lines;
+		const stop = startRecoverySpool(() => unsaved, vi.fn(), createRecoveryCoordinator(io));
+		try {
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+			expect(get(recoveryFailure)).not.toBe('');
+			unsaved = null;
+			await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS * 2);
+			expect(get(recoveryFailure)).toBe('');
+		} finally {
+			stop();
+		}
 	});
 
 	it('is still reported as the spool’s when something else stopped it', () => {

@@ -387,6 +387,45 @@ describe('copying', () => {
 	});
 });
 
+// Review U3: a spool or history write that keeps failing is said beside the save badge for as
+// long as it lasts, not only once on a status line the next status overwrites.
+describe('background saving that fails', () => {
+	it('says so beside the save badge while it lasts, with the failure as its tooltip', async () => {
+		const { recoveryFailure } = await import('./recovery');
+		const { historyEnabled, historyError } = await import('./history');
+		const { getByText, queryByText } = mount(seed(2));
+		expect(queryByText('Recovery copy failing')).toBeNull();
+
+		recoveryEnabled.set(true);
+		recoveryFailure.set({ id: 'error.recoveryWrite', detail: 'disk full' });
+		const spool = await waitFor(() => getByText('Recovery copy failing'));
+		expect(spool).toHaveAttribute('title', 'The recovery copy could not be written (disk full)');
+
+		historyEnabled.set(true);
+		historyError.set('access denied');
+		await waitFor(() =>
+			expect(getByText('History not saving', { selector: 'span' })).toBeInTheDocument()
+		);
+		// The spool's first failure reaches the status line; history's is said here, once.
+		expect(
+			within(document.body)
+				.getAllByRole('status')
+				.map((region) => region.textContent)
+		).toContain('History not saving');
+
+		recoveryFailure.set('');
+		historyError.set('');
+		await waitFor(() => expect(queryByText('Recovery copy failing')).toBeNull());
+		expect(queryByText('History not saving', { selector: 'span' })).toBeNull();
+		// Switched off, a failure from before says nothing.
+		recoveryEnabled.set(false);
+		recoveryFailure.set('stale');
+		historyEnabled.set(false);
+		await waitFor(() => expect(queryByText('Recovery copy failing')).toBeNull());
+		recoveryFailure.set('');
+	});
+});
+
 describe('the transcript reader', () => {
 	const interim = {
 		turnId: 4,
