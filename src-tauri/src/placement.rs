@@ -26,9 +26,13 @@ pub struct Placement {
     pub height: u32,
 }
 
+/// The smallest overlay a placement is ever given, in physical pixels: room for a short line.
+const MIN_WIDTH: u32 = 320;
+const MIN_HEIGHT: u32 = 160;
+
 fn fit(saved: &Placement, bounds: &Placement) -> Placement {
-    let width = saved.width.clamp(320, 16384).min(bounds.width);
-    let height = saved.height.clamp(160, 16384).min(bounds.height);
+    let width = saved.width.clamp(MIN_WIDTH, 16384).min(bounds.width);
+    let height = saved.height.clamp(MIN_HEIGHT, 16384).min(bounds.height);
     // The far edge saturates: no position lies past `i32::MAX`, however far the area reaches.
     Placement {
         x: saved.x.clamp(
@@ -303,38 +307,32 @@ pub async fn get_overlay_placement(app: AppHandle) -> Result<Placement, AppError
     current_placement(&overlay_window(&app)?)
 }
 
+/// Where a remembered or profile placement goes back to, or `None` with no display to put it on.
+///
+/// One the room can see where it is goes back exactly as it was made, by the same generous test
+/// the display watcher applies (`usable`): a strip stretched across two projectors on purpose
+/// stays stretched, where fitting it to the monitor under its corner shrank it to one on every
+/// launch. Anything else gets the watcher's rescue, so a placement made for a projector that is
+/// not plugged in comes back on the display nearest it. Never smaller than the floor `fit`
+/// keeps, so a stored rectangle cannot shrink the captions to a speck.
+fn restored(placement: &Placement, screens: &[Screen]) -> Option<Placement> {
+    if screens.is_empty() {
+        return None;
+    }
+    let floored = Placement {
+        width: placement.width.max(MIN_WIDTH),
+        height: placement.height.max(MIN_HEIGHT),
+        ..*placement
+    };
+    Some(rescue(&floored, screens).unwrap_or(floored))
+}
+
 #[tauri::command]
 pub async fn set_overlay_placement(app: AppHandle, placement: Placement) -> Result<(), AppError> {
     let win = overlay_window(&app)?;
-    let monitors = win
-        .available_monitors()
-        .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
     // A disconnected projector must not leave captions outside every display.
-    let within = |value: i32, start: i32, length: u32| {
-        (i64::from(start)..i64::from(start) + i64::from(length)).contains(&i64::from(value))
-    };
-    let monitor = monitors.iter().find(|m| {
-        let p = m.position();
-        let s = m.size();
-        within(placement.x, p.x, s.width) && within(placement.y, p.y, s.height)
-    });
-    let primary = win
-        .primary_monitor()
-        .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?;
-    let monitor = monitor
-        .or(primary.as_ref())
-        .or(monitors.first())
+    let safe = restored(&placement, &screens(&app)?)
         .ok_or_else(|| AppError::with(id::OVERLAY_WINDOW, "No display available"))?;
-    let area = monitor.work_area();
-    let safe = fit(
-        &placement,
-        &Placement {
-            x: area.position.x,
-            y: area.position.y,
-            width: area.size.width,
-            height: area.size.height,
-        },
-    );
     apply(&win, &safe)
 }
 
@@ -789,6 +787,58 @@ mod tests {
     #[test]
     fn with_no_display_there_is_nothing_to_rescue_onto() {
         assert_eq!(rescue(&strip(2720, 820), &[]), None);
+        assert_eq!(restored(&strip(2720, 820), &[]), None);
+    }
+
+    /// B10: restoring used to fit the rectangle to the monitor under its top-left corner.
+    #[test]
+    fn a_restored_strip_across_both_displays_keeps_its_width() {
+        let across = Placement {
+            x: 1280,
+            y: 900,
+            width: 2560,
+            height: 160,
+        };
+        assert_eq!(
+            restored(&across, &[LAPTOP_SCREEN, PROJECTOR_SCREEN]),
+            Some(across)
+        );
+    }
+
+    #[test]
+    fn a_restored_placement_the_room_can_see_goes_back_as_it_was_made() {
+        let screens = [LAPTOP_SCREEN, PROJECTOR_SCREEN];
+        // Over the laptop's taskbar, and running a little off the projector's right edge: the
+        // operator's choices, which a restore does not second-guess.
+        for placement in [strip(480, 1450), strip(3500, 880)] {
+            assert_eq!(restored(&placement, &screens), Some(placement));
+        }
+    }
+
+    #[test]
+    fn a_restored_placement_for_a_missing_projector_is_rescued_onto_the_laptop() {
+        let on_projector = strip(2720, 820);
+        let back = restored(&on_projector, &[LAPTOP_SCREEN]).expect("a display to go to");
+        assert_eq!(Some(back), rescue(&on_projector, &[LAPTOP_SCREEN]));
+        assert!(inside(&back, &LAPTOP_SCREEN.work_area), "{back:?}");
+    }
+
+    #[test]
+    fn a_restored_placement_is_never_smaller_than_the_floor() {
+        let speck = Placement {
+            x: 100,
+            y: 100,
+            width: 1,
+            height: 1,
+        };
+        assert_eq!(
+            restored(&speck, &[LAPTOP_SCREEN]),
+            Some(Placement {
+                width: MIN_WIDTH,
+                height: MIN_HEIGHT,
+                ..speck
+            })
+        );
     }
 
     #[test]

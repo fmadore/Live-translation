@@ -304,8 +304,8 @@ handlers as returning `any`, so every such handler catches its own errors. knip
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
 independent of presentation pacing and the display filter. `profiles.ts` validates local
 profile snapshots; `MeetingProfiles.svelte` rechecks devices before loading and excludes API
-keys, process IDs and rehearsal state, and operator-only placement commands clamp saved
-rectangles to an available monitor work area. Profiles never start a session.
+keys, process IDs and rehearsal state, and operator-only placement commands bring a saved
+rectangle that no display can show back onto one. Profiles never start a session.
 `liveActivity.ts` classifies per-source connection, audio and caption observations; it is not
 voice activity detection. See [usability](usability.md).
 
@@ -376,9 +376,11 @@ and at most eight, most recently used first. A layout is the signature `display_
 area left out. `overlayController.svelte.ts` saves the overlay's rectangle when move mode ends
 with Done or the overlay's own Lock/Enter (not Escape) and after a profile places it, never on
 move events, and restores once as the operator window mounts: the current layout's entry,
-otherwise the most recent, always through `set_overlay_placement`. That command clamps the
-rectangle to a monitor's work area and moves the window before sizing it, because crossing to
-a display with another scale factor makes Windows rescale it (`WM_DPICHANGED`).
+otherwise the most recent, always through `set_overlay_placement`. That command applies a
+rectangle the room can see as it was made, a strip stretched across two displays included, and
+gives any other the display watcher's rescue (below). It moves the window before sizing it,
+because crossing to a display with another scale factor makes Windows rescale it
+(`WM_DPICHANGED`).
 
 Displays can also change under a running app (issue #137). `placement.rs` polls the monitors
 about once a second, including their work areas, and once a change has held for two polls it
