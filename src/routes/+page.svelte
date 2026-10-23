@@ -214,6 +214,9 @@
 	// What a screen reader hears when the session changes state. Deliberately separate from the
 	// pill: the pill carries a clock that reprints every second, and a live region wrapped
 	// around a ticking clock announces the whole session state every second with it.
+	// The running stage is reading the whole transcript rather than the turns on screen.
+	const reading = $derived($isRunning && $stageView === 'transcript');
+
 	const stateAnnouncement = $derived<Record<SessionState, string>>($t.announce);
 </script>
 
@@ -332,37 +335,37 @@
 					idPrefix="stage-view"
 					panelId="stage-panel"
 				/>
-				<div
-					class="stage-panel"
-					class:reading={$stageView === 'transcript'}
-					id="stage-panel"
-					role="tabpanel"
-					aria-labelledby="stage-view-{$stageView}"
-				>
+			{/if}
+			<!-- One column for both states, so the transcript below is mounted once and kept through
+			     Start and Stop (review S5): its copy window, whether it is following, and a save
+			     under way all carry over. While a session runs it is the view tabs' panel. -->
+			<div
+				class="stage-panel"
+				class:running={$isRunning}
+				class:reading
+				id="stage-panel"
+				role={$isRunning ? 'tabpanel' : undefined}
+				aria-labelledby={$isRunning ? `stage-view-${$stageView}` : undefined}
+			>
+				{#if $isRunning}
 					<RunningStage {statusText} />
+				{:else}
+					<IdleStage {browserMode} locked={controlsLocked} {usesMic} {usesSystem} />
+				{/if}
 
+				<!-- Idle, the saved transcript follows the pre-flight check, once there is one. -->
+				{#if $isRunning || $transcript.length > 0}
 					<TranscriptMonitor
 						mode={$options.mode}
 						transcript={$transcript}
 						onError={(message) => statusMessage.set(message)}
-						live
-						reader={$stageView === 'transcript'}
-					/>
-				</div>
-			{:else}
-				<IdleStage {browserMode} locked={controlsLocked} {usesMic} {usesSystem} />
-
-				<!-- Saved transcript follows the persistent session controls. -->
-				{#if $transcript.length > 0}
-					<TranscriptMonitor
-						mode={$options.mode}
-						transcript={$transcript}
-						onError={(message) => statusMessage.set(message)}
+						live={$isRunning}
+						reader={reading}
 					/>
 				{/if}
 
-				<LaunchNotes {statusText} />
-			{/if}
+				{#if !$isRunning}<LaunchNotes {statusText} />{/if}
+			</div>
 		</main>
 	</div>
 </div>
@@ -505,13 +508,16 @@
 
 	/* ---- Stage -------------------------------------------------------------- */
 
-	/* The running stage under its tabs. Live, it is the scrolling column it always was: its
-	   blocks keep their height and the transcript sits at the foot. Reading, it gives the
-	   transcript the stage's height, which the reader passes on to its log. */
+	/* The stage's column, idle or running; running, it sits under its tabs. Idle or live, it is
+	   the scrolling column it always was: its blocks keep their height and the transcript sits
+	   at the foot. Reading, it gives the transcript the stage's height, which the reader passes
+	   on to its log. */
 	.stage-panel {
 		display: flex;
 		flex-direction: column;
 		flex: 1 0 auto;
+	}
+	.stage-panel.running {
 		margin-top: var(--space-4);
 	}
 	.stage-panel.reading {

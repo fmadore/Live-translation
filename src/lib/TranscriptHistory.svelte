@@ -21,7 +21,8 @@
 		type HistoryEntry,
 		type SavedSession
 	} from './history';
-	import { exportOriginal } from './stores';
+	import { exportOriginal, statusMessage } from './stores';
+	import RecoveryPreference from './RecoveryPreference.svelte';
 	// The same remembered choice as the transcript toolbar's, like the original-speech option.
 	import { exportFormat as format, isTimedFormat } from './exportFormat';
 	import {
@@ -189,6 +190,9 @@
 		disabled={!desktop}
 		bind:checked={$historyEnabled}
 	/>
+	<!-- The other place a transcript is kept, offered here as well as under the transcript,
+	     which only shows once a session has left one (review U14). -->
+	<RecoveryPreference onError={(message) => statusMessage.set(message)} />
 	{#if !desktop}<p class="hint">{$t.design.desktopOnly}</p>{/if}
 
 	{#if $historyError}

@@ -438,6 +438,37 @@ describe('the transcript reader', () => {
 		document.getSelection()!.removeAllRanges();
 	});
 
+	// Review U12: each paragraph says the language it was captioned in, as the overlay does, so
+	// Narrator reads it with that language's voice and Arabic lays out right to left. A line
+	// restored from a recovery file was captioned in a language nobody recorded.
+	it('gives each paragraph and the turn being spoken their caption language', async () => {
+		const { options } = await import('./stores');
+		const { DEFAULT_START_OPTIONS } = await import('./startOptions');
+		const previous = get(options);
+		options.set({
+			...DEFAULT_START_OPTIONS,
+			mode: 'translate',
+			provider: 'gemini',
+			targetLanguage: 'ar'
+		});
+		try {
+			seed(1);
+			pushCaption({ ...interim, turnId: 5, text: 'مرحبا بكم', final: true });
+			pushCaption({ ...interim, turnId: 6, text: 'والميزانية', startMs: 9000, endMs: 9500 });
+			const { getByText } = mount(get(transcript), { live: true, reader: true });
+			for (const text of ['مرحبا بكم', 'والميزانية']) {
+				const caption = getByText(text, { selector: '.text' });
+				expect(caption).toHaveAttribute('lang', 'ar');
+				expect(caption).toHaveAttribute('dir', 'rtl');
+			}
+			const restored = getByText('utterance 1', { selector: '.text' });
+			expect(restored).toHaveAttribute('lang', '');
+			expect(restored).toHaveAttribute('dir', 'auto');
+		} finally {
+			options.set(previous);
+		}
+	});
+
 	it('selects only the log on Ctrl+A', async () => {
 		const { getByRole } = mount(seed(2), { reader: true });
 		const log = getByRole('region', { name: 'Transcript' });
