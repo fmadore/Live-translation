@@ -598,20 +598,28 @@ mod tests {
 
     #[tokio::test]
     async fn a_stalled_connection_fails_after_the_stall_timeout_not_a_total_deadline() {
+        // Real time, so the 150 ms gaps get a timeout far longer than a busy machine can stretch
+        // them to; 500 ms could flake.
+        const STALL: Duration = Duration::from_secs(2);
+        let stalling = |url| Transfer {
+            stall: STALL,
+            ..transfer(url)
+        };
         let dir = tempfile::tempdir().unwrap();
-        // Slower in total than the stall timeout, but never silent for that long.
+        // Slower in total than the stall timeout (14 gaps of 150 ms), but never silent for
+        // that long.
         let pieces = PAYLOAD
-            .chunks(4)
+            .chunks(2)
             .map(|piece| (Duration::from_millis(150), piece.to_vec()))
             .collect();
         let url = serve(ok(pieces, Some(PAYLOAD.len()), false));
         let manager = ModelManager::default();
         let started = Instant::now();
         manager
-            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .download_from(dir.path(), ModelId::Tiny, &stalling(url))
             .await
             .unwrap();
-        assert!(started.elapsed() > Duration::from_millis(500));
+        assert!(started.elapsed() > STALL);
 
         // Then a server that goes quiet half-way.
         let dir = tempfile::tempdir().unwrap();
@@ -621,7 +629,7 @@ mod tests {
             true,
         ));
         let error = manager
-            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+            .download_from(dir.path(), ModelId::Tiny, &stalling(url))
             .await
             .unwrap_err();
         assert!(
