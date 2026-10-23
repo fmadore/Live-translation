@@ -440,7 +440,9 @@ or the tray preference. Two rules stop it from ever producing a window that refu
 that default of off, and an interception nothing acknowledges within `ACK_TIMEOUT` is released.
 `WindowEvent::Destroyed` on the operator window exits the process, so the undecorated
 always-on-top overlay cannot outlive its controls. Hiding to the tray never reaches it: that
-window is hidden, never destroyed.
+window is hidden, never destroyed. Closing the overlay itself (Alt+F4 in move mode, Task View's
+X) hides it too, and the core announces that as `overlay-state` with `visible: false`, so the
+operator's toggle and the tray offer Show.
 
 ## Tray
 

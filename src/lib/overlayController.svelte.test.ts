@@ -75,6 +75,21 @@ it('remembers a placement locked from the overlay, but not one Escape put back',
 	await expect.poll(stored).toEqual([{ layout: ROOM, placement: strip }]);
 });
 
+// B3: Alt+F4 on the overlay hides it in the core, which says so. Before, the toggle went on
+// reading Hide, and the first click "hid" a window that was already hidden.
+it('offers Show once the core says it hid the overlay, and shows it in one click', async () => {
+	const overlay = createOverlayController();
+	expect(overlay.overlayVisible).toBe(true);
+	overlay.applyState({ visible: false });
+	expect(overlay.overlayVisible).toBe(false);
+	await overlay.toggleOverlayVisible();
+	expect(core.callsTo('show_overlay')).toEqual([{ visible: true }]);
+	expect(overlay.overlayVisible).toBe(true);
+	// A report without the field leaves the toggle alone.
+	overlay.applyState({ fontSize: 40 });
+	expect(overlay.overlayVisible).toBe(true);
+});
+
 it('places a profile through the core and remembers where the core put it', async () => {
 	const overlay = createOverlayController();
 	// The core clamps what it is handed; what is remembered is where the window ended up.

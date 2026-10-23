@@ -116,7 +116,8 @@ export function createOverlayController(port = api) {
 	let moveOverlay = $state(false);
 
 	// The overlay window is created visible (tauri.conf.json), so the toggle starts on "Hide".
-	// Blanking it covers a coffee break or a video clip without ending the session.
+	// Blanking it covers a coffee break or a video clip without ending the session. The core
+	// can hide it too (Alt+F4 on the overlay), and says so through `applyState`.
 	let overlayVisible = $state(true);
 
 	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
@@ -283,6 +284,9 @@ export function createOverlayController(port = api) {
 		}
 		if (typeof msg.fontSize === 'number' && Number.isFinite(msg.fontSize))
 			overlayFontSize.set(clampOverlayFont(msg.fontSize));
+		// Hidden by the core, not by this window: the toggle and the tray now offer Show, so
+		// bringing the captions back is one click rather than a Hide that does nothing first.
+		if (typeof msg.visible === 'boolean') overlayVisible = msg.visible;
 	}
 
 	return {

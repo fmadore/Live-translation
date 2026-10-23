@@ -374,7 +374,8 @@ export interface StoredRecovery {
 }
 
 /** State the overlay reports back to the operator window, so the two stay in sync when the
- *  operator acts on the overlay itself rather than on the control panel. */
+ *  operator acts on the overlay itself rather than on the control panel. Mirrors
+ *  `OverlayState` in `src-tauri/src/overlay.rs`, which the core sends it on as. */
 export interface OverlayStateMsg {
 	/** False when the overlay leaves move mode ("Lock into place"). */
 	interactive?: boolean;
@@ -382,6 +383,9 @@ export interface OverlayStateMsg {
 	placed?: boolean;
 	/** Font size chosen from the overlay's own toolbar. */
 	fontSize?: number;
+	/** Whether the overlay is showing, when the core hid it without being asked: Alt+F4 on the
+	 *  overlay. From the core only; the overlay cannot send it. */
+	visible?: boolean;
 }
 
 /** A tray menu entry the front-end has to carry out, because it needs session or transcript

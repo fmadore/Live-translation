@@ -37,6 +37,23 @@ pub struct OverlayState {
     /// A caption size chosen from the overlay's own toolbar or keys.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub font_size: Option<f64>,
+    /// Whether the overlay is showing, when the core showed or hid it without the operator
+    /// window asking: Alt+F4 on the overlay hides it (B3). The core's to say, never the
+    /// overlay's, so it is not read from `report_overlay_state` — a report carrying it is
+    /// refused like any other unknown field.
+    #[serde(skip_deserializing, skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+}
+
+impl OverlayState {
+    /// The overlay was hidden by the core: what the operator window's Show/Hide toggle and the
+    /// tray menu need to hear so they offer Show.
+    pub fn hidden() -> Self {
+        Self {
+            visible: Some(false),
+            ..Self::default()
+        }
+    }
 }
 
 /// How often the overlay is re-raised within the topmost band. Short enough that a newly
@@ -160,6 +177,7 @@ mod tests {
                 interactive: Some(false),
                 placed: Some(true),
                 font_size: Some(42.0),
+                visible: None,
             }
         );
         // Sent on with only the fields that were given.
@@ -173,6 +191,15 @@ mod tests {
         );
     }
 
+    /// B3: after Alt+F4 the operator window hears that the overlay is hidden, and nothing else.
+    #[test]
+    fn a_hidden_overlay_is_announced_as_hidden_only() {
+        assert_eq!(
+            serde_json::to_string(&OverlayState::hidden()).unwrap(),
+            r#"{"visible":false}"#
+        );
+    }
+
     /// The point of routing it through the core: the overlay can say what this struct carries
     /// and nothing else.
     #[test]
@@ -181,6 +208,9 @@ mod tests {
             r#"{"interactive":false,"stopSession":true}"#,
             r#"{"event":"tray-command","payload":"stop-session"}"#,
             r#"{"fontSize":"large"}"#,
+            // Visibility is the core's to report, not the overlay's.
+            r#"{"visible":true}"#,
+            r#"{"interactive":false,"visible":false}"#,
         ] {
             assert!(
                 serde_json::from_str::<OverlayState>(payload).is_err(),

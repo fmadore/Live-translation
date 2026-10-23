@@ -191,12 +191,21 @@ pub fn run() {
                     {
                         OnClose::Close => return,
                         // As Hide overlay would: the session and its captions carry on, and
-                        // the window keeps its place for Show overlay. The front-end is not
-                        // told, so its toggle reads Hide overlay until clicked once.
+                        // the window keeps its place for Show overlay. The front-end is told,
+                        // so its toggle and the tray offer Show rather than a Hide that would
+                        // take one wasted click (B3).
                         OnClose::Hide => {
                             api.prevent_close();
-                            if let Err(error) = window.hide() {
-                                tracing::warn!("could not hide the overlay: {error}");
+                            match window.hide() {
+                                Ok(()) => {
+                                    let _ = window.emit(
+                                        events::OVERLAY_STATE,
+                                        overlay::OverlayState::hidden(),
+                                    );
+                                }
+                                Err(error) => {
+                                    tracing::warn!("could not hide the overlay: {error}");
+                                }
                             }
                             return;
                         }
