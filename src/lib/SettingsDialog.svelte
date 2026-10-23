@@ -9,24 +9,22 @@
 	import Preference from './ui/Preference.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import CaptionAppearance from './CaptionAppearance.svelte';
+	import OverlayMoveButton from './OverlayMoveButton.svelte';
 	import ReadingPreferences from './ReadingPreferences.svelte';
 	import TranscriptHistory from './TranscriptHistory.svelte';
 	import KeyboardHelp from './KeyboardHelp.svelte';
 	import { LOCALE_NAMES, LOCALES, locale, setLocale, t } from './i18n';
-	import { closeToTray, overlayPlaced } from './stores';
+	import { closeToTray } from './stores';
 	import { THEMES, theme } from './theme';
-	import type { OverlayController } from './overlayController.svelte';
 
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
 	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
 	let {
-		overlay,
 		browserMode,
 		tab = $bindable('captions'),
 		onHideWindow,
 		onClose
 	}: {
-		overlay: OverlayController;
 		browserMode: boolean;
 		/** Bound, so reopening the panel returns to the tab it was closed on. */
 		tab?: SettingsTab;
@@ -78,45 +76,15 @@
 		>
 			{#if tab === 'captions'}
 				<div class="rail-section">
-					<CaptionAppearance heading={$t.settings.appearance} {overlay} />
+					<CaptionAppearance heading={$t.settings.appearance} />
 					<p class="hint">{$t.settings.appearanceNote}</p>
 					<!-- Placement mode is the preview: the overlay stands a sample caption in, set in
 					     whatever is chosen above. Same button and same labels as the pre-flight
 					     check, because it is the same thing being done. -->
-					<ToolButton
-						wide
-						variant={overlay.moveOverlay ? 'primary' : 'default'}
-						disabled={browserMode}
-						aria-label={overlay.moveOverlay
-							? $t.preflight.overlay.doneLabel
-							: $overlayPlaced
-								? $t.preflight.overlay.adjustLabel
-								: $t.preflight.overlay.placeLabel}
-						onclick={overlay.toggleMoveOverlay}
-					>
-						<svg
-							width="14"
-							height="14"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.75"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							aria-hidden="true"
-							><path
-								d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-							/></svg
-						>
-						{overlay.moveOverlay
-							? $t.preflight.overlay.done
-							: $overlayPlaced
-								? $t.preflight.overlay.adjust
-								: $t.preflight.overlay.place}
-					</ToolButton>
+					<OverlayMoveButton wording="place" wide disabled={browserMode} />
 				</div>
 			{:else if tab === 'reading'}
-				<ReadingPreferences {overlay} />
+				<ReadingPreferences />
 			{:else if tab === 'history'}
 				<TranscriptHistory />
 			{:else}

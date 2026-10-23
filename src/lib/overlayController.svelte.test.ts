@@ -9,6 +9,8 @@ import { createOverlayController } from './overlayController.svelte';
 import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
 import { overlayPlaced } from './preferences';
 import type { Placement } from './profiles';
+import { api, on } from './tauri';
+import type { OverlayConfig } from './types';
 
 const LAPTOP = '0,0 2560x1600 150%';
 const ROOM = '0,0 2560x1600 150%; 2560,0 1920x1080 100%';
@@ -73,6 +75,83 @@ it('remembers a placement locked from the overlay, but not one Escape put back',
 	// Enter, or the overlay's own Lock button.
 	overlay.applyState({ interactive: false, placed: true });
 	await expect.poll(stored).toEqual([{ layout: ROOM, placement: strip }]);
+});
+
+/** Every `overlay-config` push the controller sends. */
+async function overlayPushes() {
+	const pushes: OverlayConfig[] = [];
+	await on.overlayConfig((config) => pushes.push(config));
+	return pushes;
+}
+
+// E2: a colour or backing drag pushes on every input event, and each push costs the overlay a
+// full re-read. Within a frame they coalesce into one, built from the latest values.
+it('sends one push per frame, with the latest appearance and every extra asked for', async () => {
+	const frames: (() => void)[] = [];
+	const overlay = createOverlayController(api, (push) => frames.push(push));
+	const pushes = await overlayPushes();
+	for (const scrimOpacity of [0.5, 0.55, 0.6]) overlay.setPalette({ scrimOpacity });
+	overlay.pushOverlayConfig({ locale: 'fr' });
+	expect(frames).toHaveLength(1);
+	frames.shift()!();
+	await expect.poll(() => pushes).toHaveLength(1);
+	expect(pushes[0]).toMatchObject({ scrimOpacity: 0.6, locale: 'fr', interactive: false });
+	// The next change waits for the next frame.
+	overlay.setFont(44);
+	expect(frames).toHaveLength(1);
+	frames.shift()!();
+	await expect.poll(() => pushes).toHaveLength(2);
+	expect(pushes[1]).toMatchObject({ fontSize: 44 });
+});
+
+// …and move mode goes out as it stands when the push is sent: an Escape heard from the overlay
+// in between must not be undone by a push asked for before it.
+it('sends move mode as it stands when the frame comes, not as it was asked for', async () => {
+	const frames: (() => void)[] = [];
+	const overlay = createOverlayController(api, (push) => frames.push(push));
+	const pushes = await overlayPushes();
+	await overlay.toggleMoveOverlay();
+	frames.shift()!();
+	await expect.poll(() => pushes.at(-1)).toMatchObject({ interactive: true });
+	overlay.setPalette({ scrimOpacity: 0.5 }); // carries move mode along
+	overlay.applyState({ interactive: false, moveExits: 1 });
+	frames.shift()!();
+	await expect.poll(() => pushes).toHaveLength(2);
+	expect(pushes[1]).toMatchObject({ interactive: false, moveExitsSeen: 1 });
+});
+
+// A window hidden to the tray gets no animation frames; its pushes still have to go out.
+it('pushes within 100 ms even when no frame comes', async () => {
+	vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+	vi.stubGlobal('requestAnimationFrame', () => 0);
+	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
+	try {
+		const overlay = createOverlayController({ ...api, setOverlayConfig });
+		overlay.setFont(40);
+		overlay.setFont(42);
+		expect(setOverlayConfig).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(100);
+		expect(setOverlayConfig).toHaveBeenCalledOnce();
+		expect(setOverlayConfig).toHaveBeenLastCalledWith(expect.objectContaining({ fontSize: 42 }));
+	} finally {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	}
+});
+
+// B3: Alt+F4 on the overlay hides it in the core, which says so. Before, the toggle went on
+// reading Hide, and the first click "hid" a window that was already hidden.
+it('offers Show once the core says it hid the overlay, and shows it in one click', async () => {
+	const overlay = createOverlayController();
+	expect(overlay.overlayVisible).toBe(true);
+	overlay.applyState({ visible: false });
+	expect(overlay.overlayVisible).toBe(false);
+	await overlay.toggleOverlayVisible();
+	expect(core.callsTo('show_overlay')).toEqual([{ visible: true }]);
+	expect(overlay.overlayVisible).toBe(true);
+	// A report without the field leaves the toggle alone.
+	overlay.applyState({ fontSize: 40 });
+	expect(overlay.overlayVisible).toBe(true);
 });
 
 it('places a profile through the core and remembers where the core put it', async () => {

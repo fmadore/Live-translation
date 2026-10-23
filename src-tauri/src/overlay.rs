@@ -12,9 +12,59 @@
 
 use std::time::Duration;
 
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, WebviewWindow};
 
 pub const OVERLAY_LABEL: &str = "overlay";
+
+/// What the overlay tells the operator window, carried on `events::OVERLAY_STATE`. Mirrors
+/// `OverlayStateMsg` in `src/lib/types.ts`.
+///
+/// The overlay may not emit events itself (issue #31, B4): with `emit` it could pass for the
+/// core and send a `tray-command` that stops a billable session, or captions that end up in
+/// the transcript. So it hands this to `report_overlay_state`, and the core sends it on. A
+/// closed set of fields, and anything else is refused, so the overlay can say only what this
+/// struct can carry.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OverlayState {
+    /// False when the overlay left move mode by itself (its Lock button, Enter or Escape).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interactive: Option<bool>,
+    /// True once the region has been locked into place from the overlay.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placed: Option<bool>,
+    /// A caption size chosen from the overlay's own toolbar or keys.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub font_size: Option<f64>,
+    /// The overlay's listeners are in place: the operator window answers with a whole
+    /// configuration, so an overlay that loaded late (a cold start, a WebView2 reload) is not
+    /// left without the caption languages it missed (U5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ready: Option<bool>,
+    /// How many times the overlay has left move mode by itself. The operator window hands the
+    /// last count it heard back with each push, so the overlay can tell a push to stay in move
+    /// mode that was sent before its own Lock reached the operator, and ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub move_exits: Option<u32>,
+    /// Whether the overlay is showing, when the core showed or hid it without the operator
+    /// window asking: Alt+F4 on the overlay hides it (B3). The core's to say, never the
+    /// overlay's, so it is not read from `report_overlay_state` — a report carrying it is
+    /// refused like any other unknown field.
+    #[serde(skip_deserializing, skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+}
+
+impl OverlayState {
+    /// The overlay was hidden by the core: what the operator window's Show/Hide toggle and the
+    /// tray menu need to hear so they offer Show.
+    pub fn hidden() -> Self {
+        Self {
+            visible: Some(false),
+            ..Self::default()
+        }
+    }
+}
 
 /// How often the overlay is re-raised within the topmost band. Short enough that a newly
 /// activated topmost window never covers the captions for a noticeable time, and cheap
@@ -121,4 +171,67 @@ pub fn spawn_topmost_keeper(app: &AppHandle) {
             });
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_overlay_state_crosses_in_the_interface_shape() {
+        let state: OverlayState = serde_json::from_str(
+            r#"{"interactive":false,"placed":true,"fontSize":42,"moveExits":3}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            state,
+            OverlayState {
+                interactive: Some(false),
+                placed: Some(true),
+                font_size: Some(42.0),
+                move_exits: Some(3),
+                ..OverlayState::default()
+            }
+        );
+        let ready: OverlayState = serde_json::from_str(r#"{"ready":true}"#).unwrap();
+        assert_eq!(ready.ready, Some(true));
+        assert_eq!(serde_json::to_string(&ready).unwrap(), r#"{"ready":true}"#);
+        // Sent on with only the fields that were given.
+        let font_only = OverlayState {
+            font_size: Some(40.0),
+            ..OverlayState::default()
+        };
+        assert_eq!(
+            serde_json::to_string(&font_only).unwrap(),
+            r#"{"fontSize":40.0}"#
+        );
+    }
+
+    /// B3: after Alt+F4 the operator window hears that the overlay is hidden, and nothing else.
+    #[test]
+    fn a_hidden_overlay_is_announced_as_hidden_only() {
+        assert_eq!(
+            serde_json::to_string(&OverlayState::hidden()).unwrap(),
+            r#"{"visible":false}"#
+        );
+    }
+
+    /// The point of routing it through the core: the overlay can say what this struct carries
+    /// and nothing else.
+    #[test]
+    fn the_overlay_can_report_nothing_it_was_not_given_a_field_for() {
+        for payload in [
+            r#"{"interactive":false,"stopSession":true}"#,
+            r#"{"event":"tray-command","payload":"stop-session"}"#,
+            r#"{"fontSize":"large"}"#,
+            // Visibility is the core's to report, not the overlay's.
+            r#"{"visible":true}"#,
+            r#"{"interactive":false,"visible":false}"#,
+        ] {
+            assert!(
+                serde_json::from_str::<OverlayState>(payload).is_err(),
+                "{payload}"
+            );
+        }
+    }
 }

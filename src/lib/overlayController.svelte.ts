@@ -35,8 +35,23 @@ import type { CaptionFace, CaptionFaceId } from './captionFont';
 import { decodePlacement, type Placement } from './profiles';
 import { isLayout, loadGeometry, recall, remember, saveGeometry } from './overlayGeometry';
 
-/** One appearance and window-command owner for the rail, settings and overlay events. */
-export function createOverlayController(port = api) {
+/** Run `flush` before the next frame is painted, or within 100 ms when no frame comes: a window
+ *  hidden to the tray or minimised gets no animation frames, and its pushes still have to
+ *  reach the overlay the room is looking at. */
+function beforeNextFrame(flush: () => void) {
+	let done = false;
+	const once = () => {
+		if (done) return;
+		done = true;
+		flush();
+	};
+	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(once);
+	setTimeout(once, 100);
+}
+
+/** One appearance and window-command owner for the rail, settings and overlay events.
+ *  `schedule` decides when coalesced pushes go out; tests pass one that runs them at once. */
+export function createOverlayController(port = api, schedule = beforeNextFrame) {
 	const api = port;
 	/** The faces this machine can actually render. Starts as the whole list and narrows on
 	 *  mount, once there is a canvas to measure with — offering a face and finding out later
@@ -50,7 +65,25 @@ export function createOverlayController(port = api) {
 	// separate webview that can be reloaded independently, and a partial config would leave
 	// it showing whatever it had before. One helper so no call site can forget a field. The
 	// filler word list rides along for the same reason.
+	//
+	// At most one push per frame (E2): a colour or opacity drag calls this on every input
+	// event, and each push costs the overlay a full re-read. Pushes within a frame coalesce into
+	// one built from the stores as they are then, with the extras of all of them merged, later
+	// ones winning — so the interface language from one and move mode from another both arrive.
+	// Move mode is the exception: it goes out as it stands when the push is sent, not as it
+	// stood when one was asked for, so an Escape on the overlay heard in between is not undone.
+	let pendingExtra: Partial<OverlayConfig> | null = null;
+
 	function pushOverlayConfig(extra: Partial<OverlayConfig> = {}) {
+		const scheduled = pendingExtra !== null;
+		pendingExtra = { ...pendingExtra, ...extra };
+		if (!scheduled) schedule(flushOverlayConfig);
+	}
+
+	function flushOverlayConfig() {
+		const extra = pendingExtra ?? {};
+		pendingExtra = null;
+		if ('interactive' in extra) extra.interactive = moveOverlay;
 		void api
 			.setOverlayConfig({
 				...toOverlayConfig(get(appearance)),
@@ -58,6 +91,7 @@ export function createOverlayController(port = api) {
 				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
+				moveExitsSeen,
 				...extra
 			})
 			.catch((e) => statusMessage.set(asStatus(e)));
@@ -114,9 +148,13 @@ export function createOverlayController(port = api) {
 	// The overlay can also leave move mode on its own (its Enter/Escape keys), which arrives
 	// as an overlayState event — so this flag is the single source of truth, never cached.
 	let moveOverlay = $state(false);
+	// How many of the overlay's own exits from move mode this window has heard of, handed back
+	// with every push so the overlay can ignore one that crossed its Lock on the way (U5).
+	let moveExitsSeen = 0;
 
 	// The overlay window is created visible (tauri.conf.json), so the toggle starts on "Hide".
-	// Blanking it covers a coffee break or a video clip without ending the session.
+	// Blanking it covers a coffee break or a video clip without ending the session. The core
+	// can hide it too (Alt+F4 on the overlay), and says so through `applyState`.
 	let overlayVisible = $state(true);
 
 	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
@@ -268,6 +306,8 @@ export function createOverlayController(port = api) {
 	}
 
 	function applyState(msg: OverlayStateMsg) {
+		if (typeof msg.moveExits === 'number' && Number.isInteger(msg.moveExits))
+			moveExitsSeen = msg.moveExits;
 		if (msg.interactive === false) {
 			moveOverlay = false;
 			// Left from the overlay itself. Escape puts the window back where move mode found it
@@ -283,6 +323,9 @@ export function createOverlayController(port = api) {
 		}
 		if (typeof msg.fontSize === 'number' && Number.isFinite(msg.fontSize))
 			overlayFontSize.set(clampOverlayFont(msg.fontSize));
+		// Hidden by the core, not by this window: the toggle and the tray now offer Show, so
+		// bringing the captions back is one click rather than a Hide that does nothing first.
+		if (typeof msg.visible === 'boolean') overlayVisible = msg.visible;
 	}
 
 	return {

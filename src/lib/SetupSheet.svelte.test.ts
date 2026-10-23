@@ -7,6 +7,7 @@ import { options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { setLocale } from './i18n';
 import type { PreflightController } from './preflightController.svelte';
+import { operatorContextMap } from './operatorContext';
 
 /** Just the preflight surface the sheet reads with the demo selected. */
 function preflight(whisperRefused: boolean) {
@@ -35,14 +36,14 @@ function mount(whisperRefused: boolean) {
 	return render(SetupSheet, {
 		props: {
 			actions,
-			preflight: preflight(whisperRefused),
 			locked: false,
 			// Keeps the Whisper model panel from asking a core that is not there.
 			browserMode: true,
 			usesMic: true,
 			usesSystem: false,
 			languageError: ''
-		}
+		},
+		context: operatorContextMap({ preflight: preflight(whisperRefused) })
 	});
 }
 
@@ -65,6 +66,20 @@ describe('the engine step', () => {
 			'aria-pressed',
 			'true'
 		);
+	});
+
+	// Review N1: the id broke off a lone "0" at a narrow width.
+	it('breaks a model id only between its words', () => {
+		const view = mount(false);
+		const voxtral = view.getByRole('button', {
+			name: /^Mistral Voxtral voxtral-mini-transcribe-realtime-3-0/
+		});
+		const parts = [...voxtral.querySelectorAll('.model-part')].map((part) => part.textContent);
+		expect(parts).toEqual(['voxtral-', 'mini-', 'transcribe-', 'realtime-3-0']);
+		expect(voxtral.querySelectorAll('wbr')).toHaveLength(3);
+		// Whisper's label is words, and wraps at its spaces as before.
+		const whisper = view.getByRole('button', { name: /^Local Whisper/ });
+		expect(whisper.querySelector('.model-part')).toBeNull();
 	});
 
 	it('offers Whisper as usual when the processor can run it', async () => {

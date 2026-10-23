@@ -201,8 +201,8 @@
 		gap: var(--space-3);
 		pointer-events: none;
 	}
-	/* Stays transparent to the pointer so dragging it drags the window (the stage below
-	   carries data-tauri-drag-region). */
+	/* Stays transparent to the pointer so dragging it drags the window (a press on the stage
+	   below starts the drag). */
 	.drag-pill {
 		display: flex;
 		align-items: center;

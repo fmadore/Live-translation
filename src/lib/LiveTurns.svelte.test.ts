@@ -94,3 +94,48 @@ it('shows a short turn as it is', () => {
 	expect(view.getByText('Bonjour.')).toBeInTheDocument();
 	view.unmount();
 });
+
+// Review U12: the operator window's captions carry their language, as the overlay's do, so
+// Narrator reads them with that language's voice and Arabic lays out right to left.
+it('gives each caption its language and direction, and leaves the original speech unknown', () => {
+	options.set({
+		...DEFAULT_START_OPTIONS,
+		mode: 'translate',
+		provider: 'gemini',
+		targetLanguage: 'ar',
+		secondTargetLanguage: 'fr'
+	});
+	const turn = { origin: 'system', turnId: 1, final: true, startMs: 0, endMs: 900 } as const;
+	currentCaptions.set({
+		system: { ...turn, text: 'مرحبا بكم', sourceText: 'Welcome' },
+		'system:1': { ...turn, lane: 1, text: 'Bienvenue', sourceText: 'Welcome' }
+	});
+	const view = render(LiveTurns);
+	expect(view.getByText('مرحبا بكم')).toHaveAttribute('lang', 'ar');
+	expect(view.getByText('مرحبا بكم')).toHaveAttribute('dir', 'rtl');
+	expect(view.getByText('Bienvenue')).toHaveAttribute('lang', 'fr');
+	expect(view.getByText('Bienvenue')).toHaveAttribute('dir', 'ltr');
+	// The original speech is shown once, on the first language, in a language not known here.
+	expect(view.getByText('Welcome')).toHaveAttribute('lang', '');
+	expect(view.getByText('Welcome')).toHaveAttribute('dir', 'auto');
+	view.unmount();
+});
+
+it('says the language is unknown while a subtitle engine detects it', () => {
+	options.set({ ...DEFAULT_START_OPTIONS, mode: 'transcribe', provider: 'mistral' });
+	currentCaptions.set({
+		microphone: {
+			origin: 'microphone',
+			turnId: 1,
+			text: 'שלום',
+			sourceText: '',
+			final: true,
+			startMs: 0,
+			endMs: 0
+		}
+	});
+	const view = render(LiveTurns);
+	expect(view.getByText('שלום')).toHaveAttribute('lang', '');
+	expect(view.getByText('שלום')).toHaveAttribute('dir', 'auto');
+	view.unmount();
+});

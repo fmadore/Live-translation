@@ -5,6 +5,7 @@
 	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
+	import ExportFormatSelect from './ExportFormatSelect.svelte';
 	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
@@ -20,7 +21,8 @@
 		type HistoryEntry,
 		type SavedSession
 	} from './history';
-	import { exportOriginal } from './stores';
+	import { exportOriginal, statusMessage } from './stores';
+	import RecoveryPreference from './RecoveryPreference.svelte';
 	// The same remembered choice as the transcript toolbar's, like the original-speech option.
 	import { exportFormat as format, isTimedFormat } from './exportFormat';
 	import {
@@ -188,6 +190,9 @@
 		disabled={!desktop}
 		bind:checked={$historyEnabled}
 	/>
+	<!-- The other place a transcript is kept, offered here as well as under the transcript,
+	     which only shows once a session has left one (review U14). -->
+	<RecoveryPreference onError={(message) => statusMessage.set(message)} />
 	{#if !desktop}<p class="hint">{$t.design.desktopOnly}</p>{/if}
 
 	{#if $historyError}
@@ -278,12 +283,7 @@
 				</form>
 				<div class="actions">
 					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
-					<Select aria-label={$t.transcript.format} bind:value={$format} disabled={busy}>
-						<option value="markdown">Markdown (.md)</option><option value="text"
-							>{$t.transcript.plainText} (.txt)</option
-						>
-						<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
-					</Select>
+					<ExportFormatSelect disabled={busy} />
 					<ToolButton
 						disabled={busy || (isTimedFormat($format) && !timed)}
 						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton

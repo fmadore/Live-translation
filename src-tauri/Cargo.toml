@@ -84,6 +84,9 @@ windows = { version = "0.62", features = ["UI_ViewManagement"] }
 # `test-util` adds `tokio::time::pause`, which the runner and shutdown tests run on. A feature
 # of a crate already in the graph, so `Cargo.lock` does not change.
 tokio = { version = "1", features = ["test-util"] }
+# keyring's own backend crate, for its in-memory mock store: the `secrets.rs` tests swap it in
+# for Credential Manager. Already in the graph under `keyring`, at the version it pins.
+keyring-core = "1.0"
 
 [features]
 # Standard Tauri production feature: serve the bundled front-end assets over the custom

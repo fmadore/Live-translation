@@ -173,7 +173,8 @@ export class PreflightController {
 	startAudioTest = async () => {
 		if (!this.#desktop || this.audioTestBusy || this.audioTesting || this.#locked()) return;
 		if (!this.applicationReady(get(options))) {
-			statusMessage.set(get(t).applications.missing);
+			// Worded where the status line shows it, so a change of interface language re-words it.
+			statusMessage.set((m) => m.applications.missing);
 			return;
 		}
 		this.audioTestBusy = true;
@@ -239,7 +240,7 @@ export class PreflightController {
 				(((current.micDeviceId || current.micDeviceName) && !next.micDeviceId) ||
 					(current.systemDeviceId && !next.systemDeviceId))
 			) {
-				statusMessage.set(get(t).devices.idleFallback);
+				statusMessage.set((m) => m.devices.idleFallback);
 			}
 			this.invalidateAudioTest();
 			options.set(next);

@@ -8,12 +8,19 @@ import { api } from './tauri';
 import { overlayCleanSpeech, overlayFillerWords } from './stores';
 import { DEFAULT_FILLER_WORDS, FILLER_WORDS_KEY } from './cleanSpeech';
 import { setLocale } from './i18n';
+import { operatorContextMap } from './operatorContext';
+
+/** Pushes go out at once rather than once a frame, so each edit's push can be checked. */
+const pushAtOnce = (push: () => void) => push();
 
 const DEFAULTS = [...DEFAULT_FILLER_WORDS];
 
 function controller() {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	return { overlay: createOverlayController({ ...api, setOverlayConfig }), setOverlayConfig };
+	return {
+		overlay: createOverlayController({ ...api, setOverlayConfig }, pushAtOnce),
+		setOverlayConfig
+	};
 }
 
 beforeEach(() => {
@@ -30,7 +37,7 @@ afterEach(() => {
 it('shows the active list under Hide filler words only while it is on', async () => {
 	overlayCleanSpeech.set(false);
 	const { overlay } = controller();
-	const view = render(ReadingPreferences, { overlay });
+	const view = render(ReadingPreferences, { props: {}, context: operatorContextMap({ overlay }) });
 	expect(view.queryByRole('group', { name: 'Words to hide' })).toBeNull();
 	await fireEvent.click(view.getByLabelText('Hide filler words'));
 	const list = view.getByRole('list', { name: 'Words to hide' });
@@ -45,7 +52,7 @@ it('shows the active list under Hide filler words only while it is on', async ()
 
 it('adds, removes and resets words, storing and pushing every change live', async () => {
 	const { overlay, setOverlayConfig } = controller();
-	const view = render(FillerWordList, { overlay });
+	const view = render(FillerWordList, { props: {}, context: operatorContextMap({ overlay }) });
 	const field = view.getByLabelText('Add a word');
 
 	await fireEvent.input(field, { target: { value: '  bah ' } });
@@ -84,7 +91,7 @@ it('adds, removes and resets words, storing and pushing every change live', asyn
 
 it('explains a rejected entry beside the field, and clears it on the next edit', async () => {
 	const { overlay, setOverlayConfig } = controller();
-	const view = render(FillerWordList, { overlay });
+	const view = render(FillerWordList, { props: {}, context: operatorContextMap({ overlay }) });
 	const field = view.getByLabelText('Add a word');
 	const add = view.getByRole('button', { name: 'Add' });
 
@@ -114,7 +121,7 @@ it('explains a rejected entry beside the field, and clears it on the next edit',
 
 it('lets the list be emptied on purpose, and says that nothing is hidden', async () => {
 	const { overlay, setOverlayConfig } = controller();
-	const view = render(FillerWordList, { overlay });
+	const view = render(FillerWordList, { props: {}, context: operatorContextMap({ overlay }) });
 	for (const word of DEFAULTS)
 		await fireEvent.click(view.getByRole('button', { name: `Remove “${word}”` }));
 	expect(view.queryByRole('list')).toBeNull();
@@ -139,12 +146,12 @@ it('keeps a curated list through Reset appearance, which only switches the filte
 it('is translated, with each language’s own quotation marks', async () => {
 	const { overlay } = controller();
 	setLocale('fr');
-	const fr = render(FillerWordList, { overlay });
+	const fr = render(FillerWordList, { props: {}, context: operatorContextMap({ overlay }) });
 	expect(fr.getByRole('group', { name: 'Mots à masquer' })).toBeInTheDocument();
 	expect(fr.getByRole('button', { name: 'Retirer « um »' })).toBeInTheDocument();
 	fr.unmount();
 	setLocale('de');
-	const de = render(FillerWordList, { overlay });
+	const de = render(FillerWordList, { props: {}, context: operatorContextMap({ overlay }) });
 	expect(de.getByRole('group', { name: 'Auszublendende Wörter' })).toBeInTheDocument();
 	expect(de.getByRole('button', { name: '„um“ entfernen' })).toBeInTheDocument();
 	expect(de.getByRole('button', { name: 'Standardwörter wiederherstellen' })).toBeDisabled();

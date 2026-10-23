@@ -27,20 +27,17 @@ pub struct AppError {
 impl AppError {
     /// Every failure the core reports today has technical text worth keeping, so there is no
     /// `new(id)` constructor: an id with nothing under it would be a report nobody can act on.
+    ///
+    /// The detail is written in its alternate form, so an `anyhow::Error` keeps every cause
+    /// rather than only the outermost context: "WebSocket connect failed" alone cannot say
+    /// whether it was DNS, TLS, a proxy or a 429. Anyhow's alternate form, `outer: cause: root`,
+    /// walks the context chain and then each underlying error's `source()`, so a reqwest or
+    /// keyring error inside keeps its own causes too. Plain text and OS errors ignore the flag.
     pub fn with(id: &'static str, detail: impl std::fmt::Display) -> Self {
         Self {
             id,
-            detail: Some(detail.to_string()),
+            detail: Some(format!("{detail:#}")),
         }
-    }
-
-    /// `with`, keeping every cause rather than only the outermost context: "WebSocket connect
-    /// failed" alone cannot say whether it was DNS, TLS, a proxy or a 429, and the cause is
-    /// what makes the report actionable. Anyhow's alternate form, `outer: cause: root`, walks
-    /// the context chain and then each underlying error's `source()`, so a reqwest or keyring
-    /// error inside keeps its own causes too.
-    pub fn chain(id: &'static str, error: &anyhow::Error) -> Self {
-        Self::with(id, format!("{error:#}"))
     }
 }
 
@@ -141,19 +138,15 @@ mod tests {
         );
     }
 
-    /// `with` keeps only the outermost context, which is how "model download behind a proxy"
-    /// became a report nobody could act on.
+    /// Keeping only the outermost context is how "model download behind a proxy" became a
+    /// report nobody could act on.
     #[test]
     fn a_chain_keeps_every_cause() {
         let error = anyhow::anyhow!("No such host is known. (os error 11001)")
             .context("WebSocket connect failed");
         assert_eq!(
-            AppError::chain(id::PROVIDER_RECONNECTING, &error).detail,
+            AppError::with(id::PROVIDER_RECONNECTING, error).detail,
             Some("WebSocket connect failed: No such host is known. (os error 11001)".into())
-        );
-        assert_eq!(
-            AppError::with(id::PROVIDER_RECONNECTING, &error).detail,
-            Some("WebSocket connect failed".into())
         );
     }
 
@@ -177,7 +170,7 @@ mod tests {
         let refused = std::io::Error::other("proxy refused the tunnel");
         let error = anyhow::Error::new(Request(refused)).context("Model download failed");
         assert_eq!(
-            AppError::chain(id::WHISPER_MODEL, &error).detail,
+            AppError::with(id::WHISPER_MODEL, error).detail,
             Some("Model download failed: error sending request: proxy refused the tunnel".into())
         );
     }

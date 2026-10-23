@@ -615,6 +615,8 @@ export const de: Messages = {
 		},
 		privacy: {
 			memoryOnly: 'Das Transkript bleibt im Arbeitsspeicher, bis Sie es speichern.',
+			spoolFailing:
+				'Das Transkript bleibt im Arbeitsspeicher, bis Sie es speichern. Die lokale Wiederherstellungskopie schlägt fehl.',
 			spooled:
 				'Das Transkript bleibt im Arbeitsspeicher und wird lokal zwischengespeichert, bis Sie es speichern.',
 			demo: 'Die integrierte Demo bleibt vollständig in der App.',
@@ -652,6 +654,8 @@ export const de: Messages = {
 		lines: (n: number) => (n === 1 ? '1 Zeile' : `${n} Zeilen`),
 		unsaved: 'Nicht gespeichert',
 		saved: 'Gespeichert',
+		recoveryFailing: 'Wiederherstellungskopie schlägt fehl',
+		historyFailing: 'Verlauf wird nicht gespeichert',
 		saveAs: 'Speichern unter…',
 		format: 'Exportformat',
 		plainText: 'Reiner Text',

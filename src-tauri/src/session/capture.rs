@@ -45,7 +45,7 @@ pub(super) fn source_failure(origin: Origin, error: &anyhow::Error) -> AppError 
 /// Report a failure on the audio side of one source: log it, tell the operator which source
 /// died, and stop that source's client. The other source, if any, stays live.
 pub(super) fn report_source_failure(
-    app: &AppHandle,
+    events: &impl Events,
     origin: Origin,
     error: &anyhow::Error,
     cancel: &CancellationToken,
@@ -53,7 +53,7 @@ pub(super) fn report_source_failure(
     tracing::error!(?origin, "capture failed: {error:#}");
     cancel.cancel();
     let message = source_failure(origin, error);
-    app.status(StatusUpdate::source(
+    events.status(StatusUpdate::source(
         origin,
         SessionState::Error,
         Some(message),

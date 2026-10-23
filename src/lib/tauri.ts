@@ -98,10 +98,10 @@ export const api = {
 	 *  audio. See `SessionManager::start_test`. */
 	startAudioTest: (
 		source: AudioSource,
-		micDeviceName: string | null,
+		micDevice: string | null,
 		systemDeviceId: string | null = null,
 		systemCapture?: SystemCapture
-	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId, systemCapture }),
+	) => invoke<void>('start_audio_test', { source, micDevice, systemDeviceId, systemCapture }),
 	stopAudioTest: () => invoke<void>('stop_audio_test'),
 
 	setOverlayClickThrough: (enabled: boolean) =>
@@ -111,8 +111,23 @@ export const api = {
 	/** Push live overlay appearance (font size) to the overlay window. */
 	setOverlayConfig: (config: OverlayConfig) => emit(EVT.overlayConfig, config),
 
-	/** Report a change made on the overlay itself back to the operator window. */
-	emitOverlayState: (msg: OverlayStateMsg) => emit(EVT.overlayState, msg),
+	/** Report a change made on the overlay itself back to the operator window. Overlay-only:
+	 *  the core sends it on as `overlay-state`, because the overlay may not emit events. */
+	reportOverlayState: (state: OverlayStateMsg) => invoke<void>('report_overlay_state', { state }),
+
+	// The overlay's own move-mode commands. Overlay-only, and each acts on the overlay window
+	// alone, unlike the core window setters they replace.
+	/** Start dragging the overlay with the mouse. */
+	startOverlayDrag: () => invoke<void>('start_overlay_drag'),
+	/** Move the overlay by whole physical pixels. */
+	nudgeOverlay: (dx: number, dy: number) => invoke<void>('nudge_overlay', { dx, dy }),
+	/** Stretch the overlay across its display as a strip `stripHeight` logical pixels tall,
+	 *  along the bottom. */
+	snapOverlayToBottom: (stripHeight: number) =>
+		invoke<void>('snap_overlay_to_bottom', { stripHeight }),
+	/** Put the overlay back at `entry`, unless that is on a display that has gone; whether it
+	 *  was moved. Escape in move mode. */
+	undoOverlayMove: (entry: Placement) => invoke<boolean>('undo_overlay_move', { entry }),
 
 	/** Write the transcript to disk; returns the saved file path. */
 	saveTranscript: (content: string, filename: string) =>

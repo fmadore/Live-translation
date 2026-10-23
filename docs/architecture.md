@@ -145,11 +145,16 @@ once. Whatever ends a drain, the source reports the Pause or Stop that started i
 runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
 drain.
 
-Provider `error` events are classified per provider: authentication, permission, a bad request
-or model, and an exhausted quota stop the source with the provider's message; a server error,
-a rate limit or an overloaded service reconnect with backoff; an expired session (OpenAI's
-60-minute cap) is a planned handover; anything unrecognized stays fatal, so a persistent
-failure reports itself instead of looping. A provider that ends its session mid-stream
+Every provider's `error` event, and a close during setup, goes through one classifier
+(`realtime::wire::classify`), so the providers cannot drift apart. Authentication, permission,
+quota, billing and credit wording stop the source with the provider's message, whatever code
+it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, close codes 1001,
+1011, 1012 and 1013, and Google's transient names reconnect with backoff; an expired session
+(OpenAI's or Mistral's cap) is a planned handover; anything unrecognized stays fatal, 1007 and
+1008 included, so a persistent failure reports itself instead of looping. A setup that times
+out, hits EOF or is closed with a retryable code is retried the same way, as Reconnecting, and
+the fifth such failure in a row ends the source; an accepted setup resets the count. A
+provider that ends its session mid-stream
 (OpenAI's `session.closed`, Mistral's `transcription.done`) does not end the source either:
 its last caption is emitted and the runner hands over to a new session.
 
@@ -193,9 +198,12 @@ for minutes and Pause went unseen.
 
 **Planned handovers.** Gemini's `goAway` returns `MessageControl::Handover`, and a provider
 ending its session mid-stream is treated the same way. After a connection that lasted at least
-`STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. While
-the new socket connects and sets up it keeps reading the producer into a backlog of up to 30
-chunks (about three seconds; the oldest go first beyond that), sends it in order once setup
+`STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. First
+it drains the old socket like a Pause, within `min(timeLeft, 4 s)`: it sends the closing frames
+(`audioStreamEnd` for Gemini) and reads until the provider's flush is done, so the audio already
+sent still comes back as text. From the drain on, and while the new socket connects and sets
+up, it keeps reading the producer into a backlog of up to 70 chunks (about seven seconds; the
+oldest go first beyond that), sends it in order once setup
 completes, then whatever is still queued (`next_chunk`'s catch-up) rather than coalescing it as
 a stall's backlog. The gap becomes latency instead of lost speech.
 
@@ -228,13 +236,20 @@ installed Whisper model on a supported processor, or the bundled demo),
 failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
 `nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
-when imported. Page teardown disposes the preflight timers and capture test. Start, Rehearse
-and Ctrl+Shift+Space read one derived list of start blockers (busy, caption language, engine,
-application), so the three cannot disagree about whether a session can begin.
+when imported. Page teardown disposes the preflight timers and capture test.
+`launchController.svelte.ts` owns the rehearsal flag and the launch path: Start, Rehearse and
+Ctrl+Shift+Space read its one derived list of start blockers (busy, a run opening but not yet
+reporting, caption language, engine, application), so the three cannot disagree about whether
+a session can begin. `operatorContext.ts` hands the overlay and preflight controllers to the
+components that need them through a Svelte context, instead of props through every level.
 
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
-its actions), `DeviceRecoveryBanner`, `SetupSheet` or `LiveRail`, `PreflightChecklist` or
-`LiveTurns`, and `SettingsDialog`, over the shared primitives in `src/lib/ui/`. Every button is
+its actions), `DeviceRecoveryBanner`, `SetupSheet` (its four steps under `src/lib/setup/`) or
+`LiveRail`, `IdleStage` (with `PreflightChecklist`) or `RunningStage` (with `LiveTurns`), and
+`SettingsDialog`, over the shared primitives in `src/lib/ui/`. The transcript
+(`TranscriptMonitor`: `TranscriptActions` over `TranscriptLog`) is mounted once in the stage
+column for both states, so its copy window, follow state and an in-flight save survive Start
+and Stop. Every button is
 a `ToolButton` (`variant` default, primary, ghost, danger or warn; `size` sm, md or lg), drawn
 once under `.ui-tool` in `app.css`. Classes the components share (`kicker`, `hint`,
 `divider`, `pref`, `rail-section`) are global there too. `app.css` is also the only place a
@@ -304,8 +319,8 @@ handlers as returning `any`, so every such handler catches its own errors. knip
 flush immediately. Hold-time expiry affects the overlay only, and transcript storage is
 independent of presentation pacing and the display filter. `profiles.ts` validates local
 profile snapshots; `MeetingProfiles.svelte` rechecks devices before loading and excludes API
-keys, process IDs and rehearsal state, and operator-only placement commands clamp saved
-rectangles to an available monitor work area. Profiles never start a session.
+keys, process IDs and rehearsal state, and operator-only placement commands bring a saved
+rectangle that no display can show back onto one. Profiles never start a session.
 `liveActivity.ts` classifies per-source connection, audio and caption observations; it is not
 voice activity detection. See [usability](usability.md).
 
@@ -367,6 +382,22 @@ presenter; `overlayPlacement.svelte.ts` owns move mode and its keys, and
 `OverlayMoveChrome.svelte` draws it. The persisted `overlay.captionLayout` preference defaults
 to Fit window and reaches the overlay in `OverlayConfig` through `overlayController.svelte.ts`.
 
+A push reaches only listeners already registered, so the overlay says when it can hear: once
+its listeners resolve it reports `ready`, and `nativeSync.svelte.ts` answers with a whole
+configuration (appearance, both caption languages, the interface language and move mode). An
+overlay that loads after the operator's first push, at a cold start or after a WebView2 reload,
+therefore misses nothing. Move mode can also be left from both ends at once: a push carrying
+`interactive: true` (a colour drag, say) can cross the overlay's own Lock on the way. The
+overlay counts its own exits from move mode and reports the count; every push hands back the
+last count the operator heard (`moveExitsSeen`), and the overlay ignores a push to stay in move
+mode that is behind it.
+
+Pushes are coalesced to one per animation frame (or 100 ms, for an operator window hidden to the
+tray, which gets no frames), so a colour drag costs the overlay one re-read a frame rather than
+one per input event; move mode goes out as it stands when the push is sent. The overlay hands
+the hold time and the reading pace on to its captions only when they change, since setting
+them restarts every expiry timer and releases paced text.
+
 The overlay window is created centred (`tauri.conf.json`) and paints nothing until there are
 captions or move mode, neither of which can start before the operator window has mounted. So
 the remembered placement lives in the interface like any other preference:
@@ -376,9 +407,11 @@ and at most eight, most recently used first. A layout is the signature `display_
 area left out. `overlayController.svelte.ts` saves the overlay's rectangle when move mode ends
 with Done or the overlay's own Lock/Enter (not Escape) and after a profile places it, never on
 move events, and restores once as the operator window mounts: the current layout's entry,
-otherwise the most recent, always through `set_overlay_placement`. That command clamps the
-rectangle to a monitor's work area and moves the window before sizing it, because crossing to
-a display with another scale factor makes Windows rescale it (`WM_DPICHANGED`).
+otherwise the most recent, always through `set_overlay_placement`. That command applies a
+rectangle the room can see as it was made, a strip stretched across two displays included, and
+gives any other the display watcher's rescue (below). It moves the window before sizing it,
+because crossing to a display with another scale factor makes Windows rescale it
+(`WM_DPICHANGED`).
 
 Displays can also change under a running app (issue #137). `placement.rs` polls the monitors
 about once a second, including their work areas, and once a change has held for two polls it
@@ -438,7 +471,9 @@ or the tray preference. Two rules stop it from ever producing a window that refu
 that default of off, and an interception nothing acknowledges within `ACK_TIMEOUT` is released.
 `WindowEvent::Destroyed` on the operator window exits the process, so the undecorated
 always-on-top overlay cannot outlive its controls. Hiding to the tray never reaches it: that
-window is hidden, never destroyed.
+window is hidden, never destroyed. Closing the overlay itself (Alt+F4 in move mode, Task View's
+X) hides it too, and the core announces that as `overlay-state` with `visible: false`, so the
+operator's toggle and the tray offer Show.
 
 ## Tray
 
@@ -479,9 +514,11 @@ analytics or crash-reporting service. See [`SECURITY.md`](../SECURITY.md) and th
 ## The two windows are not equally trusted
 
 The operator window and the overlay are separate webviews, and the overlay is the one an
-audience looks at. It needs to move itself, resize itself and restore its own click-through
-while the operator is placing it — and nothing else: not the commands that read a provider
-key's presence, start a billable session, write the transcript or quit the app (issue #31).
+audience looks at. It needs to listen for captions, move itself, resize itself, restore its own
+click-through while the operator is placing it, and tell the operator window what happened on
+it — and nothing else: not the commands that read a provider key's presence, start a billable
+session, write the transcript or quit the app (issue #31), and not emitting events or moving
+another window (B4).
 
 Two things make the split real rather than documentary:
 
@@ -490,15 +527,25 @@ Two things make the split real rather than documentary:
   app has such a manifest, Tauri checks every one of its own commands against the calling
   window's capability and rejects anything not granted — without it, app commands are only
   checked for remote origins.
-- `capabilities/operator.json` grants all of them to `operator`;
-  `capabilities/overlay.json` grants `overlay` exactly one — `set_overlay_click_through` —
-  plus the core event permissions and the three window mutations it uses
-  (`set_position`, `set_size`, `start_dragging`) on top of the read-only `core:window:default`.
+- `capabilities/operator.json` grants the operator's commands to `operator`;
+  `capabilities/overlay.json` grants `overlay` its own short list and two core permissions,
+  `core:event:allow-listen` and `core:event:allow-unlisten`. No `emit`: with it the overlay
+  could pass for the core, sending a `tray-command` that stops a billable session or captions
+  that reach the transcript. So it reports a Lock, an Escape or a caption size chosen on it
+  through `report_overlay_state`, which takes only the fields of `overlay::OverlayState` and
+  which the core sends on as `overlay-state`. No core window permissions either: those
+  commands take any window's label, so they would let it move or resize the operator window.
+  It reads its rectangle with `get_overlay_placement` and moves itself with overlay-only
+  commands that act on the overlay window alone — `start_overlay_drag` (in place of
+  `data-tauri-drag-region`), `nudge_overlay`, `snap_overlay_to_bottom`, `undo_overlay_move`
+  (Escape) — besides `set_overlay_click_through`.
 
 The tests in `src/command_names.rs` hold the three pieces together: they fail if a command is
 registered without a permission (which would be rejected at runtime the first time an operator
-used it), if a capability grants something that no longer exists, or if the overlay is handed
-anything beyond placing itself.
+used it), if a capability grants something that no longer exists, or if the overlay's
+permissions, core ones included, differ in any way from the list pinned there.
+`overlayPlacement.svelte.test.ts` checks that what the overlay sends in move mode is all in its
+capability.
 
 To see the boundary work, open the overlay's dev tools in `npm run tauri dev` and invoke a
 command it does not have:

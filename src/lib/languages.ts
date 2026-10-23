@@ -1,4 +1,5 @@
 import catalog from './languages.json';
+import { readStored } from './persisted';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languageCodes';
 import { secondCaptionLanguageOf, type Provider, type StartOptions } from './types';
 import type { Messages } from './i18n/en';
@@ -52,10 +53,35 @@ export function captionLanguageError(
 		: '';
 }
 
+const DISPLAY_NAMES = new Map<string, Intl.DisplayNames | null>();
+
+/**
+ * One `Intl.DisplayNames` per locale and fallback, made the first time it is asked for and kept
+ * (review E3). Building one is far from free, and the language picker used to build one per row
+ * on every keystroke of its filter. Null when the runtime cannot name languages in `locale` —
+ * an invalid tag, say — so callers fall back to the catalog's own names.
+ */
+export function displayNames(
+	locale: string,
+	fallback: 'code' | 'none' = 'code'
+): Intl.DisplayNames | null {
+	const key = `${locale}|${fallback}`;
+	let names = DISPLAY_NAMES.get(key);
+	if (names === undefined) {
+		try {
+			names = new Intl.DisplayNames([locale], { type: 'language', fallback });
+		} catch {
+			names = null;
+		}
+		DISPLAY_NAMES.set(key, names);
+	}
+	return names;
+}
+
 export function languageName(code: TargetLanguage, locale: string): string {
 	const fallback = catalog.languages.find((l) => l.code === code)?.english ?? code;
 	try {
-		const name = new Intl.DisplayNames([locale], { type: 'language' }).of(code);
+		const name = displayNames(locale)?.of(code);
 		return name && name !== code ? name : fallback;
 	} catch {
 		return fallback;
@@ -113,12 +139,13 @@ export function languageRows(
 		});
 }
 
-export function loadLanguageFavourites(storage?: Pick<Storage, 'getItem'>): TargetLanguage[] {
+/** The pinned languages, read through `persisted.ts` like every other preference; `raw` is the
+ *  stored JSON, for a caller that already has it. Anything unreadable is the default pair. */
+export function loadLanguageFavourites(
+	raw: string | null = readStored(LANGUAGE_FAVOURITES_KEY)
+): TargetLanguage[] {
+	if (raw == null) return [...DEFAULT_FAVOURITES];
 	try {
-		const raw = (
-			storage ?? (typeof localStorage === 'undefined' ? undefined : localStorage)
-		)?.getItem(LANGUAGE_FAVOURITES_KEY);
-		if (raw == null) return [...DEFAULT_FAVOURITES];
 		const values: unknown = JSON.parse(raw);
 		return Array.isArray(values)
 			? [...new Set(values.filter(isTargetLanguage))]

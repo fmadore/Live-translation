@@ -12,6 +12,9 @@ use crate::types::{Origin, SessionState};
 pub(super) const INITIAL_BACKOFF: Duration = Duration::from_secs(1);
 const MAX_BACKOFF: Duration = Duration::from_secs(16);
 pub(super) const STABLE_CONNECTION: Duration = Duration::from_secs(30);
+/// Consecutive setup failures before the source gives up: with the backoff between them about
+/// half a minute of retries, longer when each one waits out the setup timeout.
+pub(super) const MAX_SETUP_FAILURES: u32 = 5;
 
 /// How one connection ended.
 #[derive(Debug)]
@@ -27,6 +30,14 @@ pub(super) enum RunEnd {
     Paused,
     /// The provider stopped the session for a reason a reconnect cannot fix.
     Fatal(String),
+    /// The connection opened but setup did not complete: it timed out, the socket ended, or
+    /// the provider closed it with a code worth retrying (`close_code`, when there was one).
+    /// Retried with backoff like a failure, until `MAX_SETUP_FAILURES` in a row end the source:
+    /// a setup that never succeeds is a refusal however it is worded.
+    SetupFailed {
+        reason: String,
+        close_code: Option<u16>,
+    },
     /// The handshake was refused with an HTTP status that will not improve on retry.
     Rejected(u16),
     /// What this source sends could not be built from its settings: the connect request (a
@@ -91,6 +102,8 @@ pub(super) struct Reconnect {
     fresh: bool,
     /// The last connection ended in a planned handover.
     handover: bool,
+    /// Setups that failed since one last succeeded; see `RunEnd::SetupFailed`.
+    setup_failures: u32,
 }
 
 impl Reconnect {
@@ -103,13 +116,21 @@ impl Reconnect {
             },
             fresh: true,
             handover: false,
+            setup_failures: 0,
         }
     }
 
-    /// The operator resumed a paused source. Whatever queued before is not a handover's gap.
+    /// The operator resumed a paused source. Whatever queued before is not a handover's gap,
+    /// and a fresh start gets a fresh run of setup attempts.
     pub fn resumed(&mut self) {
         self.fresh = true;
         self.handover = false;
+        self.setup_failures = 0;
+    }
+
+    /// The provider accepted a connection's setup, however that connection went on to end.
+    pub fn established(&mut self) {
+        self.setup_failures = 0;
     }
 
     pub fn connect(&mut self) -> Connect {
@@ -149,12 +170,22 @@ impl Reconnect {
                 self.handover = true;
                 After::Now
             }
-            RunEnd::Handover | RunEnd::Reconnect | RunEnd::Failed(_) => {
-                let wait = self.backoff + self.jitter;
-                self.backoff = (self.backoff * 2).min(MAX_BACKOFF);
-                After::Backoff(wait)
+            RunEnd::SetupFailed { .. } => {
+                self.setup_failures += 1;
+                if self.setup_failures >= MAX_SETUP_FAILURES {
+                    After::Stop
+                } else {
+                    self.back_off()
+                }
             }
+            RunEnd::Handover | RunEnd::Reconnect | RunEnd::Failed(_) => self.back_off(),
         }
+    }
+
+    fn back_off(&mut self) -> After {
+        let wait = self.backoff + self.jitter;
+        self.backoff = (self.backoff * 2).min(MAX_BACKOFF);
+        After::Backoff(wait)
     }
 }
 
@@ -283,6 +314,50 @@ mod tests {
         // Paused before the replacement connection opened: the queued audio is now stale.
         policy.resumed();
         assert_eq!(policy.connect(), connecting());
+    }
+
+    fn setup_failed() -> RunEnd {
+        RunEnd::SetupFailed {
+            reason: "closed during setup".into(),
+            close_code: Some(1011),
+        }
+    }
+
+    #[test]
+    fn a_failed_setup_is_retried_with_backoff_until_too_many_in_a_row() {
+        let mut policy = Reconnect::new(Origin::Microphone);
+        policy.connect();
+        let secs = |s| After::Backoff(Duration::from_secs(s));
+        let waits: Vec<_> = (1..MAX_SETUP_FAILURES)
+            .map(|_| {
+                let after = policy.after(&setup_failed(), SHORT);
+                assert_eq!(policy.connect(), reconnecting());
+                after
+            })
+            .collect();
+        assert_eq!(waits, [secs(1), secs(2), secs(4), secs(8)]);
+        assert_eq!(policy.after(&setup_failed(), SHORT), After::Stop);
+    }
+
+    /// The cap counts failures in a row: a setup that succeeded in between starts it again,
+    /// and so does the operator's resume.
+    #[test]
+    fn an_accepted_setup_or_a_resume_restarts_the_count() {
+        let mut policy = Reconnect::new(Origin::Microphone);
+        for _ in 1..MAX_SETUP_FAILURES {
+            assert_ne!(policy.after(&setup_failed(), SHORT), After::Stop);
+        }
+        policy.established();
+        policy.after(&RunEnd::Reconnect, LONG);
+        for _ in 1..MAX_SETUP_FAILURES {
+            assert_ne!(policy.after(&setup_failed(), SHORT), After::Stop);
+        }
+        policy.after(&RunEnd::Paused, SHORT);
+        policy.resumed();
+        for _ in 1..MAX_SETUP_FAILURES {
+            assert_ne!(policy.after(&setup_failed(), SHORT), After::Stop);
+        }
+        assert_eq!(policy.after(&setup_failed(), SHORT), After::Stop);
     }
 
     #[test]

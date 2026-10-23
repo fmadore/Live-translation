@@ -7,7 +7,7 @@ import { sessionHistory } from './history';
 import { options } from './preferences';
 import { noteActivity } from './sourceActivity';
 import { laneCount, laneLanguage, trackOf } from './types';
-import type { Caption, StartOptions, Track, TranscriptLine } from './types';
+import type { Caption, StartOptions, TargetLanguage, Track, TranscriptLine } from './types';
 
 // ---- Captions & transcript --------------------------------------------------
 
@@ -69,9 +69,26 @@ function toLine(c: Caption, id: number): TranscriptLine {
 	};
 }
 
+/**
+ * The caption language each line was written in, for the operator window's `lang` and `dir`
+ * (review U12). `TranscriptLine.language` is recorded only for a run in two languages, where
+ * documents name it; a run in one language is noted here instead, so its documents stay as
+ * they were. Nothing is noted while a subtitle engine detects the spoken language, nor for a
+ * line restored from a recovery file: those are in a language this window does not know.
+ */
+const lineLanguages = new Map<number, TargetLanguage>();
+
+/** The caption language of a logged line or paragraph (by the id of its first line), or
+ *  undefined when it is not known. */
+export function loggedLanguage(line: { id: number; language?: TargetLanguage }) {
+	return line.language ?? lineLanguages.get(line.id);
+}
+
 function commit(c: Caption) {
 	if (!c.text.trim()) return;
 	const line = toLine(c, nextLineId++);
+	const language = laneLanguage(get(options), c.lane ?? 0);
+	if (language) lineLanguages.set(line.id, language);
 	transcript.update((list) => [line, ...list]);
 	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
 }
@@ -144,6 +161,7 @@ export function beginTranscriptRun(sessionOptions: StartOptions) {
  *  upward, so a stale marker could otherwise make fresh text look already written. */
 export function clearTranscript() {
 	transcriptTimeOffset = 0;
+	lineLanguages.clear();
 	transcript.set([]);
 	currentCaptions.set({});
 	savedLineId.set(NOTHING_SAVED);
@@ -155,6 +173,7 @@ export function clearTranscript() {
  *  the file they came from is a crash spool, not the operator's transcript — and ids continue
  *  above the snapshot so a later run cannot collide with them. */
 export function restoreTranscript(lines: TranscriptLine[]) {
+	lineLanguages.clear();
 	transcript.set(lines);
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');

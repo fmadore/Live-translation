@@ -1,30 +1,27 @@
 <script lang="ts">
 	import ApiKeyPanel from './ApiKeyPanel.svelte';
+	import OverlayMoveButton from './OverlayMoveButton.svelte';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { options, overlayPlaced, statusMessage, whisperModels } from './stores';
 	import { PROVIDER_META, isLocalWhisper, providerRequiresKey, rateText } from './providers';
 	import { describeReadiness, laneCount } from './types';
-	import type { OverlayController } from './overlayController.svelte';
-	import type { PreflightController } from './preflightController.svelte';
+	import { preflightContext } from './operatorContext';
 
 	let {
-		preflight,
-		overlay,
 		browserMode,
 		locked,
 		usesMic,
 		usesSystem
 	}: {
-		preflight: PreflightController;
-		overlay: OverlayController;
 		browserMode: boolean;
 		/** Setup is locked: a session, a start or a profile load is under way. */
 		locked: boolean;
 		usesMic: boolean;
 		usesSystem: boolean;
 	} = $props();
+	const preflight = preflightContext();
 
 	const needsKey = $derived(providerRequiresKey($options.provider));
 	const localWhisper = $derived(isLocalWhisper($options.provider));
@@ -156,25 +153,13 @@
 	>
 		{#snippet action()}
 			<!-- Placement is never final: re-entering move mode is the way to adjust position and
-			     caption size, so the row keeps a button in both states. Its name changes to
-			     "Finish placing" while moving, so it is not also a pressed toggle; "Done" is
-			     the primary action then instead. -->
-			<ToolButton
-				variant={overlay.moveOverlay ? 'primary' : $overlayPlaced ? 'ghost' : 'warn'}
+			     caption size, so the row keeps a button in both states. -->
+			<OverlayMoveButton
+				wording="place"
 				size="sm"
-				aria-label={overlay.moveOverlay
-					? $t.preflight.overlay.doneLabel
-					: $overlayPlaced
-						? $t.preflight.overlay.adjustLabel
-						: $t.preflight.overlay.placeLabel}
-				onclick={overlay.toggleMoveOverlay}
-			>
-				{overlay.moveOverlay
-					? $t.preflight.overlay.done
-					: $overlayPlaced
-						? $t.preflight.overlay.adjust
-						: $t.preflight.overlay.place}
-			</ToolButton>
+				icon={false}
+				idleVariant={$overlayPlaced ? 'ghost' : 'warn'}
+			/>
 		{/snippet}
 	</ChecklistRow>
 

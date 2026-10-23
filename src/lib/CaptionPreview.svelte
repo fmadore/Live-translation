@@ -11,9 +11,9 @@
 	import { captionCssVars } from './captionColour';
 	import { matchesPreset, PRESET_IDS, PRESETS } from './appearance';
 	import { captionFaceStack } from './captionFont';
-	import type { OverlayController } from './overlayController.svelte';
-	let { overlay, part = 'preview' }: { overlay: OverlayController; part?: 'presets' | 'preview' } =
-		$props();
+	import { overlayContext } from './operatorContext';
+	let { part = 'preview' }: { part?: 'presets' | 'preview' } = $props();
+	const overlay = overlayContext();
 	const vars = $derived(
 		Object.entries(captionCssVars($overlayPalette))
 			.map(([k, v]) => `${k}:${v}`)

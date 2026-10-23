@@ -12,7 +12,7 @@ mod options;
 mod preflight;
 mod settings;
 
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -27,6 +27,7 @@ use tokio_util::sync::CancellationToken;
 use crate::errors::AppError;
 use crate::realtime::Events;
 use crate::secrets;
+use crate::sync::lock;
 use crate::timing::SessionClock;
 use crate::types::{Origin, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
@@ -66,12 +67,6 @@ struct ActiveSession {
     /// With a second caption language, one relay per source copies its audio to both clients.
     relay_tasks: Vec<AsyncJoinHandle<()>>,
     client_tasks: Vec<AsyncJoinHandle<()>>,
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 /// Publish a pause or resume to every client. False when it changes nothing: an unchanged
@@ -164,8 +159,9 @@ impl SessionManager {
     /// Pause or resume the running session. While paused every client closes its provider
     /// connection — so nothing is streamed or billed — and capture keeps metering, so the
     /// operator can see when the room starts talking again. Not behind the lifecycle lock: a
-    /// pause is a signal to the clients, and must not wait out a start or stop.
-    pub fn set_paused(&self, app: &AppHandle, paused: bool) -> Result<()> {
+    /// pause is a signal to the clients, and must not wait out a start or stop. `events` is the
+    /// app, or the tests' recorder.
+    pub fn set_paused(&self, events: &impl Events, paused: bool) -> Result<()> {
         let active = lock(&self.active);
         let session = active
             .as_ref()
@@ -184,7 +180,7 @@ impl SessionManager {
                 } else {
                     SessionState::Running
                 };
-                app.status(StatusUpdate::source(*origin, state, None));
+                events.status(StatusUpdate::source(*origin, state, None));
             }
         }
         Ok(())
@@ -200,17 +196,17 @@ impl SessionManager {
         }
     }
 
-    pub async fn stop(&self, app: &AppHandle) {
+    pub async fn stop(&self, events: &impl Events) {
         let _lifecycle = self.lifecycle.lock().await;
-        self.stop_active(app).await;
+        self.stop_active(events).await;
     }
 
-    async fn stop_active(&self, app: &AppHandle) {
+    async fn stop_active(&self, events: &impl Events) {
         let session = lock(&self.active).take();
         if let Some(session) = session {
             let failure = session.failure.clone();
             self.shutdown(session).await;
-            app.status(StatusUpdate::session(
+            events.status(StatusUpdate::session(
                 SessionState::Idle,
                 lock(&failure).clone(),
             ));
@@ -271,6 +267,155 @@ impl SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::errors::id;
+
+    /// The statuses a session reports, recorded in place of the app's events. Shared by the
+    /// submodules' tests.
+    #[derive(Default)]
+    pub(super) struct Statuses(Mutex<Vec<StatusUpdate>>);
+
+    impl Statuses {
+        pub(super) fn take(&self) -> Vec<StatusUpdate> {
+            std::mem::take(&mut lock(&self.0))
+        }
+    }
+
+    impl Events for Statuses {
+        fn caption(&self, _: crate::types::Caption<'_>) {}
+
+        fn status(&self, update: StatusUpdate) {
+            lock(&self.0).push(update);
+        }
+    }
+
+    /// A running session as `start` leaves one, minus its devices: one source per origin, each
+    /// with the client task `client` makes from its token.
+    fn session(
+        local: bool,
+        origins: &[Origin],
+        client: impl Fn(CancellationToken) -> AsyncJoinHandle<()>,
+    ) -> ActiveSession {
+        let cancel = CancellationToken::new();
+        let sources: Vec<_> = origins.iter().map(|_| cancel.child_token()).collect();
+        ActiveSession {
+            local,
+            failure: Arc::new(Mutex::new(None)),
+            abort: CancellationToken::new(),
+            origins: origins.to_vec(),
+            pause: watch::Sender::new(false),
+            client_tasks: sources.iter().cloned().map(client).collect(),
+            sources,
+            cancel,
+            capture_threads: Vec::new(),
+            fixture_tasks: Vec::new(),
+            relay_tasks: Vec::new(),
+        }
+    }
+
+    /// A client that ends with its source, as `run_session` does after its drain.
+    fn ends_with_its_source(source: CancellationToken) -> AsyncJoinHandle<()> {
+        AsyncJoinHandle::Tokio(tokio::spawn(async move { source.cancelled().await }))
+    }
+
+    fn manager_with(session: ActiveSession) -> SessionManager {
+        let manager = SessionManager::default();
+        *lock(&manager.active) = Some(session);
+        manager
+    }
+
+    /// Every source has ended on its own — say each failed — but the session is still the
+    /// active one until Stop. A pause has nothing left to pause.
+    #[tokio::test]
+    async fn a_session_whose_sources_have_all_ended_cannot_be_paused() {
+        let ended = session(false, &[Origin::Microphone], ends_with_its_source);
+        ended.sources[0].cancel();
+        let manager = manager_with(ended);
+        let events = Statuses::default();
+        assert!(manager.set_paused(&events, true).is_err());
+        assert!(events.take().is_empty());
+    }
+
+    /// Whisper has no connection to close, so the manager reports a local pause itself — for
+    /// the sources still running, and only when the value changes.
+    #[tokio::test]
+    async fn a_local_pause_is_reported_for_each_source_still_running() {
+        let active = session(
+            true,
+            &[Origin::Microphone, Origin::System],
+            ends_with_its_source,
+        );
+        active.sources[1].cancel();
+        let manager = manager_with(active);
+        let events = Statuses::default();
+
+        manager.set_paused(&events, true).unwrap();
+        manager.set_paused(&events, true).unwrap();
+        manager.set_paused(&events, false).unwrap();
+        let reported: Vec<_> = events
+            .take()
+            .into_iter()
+            .map(|update| (update.origin, update.state))
+            .collect();
+        assert_eq!(
+            reported,
+            [
+                (Some(Origin::Microphone), SessionState::Paused),
+                (Some(Origin::Microphone), SessionState::Running),
+            ]
+        );
+    }
+
+    /// Stop reports Idle once, for the whole session, after every client has drained, and
+    /// carries the failure that ended it so the operator still sees why.
+    #[tokio::test]
+    async fn stop_reports_one_idle_with_the_failure_that_ended_the_session() {
+        let active = session(true, &[Origin::Microphone], ends_with_its_source);
+        let source = active.sources[0].clone();
+        *lock(&active.failure) = Some(AppError::with(id::WHISPER_SESSION, "disk full"));
+        let manager = manager_with(active);
+        let events = Statuses::default();
+
+        manager.stop(&events).await;
+        assert!(source.is_cancelled());
+        assert!(lock(&manager.active).is_none());
+        let [idle] = &events.take()[..] else {
+            panic!("expected exactly one status");
+        };
+        assert_eq!(idle.state, SessionState::Idle);
+        assert_eq!(idle.origin, None);
+        assert_eq!(
+            idle.message.as_ref().map(|error| error.id),
+            Some(id::WHISPER_SESSION)
+        );
+
+        // Nothing is left to stop.
+        manager.stop(&events).await;
+        assert!(events.take().is_empty());
+    }
+
+    /// A cloud client that is still draining after `CLIENT_DRAIN_TIMEOUT` is cut off, so Stop,
+    /// and the next start behind it, cannot wait on a provider that never answers.
+    #[tokio::test(start_paused = true)]
+    async fn stop_cuts_off_a_cloud_client_that_does_not_drain_in_time() {
+        let (dropped_tx, dropped) = tokio::sync::oneshot::channel::<()>();
+        let dropped_tx = Mutex::new(Some(dropped_tx));
+        let stuck = |_| {
+            let guard = lock(&dropped_tx).take();
+            AsyncJoinHandle::Tokio(tokio::spawn(async move {
+                let _guard = guard;
+                std::future::pending::<()>().await;
+            }))
+        };
+        let manager = manager_with(session(false, &[Origin::System], stuck));
+        let events = Statuses::default();
+
+        let started = tokio::time::Instant::now();
+        manager.stop(&events).await;
+        assert!(started.elapsed() >= CLIENT_DRAIN_TIMEOUT);
+        // The aborted task dropped what it held.
+        assert!(dropped.await.is_err());
+        assert_eq!(events.take().len(), 1, "Idle, once");
+    }
 
     /// A Gemini start captioning in French from `source`, shared by the submodules' tests.
     pub(super) fn options(source: &str, rehearsal: Option<&str>) -> StartOptions {

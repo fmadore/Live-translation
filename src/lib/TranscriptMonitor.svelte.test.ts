@@ -387,6 +387,45 @@ describe('copying', () => {
 	});
 });
 
+// Review U3: a spool or history write that keeps failing is said beside the save badge for as
+// long as it lasts, not only once on a status line the next status overwrites.
+describe('background saving that fails', () => {
+	it('says so beside the save badge while it lasts, with the failure as its tooltip', async () => {
+		const { recoveryFailure } = await import('./recovery');
+		const { historyEnabled, historyError } = await import('./history');
+		const { getByText, queryByText } = mount(seed(2));
+		expect(queryByText('Recovery copy failing')).toBeNull();
+
+		recoveryEnabled.set(true);
+		recoveryFailure.set({ id: 'error.recoveryWrite', detail: 'disk full' });
+		const spool = await waitFor(() => getByText('Recovery copy failing'));
+		expect(spool).toHaveAttribute('title', 'The recovery copy could not be written (disk full)');
+
+		historyEnabled.set(true);
+		historyError.set('access denied');
+		await waitFor(() =>
+			expect(getByText('History not saving', { selector: 'span' })).toBeInTheDocument()
+		);
+		// The spool's first failure reaches the status line; history's is said here, once.
+		expect(
+			within(document.body)
+				.getAllByRole('status')
+				.map((region) => region.textContent)
+		).toContain('History not saving');
+
+		recoveryFailure.set('');
+		historyError.set('');
+		await waitFor(() => expect(queryByText('Recovery copy failing')).toBeNull());
+		expect(queryByText('History not saving', { selector: 'span' })).toBeNull();
+		// Switched off, a failure from before says nothing.
+		recoveryEnabled.set(false);
+		recoveryFailure.set('stale');
+		historyEnabled.set(false);
+		await waitFor(() => expect(queryByText('Recovery copy failing')).toBeNull());
+		recoveryFailure.set('');
+	});
+});
+
 describe('the transcript reader', () => {
 	const interim = {
 		turnId: 4,
@@ -436,6 +475,37 @@ describe('the transcript reader', () => {
 		await rerender({ mode: 'transcribe', transcript: seed(11), onError: vi.fn(), reader: true });
 		expect(log.scrollTop).toBe(0);
 		document.getSelection()!.removeAllRanges();
+	});
+
+	// Review U12: each paragraph says the language it was captioned in, as the overlay does, so
+	// Narrator reads it with that language's voice and Arabic lays out right to left. A line
+	// restored from a recovery file was captioned in a language nobody recorded.
+	it('gives each paragraph and the turn being spoken their caption language', async () => {
+		const { options } = await import('./stores');
+		const { DEFAULT_START_OPTIONS } = await import('./startOptions');
+		const previous = get(options);
+		options.set({
+			...DEFAULT_START_OPTIONS,
+			mode: 'translate',
+			provider: 'gemini',
+			targetLanguage: 'ar'
+		});
+		try {
+			seed(1);
+			pushCaption({ ...interim, turnId: 5, text: 'مرحبا بكم', final: true });
+			pushCaption({ ...interim, turnId: 6, text: 'والميزانية', startMs: 9000, endMs: 9500 });
+			const { getByText } = mount(get(transcript), { live: true, reader: true });
+			for (const text of ['مرحبا بكم', 'والميزانية']) {
+				const caption = getByText(text, { selector: '.text' });
+				expect(caption).toHaveAttribute('lang', 'ar');
+				expect(caption).toHaveAttribute('dir', 'rtl');
+			}
+			const restored = getByText('utterance 1', { selector: '.text' });
+			expect(restored).toHaveAttribute('lang', '');
+			expect(restored).toHaveAttribute('dir', 'auto');
+		} finally {
+			options.set(previous);
+		}
 	});
 
 	it('selects only the log on Ctrl+A', async () => {

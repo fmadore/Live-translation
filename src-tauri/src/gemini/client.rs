@@ -195,7 +195,7 @@ mod tests {
         );
         assert!(matches!(
             h.send(r#"{"goAway":{"timeLeft":"10s"}}"#).control,
-            MessageControl::Handover
+            MessageControl::Handover { .. }
         ));
         assert!(matches!(
             h.send(r#"{"error":{"code":400,"message":"bad"}}"#).control,

@@ -15,18 +15,17 @@
 	import { readStored, writeStored } from './persisted';
 	import { appearance, applyAppearance, options } from './stores';
 	import { normalizeAppearance } from './appearance';
-	import type { OverlayController } from './overlayController.svelte';
+	import { overlayContext } from './operatorContext';
 	let {
 		locked,
-		overlay,
 		onLoaded,
 		onBusy
 	}: {
 		locked: boolean;
-		overlay: OverlayController;
 		onLoaded: () => Promise<void>;
 		onBusy: (busy: boolean) => void;
 	} = $props();
+	const overlay = overlayContext();
 	// Through `persisted.ts`, so storage that refuses access leaves an empty list rather than a
 	// component that throws while the operator window mounts.
 	let profiles = $state(decodeProfiles(readStored(PROFILES_KEY)));

@@ -609,6 +609,8 @@ export const en = {
 		},
 		privacy: {
 			memoryOnly: 'Transcript is held in memory until you save it.',
+			spoolFailing:
+				'Transcript is held in memory until you save it. Its local recovery copy is failing.',
 			spooled: 'Transcript is held in memory and spooled locally until you save it.',
 			demo: 'The bundled demo stays entirely inside the app.',
 			cloud: (vendor: string) => `Nothing leaves the machine except audio to ${vendor}.`
@@ -645,6 +647,9 @@ export const en = {
 		lines: (n: number) => (n === 1 ? '1 line' : `${n} lines`),
 		unsaved: 'Unsaved',
 		saved: 'Saved',
+		/** Beside the save badge for as long as background saving keeps failing. */
+		recoveryFailing: 'Recovery copy failing',
+		historyFailing: 'History not saving',
 		saveAs: 'Save as…',
 		format: 'Export format',
 		plainText: 'Plain text',

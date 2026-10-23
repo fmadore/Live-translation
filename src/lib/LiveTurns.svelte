@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { CAPTION_TAIL_CHARS, tail } from './captionLayout';
 	import { locale, t } from './i18n';
-	import { languageName } from './languages';
+	import { captionDirection, languageName } from './languages';
 	import { currentCaptions, options } from './stores';
 	import {
 		laneCount,
@@ -10,10 +10,19 @@
 		trackOrigin,
 		type Caption,
 		type Origin,
+		type TargetLanguage,
 		type Track
 	} from './types';
 
-	type Turn = { track: Track; origin: Origin; caption: Caption; text: string; source: string };
+	type Turn = {
+		track: Track;
+		origin: Origin;
+		caption: Caption;
+		text: string;
+		source: string;
+		/** The caption language, or undefined while a subtitle engine detects it. */
+		language: TargetLanguage | undefined;
+	};
 
 	// The speakers currently on screen, least-recently-updated first (newest at the bottom).
 	// A turn streams until it completes, which in continuous speech can be many minutes, and it
@@ -29,7 +38,8 @@
 					origin: trackOrigin(track),
 					caption,
 					text: tail(caption.text, CAPTION_TAIL_CHARS),
-					source: tail(caption.sourceText, CAPTION_TAIL_CHARS)
+					source: tail(caption.sourceText, CAPTION_TAIL_CHARS),
+					language: laneLanguage($options, trackLane(track))
 				}
 			];
 		})
@@ -67,11 +77,20 @@
 								: $t.stage.originSub[turn.origin]}
 					</span>
 				</div>
+				<!-- Each caption carries its language, as the overlay's does (review U12): Narrator reads
+			     it with that language's voice, and a right-to-left language lays out as one.
+			     Unknown is `lang=""` with the direction taken from the text; so is the original
+			     speech, which is in a language this window is not told. -->
 				<div class="turn-text">
 					{#if turn.source && !(dual && trackLane(turn.track) === 1)}
-						<p class="turn-source">{turn.source}</p>
+						<p class="turn-source" lang="" dir="auto">{turn.source}</p>
 					{/if}
-					<p class="turn-caption" class:live={!turn.caption.final}>
+					<p
+						class="turn-caption"
+						class:live={!turn.caption.final}
+						lang={turn.language ?? ''}
+						dir={captionDirection(turn.language)}
+					>
 						{turn.text}{#if !turn.caption.final}<span class="caret"></span>{/if}
 					</p>
 				</div>

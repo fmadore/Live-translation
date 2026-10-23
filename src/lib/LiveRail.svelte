@@ -1,9 +1,10 @@
 <script lang="ts">
 	import CaptionAppearance from './CaptionAppearance.svelte';
+	import OverlayMoveButton from './OverlayMoveButton.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
-	import { languageName } from './languages';
+	import { displayNames, languageName } from './languages';
 	import { locale, localeTag, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
 	import {
@@ -13,25 +14,24 @@
 		providerDetectsLanguage
 	} from './providers';
 	import { laneCount, secondCaptionLanguageOf } from './types';
-	import type { OverlayController } from './overlayController.svelte';
+	import { overlayContext } from './operatorContext';
 	import type { SessionClock } from './sessionClock.svelte';
 
 	/** The rail while a session runs: the setup sheet collapses to what it locked in, and what
 	 *  can change mid-session — incoming audio, cost, the overlay — takes its place. */
 	let {
-		overlay,
 		clock,
 		rehearsing,
 		usesMic,
 		usesSystem
 	}: {
-		overlay: OverlayController;
 		clock: SessionClock;
 		/** The run is fed by the bundled sample recording rather than live audio. */
 		rehearsing: boolean;
 		usesMic: boolean;
 		usesSystem: boolean;
 	} = $props();
+	const overlay = overlayContext();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
 	// Whisper's subtitles are in the spoken language, when one was chosen; its translations are
@@ -39,7 +39,7 @@
 	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
 		$options.provider === 'whisper' && $options.spokenLanguage
-			? new Intl.DisplayNames([$locale], { type: 'language' }).of($options.spokenLanguage)
+			? (displayNames($locale)?.of($options.spokenLanguage) ?? $options.spokenLanguage)
 			: providerDetectsLanguage($options.provider)
 				? $t.language.auto
 				: [$options.targetLanguage, ...(second ? [second] : [])]
@@ -150,37 +150,12 @@
 <div class="divider"></div>
 
 <div class="rail-section">
-	<CaptionAppearance heading={$t.overlayControls.heading} {overlay} compact />
+	<CaptionAppearance heading={$t.overlayControls.heading} compact />
 	<div class="overlay-actions">
 		<!-- Both labels are a single verb on screen, which is all the space allows and
-		     all a sighted operator needs beside the "Overlay" heading. The accessible
-		     name says what is being moved or hidden, because a screen reader can arrive
-		     at the button without the heading. The name changes with the state, so the
-		     button is not also a toggle (see `docs/accessibility.md`); while moving, "Done"
-		     is the primary action instead of a pressed one. -->
-		<ToolButton
-			variant={overlay.moveOverlay ? 'primary' : 'default'}
-			aria-label={overlay.moveOverlay
-				? $t.overlayControls.moveDoneLabel
-				: $t.overlayControls.moveLabel}
-			onclick={overlay.toggleMoveOverlay}
-		>
-			<svg
-				width="14"
-				height="14"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.75"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				aria-hidden="true"
-				><path
-					d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-				/></svg
-			>
-			{overlay.moveOverlay ? $t.overlayControls.done : $t.overlayControls.move}
-		</ToolButton>
+		     all a sighted operator needs beside the "Overlay" heading; the accessible name
+		     says what is being moved or hidden. -->
+		<OverlayMoveButton wording="move" />
 		<ToolButton
 			variant={overlay.overlayVisible ? 'default' : 'warn'}
 			aria-label={overlay.overlayVisible

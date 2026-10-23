@@ -15,7 +15,7 @@ import {
 	transcript,
 	transcriptDirty
 } from './stores';
-import { api } from './tauri';
+import { api, on } from './tauri';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayController } from './overlayController.svelte';
 import type { SessionClock } from './sessionClock.svelte';
@@ -92,5 +92,21 @@ export function syncNative({
 			captionLanguage,
 			secondCaptionLanguage
 		});
+	});
+
+	// …and once more whenever the overlay says it is ready (U5). A push only reaches listeners
+	// already registered, so an overlay that loaded after the push above — a cold start, a
+	// WebView2 reload — would otherwise wait for the operator to change something. The answer
+	// is the whole of it: appearance, both caption languages, the interface language and
+	// whether move mode is on.
+	$effect(() => {
+		const listening = on.overlayState((msg) => {
+			if (msg.ready !== true) return;
+			overlay.pushOverlayConfig({
+				locale: interfaceLocale.current,
+				interactive: overlay.moveOverlay
+			});
+		});
+		return () => void listening.then((unlisten) => unlisten());
 	});
 }

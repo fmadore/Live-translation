@@ -141,12 +141,14 @@
 		const unlistenCaption = on.caption((c) => captions.push(c));
 		const unlistenStatus = on.status((status) => captions.status(status));
 		const unlistenConfig = on.overlayConfig((cfg) => {
+			const previous = appearance;
 			appearance = fromOverlayConfig(cfg, appearance);
-			// Handed on at every push, changed or not, as every push carries the whole appearance:
-			// setting the hold restarts the expiry timers and setting the pace releases paced
-			// text, and skipping unchanged values would quietly stop both.
-			captions.setHold(appearance.hold);
-			captions.setPace(appearance.pace);
+			// Handed on only when they change (E2). Every push carries the whole appearance, and
+			// setting the hold restarts every expiry timer while setting the pace releases paced
+			// text: a colour drag mid-session kept finished captions up and let steady-paced text
+			// out early.
+			if (appearance.hold !== previous.hold) captions.setHold(appearance.hold);
+			if (appearance.pace !== previous.pace) captions.setPace(appearance.pace);
 			captions.setHideFillers(appearance.cleanSpeech);
 			if (Array.isArray(cfg.fillerWords))
 				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
@@ -161,7 +163,20 @@
 			secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
 				? cfg.secondCaptionLanguage
 				: undefined;
-			if (typeof cfg.interactive === 'boolean') placement.setInteractive(cfg.interactive);
+			if (typeof cfg.interactive === 'boolean')
+				placement.setInteractive(
+					cfg.interactive,
+					typeof cfg.moveExitsSeen === 'number' ? cfg.moveExitsSeen : undefined
+				);
+		});
+
+		// Ready once every listener is in place, and not before: the operator answers with a
+		// whole configuration, and one that arrived while `overlay-config` was still being
+		// subscribed would be lost. Without this, an overlay that loads after the operator's
+		// first push (a cold start, a WebView2 reload) kept empty row labels and `lang=""` until
+		// the operator happened to change a caption language.
+		void Promise.all([unlistenCaption, unlistenStatus, unlistenConfig]).then(() => {
+			if (mounted) void api.reportOverlayState({ ready: true }).catch(() => {});
 		});
 
 		return () => {
@@ -176,13 +191,22 @@
 	function bump(delta: number) {
 		appearance = { ...appearance, fontSize: clampOverlayFont(appearance.fontSize + delta) };
 		// The operator window owns the size control too; tell it what happened here so the
-		// two readouts never disagree. Fire-and-forget — a dropped event costs nothing.
-		void api.emitOverlayState({ fontSize });
+		// two readouts never disagree. Fire-and-forget — a dropped report costs nothing.
+		if (isTauri()) void api.reportOverlayState({ fontSize }).catch(() => {});
 	}
 
 	/** Reset an enlarged reading region to a shallow subtitle strip along the bottom. */
 	function snapToBottom() {
 		void placement.snapToBottom(bottomCaptionHeight(fontSize, lines.length, layout, showsOriginal));
+	}
+
+	let stage = $state<HTMLDivElement>();
+
+	/** In move mode a press on the stage itself drags the window, as `data-tauri-drag-region`
+	 *  did; the toolbar's controls keep their own clicks. Only the stage, not what is drawn on
+	 *  it: the pill and the readout let the pointer through to it. */
+	function onMouseDown(e: MouseEvent) {
+		if (e.button === 0 && e.target === stage) void placement.startDrag();
 	}
 
 	function onKeyDown(e: KeyboardEvent) {
@@ -206,14 +230,14 @@
 	}
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<svelte:window onkeydown={onKeyDown} onmousedown={onMouseDown} />
 
 <div
+	bind:this={stage}
 	class="stage"
 	class:interactive={placement.interactive}
 	class:stable={layout === 'stable'}
 	class:fit={layout !== 'compact'}
-	data-tauri-drag-region={placement.interactive || undefined}
 	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"

@@ -8,6 +8,7 @@ import { setLocale } from './i18n';
 import { overlayCaptionLayout, overlayCaptionWidth, overlayHoldSeconds } from './stores';
 import { HOLD_SECONDS_MAX, HOLD_SECONDS_MIN } from './reading';
 import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './appearance';
+import { operatorContextMap } from './operatorContext';
 
 afterEach(() => {
 	setLocale('en');
@@ -19,7 +20,7 @@ function preferences() {
 		...api,
 		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
 	});
-	return render(ReadingPreferences, { overlay });
+	return render(ReadingPreferences, { props: {}, context: operatorContextMap({ overlay }) });
 }
 
 // Review D22: the width buttons were read as "Line width −" and "Line width +", though the

@@ -615,6 +615,8 @@ export const fr: Messages = {
 		},
 		privacy: {
 			memoryOnly: 'La transcription reste en mémoire jusqu’à ce que vous l’enregistriez.',
+			spoolFailing:
+				'La transcription reste en mémoire jusqu’à ce que vous l’enregistriez. Sa copie de récupération locale échoue.',
 			spooled:
 				'La transcription reste en mémoire et est copiée localement jusqu’à ce que vous l’enregistriez.',
 			demo: 'La démo intégrée reste entièrement à l’intérieur de l’application.',
@@ -655,6 +657,8 @@ export const fr: Messages = {
 		lines: (n: number) => (n < 2 ? `${n} ligne` : `${n} lignes`),
 		unsaved: 'Non enregistrée',
 		saved: 'Enregistrée',
+		recoveryFailing: 'Copie de récupération en échec',
+		historyFailing: 'Historique non enregistré',
 		saveAs: 'Enregistrer sous…',
 		format: 'Format d’export',
 		plainText: 'Texte brut',

@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import {
 	captionDirection,
+	displayNames,
 	captionLanguageError,
 	languageRows,
 	languageName,
@@ -63,14 +64,34 @@ describe('type-ahead search', () => {
 	});
 });
 
+// Review E3: the picker built a new `Intl.DisplayNames` for every row on every keystroke.
+it('names languages through one DisplayNames per locale, and from the catalog without one', () => {
+	expect(displayNames('fr')).toBe(displayNames('fr'));
+	expect(displayNames('fr')).not.toBe(displayNames('de'));
+	expect(displayNames('fr', 'none')).not.toBe(displayNames('fr'));
+	expect(displayNames('fr', 'none')?.of('zz')).toBeUndefined();
+	expect(languageName('ja', 'fr')).toBe('japonais');
+	// A tag the runtime refuses has no names of its own; the catalog's English stands in.
+	expect(displayNames('not a locale')).toBeNull();
+	expect(languageName('ja', 'not a locale')).toBe('Japanese');
+});
+
 it('seeds, restores, deduplicates and validates independent favourites, including an empty preference', () => {
-	expect(loadLanguageFavourites({ getItem: () => null })).toEqual(['en', 'fr']);
-	expect(loadLanguageFavourites({ getItem: () => '["sw","ja","sw","bogus"]' })).toEqual([
-		'sw',
-		'ja'
-	]);
-	expect(loadLanguageFavourites({ getItem: () => '[]' })).toEqual([]);
-	expect(loadLanguageFavourites({ getItem: () => '{' })).toEqual(['en', 'fr']);
+	expect(loadLanguageFavourites(null)).toEqual(['en', 'fr']);
+	expect(loadLanguageFavourites('["sw","ja","sw","bogus"]')).toEqual(['sw', 'ja']);
+	expect(loadLanguageFavourites('[]')).toEqual([]);
+	expect(loadLanguageFavourites('{')).toEqual(['en', 'fr']);
+	// Through `persisted.ts`: storage that refuses access is the default pair, not a throw.
+	vi.stubGlobal('localStorage', {
+		getItem: () => {
+			throw new Error('blocked');
+		}
+	});
+	try {
+		expect(loadLanguageFavourites()).toEqual(['en', 'fr']);
+	} finally {
+		vi.unstubAllGlobals();
+	}
 	expect(languageRows('openai', ['sw', 'ja'], '', 'en').slice(0, 2)).toMatchObject([
 		{ code: 'sw', favourite: true, supported: false },
 		{ code: 'ja', supported: true }
@@ -132,6 +153,7 @@ it('swaps only the first two supported pins, including from outside the pair', (
 });
 
 it('falls back to the catalog when Intl is unavailable or returns the code', () => {
+	// Locales no other test has asked for: each is named through its own cached DisplayNames.
 	vi.stubGlobal('Intl', {
 		DisplayNames: class {
 			of(code: string) {
@@ -139,9 +161,9 @@ it('falls back to the catalog when Intl is unavailable or returns the code', () 
 			}
 		}
 	});
-	expect(languageName('ja', 'en')).toBe('Japanese');
+	expect(languageName('ja', 'en-AU')).toBe('Japanese');
 	vi.stubGlobal('Intl', {});
-	expect(languageName('pt-BR', 'fr')).toBe('Portuguese (Brazil)');
+	expect(languageName('pt-BR', 'fr-CH')).toBe('Portuguese (Brazil)');
 });
 
 it('uses RTL for Arabic-script and Hebrew captions, and auto for detected languages', () => {
@@ -163,9 +185,9 @@ it('writes favourites separately and restores their pin order after reload', () 
 	try {
 		languageFavourites.set(['ja', 'sw', 'fr']);
 		expect(values.has(LANGUAGE_FAVOURITES_KEY)).toBe(true);
-		expect(loadLanguageFavourites(storage)).toEqual(['ja', 'sw', 'fr']);
+		expect(loadLanguageFavourites()).toEqual(['ja', 'sw', 'fr']);
 		languageFavourites.set(['ja', 'fr']);
-		expect(loadLanguageFavourites(storage)).toEqual(['ja', 'fr']);
+		expect(loadLanguageFavourites()).toEqual(['ja', 'fr']);
 		expect(values.has('session.options')).toBe(false);
 	} finally {
 		languageFavourites.set(previous);

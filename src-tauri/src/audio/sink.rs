@@ -7,6 +7,7 @@ use tokio_util::sync::CancellationToken;
 
 use super::AudioChunk;
 use crate::realtime::PauseRx;
+use crate::sync::lock;
 use crate::timing::SessionClock;
 use crate::whisper::spool::{Spool, TimedChunk};
 
@@ -31,11 +32,7 @@ pub struct CaptureCompletion {
 
 impl CaptureCompletion {
     pub fn finish(&mut self, error: Option<String>) {
-        *self
-            .spool
-            .capture_error
-            .lock()
-            .unwrap_or_else(|e| e.into_inner()) = error;
+        *lock(&self.spool.capture_error) = error;
         self.completed = true;
     }
 }

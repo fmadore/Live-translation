@@ -416,4 +416,9 @@ pub mod events {
     /// brought back onto one of them if it was stranded. Payload is the new layout signature,
     /// as `display_layout` returns it; see `placement`.
     pub const DISPLAYS_CHANGED: &str = "displays-changed";
+    /// Something changed on the overlay itself that the operator window has to know: move mode
+    /// left from the overlay's own keys or toolbar, a caption size chosen there. Sent by the
+    /// core on the overlay's behalf (`report_overlay_state`), because the overlay may not emit
+    /// events of its own. Payload is `overlay::OverlayState`.
+    pub const OVERLAY_STATE: &str = "overlay-state";
 }

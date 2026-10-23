@@ -17,7 +17,7 @@ use super::ActiveSession;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::sink::{AudioSink, CaptureCompletion};
 use crate::audio::AudioChunk;
-use crate::realtime::{run_session, PauseRx, RealtimeProtocol};
+use crate::realtime::{run_session, Events, PauseRx, RealtimeProtocol};
 use crate::timing::SessionClock;
 use crate::types::{AudioLevel, Origin, Provider, StartOptions, TargetLanguage};
 use crate::whisper::{self, spool::Spool, LoadedModel, LocalSession};
@@ -231,10 +231,13 @@ impl SessionBuilder<'_> {
                 let handle = std::thread::Builder::new()
                     .name(format!("capture-{origin:?}"))
                     .spawn(move || {
-                        let result = catching_panics(|| {
-                            capture.run(origin, target_rate, level_tx, audio_tx, &cancel)
-                        });
-                        finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
+                        produce(
+                            || capture.run(origin, target_rate, level_tx, audio_tx, &cancel),
+                            capture_completion.as_mut(),
+                            &app,
+                            origin,
+                            &cancel,
+                        );
                     })
                     .context("failed to spawn capture thread")?;
                 self.session.capture_threads.push(handle);
@@ -264,6 +267,18 @@ fn catching_panics(produce: impl FnOnce() -> Result<()>) -> Result<()> {
     })
 }
 
+/// A capture thread's whole life: the capture itself, then `finish_producer` whatever way it
+/// ended, a panic included.
+fn produce(
+    capture: impl FnOnce() -> Result<()>,
+    completion: Option<&mut CaptureCompletion>,
+    events: &impl Events,
+    origin: Origin,
+    cancel: &CancellationToken,
+) {
+    finish_producer(catching_panics(capture), completion, events, origin, cancel);
+}
+
 /// Settle how a producer — capture thread or rehearsal playback — ended. A local source
 /// records the outcome on its spool, where the transcriber picks it up and reports it, so a
 /// failure only has to stop that source's capture here. A realtime source has no such reader,
@@ -272,7 +287,7 @@ fn catching_panics(produce: impl FnOnce() -> Result<()>) -> Result<()> {
 fn finish_producer(
     result: Result<()>,
     completion: Option<&mut CaptureCompletion>,
-    app: &AppHandle,
+    events: &impl Events,
     origin: Origin,
     cancel: &CancellationToken,
 ) {
@@ -284,7 +299,7 @@ fn finish_producer(
         if local {
             cancel.cancel();
         } else {
-            report_source_failure(app, origin, &error, cancel);
+            report_source_failure(events, origin, &error, cancel);
         }
     }
 }
@@ -330,6 +345,83 @@ mod tests {
         })
         .unwrap_err();
         assert!(error.downcast_ref::<MicrophoneRuntimeError>().is_some());
+    }
+
+    /// B8: a panic in a cloud source's capture thread used to unwind past `finish_producer`,
+    /// and the source went quietly Idle mid-session. It is now that source's error.
+    #[test]
+    fn a_capture_panic_on_a_cloud_source_is_reported_as_its_failure() {
+        use crate::errors::id;
+        use crate::session::tests::Statuses;
+        use crate::types::SessionState;
+
+        let events = Statuses::default();
+        let cancel = CancellationToken::new();
+        produce(
+            || panic!("ReleaseBuffer failed: AUDCLNT_E_DEVICE_INVALIDATED"),
+            None,
+            &events,
+            Origin::System,
+            &cancel,
+        );
+        assert!(cancel.is_cancelled(), "the source's client stops with it");
+        let [failure] = &events.take()[..] else {
+            panic!("expected exactly one status");
+        };
+        assert_eq!(failure.state, SessionState::Error);
+        assert_eq!(failure.origin, Some(Origin::System));
+        let message = failure.message.as_ref().unwrap();
+        assert_eq!(message.id, id::SYSTEM_CAPTURE);
+        assert_eq!(
+            message.detail.as_deref(),
+            Some("the capture thread panicked: ReleaseBuffer failed: AUDCLNT_E_DEVICE_INVALIDATED")
+        );
+    }
+
+    /// A local source's capture outcome goes on its spool, where the transcriber reports it
+    /// after draining what was captured, and only then does its input close. A panic records
+    /// its own message there rather than the guard's generic one; a clean end records none.
+    #[test]
+    fn a_local_capture_records_its_outcome_before_its_input_closes() {
+        use crate::session::tests::Statuses;
+        use tokio::sync::mpsc::error::TryRecvError;
+
+        for (panics, recorded) in [
+            (true, Some("the capture thread panicked: device lost")),
+            (false, None),
+        ] {
+            let (sender, mut input) = channel(1);
+            let spool = Arc::new(Spool::new().unwrap());
+            let cancel = CancellationToken::new();
+            let sink = AudioSink::Local {
+                sender,
+                spool: spool.clone(),
+                clock: SessionClock::at(0),
+                pause: tokio::sync::watch::channel(false).1,
+                cancel: cancel.clone(),
+            };
+            let mut completion = sink.completion_guard();
+            let events = Statuses::default();
+            produce(
+                move || {
+                    drop(sink);
+                    assert!(!panics, "device lost");
+                    Ok(())
+                },
+                completion.as_mut(),
+                &events,
+                Origin::Microphone,
+                &cancel,
+            );
+            assert!(matches!(input.try_recv(), Err(TryRecvError::Empty)));
+            assert_eq!(spool.capture_error.lock().unwrap().as_deref(), recorded);
+            assert_eq!(cancel.is_cancelled(), panics);
+            assert!(events.take().is_empty(), "the transcriber reports it");
+
+            drop(completion);
+            assert!(matches!(input.try_recv(), Err(TryRecvError::Disconnected)));
+            assert_eq!(spool.capture_error.lock().unwrap().as_deref(), recorded);
+        }
     }
 
     #[tokio::test]

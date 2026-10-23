@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyTheme, followTheme, loadTheme, resolveTheme, theme, THEME_KEY } from './theme';
 
@@ -166,4 +167,32 @@ describe('the first-frame script in app.html', () => {
 		new Function(script)();
 		expect(root.theme).toBe('light');
 	});
+});
+
+// Review L4: `setTheme` sets WebView2's preferred colour scheme on the profile both windows
+// share, so the overlay's `prefers-color-scheme` follows the operator's choice. Nothing may
+// style or branch on it, in a stylesheet or in code, or that choice reaches the overlay. Only
+// the two places that read Windows' app mode for "System" ask the query, and only they.
+it('asks prefers-color-scheme nowhere in src but where System reads Windows’ app mode', () => {
+	const SRC = join(process.cwd(), 'src');
+	const READS_APP_MODE = new Set(['app.html', 'lib/theme.ts']);
+	const walk = (dir: string): string[] =>
+		readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+			const path = join(dir, entry.name);
+			return entry.isDirectory() ? walk(path) : [path];
+		});
+	const files = walk(SRC).map((path) => path.slice(SRC.length + 1).replace(/\\/g, '/'));
+	expect(files).toContain('routes/overlay/+page.svelte');
+	const asking = files.filter(
+		(file) =>
+			// Tests name the query to say it is not there, as this one does.
+			!/\.test\.ts$/.test(file) &&
+			readFileSync(join(SRC, file), 'utf8').includes('prefers-color-scheme')
+	);
+	expect(asking.filter((file) => !READS_APP_MODE.has(file))).toEqual([]);
+	// …and those two read it, rather than style by it.
+	for (const file of READS_APP_MODE)
+		expect(readFileSync(join(SRC, file), 'utf8'), file).not.toMatch(
+			/@media[^{]*prefers-color-scheme/
+		);
 });

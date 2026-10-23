@@ -109,7 +109,7 @@ it('runs the built-in demo from Start to Stop and keeps its transcript', async (
 
 	await stop();
 	expect(core.callsTo('stop_session')).toHaveLength(1);
-	// Idle, the page shows the transcript from a second mount of the monitor.
+	// Idle, the page still shows the transcript, from the same monitor.
 	const kept = screen.getByRole('region', { name: 'Transcript' });
 	expect(kept).toHaveTextContent(DEMO_LINES[0][1]);
 	expect(kept).toHaveTextContent(DEMO_LINES[1][1]);
@@ -148,6 +148,31 @@ it('hands the keyboard from Start to Stop as the session starts, and back as it 
 	await fireEvent.click(stopButton);
 	const startAgain = await screen.findByRole('button', { name: 'Start demo subtitles' });
 	await waitFor(() => expect(startAgain).toHaveFocus());
+});
+
+// U7: `start_session` can answer before any source has reported. Start stays busy until the
+// run's first status, so a second press does not restart the run just begun, and the keyboard
+// still goes to Stop when it appears.
+it('holds Start between the start being answered and the run’s first status', async () => {
+	render(Page);
+	await chooseDemo();
+	const start = screen.getByRole('button', { name: 'Start demo subtitles' });
+	await waitFor(() => expect(start).toBeEnabled());
+	start.focus();
+	await fireEvent.click(start);
+	await waitFor(() => expect(core.callsTo('start_session')).toHaveLength(1));
+
+	// Answered, and nothing reported yet.
+	await waitFor(() => expect(start).toHaveAccessibleName('Starting…'));
+	expect(start).toHaveAttribute('aria-disabled', 'true');
+	expect(start).toHaveFocus();
+	await fireEvent.click(start);
+	await fireEvent.keyDown(window, { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true });
+	expect(core.callsTo('start_session')).toHaveLength(1);
+
+	await core.emit('status', { state: 'running', origin: 'microphone' } satisfies StatusUpdate);
+	const stopButton = await screen.findByRole('button', { name: 'Stop captions' });
+	await waitFor(() => expect(stopButton).toHaveFocus());
 });
 
 // Issue #124: the whole transcript in the stage while the meeting goes on, with the turn still
@@ -343,8 +368,62 @@ it('reopens the overlay where it was last placed on this display layout', async 
 	}
 });
 
-// D19: the monitor is mounted once while a session runs and again after it, and each mount
-// used to start from Markdown; the quit prompt's Save wrote Markdown whatever was chosen.
+// S5: the monitor used to be mounted once while a session ran and again after it, so each
+// Start and Stop put the copy window back to its default, scrolled a log the operator had
+// scrolled up back to the bottom, and forgot a save under way. It is mounted once now.
+it('keeps the copy window, the scroll position and a save under way through Start and Stop', async () => {
+	render(Page);
+	await chooseDemo();
+	await runDemo();
+	await fireEvent.change(screen.getByRole('combobox', { name: 'What to copy' }), {
+		target: { value: '30' }
+	});
+	// Scrolled up, away from the newest line, so the log offers the way back.
+	const log = screen.getByRole('region', { name: 'Transcript' });
+	Object.defineProperties(log, {
+		scrollHeight: { configurable: true, value: 600 },
+		clientHeight: { configurable: true, value: 180 }
+	});
+	log.scrollTop = 0;
+	await fireEvent.scroll(log);
+	expect(await screen.findByRole('button', { name: 'Jump to latest' })).toBeInTheDocument();
+
+	let written!: (path: string) => void;
+	core.handle('save_transcript', () => new Promise<string>((resolve) => (written = resolve)));
+	const save = screen.getByRole('button', { name: 'Save as…' });
+	await fireEvent.click(save);
+	await waitFor(() => expect(core.callsTo('save_transcript')).toHaveLength(1));
+
+	await stop();
+	expect(screen.getByRole('region', { name: 'Transcript' })).toBe(log);
+	expect(screen.getByRole('combobox', { name: 'What to copy' })).toHaveValue('30');
+	expect(screen.getByRole('button', { name: 'Jump to latest' })).toBeInTheDocument();
+	expect(screen.getByRole('button', { name: 'Save as…' })).toHaveAttribute('aria-busy', 'true');
+
+	written('C:\\Users\\Operator\\Documents\\transcript.md');
+	await waitFor(() =>
+		expect(screen.getByRole('button', { name: 'Save as…' })).toHaveAttribute('aria-busy', 'false')
+	);
+	expect(within(screen.getByRole('main')).getByText('Saved')).toBeInTheDocument();
+});
+
+// U14: the crash-recovery opt-in lived only under the transcript, which an idle window shows
+// once a session has left one, so it could not be chosen before the first session.
+it('offers the recovery copy in Settings before any session has run', async () => {
+	render(Page);
+	expect(screen.queryByRole('checkbox', { name: /recovery copy/ })).toBeNull();
+	await fireEvent.click(screen.getByRole('button', { name: 'Open settings' }));
+	await fireEvent.click(await screen.findByRole('tab', { name: 'Transcript history' }));
+	const recovery = screen.getByRole('checkbox', { name: /recovery copy/ });
+	expect(recovery).not.toBeChecked();
+	await fireEvent.click(recovery);
+	expect(localStorage.getItem('recovery.enabled')).toBe('true');
+	await fireEvent.click(recovery);
+	await waitFor(() => expect(core.callsTo('clear_recovery').length).toBeGreaterThan(0));
+});
+
+// D19: each mount of the monitor used to start from Markdown, and the quit prompt's Save wrote
+// Markdown whatever was chosen.
 it('keeps the chosen export format through Start and Stop, and saves it on quit', async () => {
 	render(Page);
 	await chooseDemo();

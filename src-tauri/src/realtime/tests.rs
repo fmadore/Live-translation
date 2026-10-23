@@ -19,11 +19,13 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, timeout, timeout_at, Instant};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tokio_tungstenite::tungstenite::{self, Message};
 use tokio_tungstenite::{accept_async, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
-use super::policy::{INITIAL_BACKOFF, STABLE_CONNECTION};
+use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION};
 use super::socket::{
     CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, MAX_HOLD, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT,
 };
@@ -85,7 +87,8 @@ impl Events for Recorder {
 /// setup, `text:…` revises the turn, `more:…` extends it as new transcript (restarting the
 /// idle timer), `turnend` marks the end of the speaker's turn (`turnend:<ms>` with a grace of
 /// its own), `hold`/`release` say whether they are mid-sentence, `final` completes the turn,
-/// `goaway`/`closed`/`fatal` steer the connection. The client sends `setup`, `audio:<base64>`,
+/// `goaway` (`goaway:<ms>` with the time it has left)/`closed`/`retry`/`fatal` steer the
+/// connection. The client sends `setup`, `audio:<base64>`,
 /// and `end` to start a close drain, which completes on the next final.
 struct Fake {
     url: String,
@@ -152,9 +155,10 @@ impl RealtimeProtocol for Fake {
                 self.hold = text == "hold";
                 MessageOutcome::default()
             }
-            "goaway" => MessageOutcome::control(MessageControl::Handover),
+            "goaway" => MessageOutcome::control(MessageControl::Handover { time_left: None }),
             "closed" => MessageOutcome::control(MessageControl::Closed),
             "fatal" => MessageOutcome::control(MessageControl::Fatal("refused".into())),
+            "retry" => MessageOutcome::control(MessageControl::Reconnect),
             _ => {
                 if let Some(text) = text.strip_prefix("text:") {
                     acc.text = text.into();
@@ -164,6 +168,10 @@ impl RealtimeProtocol for Fake {
                     MessageOutcome::activity(CaptionUpdate::Interim)
                 } else if let Some(ms) = text.strip_prefix("turnend:") {
                     end_of_turn(Duration::from_millis(ms.parse().unwrap()))
+                } else if let Some(ms) = text.strip_prefix("goaway:") {
+                    MessageOutcome::control(MessageControl::Handover {
+                        time_left: Some(Duration::from_millis(ms.parse().unwrap())),
+                    })
                 } else {
                     MessageOutcome::default()
                 }
@@ -333,6 +341,15 @@ impl Peer {
         self.send("ready").await;
     }
 
+    /// Close the connection with a WebSocket close code, as a provider refusing a setup does.
+    async fn close(&mut self, code: u16, reason: &str) {
+        let frame = CloseFrame {
+            code: CloseCode::from(code),
+            reason: reason.into(),
+        };
+        self.0.close(Some(frame)).await.unwrap();
+    }
+
     /// Keep reading — and so answering pings — for `duration`; the audio heard meanwhile.
     async fn listen_for(&mut self, duration: Duration) -> Vec<u8> {
         let until = Instant::now() + duration;
@@ -476,8 +493,12 @@ async fn pause_with_a_turn_still_open_drains_until_its_final() {
     client.finished().await;
 }
 
+/// B2: the old socket is drained before the move, so the words it was still working on come
+/// back as text instead of being dropped with it. The speech that goes on meanwhile is held
+/// for the new socket rather than sent to one that has stopped listening, and the new one
+/// then gets the whole gap in order.
 #[tokio::test(start_paused = true)]
-async fn a_planned_handover_reconnects_at_once_and_replays_the_gap_in_order() {
+async fn a_planned_handover_drains_then_reconnects_at_once_and_replays_the_gap_in_order() {
     tick_clock();
     let server = Server::bind().await;
     let (mut client, mut peer, _) = running(&server).await;
@@ -489,23 +510,67 @@ async fn a_planned_handover_reconnects_at_once_and_replays_the_gap_in_order() {
 
     let moved_at = Instant::now();
     peer.send("goaway").await;
-    client.expect(final_("before the move")).await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    // Speaking on while the old socket drains.
+    client.speak(3);
+    client.speak(4);
+    sleep(Duration::from_millis(200)).await;
+    peer.send("more: and its last words").await;
+    client
+        .expect(interim("before the move and its last words"))
+        .await;
+    peer.send("final").await;
+    client
+        .expect(final_("before the move and its last words"))
+        .await;
+    // Nothing more reached the old socket: the audio after the stream end is not in this.
+    assert_eq!(peer.recv().await, Frame::Close);
     let mut next = server.accept().await;
     assert!(Instant::now() - moved_at < INITIAL_BACKOFF, "no backoff");
 
     // A second of speech while the new session sets up: twice what the producer queue holds.
-    for tag in 3..=12 {
+    for tag in 5..=14 {
         client.speak(tag);
         sleep(Duration::from_millis(100)).await;
     }
     next.send("ready").await;
     // The source stayed Running throughout: no Reconnecting before this.
     client.expect(status(SessionState::Running)).await;
-    client.speak(13);
+    client.speak(15);
     assert_eq!(
         next.listen_for(Duration::from_secs(1)).await,
-        (3..=13).collect::<Vec<u8>>()
+        (3..=15).collect::<Vec<u8>>()
     );
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// A provider that answers nothing after the stream end holds the handover for no longer than
+/// the time it said it had left; the turn so far is still kept.
+#[tokio::test(start_paused = true)]
+async fn a_handover_drain_lasts_no_longer_than_the_time_left() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.listen_for(STABLE_CONNECTION).await;
+    peer.send("text:cut short").await;
+    client.expect(interim("cut short")).await;
+
+    let moved_at = Instant::now();
+    peer.send("goaway:500").await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
+    let at = client.expect(final_("cut short")).await;
+    let drained = at - moved_at;
+    assert!(
+        drained >= Duration::from_millis(500) && drained < Duration::from_millis(600),
+        "drained for {drained:?}"
+    );
+    let mut next = server.accept().await;
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
 
     drop(next);
     client.cancel.cancel();
@@ -568,22 +633,124 @@ async fn a_server_close_mid_stream_reconnects() {
     client.finished().await;
 }
 
+/// A setup timeout is retried like any failure, but a setup that is never confirmed, however
+/// often it is tried, still ends the source rather than reconnecting for the rest of the event.
 #[tokio::test(start_paused = true)]
-async fn a_setup_that_is_never_confirmed_ends_the_source_with_an_error() {
+async fn a_setup_that_is_never_confirmed_ends_the_source_after_a_few_tries() {
     tick_clock();
     let server = Server::bind().await;
     let mut client = Client::start(&server.url);
-    let started = client.expect(status(SessionState::Connecting)).await;
-    // Held open and never answered.
-    let _peer = server.accept().await;
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peers = Vec::new();
+    for attempt in 1..=MAX_SETUP_FAILURES {
+        // Held open and never answered.
+        let started = Instant::now();
+        peers.push(server.accept().await);
+        let (at, event) = timeout(GUARD, client.events.recv()).await.unwrap().unwrap();
+        assert!(at - started >= SETUP_TIMEOUT, "attempt {attempt}");
+        if attempt < MAX_SETUP_FAILURES {
+            assert_eq!(
+                event,
+                Event::Status(SessionState::Reconnecting, Some(id::PROVIDER_RECONNECTING))
+            );
+            client.expect(status(SessionState::Reconnecting)).await;
+        } else {
+            assert_eq!(
+                event,
+                Event::Status(SessionState::Error, Some(id::PROVIDER_STOPPED))
+            );
+        }
+    }
+    client.finished().await;
+}
 
-    let failed = client
+/// B1: Gemini Transcribe goes through setup every ten minutes, and a 1011 or 1013 ("try again
+/// later") at one of them used to leave the source in Error until the operator restarted it.
+#[tokio::test(start_paused = true)]
+async fn a_close_worth_retrying_during_setup_reconnects_with_backoff() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    let closed_at = Instant::now();
+    peer.close(1011, "Internal error encountered.").await;
+
+    client
+        .expect(Event::Status(
+            SessionState::Reconnecting,
+            Some(id::PROVIDER_RECONNECTING),
+        ))
+        .await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    let mut next = server.accept().await;
+    assert!(Instant::now() - closed_at >= INITIAL_BACKOFF, "backed off");
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// A provider's own transient error in answer to setup — Gemini's UNAVAILABLE, as
+/// `classify_json` reads it — is a failed setup, not the end of the source; and once a setup
+/// is accepted, the failures before it no longer count towards the cap.
+#[tokio::test(start_paused = true)]
+async fn a_transient_error_during_setup_is_retried_and_an_accepted_setup_resets_the_count() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    for _ in 1..MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        peer.send("retry").await;
+        client
+            .expect(Event::Status(
+                SessionState::Reconnecting,
+                Some(id::PROVIDER_RECONNECTING),
+            ))
+            .await;
+        client.expect(status(SessionState::Reconnecting)).await;
+    }
+    let mut accepted = server.accept().await;
+    accepted.ready().await;
+    client.expect(status(SessionState::Running)).await;
+    accepted.0.close(None).await.unwrap();
+    client.expect(status(SessionState::Reconnecting)).await;
+
+    // As many failures again, and still retrying: the count started over.
+    for _ in 1..MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        peer.send("retry").await;
+        client
+            .expect(Event::Status(
+                SessionState::Reconnecting,
+                Some(id::PROVIDER_RECONNECTING),
+            ))
+            .await;
+        client.expect(status(SessionState::Reconnecting)).await;
+    }
+
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_policy_close_during_setup_ends_the_source_at_once() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    peer.close(1008, "Requested entity was not found.").await;
+
+    client
         .expect(Event::Status(
             SessionState::Error,
             Some(id::PROVIDER_STOPPED),
         ))
         .await;
-    assert!(failed - started >= SETUP_TIMEOUT);
     client.finished().await;
 }
 

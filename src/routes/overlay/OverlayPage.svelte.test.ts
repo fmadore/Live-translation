@@ -2,16 +2,22 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
 import Page from './+page.svelte';
-import type { Caption, OverlayConfig, StatusUpdate } from '#lib/types.js';
+import type { Caption, OverlayConfig, OverlayStateMsg, StatusUpdate } from '#lib/types.js';
 
 const handlers = vi.hoisted(() => ({
 	caption: (_: Caption) => {},
 	config: (_: OverlayConfig) => {},
 	status: (_: StatusUpdate) => {}
 }));
+const reported = vi.hoisted(() => [] as OverlayStateMsg[]);
 vi.mock('#lib/tauri.js', () => ({
 	isTauri: () => true,
-	api: {},
+	api: {
+		reportOverlayState: (state: OverlayStateMsg) => {
+			reported.push(state);
+			return Promise.resolve();
+		}
+	},
 	on: {
 		caption: (callback: typeof handlers.caption) => {
 			handlers.caption = callback;
@@ -29,6 +35,7 @@ vi.mock('#lib/tauri.js', () => ({
 }));
 
 afterEach(() => {
+	reported.length = 0;
 	vi.useRealTimers();
 	vi.unstubAllGlobals();
 	localStorage.clear();
@@ -271,4 +278,70 @@ it('keeps the dark tokens when the operator picked the light theme', async () =>
 	render(Page);
 	await tick();
 	expect(document.documentElement.hasAttribute('data-theme')).toBe(false);
+});
+
+// U5: an overlay that loads after the operator's first push would otherwise wait for the next
+// change to learn its caption languages. It says when it can hear, and not before.
+it('reports ready once its listeners are in place', async () => {
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await vi.waitFor(() => expect(reported).toEqual([{ ready: true }]));
+	view.unmount();
+});
+
+// E2: every operator push carries the whole appearance, and a colour or backing drag pushes on
+// every input event. Restarting the expiry timers on each one kept finished captions up for as
+// long as the drag lasted.
+it('keeps a caption to its hold time through pushes that do not change it', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await tick();
+	const config: OverlayConfig = {
+		fontSize: 38,
+		captionLayout: 'fit',
+		holdSeconds: 8,
+		pace: 'immediate',
+		scrimOpacity: 0.5
+	};
+	handlers.config(config);
+	handlers.caption({
+		startMs: 0,
+		endMs: 1000,
+		origin: 'system',
+		turnId: 1,
+		text: 'Final text',
+		sourceText: '',
+		final: true
+	});
+	await tick();
+	await vi.advanceTimersByTimeAsync(5000);
+	// A backing drag, three seconds before the caption is due to go.
+	for (const scrimOpacity of [0.55, 0.6, 0.65]) handlers.config({ ...config, scrimOpacity });
+	await vi.advanceTimersByTimeAsync(3000);
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	view.unmount();
 });

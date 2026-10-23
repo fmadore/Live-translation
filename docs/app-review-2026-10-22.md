@@ -34,6 +34,31 @@ C19 and C20. The toolchain is pinned at 1.99.1 and `rust-version` follows it. C6
 settings and C17's leftovers are the maintainer's. Secret-scanning alert #1 was the made-up key
 in B6's own test, which matched Google's key pattern; the test now joins it from two literals.
 
+Batches 4–6 (after 1.9.0 went live, 23 October) are on `fix/review-batches-4-6`: B1 with S1, B2,
+B3's toggle gap, B4, B5, B10, U3, U5, U7, U10, U11's two leftovers, U12, U14, N1, E2, E3's
+`DisplayNames` cache, S2, S3 (without the `ProviderSettings` split), S4, S5, S6, C13, C21, and
+L4's test. Notes from doing it:
+
+- **S2** uses the existing `Events` trait as the seam rather than `R: Runtime`, so
+  `ondevice::run_session` and the rehearsal fixture stay as they are.
+- **B4** moves overlay dragging from `data-tauri-drag-region` to an overlay-only
+  `start_overlay_drag` command, and Snap to bottom and Escape's undo into Rust. The overlay's
+  capability is now listen/unlisten plus its own commands; `command_names.rs` pins the list.
+- **B10** keeps the old 320×160 minimum size, because the frontend validation accepts 1×1.
+- **S3:** poisoned locks go through `crate::sync::lock` (Condvar waits keep their own form);
+  `start_audio_test` takes `mic_device`; `AppError::with` now writes the detail in its alternate
+  form, so every anyhow error keeps its causes and `chain` is gone. Encoding local versus
+  realtime in `ProviderSettings` was left for when a fourth engine needs it.
+- **E3's** lazy catalogs were left out: `t` is read synchronously in both windows, so async
+  catalogs would need a loading state or an English first frame everywhere.
+- **Left open:** E1, E4, E5, B12's header probe and B13's tunnel; C6, C17 and C18 are the
+  maintainer's.
+- **Still to check by hand:** a live Gemini handover (B1, B2) and OpenAI's and Mistral's
+  `session_expired`; B5 with system audio and local Whisper under load; overlay move mode
+  (drag, edge resize, nudge, Snap on mixed DPI, Escape with a display removed); Alt+F4 then the
+  toggle and the tray; a WebView2 reload of the overlay (U5); B10 across two displays; Narrator
+  on U3's note, U7's "Starting…" and an Arabic or Hebrew caption (U12); N1 in French at 225%.
+
 Labels: **verified** findings were traced in the code; **plausible** ones need a run, hardware
 or a live provider to confirm. **Rechecked** means the orchestrating pass confirmed the finding
 independently (in the code, the built app, the browser preview or GitHub) after a reviewer

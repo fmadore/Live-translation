@@ -6,6 +6,8 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Condvar, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
+use crate::sync::lock;
+
 use anyhow::{ensure, Result};
 
 pub struct TimedChunk {
@@ -72,7 +74,7 @@ impl Spool {
             "Invalid local audio frame"
         );
         let length = u32::try_from(chunk.pcm.len())?;
-        let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
+        let mut data = lock(&self.data);
         let end = data.written + 12 + chunk.pcm.len() as u64;
         ensure!(
             end <= self.max_bytes,
@@ -91,7 +93,7 @@ impl Spool {
     }
 
     pub fn finish(&self) {
-        let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
+        let mut data = lock(&self.data);
         data.ended = true;
         self.finalizing.store(true, Ordering::Relaxed);
         self.changed.notify_all();
@@ -100,7 +102,7 @@ impl Spool {
     /// Blocking read with no idle signal; the worker uses `next_timeout`.
     #[cfg(test)]
     pub fn next(&self) -> Result<Option<TimedChunk>> {
-        let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
+        let mut data = lock(&self.data);
         while data.read == data.written && !data.ended {
             data = self.changed.wait(data).unwrap_or_else(|e| e.into_inner());
         }
@@ -115,7 +117,7 @@ impl Spool {
     /// nothing while nothing plays.
     pub fn next_timeout(&self, idle: Duration) -> Result<Next> {
         let deadline = Instant::now() + idle;
-        let mut data = self.data.lock().unwrap_or_else(|e| e.into_inner());
+        let mut data = lock(&self.data);
         while data.read == data.written && !data.ended {
             let Some(left) = deadline.checked_duration_since(Instant::now()) else {
                 return Ok(Next::Idle);
