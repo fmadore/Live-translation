@@ -9,11 +9,17 @@ import { overlayCleanSpeech, overlayFillerWords } from './stores';
 import { DEFAULT_FILLER_WORDS, FILLER_WORDS_KEY } from './cleanSpeech';
 import { setLocale } from './i18n';
 
+/** Pushes go out at once rather than once a frame, so each edit's push can be checked. */
+const pushAtOnce = (push: () => void) => push();
+
 const DEFAULTS = [...DEFAULT_FILLER_WORDS];
 
 function controller() {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	return { overlay: createOverlayController({ ...api, setOverlayConfig }), setOverlayConfig };
+	return {
+		overlay: createOverlayController({ ...api, setOverlayConfig }, pushAtOnce),
+		setOverlayConfig
+	};
 }
 
 beforeEach(() => {

@@ -141,12 +141,14 @@
 		const unlistenCaption = on.caption((c) => captions.push(c));
 		const unlistenStatus = on.status((status) => captions.status(status));
 		const unlistenConfig = on.overlayConfig((cfg) => {
+			const previous = appearance;
 			appearance = fromOverlayConfig(cfg, appearance);
-			// Handed on at every push, changed or not, as every push carries the whole appearance:
-			// setting the hold restarts the expiry timers and setting the pace releases paced
-			// text, and skipping unchanged values would quietly stop both.
-			captions.setHold(appearance.hold);
-			captions.setPace(appearance.pace);
+			// Handed on only when they change (E2). Every push carries the whole appearance, and
+			// setting the hold restarts every expiry timer while setting the pace releases paced
+			// text: a colour drag mid-session kept finished captions up and let steady-paced text
+			// out early.
+			if (appearance.hold !== previous.hold) captions.setHold(appearance.hold);
+			if (appearance.pace !== previous.pace) captions.setPace(appearance.pace);
 			captions.setHideFillers(appearance.cleanSpeech);
 			if (Array.isArray(cfg.fillerWords))
 				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));

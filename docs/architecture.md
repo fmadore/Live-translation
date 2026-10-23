@@ -377,6 +377,12 @@ overlay counts its own exits from move mode and reports the count; every push ha
 last count the operator heard (`moveExitsSeen`), and the overlay ignores a push to stay in move
 mode that is behind it.
 
+Pushes are coalesced to one per animation frame (or 100 ms, for an operator window hidden to the
+tray, which gets no frames), so a colour drag costs the overlay one re-read a frame rather than
+one per input event; move mode goes out as it stands when the push is sent. The overlay hands
+the hold time and the reading pace on to its captions only when they change, since setting
+them restarts every expiry timer and releases paced text.
+
 The overlay window is created centred (`tauri.conf.json`) and paints nothing until there are
 captions or move mode, neither of which can start before the operator window has mounted. So
 the remembered placement lives in the interface like any other preference:

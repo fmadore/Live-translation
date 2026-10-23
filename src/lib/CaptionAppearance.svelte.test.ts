@@ -18,9 +18,12 @@ import {
 import { loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
 
+/** Pushes go out at once rather than once a frame, so each edit's push can be checked. */
+const pushAtOnce = (push: () => void) => push();
+
 it('keeps both appearances synchronized with separate accessible contrast descriptions', async () => {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayFontSize.set(42);
 	const rail = render(CaptionAppearance, { heading: 'Rail', overlay });
 	const settings = render(CaptionAppearance, { heading: 'Settings', overlay });
@@ -43,7 +46,7 @@ it('keeps both appearances synchronized with separate accessible contrast descri
 
 it('persists stable reading and display cleanup, synchronizes both windows, and resets both', async () => {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayCaptionLayout.set('fit');
 	overlayCleanSpeech.set(false);
 	const view = render(ReadingPreferences, { overlay });
@@ -63,7 +66,7 @@ it('persists stable reading and display cleanup, synchronizes both windows, and 
 
 it('switches layout live, remembers compact width, and resets to fit window', async () => {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayCaptionLayout.set('fit');
 	overlayCaptionWidth.set(44);
 	const view = render(ReadingPreferences, { overlay });
@@ -87,7 +90,7 @@ it('switches layout live, remembers compact width, and resets to fit window', as
 
 it('updates reading preferences, previews presets, and resets the complete appearance', async () => {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	const overlay = createOverlayController({ ...api, setOverlayConfig });
+	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlay.resetOverlayAppearance();
 	const view = render(ReadingPreferences, { overlay });
 	for (let i = 0; i < 5; i++)

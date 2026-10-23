@@ -299,3 +299,49 @@ it('reports ready once its listeners are in place', async () => {
 	await vi.waitFor(() => expect(reported).toEqual([{ ready: true }]));
 	view.unmount();
 });
+
+// E2: every operator push carries the whole appearance, and a colour or backing drag pushes on
+// every input event. Restarting the expiry timers on each one kept finished captions up for as
+// long as the drag lasted.
+it('keeps a caption to its hold time through pushes that do not change it', async () => {
+	vi.useFakeTimers();
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await tick();
+	const config: OverlayConfig = {
+		fontSize: 38,
+		captionLayout: 'fit',
+		holdSeconds: 8,
+		pace: 'immediate',
+		scrimOpacity: 0.5
+	};
+	handlers.config(config);
+	handlers.caption({
+		startMs: 0,
+		endMs: 1000,
+		origin: 'system',
+		turnId: 1,
+		text: 'Final text',
+		sourceText: '',
+		final: true
+	});
+	await tick();
+	await vi.advanceTimersByTimeAsync(5000);
+	// A backing drag, three seconds before the caption is due to go.
+	for (const scrimOpacity of [0.55, 0.6, 0.65]) handlers.config({ ...config, scrimOpacity });
+	await vi.advanceTimersByTimeAsync(3000);
+	await tick();
+	expect(view.container.querySelector('.captions')).toBeNull();
+	view.unmount();
+});

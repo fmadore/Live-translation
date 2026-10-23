@@ -9,6 +9,9 @@ import { describeError } from './errors';
 import { en } from './i18n/en';
 import type { StartOptions, WhisperModelInfo } from './types';
 
+/** Pushes go out at once rather than once a frame, so each edit's push can be checked. */
+const pushAtOnce = (push: () => void) => push();
+
 beforeEach(() => {
 	statusMessage.set('');
 });
@@ -201,7 +204,7 @@ it('keeps confirmed move mode when the native click-through command fails', asyn
 
 it('sends the full appearance after edits and handles failed config writes', async () => {
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
-	const controller = createOverlayController({ ...api, setOverlayConfig });
+	const controller = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	controller.setFont(42);
 	controller.setCaptionWidth(70);
 	expect(setOverlayConfig).toHaveBeenLastCalledWith(
