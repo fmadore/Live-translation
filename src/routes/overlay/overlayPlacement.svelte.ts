@@ -61,6 +61,9 @@ export function createOverlayPlacement(port = api) {
 	// Where the window sat when move mode was entered, so Escape can undo the whole move.
 	// Not reactive — nothing renders it.
 	let entryGeometry: Geometry | null = null;
+	// How many times this window has left move mode by itself, so a push to stay in it that
+	// crossed its own Lock or Escape on the way can be told apart from a new request (U5).
+	let exits = 0;
 
 	/** Remember the current window rect so a cancelled move can be undone. The outer position
 	 *  and the inner size: the pair that can be handed straight back. */
@@ -129,8 +132,9 @@ export function createOverlayPlacement(port = api) {
 		}
 		entryGeometry = null;
 		interactive = false;
+		exits += 1;
 		writeStored(OVERLAY_PLACED_KEY, 'true');
-		report({ interactive: false, placed: true });
+		report({ interactive: false, placed: true, moveExits: exits });
 	}
 
 	/** Move and size the window back to `geo`, unless that is on a display that has gone: a
@@ -158,8 +162,9 @@ export function createOverlayPlacement(port = api) {
 		}
 		entryGeometry = null;
 		interactive = false;
+		exits += 1;
 		// No `placed`: the move was abandoned, so the pre-flight check must still ask for it.
-		report({ interactive: false });
+		report({ interactive: false, moveExits: exits });
 	}
 
 	return {
@@ -167,8 +172,18 @@ export function createOverlayPlacement(port = api) {
 			return interactive;
 		},
 		/** The operator window turned move mode on or off. Entering records the rect first,
-		 *  so Escape has something to restore. */
-		setInteractive(next: boolean) {
+		 *  so Escape has something to restore.
+		 *
+		 *  `seen` is how many of this window's own exits the operator had heard of when it sent
+		 *  the push. Fewer than there have been, and a push to stay in move mode is stale: sent
+		 *  — say, by a colour drag carrying move mode along — before this window's Lock reached
+		 *  it. Obeyed, it would put the window back in move mode with click-through already on.
+		 *  The operator is told again where things stand, in case the first report was lost. */
+		setInteractive(next: boolean, seen = exits) {
+			if (next && seen < exits) {
+				if (!interactive) report({ interactive: false, moveExits: exits });
+				return;
+			}
 			if (next && !interactive) void snapshotGeometry();
 			interactive = next;
 		},

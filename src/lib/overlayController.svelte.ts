@@ -58,6 +58,7 @@ export function createOverlayController(port = api) {
 				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
+				moveExitsSeen,
 				...extra
 			})
 			.catch((e) => statusMessage.set(asStatus(e)));
@@ -114,6 +115,9 @@ export function createOverlayController(port = api) {
 	// The overlay can also leave move mode on its own (its Enter/Escape keys), which arrives
 	// as an overlayState event — so this flag is the single source of truth, never cached.
 	let moveOverlay = $state(false);
+	// How many of the overlay's own exits from move mode this window has heard of, handed back
+	// with every push so the overlay can ignore one that crossed its Lock on the way (U5).
+	let moveExitsSeen = 0;
 
 	// The overlay window is created visible (tauri.conf.json), so the toggle starts on "Hide".
 	// Blanking it covers a coffee break or a video clip without ending the session. The core
@@ -269,6 +273,8 @@ export function createOverlayController(port = api) {
 	}
 
 	function applyState(msg: OverlayStateMsg) {
+		if (typeof msg.moveExits === 'number' && Number.isInteger(msg.moveExits))
+			moveExitsSeen = msg.moveExits;
 		if (msg.interactive === false) {
 			moveOverlay = false;
 			// Left from the overlay itself. Escape puts the window back where move mode found it

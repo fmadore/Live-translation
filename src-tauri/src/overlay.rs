@@ -37,6 +37,16 @@ pub struct OverlayState {
     /// A caption size chosen from the overlay's own toolbar or keys.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub font_size: Option<f64>,
+    /// The overlay's listeners are in place: the operator window answers with a whole
+    /// configuration, so an overlay that loaded late (a cold start, a WebView2 reload) is not
+    /// left without the caption languages it missed (U5).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ready: Option<bool>,
+    /// How many times the overlay has left move mode by itself. The operator window hands the
+    /// last count it heard back with each push, so the overlay can tell a push to stay in move
+    /// mode that was sent before its own Lock reached the operator, and ignore it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub move_exits: Option<u32>,
     /// Whether the overlay is showing, when the core showed or hid it without the operator
     /// window asking: Alt+F4 on the overlay hides it (B3). The core's to say, never the
     /// overlay's, so it is not read from `report_overlay_state` — a report carrying it is
@@ -169,17 +179,23 @@ mod tests {
 
     #[test]
     fn the_overlay_state_crosses_in_the_interface_shape() {
-        let state: OverlayState =
-            serde_json::from_str(r#"{"interactive":false,"placed":true,"fontSize":42}"#).unwrap();
+        let state: OverlayState = serde_json::from_str(
+            r#"{"interactive":false,"placed":true,"fontSize":42,"moveExits":3}"#,
+        )
+        .unwrap();
         assert_eq!(
             state,
             OverlayState {
                 interactive: Some(false),
                 placed: Some(true),
                 font_size: Some(42.0),
-                visible: None,
+                move_exits: Some(3),
+                ..OverlayState::default()
             }
         );
+        let ready: OverlayState = serde_json::from_str(r#"{"ready":true}"#).unwrap();
+        assert_eq!(ready.ready, Some(true));
+        assert_eq!(serde_json::to_string(&ready).unwrap(), r#"{"ready":true}"#);
         // Sent on with only the fields that were given.
         let font_only = OverlayState {
             font_size: Some(40.0),

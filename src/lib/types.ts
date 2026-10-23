@@ -327,6 +327,10 @@ export interface OverlayConfig {
 	captionFace?: CaptionFaceId;
 	/** Move mode: click-through is off and the overlay shows a drag region. */
 	interactive?: boolean;
+	/** The last `OverlayStateMsg.moveExits` the operator window had heard when it sent this. An
+	 *  `interactive: true` sent before the overlay's own Lock reached it carries a smaller
+	 *  count than the overlay has, and is stale: the overlay ignores it. */
+	moveExitsSeen?: number;
 	/** Interface language — the overlay's own chrome, which is the move-mode toolbar and the
 	 *  origin labels. Pushed rather than read from storage: the two windows are separate
 	 *  webviews, and a `storage` event does not reliably cross them. Not the caption
@@ -386,6 +390,12 @@ export interface OverlayStateMsg {
 	/** Whether the overlay is showing, when the core hid it without being asked: Alt+F4 on the
 	 *  overlay. From the core only; the overlay cannot send it. */
 	visible?: boolean;
+	/** The overlay's listeners are in place; the operator answers with a whole configuration,
+	 *  so an overlay that loaded after the operator's first push misses nothing. */
+	ready?: boolean;
+	/** How many times the overlay has left move mode by itself (Lock, Enter, Escape). Handed
+	 *  back in every push as `OverlayConfig.moveExitsSeen`. */
+	moveExits?: number;
 }
 
 /** A tray menu entry the front-end has to carry out, because it needs session or transcript

@@ -161,7 +161,20 @@
 			secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
 				? cfg.secondCaptionLanguage
 				: undefined;
-			if (typeof cfg.interactive === 'boolean') placement.setInteractive(cfg.interactive);
+			if (typeof cfg.interactive === 'boolean')
+				placement.setInteractive(
+					cfg.interactive,
+					typeof cfg.moveExitsSeen === 'number' ? cfg.moveExitsSeen : undefined
+				);
+		});
+
+		// Ready once every listener is in place, and not before: the operator answers with a
+		// whole configuration, and one that arrived while `overlay-config` was still being
+		// subscribed would be lost. Without this, an overlay that loads after the operator's
+		// first push (a cold start, a WebView2 reload) kept empty row labels and `lang=""` until
+		// the operator happened to change a caption language.
+		void Promise.all([unlistenCaption, unlistenStatus, unlistenConfig]).then(() => {
+			if (mounted) void api.reportOverlayState({ ready: true }).catch(() => {});
 		});
 
 		return () => {

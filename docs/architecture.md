@@ -367,6 +367,16 @@ presenter; `overlayPlacement.svelte.ts` owns move mode and its keys, and
 `OverlayMoveChrome.svelte` draws it. The persisted `overlay.captionLayout` preference defaults
 to Fit window and reaches the overlay in `OverlayConfig` through `overlayController.svelte.ts`.
 
+A push reaches only listeners already registered, so the overlay says when it can hear: once
+its listeners resolve it reports `ready`, and `nativeSync.svelte.ts` answers with a whole
+configuration (appearance, both caption languages, the interface language and move mode). An
+overlay that loads after the operator's first push, at a cold start or after a WebView2 reload,
+therefore misses nothing. Move mode can also be left from both ends at once: a push carrying
+`interactive: true` (a colour drag, say) can cross the overlay's own Lock on the way. The
+overlay counts its own exits from move mode and reports the count; every push hands back the
+last count the operator heard (`moveExitsSeen`), and the overlay ignores a push to stay in move
+mode that is behind it.
+
 The overlay window is created centred (`tauri.conf.json`) and paints nothing until there are
 captions or move mode, neither of which can start before the operator window has mounted. So
 the remembered placement lives in the interface like any other preference:

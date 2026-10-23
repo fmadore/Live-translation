@@ -54,7 +54,7 @@ it('asks the core to put the window back where move mode found it', async () => 
 	// Still as a cancel: nothing new was placed, so the operator is not told it was.
 	await expect
 		.poll(() => core.callsTo('report_overlay_state'))
-		.toEqual([{ state: { interactive: false } }]);
+		.toEqual([{ state: { interactive: false, moveExits: 1 } }]);
 });
 
 it('leaves move mode all the same when the window cannot be put back', async () => {
@@ -80,7 +80,44 @@ it('locks into place and tells the operator window through the core', async () =
 	expect(core.callsTo('undo_overlay_move')).toEqual([]);
 	await expect
 		.poll(() => core.callsTo('report_overlay_state'))
-		.toEqual([{ state: { interactive: false, placed: true } }]);
+		.toEqual([{ state: { interactive: false, placed: true, moveExits: 1 } }]);
+});
+
+// U5: a push to stay in move mode, sent by the operator (a colour drag carries move mode along)
+// before the overlay's own Lock reached it, must not put the window back into move mode.
+it('ignores a push to stay in move mode that crossed its own Lock', async () => {
+	const placement = await enterMoveMode();
+	await placement.lock();
+	await expect
+		.poll(() => core.callsTo('report_overlay_state'))
+		.toEqual([{ state: { interactive: false, placed: true, moveExits: 1 } }]);
+
+	// Sent before the operator heard of the Lock: it has seen none of the overlay's exits.
+	placement.setInteractive(true, 0);
+	expect(placement.interactive).toBe(false);
+	// …and the operator is told again, in case the first report went astray.
+	await expect
+		.poll(() => core.callsTo('report_overlay_state').at(-1))
+		.toEqual({
+			state: { interactive: false, moveExits: 1 }
+		});
+	expect(core.callsTo('get_overlay_placement')).toHaveLength(1);
+
+	// Once it has heard, a new Move overlay is obeyed.
+	placement.setInteractive(true, 1);
+	expect(placement.interactive).toBe(true);
+	await expect.poll(() => core.callsTo('get_overlay_placement')).toHaveLength(2);
+	// Escape counts as leaving too.
+	await placement.cancel();
+	placement.setInteractive(true, 1);
+	expect(placement.interactive).toBe(false);
+});
+
+it('obeys a push that says nothing about what it has seen', async () => {
+	const placement = await enterMoveMode();
+	await placement.lock();
+	placement.setInteractive(true);
+	expect(placement.interactive).toBe(true);
 });
 
 it('drags, nudges and snaps itself only through its own commands', async () => {
