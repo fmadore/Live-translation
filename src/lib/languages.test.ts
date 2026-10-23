@@ -64,13 +64,21 @@ describe('type-ahead search', () => {
 });
 
 it('seeds, restores, deduplicates and validates independent favourites, including an empty preference', () => {
-	expect(loadLanguageFavourites({ getItem: () => null })).toEqual(['en', 'fr']);
-	expect(loadLanguageFavourites({ getItem: () => '["sw","ja","sw","bogus"]' })).toEqual([
-		'sw',
-		'ja'
-	]);
-	expect(loadLanguageFavourites({ getItem: () => '[]' })).toEqual([]);
-	expect(loadLanguageFavourites({ getItem: () => '{' })).toEqual(['en', 'fr']);
+	expect(loadLanguageFavourites(null)).toEqual(['en', 'fr']);
+	expect(loadLanguageFavourites('["sw","ja","sw","bogus"]')).toEqual(['sw', 'ja']);
+	expect(loadLanguageFavourites('[]')).toEqual([]);
+	expect(loadLanguageFavourites('{')).toEqual(['en', 'fr']);
+	// Through `persisted.ts`: storage that refuses access is the default pair, not a throw.
+	vi.stubGlobal('localStorage', {
+		getItem: () => {
+			throw new Error('blocked');
+		}
+	});
+	try {
+		expect(loadLanguageFavourites()).toEqual(['en', 'fr']);
+	} finally {
+		vi.unstubAllGlobals();
+	}
 	expect(languageRows('openai', ['sw', 'ja'], '', 'en').slice(0, 2)).toMatchObject([
 		{ code: 'sw', favourite: true, supported: false },
 		{ code: 'ja', supported: true }
@@ -163,9 +171,9 @@ it('writes favourites separately and restores their pin order after reload', () 
 	try {
 		languageFavourites.set(['ja', 'sw', 'fr']);
 		expect(values.has(LANGUAGE_FAVOURITES_KEY)).toBe(true);
-		expect(loadLanguageFavourites(storage)).toEqual(['ja', 'sw', 'fr']);
+		expect(loadLanguageFavourites()).toEqual(['ja', 'sw', 'fr']);
 		languageFavourites.set(['ja', 'fr']);
-		expect(loadLanguageFavourites(storage)).toEqual(['ja', 'fr']);
+		expect(loadLanguageFavourites()).toEqual(['ja', 'fr']);
 		expect(values.has('session.options')).toBe(false);
 	} finally {
 		languageFavourites.set(previous);

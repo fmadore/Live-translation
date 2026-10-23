@@ -26,12 +26,9 @@
 	} from './captionColour';
 	import { captionFaceStack } from './captionFont';
 	import type { CaptionFaceId } from './captionFont';
-	import type { OverlayController } from './overlayController.svelte';
-	let {
-		heading,
-		overlay,
-		compact = false
-	}: { heading: string; overlay: OverlayController; compact?: boolean } = $props();
+	import { overlayContext } from './operatorContext';
+	let { heading, compact = false }: { heading: string; compact?: boolean } = $props();
+	const overlay = overlayContext();
 	const idBase = $props.id();
 	const contrastId = `${idBase}-contrast`;
 	/** Whether anything in the overlay's appearance has been changed from what it ships with.
@@ -66,7 +63,7 @@
 	     among the live controls, while in the panel it names itself against the other
 	     preferences. -->
 <h2 class="kicker">{heading}</h2>
-{#if !compact}<CaptionPreview {overlay} part="presets" />{/if}
+{#if !compact}<CaptionPreview part="presets" />{/if}
 <div class="appearance-layout" class:compact>
 	<div class="appearance-controls">
 		<Stepper
@@ -183,7 +180,7 @@
 			{$t.overlayControls.reset}
 		</ToolButton>
 	</div>
-	{#if !compact}<CaptionPreview {overlay} />{/if}
+	{#if !compact}<CaptionPreview />{/if}
 </div>
 
 <style>

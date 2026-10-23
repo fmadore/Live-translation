@@ -8,6 +8,7 @@ import { options, overlayFontSize, overlayPace } from './stores';
 import { PROFILES_KEY } from './profiles';
 import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
 import { blockStorage } from './testing/storage';
+import { operatorContextMap } from './operatorContext';
 vi.mock('./tauri', () => ({
 	isTauri: () => true,
 	api: {
@@ -44,7 +45,10 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	overlayPace.set('steady');
 	const loaded = vi.fn().mockResolvedValue(undefined);
 	const busy = vi.fn();
-	const view = render(MeetingProfiles, { locked: false, overlay, onLoaded: loaded, onBusy: busy });
+	const view = render(MeetingProfiles, {
+		props: { locked: false, onLoaded: loaded, onBusy: busy },
+		context: operatorContextMap({ overlay })
+	});
 	await fireEvent.click(view.getByRole('button', { name: 'Manage profiles' }));
 	await fireEvent.click(view.getByText('Save current setup…'));
 	await fireEvent.input(view.getByLabelText('Profile name'), { target: { value: 'Lecture hall' } });
@@ -85,7 +89,8 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 // "Choose a profile" instead, so "click Meeting profiles" in voice control found nothing.
 it('names the profile picker by its visible label', () => {
 	const view = render(MeetingProfiles, {
-		props: { locked: false, overlay: createOverlayController(), onLoaded: vi.fn(), onBusy: vi.fn() }
+		props: { locked: false, onLoaded: vi.fn(), onBusy: vi.fn() },
+		context: operatorContextMap({ overlay: createOverlayController() })
 	});
 	expect(view.getByRole('combobox')).toHaveAccessibleName(/^Meeting profiles/);
 	view.unmount();
@@ -97,12 +102,8 @@ it('mounts, and keeps a saved profile for the run, when storage refuses access',
 	const restore = blockStorage();
 	try {
 		const view = render(MeetingProfiles, {
-			props: {
-				locked: false,
-				overlay: createOverlayController(),
-				onLoaded: vi.fn(),
-				onBusy: vi.fn()
-			}
+			props: { locked: false, onLoaded: vi.fn(), onBusy: vi.fn() },
+			context: operatorContextMap({ overlay: createOverlayController() })
 		});
 		await fireEvent.click(view.getByRole('button', { name: 'Manage profiles' }));
 		await fireEvent.click(view.getByText('Save current setup…'));

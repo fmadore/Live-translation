@@ -7,6 +7,7 @@ import { options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { setLocale } from './i18n';
 import type { PreflightController } from './preflightController.svelte';
+import { operatorContextMap } from './operatorContext';
 
 /** Just the preflight surface the sheet reads with the demo selected. */
 function preflight(whisperRefused: boolean) {
@@ -35,14 +36,14 @@ function mount(whisperRefused: boolean) {
 	return render(SetupSheet, {
 		props: {
 			actions,
-			preflight: preflight(whisperRefused),
 			locked: false,
 			// Keeps the Whisper model panel from asking a core that is not there.
 			browserMode: true,
 			usesMic: true,
 			usesSystem: false,
 			languageError: ''
-		}
+		},
+		context: operatorContextMap({ preflight: preflight(whisperRefused) })
 	});
 }
 

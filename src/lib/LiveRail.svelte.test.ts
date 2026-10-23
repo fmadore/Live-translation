@@ -7,6 +7,7 @@ import { setLocale } from './i18n';
 import { options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import type { SessionClock } from './sessionClock.svelte';
+import { operatorContextMap } from './operatorContext';
 
 // One hour streamed, so the estimate reads as the hourly figure times the streams.
 const clock = {
@@ -18,8 +19,8 @@ const clock = {
 
 function rail(rehearsing: boolean) {
 	return render(LiveRail, {
+		context: operatorContextMap({ overlay: createOverlayController() }),
 		props: {
-			overlay: createOverlayController(),
 			clock,
 			rehearsing,
 			// As the page derives them: a rehearsal is one System stream whatever source is saved.
@@ -86,7 +87,8 @@ it('names the move button by what a press does, without a pressed state', async 
 		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
 	});
 	const view = render(LiveRail, {
-		props: { overlay, clock, rehearsing: false, usesMic: true, usesSystem: true }
+		props: { clock, rehearsing: false, usesMic: true, usesSystem: true },
+		context: operatorContextMap({ overlay })
 	});
 	const move = view.getByRole('button', { name: 'Move overlay' });
 	expect(move).not.toHaveAttribute('aria-pressed');

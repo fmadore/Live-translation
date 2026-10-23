@@ -17,6 +17,7 @@ import {
 } from './stores';
 import { loadCleanSpeech } from './cleanSpeech';
 import { CAPTION_LAYOUT_KEY, loadCaptionLayout } from './captionLayout';
+import { operatorContextMap } from './operatorContext';
 
 /** Pushes go out at once rather than once a frame, so each edit's push can be checked. */
 const pushAtOnce = (push: () => void) => push();
@@ -25,8 +26,14 @@ it('keeps both appearances synchronized with separate accessible contrast descri
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
 	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayFontSize.set(42);
-	const rail = render(CaptionAppearance, { heading: 'Rail', overlay });
-	const settings = render(CaptionAppearance, { heading: 'Settings', overlay });
+	const rail = render(CaptionAppearance, {
+		props: { heading: 'Rail' },
+		context: operatorContextMap({ overlay })
+	});
+	const settings = render(CaptionAppearance, {
+		props: { heading: 'Settings' },
+		context: operatorContextMap({ overlay })
+	});
 	const descriptions = Array.from(document.querySelectorAll('[aria-describedby]'));
 	const ids = descriptions.map((node) => node.getAttribute('aria-describedby'));
 	expect(new Set(ids).size).toBe(2);
@@ -49,7 +56,7 @@ it('persists stable reading and display cleanup, synchronizes both windows, and 
 	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayCaptionLayout.set('fit');
 	overlayCleanSpeech.set(false);
-	const view = render(ReadingPreferences, { overlay });
+	const view = render(ReadingPreferences, { props: {}, context: operatorContextMap({ overlay }) });
 	await fireEvent.change(view.container.querySelector('select')!, { target: { value: 'stable' } });
 	await fireEvent.click(view.getByLabelText('Hide filler words'));
 	expect(loadCaptionLayout()).toBe('stable');
@@ -69,7 +76,7 @@ it('switches layout live, remembers compact width, and resets to fit window', as
 	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlayCaptionLayout.set('fit');
 	overlayCaptionWidth.set(44);
-	const view = render(ReadingPreferences, { overlay });
+	const view = render(ReadingPreferences, { props: {}, context: operatorContextMap({ overlay }) });
 	const selector = view.container.querySelector('select')!;
 	expect(view.container.querySelectorAll('.ui-stepper')).toHaveLength(1);
 	await fireEvent.change(selector, { target: { value: 'compact' } });
@@ -92,13 +99,16 @@ it('updates reading preferences, previews presets, and resets the complete appea
 	const setOverlayConfig = vi.fn().mockResolvedValue(undefined);
 	const overlay = createOverlayController({ ...api, setOverlayConfig }, pushAtOnce);
 	overlay.resetOverlayAppearance();
-	const view = render(ReadingPreferences, { overlay });
+	const view = render(ReadingPreferences, { props: {}, context: operatorContextMap({ overlay }) });
 	for (let i = 0; i < 5; i++)
 		await fireEvent.click(view.getByRole('button', { name: 'Keep finished captions (seconds) +' }));
 	await fireEvent.change(view.getByLabelText('Caption updates'), { target: { value: 'steady' } });
 	expect(get(overlayHoldSeconds)).toBe(9);
 	expect(get(overlayPace)).toBe('steady');
-	const presets = render(CaptionPreview, { overlay, part: 'presets' });
+	const presets = render(CaptionPreview, {
+		props: { part: 'presets' },
+		context: operatorContextMap({ overlay })
+	});
 	await fireEvent.click(presets.getByText('Large room'));
 	expect(get(overlayFontSize)).toBe(52);
 	expect(get(overlayCaptionLayout)).toBe('stable');
@@ -122,7 +132,10 @@ it('names the colour swatches and marks the chosen one as pressed', async () => 
 		...api,
 		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
 	});
-	const view = render(CaptionAppearance, { heading: 'Settings', overlay, compact: true });
+	const view = render(CaptionAppearance, {
+		props: { heading: 'Settings', compact: true },
+		context: operatorContextMap({ overlay })
+	});
 	const text = view.getByRole('group', { name: 'Caption colour' });
 	const mint = within(text).getByRole('button', { name: 'Mint' });
 	expect(within(text).queryByRole('button', { name: /^#/ })).toBeNull();
@@ -144,7 +157,10 @@ it('steps the backing strength in whole percent and stops at its ceiling', async
 		setOverlayConfig: vi.fn().mockResolvedValue(undefined)
 	});
 	overlay.resetOverlayAppearance();
-	const view = render(CaptionAppearance, { heading: 'Rail', overlay, compact: true });
+	const view = render(CaptionAppearance, {
+		props: { heading: 'Rail', compact: true },
+		context: operatorContextMap({ overlay })
+	});
 	const backing = within(view.container).getByRole('group', { name: 'Backing strength' });
 	const stronger = within(backing).getByRole('button', {
 		name: 'Stronger backing behind the captions'

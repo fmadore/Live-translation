@@ -26,6 +26,7 @@
 	import type { Origin, OutputMode, TranscriptLine } from './types';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
+	import ExportFormatSelect from './ExportFormatSelect.svelte';
 
 	interface Props {
 		mode: OutputMode;
@@ -225,12 +226,7 @@
 				{$t.transcript.copy}
 			</ToolButton>
 		</div>
-		<select aria-label={$t.transcript.format} bind:value={$exportFormat} disabled={saving}>
-			<option value="markdown">Markdown (.md)</option>
-			<option value="text">{$t.transcript.plainText} (.txt)</option>
-			<option value="vtt">WebVTT (.vtt)</option>
-			<option value="srt">SubRip (.srt)</option>
-		</select>
+		<ExportFormatSelect compact disabled={saving} />
 		{#if bilingual}<Preference
 				label={$t.transcript.includeOriginal}
 				checked={$exportOriginal}

@@ -5,6 +5,7 @@
 	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
+	import ExportFormatSelect from './ExportFormatSelect.svelte';
 	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
@@ -278,12 +279,7 @@
 				</form>
 				<div class="actions">
 					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
-					<Select aria-label={$t.transcript.format} bind:value={$format} disabled={busy}>
-						<option value="markdown">Markdown (.md)</option><option value="text"
-							>{$t.transcript.plainText} (.txt)</option
-						>
-						<option value="vtt">WebVTT (.vtt)</option><option value="srt">SubRip (.srt)</option>
-					</Select>
+					<ExportFormatSelect disabled={busy} />
 					<ToolButton
 						disabled={busy || (isTimedFormat($format) && !timed)}
 						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton

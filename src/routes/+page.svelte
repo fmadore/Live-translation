@@ -27,6 +27,7 @@
 	import { createDeviceFailure } from '#lib/deviceFailure.svelte.js';
 	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
 	import { syncNative } from '#lib/nativeSync.svelte.js';
+	import { provideOperatorContext } from '#lib/operatorContext.js';
 	import { captionLanguageError, type DemoLanguage } from '#lib/languages.js';
 	import { shortcut } from '#lib/shortcuts.js';
 	import { on, isTauri } from '#lib/tauri.js';
@@ -82,6 +83,8 @@
 		start: (selected) => session.start(selected),
 		refreshApplications: () => preflight.refreshApplications()
 	});
+	// The components under the page read these two from context rather than through props.
+	provideOperatorContext({ overlay, preflight });
 	$effect(() => {
 		if (!controlsLocked && !preflight.audioTesting && !preflight.audioTestBusy)
 			preflight.validateSelection();
@@ -351,7 +354,6 @@
 			{#if !$isRunning}
 				<MeetingProfiles
 					locked={controlsLocked || preflight.audioTesting || preflight.audioTestBusy}
-					{overlay}
 					onBusy={(value) => (profileBusy = value)}
 					onLoaded={async () => {
 						preflight.invalidateAudioTest();
@@ -361,11 +363,10 @@
 				/>
 			{/if}
 			{#if $isRunning}
-				<LiveRail {overlay} {clock} rehearsing={rehearsalRunning} {usesMic} {usesSystem} />
+				<LiveRail {clock} rehearsing={rehearsalRunning} {usesMic} {usesSystem} />
 			{:else}
 				<SetupSheet
 					{actions}
-					{preflight}
 					locked={controlsLocked}
 					{browserMode}
 					{usesMic}
@@ -428,14 +429,7 @@
 				<h2 class="ready">{$t.preflight.heading}</h2>
 				<p class="intro">{$t.preflight.intro}</p>
 
-				<PreflightChecklist
-					{preflight}
-					{overlay}
-					{browserMode}
-					locked={controlsLocked}
-					{usesMic}
-					{usesSystem}
-				/>
+				<PreflightChecklist {browserMode} locked={controlsLocked} {usesMic} {usesSystem} />
 
 				<!-- Saved transcript follows the persistent session controls. -->
 				{#if $transcript.length > 0}
@@ -476,7 +470,6 @@
 
 {#if settingsOpen}
 	<SettingsDialog
-		{overlay}
 		{browserMode}
 		bind:tab={settingsTab}
 		onHideWindow={quit.hideWindow}

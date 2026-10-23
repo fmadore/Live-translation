@@ -11,13 +11,13 @@
 		removeFillerWord,
 		type FillerWordProblem
 	} from './cleanSpeech';
-	import type { OverlayController } from './overlayController.svelte';
+	import { overlayContext } from './operatorContext';
 	import Field from './ui/Field.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 
 	/** The words Hide filler words removes: shown, added one at a time, removed, or put back to
 	 *  the built-in list. Every change reaches the overlay at once through the controller. */
-	let { overlay }: { overlay: OverlayController } = $props();
+	const overlay = overlayContext();
 	const id = $props.id();
 	const m = $derived($t.overlayControls.fillerWords);
 

@@ -1,4 +1,5 @@
 import catalog from './languages.json';
+import { readStored } from './persisted';
 import { TARGET_LANGUAGES, type TargetLanguage } from './languageCodes';
 import { secondCaptionLanguageOf, type Provider, type StartOptions } from './types';
 import type { Messages } from './i18n/en';
@@ -113,12 +114,13 @@ export function languageRows(
 		});
 }
 
-export function loadLanguageFavourites(storage?: Pick<Storage, 'getItem'>): TargetLanguage[] {
+/** The pinned languages, read through `persisted.ts` like every other preference; `raw` is the
+ *  stored JSON, for a caller that already has it. Anything unreadable is the default pair. */
+export function loadLanguageFavourites(
+	raw: string | null = readStored(LANGUAGE_FAVOURITES_KEY)
+): TargetLanguage[] {
+	if (raw == null) return [...DEFAULT_FAVOURITES];
 	try {
-		const raw = (
-			storage ?? (typeof localStorage === 'undefined' ? undefined : localStorage)
-		)?.getItem(LANGUAGE_FAVOURITES_KEY);
-		if (raw == null) return [...DEFAULT_FAVOURITES];
 		const values: unknown = JSON.parse(raw);
 		return Array.isArray(values)
 			? [...new Set(values.filter(isTargetLanguage))]

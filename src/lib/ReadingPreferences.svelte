@@ -9,7 +9,7 @@
 		overlayCaptionWidth,
 		overlayShowOriginal
 	} from './stores';
-	import type { OverlayController } from './overlayController.svelte';
+	import { overlayContext } from './operatorContext';
 	import type { CaptionLayout } from './captionLayout';
 	import { HOLD_SECONDS_MAX, HOLD_SECONDS_MIN } from './reading';
 	import { OVERLAY_WIDTH_MAX, OVERLAY_WIDTH_MIN } from './appearance';
@@ -18,7 +18,7 @@
 	import Stepper from './ui/Stepper.svelte';
 	import Preference from './ui/Preference.svelte';
 	import FillerWordList from './FillerWordList.svelte';
-	let { overlay }: { overlay: OverlayController } = $props();
+	const overlay = overlayContext();
 </script>
 
 <div class="reading">
@@ -69,7 +69,7 @@
 		checked={$overlayCleanSpeech}
 		onchange={overlay.setCleanSpeech}
 	/>
-	{#if $overlayCleanSpeech}<FillerWordList {overlay} />{/if}
+	{#if $overlayCleanSpeech}<FillerWordList />{/if}
 	<Preference
 		label={$t.overlayControls.showOriginal}
 		note={$t.overlayControls.showOriginalHint}
