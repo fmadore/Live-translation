@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import ApiKeyPanel from './ApiKeyPanel.svelte';
 
 // Hoisted so `vi.mock` below can reach them: the factory runs before these declarations do.
@@ -92,5 +92,28 @@ describe('ApiKeyPanel', () => {
 
 		expect(onAvailability).not.toHaveBeenCalledWith('gemini', true);
 		expect(onAvailability).toHaveBeenLastCalledWith('openai', false);
+	});
+
+	// Review U10: the engine cards stay enabled while a key is saved, and the answer used to be
+	// credited to whichever engine was selected when the keychain replied.
+	it('credits a saved key to the engine it was typed for, not the one selected since', async () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(false);
+		let stored!: () => void;
+		mocks.setApiKey.mockImplementationOnce(
+			() => new Promise<void>((resolve) => (stored = resolve))
+		);
+		const { getByLabelText, getByRole, rerender, onAvailability } = mount('gemini');
+		await fireEvent.input(getByLabelText('Gemini key'), { target: { value: 'test-key-123' } });
+		await fireEvent.click(getByRole('button', { name: 'Save' }));
+		expect(mocks.setApiKey).toHaveBeenCalledWith('gemini', 'test-key-123');
+
+		await rerender({ provider: 'openai' });
+		await waitFor(() => expect(onAvailability).toHaveBeenLastCalledWith('openai', false));
+		stored();
+		await waitFor(() => expect(onAvailability).toHaveBeenCalledWith('gemini', true));
+		expect(onAvailability).not.toHaveBeenCalledWith('openai', true);
+		// The panel stays on OpenAI's key, which is still to be entered.
+		expect(getByLabelText('OpenAI key')).toHaveValue('');
 	});
 });

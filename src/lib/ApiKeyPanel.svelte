@@ -67,16 +67,22 @@
 		});
 	});
 
+	// Both answers below belong to the engine the operator acted on, read before the keychain is
+	// asked (review U10). The engine cards stay enabled while it answers, so by then the panel can
+	// be showing another engine: the key is that one's, and so is the news that it is stored.
+	// The panel itself has already moved on to the new engine's own check, so it is left alone.
 	async function saveKey() {
 		const key = apiKeyInput.trim();
 		if (!key || locked) return;
+		const target = provider;
 		saving = true;
 		try {
-			await api.setApiKey(provider, key);
+			await api.setApiKey(target, key);
+			onAvailability(target, true);
+			if (provider !== target) return;
 			apiKeyInput = '';
 			available = true;
 			editing = false;
-			onAvailability(provider, true);
 		} catch (error) {
 			onError(asStatus(error));
 		} finally {
@@ -86,10 +92,11 @@
 
 	async function clearKey() {
 		if (locked) return;
+		const target = provider;
 		try {
-			await api.clearApiKey(provider);
-			available = false;
-			onAvailability(provider, false);
+			await api.clearApiKey(target);
+			onAvailability(target, false);
+			if (provider === target) available = false;
 		} catch (error) {
 			onError(asStatus(error));
 		}
