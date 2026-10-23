@@ -4,7 +4,7 @@
 	import ToolButton from './ui/ToolButton.svelte';
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
-	import { languageName } from './languages';
+	import { displayNames, languageName } from './languages';
 	import { locale, localeTag, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
 	import {
@@ -39,7 +39,7 @@
 	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
 		$options.provider === 'whisper' && $options.spokenLanguage
-			? new Intl.DisplayNames([$locale], { type: 'language' }).of($options.spokenLanguage)
+			? (displayNames($locale)?.of($options.spokenLanguage) ?? $options.spokenLanguage)
 			: providerDetectsLanguage($options.provider)
 				? $t.language.auto
 				: [$options.targetLanguage, ...(second ? [second] : [])]

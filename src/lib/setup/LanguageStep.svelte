@@ -6,7 +6,7 @@
 	import Field from '../ui/Field.svelte';
 	import LanguageCard from '../ui/LanguageCard.svelte';
 	import Select from '../ui/Select.svelte';
-	import { languageName, languageRows } from '../languages';
+	import { displayNames, languageName, languageRows } from '../languages';
 	import { locale, t } from '../i18n';
 	import { languageFavourites, options } from '../stores';
 	import { isLocalWhisper, providerDetectsLanguage } from '../providers';
@@ -40,9 +40,9 @@
 	// This step asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself (Voxtral then takes names and terms).
 	const spokenChoices = $derived.by(() => {
-		const names = new Intl.DisplayNames([$locale], { type: 'language', fallback: 'none' });
+		const names = displayNames($locale, 'none');
 		return whisperLanguages
-			.map((l) => ({ code: l.code, name: names.of(l.code) || l.name }))
+			.map((l) => ({ code: l.code, name: names?.of(l.code) || l.name }))
 			.sort((a, b) => a.name.localeCompare(b.name, $locale));
 	});
 	const languageStepTitle = $derived(

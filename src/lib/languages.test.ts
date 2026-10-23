@@ -5,6 +5,7 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import {
 	captionDirection,
+	displayNames,
 	captionLanguageError,
 	languageRows,
 	languageName,
@@ -61,6 +62,18 @@ describe('type-ahead search', () => {
 		expect(languageRows('gemini', [], 'nb', 'en')[0]?.code).toBe('no');
 		expect(languageRows('gemini', [], 'sw', 'fr')[0]?.code).toBe('sw');
 	});
+});
+
+// Review E3: the picker built a new `Intl.DisplayNames` for every row on every keystroke.
+it('names languages through one DisplayNames per locale, and from the catalog without one', () => {
+	expect(displayNames('fr')).toBe(displayNames('fr'));
+	expect(displayNames('fr')).not.toBe(displayNames('de'));
+	expect(displayNames('fr', 'none')).not.toBe(displayNames('fr'));
+	expect(displayNames('fr', 'none')?.of('zz')).toBeUndefined();
+	expect(languageName('ja', 'fr')).toBe('japonais');
+	// A tag the runtime refuses has no names of its own; the catalog's English stands in.
+	expect(displayNames('not a locale')).toBeNull();
+	expect(languageName('ja', 'not a locale')).toBe('Japanese');
 });
 
 it('seeds, restores, deduplicates and validates independent favourites, including an empty preference', () => {
@@ -140,6 +153,7 @@ it('swaps only the first two supported pins, including from outside the pair', (
 });
 
 it('falls back to the catalog when Intl is unavailable or returns the code', () => {
+	// Locales no other test has asked for: each is named through its own cached DisplayNames.
 	vi.stubGlobal('Intl', {
 		DisplayNames: class {
 			of(code: string) {
@@ -147,9 +161,9 @@ it('falls back to the catalog when Intl is unavailable or returns the code', () 
 			}
 		}
 	});
-	expect(languageName('ja', 'en')).toBe('Japanese');
+	expect(languageName('ja', 'en-AU')).toBe('Japanese');
 	vi.stubGlobal('Intl', {});
-	expect(languageName('pt-BR', 'fr')).toBe('Portuguese (Brazil)');
+	expect(languageName('pt-BR', 'fr-CH')).toBe('Portuguese (Brazil)');
 });
 
 it('uses RTL for Arabic-script and Hebrew captions, and auto for detected languages', () => {
