@@ -150,6 +150,31 @@ it('hands the keyboard from Start to Stop as the session starts, and back as it 
 	await waitFor(() => expect(startAgain).toHaveFocus());
 });
 
+// U7: `start_session` can answer before any source has reported. Start stays busy until the
+// run's first status, so a second press does not restart the run just begun, and the keyboard
+// still goes to Stop when it appears.
+it('holds Start between the start being answered and the run’s first status', async () => {
+	render(Page);
+	await chooseDemo();
+	const start = screen.getByRole('button', { name: 'Start demo subtitles' });
+	await waitFor(() => expect(start).toBeEnabled());
+	start.focus();
+	await fireEvent.click(start);
+	await waitFor(() => expect(core.callsTo('start_session')).toHaveLength(1));
+
+	// Answered, and nothing reported yet.
+	await waitFor(() => expect(start).toHaveAccessibleName('Starting…'));
+	expect(start).toHaveAttribute('aria-disabled', 'true');
+	expect(start).toHaveFocus();
+	await fireEvent.click(start);
+	await fireEvent.keyDown(window, { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true });
+	expect(core.callsTo('start_session')).toHaveLength(1);
+
+	await core.emit('status', { state: 'running', origin: 'microphone' } satisfies StatusUpdate);
+	const stopButton = await screen.findByRole('button', { name: 'Stop captions' });
+	await waitFor(() => expect(stopButton).toHaveFocus());
+});
+
 // Issue #124: the whole transcript in the stage while the meeting goes on, with the turn still
 // being spoken at its foot, and the choice kept for the next session.
 it('reads the transcript in the stage instead of the live turns, and remembers the choice', async () => {

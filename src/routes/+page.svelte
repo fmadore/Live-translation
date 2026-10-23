@@ -8,10 +8,11 @@
 	import OperatorToolbar from '#lib/OperatorToolbar.svelte';
 	import SessionControls from '#lib/SessionControls.svelte';
 	import DeviceRecoveryBanner from '#lib/DeviceRecoveryBanner.svelte';
-	import LiveTurns from '#lib/LiveTurns.svelte';
+	import RunningStage from '#lib/RunningStage.svelte';
+	import IdleStage from '#lib/IdleStage.svelte';
+	import LaunchNotes from '#lib/LaunchNotes.svelte';
 	import LiveRail from '#lib/LiveRail.svelte';
 	import SetupSheet from '#lib/SetupSheet.svelte';
-	import PreflightChecklist from '#lib/PreflightChecklist.svelte';
 	import TranscriptMonitor from '#lib/TranscriptMonitor.svelte';
 	import SettingsDialog, { type SettingsTab } from '#lib/SettingsDialog.svelte';
 	import ActiveSessionPrompt from '#lib/ActiveSessionPrompt.svelte';
@@ -28,7 +29,7 @@
 	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
 	import { syncNative } from '#lib/nativeSync.svelte.js';
 	import { provideOperatorContext } from '#lib/operatorContext.js';
-	import { captionLanguageError, type DemoLanguage } from '#lib/languages.js';
+	import { createLaunchController } from '#lib/launchController.svelte.js';
 	import { shortcut } from '#lib/shortcuts.js';
 	import { on, isTauri } from '#lib/tauri.js';
 	import { describeError } from '#lib/errors.js';
@@ -39,7 +40,6 @@
 		applyStatus,
 		options,
 		transcript,
-		recoveryEnabled,
 		overlayFontSize,
 		noteActivity,
 		describeStatus,
@@ -50,7 +50,6 @@
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
 	import { followTheme } from '#lib/theme.js';
-	import { historyEnabled } from '#lib/history.js';
 	import type { SessionState } from '#lib/types.js';
 	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
 
@@ -99,17 +98,18 @@
 	// Ticks only while a session is open.
 	const clock = createSessionClock();
 
-	// Whether the last launch was a rehearsal — a session fed by the bundled sample recording
-	// instead of live audio. It only ever reaches the backend as one extra field on the start
-	// call: writing it into the options store would persist it, and the next launch would
-	// silently rehearse instead of captioning the room. Declared here because the meter gates
-	// below depend on it.
-	//
-	// Set by every launch and never reset, so it is read only together with `$isRunning`:
-	// nothing about how a run ends, or about the Idle a start receives from the session it
-	// replaces, can take the rehearsal's rail from it while it runs.
-	let rehearsing = $state(false);
-	const rehearsalRunning = $derived(rehearsing && $isRunning);
+	// Start, Rehearse and the start shortcut: what blocks them, and the launch they share.
+	// Created before the meter gates below, which depend on whether a rehearsal is running.
+	const launch = createLaunchController({
+		browserMode,
+		start: (selected) => session.start(selected),
+		sessionBusy,
+		profileBusy: () => profileBusy,
+		engineReady: () => engineReady,
+		applicationReady: (selected) => preflight.applicationReady(selected),
+		launching: () => device.clear()
+	});
+	const rehearsalRunning = $derived(launch.rehearsalRunning);
 
 	// A rehearsal is a single System-origin stream no matter what source is saved, so the
 	// meters follow the fixture rather than showing a dead Room meter. Idle is unaffected
@@ -178,73 +178,6 @@
 	// window's state.
 	syncNative({ desktop: !browserMode, overlay, clock });
 
-	// ---- Launching --------------------------------------------------------------
-
-	/** Which language the sample recording should be spoken in. Translation rehearses on the
-	 *  language the room is *not* reading, so the operator sees real translation rather than a
-	 *  passthrough; the subtitle engines auto-detect and rehearse with the English fixture. The built-in
-	 *  demonstration already owns a sample timeline, so its separate rehearsal control is disabled. */
-	const fixtureLanguage = $derived<DemoLanguage>(
-		$options.mode === 'translate'
-			? $options.targetLanguage === 'en'
-				? 'fr'
-				: 'en'
-			: $options.provider === 'ondevice'
-				? $options.targetLanguage === 'fr'
-					? 'fr'
-					: 'en'
-				: 'en'
-	);
-
-	// Either caption language can be one the engine does not offer — the second one too, after
-	// an engine change — and either blocks Start.
-	const languageError = $derived(captionLanguageError($options, $t, $locale));
-
-	// Everything that keeps a session from starting, in one place. Start, Rehearse and the
-	// Ctrl+Shift+Space shortcut all read it, so they cannot drift apart again — Rehearse once
-	// stayed enabled while a profile was loading.
-	const startBlockers = $derived({
-		busy: browserMode || profileBusy || $sessionBusy || $isRunning,
-		language: languageError,
-		engine: !engineReady,
-		// Only a live start opens the chosen application; a rehearsal plays the bundled sample.
-		application: !preflight.applicationReady($options)
-	});
-	const canStart = $derived(
-		!startBlockers.busy &&
-			!startBlockers.language &&
-			!startBlockers.engine &&
-			!startBlockers.application
-	);
-	// The built-in demonstration plays its own scripted timeline, so it has no rehearsal.
-	const canRehearse = $derived(
-		!startBlockers.busy &&
-			!startBlockers.language &&
-			!startBlockers.engine &&
-			$options.provider !== 'ondevice'
-	);
-
-	// Start and Rehearse share one launch path; a rehearsal differs only by the extra field.
-	// The buttons are already disabled for every blocker. The shortcut is not, so the two
-	// blockers an operator can act on from here say why rather than doing nothing — worded
-	// where the status line shows them, so a change of interface language re-words them too.
-	async function launch(rehearsal?: DemoLanguage) {
-		if (rehearsal === undefined ? !canStart : !canRehearse) {
-			if (startBlockers.busy || startBlockers.engine) return;
-			const setup = $options;
-			if (startBlockers.language)
-				statusMessage.set((m, tag) => captionLanguageError(setup, m, tag));
-			else if (rehearsal === undefined) statusMessage.set((m) => m.applications.missing);
-			return;
-		}
-		rehearsing = rehearsal !== undefined;
-		device.clear();
-		await session.start(rehearsal === undefined ? $options : { ...$options, rehearsal });
-	}
-
-	const start = () => launch();
-	const rehearse = () => launch(fixtureLanguage);
-
 	const stop = () => session.stop();
 	const togglePause = () => void session.pause(!$pauseRequested);
 
@@ -302,9 +235,9 @@
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
 		if (command === 'togglePause' && !browserMode && $isRunning && !$sessionBusy) togglePause();
 		if (command === 'toggleSession' && !browserMode && !profileBusy && !$sessionBusy) {
-			// Start answers to the same blockers as its button; see `launch`.
+			// Start answers to the same blockers as its button; see `LaunchController.launch`.
 			if ($isRunning) void stop();
-			else void start();
+			else void launch.start();
 		}
 	}}
 />
@@ -317,12 +250,12 @@
 	>
 		{#snippet actions()}
 			<SessionControls
-				busy={$sessionBusy}
-				startDisabled={!canStart}
-				rehearseDisabled={!canRehearse}
+				busy={$sessionBusy || launch.opening}
+				startDisabled={!launch.canStart}
+				rehearseDisabled={!launch.canRehearse}
 				paused={$pauseRequested}
-				onStart={start}
-				onRehearse={rehearse}
+				onStart={launch.start}
+				onRehearse={launch.rehearse}
 				onStop={stop}
 				onPause={togglePause}
 			/>
@@ -371,7 +304,7 @@
 					{browserMode}
 					{usesMic}
 					{usesSystem}
-					{languageError}
+					languageError={launch.languageError}
 				/>
 			{/if}
 		</aside>
@@ -406,15 +339,7 @@
 					role="tabpanel"
 					aria-labelledby="stage-view-{$stageView}"
 				>
-					{#if $stageView === 'live'}
-						<LiveTurns />
-					{/if}
-
-					{#if $statusMessage}
-						<p class="status-msg" aria-hidden="true">{statusText}</p>
-					{/if}
-
-					{#if $stageView === 'live'}<span class="grow"></span>{/if}
+					<RunningStage {statusText} />
 
 					<TranscriptMonitor
 						mode={$options.mode}
@@ -425,11 +350,7 @@
 					/>
 				</div>
 			{:else}
-				<span class="kicker">{$t.preflight.kicker}</span>
-				<h2 class="ready">{$t.preflight.heading}</h2>
-				<p class="intro">{$t.preflight.intro}</p>
-
-				<PreflightChecklist {browserMode} locked={controlsLocked} {usesMic} {usesSystem} />
+				<IdleStage {browserMode} locked={controlsLocked} {usesMic} {usesSystem} />
 
 				<!-- Saved transcript follows the persistent session controls. -->
 				{#if $transcript.length > 0}
@@ -440,29 +361,7 @@
 					/>
 				{/if}
 
-				{#if $statusMessage}
-					<p class="status-msg" aria-hidden="true">{statusText}</p>
-				{/if}
-
-				<div class="launch">
-					<span class="rehearse-hint" id="rehearse-hint">
-						{$options.provider === 'ondevice'
-							? $t.preflight.rehearse.demoHint
-							: $t.preflight.rehearse.hint}
-					</span>
-					<span class="privacy">
-						{$historyEnabled
-							? $t.history.stored
-							: $recoveryEnabled
-								? $t.preflight.privacy.spooled
-								: $t.preflight.privacy.memoryOnly}
-						{$options.provider === 'ondevice'
-							? $t.preflight.privacy.demo
-							: isLocalWhisper($options.provider)
-								? $t.whisper.privacy
-								: $t.preflight.privacy.cloud($t.provider.vendor[$options.provider])}
-					</span>
-				</div>
+				<LaunchNotes {statusText} />
 			{/if}
 		</main>
 	</div>
@@ -600,12 +499,7 @@
 	}
 	/* Both columns scroll rather than compress: a flex column shrinks its children before the
 	   scrollbar appears, which would clip text on a short window. */
-	.kicker,
-	.banner,
-	.ready,
-	.intro,
-	.status-msg,
-	.launch {
+	.banner {
 		flex: 0 0 auto;
 	}
 
@@ -640,47 +534,6 @@
 		font-size: var(--type-small);
 		color: var(--text-secondary);
 	}
-	.ready {
-		margin: var(--space-4) 0 0;
-		font-size: var(--type-display);
-		font-weight: 600;
-		line-height: var(--leading-tight);
-		letter-spacing: -0.02em;
-	}
-	.intro {
-		margin: var(--space-2) 0 0;
-		font-size: var(--type-body);
-		line-height: var(--leading-body);
-		color: var(--text-muted);
-		max-width: 48ch;
-		text-wrap: pretty;
-	}
-
-	/* Keep actions aligned and let supporting text use the available reading width. */
-	.launch {
-		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: var(--space-3);
-		margin-top: var(--space-6);
-	}
-	/* The two launch notes are one kind of text in the same grey, so they share a size: at two
-	   sizes the second read as a separate, louder statement. */
-	.rehearse-hint,
-	.privacy {
-		font-size: var(--type-small);
-		line-height: var(--leading-body);
-		color: var(--text-muted);
-		max-width: 72ch;
-		text-wrap: pretty;
-	}
-	.status-msg {
-		margin: var(--space-4) 0 0;
-		font-size: var(--type-body);
-		line-height: var(--leading-body);
-		color: var(--warn);
-	}
-
 	/* Near the window's minimum height, tighten the vertical rhythm so the pre-flight checklist
 	   and the Start button still land above the fold. */
 	@media (max-height: 740px) {
@@ -691,13 +544,6 @@
 		.stage {
 			padding-top: var(--space-5);
 			padding-bottom: var(--space-5);
-		}
-		.ready {
-			margin-top: var(--space-3);
-			font-size: var(--type-heading);
-		}
-		.launch {
-			margin-top: var(--space-5);
 		}
 	}
 
