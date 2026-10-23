@@ -154,6 +154,22 @@ export function rateText(meta: ProviderMeta, m: Messages): string {
 /** What to print under the vendor name. Real backends have a model id; local Whisper (whose
  *  model is chosen below it) and the demonstration have a description instead, and that is
  *  prose. */
+/**
+ * A model id cut where it may break across lines: after each hyphen that ends a word, with a
+ * version number kept on its word, so a narrow engine card wraps `…-realtime-3-0` as a whole
+ * rather than leaving a lone "0" on the last line (review N1). A label with spaces — local
+ * Whisper's, which is words rather than an id — is returned whole, to wrap at its spaces.
+ */
+export function modelIdParts(label: string): string[] {
+	if (/\s/.test(label)) return [label];
+	const parts: string[] = [];
+	for (const piece of label.split(/(?<=-)/)) {
+		if (parts.length && /^\d/.test(piece)) parts[parts.length - 1] += piece;
+		else parts.push(piece);
+	}
+	return parts;
+}
+
 export function modelLabel(meta: ProviderMeta, m: Messages): string {
 	return isLocalWhisper(meta.id)
 		? m.provider.model[meta.id]

@@ -4,6 +4,7 @@ import {
 	estimateSessionCost,
 	formatUsd,
 	isLocalWhisper,
+	modelIdParts,
 	modelLabel,
 	providerCanTranslate,
 	providerDetectsLanguage,
@@ -91,5 +92,28 @@ describe('the running estimate', () => {
 		expect(formatUsd(0.32, 'fr-FR')).toMatch(/^0,32[  ]\$$/);
 		expect(formatUsd(0.32, 'de-DE')).toMatch(/^0,32[  ]\$$/);
 		expect(formatUsd(1234.5, 'de-DE')).toMatch(/^1\.234,50[  ]\$$/);
+	});
+});
+
+// Review N1: Voxtral's id wrapped with `overflow-wrap: anywhere` and left a lone "0" behind.
+describe('where a model id breaks', () => {
+	it('is after a hyphen that ends a word, never inside a version number', () => {
+		expect(modelIdParts('voxtral-mini-transcribe-realtime-3-0')).toEqual([
+			'voxtral-',
+			'mini-',
+			'transcribe-',
+			'realtime-3-0'
+		]);
+		expect(modelIdParts('gemini-3.5-transcribe-live')).toEqual([
+			'gemini-3.5-',
+			'transcribe-',
+			'live'
+		]);
+		expect(modelIdParts('gpt-realtime-translate').join('')).toBe('gpt-realtime-translate');
+	});
+
+	it('leaves words to wrap at their spaces', () => {
+		expect(modelIdParts('Offline · into English only')).toEqual(['Offline · into English only']);
+		expect(modelIdParts('')).toEqual(['']);
 	});
 });

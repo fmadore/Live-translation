@@ -2,7 +2,7 @@
 	import WhisperModels from '../WhisperModels.svelte';
 	import { t } from '../i18n';
 	import { options } from '../stores';
-	import { PROVIDER_META, isLocalWhisper, modelLabel, rateParts } from '../providers';
+	import { PROVIDER_META, isLocalWhisper, modelIdParts, modelLabel, rateParts } from '../providers';
 	import { preflightContext } from '../operatorContext';
 	import type { Provider } from '../types';
 	import type { SetupActions } from '../setupActions';
@@ -35,6 +35,8 @@
 			<!-- Whisper on a processor it was not built for stays listed, so the operator learns
 			     why it is missing, but cannot be chosen. -->
 			{@const refused = isLocalWhisper(id) && preflight.whisperRefused}
+			<!-- The model id breaks only between its words (`modelIdParts`). -->
+			{@const model = modelIdParts(modelLabel(p, $t))}
 			<button
 				class="engine ui-card"
 				disabled={locked || refused}
@@ -43,8 +45,11 @@
 			>
 				<span class="engine-body">
 					<span class="engine-name">{$t.provider.vendor[id]}</span>
-					<span class="engine-model">{modelLabel(p, $t)}</span>{#if id === 'gemini-transcribe'}<span
-							class="hint">{$t.design.smartSummary}</span
+					<span class="engine-model"
+						>{#if model.length > 1}{#each model as part, i (i)}{#if i}<wbr />{/if}<span
+									class="model-part">{part}</span
+								>{/each}{:else}{model[0]}{/if}</span
+					>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
 						>{/if}{#if refused}<span class="hint"
 							>{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}</span
 						>{/if}
@@ -96,6 +101,10 @@
 		line-height: var(--leading-tight);
 		color: var(--text-muted);
 		overflow-wrap: anywhere;
+	}
+	/* Each part of an id stays whole; the line breaks only at the `<wbr>` between parts. */
+	.model-part {
+		white-space: nowrap;
 	}
 	.engine-rate {
 		margin-left: auto;
