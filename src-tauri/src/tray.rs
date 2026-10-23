@@ -22,6 +22,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
 use crate::lifecycle::{show_operator_window, CloseGuard, ACK_TIMEOUT};
+use crate::sync::lock;
 use crate::types::events;
 
 const ID_OPEN: &str = "tray-open";
@@ -140,12 +141,12 @@ impl<I: MenuEntry> Items<I> {
 
 impl TrayMenu {
     fn store(&self, items: Items) {
-        *self.items.lock().unwrap_or_else(|e| e.into_inner()) = Some(items);
+        *lock(&self.items) = Some(items);
     }
 
     /// Write the front-end's view of the world onto the menu, once it has been built.
     fn apply(&self, session_active: bool, overlay_visible: bool, labels: Option<TrayLabels>) {
-        let mut guard = self.items.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = lock(&self.items);
         if let Some(items) = guard.as_mut() {
             items.apply(session_active, overlay_visible, labels);
         }

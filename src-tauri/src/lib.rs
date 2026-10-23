@@ -26,6 +26,7 @@ mod realtime;
 mod recovery;
 mod secrets;
 mod session;
+mod sync;
 mod textscale;
 mod timing;
 mod tray;

@@ -247,7 +247,7 @@ mod tests {
         INSTALL.call_once(|| {
             keyring_core::set_default_store(keyring_core::mock::Store::new().unwrap());
         });
-        let guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = crate::sync::lock(&SERIAL);
         for provider in [Provider::Gemini, Provider::OpenAi, Provider::Mistral] {
             for service in [SERVICE, LEGACY_SERVICE] {
                 let _ = entry_in(service, provider).unwrap().delete_credential();

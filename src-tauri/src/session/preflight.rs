@@ -57,7 +57,7 @@ impl SessionManager {
         &self,
         app: &AppHandle,
         source: AudioSource,
-        mic_device_name: Option<String>,
+        mic_device: Option<String>,
         system_device_id: Option<String>,
         system_capture: SystemCapture,
     ) -> Result<()> {
@@ -80,7 +80,7 @@ impl SessionManager {
         let cancel_guard = cancel.clone().drop_guard();
         let level_tx = spawn_level_forwarder(app);
         let capture = CaptureTarget {
-            mic_name: mic_device_name,
+            mic_name: mic_device,
             system_id: system_device_id,
             system_capture,
         };

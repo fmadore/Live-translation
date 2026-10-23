@@ -7,6 +7,7 @@
 //! before the log format are a single JSON object, and are still read and renamed.
 use crate::atomic_file;
 use crate::errors::{id, AppError};
+use crate::sync::lock;
 use serde::Serialize;
 use std::{
     collections::{HashMap, HashSet},
@@ -64,7 +65,7 @@ pub async fn write_history(app: AppHandle, id: String, contents: String) -> Resu
     let dir = directory(&app)?;
     let path = session_path(&dir, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _lock = lock(&HISTORY_IO);
         std::fs::create_dir_all(&dir).map_err(|e| file_error(&dir, e))?;
         atomic_file::replace(&path, contents.as_bytes()).map_err(|e| file_error(&path, e))
     })
@@ -94,7 +95,7 @@ fn append_session(path: &Path, contents: &str) -> std::io::Result<()> {
 pub async fn append_history(app: AppHandle, id: String, contents: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _lock = lock(&HISTORY_IO);
         append_session(&path, &contents).map_err(|e| file_error(&path, e))
     })
     .await
@@ -261,7 +262,7 @@ fn rename_session(path: &Path, title: &str) -> std::io::Result<()> {
 pub async fn rename_history(app: AppHandle, id: String, title: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _lock = lock(&HISTORY_IO);
         rename_session(&path, &title).map_err(|e| file_error(&path, e))
     })
     .await
@@ -278,7 +279,7 @@ pub async fn list_history(
     let dir = directory(&app)?;
     let known: HashMap<String, u64> = known.into_iter().collect();
     tauri::async_runtime::spawn_blocking(move || {
-        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _lock = lock(&HISTORY_IO);
         list_sessions(&dir, &known, read_text).map_err(|e| file_error(&dir, e))
     })
     .await
@@ -289,7 +290,7 @@ pub async fn list_history(
 pub async fn delete_history(app: AppHandle, id: String) -> Result<(), AppError> {
     let path = session_path(&directory(&app)?, &id)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let _lock = HISTORY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _lock = lock(&HISTORY_IO);
         atomic_file::remove(&path).map_err(|e| file_error(&path, e))
     })
     .await

@@ -19,6 +19,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::atomic_file;
 use crate::errors::{id, AppError};
+use crate::sync::lock;
 
 /// Exactly one committed spool, replaced from a flushed sibling file (`atomic_file`). It
 /// holds the transcript that is currently unsaved and nothing else, so it never accumulates
@@ -81,7 +82,7 @@ fn legacy_recovery_path(app: &AppHandle) -> Option<PathBuf> {
 pub async fn write_recovery(app: AppHandle, contents: String) -> Result<String, AppError> {
     let path = recovery_path(&app, id::RECOVERY_WRITE)?;
     tauri::async_runtime::spawn_blocking(move || {
-        let _io = RECOVERY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _io = lock(&RECOVERY_IO);
         if let Some(dir) = path.parent() {
             std::fs::create_dir_all(dir).map_err(|e| file_error(id::RECOVERY_WRITE, dir, e))?;
         }
@@ -104,7 +105,7 @@ pub async fn read_recovery(app: AppHandle) -> Result<Option<StoredRecovery>, App
     // longer looks at.
     let legacy = legacy_recovery_path(&app);
     tauri::async_runtime::spawn_blocking(move || {
-        let _io = RECOVERY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _io = lock(&RECOVERY_IO);
         // An interrupted replacement never supersedes the last committed snapshot.
         atomic_file::discard_staging(&path).map_err(|error| {
             file_error(id::RECOVERY_READ, &atomic_file::staging_path(&path), error)
@@ -142,7 +143,7 @@ pub async fn clear_recovery(app: AppHandle) -> Result<(), AppError> {
     // transcript on disk and offer it again at every launch.
     let legacy = legacy_recovery_path(&app);
     tauri::async_runtime::spawn_blocking(move || {
-        let _io = RECOVERY_IO.lock().unwrap_or_else(|p| p.into_inner());
+        let _io = lock(&RECOVERY_IO);
         if let Some(legacy) = legacy {
             atomic_file::remove(&legacy)
                 .map_err(|error| file_error(id::RECOVERY_DELETE, &legacy, error))?;

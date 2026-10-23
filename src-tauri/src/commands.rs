@@ -64,7 +64,7 @@ pub async fn set_api_key(provider: Provider, key: String) -> Result<(), AppError
 fn key_error(error: &anyhow::Error) -> AppError {
     match error.downcast_ref::<secrets::KeyFormat>() {
         Some(format) => AppError::with(id::API_KEY_FORMAT, format),
-        None => AppError::chain(id::KEYCHAIN, error),
+        None => AppError::with(id::KEYCHAIN, error),
     }
 }
 
@@ -73,7 +73,7 @@ pub async fn clear_api_key(provider: Provider) -> Result<(), AppError> {
     tauri::async_runtime::spawn_blocking(move || secrets::clear_api_key(provider))
         .await
         .map_err(|error| AppError::with(id::KEYCHAIN, error))?
-        .map_err(|error| AppError::chain(id::KEYCHAIN, &error))
+        .map_err(|error| AppError::with(id::KEYCHAIN, error))
 }
 
 #[tauri::command]
@@ -98,7 +98,7 @@ pub async fn start_session(
     manager.start(&app, options).await.map_err(|error| {
         match error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
             Some(unsupported) => AppError::with(id::WHISPER_CPU, unsupported),
-            None => AppError::with(id::SESSION_START, format!("{error:#}")),
+            None => AppError::with(id::SESSION_START, &error),
         }
     })
 }
@@ -123,7 +123,7 @@ pub fn pause_session(
 ) -> Result<(), AppError> {
     manager
         .set_paused(&app, paused)
-        .map_err(|error| AppError::with(id::SESSION_PAUSE, format!("{error:#}")))
+        .map_err(|error| AppError::with(id::SESSION_PAUSE, &error))
 }
 
 #[tauri::command]
@@ -139,7 +139,7 @@ pub async fn whisper_models(
     })
     .await
     .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
-    .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
 }
 
 /// Failures keep reqwest's whole cause chain (B7): behind a proxy, "error sending request"
@@ -150,7 +150,7 @@ pub async fn download_whisper_model(
     model: crate::whisper::models::ModelId,
 ) -> Result<(), AppError> {
     let dir = crate::whisper::models::directory(&app)
-        .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))?;
+        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?;
     let manager = app
         .state::<crate::whisper::models::ModelManager>()
         .inner()
@@ -158,7 +158,7 @@ pub async fn download_whisper_model(
     manager
         .download(&dir, model)
         .await
-        .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
+        .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
 }
 
 #[tauri::command]
@@ -182,7 +182,7 @@ pub async fn remove_whisper_model(
     })
     .await
     .map_err(|e| AppError::with(id::WHISPER_MODEL, e))?
-    .map_err(|e| AppError::chain(id::WHISPER_MODEL, &e))
+    .map_err(|e| AppError::with(id::WHISPER_MODEL, e))
 }
 
 #[tauri::command]
@@ -211,7 +211,7 @@ pub async fn start_audio_test(
     app: AppHandle,
     manager: State<'_, SessionManager>,
     source: AudioSource,
-    mic_device_name: Option<String>,
+    mic_device: Option<String>,
     system_device_id: Option<String>,
     system_capture: Option<crate::audio::applications::SystemCapture>,
 ) -> Result<(), AppError> {
@@ -219,12 +219,12 @@ pub async fn start_audio_test(
         .start_test(
             &app,
             source,
-            mic_device_name,
+            mic_device,
             system_device_id,
             system_capture.unwrap_or_default(),
         )
         .await
-        .map_err(|error| AppError::with(id::AUDIO_TEST_START, format!("{error:#}")))
+        .map_err(|error| AppError::with(id::AUDIO_TEST_START, &error))
 }
 
 #[tauri::command]

@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use crate::sync::lock;
+
 use anyhow::{ensure, Context, Result};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -217,7 +219,7 @@ impl Drop for Partial {
 
 impl ModelManager {
     pub fn list(&self, dir: &Path) -> Vec<ModelInfo> {
-        let state = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let state = lock(&self.0);
         ModelId::ALL
             .into_iter()
             .map(|id| {
@@ -236,13 +238,13 @@ impl ModelManager {
     }
 
     pub fn cancel_download(&self) {
-        if let Some((_, token, _)) = &self.0.lock().unwrap_or_else(|e| e.into_inner()).download {
+        if let Some((_, token, _)) = &lock(&self.0).download {
             token.cancel();
         }
     }
 
     pub fn remove(&self, dir: &Path, id: ModelId) -> Result<()> {
-        let state = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let state = lock(&self.0);
         ensure!(
             !state.leases.contains(&id),
             "The model is being used by a session"
@@ -258,7 +260,7 @@ impl ModelManager {
 
     /// Pins the file against deletion or replacement for the lifetime of the context.
     pub fn lease(&self, dir: &Path, id: ModelId) -> Result<ModelLease> {
-        let mut state = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = lock(&self.0);
         ensure!(
             state.download.as_ref().is_none_or(|d| d.0 != id),
             "The model is still downloading"
@@ -283,7 +285,7 @@ impl ModelManager {
     async fn download_from(&self, dir: &Path, id: ModelId, transfer: &Transfer) -> Result<()> {
         let token = CancellationToken::new();
         {
-            let mut state = self.0.lock().unwrap_or_else(|e| e.into_inner());
+            let mut state = lock(&self.0);
             ensure!(
                 state.download.is_none(),
                 "Another model download is in progress"
@@ -335,7 +337,7 @@ impl ModelManager {
             );
             hash.update(&chunk);
             partial.write(&chunk).await?;
-            if let Some(download) = &mut self.0.lock().unwrap_or_else(|e| e.into_inner()).download {
+            if let Some(download) = &mut lock(&self.0).download {
                 download.2 = total;
             }
         }
@@ -351,7 +353,7 @@ impl ModelManager {
 struct DownloadGuard(ModelManager);
 impl Drop for DownloadGuard {
     fn drop(&mut self) {
-        self.0 .0.lock().unwrap_or_else(|e| e.into_inner()).download = None;
+        lock(&self.0 .0).download = None;
     }
 }
 
@@ -368,7 +370,7 @@ impl ModelLease {
 }
 impl Drop for ModelLease {
     fn drop(&mut self) {
-        let mut state = self.manager.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut state = lock(&self.manager.0);
         if let Some(i) = state.leases.iter().position(|id| *id == self.id) {
             state.leases.remove(i);
         }

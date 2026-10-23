@@ -98,10 +98,10 @@ export const api = {
 	 *  audio. See `SessionManager::start_test`. */
 	startAudioTest: (
 		source: AudioSource,
-		micDeviceName: string | null,
+		micDevice: string | null,
 		systemDeviceId: string | null = null,
 		systemCapture?: SystemCapture
-	) => invoke<void>('start_audio_test', { source, micDeviceName, systemDeviceId, systemCapture }),
+	) => invoke<void>('start_audio_test', { source, micDevice, systemDeviceId, systemCapture }),
 	stopAudioTest: () => invoke<void>('stop_audio_test'),
 
 	setOverlayClickThrough: (enabled: boolean) =>

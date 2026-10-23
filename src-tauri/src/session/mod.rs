@@ -12,7 +12,7 @@ mod options;
 mod preflight;
 mod settings;
 
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -27,6 +27,7 @@ use tokio_util::sync::CancellationToken;
 use crate::errors::AppError;
 use crate::realtime::Events;
 use crate::secrets;
+use crate::sync::lock;
 use crate::timing::SessionClock;
 use crate::types::{Origin, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
@@ -66,12 +67,6 @@ struct ActiveSession {
     /// With a second caption language, one relay per source copies its audio to both clients.
     relay_tasks: Vec<AsyncJoinHandle<()>>,
     client_tasks: Vec<AsyncJoinHandle<()>>,
-}
-
-fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
-    mutex
-        .lock()
-        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 /// Publish a pause or resume to every client. False when it changes nothing: an unchanged

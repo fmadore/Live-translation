@@ -22,6 +22,7 @@ use whisper_rs::{
 
 use crate::errors::{id, AppError};
 use crate::realtime::Events;
+use crate::sync::lock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};
@@ -237,12 +238,7 @@ async fn drive<E: LocalEvents>(
                 !ingest_spool.overflowed.load(Ordering::Relaxed),
                 "Audio capture outran the local disk buffer; the transcript may be incomplete"
             );
-            if let Some(error) = ingest_spool
-                .capture_error
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .as_ref()
-            {
+            if let Some(error) = lock(&ingest_spool.capture_error).as_ref() {
                 anyhow::bail!("{error}");
             }
             Ok(())
@@ -300,12 +296,11 @@ async fn drive<E: LocalEvents>(
         Ok(())
     });
     if let Err(error) = result {
-        *failure.lock().unwrap_or_else(|e| e.into_inner()) =
-            Some(AppError::with(id::WHISPER_SESSION, format!("{error:#}")));
+        *lock(&failure) = Some(AppError::with(id::WHISPER_SESSION, &error));
         app.status(StatusUpdate::source(
             origin,
             SessionState::Error,
-            Some(AppError::with(id::WHISPER_SESSION, format!("{error:#}"))),
+            Some(AppError::with(id::WHISPER_SESSION, &error)),
         ));
     } else {
         app.status(StatusUpdate::source(origin, SessionState::Idle, None));
@@ -346,7 +341,7 @@ fn transcribe(
             let mut samples = window.samples;
             samples.resize(samples.len().max(16_000), 0.0);
             let inferred = {
-                let _turn = model.inference.lock().unwrap_or_else(|e| e.into_inner());
+                let _turn = lock(&model.inference);
                 state.full(params, &samples)
             };
             if let Err(error) = inferred {

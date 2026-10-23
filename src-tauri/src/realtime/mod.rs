@@ -355,7 +355,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
                     SessionState::Reconnecting,
                     // The whole chain: "WebSocket connect failed" alone hides whether it was
                     // DNS, TLS, a proxy or a refused handshake.
-                    Some(AppError::chain(id::PROVIDER_RECONNECTING, &error)),
+                    Some(AppError::with(id::PROVIDER_RECONNECTING, error)),
                 ));
             }
         }
