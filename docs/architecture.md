@@ -145,11 +145,16 @@ once. Whatever ends a drain, the source reports the Pause or Stop that started i
 runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
 drain.
 
-Provider `error` events are classified per provider: authentication, permission, a bad request
-or model, and an exhausted quota stop the source with the provider's message; a server error,
-a rate limit or an overloaded service reconnect with backoff; an expired session (OpenAI's
-60-minute cap) is a planned handover; anything unrecognized stays fatal, so a persistent
-failure reports itself instead of looping. A provider that ends its session mid-stream
+Every provider's `error` event, and a close during setup, goes through one classifier
+(`realtime::wire::classify`), so the providers cannot drift apart. Authentication, permission,
+quota, billing and credit wording stop the source with the provider's message, whatever code
+it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, close codes 1001,
+1011, 1012 and 1013, and Google's transient names reconnect with backoff; an expired session
+(OpenAI's or Mistral's cap) is a planned handover; anything unrecognized stays fatal, 1007 and
+1008 included, so a persistent failure reports itself instead of looping. A setup that times
+out, hits EOF or is closed with a retryable code is retried the same way, as Reconnecting, and
+the fifth such failure in a row ends the source; an accepted setup resets the count. A
+provider that ends its session mid-stream
 (OpenAI's `session.closed`, Mistral's `transcription.done`) does not end the source either:
 its last caption is emitted and the runner hands over to a new session.
 
@@ -193,9 +198,12 @@ for minutes and Pause went unseen.
 
 **Planned handovers.** Gemini's `goAway` returns `MessageControl::Handover`, and a provider
 ending its session mid-stream is treated the same way. After a connection that lasted at least
-`STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. While
-the new socket connects and sets up it keeps reading the producer into a backlog of up to 30
-chunks (about three seconds; the oldest go first beyond that), sends it in order once setup
+`STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. First
+it drains the old socket like a Pause, within `min(timeLeft, 4 s)`: it sends the closing frames
+(`audioStreamEnd` for Gemini) and reads until the provider's flush is done, so the audio already
+sent still comes back as text. From the drain on, and while the new socket connects and sets
+up, it keeps reading the producer into a backlog of up to 70 chunks (about seven seconds; the
+oldest go first beyond that), sends it in order once setup
 completes, then whatever is still queued (`next_chunk`'s catch-up) rather than coalescing it as
 a stall's backlog. The gap becomes latency instead of lost speech.
 
@@ -228,13 +236,20 @@ installed Whisper model on a supported processor, or the bundled demo),
 failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
 `nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
-when imported. Page teardown disposes the preflight timers and capture test. Start, Rehearse
-and Ctrl+Shift+Space read one derived list of start blockers (busy, caption language, engine,
-application), so the three cannot disagree about whether a session can begin.
+when imported. Page teardown disposes the preflight timers and capture test.
+`launchController.svelte.ts` owns the rehearsal flag and the launch path: Start, Rehearse and
+Ctrl+Shift+Space read its one derived list of start blockers (busy, a run opening but not yet
+reporting, caption language, engine, application), so the three cannot disagree about whether
+a session can begin. `operatorContext.ts` hands the overlay and preflight controllers to the
+components that need them through a Svelte context, instead of props through every level.
 
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
-its actions), `DeviceRecoveryBanner`, `SetupSheet` or `LiveRail`, `PreflightChecklist` or
-`LiveTurns`, and `SettingsDialog`, over the shared primitives in `src/lib/ui/`. Every button is
+its actions), `DeviceRecoveryBanner`, `SetupSheet` (its four steps under `src/lib/setup/`) or
+`LiveRail`, `IdleStage` (with `PreflightChecklist`) or `RunningStage` (with `LiveTurns`), and
+`SettingsDialog`, over the shared primitives in `src/lib/ui/`. The transcript
+(`TranscriptMonitor`: `TranscriptActions` over `TranscriptLog`) is mounted once in the stage
+column for both states, so its copy window, follow state and an in-flight save survive Start
+and Stop. Every button is
 a `ToolButton` (`variant` default, primary, ghost, danger or warn; `size` sm, md or lg), drawn
 once under `.ui-tool` in `app.css`. Classes the components share (`kicker`, `hint`,
 `divider`, `pref`, `rail-section`) are global there too. `app.css` is also the only place a
