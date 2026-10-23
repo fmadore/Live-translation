@@ -184,7 +184,7 @@ mod smart_tests {
         );
         assert!(matches!(
             h.send(r#"{"goAway":{}}"#).control,
-            MessageControl::Handover
+            MessageControl::Handover { .. }
         ));
     }
 

@@ -52,7 +52,7 @@ impl Verdict {
     /// As a message's control. `fatal` is the operator's detail, built only when it is needed.
     pub fn control(self, fatal: impl FnOnce() -> String) -> MessageControl {
         match self {
-            Self::Handover => MessageControl::Handover,
+            Self::Handover => MessageControl::Handover { time_left: None },
             Self::Retry => MessageControl::Reconnect,
             Self::Fatal => MessageControl::Fatal(fatal()),
         }
@@ -284,7 +284,7 @@ mod tests {
     fn a_verdict_becomes_the_control_the_runner_acts_on() {
         assert!(matches!(
             Verdict::Handover.control(String::new),
-            MessageControl::Handover
+            MessageControl::Handover { time_left: None }
         ));
         assert!(matches!(
             Verdict::Retry.control(|| unreachable!("only a fatal verdict words its detail")),

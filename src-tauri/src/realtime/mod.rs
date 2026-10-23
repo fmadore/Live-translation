@@ -26,7 +26,7 @@ use crate::errors::{id, AppError};
 use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use policy::{After, Reconnect, RunEnd};
-use socket::SocketIo;
+use socket::{Backlog, SocketIo};
 pub use wire::{bearer_request, classify_json, parse_or_log};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
@@ -112,9 +112,13 @@ pub enum MessageControl {
     Continue,
     Reconnect,
     /// The provider announced that it is about to close a healthy connection (Gemini's
-    /// `goAway` ahead of its session cap). A planned move rather than a failure: reconnect at
-    /// once, without backoff, and send the audio that queued up while the new socket opened.
-    Handover,
+    /// `goAway` ahead of its session cap). A planned move rather than a failure: drain the old
+    /// connection for its last captions, within `time_left` when the provider says how long it
+    /// has, then reconnect at once, without backoff, and send the audio that queued up while
+    /// the old socket drained and the new one opened.
+    Handover {
+        time_left: Option<Duration>,
+    },
     Fatal(String),
     /// The provider has finished with this session. During a close drain that is the end of
     /// the drain; mid-stream the runner treats it as a `Handover`, because only the operator's
@@ -251,6 +255,9 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let mut policy = Reconnect::new(origin);
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
     let mut acc = TurnAccumulator::new(clock, lane);
+    // Also outside it: a handover fills it while the old connection drains, the next one
+    // replays it.
+    let mut backlog = Backlog::default();
     let mut terminal_error = None;
 
     while !cancel.is_cancelled() {
@@ -268,6 +275,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
         }
         if plan.drain_stale {
             drop_stale_audio(&mut audio_rx, origin);
+            backlog.clear();
         }
 
         let connected_at = Instant::now();
@@ -276,6 +284,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             audio_rx: &mut audio_rx,
             cancel: &cancel,
             pause: &mut pause,
+            backlog: &mut backlog,
         };
         let ended = socket::connect_and_run(io, &mut proto, &mut acc, plan.catch_up).await;
         if ended.established {

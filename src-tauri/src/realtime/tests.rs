@@ -87,7 +87,7 @@ impl Events for Recorder {
 /// setup, `text:…` revises the turn, `more:…` extends it as new transcript (restarting the
 /// idle timer), `turnend` marks the end of the speaker's turn (`turnend:<ms>` with a grace of
 /// its own), `hold`/`release` say whether they are mid-sentence, `final` completes the turn,
-/// `goaway`/`closed`/`fatal` steer the connection. The client sends `setup`, `audio:<base64>`,
+/// `goaway` (`goaway:<ms>` with the time it has left)/`closed`/`fatal` steer the connection. The client sends `setup`, `audio:<base64>`,
 /// and `end` to start a close drain, which completes on the next final.
 struct Fake {
     url: String,
@@ -154,7 +154,7 @@ impl RealtimeProtocol for Fake {
                 self.hold = text == "hold";
                 MessageOutcome::default()
             }
-            "goaway" => MessageOutcome::control(MessageControl::Handover),
+            "goaway" => MessageOutcome::control(MessageControl::Handover { time_left: None }),
             "closed" => MessageOutcome::control(MessageControl::Closed),
             "fatal" => MessageOutcome::control(MessageControl::Fatal("refused".into())),
             _ => {
@@ -166,6 +166,10 @@ impl RealtimeProtocol for Fake {
                     MessageOutcome::activity(CaptionUpdate::Interim)
                 } else if let Some(ms) = text.strip_prefix("turnend:") {
                     end_of_turn(Duration::from_millis(ms.parse().unwrap()))
+                } else if let Some(ms) = text.strip_prefix("goaway:") {
+                    MessageOutcome::control(MessageControl::Handover {
+                        time_left: Some(Duration::from_millis(ms.parse().unwrap())),
+                    })
                 } else {
                     MessageOutcome::default()
                 }
@@ -487,8 +491,12 @@ async fn pause_with_a_turn_still_open_drains_until_its_final() {
     client.finished().await;
 }
 
+/// B2: the old socket is drained before the move, so the words it was still working on come
+/// back as text instead of being dropped with it. The speech that goes on meanwhile is held
+/// for the new socket rather than sent to one that has stopped listening, and the new one
+/// then gets the whole gap in order.
 #[tokio::test(start_paused = true)]
-async fn a_planned_handover_reconnects_at_once_and_replays_the_gap_in_order() {
+async fn a_planned_handover_drains_then_reconnects_at_once_and_replays_the_gap_in_order() {
     tick_clock();
     let server = Server::bind().await;
     let (mut client, mut peer, _) = running(&server).await;
@@ -500,23 +508,67 @@ async fn a_planned_handover_reconnects_at_once_and_replays_the_gap_in_order() {
 
     let moved_at = Instant::now();
     peer.send("goaway").await;
-    client.expect(final_("before the move")).await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    // Speaking on while the old socket drains.
+    client.speak(3);
+    client.speak(4);
+    sleep(Duration::from_millis(200)).await;
+    peer.send("more: and its last words").await;
+    client
+        .expect(interim("before the move and its last words"))
+        .await;
+    peer.send("final").await;
+    client
+        .expect(final_("before the move and its last words"))
+        .await;
+    // Nothing more reached the old socket: the audio after the stream end is not in this.
+    assert_eq!(peer.recv().await, Frame::Close);
     let mut next = server.accept().await;
     assert!(Instant::now() - moved_at < INITIAL_BACKOFF, "no backoff");
 
     // A second of speech while the new session sets up: twice what the producer queue holds.
-    for tag in 3..=12 {
+    for tag in 5..=14 {
         client.speak(tag);
         sleep(Duration::from_millis(100)).await;
     }
     next.send("ready").await;
     // The source stayed Running throughout: no Reconnecting before this.
     client.expect(status(SessionState::Running)).await;
-    client.speak(13);
+    client.speak(15);
     assert_eq!(
         next.listen_for(Duration::from_secs(1)).await,
-        (3..=13).collect::<Vec<u8>>()
+        (3..=15).collect::<Vec<u8>>()
     );
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// A provider that answers nothing after the stream end holds the handover for no longer than
+/// the time it said it had left; the turn so far is still kept.
+#[tokio::test(start_paused = true)]
+async fn a_handover_drain_lasts_no_longer_than_the_time_left() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.listen_for(STABLE_CONNECTION).await;
+    peer.send("text:cut short").await;
+    client.expect(interim("cut short")).await;
+
+    let moved_at = Instant::now();
+    peer.send("goaway:500").await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    assert_eq!(peer.recv().await, Frame::Close);
+    let at = client.expect(final_("cut short")).await;
+    let drained = at - moved_at;
+    assert!(
+        drained >= Duration::from_millis(500) && drained < Duration::from_millis(600),
+        "drained for {drained:?}"
+    );
+    let mut next = server.accept().await;
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
 
     drop(next);
     client.cancel.cancel();

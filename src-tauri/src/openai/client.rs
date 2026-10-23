@@ -302,7 +302,7 @@ mod tests {
             let frame = format!(r#"{{"type":"error","error":{error}}}"#);
             let control = h.send(&frame).control;
             let got = match control {
-                MessageControl::Handover => "handover",
+                MessageControl::Handover { .. } => "handover",
                 MessageControl::Reconnect => "reconnect",
                 MessageControl::Fatal(_) => "fatal",
                 _ => "other",

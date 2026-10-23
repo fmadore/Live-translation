@@ -5,6 +5,8 @@ pub mod client;
 pub mod protocol;
 pub mod transcribe;
 
+use std::time::Duration;
+
 use anyhow::{Context, Result};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
@@ -39,10 +41,17 @@ impl ServerMessage {
             return Some(MessageOutcome::setup_complete());
         }
         // Live sessions are capped — transcription at ten minutes, so a long room session
-        // reconnects several times an hour. `goAway` warns ahead of the cut, and as a planned
-        // handover the runner reconnects at once rather than backing off.
-        if self.go_away.is_some() {
-            return Some(MessageOutcome::control(MessageControl::Handover));
+        // reconnects several times an hour. `goAway` warns ahead of the cut, with the time left
+        // before it, and as a planned handover the runner drains the old socket within that
+        // time, then reconnects at once rather than backing off.
+        if let Some(go_away) = &self.go_away {
+            let time_left = go_away
+                .get("timeLeft")
+                .and_then(serde_json::Value::as_str)
+                .and_then(duration);
+            return Some(MessageOutcome::control(MessageControl::Handover {
+                time_left,
+            }));
         }
         self.error.as_ref().map(|error| {
             let control = classify_json(error).control(|| format!("{error_label}: {error}"));
@@ -55,9 +64,45 @@ impl ServerMessage {
     }
 }
 
+/// A `google.protobuf.Duration` as JSON writes it: seconds with up to nine decimals and an
+/// `s`, such as `"10s"` or `"0.5s"`. `None` for anything else, which leaves the drain its own
+/// limit.
+fn duration(text: &str) -> Option<Duration> {
+    let seconds: f64 = text.strip_suffix('s')?.parse().ok()?;
+    Duration::try_from_secs_f64(seconds).ok()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn go_away_says_how_long_the_connection_has_left() {
+        let mut h = Harness::new(GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        });
+        for (frame, expected) in [
+            (
+                r#"{"goAway":{"timeLeft":"10s"}}"#,
+                Some(Duration::from_secs(10)),
+            ),
+            (
+                r#"{"goAway":{"timeLeft":"0.5s"}}"#,
+                Some(Duration::from_millis(500)),
+            ),
+            (r#"{"goAway":{"timeLeft":"soon"}}"#, None),
+            (r#"{"goAway":{"timeLeft":"-1s"}}"#, None),
+            (r#"{"goAway":{}}"#, None),
+        ] {
+            let MessageControl::Handover { time_left } = h.send(frame).control else {
+                panic!("{frame} did not hand over");
+            };
+            assert_eq!(time_left, expected, "{frame}");
+        }
+    }
     use crate::realtime::test_support::Harness;
     use crate::types::Origin;
 
