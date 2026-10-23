@@ -63,6 +63,7 @@ and a live session; use Both to verify that the unaffected source continues.
 | No microphone or render endpoint at launch | Default remains representable; missing saved ID repaired; capture failure is actionable | Pending |
 | Rapid connect/disconnect/default changes during Refresh | Latest list settles; selections do not change underneath active capture | Pending |
 | Quit during refresh or preflight | No late UI mutation; capture shuts down; app exits normally | Pending |
+| System audio and local Whisper together, on a busy machine (B5) | Captions keep up without gaps or garbled stretches; the log shows at most one data-discontinuity warning per 10 s | Pending |
 
 For every session failure, check that finalized transcript text survives Retry and Default
 fallback, and that the original provider connection drains before the replacement starts.

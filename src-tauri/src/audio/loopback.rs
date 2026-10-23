@@ -40,7 +40,7 @@ pub fn run_system_loopback(
 #[cfg(windows)]
 mod windows_impl {
     use std::collections::VecDeque;
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
@@ -83,12 +83,11 @@ mod windows_impl {
             process,
             mut client,
             format,
-            period,
         } = match capture {
             SystemCapture::Output => Source::output(device_id)?,
             SystemCapture::Application { process } => Source::application(process)?,
         };
-        let (event, mut reader) = start(&mut client, &format, period)?;
+        let (event, mut reader) = start(&mut client, &format)?;
 
         let mut state =
             CaptureState::new(Origin::System, reader.rate, target_rate, level_tx, chunk_tx);
@@ -98,7 +97,7 @@ mod windows_impl {
 
         while !cancel.is_cancelled() {
             ensure_present(device.as_ref(), process.as_ref(), &mut presence)?;
-            reader.forward(&mut state)?;
+            reader.drain(&mut state)?;
 
             // Wake on the audio event; short timeout keeps cancellation responsive.
             if event.wait_for_event(100).is_err() {
@@ -111,7 +110,19 @@ mod windows_impl {
         Ok(())
     }
 
-    /// What loopback captures, and the client, format and buffer duration it opens with.
+    /// How much audio the endpoint buffer holds, in 100 ns units: 200 ms. It used to be the
+    /// device's minimum period, a few milliseconds, so a capture thread that woke one period
+    /// late (starved by local Whisper's busy workers, say) found the buffer already full and
+    /// lost what came next. 200 ms rides out a long stall; the event still fires every period,
+    /// so it adds no latency.
+    const BUFFER_DURATION_HNS: i64 = 2_000_000;
+
+    /// The most packets one wake reads before looking at cancellation again. A buffer of
+    /// `BUFFER_DURATION_HNS` holds about twenty 10 ms packets, so this only bounds a device
+    /// that never stops reporting one.
+    const MAX_PACKETS_PER_WAKE: usize = 64;
+
+    /// What loopback captures, and the client and format it opens with.
     struct Source {
         /// The output endpoint, watched for removal. `None` when capturing an application.
         device: Option<wasapi::Device>,
@@ -119,8 +130,6 @@ mod windows_impl {
         process: Option<ProcessGuard>,
         client: wasapi::AudioClient,
         format: WaveFormat,
-        /// In 100 ns units.
-        period: i64,
     }
 
     impl Source {
@@ -143,15 +152,11 @@ mod windows_impl {
                 .get_iaudioclient()
                 .ctx("failed to get IAudioClient")?;
             let format = client.get_mixformat().ctx("failed to get mix format")?;
-            let (_, period) = client
-                .get_device_period()
-                .ctx("failed to get device periods")?;
             Ok(Self {
                 device: Some(device),
                 process: None,
                 client,
                 format,
-                period,
             })
         }
 
@@ -161,14 +166,13 @@ mod windows_impl {
             let guard = ProcessGuard::selected(&identity)?;
             let client = wasapi::AudioClient::new_application_loopback_client(identity.pid, true)
                 .ctx("failed to capture selected application")?;
-            // Process clients have neither a device mix format nor a device period.
+            // Process clients have no device mix format.
             let format = WaveFormat::new(32, 32, &SampleType::Float, 48000, 2, None);
             Ok(Self {
                 device: None,
                 process: Some(guard),
                 client,
                 format,
-                period: 200_000,
             })
         }
     }
@@ -178,7 +182,6 @@ mod windows_impl {
     fn start(
         client: &mut wasapi::AudioClient,
         format: &WaveFormat,
-        period: i64,
     ) -> Result<(wasapi::Handle, Reader)> {
         let in_rate = format.get_samplespersec();
         let channels = usize::from(format.get_nchannels());
@@ -196,7 +199,7 @@ mod windows_impl {
         // Loopback = render endpoint opened for capture.
         let mode = StreamMode::EventsShared {
             autoconvert: true,
-            buffer_duration_hns: period,
+            buffer_duration_hns: BUFFER_DURATION_HNS,
         };
         client
             .initialize_client(format, &Direction::Capture, &mode)
@@ -221,6 +224,7 @@ mod windows_impl {
             sample_type,
             raw: VecDeque::new(),
             frame: Vec::new(),
+            discontinuities: Discontinuities::default(),
         };
         Ok((event, reader))
     }
@@ -257,24 +261,89 @@ mod windows_impl {
         sample_type: SampleType,
         raw: VecDeque<u8>,
         frame: Vec<f32>,
+        discontinuities: Discontinuities,
     }
 
     impl Reader {
-        /// Decode the endpoint's next packet, if it has one, and feed it to `state`.
-        /// `read_from_device_to_deque` reads a single packet per call, and the packet's
-        /// buffer flags (silent, discontinuity) it returns are not looked at.
-        fn forward(&mut self, state: &mut CaptureState) -> Result<()> {
-            self.capture
-                .read_from_device_to_deque(&mut self.raw)
-                .ctx("failed to read loopback buffer")?;
-
-            if !self.raw.is_empty() {
-                self.frame.clear();
-                decode_interleaved(&mut self.raw, self.sample_type, self.bits, &mut self.frame);
-                self.raw.clear();
-                state.push_samples(&self.frame, self.channels);
+        /// Decode every packet the endpoint holds and feed each to `state`.
+        /// `read_from_device_to_deque` reads one packet per call, so reading once per wake
+        /// fell behind for good after any wake that came late: the backlog never cleared and
+        /// the buffer overflowed. So this reads until `get_next_packet_size` reports none.
+        fn drain(&mut self, state: &mut CaptureState) -> Result<()> {
+            for _ in 0..MAX_PACKETS_PER_WAKE {
+                let waiting = self
+                    .capture
+                    .get_next_packet_size()
+                    .ctx("failed to query loopback packet size")?;
+                // `None` only in exclusive mode, which loopback never opens.
+                if waiting.unwrap_or(0) == 0 {
+                    break;
+                }
+                let info = self
+                    .capture
+                    .read_from_device_to_deque(&mut self.raw)
+                    .ctx("failed to read loopback buffer")?;
+                if info.flags.data_discontinuity {
+                    if let Some(earlier) = self.discontinuities.note(Instant::now()) {
+                        tracing::warn!(
+                            "loopback capture lost audio (data discontinuity; {earlier} more \
+                             since the last report)"
+                        );
+                    }
+                }
+                self.forward_packet(info.flags.silent, state);
             }
             Ok(())
+        }
+
+        /// Decode the packet just read into `raw` and feed it to `state`.
+        fn forward_packet(&mut self, silent: bool, state: &mut CaptureState) {
+            if self.raw.is_empty() {
+                return;
+            }
+            zero_if_silent(&mut self.raw, silent);
+            self.frame.clear();
+            decode_interleaved(&mut self.raw, self.sample_type, self.bits, &mut self.frame);
+            self.raw.clear();
+            state.push_samples(&self.frame, self.channels);
+        }
+    }
+
+    /// A packet flagged `AUDCLNT_BUFFERFLAGS_SILENT` is to be read as silence whatever its
+    /// buffer holds: Windows does not promise to have written the samples. All-zero bytes are
+    /// silence in every format `decode_interleaved` reads, the float one included.
+    fn zero_if_silent(raw: &mut VecDeque<u8>, silent: bool) {
+        if silent {
+            raw.iter_mut().for_each(|byte| *byte = 0);
+        }
+    }
+
+    /// How often a data discontinuity is reported. One means audio was lost, which matters
+    /// when someone asks why the captions skipped; a starved thread can produce one per
+    /// packet, which would bury everything else in the log.
+    const DISCONTINUITY_REPORT_INTERVAL: Duration = Duration::from_secs(10);
+
+    /// Rate-limits the discontinuity report.
+    #[derive(Debug, Default)]
+    struct Discontinuities {
+        last_report: Option<Instant>,
+        /// Seen since the last report, and not reported yet.
+        unreported: u32,
+    }
+
+    impl Discontinuities {
+        /// Record one at `now`. When it is time to report, how many came between the last
+        /// report and this one (zero for the first).
+        fn note(&mut self, now: Instant) -> Option<u32> {
+            let due = self.last_report.is_none_or(|last| {
+                now.saturating_duration_since(last) >= DISCONTINUITY_REPORT_INTERVAL
+            });
+            if !due {
+                self.unreported = self.unreported.saturating_add(1);
+                return None;
+            }
+            self.last_report = Some(now);
+            Some(std::mem::take(&mut self.unreported))
         }
     }
 
@@ -307,6 +376,48 @@ mod windows_impl {
                 }
                 tracing::warn!("unsupported loopback sample format: {ty:?}/{b}-bit");
             }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn bytes<const N: usize>(samples: impl IntoIterator<Item = [u8; N]>) -> Vec<u8> {
+            samples.into_iter().flatten().collect()
+        }
+
+        #[test]
+        fn a_silent_packet_is_zeroed_whatever_its_buffer_holds() {
+            let loud = bytes([1.0_f32, -1.0].map(f32::to_le_bytes));
+            let mut raw: VecDeque<u8> = loud.iter().copied().collect();
+            zero_if_silent(&mut raw, true);
+            assert_eq!(raw.len(), loud.len(), "the packet keeps its length");
+            let mut out = Vec::new();
+            decode_interleaved(&mut raw, SampleType::Float, 32, &mut out);
+            assert_eq!(out, [0.0, 0.0]);
+
+            // A packet that is not flagged is left alone.
+            let mut raw: VecDeque<u8> = loud.iter().copied().collect();
+            zero_if_silent(&mut raw, false);
+            assert_eq!(raw.iter().copied().collect::<Vec<_>>(), loud);
+        }
+
+        #[test]
+        fn discontinuities_are_reported_at_most_once_per_interval_with_a_count() {
+            let start = Instant::now();
+            let at = |ms: u64| start + Duration::from_millis(ms);
+            let mut seen = Discontinuities::default();
+            // The first is reported at once.
+            assert_eq!(seen.note(at(0)), Some(0));
+            // A starved thread's burst is counted, not logged.
+            for ms in [10, 20, 30, 9_999] {
+                assert_eq!(seen.note(at(ms)), None);
+            }
+            // The next report carries the count, which then starts again.
+            assert_eq!(seen.note(at(10_000)), Some(4));
+            assert_eq!(seen.note(at(10_001)), None);
+            assert_eq!(seen.note(at(25_000)), Some(1));
         }
     }
 }
