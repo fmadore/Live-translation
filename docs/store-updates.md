@@ -65,8 +65,8 @@ The [privacy policy](privacy.md) is unchanged: the theme is a local preference.
 
 ### Testing
 
-- [ ] Merge the release PR.
-- [ ] **No release candidate.** Tag `v1.9.0` straight from the merge. A bug found afterwards
+- [x] Merge the release PR ([#170](https://github.com/fmadore/Live-translation/pull/170)).
+- [x] **No release candidate.** Tag `v1.9.0` straight from the merge. A bug found afterwards
   ships as 1.9.1; never move a tag.
 - [ ] **Maintainer test** of the side-by-side Local Test build of the merge commit (ARM64):
   - Light, Dark, and System while switching Windows' app mode; the title bar follows;
@@ -94,11 +94,23 @@ ARM64 unless a line says otherwise:
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.9.0` (annotated: "Live Translation & Subtitles v1.9.0") on the merge commit,
-  after its CI run finishes green and uncancelled.
-- [ ] The workflow publishes the release with its body once the bundle is attached.
-- [ ] Verify `Live.Translation_1.9.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
-  at **1.9.0.0**, and record sizes and SHA-256 here.
+- [x] Tag `v1.9.0` (annotated: "Live Translation & Subtitles v1.9.0") on `756f874`, the merge
+  of [#170](https://github.com/fmadore/Live-translation/pull/170).
+- [x] The workflow published the release with its body once the bundle was attached: all
+  [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/39801417265)
+  passed, and the release went live on 22 October 2026, about 20 minutes after the tag push.
+- [x] Verified `Live.Translation_1.9.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
+  at **1.9.0.0** on 23 October 2026; all 30 passed on the published assets: GitHub's digests
+  match; the bundle holds exactly both packages, byte for byte, with no signature; the assigned
+  identity and publisher at 1.9.0.0; native PE machine types; only `runFullTrust` and
+  `microphone`; the rehearsal WAVs and licence notices, and no weights; the 46 `Assets/` files
+  byte-identical to the repository, with a single `resources.pri`.
+  - Bundle: 11,866,825 bytes, SHA-256
+    `e738b2706795e7777e7d4369566e48d9b57234113956e3109d28f0630cd6b8c2`.
+  - ARM64 MSIX: 5,811,541 bytes, SHA-256
+    `35e74cdeba60346ce647842ae712e096c5b7cb813fe1cbdea391c4ab4088e000`.
+  - x64 MSIX: 6,053,276 bytes, SHA-256
+    `87b5bda1f7a5106a3502317c1cf25c345947a9b0cc81305c06d671647763b43f`.
 - [ ] Sideload-test the per-architecture MSIX packages and walk the
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
 - [ ] **Screenshots:** retake from the 1.9.0 MSIX in EN/FR/DE with Settings › App › Theme on
