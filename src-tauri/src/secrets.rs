@@ -229,6 +229,189 @@ mod tests {
         assert!(!detail.contains("secret"));
     }
 
+    /// Swaps keyring's in-memory mock store in for Credential Manager, once for the whole test
+    /// binary, and serializes the tests that use it: the store is process-wide, and these tests
+    /// write the same entries. Each test starts from an empty keychain.
+    ///
+    /// `None` where keyring has no platform store to begin with (a Linux runner without a
+    /// Secret Service): `keyring::Entry::new` refuses to make entries there, mock or not.
+    fn mock_keychain() -> Option<std::sync::MutexGuard<'static, ()>> {
+        static INSTALL: std::sync::Once = std::sync::Once::new();
+        static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        // keyring's `v1` entries install the platform store the first time they are used;
+        // let that happen first, or it would replace the mock.
+        if keyring::Entry::store_status().is_err() {
+            eprintln!("no platform credential store; skipping");
+            return None;
+        }
+        INSTALL.call_once(|| {
+            keyring_core::set_default_store(keyring_core::mock::Store::new().unwrap());
+        });
+        let guard = SERIAL.lock().unwrap_or_else(|e| e.into_inner());
+        for provider in [Provider::Gemini, Provider::OpenAi, Provider::Mistral] {
+            for service in [SERVICE, LEGACY_SERVICE] {
+                let _ = entry_in(service, provider).unwrap().delete_credential();
+            }
+        }
+        Some(guard)
+    }
+
+    fn stored(service: &str, provider: Provider) -> Option<String> {
+        entry_in(service, provider).unwrap().get_password().ok()
+    }
+
+    fn store(service: &str, provider: Provider, key: &str) {
+        entry_in(service, provider)
+            .unwrap()
+            .set_password(key)
+            .unwrap();
+    }
+
+    #[test]
+    fn a_saved_key_is_trimmed_stored_and_resolved() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        set_api_key(Provider::Mistral, "  x8Yq2LmN4pR6sT0v\n").unwrap();
+        assert_eq!(
+            stored(SERVICE, Provider::Mistral).as_deref(),
+            Some("x8Yq2LmN4pR6sT0v")
+        );
+        assert_eq!(
+            resolve_api_key(Provider::Mistral).unwrap(),
+            "x8Yq2LmN4pR6sT0v"
+        );
+        assert!(has_api_key(Provider::Mistral));
+    }
+
+    /// One key from AI Studio covers translation and subtitles.
+    #[test]
+    fn both_gemini_engines_read_the_one_gemini_key() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        set_api_key(Provider::GeminiTranscribe, "AIza-shared").unwrap();
+        assert_eq!(resolve_api_key(Provider::Gemini).unwrap(), "AIza-shared");
+    }
+
+    /// B6: a key that cannot be one never reaches the keychain, and does not displace the one
+    /// that is there.
+    #[test]
+    fn a_malformed_key_leaves_the_stored_one_alone() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        set_api_key(Provider::OpenAi, "sk-good").unwrap();
+        for bad in ["sk-abc\u{200B}def", "sk-abc def", "", "   "] {
+            assert!(set_api_key(Provider::OpenAi, bad).is_err(), "{bad:?}");
+        }
+        assert_eq!(
+            stored(SERVICE, Provider::OpenAi).as_deref(),
+            Some("sk-good")
+        );
+    }
+
+    /// An update must not cost the operator the key they saved under the pre-1.2.0 name: it is
+    /// found, moved across, and the old entry removed.
+    #[test]
+    fn a_key_under_the_legacy_name_is_moved_across_on_first_use() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        store(LEGACY_SERVICE, Provider::OpenAi, "sk-from-1-1");
+        assert_eq!(resolve_api_key(Provider::OpenAi).unwrap(), "sk-from-1-1");
+        assert_eq!(
+            stored(SERVICE, Provider::OpenAi).as_deref(),
+            Some("sk-from-1-1")
+        );
+        assert_eq!(stored(LEGACY_SERVICE, Provider::OpenAi), None);
+        // Found under the current name from now on.
+        assert_eq!(resolve_api_key(Provider::OpenAi).unwrap(), "sk-from-1-1");
+    }
+
+    /// The current name wins; the legacy entry is not even read once there is one.
+    #[test]
+    fn a_key_under_the_current_name_is_not_replaced_by_a_legacy_one() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        store(SERVICE, Provider::Mistral, "current");
+        store(LEGACY_SERVICE, Provider::Mistral, "legacy");
+        assert_eq!(resolve_api_key(Provider::Mistral).unwrap(), "current");
+        assert_eq!(
+            stored(LEGACY_SERVICE, Provider::Mistral).as_deref(),
+            Some("legacy")
+        );
+    }
+
+    /// A migration whose write fails keeps the old entry, so the next launch tries again rather
+    /// than the key being lost between the two.
+    #[test]
+    fn a_failed_migration_keeps_the_legacy_key() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        store(LEGACY_SERVICE, Provider::Mistral, "legacy");
+        let current = entry(Provider::Mistral).unwrap();
+        let mock: &keyring_core::mock::Cred = current.inner.as_any().downcast_ref().unwrap();
+        mock.set_error(keyring_core::Error::Invalid(
+            "mock".into(),
+            "write refused".into(),
+        ));
+        assert_eq!(take_legacy_key(Provider::Mistral), None);
+        assert_eq!(
+            stored(LEGACY_SERVICE, Provider::Mistral).as_deref(),
+            Some("legacy")
+        );
+        // The next attempt goes through.
+        assert_eq!(
+            take_legacy_key(Provider::Mistral).as_deref(),
+            Some("legacy")
+        );
+        assert_eq!(stored(LEGACY_SERVICE, Provider::Mistral), None);
+    }
+
+    /// A blank legacy entry is no key: nothing is migrated and nothing written.
+    #[test]
+    fn a_blank_legacy_entry_is_not_migrated() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        store(LEGACY_SERVICE, Provider::OpenAi, "  ");
+        assert_eq!(take_legacy_key(Provider::OpenAi), None);
+        assert_eq!(stored(SERVICE, Provider::OpenAi), None);
+    }
+
+    /// Remove takes the legacy entry too, or the migration would bring the key back on the
+    /// next launch; and removing what is not there is not an error.
+    #[test]
+    fn clearing_a_key_removes_both_names_and_tolerates_neither() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        store(SERVICE, Provider::OpenAi, "current");
+        store(LEGACY_SERVICE, Provider::OpenAi, "legacy");
+        clear_api_key(Provider::OpenAi).unwrap();
+        assert_eq!(stored(SERVICE, Provider::OpenAi), None);
+        assert_eq!(stored(LEGACY_SERVICE, Provider::OpenAi), None);
+        assert_eq!(take_legacy_key(Provider::OpenAi), None);
+        clear_api_key(Provider::OpenAi).unwrap();
+    }
+
+    /// Backends that need no credential are ready without one, and have no entry to write.
+    #[test]
+    fn keyless_engines_are_always_ready_and_store_nothing() {
+        for provider in [
+            Provider::OnDevice,
+            Provider::Whisper,
+            Provider::WhisperTranslate,
+        ] {
+            assert!(has_api_key(provider), "{provider:?}");
+            assert!(set_api_key(provider, "anything").is_err(), "{provider:?}");
+            assert!(resolve_api_key(provider).is_err(), "{provider:?}");
+        }
+    }
+
     /// Refused before Credential Manager is opened, and surrounding whitespace is still only
     /// trimmed: positions count from the key's first real character.
     #[test]

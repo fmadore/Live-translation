@@ -58,12 +58,29 @@ pub struct TrayLabels {
     status: String,
 }
 
-struct Items {
-    open: MenuItem<Wry>,
-    quit: MenuItem<Wry>,
-    status: MenuItem<Wry>,
-    overlay: MenuItem<Wry>,
-    stop: MenuItem<Wry>,
+/// The two writes a live menu item takes. A trait so the write-only-what-changed bookkeeping
+/// can be tested against a fake item, without a running app to build a menu in.
+trait MenuEntry {
+    fn set_text(&self, text: &str) -> tauri::Result<()>;
+    fn set_enabled(&self, enabled: bool) -> tauri::Result<()>;
+}
+
+impl MenuEntry for MenuItem<Wry> {
+    fn set_text(&self, text: &str) -> tauri::Result<()> {
+        MenuItem::set_text(self, text)
+    }
+
+    fn set_enabled(&self, enabled: bool) -> tauri::Result<()> {
+        MenuItem::set_enabled(self, enabled)
+    }
+}
+
+struct Items<I = MenuItem<Wry>> {
+    open: I,
+    quit: I,
+    status: I,
+    overlay: I,
+    stop: I,
     written: Written,
 }
 
@@ -80,9 +97,44 @@ struct Written {
     stop_enabled: Option<bool>,
 }
 
-fn write_text(item: &MenuItem<Wry>, written: &mut String, text: &str) {
+/// Write `text` unless it is what the item already shows. A write that fails is not
+/// remembered, so the next push tries it again.
+fn write_text(item: &impl MenuEntry, written: &mut String, text: &str) {
     if written != text && item.set_text(text).is_ok() {
         *written = text.to_string();
+    }
+}
+
+impl<I: MenuEntry> Items<I> {
+    /// Write the front-end's view of the world onto the menu.
+    fn apply(&mut self, session_active: bool, overlay_visible: bool, labels: Option<TrayLabels>) {
+        let written = &mut self.written;
+        if let Some(labels) = labels {
+            write_text(&self.open, &mut written.open, &labels.open);
+            write_text(&self.quit, &mut written.quit, &labels.quit);
+            write_text(&self.stop, &mut written.stop, &labels.stop);
+            write_text(&self.status, &mut written.status, &labels.status);
+            let overlay = if overlay_visible {
+                labels.hide
+            } else {
+                labels.show
+            };
+            write_text(&self.overlay, &mut written.overlay, &overlay);
+        } else {
+            let overlay = if overlay_visible {
+                "Hide caption overlay"
+            } else {
+                "Show caption overlay"
+            };
+            write_text(&self.overlay, &mut written.overlay, overlay);
+        }
+        // Disabled rather than hidden: an operator glancing at the menu should be able to
+        // tell "no session running" from "this build has no Stop".
+        if written.stop_enabled != Some(session_active)
+            && self.stop.set_enabled(session_active).is_ok()
+        {
+            written.stop_enabled = Some(session_active);
+        }
     }
 }
 
@@ -91,38 +143,11 @@ impl TrayMenu {
         *self.items.lock().unwrap_or_else(|e| e.into_inner()) = Some(items);
     }
 
-    /// Write the front-end's view of the world onto the menu.
+    /// Write the front-end's view of the world onto the menu, once it has been built.
     fn apply(&self, session_active: bool, overlay_visible: bool, labels: Option<TrayLabels>) {
         let mut guard = self.items.lock().unwrap_or_else(|e| e.into_inner());
-        let Some(items) = guard.as_mut() else {
-            return;
-        };
-        let written = &mut items.written;
-        if let Some(labels) = labels {
-            write_text(&items.open, &mut written.open, &labels.open);
-            write_text(&items.quit, &mut written.quit, &labels.quit);
-            write_text(&items.stop, &mut written.stop, &labels.stop);
-            write_text(&items.status, &mut written.status, &labels.status);
-            let overlay = if overlay_visible {
-                labels.hide
-            } else {
-                labels.show
-            };
-            write_text(&items.overlay, &mut written.overlay, &overlay);
-        } else {
-            let overlay = if overlay_visible {
-                "Hide caption overlay"
-            } else {
-                "Show caption overlay"
-            };
-            write_text(&items.overlay, &mut written.overlay, overlay);
-        }
-        // Disabled rather than hidden: an operator glancing at the menu should be able to
-        // tell "no session running" from "this build has no Stop".
-        if written.stop_enabled != Some(session_active)
-            && items.stop.set_enabled(session_active).is_ok()
-        {
-            written.stop_enabled = Some(session_active);
+        if let Some(items) = guard.as_mut() {
+            items.apply(session_active, overlay_visible, labels);
         }
     }
 }
@@ -240,4 +265,134 @@ pub fn set_tray_state(
     labels: Option<TrayLabels>,
 ) {
     tray.apply(session_active, overlay_visible, labels);
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::{Cell, RefCell};
+
+    use super::*;
+
+    /// A menu item that records what was written to it, and can be told to refuse writes.
+    #[derive(Default)]
+    struct Fake {
+        texts: RefCell<Vec<String>>,
+        enabled: RefCell<Vec<bool>>,
+        refuse: Cell<bool>,
+    }
+
+    impl MenuEntry for Fake {
+        fn set_text(&self, text: &str) -> tauri::Result<()> {
+            if self.refuse.get() {
+                return Err(tauri::Error::FailedToReceiveMessage);
+            }
+            self.texts.borrow_mut().push(text.to_string());
+            Ok(())
+        }
+
+        fn set_enabled(&self, enabled: bool) -> tauri::Result<()> {
+            if self.refuse.get() {
+                return Err(tauri::Error::FailedToReceiveMessage);
+            }
+            self.enabled.borrow_mut().push(enabled);
+            Ok(())
+        }
+    }
+
+    fn items() -> Items<Fake> {
+        Items {
+            open: Fake::default(),
+            quit: Fake::default(),
+            status: Fake::default(),
+            overlay: Fake::default(),
+            stop: Fake::default(),
+            written: Written::default(),
+        }
+    }
+
+    fn labels(status: &str) -> TrayLabels {
+        TrayLabels {
+            open: "Open window".into(),
+            quit: "Quit".into(),
+            stop: "Stop session".into(),
+            show: "Show caption overlay".into(),
+            hide: "Hide caption overlay".into(),
+            status: status.into(),
+        }
+    }
+
+    /// Every item's writes, as a count, in a fixed order.
+    fn writes(items: &Items<Fake>) -> [usize; 6] {
+        [
+            items.open.texts.borrow().len(),
+            items.quit.texts.borrow().len(),
+            items.status.texts.borrow().len(),
+            items.overlay.texts.borrow().len(),
+            items.stop.texts.borrow().len(),
+            items.stop.enabled.borrow().len(),
+        ]
+    }
+
+    #[test]
+    fn the_first_push_writes_every_item() {
+        let mut items = items();
+        items.apply(false, true, Some(labels("Idle")));
+        assert_eq!(writes(&items), [1; 6]);
+        assert_eq!(*items.overlay.texts.borrow(), ["Hide caption overlay"]);
+        assert_eq!(*items.stop.enabled.borrow(), [false]);
+    }
+
+    /// The front-end pushes every second during a session for the clock in the status line;
+    /// nothing else should be written again.
+    #[test]
+    fn a_push_a_second_rewrites_only_the_status_line() {
+        let mut items = items();
+        items.apply(true, true, Some(labels("Running · 00:01")));
+        items.apply(true, true, Some(labels("Running · 00:02")));
+        items.apply(true, true, Some(labels("Running · 00:03")));
+        assert_eq!(writes(&items), [1, 1, 3, 1, 1, 1]);
+        // And an identical push writes nothing at all.
+        items.apply(true, true, Some(labels("Running · 00:03")));
+        assert_eq!(writes(&items), [1, 1, 3, 1, 1, 1]);
+    }
+
+    #[test]
+    fn the_overlay_entry_and_stop_follow_their_state() {
+        let mut items = items();
+        items.apply(true, true, Some(labels("Running")));
+        items.apply(true, false, Some(labels("Running")));
+        items.apply(false, false, Some(labels("Idle")));
+        assert_eq!(
+            *items.overlay.texts.borrow(),
+            ["Hide caption overlay", "Show caption overlay"]
+        );
+        assert_eq!(*items.stop.enabled.borrow(), [true, false]);
+    }
+
+    /// Without labels (a push before the catalogs load) the overlay entry still follows the
+    /// overlay, in English, and the other labels are left as they are.
+    #[test]
+    fn a_push_without_labels_still_names_the_overlay_entry() {
+        let mut items = items();
+        items.apply(false, false, None);
+        assert_eq!(*items.overlay.texts.borrow(), ["Show caption overlay"]);
+        assert_eq!(writes(&items), [0, 0, 0, 1, 0, 1]);
+    }
+
+    /// A write the menu refused is not remembered as made, so the next push makes it.
+    #[test]
+    fn a_refused_write_is_tried_again() {
+        let mut items = items();
+        items.status.refuse.set(true);
+        items.stop.refuse.set(true);
+        items.apply(true, true, Some(labels("Running")));
+        assert!(items.status.texts.borrow().is_empty());
+        items.status.refuse.set(false);
+        items.stop.refuse.set(false);
+        items.apply(true, true, Some(labels("Running")));
+        assert_eq!(*items.status.texts.borrow(), ["Running"]);
+        assert_eq!(*items.stop.enabled.borrow(), [true]);
+        // The others were written the first time and are not written again.
+        assert_eq!(items.open.texts.borrow().len(), 1);
+    }
 }

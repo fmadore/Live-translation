@@ -383,8 +383,70 @@ mod windows_impl {
     mod tests {
         use super::*;
 
+        fn decode(bytes: &[u8], ty: SampleType, bits: u16) -> Vec<f32> {
+            let mut raw: VecDeque<u8> = bytes.iter().copied().collect();
+            let mut out = Vec::new();
+            decode_interleaved(&mut raw, ty, bits, &mut out);
+            out
+        }
+
         fn bytes<const N: usize>(samples: impl IntoIterator<Item = [u8; N]>) -> Vec<u8> {
             samples.into_iter().flatten().collect()
+        }
+
+        #[test]
+        fn float_samples_are_read_as_they_are() {
+            let input = [0.0_f32, 0.5, -1.0, 1.0, -0.25];
+            let raw = bytes(input.map(f32::to_le_bytes));
+            assert_eq!(decode(&raw, SampleType::Float, 32), input);
+        }
+
+        #[test]
+        fn integer_samples_are_scaled_into_the_unit_range() {
+            for (raw, bits, expected) in [
+                (
+                    bytes([0_i16, 16384, -32768, 32767].map(i16::to_le_bytes)),
+                    16,
+                    vec![0.0, 0.5, -1.0, 32767.0 / 32768.0],
+                ),
+                (
+                    bytes([0_i32, 1 << 30, i32::MIN].map(i32::to_le_bytes)),
+                    32,
+                    vec![0.0, 0.5, -1.0],
+                ),
+            ] {
+                assert_eq!(decode(&raw, SampleType::Int, bits), expected, "{bits}-bit");
+            }
+            // The largest i32 is not quite 1.0, but f32 cannot tell.
+            let top = decode(&i32::MAX.to_le_bytes(), SampleType::Int, 32);
+            assert!((top[0] - 1.0).abs() < 1e-6, "{top:?}");
+        }
+
+        /// A trailing partial sample is dropped rather than read past.
+        #[test]
+        fn a_partial_sample_is_left_out() {
+            let mut raw = bytes([0.5_f32].map(f32::to_le_bytes));
+            raw.extend([1, 2]);
+            assert_eq!(decode(&raw, SampleType::Float, 32), [0.5]);
+            assert_eq!(decode(&[0, 64, 7], SampleType::Int, 16), [0.5]);
+        }
+
+        /// An unexpected format gives silence of the right length, never a panic.
+        #[test]
+        fn an_unknown_format_decodes_to_silence_of_the_same_length() {
+            for (ty, bits, len, samples) in [
+                (SampleType::Int, 24, 12, 4),
+                (SampleType::Float, 64, 16, 2),
+                (SampleType::Int, 8, 5, 5),
+                // A zero bit depth counts as one byte per sample rather than dividing by zero.
+                (SampleType::Int, 0, 3, 3),
+            ] {
+                assert_eq!(
+                    decode(&vec![0x7f; len], ty, bits),
+                    vec![0.0; samples],
+                    "{ty:?}/{bits}"
+                );
+            }
         }
 
         #[test]
