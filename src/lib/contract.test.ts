@@ -25,7 +25,12 @@ const TAURI_TS = readFileSync(new URL('./tauri.ts', import.meta.url), 'utf8');
 const sorted = (values: Iterable<string>) => [...values].sort();
 
 describe('commands', () => {
-	const core = [...rust('command_names.rs').matchAll(/^\s+"([a-z_]+)",$/gm)].map((m) => m[1]);
+	// The `COMMANDS` list alone: the file's tests write command names out too.
+	const names = rust('command_names.rs');
+	const list = names.slice(names.indexOf('pub const COMMANDS'));
+	const core = [...list.slice(0, list.indexOf('];')).matchAll(/^\s+"([a-z_]+)",$/gm)].map(
+		(m) => m[1]
+	);
 	const wrapped = [...TAURI_TS.matchAll(/invoke<[^>]*>\(\s*'([a-z_]+)'/g)].map((m) => m[1]);
 
 	it('finds both lists', () => {
@@ -45,8 +50,10 @@ describe('events', () => {
 	const core = [
 		...block.slice(0, block.indexOf('\n}')).matchAll(/pub const [A-Z_]+: &str = "([a-z-]+)";/g)
 	].map((m) => m[1]);
-	/** Sent between the two webviews; the core never emits or listens for them. */
-	const WEBVIEW_ONLY = ['overlay-config', 'overlay-state'];
+	/** Sent from the operator window to the overlay; the core never emits or listens for it.
+	 *  `overlay-state` used to be the other half, until the overlay lost `emit` (B4): the core
+	 *  sends it now, on the overlay's behalf. */
+	const WEBVIEW_ONLY = ['overlay-config'];
 
 	it('finds the core event names', () => {
 		expect(core).toContain('caption');

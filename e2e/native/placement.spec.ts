@@ -91,12 +91,13 @@ test('Move overlay brings back an overlay stranded off every display', async ({ 
 	const monitors = await invoke<Monitor[]>(app.operator, 'plugin:window|available_monitors');
 	const { workArea } = await invoke<Monitor>(app.operator, 'plugin:window|primary_monitor');
 	// Well past the right-hand edge of everything, as if the display it was on had gone. Sent
-	// from the overlay, whose capability lets it move itself, and in physical pixels, as
-	// `PhysicalPosition` reaches the window plugin.
+	// from the overlay, whose capability lets it move itself and nothing else, in physical
+	// pixels from where it is.
 	const right = Math.max(...monitors.map(({ position, size }) => position.x + size.width));
-	await invoke(app.overlay, 'plugin:window|set_position', {
-		label: 'overlay',
-		value: { Physical: { x: right + 4000, y: workArea.position.y + 200 } }
+	const at = await invoke<Rect>(app.operator, 'get_overlay_placement');
+	await invoke(app.overlay, 'nudge_overlay', {
+		dx: right + 4000 - at.x,
+		dy: workArea.position.y + 200 - at.y
 	});
 	await expect
 		.poll(async () => (await invoke<Rect>(app.operator, 'get_overlay_placement')).x, {
@@ -111,10 +112,28 @@ test('Move overlay brings back an overlay stranded off every display', async ({ 
 		})
 		.toBe(true);
 	// Shown, as move mode always shows it: on a window the operator can see this time.
-	expect(await invoke<boolean>(app.overlay, 'plugin:window|is_visible', { label: 'overlay' })).toBe(
-		true
-	);
+	expect(
+		await invoke<boolean>(app.operator, 'plugin:window|is_visible', { label: 'overlay' })
+	).toBe(true);
 
 	await app.operator.getByRole('button', { name: 'Finish placing the overlay' }).click();
 	await expect(app.operator.getByRole('button', { name: 'Move overlay' })).toBeVisible();
+});
+
+// B4: the overlay is the window an audience looks at, so it may move itself and report what
+// happened on it, and nothing else. Without `emit` it cannot pass for the core (a tray command
+// that stops the session, captions that reach the transcript), and without the core window
+// setters it cannot move the operator window.
+test('the overlay can neither emit events nor move another window', async ({ app }) => {
+	await expect(
+		invoke(app.overlay, 'plugin:event|emit', { event: 'tray-command', payload: 'stop-session' })
+	).rejects.toBeDefined();
+	await expect(
+		invoke(app.overlay, 'plugin:window|set_position', {
+			label: 'operator',
+			value: { Physical: { x: 0, y: 0 } }
+		})
+	).rejects.toBeDefined();
+	// What it is granted still works.
+	await invoke(app.overlay, 'report_overlay_state', { state: { fontSize: 40 } });
 });

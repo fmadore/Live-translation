@@ -392,7 +392,8 @@ export const TRAY_COMMANDS = ['toggle-overlay', 'stop-session', 'quit'] as const
 export type TrayCommand = (typeof TRAY_COMMANDS)[number];
 
 /** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
- *  Operator→overlay: overlayConfig. Overlay→operator: overlayState. */
+ *  Operator→overlay: overlayConfig. Overlay→operator: overlayState, which the core sends on
+ *  the overlay's behalf (`report_overlay_state`): the overlay may listen but not emit. */
 export const EVT = {
 	whisperProgress: 'whisper-progress',
 	caption: 'caption',

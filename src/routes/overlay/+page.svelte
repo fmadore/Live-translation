@@ -176,13 +176,22 @@
 	function bump(delta: number) {
 		appearance = { ...appearance, fontSize: clampOverlayFont(appearance.fontSize + delta) };
 		// The operator window owns the size control too; tell it what happened here so the
-		// two readouts never disagree. Fire-and-forget — a dropped event costs nothing.
-		void api.emitOverlayState({ fontSize });
+		// two readouts never disagree. Fire-and-forget — a dropped report costs nothing.
+		if (isTauri()) void api.reportOverlayState({ fontSize }).catch(() => {});
 	}
 
 	/** Reset an enlarged reading region to a shallow subtitle strip along the bottom. */
 	function snapToBottom() {
 		void placement.snapToBottom(bottomCaptionHeight(fontSize, lines.length, layout, showsOriginal));
+	}
+
+	let stage = $state<HTMLDivElement>();
+
+	/** In move mode a press on the stage itself drags the window, as `data-tauri-drag-region`
+	 *  did; the toolbar's controls keep their own clicks. Only the stage, not what is drawn on
+	 *  it: the pill and the readout let the pointer through to it. */
+	function onMouseDown(e: MouseEvent) {
+		if (e.button === 0 && e.target === stage) void placement.startDrag();
 	}
 
 	function onKeyDown(e: KeyboardEvent) {
@@ -206,14 +215,14 @@
 	}
 </script>
 
-<svelte:window onkeydown={onKeyDown} />
+<svelte:window onkeydown={onKeyDown} onmousedown={onMouseDown} />
 
 <div
+	bind:this={stage}
 	class="stage"
 	class:interactive={placement.interactive}
 	class:stable={layout === 'stable'}
 	class:fit={layout !== 'compact'}
-	data-tauri-drag-region={placement.interactive || undefined}
 	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"

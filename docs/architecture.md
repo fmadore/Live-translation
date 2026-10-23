@@ -481,9 +481,11 @@ analytics or crash-reporting service. See [`SECURITY.md`](../SECURITY.md) and th
 ## The two windows are not equally trusted
 
 The operator window and the overlay are separate webviews, and the overlay is the one an
-audience looks at. It needs to move itself, resize itself and restore its own click-through
-while the operator is placing it — and nothing else: not the commands that read a provider
-key's presence, start a billable session, write the transcript or quit the app (issue #31).
+audience looks at. It needs to listen for captions, move itself, resize itself, restore its own
+click-through while the operator is placing it, and tell the operator window what happened on
+it — and nothing else: not the commands that read a provider key's presence, start a billable
+session, write the transcript or quit the app (issue #31), and not emitting events or moving
+another window (B4).
 
 Two things make the split real rather than documentary:
 
@@ -492,15 +494,25 @@ Two things make the split real rather than documentary:
   app has such a manifest, Tauri checks every one of its own commands against the calling
   window's capability and rejects anything not granted — without it, app commands are only
   checked for remote origins.
-- `capabilities/operator.json` grants all of them to `operator`;
-  `capabilities/overlay.json` grants `overlay` exactly one — `set_overlay_click_through` —
-  plus the core event permissions and the three window mutations it uses
-  (`set_position`, `set_size`, `start_dragging`) on top of the read-only `core:window:default`.
+- `capabilities/operator.json` grants the operator's commands to `operator`;
+  `capabilities/overlay.json` grants `overlay` its own short list and two core permissions,
+  `core:event:allow-listen` and `core:event:allow-unlisten`. No `emit`: with it the overlay
+  could pass for the core, sending a `tray-command` that stops a billable session or captions
+  that reach the transcript. So it reports a Lock, an Escape or a caption size chosen on it
+  through `report_overlay_state`, which takes only the fields of `overlay::OverlayState` and
+  which the core sends on as `overlay-state`. No core window permissions either: those
+  commands take any window's label, so they would let it move or resize the operator window.
+  It reads its rectangle with `get_overlay_placement` and moves itself with overlay-only
+  commands that act on the overlay window alone — `start_overlay_drag` (in place of
+  `data-tauri-drag-region`), `nudge_overlay`, `snap_overlay_to_bottom`, `undo_overlay_move`
+  (Escape) — besides `set_overlay_click_through`.
 
 The tests in `src/command_names.rs` hold the three pieces together: they fail if a command is
 registered without a permission (which would be rejected at runtime the first time an operator
-used it), if a capability grants something that no longer exists, or if the overlay is handed
-anything beyond placing itself.
+used it), if a capability grants something that no longer exists, or if the overlay's
+permissions, core ones included, differ in any way from the list pinned there.
+`overlayPlacement.svelte.test.ts` checks that what the overlay sends in move mode is all in its
+capability.
 
 To see the boundary work, open the overlay's dev tools in `npm run tauri dev` and invoke a
 command it does not have:

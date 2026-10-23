@@ -1,59 +1,19 @@
 // Move mode for the overlay window: entering it, nudging and snapping the window, and the two
 // ways out — lock the region into place, or cancel and put the window back where it was.
 
+// Every window operation goes through an overlay-only app command that acts on this window
+// alone (B4): the core window API's setters take any window's label, so the overlay is not
+// granted them, nor the getters it no longer needs.
+
 import { api, isTauri } from '#lib/tauri.js';
 import { writeStored } from '#lib/persisted.js';
 import { OVERLAY_PLACED_KEY } from '#lib/appearance.js';
+import type { Placement } from '#lib/profiles.js';
+import type { OverlayStateMsg } from '#lib/types.js';
 
-/** Physical pixels, straight off the window: restoring what was read needs no conversion. */
-interface Geometry {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
-/** A display's bounds as `availableMonitors` reports them: physical pixels, like `Geometry`,
- *  and measured from the primary display's corner — so a display to the left of it or above it
- *  starts at negative coordinates. */
-interface DisplayBounds {
-	position: { x: number; y: number };
-	size: { width: number; height: number };
-}
-
-/**
- * Whether the middle of `rect` is on one of `displays`. The centre rather than any overlap: a
- * window with a sliver on a screen is not one an operator can see or take hold of, and it is
- * the test the core applies when it decides an overlay is stranded, so the two agree on what
- * still counts as there.
- */
-export function centreOnADisplay(rect: Geometry, displays: readonly DisplayBounds[]): boolean {
-	const x = rect.x + rect.width / 2;
-	const y = rect.y + rect.height / 2;
-	return displays.some(
-		({ position, size }) =>
-			x >= position.x &&
-			x < position.x + size.width &&
-			y >= position.y &&
-			y < position.y + size.height
-	);
-}
-
-/** Whether the rect move mode found is still on a display. A projector pulled out during
- *  move mode takes it away: the core has already brought the window onto a screen that is
- *  there, and putting it back would strand it again where nobody can see it. When the
- *  displays cannot be read, assume it is — that is how Escape behaved before it looked. */
-async function stillOnADisplay(
-	geo: Geometry,
-	availableMonitors: () => Promise<DisplayBounds[]>
-): Promise<boolean> {
-	try {
-		return centreOnADisplay(geo, await availableMonitors());
-	} catch (err) {
-		console.error('Could not read the connected displays', err);
-		return true;
-	}
-}
+/** Physical pixels, straight off the window: restoring what was read needs no conversion. The
+ *  core's `Placement`. */
+type Geometry = Placement;
 
 export type OverlayCommand =
 	| { kind: 'bump'; delta: number }
@@ -95,27 +55,22 @@ export function overlayKeyCommand(
 }
 
 export function createOverlayPlacement(port = api) {
-	// Click-through is off and the whole stage becomes a Tauri drag region, so the window can
-	// be dragged and resized into place.
+	// Click-through is off and the whole stage becomes a drag handle, so the window can be
+	// dragged and resized into place.
 	let interactive = $state(false);
 	// Where the window sat when move mode was entered, so Escape can undo the whole move.
 	// Not reactive — nothing renders it.
 	let entryGeometry: Geometry | null = null;
 
-	/** Remember the current window rect so a cancelled move can be undone. */
+	/** Remember the current window rect so a cancelled move can be undone. The outer position
+	 *  and the inner size: the pair that can be handed straight back. */
 	async function snapshotGeometry() {
 		if (!isTauri()) {
 			entryGeometry = null;
 			return;
 		}
 		try {
-			const { getCurrentWindow } = await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			// `setPosition` takes the outer position and `setSize` the inner size, so read the
-			// pair that can be handed straight back to them.
-			const pos = await win.outerPosition();
-			const size = await win.innerSize();
-			entryGeometry = { x: pos.x, y: pos.y, width: size.width, height: size.height };
+			entryGeometry = await port.getOverlayPlacement();
 		} catch (err) {
 			console.error('Could not record the overlay geometry', err);
 			entryGeometry = null;
@@ -126,39 +81,42 @@ export function createOverlayPlacement(port = api) {
 	async function nudge(dx: number, dy: number) {
 		if (!isTauri()) return;
 		try {
-			const { getCurrentWindow, PhysicalPosition } = await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			const pos = await win.outerPosition();
-			await win.setPosition(new PhysicalPosition(pos.x + dx, pos.y + dy));
+			await port.nudgeOverlay(dx, dy);
 		} catch (err) {
 			console.error('Nudge failed', err);
 		}
 	}
 
 	/** Stretch the region across the presentation display, sitting on the bottom margin, as a
-	 *  strip `stripHeight` logical pixels tall. */
+	 *  strip `stripHeight` logical pixels tall. The core works out the strip; see
+	 *  `bottom_strip` in `placement.rs`. */
 	async function snapToBottom(stripHeight: number) {
 		if (!isTauri()) return;
 		try {
-			const { getCurrentWindow, currentMonitor, LogicalSize, LogicalPosition } =
-				await import('@tauri-apps/api/window');
-			const win = getCurrentWindow();
-			const monitor = await currentMonitor();
-			if (!monitor) return;
-			// Monitor geometry is physical; window setters take logical pixels.
-			const bounds = monitor.size.toLogical(monitor.scaleFactor);
-			const corner = monitor.position.toLogical(monitor.scaleFactor);
-			const height = Math.min(stripHeight, Math.max(1, bounds.height - 80));
-			await win.setSize(new LogicalSize(Math.round(bounds.width - 96), Math.round(height)));
-			await win.setPosition(
-				new LogicalPosition(
-					Math.round(corner.x + 48),
-					Math.round(corner.y + bounds.height - height - 40)
-				)
-			);
+			await port.snapOverlayToBottom(stripHeight);
 		} catch (err) {
 			console.error('Snap to bottom failed', err);
 		}
+	}
+
+	/** Drag the window with the mouse, from the stage itself: what `data-tauri-drag-region`
+	 *  did, through a command that can move only this window. */
+	async function startDrag() {
+		if (!interactive || !isTauri()) return;
+		try {
+			await port.startOverlayDrag();
+		} catch (err) {
+			console.error('Could not start dragging the overlay', err);
+		}
+	}
+
+	/** Tell the operator window. Fire-and-forget: a report that never arrives costs the
+	 *  operator's toggle one extra click, not the overlay its state. */
+	function report(state: OverlayStateMsg) {
+		if (!isTauri()) return;
+		void port
+			.reportOverlayState(state)
+			.catch((err: unknown) => console.error('Could not tell the operator window', err));
 	}
 
 	/** Leave move mode: click-through back on, and both windows told the region is placed. */
@@ -172,23 +130,15 @@ export function createOverlayPlacement(port = api) {
 		entryGeometry = null;
 		interactive = false;
 		writeStored(OVERLAY_PLACED_KEY, 'true');
-		void port.emitOverlayState({ interactive: false, placed: true });
+		report({ interactive: false, placed: true });
 	}
 
-	/** Move and size the window back to `geo`, unless that is on a display that has gone. */
+	/** Move and size the window back to `geo`, unless that is on a display that has gone: a
+	 *  projector pulled out during move mode takes it away, and the core has already brought the
+	 *  window onto a screen that is there. The core decides, as it decides a rescue. */
 	async function restoreGeometry(geo: Geometry) {
 		try {
-			const { getCurrentWindow, availableMonitors, PhysicalPosition, PhysicalSize } =
-				await import('@tauri-apps/api/window');
-			if (!(await stillOnADisplay(geo, availableMonitors))) return;
-			const win = getCurrentWindow();
-			// Moved back before it is sized, as `set_overlay_placement` does: a window dragged
-			// onto a display with another scale factor is rescaled by Windows on the way back,
-			// which would undo a size set first.
-			const position = new PhysicalPosition(geo.x, geo.y);
-			await win.setPosition(position);
-			await win.setSize(new PhysicalSize(geo.width, geo.height));
-			await win.setPosition(position);
+			await port.undoOverlayMove(geo);
 		} catch (err) {
 			// A failed restore must not trap the operator in move mode — carry on and exit.
 			console.error('Could not restore the overlay geometry', err);
@@ -209,7 +159,7 @@ export function createOverlayPlacement(port = api) {
 		entryGeometry = null;
 		interactive = false;
 		// No `placed`: the move was abandoned, so the pre-flight check must still ask for it.
-		void port.emitOverlayState({ interactive: false });
+		report({ interactive: false });
 	}
 
 	return {
@@ -224,6 +174,7 @@ export function createOverlayPlacement(port = api) {
 		},
 		nudge,
 		snapToBottom,
+		startDrag,
 		lock,
 		cancel
 	};

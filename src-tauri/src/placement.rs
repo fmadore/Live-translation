@@ -177,6 +177,15 @@ fn distance_squared((x, y): (i64, i64), rect: &Placement) -> i128 {
     dx * dx + dy * dy
 }
 
+/// Whether the middle of `window` is on one of the displays. The centre rather than any overlap:
+/// a window with a sliver on a screen is not one an operator can see or take hold of.
+fn on_a_display(window: &Placement, screens: &[Screen]) -> bool {
+    let point = centre(window);
+    screens
+        .iter()
+        .any(|s| distance_squared(point, &s.display.bounds()) == 0)
+}
+
 /// Whether the room can see the overlay where it is: its centre lies on some display, and the
 /// displays together are large enough to hold it whole. Deliberately generous. A placement the
 /// operator chose stays put even if it overlaps the taskbar, runs a little off an edge or is
@@ -185,10 +194,7 @@ fn distance_squared((x, y): (i64, i64), rect: &Placement) -> i128 {
 /// larger desktop than the one left: stretched across a projector that has gone, or sized for
 /// a resolution the display no longer has.
 fn usable(window: &Placement, screens: &[Screen]) -> bool {
-    let point = centre(window);
-    let on_a_display = screens
-        .iter()
-        .any(|s| distance_squared(point, &s.display.bounds()) == 0);
+    let on_a_display = on_a_display(window, screens);
     // The extent of the whole desktop, in i64 so displays far from the origin cannot overflow.
     let extent = |start: fn(&Placement) -> i64, end: fn(&Placement) -> i64| {
         let starts = screens.iter().map(|s| start(&s.display.bounds())).min();
@@ -344,6 +350,102 @@ pub async fn set_overlay_placement(app: AppHandle, placement: Placement) -> Resu
 pub async fn recover_overlay_placement(app: AppHandle) -> Result<bool, AppError> {
     let win = overlay_window(&app)?;
     recover(&win, &screens(&app)?)
+}
+
+// The overlay's own placement commands, used in move mode. Each acts on the overlay window and
+// nothing else: the core window setters they replace take any window's label, so an overlay
+// granted them could move or resize the operator window too (B4).
+
+/// Arrow-key nudge, in whole physical pixels: finer than a mouse drag can manage.
+#[tauri::command]
+pub async fn nudge_overlay(app: AppHandle, dx: i32, dy: i32) -> Result<(), AppError> {
+    let win = overlay_window(&app)?;
+    let at = current_placement(&win)?;
+    win.set_position(PhysicalPosition::new(
+        at.x.saturating_add(dx),
+        at.y.saturating_add(dy),
+    ))
+    .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))
+}
+
+/// A whole number of physical pixels from a computed length, which is clamped first.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "clamped to 0..=16384, and NaN saturates to 0"
+)]
+fn pixels(length: f64) -> u32 {
+    length.round().clamp(0.0, 16384.0) as u32
+}
+
+/// The shallow subtitle strip "Snap to bottom" makes on `display`: the display's width less a
+/// 48-pixel margin each side, `strip_height` tall (logical pixels, as the overlay measures its
+/// lines) but never taller than the display less 80, sitting 40 above its bottom edge. The
+/// margins are logical too, so the strip looks the same on a laptop at 150% and a projector at
+/// 100%. The whole display rather than its work area: the strip sits where subtitles do, and a
+/// projector rarely has a taskbar.
+fn bottom_strip(display: &Display, strip_height: f64) -> Placement {
+    let scale = if display.scale.is_finite() && display.scale > 0.0 {
+        display.scale
+    } else {
+        1.0
+    };
+    let logical_width = f64::from(display.width) / scale;
+    let logical_height = f64::from(display.height) / scale;
+    let strip = if strip_height.is_finite() {
+        strip_height
+    } else {
+        1.0
+    };
+    let height = strip.min((logical_height - 80.0).max(1.0)).max(1.0).round();
+    let width = (logical_width - 96.0).max(1.0).round();
+    let height = pixels(height * scale);
+    let below = pixels(40.0 * scale);
+    Placement {
+        x: display.x.saturating_add_unsigned(pixels(48.0 * scale)),
+        y: display
+            .y
+            .saturating_add_unsigned(display.height.saturating_sub(height.saturating_add(below))),
+        width: pixels(width * scale),
+        height,
+    }
+}
+
+/// Stretch the overlay across the display it is on, as a strip along the bottom; see
+/// `bottom_strip`.
+#[tauri::command]
+pub async fn snap_overlay_to_bottom(app: AppHandle, strip_height: f64) -> Result<(), AppError> {
+    let win = overlay_window(&app)?;
+    let Some(monitor) = win
+        .current_monitor()
+        .map_err(|e| AppError::with(id::OVERLAY_WINDOW, e))?
+    else {
+        return Ok(());
+    };
+    apply(&win, &bottom_strip(&Display::of(&monitor), strip_height))
+}
+
+/// Whether Escape may put the overlay back where move mode found it: only while that is still
+/// on a display. A projector pulled out during move mode takes it away; the watcher has already
+/// brought the window onto a screen that is there, and putting it back would strand it again.
+/// When the displays cannot be read (`None`), it goes back, as it did before Escape looked.
+fn may_return_to(entry: &Placement, screens: Option<&[Screen]>) -> bool {
+    screens.is_none_or(|screens| on_a_display(entry, screens))
+}
+
+/// Escape in move mode: put the overlay back at `entry`, where move mode found it, unless that
+/// is on a display that has gone; whether it was moved.
+#[tauri::command]
+pub async fn undo_overlay_move(app: AppHandle, entry: Placement) -> Result<bool, AppError> {
+    let win = overlay_window(&app)?;
+    let screens = screens(&app)
+        .inspect_err(|error| tracing::warn!("displays could not be read: {error}"))
+        .ok();
+    if !may_return_to(&entry, screens.as_deref()) {
+        return Ok(false);
+    }
+    apply(&win, &entry)?;
+    Ok(true)
 }
 
 /// How often the display watcher looks at the connected displays. Windows has no display-change
@@ -838,6 +940,103 @@ mod tests {
                 height: MIN_HEIGHT,
                 ..speck
             })
+        );
+    }
+
+    /// Escape's check, which the overlay made itself before it lost `available_monitors`.
+    #[test]
+    fn escape_returns_the_overlay_only_to_a_display_that_is_still_there() {
+        let entry = Placement {
+            x: 2608,
+            y: 880,
+            width: 1824,
+            height: 160,
+        };
+        assert!(may_return_to(
+            &entry,
+            Some(&[LAPTOP_SCREEN, PROJECTOR_SCREEN])
+        ));
+        // The projector unplugged mid-move, and the moment Windows reports no display at all.
+        assert!(!may_return_to(&entry, Some(&[LAPTOP_SCREEN])));
+        assert!(!may_return_to(&entry, Some(&[])));
+        // Displays that cannot be read: back it goes, as before.
+        assert!(may_return_to(&entry, None));
+    }
+
+    #[test]
+    fn being_on_a_display_goes_by_the_centre_not_by_any_overlap() {
+        let screens = [LAPTOP_SCREEN];
+        // Mostly off the laptop's right edge: a sliver an operator cannot see or take hold of.
+        let hanging = Placement {
+            x: 2400,
+            y: 700,
+            width: 1000,
+            height: 200,
+        };
+        assert!(!on_a_display(&hanging, &screens));
+        // Mostly on it, with a corner hanging off.
+        assert!(on_a_display(&Placement { x: 1800, ..hanging }, &screens));
+        // The right and bottom edges are off the display.
+        let point = |x: i32, y: i32| Placement {
+            x,
+            y,
+            width: 0,
+            height: 0,
+        };
+        assert!(on_a_display(&point(0, 0), &screens));
+        assert!(on_a_display(&point(2559, 1599), &screens));
+        assert!(!on_a_display(&point(2560, 800), &screens));
+        assert!(!on_a_display(&point(1280, 1600), &screens));
+    }
+
+    #[test]
+    fn snap_to_bottom_makes_a_strip_along_the_bottom_of_the_display() {
+        // A projector at 100%: the margins are pixels as they are.
+        assert_eq!(
+            bottom_strip(&PROJECTOR, 120.0),
+            Placement {
+                x: 2560 + 48,
+                y: 1080 - 120 - 40,
+                width: 1920 - 96,
+                height: 120,
+            }
+        );
+        // The laptop at 150%: the same strip in logical pixels, so half as many again. The width
+        // is whole in logical pixels first, as the overlay used to set it: 1611 of them.
+        assert_eq!(
+            bottom_strip(&LAPTOP, 120.0),
+            Placement {
+                x: 72,
+                y: 1600 - 180 - 60,
+                width: 2417,
+                height: 180,
+            }
+        );
+    }
+
+    #[test]
+    fn snap_to_bottom_never_runs_past_the_display() {
+        let short = Display {
+            height: 300,
+            ..PROJECTOR
+        };
+        // Taller than the display allows: the display less 80, sitting 40 above its bottom.
+        assert_eq!(bottom_strip(&short, 1000.0).height, 220);
+        assert_eq!(bottom_strip(&short, 1000.0).y, 40);
+        // Nonsense from the page gives a one-pixel strip rather than a panic or a giant.
+        for height in [f64::NAN, f64::INFINITY, -50.0, 0.0] {
+            let strip = bottom_strip(&PROJECTOR, height);
+            assert_eq!(strip.height, 1, "{height}");
+            assert!(strip.y < 1080, "{height}");
+        }
+        // A scale factor that cannot be one counts as 100%.
+        let unscaled = Display {
+            scale: 0.0,
+            ..PROJECTOR
+        };
+        assert_eq!(
+            bottom_strip(&unscaled, 120.0),
+            bottom_strip(&PROJECTOR, 120.0)
         );
     }
 

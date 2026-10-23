@@ -1,14 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "overlay",
-  "description": "The overlay window: a caption surface. While the operator is placing it, it reads its own geometry and moves and resizes itself; afterwards it restores its own click-through. It can reach no credential, session, capture, transcript or lifecycle command.",
+  "description": "The overlay window: a caption surface. It listens for captions, status and its configuration; while the operator is placing it, it reads its own geometry, moves and resizes itself through overlay-only commands, and restores its own click-through; and it reports what happened on it through the core. It can emit no event and touch no other window, and it can reach no credential, session, capture, transcript or lifecycle command.",
   "windows": ["overlay"],
   "permissions": [
-    "core:event:default",
-    "core:window:default",
-    "core:window:allow-set-position",
-    "core:window:allow-set-size",
-    "core:window:allow-start-dragging",
-    "allow-set-overlay-click-through"
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "allow-set-overlay-click-through",
+    "allow-get-overlay-placement",
+    "allow-report-overlay-state",
+    "allow-start-overlay-drag",
+    "allow-nudge-overlay",
+    "allow-snap-overlay-to-bottom",
+    "allow-undo-overlay-move"
   ]
 }

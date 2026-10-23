@@ -38,6 +38,11 @@ pub const COMMANDS: &[&str] = &[
     "set_overlay_placement",
     "display_layout",
     "recover_overlay_placement",
+    "report_overlay_state",
+    "start_overlay_drag",
+    "nudge_overlay",
+    "snap_overlay_to_bottom",
+    "undo_overlay_move",
     "save_transcript",
     "text_scale_factor",
     "write_recovery",
@@ -100,12 +105,82 @@ mod tests {
         assert_eq!(windows(OVERLAY), ["overlay"]);
     }
 
+    /// Every entry of a capability, core and plugin permissions included.
+    fn permissions(capability: &str) -> Vec<String> {
+        let json: Value = serde_json::from_str(capability).unwrap();
+        json["permissions"]
+            .as_array()
+            .expect("capability has no permissions array")
+            .iter()
+            .map(|p| {
+                p.as_str()
+                    .expect("a scoped permission object; the overlay has none")
+                    .to_string()
+            })
+            .collect()
+    }
+
     /// The point of the split (issue #31). The overlay is a caption surface: it repositions
-    /// itself and turns its own click-through back on, and that is the whole list. Credentials,
-    /// sessions, capture, the transcript and the close/quit path are the operator's alone.
+    /// itself, turns its own click-through back on and tells the operator window what happened
+    /// on it, and that is the whole list. Credentials, sessions, capture, the transcript and the
+    /// close/quit path are the operator's alone.
     #[test]
     fn the_overlay_may_only_place_itself() {
-        assert_eq!(granted_commands(OVERLAY), ["set_overlay_click_through"]);
+        assert_eq!(
+            granted_commands(OVERLAY),
+            [
+                "set_overlay_click_through",
+                "get_overlay_placement",
+                "report_overlay_state",
+                "start_overlay_drag",
+                "nudge_overlay",
+                "snap_overlay_to_bottom",
+                "undo_overlay_move",
+            ]
+        );
+    }
+
+    /// Core permissions too, pinned whole (B4). `core:event:default` would let the overlay emit
+    /// any event under any name — a `tray-command` that stops a billable session, captions that
+    /// reach the transcript — and the core window setters take any window's label, so they
+    /// would let it move the operator window. It listens, and the commands above do the rest.
+    /// A new entry here is a decision about what an audience-facing window may do, so it has
+    /// to be made in this test as well as in the file.
+    #[test]
+    fn the_overlay_capability_is_pinned_whole() {
+        assert_eq!(
+            permissions(OVERLAY),
+            [
+                "core:event:allow-listen",
+                "core:event:allow-unlisten",
+                "allow-set-overlay-click-through",
+                "allow-get-overlay-placement",
+                "allow-report-overlay-state",
+                "allow-start-overlay-drag",
+                "allow-nudge-overlay",
+                "allow-snap-overlay-to-bottom",
+                "allow-undo-overlay-move",
+            ]
+        );
+    }
+
+    /// The overlay talks to the operator window through `report_overlay_state` alone, so the
+    /// operator never needs to be granted it, nor the overlay's own placement commands.
+    #[test]
+    fn the_operator_is_not_granted_the_overlay_only_commands() {
+        let operator = granted_commands(OPERATOR);
+        for command in [
+            "report_overlay_state",
+            "start_overlay_drag",
+            "nudge_overlay",
+            "snap_overlay_to_bottom",
+            "undo_overlay_move",
+        ] {
+            assert!(
+                !operator.iter().any(|g| g == command),
+                "`{command}` is the overlay's own"
+            );
+        }
     }
 
     #[test]

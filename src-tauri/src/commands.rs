@@ -8,7 +8,7 @@
 //! `discard_whisper_pending`. Each only reads an answer worked out once or signals something
 //! already running, which is quicker than handing it to a worker would be.
 
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::audio::list_input_devices;
 use crate::errors::{id, AppError};
@@ -17,7 +17,7 @@ use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
 use crate::textscale;
-use crate::types::{AudioDevice, AudioSource, Provider, StartOptions};
+use crate::types::{events, AudioDevice, AudioSource, Provider, StartOptions};
 
 #[tauri::command]
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, AppError> {
@@ -247,6 +247,31 @@ pub async fn set_overlay_click_through(app: AppHandle, enabled: bool) -> Result<
         // Click-through and no-activate go together: while captioning the overlay must never
         // take focus, but in move mode it has to in order to be dragged.
         overlay::set_no_activate(&win, enabled);
+    }
+    Ok(())
+}
+
+/// The overlay's side of the conversation with the operator window: sent on as
+/// `events::OVERLAY_STATE`. Overlay-only. It replaces the overlay's own `emit`, which could
+/// send any event under any name; see `overlay::OverlayState`.
+#[tauri::command]
+pub async fn report_overlay_state(
+    app: AppHandle,
+    state: overlay::OverlayState,
+) -> Result<(), AppError> {
+    // Broadcast, like every other core event; see the comment in `lib.rs`.
+    app.emit(events::OVERLAY_STATE, state)
+        .map_err(|error| AppError::with(id::OVERLAY_WINDOW, error))
+}
+
+/// Start dragging the overlay with the mouse, in move mode. Overlay-only, in place of the core
+/// `start_dragging`, which takes any window's label: the overlay may move itself and nothing
+/// else.
+#[tauri::command]
+pub async fn start_overlay_drag(app: AppHandle) -> Result<(), AppError> {
+    if let Some(win) = app.get_webview_window(OVERLAY_LABEL) {
+        win.start_dragging()
+            .map_err(|error| AppError::with(id::OVERLAY_WINDOW, error))?;
     }
     Ok(())
 }
