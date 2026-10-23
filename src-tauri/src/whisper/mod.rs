@@ -105,15 +105,24 @@ struct Progress {
     finalizing: bool,
 }
 
-fn progress(app: &AppHandle, origin: Origin, spool: &Spool) {
-    let _ = app.emit(
-        events::WHISPER_PROGRESS,
-        Progress {
-            origin,
-            pending_ms: spool.pending_ms(),
-            finalizing: spool.finalizing.load(Ordering::Relaxed),
-        },
-    );
+fn progress(events: &impl LocalEvents, origin: Origin, spool: &Spool) {
+    events.progress(Progress {
+        origin,
+        pending_ms: spool.pending_ms(),
+        finalizing: spool.finalizing.load(Ordering::Relaxed),
+    });
+}
+
+/// Where a local source's captions, statuses and backlog progress go: the app in production,
+/// a recorder in the tests, so the pipeline's endings are tested without Tauri or a model.
+trait LocalEvents: Events + Clone + Send + 'static {
+    fn progress(&self, progress: Progress);
+}
+
+impl LocalEvents for AppHandle {
+    fn progress(&self, progress: Progress) {
+        let _ = self.emit(events::WHISPER_PROGRESS, progress);
+    }
 }
 
 pub struct LocalSession {
@@ -137,12 +146,70 @@ pub async fn run(config: LocalSession) {
         language,
         translate,
         origin,
-        mut input,
+        input,
         spool,
         capture_cancel,
         abort,
         failure,
     } = config;
+    let pipeline = Pipeline {
+        events: app,
+        origin,
+        input,
+        spool,
+        capture_cancel,
+        abort,
+        failure,
+    };
+    drive(pipeline, move |spool, abort, emit, report| {
+        transcribe(
+            &model,
+            language.as_deref(),
+            translate,
+            spool,
+            abort,
+            emit,
+            report,
+        )
+    })
+    .await;
+}
+
+/// A local source without its model: everything `drive` needs besides the inference itself.
+struct Pipeline<E> {
+    events: E,
+    origin: Origin,
+    input: Receiver<TimedChunk>,
+    spool: Arc<Spool>,
+    capture_cancel: CancellationToken,
+    abort: CancellationToken,
+    failure: Arc<Mutex<Option<AppError>>>,
+}
+
+/// One caption from the inference: its text, start and end in session milliseconds, and turn.
+type Emit<'a> = &'a mut dyn FnMut(&str, u64, u64, u64);
+/// Called after each window, to report the backlog.
+type Report<'a> = &'a mut dyn FnMut();
+
+/// Write the input to the spool on one blocking worker, run `infer` over it on another, and
+/// report how the source ended once both have: Idle after a full drain, or Error with why —
+/// a failed write, a capture failure recorded on the spool, a failed or panicked inference, or
+/// the operator discarding what was left. `infer` turns the spool into captions as `transcribe`
+/// does, reading it until it ends or the abort token fires; the tests stand in for Whisper
+/// with it.
+async fn drive<E: LocalEvents>(
+    pipeline: Pipeline<E>,
+    infer: impl FnOnce(&Spool, &CancellationToken, Emit<'_>, Report<'_>) -> Result<()> + Send + 'static,
+) {
+    let Pipeline {
+        events: app,
+        origin,
+        mut input,
+        spool,
+        capture_cancel,
+        abort,
+        failure,
+    } = pipeline;
     app.status(StatusUpdate::source(origin, SessionState::Running, None));
     let ingest_spool = spool.clone();
     let ingest_app = app.clone();
@@ -194,30 +261,24 @@ pub async fn run(config: LocalSession) {
     let inference = tauri::async_runtime::spawn_blocking(move || {
         // Unwinding must also stop capture, otherwise the other joined task waits forever.
         let _cancel = worker_cancel.drop_guard();
-        transcribe(
-            &model,
-            language.as_deref(),
-            translate,
+        infer(
             &worker_spool,
             &worker_abort,
-            |text, start, end, turn| {
-                let _ = worker_app.emit(
-                    events::CAPTION,
-                    Caption {
-                        turn_id: turn,
-                        text,
-                        // Translating as well: the translate task returns English and no
-                        // transcription of what was said, so there is no original to show.
-                        source_text: "",
-                        final_: true,
-                        origin,
-                        lane: 0,
-                        start_ms: start,
-                        end_ms: end,
-                    },
-                );
+            &mut |text, start, end, turn| {
+                worker_app.caption(Caption {
+                    turn_id: turn,
+                    text,
+                    // Translating as well: the translate task returns English and no
+                    // transcription of what was said, so there is no original to show.
+                    source_text: "",
+                    final_: true,
+                    origin,
+                    lane: 0,
+                    start_ms: start,
+                    end_ms: end,
+                });
             },
-            || progress(&worker_app, origin, &worker_spool),
+            &mut || progress(&worker_app, origin, &worker_spool),
         )
     });
     let (ingested, inferred) = tokio::join!(ingestion, inference);
@@ -407,6 +468,216 @@ mod tests {
             start_ms,
             pcm: 100i16.to_le_bytes().repeat(1600),
         }
+    }
+
+    #[derive(Debug, PartialEq)]
+    enum Recorded {
+        Status(SessionState, Option<&'static str>),
+        Caption(String),
+        Progress(u64),
+    }
+
+    /// What a local source reports, in order, in place of the app's events.
+    #[derive(Clone, Default)]
+    struct Recorder(Arc<Mutex<Vec<Recorded>>>);
+
+    impl Recorder {
+        fn push(&self, recorded: Recorded) {
+            self.0.lock().unwrap().push(recorded);
+        }
+
+        fn statuses(&self) -> Vec<Recorded> {
+            let recorded = self.0.lock().unwrap();
+            let statuses = recorded
+                .iter()
+                .filter(|r| matches!(r, Recorded::Status(..)));
+            statuses
+                .map(|r| match r {
+                    Recorded::Status(state, id) => Recorded::Status(*state, *id),
+                    _ => unreachable!(),
+                })
+                .collect()
+        }
+
+        fn captions(&self) -> usize {
+            let recorded = self.0.lock().unwrap();
+            recorded
+                .iter()
+                .filter(|r| matches!(r, Recorded::Caption(_)))
+                .count()
+        }
+
+        fn last_progress(&self) -> Option<u64> {
+            let recorded = self.0.lock().unwrap();
+            recorded.iter().rev().find_map(|r| match r {
+                Recorded::Progress(pending_ms) => Some(*pending_ms),
+                _ => None,
+            })
+        }
+    }
+
+    impl Events for Recorder {
+        fn caption(&self, caption: Caption<'_>) {
+            self.push(Recorded::Caption(caption.text.to_string()));
+        }
+
+        fn status(&self, update: StatusUpdate) {
+            let id = update.message.map(|message| message.id);
+            self.push(Recorded::Status(update.state, id));
+        }
+    }
+
+    impl LocalEvents for Recorder {
+        fn progress(&self, progress: Progress) {
+            self.push(Recorded::Progress(progress.pending_ms));
+        }
+    }
+
+    /// A local source with nothing captured yet, and the producer end of its input.
+    fn pipeline() -> (Pipeline<Recorder>, tokio::sync::mpsc::Sender<TimedChunk>) {
+        let (input_tx, input) = tokio::sync::mpsc::channel(300);
+        let pipeline = Pipeline {
+            events: Recorder::default(),
+            origin: Origin::Microphone,
+            input,
+            spool: Arc::new(Spool::new().unwrap()),
+            capture_cancel: CancellationToken::new(),
+            abort: CancellationToken::new(),
+            failure: Arc::new(Mutex::new(None)),
+        };
+        (pipeline, input_tx)
+    }
+
+    /// Whisper's stand-in: one caption per speech window, through the production pump.
+    fn echo(
+        spool: &Spool,
+        abort: &CancellationToken,
+        emit: Emit<'_>,
+        report: Report<'_>,
+    ) -> Result<()> {
+        pump(spool, abort, Duration::from_millis(10), |window| {
+            spool.complete(window.consumed);
+            if window.speech {
+                let end_ms = window.start_ms + window.samples.len() as u64 / 16;
+                emit("words", window.start_ms, end_ms, 0);
+            }
+            report();
+            Ok(())
+        })
+    }
+
+    fn whisper_error(failure: &Mutex<Option<AppError>>) -> String {
+        let failure = failure.lock().unwrap();
+        let error = failure.as_ref().expect("the session recorded no failure");
+        assert_eq!(error.id, id::WHISPER_SESSION);
+        error.detail.clone().unwrap_or_default()
+    }
+
+    const RUNNING: Recorded = Recorded::Status(SessionState::Running, None);
+    const IDLE: Recorded = Recorded::Status(SessionState::Idle, None);
+    const FAILED: Recorded = Recorded::Status(SessionState::Error, Some(id::WHISPER_SESSION));
+
+    /// Stop closes the input; every frame accepted before it is still captioned, and only then
+    /// is the source Idle.
+    #[tokio::test]
+    async fn stop_drains_every_accepted_frame_then_reports_idle() {
+        let (pipeline, input) = pipeline();
+        let (events, spool, failure) = (
+            pipeline.events.clone(),
+            pipeline.spool.clone(),
+            pipeline.failure.clone(),
+        );
+        for i in 0..20 {
+            input.send(speech(i * 100)).await.unwrap();
+        }
+        drop(input);
+        drive(pipeline, echo).await;
+
+        assert_eq!(events.statuses(), [RUNNING, IDLE]);
+        assert!(events.captions() > 0);
+        assert_eq!(spool.pending_ms(), 0);
+        assert_eq!(events.last_progress(), Some(0));
+        assert!(failure.lock().unwrap().is_none());
+    }
+
+    /// A capture failure recorded on the spool — a capture-thread panic, say (B8) — reaches the
+    /// operator once what was captured before it has been captioned.
+    #[tokio::test]
+    async fn a_capture_failure_is_reported_after_the_audio_before_it() {
+        let (pipeline, input) = pipeline();
+        let (events, spool, failure) = (
+            pipeline.events.clone(),
+            pipeline.spool.clone(),
+            pipeline.failure.clone(),
+        );
+        for i in 0..20 {
+            input.send(speech(i * 100)).await.unwrap();
+        }
+        *spool.capture_error.lock().unwrap() =
+            Some("the capture thread panicked: device lost".into());
+        drop(input);
+        drive(pipeline, echo).await;
+
+        assert_eq!(events.statuses(), [RUNNING, FAILED]);
+        assert!(
+            events.captions() > 0,
+            "the audio before the failure was dropped"
+        );
+        assert_eq!(
+            whisper_error(&failure),
+            "the capture thread panicked: device lost"
+        );
+    }
+
+    /// A panicking inference worker must still stop capture, or the writer, waiting for input
+    /// that never ends, would hold Stop forever; and the source must say it failed.
+    #[tokio::test]
+    async fn an_inference_panic_stops_capture_and_is_reported() {
+        let (pipeline, input) = pipeline();
+        let (events, failure, capture) = (
+            pipeline.events.clone(),
+            pipeline.failure.clone(),
+            pipeline.capture_cancel.clone(),
+        );
+        // As capture does: its producer end goes once its token is cancelled.
+        let capture_stopped = capture.clone();
+        tokio::spawn(async move {
+            capture_stopped.cancelled().await;
+            drop(input);
+        });
+        tokio::time::timeout(
+            Duration::from_secs(10),
+            drive(pipeline, |_, _, _, _| panic!("ggml aborted")),
+        )
+        .await
+        .expect("the writer was left waiting for input");
+
+        assert!(capture.is_cancelled());
+        assert_eq!(events.statuses(), [RUNNING, FAILED]);
+        let detail = whisper_error(&failure);
+        assert!(
+            detail.starts_with("Whisper worker stopped unexpectedly"),
+            "{detail}"
+        );
+    }
+
+    /// The operator discarding the backlog while Stop waits ends the source in an error that
+    /// says the transcript is incomplete, not in a clean Idle.
+    #[tokio::test]
+    async fn discarding_the_backlog_is_reported_as_an_incomplete_transcript() {
+        let (pipeline, input) = pipeline();
+        let (events, failure) = (pipeline.events.clone(), pipeline.failure.clone());
+        input.send(speech(0)).await.unwrap();
+        drop(input);
+        pipeline.abort.cancel();
+        drive(pipeline, echo).await;
+
+        assert_eq!(events.statuses(), [RUNNING, FAILED]);
+        assert_eq!(events.captions(), 0);
+        assert_eq!(
+            whisper_error(&failure),
+            "Remaining audio was discarded; the transcript is incomplete"
+        );
     }
 
     #[test]
