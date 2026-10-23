@@ -3,7 +3,13 @@ import { get } from 'svelte/store';
 import { api } from './tauri';
 import { createPreflightController } from './preflightController.svelte';
 import { createOverlayController } from './overlayController.svelte';
-import { options, overlayFontSize, overlayCaptionWidth, statusMessage } from './stores';
+import {
+	describeStatus,
+	options,
+	overlayFontSize,
+	overlayCaptionWidth,
+	statusMessage
+} from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { describeError } from './errors';
 import { en } from './i18n/en';
@@ -124,6 +130,54 @@ it('lets a capture failure hold the saved devices without refusing an audio test
 	expect(get(options).micDeviceId).toBe('unplugged');
 	await probe.startAudioTest();
 	expect(startAudioTest).toHaveBeenCalledOnce();
+});
+
+// Review U11: both used to be stored as finished sentences in whichever language was showing,
+// so a change of interface language left them in the old one.
+it('words its own status messages where they are read', async () => {
+	const { fr } = await import('./i18n/fr');
+	const previous = get(options);
+	const startAudioTest = vi.fn();
+	const probe = createPreflightController(
+		true,
+		{ locked: () => false },
+		{
+			...api,
+			startAudioTest,
+			listMicrophones: vi.fn().mockResolvedValue([{ id: 'mic-1', name: 'Mic', isDefault: true }]),
+			listOutputs: vi.fn().mockResolvedValue([{ id: 'render-1', name: 'Dock', isDefault: true }])
+		}
+	);
+	try {
+		// The application to capture is not running.
+		options.set({
+			...DEFAULT_START_OPTIONS,
+			mode: 'translate',
+			provider: 'gemini',
+			source: 'system',
+			systemCapture: {
+				kind: 'application',
+				process: { pid: 42, createdAt: '2026-10-23T08:00:00Z' }
+			}
+		});
+		await probe.startAudioTest();
+		expect(startAudioTest).not.toHaveBeenCalled();
+		const missing = get(statusMessage);
+		expect(describeStatus(missing, en, 'en')).toBe(en.applications.missing);
+		expect(describeStatus(missing, fr, 'fr')).toBe(fr.applications.missing);
+
+		// The saved microphone is gone, so the idle setup falls back to the default.
+		statusMessage.set('');
+		options.set({ ...DEFAULT_START_OPTIONS, micDeviceId: 'unplugged' });
+		await probe.refresh();
+		expect(get(options).micDeviceId).toBeNull();
+		const fallback = get(statusMessage);
+		expect(describeStatus(fallback, en, 'en')).toBe(en.devices.idleFallback);
+		expect(describeStatus(fallback, fr, 'fr')).toBe(fr.devices.idleFallback);
+	} finally {
+		probe.dispose();
+		options.set(previous);
+	}
 });
 
 it('calls an engine ready only on the key, model or check that belongs to it', async () => {
