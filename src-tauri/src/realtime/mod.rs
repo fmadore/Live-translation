@@ -27,7 +27,7 @@ use crate::timing::SessionClock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use policy::{After, Reconnect, RunEnd};
 use socket::SocketIo;
-pub use wire::{bearer_request, parse_or_log};
+pub use wire::{bearer_request, classify_json, parse_or_log};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -277,7 +277,11 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             cancel: &cancel,
             pause: &mut pause,
         };
-        let end = socket::connect_and_run(io, &mut proto, &mut acc, plan.catch_up).await;
+        let ended = socket::connect_and_run(io, &mut proto, &mut acc, plan.catch_up).await;
+        if ended.established {
+            policy.established();
+        }
+        let end = ended.end;
         let next = policy.after(&end, connected_at.elapsed());
         match end {
             RunEnd::Stopped => {}
@@ -316,6 +320,23 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
                     "{} asked to move the session; reconnecting",
                     P::NAME
                 );
+            }
+            // Too many in a row: the provider is refusing this setup, so say so as it would.
+            RunEnd::SetupFailed { reason, close_code } if next == After::Stop => {
+                tracing::error!(?origin, ?close_code, %reason, "{} setup kept failing", P::NAME);
+                terminal_error = Some(AppError::with(
+                    id::PROVIDER_STOPPED,
+                    format!("{} — {reason}", P::NAME),
+                ));
+            }
+            RunEnd::SetupFailed { reason, close_code } => {
+                tracing::warn!(?origin, ?close_code, %reason, "{} setup failed; retrying", P::NAME);
+                events.status(StatusUpdate::lane(
+                    origin,
+                    lane,
+                    SessionState::Reconnecting,
+                    Some(AppError::with(id::PROVIDER_RECONNECTING, reason)),
+                ));
             }
             RunEnd::Failed(error) => {
                 tracing::error!(?origin, "{} stream error: {error:#}", P::NAME);

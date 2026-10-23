@@ -9,8 +9,8 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
-    Signal, TurnAccumulator,
+    bearer_request, classify_json, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome,
+    RealtimeProtocol, Signal, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -181,21 +181,26 @@ impl RealtimeProtocol for MistralClient {
                     ..MessageOutcome::default()
                 };
             }
+            // The official SDK types the error as `{ message, code }`: `message` a string or an
+            // object, `code` an integer it calls an internal code for debugging. The shared
+            // `classify_json` reads it: HTTP's transient codes and names, and Mistral's own
+            // backend failing to reach an internal service (seen live as code 3803 with a gRPC
+            // UNAVAILABLE message), reconnect; quota wording and anything unknown stay fatal.
             "error" => {
-                if event.error.as_ref().is_some_and(recoverable) {
+                let Some(error) = event.error else {
+                    return MessageOutcome::control(MessageControl::Fatal(
+                        "Mistral realtime transcription error".to_string(),
+                    ));
+                };
+                let control = classify_json(&error).control(|| error.to_string());
+                if !matches!(control, MessageControl::Fatal(_)) {
                     tracing::warn!(
                         origin = ?self.config.origin,
-                        error = ?event.error,
+                        %error,
                         "Mistral reported a transient error; reconnecting"
                     );
-                    return MessageOutcome::control(MessageControl::Reconnect);
                 }
-                return MessageOutcome::control(MessageControl::Fatal(
-                    event
-                        .error
-                        .map(|error| error.to_string())
-                        .unwrap_or_else(|| "Mistral realtime transcription error".to_string()),
-                ));
+                return MessageOutcome::control(control);
             }
             _ => {}
         }
@@ -223,66 +228,6 @@ fn ends_sentence(text: &str) -> bool {
         c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
     })
     .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
-}
-
-/// Wording that marks a failure inside Mistral's backend rather than in the request: gRPC's
-/// UNAVAILABLE and DEADLINE_EXCEEDED, and a connection reset between its services. Seen live
-/// on 7 October 2026 as code 3803, "gRPC connection error: <AioRpcError … StatusCode.UNAVAILABLE
-/// … Connection reset by peer …>"; a new session reaches a backend that is up. Specific on
-/// purpose: a bare "unavailable" could also describe a model the key cannot use.
-const TRANSIENT_BACKEND: [&str; 5] = [
-    "statuscode.unavailable",
-    "grpc_status:14",
-    "statuscode.deadline_exceeded",
-    "grpc connection error",
-    "connection reset by peer",
-];
-
-/// Whether an `error` event is one a new session can get past. The official SDK types it as
-/// `{ message, code }`: `message` a string or an object, `code` an integer it calls an
-/// internal code for debugging. Codes in HTTP's transient range (timeout, rate limit, server
-/// errors) reconnect, as do the transient `type`/`code` names Mistral's HTTP API uses, should
-/// `message` be such an object. Everything else — authentication, permission, a bad request
-/// or model, an exhausted quota, an unknown code — stays fatal, so a persistent failure
-/// reports itself instead of reconnecting in a loop. One exception by wording: Mistral's own
-/// backend failing to reach an internal service, which it reports under an internal code with
-/// the gRPC failure as the message (`TRANSIENT_BACKEND`).
-fn recoverable(error: &serde_json::Value) -> bool {
-    let code = error
-        .get("code")
-        .and_then(|code| code.as_u64().or_else(|| code.as_str()?.parse().ok()));
-    let message = error.get("message");
-    let names: Vec<&str> = [error, message.unwrap_or(&serde_json::Value::Null)]
-        .into_iter()
-        .flat_map(|value| ["type", "code"].map(|key| value.get(key)))
-        .filter_map(|name| name?.as_str())
-        .collect();
-    let text = message.map(|message| message.to_string().to_lowercase());
-    // A 429 is also how an exhausted quota or plan limit is reported; no reconnect fixes that.
-    if text.as_deref().is_some_and(|text| {
-        ["quota", "billing", "payment", "credit"]
-            .iter()
-            .any(|w| text.contains(w))
-    }) {
-        return false;
-    }
-    if text
-        .as_deref()
-        .is_some_and(|text| TRANSIENT_BACKEND.iter().any(|w| text.contains(w)))
-    {
-        return true;
-    }
-    matches!(code, Some(408 | 429 | 500 | 502 | 503 | 504))
-        || names.iter().any(|name| {
-            matches!(
-                *name,
-                "server_error"
-                    | "rate_limit_error"
-                    | "rate_limited"
-                    | "timeout"
-                    | "session_expired"
-            )
-        })
 }
 
 #[cfg(test)]

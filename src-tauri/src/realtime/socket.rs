@@ -11,11 +11,13 @@ use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Receiver;
 use tokio::time::{sleep, sleep_until, timeout, Instant, MissedTickBehavior};
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tokio_tungstenite::tungstenite::{Bytes, Message};
 use tokio_tungstenite::{connect_async_with_config, MaybeTlsStream, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
+use super::wire::{classify, Verdict};
 use super::{
     apply_caption, emit_caption, finalize_accumulator, CaptionUpdate, Events, MessageControl,
     MessageOutcome, PauseRx, RealtimeProtocol, Signal, TurnAccumulator,
@@ -117,18 +119,44 @@ impl Backlog {
     }
 }
 
+/// How one connection ended, and whether the provider had accepted its setup first: the
+/// policy's cap on setup failures counts only those in a row.
+pub(super) struct Ended {
+    pub end: RunEnd,
+    pub established: bool,
+}
+
 pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
     mut io: SocketIo<'_, E>,
     proto: &mut P,
     acc: &mut TurnAccumulator,
     catch_up: bool,
-) -> RunEnd {
+) -> Ended {
     let mut backlog = Backlog::default();
-    let mut conn = match open(&mut io, proto, acc, catch_up, &mut backlog).await {
+    let conn = match open(&mut io, proto, acc, catch_up, &mut backlog).await {
         Ok(conn) => conn,
-        Err(end) => return end,
+        Err(end) => {
+            return Ended {
+                end,
+                established: false,
+            }
+        }
     };
+    Ended {
+        end: stream(io, proto, acc, conn, catch_up, backlog).await,
+        established: true,
+    }
+}
 
+/// Everything after setup: report Running, replay a handover's backlog, then pump.
+async fn stream<P: RealtimeProtocol, E: Events>(
+    io: SocketIo<'_, E>,
+    proto: &mut P,
+    acc: &mut TurnAccumulator,
+    mut conn: Connection,
+    catch_up: bool,
+    mut backlog: Backlog,
+) -> RunEnd {
     // Paused while this connection was being set up. Nothing has been streamed on it, so there
     // is nothing to flush, and reporting Running first would only make the status flicker.
     if *io.pause.borrow_and_update() {
@@ -235,37 +263,35 @@ async fn open<P: RealtimeProtocol, E: Events>(
                 backlog.push(chunk);
                 continue;
             }
+            // A slow setup is a provider having a bad moment as often as one refusing it, and
+            // Gemini Transcribe goes through setup every ten minutes: retried, within a cap.
             _ = &mut setup => {
-                return Err(RunEnd::Fatal(format!(
-                    "{} did not confirm session setup within {} seconds",
-                    P::NAME,
-                    SETUP_TIMEOUT.as_secs()
-                )));
+                conn.close().await;
+                return Err(RunEnd::SetupFailed {
+                    reason: format!(
+                        "{} did not confirm session setup within {} seconds",
+                        P::NAME,
+                        SETUP_TIMEOUT.as_secs()
+                    ),
+                    close_code: None,
+                });
             }
             message = conn.read.next() => message,
         };
 
         let Some(message) = message else {
-            return Err(RunEnd::Fatal(format!(
-                "{} closed the connection before accepting session setup",
-                P::NAME
-            )));
+            return Err(RunEnd::SetupFailed {
+                reason: format!(
+                    "{} closed the connection before accepting session setup",
+                    P::NAME
+                ),
+                close_code: None,
+            });
         };
         let message = message.context("WebSocket read error during setup")?;
         conn.last_inbound = Instant::now();
         match &message {
-            Message::Close(frame) => {
-                let reason = frame
-                    .as_ref()
-                    .map(|frame| frame.reason.trim())
-                    .filter(|reason| !reason.is_empty())
-                    .map(|reason| format!(": {reason}"))
-                    .unwrap_or_default();
-                return Err(RunEnd::Fatal(format!(
-                    "{} rejected session setup{reason}",
-                    P::NAME
-                )));
-            }
+            Message::Close(frame) => return Err(setup_closed::<P>(frame.as_ref())),
             Message::Ping(_) | Message::Pong(_) => continue,
             _ => {}
         }
@@ -275,13 +301,43 @@ async fn open<P: RealtimeProtocol, E: Events>(
             MessageControl::Continue if outcome.signal == Signal::SetupComplete => return Ok(conn),
             MessageControl::Continue => {}
             MessageControl::Fatal(message) => return Err(RunEnd::Fatal(message)),
+            // The provider's own transient error, or its session ending before it began.
             MessageControl::Reconnect | MessageControl::Handover | MessageControl::Closed => {
-                return Err(RunEnd::Fatal(format!(
-                    "{} closed the connection before accepting session setup",
-                    P::NAME
-                )));
+                conn.close().await;
+                return Err(RunEnd::SetupFailed {
+                    reason: format!(
+                        "{} closed the connection before accepting session setup",
+                        P::NAME
+                    ),
+                    close_code: None,
+                });
             }
         }
+    }
+}
+
+/// A Close frame in answer to setup, read by its code and reason the way an `error` event is.
+/// 1007 and 1008 (a setup the server will not take), or a reason about the key or the quota,
+/// end the source; a 1011 or 1013 ("try again later") is retried like any setup failure.
+/// A Close with no code at all says no more than the socket ending would, and is retried too.
+fn setup_closed<P: RealtimeProtocol>(frame: Option<&CloseFrame>) -> RunEnd {
+    let code = frame.map(|frame| u16::from(frame.code));
+    let reason = frame.map_or("", |frame| frame.reason.trim());
+    let detail = if reason.is_empty() {
+        String::new()
+    } else {
+        format!(": {reason}")
+    };
+    let verdict = match code {
+        Some(code) => classify(Some(u64::from(code)), &[], reason),
+        None => Verdict::Retry,
+    };
+    match verdict {
+        Verdict::Fatal => RunEnd::Fatal(format!("{} rejected session setup{detail}", P::NAME)),
+        Verdict::Retry | Verdict::Handover => RunEnd::SetupFailed {
+            reason: format!("{} closed the connection during setup{detail}", P::NAME),
+            close_code: code,
+        },
     }
 }
 

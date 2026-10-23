@@ -9,7 +9,7 @@ use anyhow::{Context, Result};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
-use crate::realtime::{MessageControl, MessageOutcome, RealtimeProtocol};
+use crate::realtime::{classify_json, MessageControl, MessageOutcome, RealtimeProtocol};
 use protocol::ServerMessage;
 
 pub use client::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
@@ -28,8 +28,10 @@ fn gemini_request(provider: &str, host: &str, api_key: &str) -> Result<Request> 
 
 impl ServerMessage {
     /// What both models do with a frame before its content: confirm setup, move on `goAway`,
-    /// or stop on an error. `None` leaves the frame's content to the caller. `error_label` is
-    /// the client's own wording for a provider error, which the operator reads after its name.
+    /// or act on an error as the shared `classify_json` reads it — a `google.rpc.Status` whose
+    /// UNAVAILABLE or INTERNAL reconnects, and whose bad request, key or quota stops the source.
+    /// `None` leaves the frame's content to the caller. `error_label` is the client's own
+    /// wording for a fatal error, which the operator reads after its name.
     fn control<P: RealtimeProtocol>(&self, proto: &P, error_label: &str) -> Option<MessageOutcome> {
         if self.setup_complete.is_some() {
             let origin = proto.origin();
@@ -43,7 +45,12 @@ impl ServerMessage {
             return Some(MessageOutcome::control(MessageControl::Handover));
         }
         self.error.as_ref().map(|error| {
-            MessageOutcome::control(MessageControl::Fatal(format!("{error_label}: {error}")))
+            let control = classify_json(error).control(|| format!("{error_label}: {error}"));
+            if !matches!(control, MessageControl::Fatal(_)) {
+                let origin = proto.origin();
+                tracing::warn!(?origin, %error, "{} reported a transient error", P::NAME);
+            }
+            MessageOutcome::control(control)
         })
     }
 }
@@ -86,5 +93,28 @@ mod tests {
             fatal(transcribe.send(frame)),
             r#"Gemini Transcribe error: {"code":400,"message":"bad"}"#
         );
+    }
+
+    /// Every `error` used to be fatal, so one "try again later" at a ten-minute handover left
+    /// the source in Error until the operator restarted it.
+    #[test]
+    fn a_transient_provider_error_reconnects_instead() {
+        let mut transcribe = Harness::new(GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: DEFAULT_HOST.to_string(),
+            origin: Origin::Microphone,
+        });
+        for frame in [
+            r#"{"error":{"code":503,"message":"The service is currently unavailable.","status":"UNAVAILABLE"}}"#,
+            r#"{"error":{"code":500,"message":"Internal error encountered.","status":"INTERNAL"}}"#,
+        ] {
+            assert!(
+                matches!(transcribe.send(frame).control, MessageControl::Reconnect),
+                "{frame}"
+            );
+        }
+        let quota = r#"{"error":{"code":429,"message":"You exceeded your current quota.","status":"RESOURCE_EXHAUSTED"}}"#;
+        assert!(fatal(transcribe.send(quota)).starts_with("Gemini Transcribe error: "));
     }
 }

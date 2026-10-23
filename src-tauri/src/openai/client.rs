@@ -14,8 +14,8 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    bearer_request, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol,
-    TurnAccumulator,
+    bearer_request, classify_json, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome,
+    RealtimeProtocol, TurnAccumulator,
 };
 use crate::types::Origin;
 
@@ -131,42 +131,14 @@ impl RealtimeProtocol for OpenAiConfig {
     }
 }
 
-/// How an `error` event steers the connection. Its `error` object carries a `type`
-/// (`invalid_request_error`, `server_error`, …) and an optional `code`, and the code is read
-/// first:
-///
-/// - `session_expired` is the 60-minute session cap. It arrives as an `invalid_request_error`
-///   but is a planned end, so it hands over like Gemini's `goAway`: after a stable connection
-///   the runner reconnects at once and replays the audio queued meanwhile.
-/// - Server errors, rate limits and an overloaded service reconnect with backoff.
-/// - Everything else is fatal — including an exhausted quota, which is reported like a rate
-///   limit but which no reconnect refills — so a persistent bad request reports itself
-///   instead of reconnecting in a loop.
+/// How an `error` event steers the connection, by the shared `classify_json`. Its `error`
+/// object carries a `type` (`invalid_request_error`, `server_error`, …) and an optional `code`.
+/// `session_expired`, the 60-minute session cap, arrives as an `invalid_request_error` but is a
+/// planned end, so it hands over like Gemini's `goAway`: after a stable connection the runner
+/// reconnects at once and replays the audio queued meanwhile. An exhausted quota is reported
+/// like a rate limit, but no reconnect refills it, so it stays fatal.
 fn error_control(error: &serde_json::Value) -> MessageControl {
-    let field = |name: &str| error.get(name).and_then(serde_json::Value::as_str);
-    let (kind, code) = (field("type").unwrap_or(""), field("code").unwrap_or(""));
-    let exhausted = [kind, code]
-        .iter()
-        .any(|s| s.contains("quota") || s.contains("billing"));
-    if code == "session_expired" {
-        MessageControl::Handover
-    } else if !exhausted
-        && (matches!(
-            code,
-            "server_error"
-                | "rate_limit_exceeded"
-                | "overloaded"
-                | "service_unavailable"
-                | "timeout"
-        ) || matches!(
-            kind,
-            "server_error" | "rate_limit_error" | "overloaded_error"
-        ))
-    {
-        MessageControl::Reconnect
-    } else {
-        MessageControl::Fatal(format!("OpenAI realtime error: {error}"))
-    }
+    classify_json(error).control(|| format!("OpenAI realtime error: {error}"))
 }
 
 #[cfg(test)]

@@ -19,11 +19,13 @@ use tokio::task::JoinHandle;
 use tokio::time::{sleep, timeout, timeout_at, Instant};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tokio_tungstenite::tungstenite::{self, Message};
 use tokio_tungstenite::{accept_async, WebSocketStream};
 use tokio_util::sync::CancellationToken;
 
-use super::policy::{INITIAL_BACKOFF, STABLE_CONNECTION};
+use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION};
 use super::socket::{
     CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, MAX_HOLD, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT,
 };
@@ -333,6 +335,15 @@ impl Peer {
         self.send("ready").await;
     }
 
+    /// Close the connection with a WebSocket close code, as a provider refusing a setup does.
+    async fn close(&mut self, code: u16, reason: &str) {
+        let frame = CloseFrame {
+            code: CloseCode::from(code),
+            reason: reason.into(),
+        };
+        self.0.close(Some(frame)).await.unwrap();
+    }
+
     /// Keep reading — and so answering pings — for `duration`; the audio heard meanwhile.
     async fn listen_for(&mut self, duration: Duration) -> Vec<u8> {
         let until = Instant::now() + duration;
@@ -568,22 +579,81 @@ async fn a_server_close_mid_stream_reconnects() {
     client.finished().await;
 }
 
+/// A setup timeout is retried like any failure, but a setup that is never confirmed, however
+/// often it is tried, still ends the source rather than reconnecting for the rest of the event.
 #[tokio::test(start_paused = true)]
-async fn a_setup_that_is_never_confirmed_ends_the_source_with_an_error() {
+async fn a_setup_that_is_never_confirmed_ends_the_source_after_a_few_tries() {
     tick_clock();
     let server = Server::bind().await;
     let mut client = Client::start(&server.url);
-    let started = client.expect(status(SessionState::Connecting)).await;
-    // Held open and never answered.
-    let _peer = server.accept().await;
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peers = Vec::new();
+    for attempt in 1..=MAX_SETUP_FAILURES {
+        // Held open and never answered.
+        let started = Instant::now();
+        peers.push(server.accept().await);
+        let (at, event) = timeout(GUARD, client.events.recv()).await.unwrap().unwrap();
+        assert!(at - started >= SETUP_TIMEOUT, "attempt {attempt}");
+        if attempt < MAX_SETUP_FAILURES {
+            assert_eq!(
+                event,
+                Event::Status(SessionState::Reconnecting, Some(id::PROVIDER_RECONNECTING))
+            );
+            client.expect(status(SessionState::Reconnecting)).await;
+        } else {
+            assert_eq!(
+                event,
+                Event::Status(SessionState::Error, Some(id::PROVIDER_STOPPED))
+            );
+        }
+    }
+    client.finished().await;
+}
 
-    let failed = client
+/// B1: Gemini Transcribe goes through setup every ten minutes, and a 1011 or 1013 ("try again
+/// later") at one of them used to leave the source in Error until the operator restarted it.
+#[tokio::test(start_paused = true)]
+async fn a_close_worth_retrying_during_setup_reconnects_with_backoff() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    let closed_at = Instant::now();
+    peer.close(1011, "Internal error encountered.").await;
+
+    client
+        .expect(Event::Status(
+            SessionState::Reconnecting,
+            Some(id::PROVIDER_RECONNECTING),
+        ))
+        .await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    let mut next = server.accept().await;
+    assert!(Instant::now() - closed_at >= INITIAL_BACKOFF, "backed off");
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_policy_close_during_setup_ends_the_source_at_once() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    peer.close(1008, "Requested entity was not found.").await;
+
+    client
         .expect(Event::Status(
             SessionState::Error,
             Some(id::PROVIDER_STOPPED),
         ))
         .await;
-    assert!(failed - started >= SETUP_TIMEOUT);
     client.finished().await;
 }
 
