@@ -12,12 +12,13 @@
 // size and of contrast themes.
 //
 // One reach this module cannot avoid: `setTheme` sets WebView2's preferred colour scheme on
-// the profile, and both windows share it, so the overlay's `prefers-color-scheme` follows the
-// operator's choice. Nothing styles by that query (`palette.test.ts` keeps it that way), and
-// the overlay's `color-scheme` is dark alone, so it changes nothing there. It does mean the
-// query here reports the last explicit choice, not Windows, until `setTheme(null)` lands —
-// switching back to System can show the old theme for that round trip before `onSystem`
-// corrects it.
+// the WebView2 profile, and every window of the app shares that one profile, so the overlay's
+// `prefers-color-scheme` follows the operator's choice. Nothing styles or branches on that
+// query but this module and `app.html`, which read it only to resolve System (`theme.test.ts`
+// fails on it anywhere else in `src`, `palette.test.ts` in any stylesheet), and the overlay's
+// `color-scheme` is dark alone, so it changes nothing there. It does mean the query here
+// reports the last explicit choice, not Windows, until `setTheme(null)` lands — switching back
+// to System can show the old theme for that round trip before `onSystem` corrects it.
 //
 // `src/app.html` sets the attribute once before anything else runs, so the first frame is
 // already right; it mirrors `loadTheme` and `resolveTheme`, and `theme.test.ts` runs it.

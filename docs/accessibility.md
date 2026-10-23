@@ -49,6 +49,9 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
   colour that is not a token, or a `prefers-color-scheme` rule fails it, and so does an overlay
   toolbar that a white slide would lift above `--surface-2`. It exists because the contrast
   failures behind issue #24 arrived one shade at a time, and nothing could see them.
+  `src/lib/theme.test.ts` goes further for `prefers-color-scheme`: the theme sets it on the
+  WebView2 profile the overlay shares, so no file in `src` may name it except `theme.ts` and
+  `app.html`, which read it to resolve System.
 - `npm run test:style` records the operator window's computed styles in the light theme as
   well as the dark one, checks that a light desktop gets a light first frame before the app's
   scripts have loaded, and that the overlay keeps the dark tokens when Light is chosen.
