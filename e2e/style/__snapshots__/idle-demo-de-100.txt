@@ -98,17 +98,24 @@ aside.rail … button.engine.ui-card "Lokales Whisper Mehrsprachiges …" › sp
 aside.rail … button.engine.ui-card "Lokales Whisper Mehrsprachiges …" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 500; line-height: 1; color: #c3c9d2; display: block }
 aside.rail … button.engine.ui-card "Lokales Whisper Mehrsprachiges …" › span.engine-body › span.engine-model { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; color: #8b93a1; display: block }
 aside.rail … button.engine.ui-card "Lokales Whisper Mehrsprachiges …" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #8b93a1; display: block; margin: 0px 0px 0px auto }
-aside.rail › section.rail-section:nth(4) › div.engines › button.engine.ui-card "Mistral Voxtral voxtral-mini-tr…" { text-align: left; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … button.engine.ui-card "Mistral Voxtral voxtral-mini-tr…" › span.engine-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-aside.rail … button.engine.ui-card "Mistral Voxtral voxtral-mini-tr…" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 500; line-height: 1; color: #c3c9d2; display: block }
-aside.rail … button.engine.ui-card "Mistral Voxtral voxtral-mini-tr…" › span.engine-body › span.engine-model { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; color: #8b93a1; display: block }
-aside.rail … button.engine.ui-card "Mistral Voxtral voxtral-mini-tr…" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #8b93a1; display: block; margin: 0px 0px 0px auto }
-aside.rail › section.rail-section:nth(4) › div.engines › button.engine.ui-card "Google Gemini gemini-3.5-transc…" { text-align: left; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … button.engine.ui-card "Google Gemini gemini-3.5-transc…" › span.engine-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-aside.rail … button.engine.ui-card "Google Gemini gemini-3.5-transc…" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 500; line-height: 1; color: #c3c9d2; display: block }
-aside.rail … button.engine.ui-card "Google Gemini gemini-3.5-transc…" › span.engine-body › span.engine-model { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; color: #8b93a1; display: block }
-aside.rail … button.engine.ui-card "Google Gemini gemini-3.5-transc…" › span.engine-body › span.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; display: block }
-aside.rail … button.engine.ui-card "Google Gemini gemini-3.5-transc…" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #8b93a1; display: block; margin: 0px 0px 0px auto }
+aside.rail › section.rail-section:nth(4) › div.engines › button.engine.ui-card "Mistral Voxtral voxtral- mini- …" { text-align: left; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 500; line-height: 1; color: #c3c9d2; display: block }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-model { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; color: #8b93a1; display: block }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-model › span.model-part:nth(1) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-model › span.model-part:nth(2) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-model › span.model-part:nth(3) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-body › span.engine-model › span.model-part:nth(4) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Mistral Voxtral voxtral- mini- …" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #8b93a1; display: block; margin: 0px 0px 0px auto }
+aside.rail › section.rail-section:nth(4) › div.engines › button.engine.ui-card "Google Gemini gemini-3.5- trans…" { text-align: left; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 500; line-height: 1; color: #c3c9d2; display: block }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.engine-model { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; color: #8b93a1; display: block }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.engine-model › span.model-part:nth(1) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.engine-model › span.model-part:nth(2) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.engine-model › span.model-part:nth(3) { white-space: collapse nowrap }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-body › span.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; display: block }
+aside.rail … button.engine.ui-card "Google Gemini gemini-3.5- trans…" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #8b93a1; display: block; margin: 0px 0px 0px auto }
 aside.rail › section.rail-section:nth(4) › div.engines › button.engine.ui-card "Integrierte Demo Mitgeliefertes…" { text-align: left; display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid rgba(90, 209, 160, 0.4); border-radius: 4px; background-color: rgba(90, 209, 160, 0.08) }
 aside.rail … button.engine.ui-card "Integrierte Demo Mitgeliefertes…" › span.engine-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
 aside.rail … button.engine.ui-card "Integrierte Demo Mitgeliefertes…" › span.engine-body › span.engine-name { font-size: 13px; font-weight: 600; line-height: 1; display: block }
@@ -116,38 +123,39 @@ aside.rail … button.engine.ui-card "Integrierte Demo Mitgeliefertes…" › sp
 aside.rail … button.engine.ui-card "Integrierte Demo Mitgeliefertes…" › span.engine-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; font-weight: 500; line-height: 1; white-space: collapse nowrap; font-variant-numeric: tabular-nums; color: #7fdcb6; display: block; margin: 0px 0px 0px auto }
 aside.rail … button.engine.ui-card "Integrierte Demo Mitgeliefertes…" › span.engine-rate › span.unit { color: #8b93a1 }
 main.stage { display: flex; flex-direction: column; overflow: auto; padding: 32px }
-main.stage › span.kicker { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #8b93a1; display: block; flex: 0 0 auto }
-main.stage › h2.ready "Bereit, wenn Sie es sind" { font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -0.54px; flex: 0 0 auto; margin: 16px 0px 0px }
-main.stage › p.intro { font-size: 13px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; max-width: 357.552px; margin: 8px 0px 0px }
-main.stage › div.checklist { flex: 0 0 auto; margin: 24px 0px 0px; border-top: 1px solid #1f242b }
-main.stage › div.checklist › div.check-row:nth(1) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.checklist › div.check-row:nth(1) › span.mark.ok { color: #5ad1a0; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(90, 209, 160, 0.14) }
-main.stage › div.checklist › div.check-row:nth(1) › span.mark.ok › svg { display: block; width: 12px; height: 12px }
-main.stage › div.checklist › div.check-row:nth(1) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-main.stage › div.checklist › div.check-row:nth(1) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
-main.stage › div.checklist › div.check-row:nth(1) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.checklist › div.check-row:nth(1) › span { display: block }
-main.stage › div.checklist › div.check-row:nth(2) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.checklist › div.check-row:nth(2) › span.mark.ok { color: #5ad1a0; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(90, 209, 160, 0.14) }
-main.stage › div.checklist › div.check-row:nth(2) › span.mark.ok › svg { display: block; width: 12px; height: 12px }
-main.stage › div.checklist › div.check-row:nth(2) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-main.stage › div.checklist › div.check-row:nth(2) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
-main.stage › div.checklist › div.check-row:nth(2) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.checklist › div.check-row:nth(2) › span { display: block }
-main.stage › div.checklist › div.check-row:nth(3) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.checklist › div.check-row:nth(3) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
-main.stage › div.checklist › div.check-row:nth(3) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
-main.stage › div.checklist › div.check-row:nth(3) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-main.stage › div.checklist › div.check-row:nth(3) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
-main.stage › div.checklist › div.check-row:nth(3) › div.check-body › span.check-desc.warn { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #ffb454; display: block }
-main.stage › div.checklist › div.check-row:nth(3) › button.ui-tool.warn.sm "Untertitel verschieben" { font-size: 12px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 4px 12px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
-main.stage › div.checklist › div.check-row:nth(4) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.checklist › div.check-row:nth(4) › span.mark.neutral { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; color: #8b93a1; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: #191d23 }
-main.stage › div.checklist › div.check-row:nth(4) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
-main.stage › div.checklist › div.check-row:nth(4) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
-main.stage › div.checklist › div.check-row:nth(4) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.checklist › div.check-row:nth(4) › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
-main.stage › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 12px; margin: 32px 0px 0px }
-main.stage › div.launch › span.rehearse-hint { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
-main.stage › div.launch › span.privacy { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
+main.stage › div.stage-panel { display: flex; flex-direction: column; flex: 1 0 auto }
+main.stage › div.stage-panel › span.kicker { font-size: 11px; font-weight: 600; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; color: #8b93a1; display: block; flex: 0 0 auto }
+main.stage › div.stage-panel › h2.ready "Bereit, wenn Sie es sind" { font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -0.54px; flex: 0 0 auto; margin: 16px 0px 0px }
+main.stage › div.stage-panel › p.intro { font-size: 13px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; max-width: 357.552px; margin: 8px 0px 0px }
+main.stage › div.stage-panel › div.checklist { flex: 0 0 auto; margin: 24px 0px 0px; border-top: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.ok { color: #5ad1a0; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(90, 209, 160, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.ok › svg { display: block; width: 12px; height: 12px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span { display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.ok { color: #5ad1a0; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(90, 209, 160, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.ok › svg { display: block; width: 12px; height: 12px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span { display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body › span.check-desc.warn { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #ffb454; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › button.ui-tool.warn.sm "Untertitel verschieben" { font-size: 12px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 4px 12px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.mark.neutral { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; color: #8b93a1; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: #191d23 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body { display: flex; flex-direction: column; gap: 4px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body › span.check-title { font-size: 14px; font-weight: 500; line-height: 1.2; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body › span.check-desc { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
+main.stage › div.stage-panel › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 12px; margin: 32px 0px 0px }
+main.stage › div.stage-panel › div.launch › span.rehearse-hint { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
+main.stage › div.stage-panel › div.launch › span.privacy { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
 body › div › div { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden }
