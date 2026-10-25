@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Field from './ui/Field.svelte';
 	import Select from './ui/Select.svelte';
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import { options } from './stores';
 	import { t } from './i18n';
 	import type { AudioDevice, CaptureApplication } from './types';
@@ -25,8 +25,12 @@
 		$options.systemCapture?.kind === 'application' ? $options.systemCapture.process : null
 	);
 	const selectionKey = $derived(selected ? `${selected.pid}:${selected.createdAt}` : '');
-	onMount(() => {
-		void refresh();
+	// Listing applications opens a query-only handle on every process with a visible window,
+	// a game behind kernel anti-cheat included. So the list is built once One application is
+	// chosen, and capturing the whole output never touches another process. Untracked: the
+	// refresh reads and sets its own busy flag, which must not ask again.
+	$effect(() => {
+		if (applicationMode) untrack(() => void refresh());
 	});
 </script>
 

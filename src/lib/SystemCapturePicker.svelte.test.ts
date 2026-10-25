@@ -45,3 +45,37 @@ it('an unavailable selection remains explicit instead of selecting a replacement
 	).toBeInTheDocument();
 	expect(get(options).systemCapture?.kind).toBe('application');
 });
+it('lists applications only once One application is chosen', async () => {
+	const refresh = vi.fn().mockResolvedValue(undefined);
+	const view = render(SystemCapturePicker, {
+		locked: false,
+		outputs: [],
+		applications: [],
+		supported: null,
+		refresh,
+		changed: vi.fn()
+	});
+	// Capturing the whole output never opens a handle on another process, a game included.
+	expect(refresh).not.toHaveBeenCalled();
+	await fireEvent.change(view.getByRole('combobox', { name: 'System capture' }), {
+		target: { value: 'application' }
+	});
+	expect(refresh).toHaveBeenCalledOnce();
+	await fireEvent.change(view.getByRole('combobox', { name: 'System capture' }), {
+		target: { value: 'output' }
+	});
+	expect(refresh).toHaveBeenCalledOnce();
+});
+it('lists applications at once when One application was already chosen', () => {
+	options.set({ ...get(options), systemCapture: { kind: 'application', process: null } });
+	const refresh = vi.fn().mockResolvedValue(undefined);
+	render(SystemCapturePicker, {
+		locked: false,
+		outputs: [],
+		applications: [],
+		supported: null,
+		refresh,
+		changed: vi.fn()
+	});
+	expect(refresh).toHaveBeenCalledOnce();
+});

@@ -15,6 +15,13 @@ title and PID. Multiple windows of one process share one entry. Background-only 
 inaccessible processes are not listed. Per-app icons and grouping unrelated process trees are
 outside this implementation.
 
+Listing opens a `PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE` handle on each of those
+processes, to read its creation time and whether it still runs; such a handle can neither read
+memory nor run code. The list is built only while **One application** is selected (when the
+mode is chosen, and on **Refresh**), so capturing the whole output opens no handle on another
+process. That is the mode to suggest to players: kernel anti-cheat watches the handles opened
+on a game.
+
 ## Capture scope and lifecycle
 
 - WASAPI includes only the selected process and its descendants. No exclusion mode is used.
