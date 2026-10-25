@@ -326,6 +326,22 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		// Hidden by the core, not by this window: the toggle and the tray now offer Show, so
 		// bringing the captions back is one click rather than a Hide that does nothing first.
 		if (typeof msg.visible === 'boolean') overlayVisible = msg.visible;
+		if (msg.visible === false && moveOverlay) void leaveHiddenMoveMode();
+	}
+
+	/** Alt+F4 lands on the overlay in move mode, the only time it can take focus. The window is
+	 *  hidden, so there is nothing left to place: leave move mode and make it click-through
+	 *  again, or Show overlay would bring back a region that catches every click while the
+	 *  operator window still offered Done. The window stays where it was dragged, but nothing
+	 *  is remembered: putting it out of the way is not choosing where it goes. */
+	async function leaveHiddenMoveMode() {
+		moveOverlay = false;
+		pushOverlayConfig({ interactive: moveOverlay });
+		try {
+			await api.setOverlayClickThrough(true);
+		} catch (e) {
+			statusMessage.set(asStatus(e));
+		}
 	}
 
 	return {
