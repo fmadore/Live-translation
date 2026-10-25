@@ -10,15 +10,15 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
-**[1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0)** (21 October 2026)
+**[1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)** (22 October 2026)
 is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X). It
-adds a Transcript tab for reading and copying the transcript during a session, and moves
-Mistral subtitles to Voxtral Realtime 3, with lines that end at the speaker's turn and a list
-of names and terms. **[1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)**
-(22 October 2026) is the latest on GitHub and awaits Store submission. It adds a light theme
-that follows Windows' light or dark app mode, and fixes from the
-[22 October review](docs/app-review-2026-10-22.md). See its
-[release notes](docs/release-1.9.0.md) and [Store handoff](docs/store-updates.md#release-190-handoff).
+adds a light theme that follows Windows' light or dark app mode, and fixes from the
+[22 October review](docs/app-review-2026-10-22.md).
+**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** is the next
+release, awaiting its tag and Store submission. It keeps cloud sessions' words through a
+Gemini handover, keeps system audio up under load, opens no handle on other programs outside
+One application capture, and completes the review's fixes. See its
+[release notes](docs/release-1.10.0.md) and [Store handoff](docs/store-updates.md#release-1100-handoff).
 
 ## What it does
 

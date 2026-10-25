@@ -1,24 +1,26 @@
-# Partner Center listing text — 1.9.0
+# Partner Center listing text — 1.10.0
 
-Prepared for **1.9.0 / MSIX 1.9.0.0**, tagged on 22 October 2026. The last confirmed Store release is 1.8.0
-(MSIX 1.8.0.0), live as confirmed by the maintainer on 21 October 2026, so What's new covers
-only the changes since 1.8.0. Paste each block into its named field after the
+Prepared for **1.10.0 / MSIX 1.10.0.0**; not yet tagged. The last confirmed Store release is
+1.9.0 (MSIX 1.9.0.0), live as confirmed with `Get-AppxPackage` on 25 October 2026, so What's
+new covers only the changes since 1.9.0. Paste each block into its named field after the
 [release checks](store-updates.md). These descriptions lead with the actual captioning
 workflow; the scripted demo is a secondary setup aid.
 
-For 1.9.0, What's new is replaced in all three languages: the light theme
-([#159](https://github.com/fmadore/Live-translation/pull/159)), then one paragraph of fixes from
-the [22 October review](app-review-2026-10-22.md), the History filter fix
-([#158](https://github.com/fmadore/Live-translation/pull/158)) among them. It says plainly that System is
-the default, so a reader whose Windows is in light mode knows why the app now opens light and
-how to keep the dark look. The features add one line for the theme and one for games. The
-descriptions add one sentence for players following voice chat in another language, prompted by
-a WARDOGS player's question on anti-cheat: the overlay is a separate window, with nothing
-injected into the game. One keyword makes way for games: "live subtitles", which the app's name
-already carries, "sous-titres automatiques" and "Live-Transkription". The short descriptions and
-requirements are unchanged. The certification notes change only in
-their first paragraph: the version, and what is new since 1.8.0. The German
-addition is parity only; the native-speaker review is still pending.
+For 1.10.0, What's new is replaced in all three languages: one paragraph on cloud sessions and
+capture, the anti-cheat fix ([#177](https://github.com/fmadore/Live-translation/pull/177))
+among them, and one on the overlay and the operator window, from batches 4–6 of the
+[22 October review](app-review-2026-10-22.md)
+([#171](https://github.com/fmadore/Live-translation/pull/171)). The certification notes change
+only in their first paragraph: the version, and what is new since 1.9.0.
+
+The descriptions, features and keywords are those #177 changed after 1.9.0 was submitted: one
+sentence for players following voice chat in another language, prompted by a WARDOGS player's
+question on anti-cheat (the overlay is a separate window, with nothing injected into the game),
+a feature line for games, and one keyword per language making way for games ("live
+subtitles", which the app's name already carries, "sous-titres automatiques" and
+"Live-Transkription"). Paste them with this submission unless they were already pasted into
+the live listing. The short descriptions and requirements are unchanged. The German additions
+are parity only; the native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -58,12 +60,12 @@ Use the interface in English, French or German, whatever the caption language. T
 Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
 ```
 
-### What's new in this version — 1.9.0
+### What's new in this version — 1.10.0
 
 ```text
-Light theme: the operator window can now be light as well as dark. Settings › App › Theme offers System, Light and Dark. System is the default and follows the light or dark app mode set in Windows, so if Windows is in light mode, the app now opens light; choose Dark to keep the previous look. The title bar follows the theme, and the caption overlay keeps its own colours over any slide.
+Cloud sessions and capture: when Gemini moves a session to a new connection, the last words are no longer lost, and a brief provider failure while connecting is retried instead of ending the source. System audio keeps up while local Whisper is busy. System audio and microphone capture no longer open a handle on any other program, which kernel anti-cheat in games watches for; the application list is built only when you choose One application.
 
-Fixes: closing the caption overlay with Alt+F4 now hides it instead of removing it until restart. An API key pasted with a space or an invisible character is refused when you save it. Mistral lines no longer close before their last words. Rehearse after a failed session plays the sample again. No false "no captions" warning after a pause. Narrator no longer repeats the Whisper backlog and download progress, and keyboard focus moves to Stop or Start as a session begins or ends. Sums of money follow the interface language, and history shows sessions over an hour as hours, with filters that stay lined up.
+Overlay and operator window: after Alt+F4 hides the overlay, the toggle and the tray say so. Adjusting the overlay during a session no longer disturbs the captions, and a strip across two displays is restored as placed. Start waits until the session is running. The transcript keeps its Copy window and scroll position across Start and Stop. Crash recovery can be switched on in Settings › Transcript history. A failing recovery copy or history save stays flagged beside the save badge. Arabic, Hebrew, Persian and Urdu captions run right to left in the operator window too.
 ```
 
 ### Features — one feature per line
@@ -132,12 +134,12 @@ Utilisez l'interface en français, anglais ou allemand, quelle que soit la langu
 Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
 ```
 
-### Nouveautés de cette version — 1.9.0
+### Nouveautés de cette version — 1.10.0
 
 ```text
-Thème clair : la fenêtre de contrôle peut désormais être claire ou sombre. Paramètres › Application › Thème propose Système, Clair et Sombre. Système, le réglage par défaut, suit le mode d'application clair ou sombre choisi dans Windows : si Windows est en mode clair, l'application s'ouvre désormais en clair ; choisissez Sombre pour garder l'apparence précédente. La barre de titre suit le thème, et la surimpression des sous-titres garde ses propres couleurs sur toute diapositive.
+Sessions cloud et capture : quand Gemini fait passer une session sur une nouvelle connexion, les derniers mots ne sont plus perdus, et une défaillance passagère du fournisseur pendant la connexion est retentée au lieu d'arrêter la source. L'audio système suit le rythme même quand Whisper local est occupé. La capture de l'audio système ou du microphone n'ouvre plus aucun handle sur un autre programme, ce que surveillent les anti-triche des jeux ; la liste des applications n'est construite que si vous choisissez Une application.
 
-Corrections : fermer la surimpression avec Alt+F4 la masque au lieu de la retirer jusqu'au redémarrage. Une clé API collée avec un espace ou un caractère invisible est refusée à l'enregistrement. Les lignes Mistral ne se ferment plus avant leurs derniers mots. Répéter après une session en échec rejoue l'enregistrement d'exemple. Plus de fausse alerte « aucun sous-titre » après une pause. Le Narrateur ne répète plus l'audio en attente de Whisper ni la progression du téléchargement, et le focus clavier reste sur les boutons de session quand une session commence ou se termine. Les montants suivent la langue de l'interface, et l'historique affiche en heures les sessions de plus d'une heure, avec des filtres qui restent alignés.
+Surimpression et fenêtre de contrôle : quand Alt+F4 masque la surimpression, le bouton et la zone de notification l'indiquent. Régler la surimpression pendant une session ne perturbe plus les sous-titres, et une bande étendue sur deux écrans est rétablie telle quelle. Démarrer attend que la session soit lancée. La transcription garde sa durée de copie et sa position de défilement entre Démarrer et Arrêter. La copie de récupération peut être activée dans Paramètres › Historique des transcriptions. Un échec de la copie de récupération ou de l'historique reste signalé à côté du badge d'enregistrement. Les sous-titres en arabe, hébreu, persan et ourdou s'affichent aussi de droite à gauche dans la fenêtre de contrôle.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -206,12 +208,12 @@ Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhäng
 Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
 ```
 
-### Neu in dieser Version — 1.9.0
+### Neu in dieser Version — 1.10.0
 
 ```text
-Heller Farbmodus: Das Bedienfenster kann jetzt hell oder dunkel sein. Einstellungen › App › Farbmodus bietet System, Hell und Dunkel. System ist voreingestellt und folgt dem hellen oder dunklen App-Modus von Windows; ist Windows hell eingestellt, öffnet sich die App jetzt hell. Wählen Sie Dunkel, um das bisherige Aussehen zu behalten. Die Titelleiste folgt dem Farbmodus, und das Untertitel-Overlay behält über jeder Folie seine eigenen Farben.
+Cloud-Sitzungen und Aufnahme: Wenn Gemini eine Sitzung auf eine neue Verbindung umstellt, gehen die letzten Wörter nicht mehr verloren, und ein kurzer Anbieterfehler beim Verbinden wird erneut versucht, statt die Quelle zu beenden. Systemaudio kommt auch dann mit, wenn lokales Whisper ausgelastet ist. Die Aufnahme von Systemaudio oder Mikrofon öffnet kein Handle mehr auf ein anderes Programm, worauf Kernel-Anti-Cheat in Spielen achtet; die Anwendungsliste wird nur erstellt, wenn Sie Eine Anwendung wählen.
 
-Korrekturen: Alt+F4 auf dem Untertitel-Overlay blendet es aus, statt es bis zum Neustart zu entfernen. Ein API-Schlüssel mit Leerzeichen oder unsichtbarem Zeichen wird beim Speichern abgelehnt. Mistral-Zeilen schließen nicht mehr vor ihren letzten Wörtern. Ein Probelauf nach einer fehlgeschlagenen Sitzung spielt wieder die Beispielaufnahme. Keine falsche Warnung „keine Untertitel“ mehr nach einer Pause. Die Sprachausgabe wiederholt nicht mehr das wartende Audio von Whisper und den Downloadfortschritt, und der Tastaturfokus bleibt beim Starten und Beenden einer Sitzung auf den Sitzungsschaltflächen. Beträge folgen der Sprache der Oberfläche, und der Transkriptverlauf zeigt Sitzungen über eine Stunde in Stunden, mit Filtern, die ausgerichtet bleiben.
+Overlay und Bedienfenster: Blendet Alt+F4 das Overlay aus, zeigen die Schaltfläche und das Infobereichsmenü das an. Änderungen am Overlay während einer Sitzung stören die Untertitel nicht mehr, und ein Streifen über zwei Bildschirme wird so wiederhergestellt, wie er platziert wurde. Starten wartet, bis die Sitzung läuft. Das Transkript behält Kopierzeitraum und Bildlaufposition über Starten und Stoppen hinweg. Die Wiederherstellungskopie lässt sich in Einstellungen › Transkriptverlauf einschalten. Eine fehlschlagende Wiederherstellungskopie oder Verlaufsspeicherung bleibt neben dem Speicherhinweis markiert. Arabische, hebräische, persische und Urdu-Untertitel laufen auch im Bedienfenster von rechts nach links.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -300,7 +302,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.9.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.8.0, the version in the Store, the operator window has a light theme (Settings > App > Theme: System, Light or Dark; System, the default, follows the Windows light or dark app mode), and a set of reliability fixes; the caption overlay looks the same in every theme. The test routes below are those of 1.8.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.10.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.9.0, the version in the Store, this update makes cloud sessions and system-audio capture more reliable and fixes overlay and operator-window behaviour. It adds no feature and no capability. The caption overlay window now has fewer permissions than before, and the app opens handles on other running programs only while One application capture is chosen. The test routes below are those of 1.9.0.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
