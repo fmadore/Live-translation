@@ -25,6 +25,8 @@
 		usesSystem: boolean;
 	} = $props();
 	const preflight = preflightContext();
+	// Only then are applications listed: see `SystemCapturePicker`.
+	const applicationCapture = $derived(usesSystem && $options.systemCapture?.kind === 'application');
 </script>
 
 <section class="rail-section">
@@ -96,7 +98,7 @@
 	<p class="hint">
 		{$options.provider === 'ondevice'
 			? $t.rail.demoSourceHint
-			: $options.systemCapture?.kind === 'application' && usesSystem
+			: applicationCapture
 				? $t.applications.hint
 				: $t.rail.sourceHint}
 	</p>
@@ -142,7 +144,11 @@
 		<ToolButton
 			disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
 			aria-busy={preflight.refreshing || preflight.refreshingApplications}
-			onclick={() => Promise.all([preflight.refresh(), preflight.refreshApplications()])}
+			onclick={() =>
+				Promise.all([
+					preflight.refresh(),
+					applicationCapture ? preflight.refreshApplications() : undefined
+				])}
 		>
 			{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
 		</ToolButton>

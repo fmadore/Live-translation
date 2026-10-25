@@ -11,8 +11,12 @@ For 1.9.0, What's new is replaced in all three languages: the light theme
 the [22 October review](app-review-2026-10-22.md), the History filter fix
 ([#158](https://github.com/fmadore/Live-translation/pull/158)) among them. It says plainly that System is
 the default, so a reader whose Windows is in light mode knows why the app now opens light and
-how to keep the dark look. The features add one line for the theme; the descriptions, short
-descriptions, keywords and requirements are unchanged. The certification notes change only in
+how to keep the dark look. The features add one line for the theme and one for games. The
+descriptions add one sentence for players following voice chat in another language, prompted by
+a WARDOGS player's question on anti-cheat: the overlay is a separate window, with nothing
+injected into the game. One keyword makes way for games: "live subtitles", which the app's name
+already carries, "sous-titres automatiques" and "Live-Transkription". The short descriptions and
+requirements are unchanged. The certification notes change only in
 their first paragraph: the version, and what is new since 1.8.0. The German
 addition is parity only; the native-speaker review is still pending.
 
@@ -37,7 +41,7 @@ Features, Short description, Keywords.
 ```text
 Put live captions over any meeting, lecture, video call or slide deck. Live Translation & Subtitles transcribes speech on your own PC with Whisper: download a model once, and captions run offline with no account or subscription. Whisper can also translate into English offline. When your audience needs another language, add cloud translation with your own Google Gemini or OpenAI API key; provider usage charges may apply.
 
-Captions appear in a transparent overlay that stays on top of your slides, call or any other Windows app, and lets clicks pass through to the window beneath. It reopens where you last placed it, remembered for each display setup. Choose what to listen to: a room microphone, the audio playing on your PC, a single app, or the microphone and system audio together.
+Captions appear in a transparent overlay that stays on top of your slides, call or any other Windows app, and lets clicks pass through to the window beneath. It reopens where you last placed it, remembered for each display setup. Choose what to listen to: a room microphone, the audio playing on your PC, a single app, or the microphone and system audio together. Gamers can follow voice chat in another language: the overlay is a separate window, not something injected into the game, so run the game in windowed or borderless mode.
 
 For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your CPU with no account, API key or internet connection. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly. For any other language, use cloud translation.
 
@@ -73,6 +77,7 @@ Cloud subtitles with your own Gemini or Mistral key; Mistral takes a list of nam
 Two translation languages at once, plus optional original speech when available
 Capture a microphone, system audio, a single app, or microphone and system audio together
 Transparent, always-on-top, click-through captions over slides and video calls
+Follow voice chat in online games in another language, in a separate caption window with nothing injected into the game
 Overlay reopens where you last placed it, remembered for each display setup
 Fit window, Compact and Stable reading, with adjustable appearance and right-to-left support
 Pause and resume, reusable meeting profiles, searchable languages and favourites
@@ -96,7 +101,7 @@ Free live captions over meetings, calls and slides. Transcribe offline with Whis
 ```text
 live captions
 offline Whisper transcription
-live subtitles
+game voice chat translation
 real-time translation
 speech to text
 meeting accessibility
@@ -110,7 +115,7 @@ on-device speech recognition
 ```text
 Affichez des sous-titres en direct sur vos réunions, cours, appels vidéo et présentations. Live Translation & Subtitles transcrit la parole sur votre propre PC avec Whisper. Après le téléchargement unique d'un modèle, les sous-titres fonctionnent hors ligne, sans compte ni abonnement. Whisper peut aussi traduire vers l'anglais hors ligne. Si votre public a besoin d'une autre langue, ajoutez la traduction cloud avec votre propre clé API Google Gemini ou OpenAI ; des frais d'utilisation du fournisseur peuvent s'appliquer.
 
-Les sous-titres s'affichent dans une surimpression transparente qui reste au-dessus de vos diapositives, de votre appel ou de toute autre application Windows, et laisse passer les clics vers la fenêtre en dessous. Elle se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans. Choisissez la source : un microphone de salle, l'audio joué sur votre PC, une application précise, ou le microphone et l'audio système ensemble.
+Les sous-titres s'affichent dans une surimpression transparente qui reste au-dessus de vos diapositives, de votre appel ou de toute autre application Windows, et laisse passer les clics vers la fenêtre en dessous. Elle se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans. Choisissez la source : un microphone de salle, l'audio joué sur votre PC, une application précise, ou le microphone et l'audio système ensemble. Les joueurs peuvent suivre le chat vocal dans une autre langue : la surimpression est une fenêtre distincte, rien n'est injecté dans le jeu ; lancez donc le jeu en mode fenêtré ou fenêtré sans bordure.
 
 Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base et Small se téléchargent séparément et pèsent environ 31, 57 et 182 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur le processeur de votre PC, sans compte, clé API ni connexion Internet. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal. Pour toute autre langue, utilisez la traduction cloud.
 
@@ -146,6 +151,7 @@ Sous-titres cloud avec votre clé Gemini ou Mistral, et une liste de noms et ter
 Deux langues de traduction à la fois et affichage facultatif du texte original disponible
 Captez un microphone, l'audio système, une application précise, ou le microphone et l'audio système ensemble
 Sous-titres transparents, toujours visibles et traversables par les clics, sur vos diapositives et appels
+Suivez le chat vocal des jeux en ligne dans une autre langue, dans une fenêtre de sous-titres distincte, sans rien injecter dans le jeu
 La surimpression se rouvre là où vous l'avez placée, pour chaque configuration d'écrans
 Adapter à la fenêtre, Compact et Lecture stable ; apparence réglable et écritures de droite à gauche
 Pause et reprise, profils de réunion, recherche de langues et favoris
@@ -169,7 +175,7 @@ Sous-titres en direct gratuits sur vos réunions, appels et présentations. Tran
 ```text
 sous-titres en direct
 transcription Whisper
-sous-titres automatiques
+traduction vocale en jeu
 traduction instantanée
 transcription vocale
 réunions accessibles
@@ -183,7 +189,7 @@ reconnaissance vocale hors ligne
 ```text
 Verfolgen Sie Besprechungen, Vorträge und Videoanrufe mit Untertiteln direkt über Ihren Inhalten. Live Translation & Subtitles transkribiert Sprache lokal mit Whisper nach einem einmaligen Modelldownload und übersetzt sie auf Wunsch offline ins Englische. Optionale Cloud-Übersetzungen und Cloud-Untertitel benötigen Ihr eigenes Konto mit API-Schlüssel bei Google Gemini, OpenAI oder Mistral; dabei können nutzungsabhängige Kosten entstehen.
 
-Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf oder einer anderen Windows-App. Erfassen Sie ein Mikrofon, das Windows-Systemaudio, eine Anwendung mit ihren Unterprozessen oder Mikrofon und Systemaudio gemeinsam. Das Overlay bleibt im Vordergrund und lässt Mausklicks zur darunterliegenden Anwendung durch. Es öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung.
+Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf oder einer anderen Windows-App. Erfassen Sie ein Mikrofon, das Windows-Systemaudio, eine Anwendung mit ihren Unterprozessen oder Mikrofon und Systemaudio gemeinsam. Das Overlay bleibt im Vordergrund und lässt Mausklicks zur darunterliegenden Anwendung durch. Es öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung. Auch beim Spielen lässt sich der Sprachchat in einer anderen Sprache verfolgen: Das Overlay ist ein eigenes Fenster, in das Spiel wird nichts eingeschleust. Starten Sie das Spiel daher im Fenstermodus oder randlosen Fenstermodus.
 
 Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base und Small werden separat heruntergeladen (etwa 31, 57 und 182 MiB). Danach läuft die Erkennung auf der CPU Ihres PCs, ohne Konto, API-Schlüssel oder Internetverbindung. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
 
@@ -219,6 +225,7 @@ Cloud-Untertitel mit eigenem Gemini- oder Mistral-Schlüssel; für Mistral eine 
 Zwei Übersetzungssprachen gleichzeitig und optional der verfügbare Originaltext
 Mikrofon, Systemaudio, eine Anwendung mit Unterprozessen oder Mikrofon und Systemaudio gemeinsam
 Transparente, durchklickbare Untertitel im Vordergrund über Folien und Videoanrufen
+Sprachchat in Onlinespielen in einer anderen Sprache verfolgen, in einem eigenen Untertitelfenster, ohne Eingriff in das Spiel
 Das Overlay öffnet sich dort, wo Sie es zuletzt platziert haben, für jede Bildschirmanordnung
 An Fenster anpassen, Kompakt und Ruhiger Lesemodus; anpassbare Darstellung und Text von rechts nach links
 Pause und Fortsetzen, Besprechungsprofile, Sprachsuche und Favoriten
@@ -242,7 +249,7 @@ Untertitel über Meetings, Anrufen und Folien. Mit Whisper offline in 99 Sprache
 ```text
 Live-Untertitel
 Offline-Transkription mit Whisper
-Live-Transkription
+Sprachchat-Übersetzung für Spiele
 Echtzeit-Übersetzung
 Sprache zu Text
 barrierefreie Meetings
