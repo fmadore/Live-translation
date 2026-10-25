@@ -319,6 +319,27 @@ it('checks again when the overlay leaves move mode by itself', async () => {
 	expect(overlay.overlayVisible).toBe(true);
 });
 
+it('leaves move mode when Alt+F4 hides the overlay in it', async () => {
+	const overlay = createOverlayController();
+	await overlay.toggleMoveOverlay();
+	rect = strip; // dragged, then Alt+F4 before Done
+	overlay.applyState({ visible: false });
+	expect(overlay.overlayVisible).toBe(false);
+	expect(overlay.moveOverlay).toBe(false);
+	// Click-through again, so Show overlay does not bring back a region that catches clicks.
+	await expect
+		.poll(() => core.callsTo('set_overlay_click_through'))
+		.toEqual([{ enabled: false }, { enabled: true }]);
+	// Hidden is not placed: nothing read back, nothing remembered.
+	expect(core.callsTo('get_overlay_placement')).toHaveLength(0);
+	expect(stored()).toBeNull();
+	expect(get(overlayPlaced)).toBe(false);
+	await overlay.toggleOverlayVisible();
+	expect(overlay.overlayVisible).toBe(true);
+	expect(overlay.moveOverlay).toBe(false);
+	expect(core.callsTo('set_overlay_click_through')).toHaveLength(2);
+});
+
 it('puts the overlay back where the layout had it when its displays return', async () => {
 	store([
 		{ layout: LAPTOP, placement: corner },
