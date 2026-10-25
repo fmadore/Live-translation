@@ -1,11 +1,12 @@
 # Microsoft Store submission
 
-**Next target: 1.9.0 / MSIX 1.9.0.0, published on GitHub on 22 October 2026; not yet
-submitted.** The last confirmed Store release is 1.8.0 (MSIX 1.8.0.0), confirmed by the
-maintainer on 21 October 2026.
-1.9.0 adds a light theme for the operator window (System, Light or Dark; System follows Windows'
-app mode), and fixes from the [22 October review](app-review-2026-10-22.md).
-See the [current handoff](store-updates.md#release-190-handoff),
+**Next target: 1.10.0 / MSIX 1.10.0.0, prepared; not yet tagged or submitted.** The last
+confirmed Store release is 1.9.0 (MSIX 1.9.0.0), confirmed with `Get-AppxPackage` on
+25 October 2026.
+1.10.0 is a reliability release: cloud sessions that keep their words through a Gemini
+handover, system audio that keeps up under load, no process handles outside One application
+capture, and the remaining fixes from the [22 October review](app-review-2026-10-22.md).
+See the [current handoff](store-updates.md#release-1100-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -57,8 +58,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.9.0; both MSIX manifests and the combined bundle
-  report 1.9.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.10.0; both MSIX manifests and the combined bundle
+  report 1.10.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -85,8 +86,13 @@ before submission; a passing local check does not imply certification.
   the title bar follows an explicit choice; a light desktop never shows a dark first frame; a
   contrast theme still takes over. The caption overlay and its move toolbar look the same in
   every theme.
-- [ ] Alt+F4 while placing the overlay hides it, and Show overlay brings it back; an API key
-  with a space or an invisible character is refused when saved.
+- [ ] Alt+F4 while placing the overlay hides it, the toggle and the tray say so, and Show
+  overlay brings it back; an API key with a space or an invisible character is refused when
+  saved.
+- [ ] Overlay move mode under package identity: drag, edge resize, nudge, Snap to bottom and
+  Escape's undo, now that they run through the overlay's own commands.
+- [ ] System audio with local Whisper running keeps up without gaps; System audio and the
+  microphone list no applications until One application is chosen.
 - [ ] Scripted demo starts with no hardware, network or credentials, in English and French.
 - [ ] Overlay placement, its restore across launches and mixed-DPI displays, all reading
   modes, RTL text, filler list, profiles and shortcuts pass the
@@ -95,7 +101,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-190-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-1100-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing

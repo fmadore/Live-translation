@@ -5,25 +5,27 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.8.0 in the Store, 1.9.0 on GitHub
+## Current status — 1.9.0 in the Store, 1.10.0 prepared
 
-The Store serves [**1.8.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0)
-(21 October 2026, MSIX 1.8.0.0), live as confirmed by the maintainer on 21 October 2026
-([handoff](docs/store-updates.md#release-180-handoff)). It replaced 1.7.1 and added:
-- [#155](https://github.com/fmadore/Live-translation/pull/155): a Transcript tab for reading
-  and copying the transcript during a session.
-- [#156](https://github.com/fmadore/Live-translation/pull/156): Mistral subtitles on Voxtral
-  Realtime 3, with lines closed at the speaker's turn and a names-and-terms list. Mistral lists
-  Realtime 3 as a public preview; the handoff notes that risk.
-
-**[1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)** was published on
-GitHub on 22 October 2026 and awaits Store submission
-([handoff](docs/store-updates.md#release-190-handoff), [release notes](docs/release-1.9.0.md)):
+The Store serves [**1.9.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)
+(22 October 2026, MSIX 1.9.0.0), live as confirmed with `Get-AppxPackage` on 25 October 2026
+([handoff](docs/store-updates.md#release-190-handoff)). It replaced 1.8.0 and added:
 - [#159](https://github.com/fmadore/Live-translation/pull/159): a light theme. System, the
   default, follows Windows' light or dark app mode; the caption overlay is unchanged.
 - [#160](https://github.com/fmadore/Live-translation/pull/160) and
   [#162](https://github.com/fmadore/Live-translation/pull/162): the first three batches of the
-  [22 October app review](docs/app-review-2026-10-22.md), which also lists what is left.
+  [22 October app review](docs/app-review-2026-10-22.md).
+
+**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** is prepared and
+awaits the maintainer's test of the Local Test build, its tag and Store submission
+([handoff](docs/store-updates.md#release-1100-handoff), [release notes](docs/release-1.10.0.md)):
+- [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the review,
+  which also lists what is left. A Gemini handover drains the old connection, a failed setup
+  retries, system loopback keeps up under load, and the overlay keeps only the permissions it
+  uses.
+- [#177](https://github.com/fmadore/Live-translation/pull/177): no process handles outside One
+  application capture, for games with kernel anti-cheat, and the game voice chat line in the
+  Store copy.
 
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
@@ -33,7 +35,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.9.0 handoff](docs/store-updates.md#release-190-handoff) is the current checklist.
+[1.10.0 handoff](docs/store-updates.md#release-1100-handoff) is the current checklist.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -116,7 +118,12 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
-- **1.9.0** (22 October 2026, GitHub; Store submission pending): a light theme that follows
+- **1.10.0** (prepared; not yet tagged): batches 4–6 of the
+  [22 October app review](docs/app-review-2026-10-22.md)
+  ([#171](https://github.com/fmadore/Live-translation/pull/171)) and no process handles outside
+  One application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)).
+  [Release body](docs/release-1.10.0.md).
+- **1.9.0** (22 October 2026; live in the Store, confirmed 25 October 2026): a light theme that follows
   Windows' app mode ([#159](https://github.com/fmadore/Live-translation/pull/159)), and batches
   1–3 of the [22 October app review](docs/app-review-2026-10-22.md)
   ([#160](https://github.com/fmadore/Live-translation/pull/160),

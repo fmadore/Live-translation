@@ -34,7 +34,8 @@ C19 and C20. The toolchain is pinned at 1.99.1 and `rust-version` follows it. C6
 settings and C17's leftovers are the maintainer's. Secret-scanning alert #1 was the made-up key
 in B6's own test, which matched Google's key pattern; the test now joins it from two literals.
 
-Batches 4–6 (after 1.9.0 went live, 23 October) are on `fix/review-batches-4-6`: B1 with S1, B2,
+Batches 4–6 (after 1.9.0 was tagged, 23 October) were merged in
+[#171](https://github.com/fmadore/Live-translation/pull/171) and ship in 1.10.0: B1 with S1, B2,
 B3's toggle gap, B4, B5, B10, U3, U5, U7, U10, U11's two leftovers, U12, U14, N1, E2, E3's
 `DisplayNames` cache, S2, S3 (without the `ProviderSettings` split), S4, S5, S6, C13, C21, and
 L4's test. Notes from doing it:
