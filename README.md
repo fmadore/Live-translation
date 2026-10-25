@@ -38,7 +38,9 @@ that follows Windows' light or dark app mode, and fixes from the
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
   over slides or calls; it reopens where you last placed it on each display setup. Adjust
   fonts, colour, contrast, size and reading pace; choose Fit window, Compact or Stable reading.
-  Right-to-left captions are supported.
+  Right-to-left captions are supported. Gamers can follow voice chat in another language: the
+  overlay is a separate window, not something injected into the game, so run the game in
+  windowed or borderless mode.
 - **Bilingual audiences.** Show two translation languages at once, or include the original
   speech beneath translations in Fit window or Compact when the provider supplies it. A second
   translation language opens another cloud session per source and increases provider usage.

@@ -16,8 +16,9 @@ and Dark. System is the default and follows Windows' light or dark app mode, so 
 light-mode PC opens light; What's new says so and how to keep the dark look. The caption
 overlay is unchanged in every theme. It also carries fixes from the
 [22 October review](app-review-2026-10-22.md). What's new, one added feature line and the
-first paragraph of the certification notes say so. The descriptions, short descriptions,
-keywords and requirements are unchanged.
+first paragraph of the certification notes say so. The descriptions add one sentence for
+players following voice chat in another language, with a feature line and a keyword to match;
+the short descriptions and requirements are unchanged.
 
 - [EN/FR/DE descriptions, features, short descriptions and What's new](store-listing.md)
 - [Release notes](release-1.9.0.md)
