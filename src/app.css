@@ -275,9 +275,14 @@ input[type='checkbox']:focus-visible {
 }
 
 /* Text for assistive technology only — used where a control's visible label is an icon, or
-   where a state change has to be announced without also being drawn. */
+   where a state change has to be announced without also being drawn. Pinned to the corner
+   of its containing block: left at its static position, one deep in a scrolling column (the
+   rail's glossary announcer) is positioned against the page instead, sits below the fold and
+   makes the whole window scroll by a band of empty space. */
 .sr-only {
 	position: absolute;
+	top: 0;
+	left: 0;
 	width: 1px;
 	height: 1px;
 	margin: -1px;
