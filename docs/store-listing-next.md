@@ -1,7 +1,7 @@
 # Next Store submission — 1.11.0
 
-**Prepared; not yet tagged or submitted.** The Store serves **1.10.0.0**, live as reported by
-the maintainer on 26 October 2026. The next submission is
+**Submitted and accepted**, as reported by the maintainer on 26 October 2026; it replaced
+**1.10.0.0**. No later submission is prepared. The 1.11.0 submission was
 **1.11.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
 `https://github.com/fmadore/Live-translation/releases/download/v1.11.0/Live.Translation_1.11.0.msixbundle`.
 

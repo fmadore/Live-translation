@@ -5,24 +5,14 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.10.0 in the Store, 1.11.0 prepared
+## Current status — 1.11.0 in the Store
 
-The Store serves [**1.10.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)
-(26 October 2026, MSIX 1.10.0.0), live as reported by the maintainer the day it was tagged
-([handoff](docs/store-updates.md#release-1100-handoff), [release notes](docs/release-1.10.0.md)).
-It replaced 1.9.0 and added:
-- [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the
-  [22 October app review](docs/app-review-2026-10-22.md), which also lists what is left. A
-  Gemini handover drains the old connection, a failed setup retries, system loopback keeps up
-  under load, and the overlay keeps only the permissions it uses.
-- [#177](https://github.com/fmadore/Live-translation/pull/177): no process handles outside One
-  application capture, for games with kernel anti-cheat, and the game voice chat line in the
-  Store copy; [#179](https://github.com/fmadore/Live-translation/pull/179): move mode left when
-  Alt+F4 hides the overlay.
-
-**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** is prepared and
-awaits the maintainer's test of the Local Test build, its tag and Store submission ([handoff](docs/store-updates.md#release-1110-handoff),
-[release notes](docs/release-1.11.0.md)):
+The Store serves [**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)
+(26 October 2026, MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
+([handoff](docs/store-updates.md#release-1110-handoff), [release notes](docs/release-1.11.0.md)).
+No next release is prepared. 1.11.0 replaced 1.10.0 (batches 4–6 of the
+[22 October app review](docs/app-review-2026-10-22.md), which also lists what is left) and
+added:
 - [#182](https://github.com/fmadore/Live-translation/pull/182): an optional Buy Me a Coffee
   link in Settings › App and on the start screen, which unlocks nothing, with a README section
   and the repository's Sponsor button; and no empty band at the bottom of the operator window.
@@ -38,7 +28,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.11.0 handoff](docs/store-updates.md#release-1110-handoff) is the current checklist.
+[1.11.0 handoff](docs/store-updates.md#release-1110-handoff) carries the open checks.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -125,11 +115,11 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
-- **1.11.0** (prepared; not yet tagged): an optional Buy Me a Coffee link that unlocks
+- **1.11.0** (26 October 2026; accepted in the Store, reported 26 October 2026): an optional Buy Me a Coffee link that unlocks
   nothing, and no empty band at the bottom of the operator window
   ([#182](https://github.com/fmadore/Live-translation/pull/182)).
   [Release body](docs/release-1.11.0.md).
-- **1.10.0** (26 October 2026; live in the Store, reported 26 October 2026): batches 4–6 of the
+- **1.10.0** (26 October 2026; live in the Store the same day, replaced by 1.11.0): batches 4–6 of the
   [22 October app review](docs/app-review-2026-10-22.md)
   ([#171](https://github.com/fmadore/Live-translation/pull/171)), no process handles outside
   One application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)) and

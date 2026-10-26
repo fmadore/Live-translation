@@ -1,13 +1,12 @@
 # Microsoft Store submission
 
-**Next target: 1.11.0 / MSIX 1.11.0.0, prepared; not yet tagged or submitted.** The last
-Store release is 1.10.0 (MSIX 1.10.0.0), live as reported by the maintainer on 26 October 2026;
-it replaced 1.9.0.
+**Current Store release: 1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on
+26 October 2026, the day it was tagged; it replaced 1.10.0. No next submission is prepared.
 1.11.0 adds an optional Buy Me a Coffee link that unlocks nothing, and fixes an empty band at
 the bottom of the operator window. The link is the app's first way to pay anyone, so its
-submission ticks a Product declaration and explains the link in the certification notes
+submission ticked a Product declaration and explained the link in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)).
-See the [current handoff](store-updates.md#release-1110-handoff),
+See the [1.11.0 handoff](store-updates.md#release-1110-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach

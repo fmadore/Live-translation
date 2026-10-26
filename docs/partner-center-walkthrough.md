@@ -1,8 +1,9 @@
 # Partner Center submission walkthrough — 1.11.0
 
-Target: **Live Translation & Subtitles 1.11.0**, Product ID `9PFB8LR3RR9X`. Prepared, not yet
-tagged or submitted. The Store serves 1.10.0 (MSIX 1.10.0.0), live as reported by the
-maintainer on 26 October 2026, so nothing else is in progress in Partner Center. Once the tag is published, download the combined x64 + ARM64 bundle from
+Target: **Live Translation & Subtitles 1.11.0**, Product ID `9PFB8LR3RR9X`. **Submitted and
+accepted** as reported by the maintainer on 26 October 2026; it replaced 1.10.0 (MSIX
+1.10.0.0). Keep this walkthrough as the template for the next submission. The combined
+x64 + ARM64 bundle it used is at
 `https://github.com/fmadore/Live-translation/releases/download/v1.11.0/Live.Translation_1.11.0.msixbundle`.
 The [release handoff](store-updates.md#release-1110-handoff) has the package evidence and
 outstanding acceptance checks.
@@ -110,7 +111,7 @@ that listing if it is not already present. For each language, paste:
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
 4. **What's new**: the 1.11.0 block, under 1,500 characters. It covers the changes since
-   1.10.0, the version the Store serves.
+   1.10.0, the version the Store served.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters,
    unchanged since 1.7.1.
 6. Packaged-app screenshots with matching localized captions, showing the current interface
@@ -160,5 +161,6 @@ A gradual rollout ([route step 9](store-updates.md#the-route)) is not needed: ne
 capture nor the session lifecycle changed in 1.11.0.
 
 Submit manually when the [handoff checklist](store-updates.md#release-1110-handoff) is complete,
-and record the submission date and certification result there. Do not mark 1.11.0 live until
-Partner Center or the public listing confirms publication.
+and record the submission date and certification result there. Do not mark a version live
+until Partner Center or the public listing confirms publication. 1.11.0's acceptance was
+reported by the maintainer on 26 October 2026.

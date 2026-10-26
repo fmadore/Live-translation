@@ -14,14 +14,10 @@ Free, with every feature included. If it is useful to you, you can
 
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
-**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** (26 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X). It
-keeps cloud sessions' words through a Gemini handover, keeps system audio up under load, opens
-no handle on other programs outside One application capture, and completes the fixes of the
-[22 October review](docs/app-review-2026-10-22.md).
-**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** is the next
-release, awaiting its tag: an optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link
-that unlocks nothing, and a fix for an empty band at the bottom of the window. See its
+**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026)
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) and the
+latest on GitHub: an optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link that
+unlocks nothing, and a fix for an empty band at the bottom of the window. See its
 [release notes](docs/release-1.11.0.md) and [Store handoff](docs/store-updates.md#release-1110-handoff).
 
 ## What it does
