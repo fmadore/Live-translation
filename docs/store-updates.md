@@ -9,87 +9,94 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Release 1.10.0 handoff
+## Release 1.11.0 handoff
 
-**Prepared; not yet tagged.** The Store serves **1.9.0.0**, confirmed with `Get-AppxPackage`
-(`SignatureKind` `Store`) on 25 October 2026. Target app version: **1.10.0**, MSIX
-**1.10.0.0**. What's new and the certification notes cover the changes since 1.9.0.
+**Prepared; not yet tagged.** 1.10.0 (MSIX 1.10.0.0) was submitted and is in certification, as
+reported by the maintainer on 26 October 2026; the last confirmed live version is **1.9.0.0**
+(`Get-AppxPackage`, 25 October 2026). Target app version: **1.11.0**, MSIX **1.11.0.0**.
+Partner Center takes one submission at a time, so 1.11.0 is submitted once 1.10.0 is live, and
+What's new covers the changes since 1.10.0.
 
-1.10.0 is a reliability release with no new feature:
+1.11.0 adds an optional way to support development, and one layout fix:
 
-- [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the
-  [22 October review](app-review-2026-10-22.md). A Gemini `goAway` handover drains the old
-  socket and replays the audio captured meanwhile (B2); a transient failure during setup
-  retries, five in a row still ending the source, through one error classifier for all three
-  providers (B1, S1). System loopback uses a 200 ms buffer, drains every packet per wake and
-  zero-fills SILENT packets (B5). The overlay reports ready, says when Alt+F4 hid it, restores a
-  usable two-display placement as made and gets coalesced pushes (U5, B3, B10, E2). In the
-  operator window, Start stays blocked until the run reports (U7), the transcript is mounted
-  once (S5), recovery is offered in Settings (U14), a failing spool retries and says so (U3),
-  and captions carry `lang` and `dir` (U12).
-- [#177](https://github.com/fmadore/Live-translation/pull/177): the application list, which
-  opens a `PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE` handle on every process with a
-  visible window, is built only in One application mode, so whole-output capture opens no
-  handle a kernel anti-cheat could see. The README and Store copy gained the game voice chat
-  sentence, feature line and keyword.
-- Dependabot: `keyring-core` 1.0.1 ([#174](https://github.com/fmadore/Live-translation/pull/174)),
-  two dev tools ([#173](https://github.com/fmadore/Live-translation/pull/173)) and
-  `taiki-e/install-action` ([#172](https://github.com/fmadore/Live-translation/pull/172)).
+- [#182](https://github.com/fmadore/Live-translation/pull/182) (the Buy Me a Coffee half of
+  [#180](https://github.com/fmadore/Live-translation/issues/180)): a *Support development*
+  section at the end of Settings › App and a credit line at the foot of the idle stage, both
+  opening `https://buymeacoffee.com/fmadore` in the default browser. Supporting unlocks
+  nothing; the link is never shown during a session. The README gained a *Support development*
+  section, and `.github/FUNDING.yml` the repository's Sponsor button.
+- In the same PR: `.sr-only` text is pinned to its containing block, so the glossary's
+  announcer deep in the rail no longer extends the page and makes the whole operator window
+  scroll, which left an empty band under both columns.
+- Dependabot: zod 4.6.7, a development dependency
+  ([#181](https://github.com/fmadore/Live-translation/pull/181)).
+
+The Microsoft Store supporter add-on in #180 is not in this release.
 
 **Changed under the surface:**
-- **The overlay's capability shrinks (B4).** It keeps only `core:event:allow-listen` and
-  `allow-unlisten` plus overlay-only app commands (`report_overlay_state`,
-  `start_overlay_drag`, nudge, snap, undo); `command_names.rs` and an e2e check pin it. Overlay
-  dragging moved from `data-tauri-drag-region` to `start_overlay_drag`, and Snap to bottom and
-  Escape's undo into Rust, so **move mode needs a hand check on the installed package**.
-- The package still declares only `runFullTrust` and `microphone`; the operator window's
-  permissions are unchanged.
+- **One new operator command, `open_support_page`** (`src-tauri/src/support.rs`). It takes no
+  argument and calls `ShellExecuteW` on the fixed URL, so the interface cannot open anything
+  else with it; `command_names.rs` pins it to the operator window, and the overlay's capability
+  is unchanged. A `target="_blank"` link was not used because, with no new-window handler,
+  WebView2 opens it in a popup of its own. `windows-sys` gained the `Win32_UI_Shell` and
+  `Win32_System_Com` features, with no new crate.
+- The package still declares only `runFullTrust` and `microphone`.
+- **Store Policy 10.8.** A voluntary donation that gives nothing in return may go through a
+  third-party payment provider (10.8.2), but its use must be noted in Partner Center: tick the
+  Product declaration *This product allows users to make purchases, but does not use the
+  Microsoft Store commerce system*, and paste the certification notes' new second paragraph.
+  Each description gains one sentence saying that the link is optional and unlocks nothing
+  (10.8.4).
 
-The [privacy policy](privacy.md) is unchanged. [GitHub release copy](release-1.10.0.md) ·
+The [privacy policy](privacy.md) gains a *Support link* section and a new effective date,
+27 October 2026. [GitHub release copy](release-1.11.0.md) ·
 [EN/FR/DE Store fields](store-listing.md) ·
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ### Preparation and validation
 
-- [x] #171 and #177 merged, each after all its CI jobs passed; then #172–#174.
-- [x] App manifests, root lockfile entries and citation set to 1.10.0; `npm test` checks that
-  all six agree. The citation date, 26 October 2026, is the planned tag date; correct it in
+- [x] #181 and #182 merged, each after all its CI jobs passed.
+- [x] App manifests, root lockfile entries and citation set to 1.11.0; `npm test` checks that
+  all six agree. The citation date, 27 October 2026, is the planned tag date; correct it in
   the release PR if the tag moves to another day.
 - [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
 - [x] Validation of the release branch on Windows 11 ARM64:
-  - `npm run test:coverage`: 818 passed, 1 skipped, in 82 files.
+  - `npm run test:coverage`: 826 passed, 1 skipped, in 83 files.
   - `check` (0 errors, 0 warnings, `--fail-on-warnings`), `lint`, `knip`, `format:check`,
-    `check:languages` and `build` pass; `test:style`: 143 passed.
-  - `cargo fmt --check`, Clippy with `-D warnings` and `cargo test --locked` (312 passed,
-    5 ignored) on the pinned 1.99.1 toolchain. `test:e2e` was not rerun: nothing it drives
-    changed since [#171](https://github.com/fmadore/Live-translation/pull/171), where it passed.
-- [x] The Store fields are within Partner Center's limits (What's new: EN 1,021, FR 1,256,
-  DE 1,231 of 1,500 characters); the certification notes name 1.10.0.0.
+    `check:languages` and `build` pass; `test:style`: 143 passed (2 workers; with 6 on a busy
+    machine, a few overflow cases time out at random).
+  - `cargo fmt --check`, Clippy with `-D warnings` and `cargo test --locked` (314 passed,
+    5 ignored) on the pinned 1.99.1 toolchain. `test:e2e` was not run: the support link opens
+    the browser, which the native suite does not drive, and nothing else it covers changed.
+- [x] The Store fields are within Partner Center's limits (What's new: EN 472, FR 561, DE 532
+  of 1,500 characters); the certification notes name 1.11.0.0.
 
 ### Testing
 
 - [ ] Merge the release PR.
 - [ ] **Maintainer test** of the side-by-side Local Test build of the merge commit (ARM64),
-  **before the tag** (review C18):
-  - **system audio with local Whisper running** under load: no gaps, no runaway backlog (B5);
-  - **overlay move mode**: drag, edge resize, nudge, Snap to bottom on mixed DPI, Escape's
-    undo, and Escape with a display removed (B4);
-  - **Alt+F4** on the overlay, then the toggle and the tray say it is hidden and bring it
-    back (B3);
-  - a strip placed across two displays reopens as placed (B10);
-  - **a Gemini session of 20 minutes or more**, across at least one handover: no lost words
-    at the switch (B1, B2);
-  - Start, then a fast second click or the shortcut: one session, "Starting…" shown (U7);
-  - System audio, then One application: the application list appears only once One
-    application is chosen (#177);
-  - Narrator on U3's note, U7's "Starting…" and an Arabic or Hebrew caption (U12); N1 in
-    French at 225%.
-- [ ] **No release candidate.** Tag `v1.10.0` straight from the merge once the test passes. A
-  bug found afterwards ships as 1.10.1; never move a tag.
+  **before the tag**:
+  - **the support link** from Settings › App and from the start screen's credit line opens
+    `https://buymeacoffee.com/fmadore` in the default browser, not in a window of the app,
+    with the mouse and with Enter; it is not shown during a session;
+  - in English, French and German, the link's text, and Narrator reading it as a link that
+    opens in the browser;
+  - the operator window **does not scroll as a whole** with Mistral selected and the
+    names-and-terms list shown, at 100% and 150% text size, and the top bar stays in view;
+  - Light, Dark and a contrast theme: the coffee cup keeps its yellow circle, or an outlined
+    one in a contrast theme.
+- [ ] **No release candidate.** Tag `v1.11.0` straight from the merge once the test passes. A
+  bug found afterwards ships as 1.11.1; never move a tag.
 
 Still open from earlier handoffs, never recorded as done, on x64 and ARM64 unless a line says
 otherwise:
 
+- [ ] From 1.10.0: system audio with local Whisper under load; overlay move mode (drag, edge
+  resize, nudge, Snap to bottom on mixed DPI, Escape's undo, and Escape with a display
+  removed); Alt+F4 on the overlay, then the toggle and the tray; a strip across two displays;
+  a Gemini session of 20 minutes or more across a handover; Start then a fast second click;
+  the application list appearing only in One application; Narrator on the recovery note,
+  "Starting…" and an Arabic or Hebrew caption.
 - [ ] OpenAI's and Mistral's `session_expired` in a live session; a WebView2 reload of the
   overlay (U5).
 - [ ] From 1.9.0: Light, Dark and System while switching Windows' app mode; a contrast theme;
@@ -106,25 +113,28 @@ otherwise:
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.10.0` (annotated: "Live Translation & Subtitles v1.10.0") on the merge of the
+- [ ] Tag `v1.11.0` (annotated: "Live Translation & Subtitles v1.11.0") on the merge of the
   release PR, and push it.
-- [ ] The workflow publishes the release with `docs/release-1.10.0.md` once the bundle is
+- [ ] The workflow publishes the release with `docs/release-1.11.0.md` once the bundle is
   attached; if a job fails, the release stays a draft and the failed job is re-run.
-- [ ] Verify `Live.Translation_1.10.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
-  at **1.10.0.0**, and record the sizes and SHA-256 digests here.
+- [ ] Verify `Live.Translation_1.11.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
+  at **1.11.0.0**, and record the sizes and SHA-256 digests here.
 - [ ] Sideload-test the per-architecture MSIX packages and walk the
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
-- [ ] **Screenshots:** nothing they show changed in 1.10.0. Retake them only if the 1.9.0
-  retake (Settings › App › Theme on **Dark**) is still outstanding; see
-  [store-screenshots](store-screenshots/README.md).
+- [ ] **Screenshots:** the start screen gains a one-line credit at its foot; no retake is
+  needed for it. Retake them only if the 1.9.0 retake (Settings › App › Theme on **Dark**) is
+  still outstanding; see [store-screenshots](store-screenshots/README.md).
 - [ ] Run Windows App Certification Kit.
-- [ ] Submit the single combined bundle in Partner Center with the 1.10.0 What's new and the
-  updated certification notes; paste the descriptions, features and keywords too unless #177's
-  changes are already in the live listing. Use a gradual rollout (route step 9): audio capture
-  and the session lifecycle changed.
+- [ ] Check that the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
+  shows the 27 October 2026 date and the *Support link* section.
+- [ ] Once 1.10.0 is live, submit the single combined bundle in Partner Center with the 1.11.0
+  What's new, the three descriptions, the updated certification notes and the **Product
+  declaration** for purchases outside Microsoft commerce (see
+  [the walkthrough](partner-center-walkthrough.md#pricing-and-properties)). A full rollout is
+  fine: neither audio capture nor the session lifecycle changed.
 - [ ] Record submission and certification, and confirm with
   `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` (`SignatureKind` `Store`, Version
-  `1.10.0.0`).
+  `1.11.0.0`).
 
 ## The route
 
@@ -282,6 +292,7 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
+| 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Submitted; in certification as reported by the maintainer on 26 October 2026 | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
 | 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |
 | 1.8.0 | [21 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) · [body](release-1.8.0.md) | Live as 1.8.0.0, reported by the maintainer on 21 October 2026 and confirmed with `Get-AppxPackage`; submission and certification dates not recorded; replaced by 1.9.0 | The Transcript tab with Copy (#155) and Mistral subtitles on Voxtral Realtime 3 (#156). |
 | 1.7.1 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) · [body](release-1.7.1.md) | Live as 1.7.1.0, confirmed by the maintainer on 21 October 2026; submission and certification dates not recorded; replaced by 1.8.0 | 1.7.0's app code, with the icon shown on the taskbar and in Start without an accent-coloured plate (#152). |
@@ -296,6 +307,33 @@ was submitted were not recorded as done and stay open against the Store build.
 | 1.3.0 | [19 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0) | Not submitted | Transcript history (#81), Stable reading (#79), overlay filler cleanup (#80) and the German interface. |
 | 1.2.4 | [14 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.4) | Live; acceptance date not recorded | Responsive captions: Fit window and optional Compact layout (#77). |
 | 1.2.3 | [8 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.3) | No submission recorded | Native Save As with timed SRT/VTT export (#26); capture of a selected application (#27). |
+
+### Release 1.10.0 handoff
+
+**Submitted; in certification**, as reported by the maintainer on 26 October 2026; the
+submission date was not recorded. Not yet confirmed live. It follows 1.9.0.
+- **What it shipped:** batches 4–6 of the [22 October review](app-review-2026-10-22.md)
+  ([#171](https://github.com/fmadore/Live-translation/pull/171)): a Gemini handover that drains
+  the old connection, setup failures retried, system loopback that keeps up under load, an
+  overlay with fewer permissions, and operator-window fixes. No process handles outside One
+  application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)), and move
+  mode left when Alt+F4 hides the overlay
+  ([#179](https://github.com/fmadore/Live-translation/pull/179)). Dependabot's #172–#174.
+- **Tag:** `v1.10.0` (annotated) points to `cfb427b`, the merge of
+  [#179](https://github.com/fmadore/Live-translation/pull/179); no candidate.
+- **Build:** all [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/40274338725)
+  passed, and the release published itself with its body on 26 October 2026, about 15 minutes
+  after the tag push.
+- **Assets** (GitHub's digests):
+  - Bundle: 11,942,706 bytes, SHA-256
+    `38ccdb02d35894834699779fb46d2017529badefea0f2c1949fc7d4b6eaad984`.
+  - ARM64 MSIX: 5,848,300 bytes, SHA-256
+    `52cfa87ef6a234d1d9d69d6f0e107e628bbd78050b49b9f8d21052f11e565d45`.
+  - x64 MSIX: 6,092,395 bytes, SHA-256
+    `edebc78f2a725fa90502be177a80e7257463bb05399ac0593285fd68821f07ca`.
+- **Not recorded:** the package checks on the published assets, the maintainer's test of the
+  Local Test build, the sideload test, WACK and the manual checks. They carry over to
+  [1.11.0](#release-1110-handoff).
 
 ### Release 1.9.0 handoff
 
@@ -323,7 +361,7 @@ the submission and certification dates were not recorded. It replaced 1.8.0.
   - x64 MSIX: 6,053,276 bytes, SHA-256
     `87b5bda1f7a5106a3502317c1cf25c345947a9b0cc81305c06d671647763b43f`.
 - **Not recorded:** the maintainer's test of the Local Test build, the sideload test, WACK,
-  the screenshot retake and the manual checks. They carry over to
+  the screenshot retake and the manual checks. They carried over to
   [1.10.0](#release-1100-handoff).
 
 ### Release 1.8.0 handoff

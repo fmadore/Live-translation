@@ -11,14 +11,16 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
 **[1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)** (22 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X). It
-adds a light theme that follows Windows' light or dark app mode, and fixes from the
-[22 October review](docs/app-review-2026-10-22.md).
-**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** is the next
-release, awaiting its tag and Store submission. It keeps cloud sessions' words through a
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X).
+**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** (26 October 2026)
+is the latest on GitHub and in Store certification. It keeps cloud sessions' words through a
 Gemini handover, keeps system audio up under load, opens no handle on other programs outside
-One application capture, and completes the review's fixes. See its
-[release notes](docs/release-1.10.0.md) and [Store handoff](docs/store-updates.md#release-1100-handoff).
+One application capture, and completes the fixes of the
+[22 October review](docs/app-review-2026-10-22.md).
+**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** is the next
+release, awaiting its tag: an optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link
+that unlocks nothing, and a fix for an empty band at the bottom of the window. See its
+[release notes](docs/release-1.11.0.md) and [Store handoff](docs/store-updates.md#release-1110-handoff).
 
 ## What it does
 
