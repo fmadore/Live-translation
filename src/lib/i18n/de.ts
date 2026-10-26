@@ -513,6 +513,59 @@ export const de: Messages = {
 		madeBy: (name: string) => `Entwickelt von ${name}`
 	},
 
+	zoom: {
+		button: 'Zoom',
+		title: 'Untertitel in Zoom',
+		buttonLabel: (state: string) => `Untertitel in Zoom: ${state}`,
+		state: {
+			sharing: 'aktiv',
+			waiting: 'wartet',
+			refused: 'abgelehnt',
+			unreachable: 'nicht erreichbar'
+		},
+		close: 'Schließen',
+		intro:
+			'Zeigt diese Untertitel in Zooms eigener Untertitelleiste; die Teilnehmenden schalten sie in Zoom ein. Gesendet wird nur der Untertiteltext – die Audioaufnahme bleibt unverändert.',
+		steps: {
+			settings:
+				'Aktivieren Sie in den Zoom-Webeinstellungen die manuelle Untertitelung und erlauben Sie das Untertitel-API-Token für Dienste von Drittanbietern.',
+			meeting:
+				'Im Meeting wählt der Host oder ein Co-Host Untertitel anzeigen › Manuellen Untertitler einrichten › API-Token kopieren.',
+			paste: 'Fügen Sie es hier ein und starten Sie das Teilen.'
+		},
+		/** Opens the setup guide, which is in English, in the browser. */
+		guide: 'Schritt-für-Schritt-Anleitung (auf Englisch)',
+		link: 'Untertitel-Link (API-Token)',
+		linkHint:
+			'Wird wie ein Passwort behandelt: nur aufbewahrt, bis die App geschlossen wird, und nie in Konfigurationen oder Profilen gespeichert.',
+		language: 'Untertitelsprache',
+		sources: 'Untertitel dieser Quellen teilen',
+		origin: {
+			microphone: 'Raum (Mikrofon)',
+			system: 'Remote (Systemaudio)'
+		},
+		privacy:
+			'Beim Teilen wird Untertiteltext an Zoom gesendet, auch wenn die Untertitel mit Whisper auf diesem PC entstehen.',
+		status: {
+			off: 'Es wird nichts geteilt.',
+			sharing: 'Untertitel werden mit Zoom geteilt.',
+			waiting:
+				'Laut Zoom hat das Meeting noch nicht begonnen. Die Untertitel erscheinen, sobald es begonnen hat.',
+			refused:
+				'Zoom hat diesen Link abgelehnt. Er ist möglicherweise abgelaufen: Kopieren Sie ein neues API-Token.',
+			unreachable: 'Zoom ist nicht erreichbar. Mit jedem neuen Untertitel wird es erneut versucht.'
+		},
+		sent: (n: number) => (n === 1 ? '1 Untertitel gesendet.' : `${n} Untertitel gesendet.`),
+		dropped: (n: number) =>
+			n === 1
+				? '1 Untertitel wurde übersprungen, weil er nicht rechtzeitig zugestellt werden konnte.'
+				: `${n} Untertitel wurden übersprungen, weil sie nicht rechtzeitig zugestellt werden konnten.`,
+		start: 'Teilen starten',
+		stop: 'Teilen beenden',
+		test: 'Testuntertitel senden',
+		testCaption: 'Testuntertitel von Live Translation.'
+	},
+
 	stage: {
 		browserBanner: {
 			before:
@@ -819,6 +872,11 @@ export const de: Messages = {
 		providerRejected:
 			'Der Anbieter hat die Verbindung abgelehnt – prüfen Sie den API-Schlüssel und den Modellzugriff',
 		providerStopped: 'Der Anbieter hat die Sitzung beendet',
-		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft'
+		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft',
+		zoomLink:
+			'Dies ist kein Zoom-Untertitel-Link. Wählen Sie im Meeting Manuellen Untertitler einrichten und kopieren Sie das API-Token erneut',
+		zoomRefused:
+			'Zoom hat den Untertitel-Link abgelehnt: Er ist möglicherweise abgelaufen, wurde widerrufen oder unvollständig kopiert. Kopieren Sie ein neues API-Token',
+		zoomNotSharing: 'Es werden keine Untertitel mit Zoom geteilt'
 	}
 };

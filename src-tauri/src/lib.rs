@@ -33,6 +33,7 @@ mod timing;
 mod tray;
 mod types;
 mod whisper;
+mod zoom;
 
 use tauri::{Emitter, Manager};
 use tracing_subscriber::prelude::*;
@@ -136,6 +137,7 @@ pub fn run() {
         .manage(whisper::models::ModelManager::default())
         .manage(CloseGuard::default())
         .manage(TrayMenu::default())
+        .manage(zoom::ZoomCaptions::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::list_outputs,
@@ -184,6 +186,11 @@ pub fn run() {
             lifecycle::confirm_close,
             tray::set_tray_state,
             support::open_support_page,
+            zoom::start_zoom_captions,
+            zoom::stop_zoom_captions,
+            zoom::send_zoom_test_caption,
+            zoom::zoom_captions_status,
+            zoom::open_zoom_guide,
         ])
         .on_window_event(|window, event| {
             match event {

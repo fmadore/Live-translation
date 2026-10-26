@@ -19,7 +19,7 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
 use tokio_util::sync::CancellationToken;
@@ -82,6 +82,10 @@ impl SessionManager {
         // A preflight test is holding the very devices this session is about to open.
         self.stop_test_active(app).await;
         validate_start(&options)?;
+        // Turn ids start again with this session, and how much of an interim caption a Zoom
+        // share may send depends on the engine.
+        app.state::<crate::zoom::ZoomCaptions>()
+            .begin_session(options.provider);
 
         let provider = options.provider;
         // The built-in demo and local Whisper start with no credential.

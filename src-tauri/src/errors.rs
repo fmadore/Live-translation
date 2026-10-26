@@ -106,6 +106,14 @@ pub mod id {
     pub const PROVIDER_STOPPED: &str = "error.providerStopped";
     /// The stream dropped and is being retried.
     pub const PROVIDER_RECONNECTING: &str = "error.providerReconnecting";
+    /// The pasted text is not a Zoom caption URL. The detail names the rule it failed, never
+    /// the text: the URL is the meeting's caption credential.
+    pub const ZOOM_LINK: &str = "error.zoomLink";
+    /// Zoom answered the start check with 401, 403 or 404: the caption link has expired, been
+    /// revoked or was copied incompletely. The detail is the HTTP status.
+    pub const ZOOM_REFUSED: &str = "error.zoomRefused";
+    /// A test caption was asked for with no caption link being shared.
+    pub const ZOOM_NOT_SHARING: &str = "error.zoomNotSharing";
 }
 
 #[cfg(test)]

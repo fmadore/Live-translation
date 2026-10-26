@@ -18,8 +18,10 @@ pub async fn open_support_page() -> Result<(), AppError> {
         .map_err(|e| AppError::with(id::TASK_FAILED, e))?
 }
 
+/// Open one of the app's own fixed pages in the default browser: this one, or the Zoom setup
+/// guide (`zoom::GUIDE_URL`). Never a URL the interface chose.
 #[cfg(windows)]
-fn open(url: &str) -> Result<(), AppError> {
+pub(crate) fn open(url: &str) -> Result<(), AppError> {
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::System::Com::{
         CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE,
@@ -66,7 +68,7 @@ fn open(url: &str) -> Result<(), AppError> {
 }
 
 #[cfg(not(windows))]
-fn open(_url: &str) -> Result<(), AppError> {
+pub(crate) fn open(_url: &str) -> Result<(), AppError> {
     Err(AppError::with(
         id::OPEN_LINK,
         "opening a browser is only implemented on Windows",

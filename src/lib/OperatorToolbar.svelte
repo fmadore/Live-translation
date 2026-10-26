@@ -3,7 +3,7 @@
 	import ToolButton from './ui/ToolButton.svelte';
 	import { t } from './i18n';
 	import { isRunning, options, sessionStartedAt, sessionState } from './stores';
-	import type { SessionState } from './types';
+	import type { SessionState, ZoomState } from './types';
 
 	/** The window's one bar: the session's actions on the left, its state and the settings on
 	 *  the right. Windows already prints the app's name in the frame above it, so this bar spends
@@ -12,12 +12,19 @@
 		elapsed,
 		settingsOpen,
 		onOpenSettings,
+		zoomState,
+		zoomOpen,
+		onOpenZoom,
 		actions
 	}: {
 		/** The running session's clock, already formatted. */
 		elapsed: string;
 		settingsOpen: boolean;
 		onOpenSettings: () => void;
+		/** Where sharing captions with Zoom stands; see `zoomCaptions.svelte.ts`. */
+		zoomState: ZoomState;
+		zoomOpen: boolean;
+		onOpenZoom: () => void;
 		/** Start and Rehearse, or Stop: in the same bar as the status they change. */
 		actions: Snippet;
 	} = $props();
@@ -31,6 +38,18 @@
 		paused: 'warn',
 		error: 'bad'
 	};
+	// The same tones for sharing with Zoom: a refused link is trouble, a meeting that has not
+	// started or a dropped connection is something to keep an eye on.
+	const zoomTone: Record<ZoomState, string> = {
+		off: '',
+		sharing: 'live',
+		waiting: 'warn',
+		unreachable: 'warn',
+		refused: 'bad'
+	};
+	const zoomLabel = $derived(
+		zoomState === 'off' ? $t.zoom.title : $t.zoom.buttonLabel($t.zoom.state[zoomState])
+	);
 </script>
 
 <header class="toolbar">
@@ -55,43 +74,64 @@
 	     already shows the name, so it is here for heading navigation only. -->
 	<h1 class="sr-only">{$t.app.name}</h1>
 	{@render actions()}
-	<div class="pill {stateTone[$sessionState]}">
-		<span class="pill-dot" aria-hidden="true"></span>
-		<span class="pill-label"
-			>{$sessionState === 'running' && $options.provider === 'ondevice'
-				? $t.state.demo
-				: $t.state[$sessionState]}</span
+	<!-- The state of things and the way to the settings, at the far end as one group, so a bar
+	     that wraps moves them together rather than stranding the gear under the Start button. -->
+	<div class="end">
+		<!-- Sharing with Zoom outlives Stop and Start, so it reports beside the session's state
+	     rather than inside it. The dot is the glance; the word beside it is the state, for
+	     anyone who cannot tell the colours apart and for a contrast theme, which drops the dot. -->
+		<ToolButton
+			variant="ghost"
+			size="sm"
+			aria-haspopup="dialog"
+			aria-expanded={zoomOpen}
+			aria-label={zoomLabel}
+			onclick={onOpenZoom}
 		>
-		{#if $isRunning && $sessionStartedAt !== null}
-			<span class="pill-time">{elapsed}</span>
-		{/if}
-	</div>
-	<!-- Persistent access to caption, reading, history and app preferences: the one control in
+			{#if zoomState !== 'off'}<span class="zoom-dot {zoomTone[zoomState]}"></span>{/if}
+			{$t.zoom.button}
+			{#if zoomState !== 'off'}<span class="zoom-state {zoomTone[zoomState]}"
+					>{$t.zoom.state[zoomState]}</span
+				>{/if}
+		</ToolButton>
+		<div class="pill {stateTone[$sessionState]}">
+			<span class="pill-dot" aria-hidden="true"></span>
+			<span class="pill-label"
+				>{$sessionState === 'running' && $options.provider === 'ondevice'
+					? $t.state.demo
+					: $t.state[$sessionState]}</span
+			>
+			{#if $isRunning && $sessionStartedAt !== null}
+				<span class="pill-time">{elapsed}</span>
+			{/if}
+		</div>
+		<!-- Persistent access to caption, reading, history and app preferences: the one control in
 	     the bar whose place never depends on what the session is doing. -->
-	<ToolButton
-		class="icon"
-		aria-haspopup="dialog"
-		aria-expanded={settingsOpen}
-		aria-label={$t.settings.openLabel}
-		onclick={onOpenSettings}
-	>
-		<svg
-			width="16"
-			height="16"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.75"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
+		<ToolButton
+			class="icon"
+			aria-haspopup="dialog"
+			aria-expanded={settingsOpen}
+			aria-label={$t.settings.openLabel}
+			onclick={onOpenSettings}
 		>
-			<circle cx="12" cy="12" r="3" />
-			<path
-				d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-			/>
-		</svg>
-	</ToolButton>
+			<svg
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.75"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="3" />
+				<path
+					d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+				/>
+			</svg>
+		</ToolButton>
+	</div>
 </header>
 
 <style>
@@ -125,11 +165,51 @@
 	.brand .line {
 		stroke: var(--brand-line);
 	}
-	/* Pushed to the far end, and kept there with the gear when the bar wraps. */
+	/* Pushed to the far end, and kept there as one when the bar wraps. */
+	.end {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		align-items: center;
+		gap: var(--space-3);
+		min-width: 0;
+		margin-left: auto;
+	}
+	.zoom-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		flex: none;
+	}
+	/* Worded like the pill's state, in the colour of the dot beside it. */
+	.zoom-state {
+		font-size: var(--type-caption);
+		font-weight: 600;
+		line-height: 1;
+		letter-spacing: var(--tracking-caps);
+		text-transform: uppercase;
+	}
+	.zoom-dot.live {
+		background: var(--accent);
+	}
+	.zoom-state.live {
+		color: var(--accent-soft);
+	}
+	.zoom-dot.warn {
+		background: var(--warn);
+	}
+	.zoom-state.warn {
+		color: var(--warn-soft);
+	}
+	.zoom-dot.bad {
+		background: var(--danger);
+	}
+	.zoom-state.bad {
+		color: var(--danger-soft);
+	}
 	.pill {
 		display: flex;
 		align-items: center;
-		margin-left: auto;
 		gap: var(--space-2);
 		padding: var(--space-1) var(--space-2) var(--space-1) var(--space-2);
 		border-radius: var(--radius-pill);
@@ -210,13 +290,15 @@
 		}
 	}
 
-	/* Live/idle/error is a dot colour plus a word; only the word survives a contrast theme, so
-	   the dot stops pretending to carry state and the pill keeps a visible edge. */
+	/* Live/idle/error is a dot colour plus a word, and so is sharing with Zoom; only the word
+	   survives a contrast theme, so the dots stop pretending to carry state and the pill keeps a
+	   visible edge. */
 	@media (forced-colors: active) {
 		.pill {
 			border: 1px solid CanvasText;
 		}
-		.pill-dot {
+		.pill-dot,
+		.zoom-dot {
 			display: none;
 		}
 	}

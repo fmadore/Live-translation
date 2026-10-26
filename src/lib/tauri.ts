@@ -21,7 +21,10 @@ import type {
 	StatusUpdate,
 	StoredRecovery,
 	SystemCapture,
-	TrayCommand
+	TrayCommand,
+	Lane,
+	Origin,
+	ZoomStatus
 } from './types';
 import type { HistoryListing } from './history';
 import type { Placement } from './profiles';
@@ -173,6 +176,22 @@ export const api = {
 	/** Open the Buy Me a Coffee page in the default browser; see `support.ts`. */
 	openSupportPage: () => invoke<void>('open_support_page'),
 
+	// Captions in Zoom (`zoom.rs`): one caption language from the chosen sources, posted to the
+	// meeting's third-party caption URL. Independent of the caption session, so it outlives Stop
+	// and Start until it is stopped here or the app quits.
+	/** Check the link with Zoom and start sharing; replaces a share already running. Rejects
+	 *  with `error.zoomLink` for something that is not a Zoom caption link, `error.zoomRefused`
+	 *  for one Zoom will not accept. */
+	startZoomCaptions: (url: string, lane: Lane, origins: Origin[]) =>
+		invoke<ZoomStatus>('start_zoom_captions', { url, lane, origins }),
+	stopZoomCaptions: () => invoke<void>('stop_zoom_captions'),
+	/** One line to everyone in the meeting, to confirm captions arrive. */
+	sendZoomTestCaption: (text: string) => invoke<void>('send_zoom_test_caption', { text }),
+	/** Where sharing stands, for a window that has just loaded or reloaded. */
+	zoomCaptionsStatus: () => invoke<ZoomStatus>('zoom_captions_status'),
+	/** Open the setup guide (`ZOOM_GUIDE_URL`) in the default browser. */
+	openZoomGuide: () => invoke<void>('open_zoom_guide'),
+
 	/** Push session and overlay state onto the tray menu, so it cannot describe a state the
 	 *  app has already left. */
 	setTrayState: (
@@ -210,5 +229,7 @@ export const on = {
 	/** A display was connected, disconnected, moved or rescaled while the app ran. Carries the
 	 *  new `display_layout` signature, and arrives after the core has already rescued an
 	 *  overlay left on a display that has gone. */
-	displaysChanged: (h: (layout: string) => void) => listen<string>(EVT.displaysChanged, h)
+	displaysChanged: (h: (layout: string) => void) => listen<string>(EVT.displaysChanged, h),
+	/** Sharing captions with Zoom changed state, or a caption was delivered or given up on. */
+	zoomCaptions: (h: (s: ZoomStatus) => void) => listen<ZoomStatus>(EVT.zoomCaptions, h)
 };

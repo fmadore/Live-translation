@@ -512,6 +512,65 @@ export const en = {
 		madeBy: (name: string) => `Made by ${name}`
 	},
 
+	/** Captions in Zoom: the toolbar's Zoom button and the dialog it opens. Zoom's own menu
+	 *  names (Show Captions, Set up manual captioner) are as the operator's Zoom client prints
+	 *  them in this language. */
+	zoom: {
+		/** The toolbar button's visible label. */
+		button: 'Zoom',
+		title: 'Captions in Zoom',
+		/** The toolbar button's accessible name while sharing is on; `state` is one of `state`. */
+		buttonLabel: (state: string) => `Captions in Zoom: ${state}`,
+		/** Beside the button's status dot, and in its accessible name. */
+		state: {
+			sharing: 'sharing',
+			waiting: 'waiting',
+			refused: 'refused',
+			unreachable: 'unreachable'
+		},
+		close: 'Close',
+		intro:
+			'Shows these captions in Zoom’s own caption bar; attendees turn them on in Zoom. Only caption text is sent — audio capture is unchanged.',
+		steps: {
+			settings:
+				'In Zoom’s web settings, turn on Manual captioning and allow the caption API token for third-party services.',
+			meeting:
+				'In the meeting, the host or a co-host chooses Show Captions › Set up manual captioner › Copy the API token.',
+			paste: 'Paste it here and start sharing.'
+		},
+		/** Opens the setup guide, which is in English, in the browser. */
+		guide: 'Step-by-step setup guide',
+		link: 'Caption link (API token)',
+		linkHint:
+			'Treated like a password: kept only until the app closes, never saved in setups or profiles.',
+		language: 'Caption language',
+		sources: 'Share captions from',
+		origin: {
+			microphone: 'Room (microphone)',
+			system: 'Remote (system audio)'
+		},
+		privacy:
+			'Sharing sends caption text to Zoom, even when captions are made on this PC with Whisper.',
+		/** The status line's live part: it changes with the state, never with a count. */
+		status: {
+			off: 'Not sharing.',
+			sharing: 'Sharing with Zoom.',
+			waiting: 'Zoom says the meeting has not started yet. Captions will appear once it has.',
+			refused: 'Zoom refused this link. It may have expired: copy a new API token.',
+			unreachable: 'Cannot reach Zoom. Trying again with each new caption.'
+		},
+		sent: (n: number) => (n === 1 ? '1 caption sent.' : `${n} captions sent.`),
+		dropped: (n: number) =>
+			n === 1
+				? '1 caption was skipped because it could not be delivered in time.'
+				: `${n} captions were skipped because they could not be delivered in time.`,
+		start: 'Start sharing',
+		stop: 'Stop sharing',
+		test: 'Send test caption',
+		/** What the test sends to everyone in the meeting. */
+		testCaption: 'Test caption from Live Translation.'
+	},
+
 	stage: {
 		browserBanner: {
 			before: 'Running in a browser without the Tauri runtime — controls are disabled. Launch with',
@@ -810,7 +869,12 @@ export const en = {
 			'System audio capture failed. Check the selected output in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		providerRejected: 'The provider rejected the connection — check the API key and model access',
 		providerStopped: 'The provider ended the session',
-		providerReconnecting: 'The connection dropped; reconnecting'
+		providerReconnecting: 'The connection dropped; reconnecting',
+		zoomLink:
+			'This is not a Zoom caption link. In the meeting, choose Set up manual captioner and copy the API token again',
+		zoomRefused:
+			'Zoom refused the caption link: it may have expired, been revoked or been copied incompletely. Copy a new API token',
+		zoomNotSharing: 'Captions are not being shared with Zoom'
 	}
 };
 

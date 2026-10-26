@@ -421,4 +421,8 @@ pub mod events {
     /// core on the overlay's behalf (`report_overlay_state`), because the overlay may not emit
     /// events of its own. Payload is `overlay::OverlayState`.
     pub const OVERLAY_STATE: &str = "overlay-state";
+    /// Sharing captions with a Zoom meeting started, stopped, or heard back from Zoom: after
+    /// each caption delivered or given up, and each one dropped. Payload is
+    /// `zoom::ZoomStatus`.
+    pub const ZOOM_CAPTIONS: &str = "zoom-captions";
 }

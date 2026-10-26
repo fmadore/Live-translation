@@ -114,6 +114,23 @@ through its last completed save. Clearing the recovery copy does not delete hist
 operator and stored only on this device. Raw text in the transcript, history, recovery copy
 and exports remains unchanged. It introduces no network requests.
 
+## Optional captions in Zoom
+
+Sharing captions with Zoom is **off until the user starts it** for a meeting. The user pastes
+the caption link (API token) that the meeting's host copied from Zoom, and from then on the app
+sends caption text in the chosen caption language, from the chosen sources, directly to Zoom,
+which shows it to the meeting's participants. This applies to local Whisper captions too: once
+sharing is started, their text leaves the computer, although the audio does not. No audio,
+API key, device name or transcript file is sent, and nothing passes through a server of the
+developer's.
+
+The caption link is held in memory only, until the app quits, so that sharing can be stopped
+and started again without pasting it anew. It is not saved in preferences, meeting profiles,
+history, the recovery copy or logs.
+Zoom receives ordinary network request information, such as the user's IP address, with each
+caption. What Zoom does with the captions, including whether it keeps them in a meeting's
+transcript or recording, is governed by Zoom's terms and the meeting host's settings.
+
 ## API keys
 
 No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are stored in
@@ -134,7 +151,7 @@ terms entered for Mistral subtitles, and whether closing the window leaves the a
 the notification area.
 The app also remembers the folder of the last successful transcript export, the chosen export
 format, and whether system capture uses an output or an application. The selected process identity is not
-persisted; choose the application again after relaunch.
+persisted; choose the application again after relaunch. A Zoom caption link is never stored.
 Named meeting profiles additionally store the selected setup (including any names and terms),
 audio device identifiers,
 appearance and overlay rectangle locally in the app's webview storage. Profiles contain no
@@ -183,6 +200,9 @@ shared with Mistral. The providers' terms and privacy policies apply:
 
 The built-in demonstration and local Whisper, transcribing or translating, contact none of these
 speech services.
+Captions shared with a Zoom meeting are covered by the
+[Zoom Privacy Statement](https://www.zoom.com/en/trust/privacy/privacy-statement/) and the
+meeting host's account settings.
 Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
 
 ## Children

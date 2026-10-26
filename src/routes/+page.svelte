@@ -20,6 +20,7 @@
 	import RecoveryPrompt from '#lib/RecoveryPrompt.svelte';
 	import TrayHidePrompt from '#lib/TrayHidePrompt.svelte';
 	import UnsavedPrompt from '#lib/UnsavedPrompt.svelte';
+	import ZoomCaptionsDialog from '#lib/ZoomCaptionsDialog.svelte';
 	import { createPreflightController } from '#lib/preflightController.svelte.js';
 	import { createQuitController } from '#lib/quitController.svelte.js';
 	import { createOverlayController } from '#lib/overlayController.svelte.js';
@@ -28,6 +29,7 @@
 	import { createSetupActions } from '#lib/setupActions.js';
 	import { createDeviceFailure } from '#lib/deviceFailure.svelte.js';
 	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
+	import { createZoomCaptions } from '#lib/zoomCaptions.svelte.js';
 	import { syncNative } from '#lib/nativeSync.svelte.js';
 	import { provideOperatorContext } from '#lib/operatorContext.js';
 	import { createLaunchController } from '#lib/launchController.svelte.js';
@@ -99,6 +101,11 @@
 	// Ticks only while a session is open.
 	const clock = createSessionClock();
 
+	// Captions in Zoom: independent of the session, so it lives here rather than under it, and
+	// the caption link it holds survives the dialog closing (but not the window reloading).
+	const zoom = createZoomCaptions();
+	let zoomOpen = $state(false);
+
 	// Start, Rehearse and the start shortcut: what blocks them, and the launch they share.
 	// Created before the meter gates below, which depend on whether a rehearsal is running.
 	const launch = createLaunchController({
@@ -130,7 +137,13 @@
 		// captions or move mode, so moving it now shows no jump from where it was created.
 		void overlay.restorePlacement();
 
+		// Sharing with Zoom may have outlived the last load of this window. Asked once the
+		// listener is in place, so nothing the core reports in between is missed.
+		const zoomListening = on.zoomCaptions(zoom.apply);
+		void zoomListening.then(() => zoom.resync());
+
 		const unlisteners: Array<Promise<() => void>> = [
+			zoomListening,
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
 			// This window honours it; the overlay deliberately does not — see
 			// `docs/accessibility.md`.
@@ -251,6 +264,9 @@
 		elapsed={clock.elapsed}
 		{settingsOpen}
 		onOpenSettings={() => (settingsOpen = true)}
+		zoomState={zoom.status.state}
+		{zoomOpen}
+		onOpenZoom={() => (zoomOpen = true)}
 	>
 		{#snippet actions()}
 			<SessionControls
@@ -381,6 +397,10 @@
 		onHideWindow={quit.hideWindow}
 		onClose={() => (settingsOpen = false)}
 	/>
+{/if}
+
+{#if zoomOpen}
+	<ZoomCaptionsDialog {zoom} onClose={() => (zoomOpen = false)} />
 {/if}
 
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still

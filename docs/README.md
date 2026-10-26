@@ -15,6 +15,8 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Audio checks](audio-device-testing.md) and [application capture](application-capture.md).
 - [Meeting controls and profiles](usability.md): Pause, two caption languages and shortcuts.
 - [Caption layout](caption-layout.md): overlay placement, reading modes and filler-word lists.
+- [Captions in Zoom](zoom-captions.md): sharing one caption language with a Zoom meeting's
+  caption bar (not yet released).
 - [Transcript export](transcript-export.md) and [optional history](transcript-history.md).
 - [Privacy](privacy.md), [accessibility checks](accessibility.md) and [interface localization](localization.md).
 
