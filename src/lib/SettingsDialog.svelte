@@ -13,6 +13,7 @@
 	import ReadingPreferences from './ReadingPreferences.svelte';
 	import TranscriptHistory from './TranscriptHistory.svelte';
 	import KeyboardHelp from './KeyboardHelp.svelte';
+	import SupportLink from './SupportLink.svelte';
 	import { LOCALE_NAMES, LOCALES, locale, setLocale, t } from './i18n';
 	import { closeToTray } from './stores';
 	import { THEMES, theme } from './theme';
@@ -180,6 +181,15 @@
 					/>
 				</div>
 				<KeyboardHelp />
+
+				<div class="divider"></div>
+				<!-- Issue #180: last, and only here and on the idle stage, so it is there for anyone
+				     who looks and in the way of nobody. Works in a browser preview too. -->
+				<div class="rail-section">
+					<h2 class="kicker">{$t.support.heading}</h2>
+					<p class="hint">{$t.support.note}</p>
+					<SupportLink />
+				</div>
 			{/if}
 		</div>
 	{/key}

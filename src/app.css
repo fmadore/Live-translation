@@ -66,6 +66,11 @@
 	--accent-chip: rgba(90, 209, 160, 0.14);
 	--accent-border: rgba(90, 209, 160, 0.4);
 
+	/* Buy Me a Coffee's yellow and the dark its cup is drawn in, for the support link (issue
+	   #180). A brand mark rather than interface, so the light theme repeats it unchanged. */
+	--coffee: #ffdd00;
+	--on-coffee: #0d0c22;
+
 	/* Attention. */
 	--warn: #ffb454;
 	--warn-soft: #ffd39a;
@@ -200,6 +205,9 @@
 	--accent-chip: rgba(16, 158, 104, 0.14);
 	--accent-border: rgba(11, 117, 80, 0.75);
 
+	--coffee: #ffdd00;
+	--on-coffee: #0d0c22;
+
 	--warn: #995200;
 	--warn-soft: #8a4a00;
 	--warn-wash: rgba(224, 138, 0, 0.08);
@@ -275,9 +283,14 @@ input[type='checkbox']:focus-visible {
 }
 
 /* Text for assistive technology only — used where a control's visible label is an icon, or
-   where a state change has to be announced without also being drawn. */
+   where a state change has to be announced without also being drawn. Pinned to the corner
+   of its containing block: left at its static position, one deep in a scrolling column (the
+   rail's glossary announcer) is positioned against the page instead, sits below the fold and
+   makes the whole window scroll by a band of empty space. */
 .sr-only {
 	position: absolute;
+	top: 0;
+	left: 0;
 	width: 1px;
 	height: 1px;
 	margin: -1px;

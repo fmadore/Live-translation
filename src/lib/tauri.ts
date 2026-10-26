@@ -170,6 +170,9 @@ export const api = {
 	 *  cannot answer from the tray. */
 	showOperator: () => invoke<void>('show_operator'),
 
+	/** Open the Buy Me a Coffee page in the default browser; see `support.ts`. */
+	openSupportPage: () => invoke<void>('open_support_page'),
+
 	/** Push session and overlay state onto the tray menu, so it cannot describe a state the
 	 *  app has already left. */
 	setTrayState: (

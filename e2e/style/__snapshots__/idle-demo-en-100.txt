@@ -158,4 +158,11 @@ main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › sp
 main.stage › div.stage-panel › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 12px; margin: 32px 0px 0px }
 main.stage › div.stage-panel › div.launch › span.rehearse-hint { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
 main.stage › div.stage-panel › div.launch › span.privacy { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
+footer.credit { font-size: 12px; line-height: 1.5; color: #8b93a1; display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 32px 0px 0px; margin: auto 0px 0px }
+footer.credit › span { display: block }
+footer.credit › span.sep { display: block }
+footer.credit › a.support.inline "Buy me a coffee (opens in your …" { color: #c3c9d2; display: flex; align-items: center; align-self: flex-start; gap: 8px }
+footer.credit … a.support.inline "Buy me a coffee (opens in your …" › span.cup { color: #0d0c22; display: grid; align-items: center; flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background-color: #ffdd00 }
+footer.credit … a.support.inline "Buy me a coffee (opens in your …" › span.cup › svg { display: block; width: 12px; height: 12px }
+footer.credit … a.support.inline "Buy me a coffee (opens in your …" › span.sr-only { white-space: collapse nowrap; display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 body › div › div { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden }

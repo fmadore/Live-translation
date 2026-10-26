@@ -90,6 +90,8 @@ pub mod id {
     /// all three, unlike the spool's: the History tab puts its own sentence in front of it, and
     /// the detail names the file and the reason.
     pub const HISTORY_STORAGE: &str = "error.historyStorage";
+    /// Windows would not open the support page in the default browser.
+    pub const OPEN_LINK: &str = "error.openLink";
     /// A blocking task panicked or was cancelled. Nothing the operator did.
     pub const TASK_FAILED: &str = "error.taskFailed";
     /// The microphone stopped delivering audio mid-session.

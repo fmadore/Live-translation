@@ -26,6 +26,7 @@ mod realtime;
 mod recovery;
 mod secrets;
 mod session;
+mod support;
 mod sync;
 mod textscale;
 mod timing;
@@ -182,6 +183,7 @@ pub fn run() {
             lifecycle::show_operator,
             lifecycle::confirm_close,
             tray::set_tray_state,
+            support::open_support_page,
         ])
         .on_window_event(|window, event| {
             match event {

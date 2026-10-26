@@ -11,6 +11,7 @@
 	import RunningStage from '#lib/RunningStage.svelte';
 	import IdleStage from '#lib/IdleStage.svelte';
 	import LaunchNotes from '#lib/LaunchNotes.svelte';
+	import AppCredit from '#lib/AppCredit.svelte';
 	import LiveRail from '#lib/LiveRail.svelte';
 	import SetupSheet from '#lib/SetupSheet.svelte';
 	import TranscriptMonitor from '#lib/TranscriptMonitor.svelte';
@@ -364,7 +365,10 @@
 					/>
 				{/if}
 
-				{#if !$isRunning}<LaunchNotes {statusText} />{/if}
+				{#if !$isRunning}
+					<LaunchNotes {statusText} />
+					<AppCredit />
+				{/if}
 			</div>
 		</main>
 	</div>

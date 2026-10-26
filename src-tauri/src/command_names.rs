@@ -60,6 +60,7 @@ pub const COMMANDS: &[&str] = &[
     "show_operator",
     "confirm_close",
     "set_tray_state",
+    "open_support_page",
 ];
 
 #[cfg(test)]
