@@ -1,11 +1,9 @@
 # Next Store submission — 1.11.0
 
-**Prepared; not yet tagged or submitted.** 1.10.0 (MSIX 1.10.0.0) was submitted and is in
-certification, as reported by the maintainer on 26 October 2026; the last confirmed live Store
-version is **1.9.0.0** (`Get-AppxPackage`, 25 October 2026). The next submission is
+**Prepared; not yet tagged or submitted.** The Store serves **1.10.0.0**, live as reported by
+the maintainer on 26 October 2026. The next submission is
 **1.11.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
 `https://github.com/fmadore/Live-translation/releases/download/v1.11.0/Live.Translation_1.11.0.msixbundle`.
-Partner Center takes one submission at a time, so submit 1.11.0 once 1.10.0 is live.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display

@@ -1,9 +1,8 @@
 # Microsoft Store submission
 
-**Next target: 1.11.0 / MSIX 1.11.0.0, prepared; not yet tagged or submitted.** 1.10.0
-(MSIX 1.10.0.0) is in certification, as reported by the maintainer on 26 October 2026; the last
-confirmed live Store release is 1.9.0 (MSIX 1.9.0.0), confirmed with `Get-AppxPackage` on
-25 October 2026.
+**Next target: 1.11.0 / MSIX 1.11.0.0, prepared; not yet tagged or submitted.** The last
+Store release is 1.10.0 (MSIX 1.10.0.0), live as reported by the maintainer on 26 October 2026;
+it replaced 1.9.0.
 1.11.0 adds an optional Buy Me a Coffee link that unlocks nothing, and fixes an empty band at
 the bottom of the operator window. The link is the app's first way to pay anyone, so its
 submission ticks a Product declaration and explains the link in the certification notes
