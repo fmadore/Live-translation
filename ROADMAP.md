@@ -5,29 +5,23 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.9.0 in the Store, 1.10.0 in certification, 1.11.0 prepared
+## Current status — 1.10.0 in the Store, 1.11.0 prepared
 
-The Store serves [**1.9.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)
-(22 October 2026, MSIX 1.9.0.0), live as confirmed with `Get-AppxPackage` on 25 October 2026
-([handoff](docs/store-updates.md#release-190-handoff)): a light theme that follows Windows' app
-mode, and the first three batches of the [22 October app review](docs/app-review-2026-10-22.md).
-
-[**1.10.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) was published on
-GitHub on 26 October 2026 and is in Store certification, as reported by the maintainer the same
-day ([handoff](docs/store-updates.md#release-1100-handoff),
-[release notes](docs/release-1.10.0.md)):
-- [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the review,
-  which also lists what is left. A Gemini handover drains the old connection, a failed setup
-  retries, system loopback keeps up under load, and the overlay keeps only the permissions it
-  uses.
+The Store serves [**1.10.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)
+(26 October 2026, MSIX 1.10.0.0), live as reported by the maintainer the day it was tagged
+([handoff](docs/store-updates.md#release-1100-handoff), [release notes](docs/release-1.10.0.md)).
+It replaced 1.9.0 and added:
+- [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the
+  [22 October app review](docs/app-review-2026-10-22.md), which also lists what is left. A
+  Gemini handover drains the old connection, a failed setup retries, system loopback keeps up
+  under load, and the overlay keeps only the permissions it uses.
 - [#177](https://github.com/fmadore/Live-translation/pull/177): no process handles outside One
   application capture, for games with kernel anti-cheat, and the game voice chat line in the
   Store copy; [#179](https://github.com/fmadore/Live-translation/pull/179): move mode left when
   Alt+F4 hides the overlay.
 
 **[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** is prepared and
-awaits the maintainer's test of the Local Test build and its tag; it goes to the Store once
-1.10.0 is live ([handoff](docs/store-updates.md#release-1110-handoff),
+awaits the maintainer's test of the Local Test build, its tag and Store submission ([handoff](docs/store-updates.md#release-1110-handoff),
 [release notes](docs/release-1.11.0.md)):
 - [#182](https://github.com/fmadore/Live-translation/pull/182): an optional Buy Me a Coffee
   link in Settings › App and on the start screen, which unlocks nothing, with a README section
@@ -135,13 +129,13 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   nothing, and no empty band at the bottom of the operator window
   ([#182](https://github.com/fmadore/Live-translation/pull/182)).
   [Release body](docs/release-1.11.0.md).
-- **1.10.0** (26 October 2026; in Store certification): batches 4–6 of the
+- **1.10.0** (26 October 2026; live in the Store, reported 26 October 2026): batches 4–6 of the
   [22 October app review](docs/app-review-2026-10-22.md)
   ([#171](https://github.com/fmadore/Live-translation/pull/171)), no process handles outside
   One application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)) and
   move mode left on Alt+F4 ([#179](https://github.com/fmadore/Live-translation/pull/179)).
   [Release body](docs/release-1.10.0.md).
-- **1.9.0** (22 October 2026; live in the Store, confirmed 25 October 2026): a light theme that follows
+- **1.9.0** (22 October 2026; live in the Store from 25 October 2026, replaced by 1.10.0): a light theme that follows
   Windows' app mode ([#159](https://github.com/fmadore/Live-translation/pull/159)), and batches
   1–3 of the [22 October app review](docs/app-review-2026-10-22.md)
   ([#160](https://github.com/fmadore/Live-translation/pull/160),

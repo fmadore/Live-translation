@@ -11,11 +11,9 @@ packages are built.
 
 ## Release 1.11.0 handoff
 
-**Prepared; not yet tagged.** 1.10.0 (MSIX 1.10.0.0) was submitted and is in certification, as
-reported by the maintainer on 26 October 2026; the last confirmed live version is **1.9.0.0**
-(`Get-AppxPackage`, 25 October 2026). Target app version: **1.11.0**, MSIX **1.11.0.0**.
-Partner Center takes one submission at a time, so 1.11.0 is submitted once 1.10.0 is live, and
-What's new covers the changes since 1.10.0.
+**Prepared; not yet tagged.** The Store serves **1.10.0.0**, live as reported by the
+maintainer on 26 October 2026. Target app version: **1.11.0**, MSIX **1.11.0.0**. What's new
+and the certification notes cover the changes since 1.10.0.
 
 1.11.0 adds an optional way to support development, and one layout fix:
 
@@ -127,7 +125,7 @@ otherwise:
 - [ ] Run Windows App Certification Kit.
 - [ ] Check that the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
   shows the 27 October 2026 date and the *Support link* section.
-- [ ] Once 1.10.0 is live, submit the single combined bundle in Partner Center with the 1.11.0
+- [ ] Submit the single combined bundle in Partner Center with the 1.11.0
   What's new, the three descriptions, the updated certification notes and the **Product
   declaration** for purchases outside Microsoft commerce (see
   [the walkthrough](partner-center-walkthrough.md#pricing-and-properties)). A full rollout is
@@ -292,8 +290,8 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
-| 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Submitted; in certification as reported by the maintainer on 26 October 2026 | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
-| 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |
+| 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Live as 1.10.0.0, reported by the maintainer on 26 October 2026; submission and certification dates not recorded | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
+| 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded; replaced by 1.10.0 | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |
 | 1.8.0 | [21 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) · [body](release-1.8.0.md) | Live as 1.8.0.0, reported by the maintainer on 21 October 2026 and confirmed with `Get-AppxPackage`; submission and certification dates not recorded; replaced by 1.9.0 | The Transcript tab with Copy (#155) and Mistral subtitles on Voxtral Realtime 3 (#156). |
 | 1.7.1 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) · [body](release-1.7.1.md) | Live as 1.7.1.0, confirmed by the maintainer on 21 October 2026; submission and certification dates not recorded; replaced by 1.8.0 | 1.7.0's app code, with the icon shown on the taskbar and in Start without an accent-coloured plate (#152). |
 | 1.7.0 | [20 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) · [body](release-1.7.0.md) | Not submitted; superseded by 1.7.1 | Offline Whisper translation into English and overlay placement per display layout (#121), overlay recovery when a display goes (#139), cloud sessions that reconnect (#116, #122). |
@@ -310,8 +308,10 @@ was submitted were not recorded as done and stay open against the Store build.
 
 ### Release 1.10.0 handoff
 
-**Submitted; in certification**, as reported by the maintainer on 26 October 2026; the
-submission date was not recorded. Not yet confirmed live. It follows 1.9.0.
+**Live as 1.10.0.0**, reported by the maintainer on 26 October 2026, the day it was tagged;
+the submission and certification dates were not recorded. That morning the maintainer's PC
+still had the Store's 1.9.0.0 (`Get-AppxPackage`), so a `Get-AppxPackage` reading of 1.10.0.0
+with `SignatureKind` `Store` is still to be recorded. It replaced 1.9.0.
 - **What it shipped:** batches 4–6 of the [22 October review](app-review-2026-10-22.md)
   ([#171](https://github.com/fmadore/Live-translation/pull/171)): a Gemini handover that drains
   the old connection, setup failures retried, system loopback that keeps up under load, an

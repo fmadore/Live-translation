@@ -1,9 +1,8 @@
 # Partner Center submission walkthrough — 1.11.0
 
 Target: **Live Translation & Subtitles 1.11.0**, Product ID `9PFB8LR3RR9X`. Prepared, not yet
-tagged or submitted. 1.10.0 (MSIX 1.10.0.0) is in certification, as reported by the maintainer
-on 26 October 2026; Partner Center takes one submission at a time, so create this one once
-1.10.0 is live. Once the tag is published, download the combined x64 + ARM64 bundle from
+tagged or submitted. The Store serves 1.10.0 (MSIX 1.10.0.0), live as reported by the
+maintainer on 26 October 2026, so nothing else is in progress in Partner Center. Once the tag is published, download the combined x64 + ARM64 bundle from
 `https://github.com/fmadore/Live-translation/releases/download/v1.11.0/Live.Translation_1.11.0.msixbundle`.
 The [release handoff](store-updates.md#release-1110-handoff) has the package evidence and
 outstanding acceptance checks.
@@ -111,7 +110,7 @@ that listing if it is not already present. For each language, paste:
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
 4. **What's new**: the 1.11.0 block, under 1,500 characters. It covers the changes since
-   1.10.0, which the Store serves once its certification completes.
+   1.10.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters,
    unchanged since 1.7.1.
 6. Packaged-app screenshots with matching localized captions, showing the current interface
