@@ -4,7 +4,11 @@ Live captions over your meetings, video calls and slides. Transcribe speech loca
 **Whisper**, or translate it — into English locally with Whisper, or into many languages with
 **Google Gemini** or **OpenAI** — in a transparent Windows overlay.
 
-[Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) ·
+<a href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>&nbsp;&nbsp;<a href="https://buymeacoffee.com/fmadore"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="48"></a>
+
+Free, with every feature included. If it is useful to you, you can
+[support its development](#support-development).
+
 [GitHub releases](https://github.com/fmadore/Live-translation/releases) ·
 [Privacy](docs/privacy.md) · [Documentation](docs/README.md)
 
