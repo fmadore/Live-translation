@@ -47,6 +47,7 @@
     "allow-hide-to-tray",
     "allow-show-operator",
     "allow-confirm-close",
-    "allow-set-tray-state"
+    "allow-set-tray-state",
+    "allow-open-support-page"
   ]
 }

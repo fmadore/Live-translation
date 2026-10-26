@@ -505,6 +505,14 @@ export const de: Messages = {
 		needsDesktop: 'Erfordert die Desktop-App – eine Browser-Vorschau hat keinen Infobereich.'
 	},
 
+	support: {
+		heading: 'Entwicklung unterstützen',
+		note: 'Wenn Ihnen diese App nützt, können Sie ihre Entwicklung mitfinanzieren. Die Unterstützung ist völlig freiwillig und schaltet keine zusätzlichen Funktionen frei.',
+		link: 'Spendieren Sie mir einen Kaffee',
+		opensInBrowser: ' (öffnet sich im Browser)',
+		madeBy: (name: string) => `Entwickelt von ${name}`
+	},
+
 	stage: {
 		browserBanner: {
 			before:
@@ -800,6 +808,7 @@ export const de: Messages = {
 		recoveryRead: 'Die Wiederherstellungskopie der letzten Sitzung konnte nicht gelesen werden',
 		recoveryDelete: 'Die Wiederherstellungskopie konnte nicht gelöscht werden',
 		historyStorage: 'Der Verlaufsordner konnte nicht gelesen oder geändert werden',
+		openLink: 'Windows konnte die Seite nicht im Browser öffnen',
 		taskFailed: 'Eine Hintergrundaufgabe wurde unerwartet beendet',
 		micStream:
 			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',

@@ -66,6 +66,11 @@
 	--accent-chip: rgba(90, 209, 160, 0.14);
 	--accent-border: rgba(90, 209, 160, 0.4);
 
+	/* Buy Me a Coffee's yellow and the dark its cup is drawn in, for the support link (issue
+	   #180). A brand mark rather than interface, so the light theme repeats it unchanged. */
+	--coffee: #ffdd00;
+	--on-coffee: #0d0c22;
+
 	/* Attention. */
 	--warn: #ffb454;
 	--warn-soft: #ffd39a;
@@ -199,6 +204,9 @@
 	--accent-wash: rgba(16, 158, 104, 0.08);
 	--accent-chip: rgba(16, 158, 104, 0.14);
 	--accent-border: rgba(11, 117, 80, 0.75);
+
+	--coffee: #ffdd00;
+	--on-coffee: #0d0c22;
 
 	--warn: #995200;
 	--warn-soft: #8a4a00;

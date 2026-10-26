@@ -81,6 +81,14 @@ verified before use. Cloud audio goes directly to the chosen provider. API keys 
 Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry.
 See the [privacy policy](docs/privacy.md) for temporary storage, history and recovery details.
 
+## Support development
+
+Live Translation & Subtitles is free, and every captioning, translation and export feature stays
+free. If the app is useful to you, you can help fund its development on
+[Buy Me a Coffee](https://buymeacoffee.com/fmadore). Supporting is entirely optional and does not
+unlock additional features; cloud providers bill their own usage separately. The same link is
+in the app under Settings › App.
+
 ## Build and contribute
 
 Use Windows with Node 22.13+ or 24, rustup (`rust-toolchain.toml` pins the Rust version, which

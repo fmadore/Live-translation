@@ -508,6 +508,14 @@ export const fr: Messages = {
 			'Nécessite l’application de bureau — un aperçu dans un navigateur n’a pas de zone de notification.'
 	},
 
+	support: {
+		heading: 'Soutenir le développement',
+		note: 'Si cette application vous est utile, vous pouvez contribuer à financer son développement. Le soutien est entièrement facultatif et ne débloque aucune fonctionnalité supplémentaire.',
+		link: 'Offrez-moi un café',
+		opensInBrowser: ' (s’ouvre dans votre navigateur)',
+		madeBy: (name: string) => `Conçu par ${name}`
+	},
+
 	stage: {
 		browserBanner: {
 			before:
@@ -806,6 +814,7 @@ export const fr: Messages = {
 		recoveryRead: 'La copie de récupération de votre dernière session n’a pas pu être lue',
 		recoveryDelete: 'La copie de récupération n’a pas pu être supprimée',
 		historyStorage: 'Le dossier de l’historique n’a pu être ni lu ni modifié',
+		openLink: 'Windows n’a pas pu ouvrir la page dans votre navigateur',
 		taskFailed: 'Une tâche en arrière-plan s’est arrêtée de façon inattendue',
 		micStream:
 			'Le microphone a cessé d’envoyer de l’audio. Vérifiez la connexion dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',

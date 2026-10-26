@@ -201,6 +201,11 @@ describe.each(['dark', 'light'] as const)('the %s palette', (theme) => {
 			expect(contrast(tokens['--on-accent'], tokens[end]), end).toBeGreaterThanOrEqual(4.5);
 		}
 	});
+
+	// The support link's cup is drawn on the brand's yellow, not on a surface.
+	it('keeps the coffee cup legible on its yellow', () => {
+		expect(contrast(tokens['--on-coffee'], tokens['--coffee'])).toBeGreaterThanOrEqual(4.5);
+	});
 });
 
 // The checks above only mean something while components paint from the tokens. The overlay's

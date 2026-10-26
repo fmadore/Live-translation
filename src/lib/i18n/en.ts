@@ -502,6 +502,16 @@ export const en = {
 		needsDesktop: 'Needs the desktop app — a browser preview has no tray.'
 	},
 
+	support: {
+		heading: 'Support development',
+		/** Issue #180's copy. Says plainly that paying changes nothing in the app. */
+		note: 'If this app is useful to you, you can help fund its development. Supporting is entirely optional and does not unlock additional features.',
+		link: 'Buy me a coffee',
+		opensInBrowser: ' (opens in your browser)',
+		/** The idle stage's credit line, in front of the support link. */
+		madeBy: (name: string) => `Made by ${name}`
+	},
+
 	stage: {
 		browserBanner: {
 			before: 'Running in a browser without the Tauri runtime — controls are disabled. Launch with',
@@ -790,6 +800,7 @@ export const en = {
 		recoveryRead: 'The recovery copy from your last session could not be read',
 		recoveryDelete: 'The recovery copy could not be deleted',
 		historyStorage: 'The history folder could not be read or changed',
+		openLink: 'Windows could not open the page in your browser',
 		taskFailed: 'A background task stopped unexpectedly',
 		micStream:
 			'The microphone stopped sending audio. Check the connection in Windows Settings > System > Sound (ms-settings:sound), then retry',
