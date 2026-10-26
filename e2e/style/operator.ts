@@ -293,7 +293,7 @@ export async function openOperator(
 		for (const [key, value] of entries) localStorage.setItem(key, value);
 	}, stored);
 	await page.clock.setFixedTime(NOW);
-	await page.goto('/');
+	await load(page, core, t.locale.tag);
 
 	await expect(page.locator('html')).toHaveAttribute('lang', t.locale.tag);
 	if (theme) await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -310,6 +310,30 @@ export async function openOperator(
 	await STATES[state].reach(app);
 	await settle(app);
 	return app;
+}
+
+/**
+ * Open the window, and reload once if the bundle never arrived. On the CI runner `vite preview` now and then
+ * refuses one connection among the dozen the page opens (`ERR_CONNECTION_REFUSED`), the
+ * dynamic import of that chunk rejects, and the app never starts: `<html lang>` stays at
+ * app.html's `en`, and the test times out on something the page never had a chance to do.
+ * That is the transport failing, not a style or overflow result, so it is retried here and
+ * nowhere else; any other page error still fails the test as it did.
+ */
+async function load(page: Page, core: FakeCore, tag: string) {
+	let failedImport = false;
+	const onError = (error: Error) => {
+		if (error.message.includes('Failed to fetch dynamically imported module')) failedImport = true;
+	};
+	page.on('pageerror', onError);
+	await page.goto('/');
+	await expect
+		.poll(async () => failedImport || (await page.locator('html').getAttribute('lang')) === tag)
+		.toBe(true);
+	page.off('pageerror', onError);
+	if (!failedImport) return;
+	core.calls.length = 0;
+	await page.reload();
 }
 
 /** Wait until the window has stopped asking the core for things, every font it declares

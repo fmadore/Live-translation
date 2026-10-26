@@ -1,8 +1,9 @@
 # Partner Center listing text — 1.11.0
 
-Prepared for **1.11.0 / MSIX 1.11.0.0**; not yet tagged. The last Store release is 1.10.0
-(MSIX 1.10.0.0), live as reported by the maintainer on 26 October 2026, so What's new covers
-only the changes since 1.10.0. Paste each block into its named field after the
+Written for **1.11.0 / MSIX 1.11.0.0**, accepted in the Store as reported by the maintainer on
+26 October 2026; it replaced 1.10.0 (MSIX 1.10.0.0), so What's new covers only the changes
+since 1.10.0. For the next version, replace What's new and the certification notes' first
+paragraph. Paste each block into its named field after the
 [release checks](store-updates.md). These descriptions lead with the actual captioning
 workflow; the scripted demo is a secondary setup aid.
 
