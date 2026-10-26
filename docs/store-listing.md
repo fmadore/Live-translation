@@ -1,26 +1,23 @@
-# Partner Center listing text — 1.10.0
+# Partner Center listing text — 1.11.0
 
-Prepared for **1.10.0 / MSIX 1.10.0.0**; not yet tagged. The last confirmed Store release is
-1.9.0 (MSIX 1.9.0.0), live as confirmed with `Get-AppxPackage` on 25 October 2026, so What's
-new covers only the changes since 1.9.0. Paste each block into its named field after the
+Prepared for **1.11.0 / MSIX 1.11.0.0**; not yet tagged. 1.10.0 (MSIX 1.10.0.0) was submitted
+and is in certification, as reported by the maintainer on 26 October 2026; the last confirmed
+live Store release is 1.9.0 (MSIX 1.9.0.0). Partner Center takes one submission at a time, so
+1.11.0 goes in once 1.10.0 is live, and What's new covers only the changes since 1.10.0. If
+1.10.0 is withdrawn or fails certification instead, submit 1.11.0 with both What's new texts,
+1.10.0's first. Paste each block into its named field after the
 [release checks](store-updates.md). These descriptions lead with the actual captioning
 workflow; the scripted demo is a secondary setup aid.
 
-For 1.10.0, What's new is replaced in all three languages: one paragraph on cloud sessions and
-capture, the anti-cheat fix ([#177](https://github.com/fmadore/Live-translation/pull/177))
-among them, and one on the overlay and the operator window, from batches 4–6 of the
-[22 October review](app-review-2026-10-22.md)
-([#171](https://github.com/fmadore/Live-translation/pull/171)). The certification notes change
-only in their first paragraph: the version, and what is new since 1.9.0.
-
-The descriptions, features and keywords are those #177 changed after 1.9.0 was submitted: one
-sentence for players following voice chat in another language, prompted by a WARDOGS player's
-question on anti-cheat (the overlay is a separate window, with nothing injected into the game),
-a feature line for games, and one keyword per language making way for games ("live
-subtitles", which the app's name already carries, "sous-titres automatiques" and
-"Live-Transkription"). Paste them with this submission unless they were already pasted into
-the live listing. The short descriptions and requirements are unchanged. The German additions
-are parity only; the native-speaker review is still pending.
+For 1.11.0, What's new is replaced in all three languages: one paragraph on the optional Buy Me
+a Coffee link ([#182](https://github.com/fmadore/Live-translation/pull/182), part of
+[#180](https://github.com/fmadore/Live-translation/issues/180)) and one line on the operator
+window's empty bottom band. The certification notes change in their first paragraph (the
+version, and what is new since 1.10.0) and gain a second, on the support link, for Store Policy
+10.8.2. Each description gains one sentence after "sells no subscriptions, credits or API
+access" saying that the link is optional and unlocks nothing, as 10.8.4 asks the metadata to
+describe what can be paid for. The features, short descriptions, keywords and requirements are
+unchanged. The German sentences are parity only; the native-speaker review is still pending.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -53,19 +50,19 @@ Tune captions for the room: typeface, size, colours, backing, how long lines sta
 
 During a session, the Transcript tab shows everything said so far, and Copy puts the last 5, 10 or 30 minutes, or the whole transcript, on the clipboard as plain text. Export transcripts as text, Markdown, SRT or WebVTT. Turn on local history to save finalized captions as you go, then name, search, reopen, copy, export and delete past sessions. History and crash recovery stay off until you enable them. With Whisper, Stop lets queued audio finish so the transcript is complete.
 
-With Whisper, audio stays on your PC; speech waiting to be processed sits in a temporary file that is deleted automatically. With a cloud engine, audio goes straight to the provider you chose. API keys are kept in Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry, and the app sells no subscriptions, credits or API access.
+With Whisper, audio stays on your PC; speech waiting to be processed sits in a temporary file that is deleted automatically. With a cloud engine, audio goes straight to the provider you chose. API keys are kept in Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry, and the app sells no subscriptions, credits or API access. An optional Buy Me a Coffee link supports development and unlocks nothing.
 
 Use the interface in English, French or German, whatever the caption language. The operator window works from the keyboard and with Narrator, and follows Windows text size and contrast themes. An optional English/French demo lets you try the display without any setup; it plays a prepared script and does not recognize speech.
 
 Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and ARM64 packages. On x64, Whisper needs a processor with AVX2; the cloud engines work without it. Download a Whisper model before using it offline, and allow access to the audio source you select. Capturing a single app also captures its child processes and notifications, and may include several browser tabs.
 ```
 
-### What's new in this version — 1.10.0
+### What's new in this version — 1.11.0
 
 ```text
-Cloud sessions and capture: when Gemini moves a session to a new connection, the last words are no longer lost, and a brief provider failure while connecting is retried instead of ending the source. System audio keeps up while local Whisper is busy. System audio and microphone capture no longer open a handle on any other program, which kernel anti-cheat in games watches for; the application list is built only when you choose One application.
+Support development: Live Translation & Subtitles stays free, with every feature included. If it is useful to you, an optional Buy Me a Coffee link in Settings › App and at the foot of the start screen opens the developer's page in your browser. Supporting is entirely optional and unlocks nothing, and the link is never shown during a session.
 
-Overlay and operator window: after Alt+F4 hides the overlay, the toggle and the tray say so. Adjusting the overlay during a session no longer disturbs the captions, and a strip across two displays is restored as placed. Start waits until the session is running. The transcript keeps its Copy window and scroll position across Start and Stop. Crash recovery can be switched on in Settings › Transcript history. A failing recovery copy or history save stays flagged beside the save badge. Arabic, Hebrew, Persian and Urdu captions run right to left in the operator window too.
+Fix: with a long setup column, the operator window could scroll and leave an empty band at the bottom; it now fits the window.
 ```
 
 ### Features — one feature per line
@@ -127,19 +124,19 @@ Adaptez les sous-titres à la salle : police, taille, couleurs, fond, durée d'a
 
 Pendant une session, l'onglet Transcription affiche tout ce qui a été dit, et Copier place les 5, 10 ou 30 dernières minutes, ou toute la transcription, dans le presse-papiers en texte brut. Exportez les transcriptions en texte, Markdown, SRT ou WebVTT. Activez l'historique local pour enregistrer les sous-titres finalisés au fil de la session, puis nommez, recherchez, rouvrez, copiez, exportez et supprimez vos sessions. L'historique et la copie de récupération restent désactivés tant que vous ne les activez pas. Avec Whisper, la commande Arrêter laisse l'audio en attente finir son traitement pour que la transcription soit complète.
 
-Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement est placée dans un fichier temporaire supprimé automatiquement. Avec un moteur cloud, l'audio est envoyé directement au fournisseur choisi. Les clés API sont conservées dans le Gestionnaire d'informations d'identification Windows. Le développeur ne reçoit ni audio, ni clé, ni transcription, ni télémétrie, et l'application ne vend ni abonnement, ni crédits, ni accès API.
+Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement est placée dans un fichier temporaire supprimé automatiquement. Avec un moteur cloud, l'audio est envoyé directement au fournisseur choisi. Les clés API sont conservées dans le Gestionnaire d'informations d'identification Windows. Le développeur ne reçoit ni audio, ni clé, ni transcription, ni télémétrie, et l'application ne vend ni abonnement, ni crédits, ni accès API. Un lien facultatif vers Buy Me a Coffee permet de soutenir le développement et ne débloque rien.
 
 Utilisez l'interface en français, anglais ou allemand, quelle que soit la langue des sous-titres. La fenêtre de contrôle s'utilise au clavier et avec le Narrateur, et suit la taille du texte et les thèmes de contraste de Windows. Une démo facultative en français et en anglais permet d'essayer l'affichage sans configuration ; elle déroule un script préparé et ne reconnaît pas la parole.
 
 Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 et ARM64 natifs. Sur x64, Whisper nécessite un processeur compatible AVX2 ; les moteurs cloud fonctionnent sans. Téléchargez un modèle Whisper avant de l'utiliser hors ligne et autorisez l'accès à la source audio choisie. La capture d'une application inclut aussi ses processus enfants et ses notifications, et peut inclure plusieurs onglets d'un navigateur.
 ```
 
-### Nouveautés de cette version — 1.10.0
+### Nouveautés de cette version — 1.11.0
 
 ```text
-Sessions cloud et capture : quand Gemini fait passer une session sur une nouvelle connexion, les derniers mots ne sont plus perdus, et une défaillance passagère du fournisseur pendant la connexion est retentée au lieu d'arrêter la source. L'audio système suit le rythme même quand Whisper local est occupé. La capture de l'audio système ou du microphone n'ouvre plus aucun handle sur un autre programme, ce que surveillent les anti-triche des jeux ; la liste des applications n'est construite que si vous choisissez Une application.
+Soutenir le développement : Live Translation & Subtitles reste gratuite, avec toutes ses fonctionnalités. Si elle vous est utile, un lien facultatif vers Buy Me a Coffee, dans Paramètres › Application et au bas de l'écran d'accueil, ouvre la page du développeur dans votre navigateur. Le soutien est entièrement facultatif et ne débloque rien, et le lien n'apparaît jamais pendant une session.
 
-Surimpression et fenêtre de contrôle : quand Alt+F4 masque la surimpression, le bouton et la zone de notification l'indiquent. Régler la surimpression pendant une session ne perturbe plus les sous-titres, et une bande étendue sur deux écrans est rétablie telle quelle. Démarrer attend que la session soit lancée. La transcription garde sa durée de copie et sa position de défilement entre Démarrer et Arrêter. La copie de récupération peut être activée dans Paramètres › Historique des transcriptions. Un échec de la copie de récupération ou de l'historique reste signalé à côté du badge d'enregistrement. Les sous-titres en arabe, hébreu, persan et ourdou s'affichent aussi de droite à gauche dans la fenêtre de contrôle.
+Correction : avec une longue colonne de configuration, la fenêtre de contrôle pouvait défiler et laisser une bande vide en bas ; elle tient désormais dans la fenêtre.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -201,19 +198,19 @@ Passen Sie Schrift, Größe, Farbe, Kontrast, Anzeigedauer und Aktualisierungste
 
 Während einer Sitzung zeigt die Ansicht Transkript alles bisher Gesagte, und Kopieren legt die letzten 5, 10 oder 30 Minuten oder das ganze Transkript als reinen Text in die Zwischenablage. Exportieren Sie Transkripte als Text, Markdown, SRT oder WebVTT. Der optionale lokale Verlauf speichert abgeschlossene Untertitel fortlaufend; Sie können Sitzungen benennen, durchsuchen, erneut öffnen, kopieren, exportieren und löschen. Verlauf und Wiederherstellungskopie sind standardmäßig deaktiviert. Bei Whisper verarbeitet Stopp noch ausstehendes Audio, bevor das Transkript vollständig ist.
 
-Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch gelöschten temporären Datei gepuffert. Cloud-Audio geht direkt an den gewählten Anbieter. API-Schlüssel liegen in der Windows-Anmeldeinformationsverwaltung. Der Entwickler erhält weder Audio noch Schlüssel, Transkripte oder Telemetrie. Die App verkauft keine Abonnements, Guthaben oder API-Zugänge.
+Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch gelöschten temporären Datei gepuffert. Cloud-Audio geht direkt an den gewählten Anbieter. API-Schlüssel liegen in der Windows-Anmeldeinformationsverwaltung. Der Entwickler erhält weder Audio noch Schlüssel, Transkripte oder Telemetrie. Die App verkauft keine Abonnements, Guthaben oder API-Zugänge. Ein freiwilliger Buy-Me-a-Coffee-Link unterstützt die Entwicklung und schaltet nichts frei.
 
 Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhängig von der Untertitelsprache. Das Bedienfenster lässt sich per Tastatur und mit der Sprachausgabe bedienen und folgt der Windows-Textgröße und den Kontrastdesigns. Eine optionale skriptbasierte Demo auf Englisch und Französisch zeigt die Anzeigefunktionen ohne Einrichtung; sie erkennt keine Sprache.
 
 Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und ARM64-Pakete sind verfügbar. Auf x64 benötigt Whisper einen Prozessor mit AVX2; die Cloud-Engines funktionieren auch ohne. Laden Sie vor der Offline-Nutzung ein Whisper-Modell herunter und erlauben Sie den Zugriff auf die ausgewählte Audioquelle. Die Aufnahme einer Anwendung umfasst ihre Unterprozesse und Benachrichtigungen und kann mehrere Browser-Tabs einschließen.
 ```
 
-### Neu in dieser Version — 1.10.0
+### Neu in dieser Version — 1.11.0
 
 ```text
-Cloud-Sitzungen und Aufnahme: Wenn Gemini eine Sitzung auf eine neue Verbindung umstellt, gehen die letzten Wörter nicht mehr verloren, und ein kurzer Anbieterfehler beim Verbinden wird erneut versucht, statt die Quelle zu beenden. Systemaudio kommt auch dann mit, wenn lokales Whisper ausgelastet ist. Die Aufnahme von Systemaudio oder Mikrofon öffnet kein Handle mehr auf ein anderes Programm, worauf Kernel-Anti-Cheat in Spielen achtet; die Anwendungsliste wird nur erstellt, wenn Sie Eine Anwendung wählen.
+Entwicklung unterstützen: Live Translation & Subtitles bleibt kostenlos, mit allen Funktionen. Wenn Ihnen die App nützt, öffnet ein freiwilliger Buy-Me-a-Coffee-Link in Einstellungen › App und unten auf dem Startbildschirm die Seite des Entwicklers in Ihrem Browser. Die Unterstützung ist völlig freiwillig und schaltet nichts frei, und der Link erscheint nie während einer Sitzung.
 
-Overlay und Bedienfenster: Blendet Alt+F4 das Overlay aus, zeigen die Schaltfläche und das Infobereichsmenü das an. Änderungen am Overlay während einer Sitzung stören die Untertitel nicht mehr, und ein Streifen über zwei Bildschirme wird so wiederhergestellt, wie er platziert wurde. Starten wartet, bis die Sitzung läuft. Das Transkript behält Kopierzeitraum und Bildlaufposition über Starten und Stoppen hinweg. Die Wiederherstellungskopie lässt sich in Einstellungen › Transkriptverlauf einschalten. Eine fehlschlagende Wiederherstellungskopie oder Verlaufsspeicherung bleibt neben dem Speicherhinweis markiert. Arabische, hebräische, persische und Urdu-Untertitel laufen auch im Bedienfenster von rechts nach links.
+Korrektur: Bei einer langen Einrichtungsspalte konnte das Bedienfenster scrollen und unten einen leeren Streifen lassen; jetzt passt es ins Fenster.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -302,7 +299,9 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.10.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.9.0, the version in the Store, this update makes cloud sessions and system-audio capture more reliable and fixes overlay and operator-window behaviour. It adds no feature and no capability. The caption overlay window now has fewer permissions than before, and the app opens handles on other running programs only while One application capture is chosen. The test routes below are those of 1.9.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.11.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.10.0, the version in the Store, this update adds an optional link to the developer's Buy Me a Coffee page and fixes the operator window's layout. It adds no capability. The test routes below are those of 1.10.0.
+
+Voluntary support link (Store Policy 10.8.2): the Support development section at the end of Settings › App, and the credit line at the foot of the start screen while no session runs, open https://buymeacoffee.com/fmadore in the user's default browser. Buy Me a Coffee, a third-party service, identifies itself, authenticates the supporter and takes any payment on its own site. The app has no in-app purchase and collects no payment or financial information. A donation gives nothing in return: every feature stays free, and nothing is unlocked, removed or changed. The link is never shown during a session and the app never prompts for support. The Product declaration "This product allows users to make purchases, but does not use the Microsoft Store commerce system" is ticked for this link.
 
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.

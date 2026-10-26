@@ -5,27 +5,36 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.9.0 in the Store, 1.10.0 prepared
+## Current status — 1.9.0 in the Store, 1.10.0 in certification, 1.11.0 prepared
 
 The Store serves [**1.9.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0)
 (22 October 2026, MSIX 1.9.0.0), live as confirmed with `Get-AppxPackage` on 25 October 2026
-([handoff](docs/store-updates.md#release-190-handoff)). It replaced 1.8.0 and added:
-- [#159](https://github.com/fmadore/Live-translation/pull/159): a light theme. System, the
-  default, follows Windows' light or dark app mode; the caption overlay is unchanged.
-- [#160](https://github.com/fmadore/Live-translation/pull/160) and
-  [#162](https://github.com/fmadore/Live-translation/pull/162): the first three batches of the
-  [22 October app review](docs/app-review-2026-10-22.md).
+([handoff](docs/store-updates.md#release-190-handoff)): a light theme that follows Windows' app
+mode, and the first three batches of the [22 October app review](docs/app-review-2026-10-22.md).
 
-**[1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0)** is prepared and
-awaits the maintainer's test of the Local Test build, its tag and Store submission
-([handoff](docs/store-updates.md#release-1100-handoff), [release notes](docs/release-1.10.0.md)):
+[**1.10.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) was published on
+GitHub on 26 October 2026 and is in Store certification, as reported by the maintainer the same
+day ([handoff](docs/store-updates.md#release-1100-handoff),
+[release notes](docs/release-1.10.0.md)):
 - [#171](https://github.com/fmadore/Live-translation/pull/171): batches 4–6 of the review,
   which also lists what is left. A Gemini handover drains the old connection, a failed setup
   retries, system loopback keeps up under load, and the overlay keeps only the permissions it
   uses.
 - [#177](https://github.com/fmadore/Live-translation/pull/177): no process handles outside One
   application capture, for games with kernel anti-cheat, and the game voice chat line in the
-  Store copy.
+  Store copy; [#179](https://github.com/fmadore/Live-translation/pull/179): move mode left when
+  Alt+F4 hides the overlay.
+
+**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** is prepared and
+awaits the maintainer's test of the Local Test build and its tag; it goes to the Store once
+1.10.0 is live ([handoff](docs/store-updates.md#release-1110-handoff),
+[release notes](docs/release-1.11.0.md)):
+- [#182](https://github.com/fmadore/Live-translation/pull/182): an optional Buy Me a Coffee
+  link in Settings › App and on the start screen, which unlocks nothing, with a README section
+  and the repository's Sponsor button; and no empty band at the bottom of the operator window.
+  It is the Buy Me a Coffee half of
+  [#180](https://github.com/fmadore/Live-translation/issues/180); the Store supporter add-on is
+  on hold.
 
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
@@ -35,7 +44,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.10.0 handoff](docs/store-updates.md#release-1100-handoff) is the current checklist.
+[1.11.0 handoff](docs/store-updates.md#release-1110-handoff) is the current checklist.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -92,6 +101,10 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   stays unmilestoned and is blocked on evidence: it crashed natively on the target ARM64
   Surface during the 1.0.x certification attempts, must survive a clean ARM64 and a clean x64
   machine before it is considered, and cannot enter a Store build while the API is experimental.
+- [#180 — Microsoft Store supporter add-on](https://github.com/fmadore/Live-translation/issues/180):
+  the optional one-time Supporter Pack, a durable Store add-on with a small cosmetic benefit, is
+  on hold. Its benefit, price, Partner Center product and Store purchase handling are undecided;
+  the Buy Me a Coffee half shipped in 1.11.0.
 - [#12 — automatic FR ⇄ EN direction](https://github.com/fmadore/Live-translation/issues/12)
   needs a measured provider-switching design before it becomes a release commitment. Two
   caption languages already serve the bilingual room: both directions run side by side, at
@@ -118,10 +131,15 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Shipped
 
-- **1.10.0** (prepared; not yet tagged): batches 4–6 of the
+- **1.11.0** (prepared; not yet tagged): an optional Buy Me a Coffee link that unlocks
+  nothing, and no empty band at the bottom of the operator window
+  ([#182](https://github.com/fmadore/Live-translation/pull/182)).
+  [Release body](docs/release-1.11.0.md).
+- **1.10.0** (26 October 2026; in Store certification): batches 4–6 of the
   [22 October app review](docs/app-review-2026-10-22.md)
-  ([#171](https://github.com/fmadore/Live-translation/pull/171)) and no process handles outside
-  One application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)).
+  ([#171](https://github.com/fmadore/Live-translation/pull/171)), no process handles outside
+  One application capture ([#177](https://github.com/fmadore/Live-translation/pull/177)) and
+  move mode left on Alt+F4 ([#179](https://github.com/fmadore/Live-translation/pull/179)).
   [Release body](docs/release-1.10.0.md).
 - **1.9.0** (22 October 2026; live in the Store, confirmed 25 October 2026): a light theme that follows
   Windows' app mode ([#159](https://github.com/fmadore/Live-translation/pull/159)), and batches

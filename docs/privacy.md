@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 21 October 2026 (documents the 1.8.0 release)
+**Effective date:** 27 October 2026 (documents the 1.11.0 release)
 
 ## What this app is
 
@@ -152,6 +152,16 @@ notification area only while it is running, and closing the window quits it unle
 on *Keep running in the tray when I close this window*. With that on, the first time the window
 is hidden the app says so explicitly, and quitting from the notification-area icon stops any
 active capture before it exits.
+
+## Support link
+
+Settings › App and the foot of the start screen hold an optional *Buy me a coffee* link to the
+developer's page on Buy Me a Coffee (`https://buymeacoffee.com/fmadore`). The app passes that
+fixed address to the default web browser and nothing else: it sends no information about the
+user, the device or its use, and it contacts no payment service itself. Anything entered on
+that page, including any payment, is between the user and Buy Me a Coffee, under the
+[Buy Me a Coffee privacy policy](https://buymeacoffee.com/privacy-policy). Supporting is
+optional and changes nothing in the app.
 
 ## What the developer collects
 

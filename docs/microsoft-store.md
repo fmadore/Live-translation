@@ -1,12 +1,14 @@
 # Microsoft Store submission
 
-**Next target: 1.10.0 / MSIX 1.10.0.0, prepared; not yet tagged or submitted.** The last
-confirmed Store release is 1.9.0 (MSIX 1.9.0.0), confirmed with `Get-AppxPackage` on
+**Next target: 1.11.0 / MSIX 1.11.0.0, prepared; not yet tagged or submitted.** 1.10.0
+(MSIX 1.10.0.0) is in certification, as reported by the maintainer on 26 October 2026; the last
+confirmed live Store release is 1.9.0 (MSIX 1.9.0.0), confirmed with `Get-AppxPackage` on
 25 October 2026.
-1.10.0 is a reliability release: cloud sessions that keep their words through a Gemini
-handover, system audio that keeps up under load, no process handles outside One application
-capture, and the remaining fixes from the [22 October review](app-review-2026-10-22.md).
-See the [current handoff](store-updates.md#release-1100-handoff),
+1.11.0 adds an optional Buy Me a Coffee link that unlocks nothing, and fixes an empty band at
+the bottom of the operator window. The link is the app's first way to pay anyone, so its
+submission ticks a Product declaration and explains the link in the certification notes
+([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)).
+See the [current handoff](store-updates.md#release-1110-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -58,8 +60,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.10.0; both MSIX manifests and the combined bundle
-  report 1.10.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.11.0; both MSIX manifests and the combined bundle
+  report 1.11.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -93,6 +95,13 @@ before submission; a passing local check does not imply certification.
   Escape's undo, now that they run through the overlay's own commands.
 - [ ] System audio with local Whisper running keeps up without gaps; System audio and the
   microphone list no applications until One application is chosen.
+- [ ] The support link in Settings › App and at the foot of the start screen opens
+  `https://buymeacoffee.com/fmadore` in the default browser under package identity, not in a
+  window of the app, and is not shown during a session; the operator window does not scroll as
+  a whole with the names-and-terms list shown.
+- [ ] Partner Center: the Product declaration for purchases outside the Microsoft Store
+  commerce system is ticked, and the certification notes explain the support link (Store
+  Policy 10.8.2).
 - [ ] Scripted demo starts with no hardware, network or credentials, in English and French.
 - [ ] Overlay placement, its restore across launches and mixed-DPI displays, all reading
   modes, RTL text, filler list, profiles and shortcuts pass the
@@ -101,7 +110,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-1100-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-1110-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing
