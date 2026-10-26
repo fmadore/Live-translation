@@ -91,11 +91,11 @@ aside.rail › section.rail-section:nth(3) › div.language-picker › p.hint { 
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint { font-size: 12px; line-height: 1.4; color: #8b93a1; display: flex; align-items: center; gap: 8px; margin: 0px }
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint › span { display: block }
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; white-space: collapse nowrap; color: #c3c9d2; display: block; padding: 4px 8px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
-aside.rail › section.rail-section:nth(3) › label.ui-field { font-size: 12px; color: #c3c9d2; display: grid; gap: 8px; min-width: 0px }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span { display: block }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › select "Deuxième langue de sous-titrage" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 8px 32px 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail › section.rail-section:nth(3) › div.ui-field { font-size: 12px; color: #c3c9d2; display: grid; gap: 8px; min-width: 0px }
+aside.rail › section.rail-section:nth(3) › div.ui-field › span { display: block }
+aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker { min-width: 0px }
+aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker › input[role=combobox][type=text] "Deuxième langue de sous-titrage" { width: 100%; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker › p.hint { overflow-wrap: anywhere; color: #8b93a1; margin: 8px 0px }
 aside.rail › section.rail-section:nth(3) › p.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › div.divider:nth(3) { flex: 0 0 auto; max-width: 380px; height: 1px; background-color: #1f242b }
 aside.rail › section.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }

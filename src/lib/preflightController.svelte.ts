@@ -92,7 +92,8 @@ export class PreflightController {
 		}
 	};
 	refreshing = $state(false);
-	#loaded = false;
+	/** The first device list has arrived; until then a stored device is not yet missing. */
+	devicesLoaded = $state(false);
 	#disposed = false;
 	#refreshAgain = false;
 	localReadiness = $state<OnDeviceReadiness | null>(null);
@@ -221,7 +222,7 @@ export class PreflightController {
 
 	validateSelection = () => {
 		if (
-			!this.#loaded ||
+			!this.devicesLoaded ||
 			this.#locked() ||
 			this.#holdSelection() ||
 			this.audioTesting ||
@@ -263,7 +264,7 @@ export class PreflightController {
 				]);
 				if (this.#disposed) return;
 				if (
-					this.#loaded &&
+					this.devicesLoaded &&
 					JSON.stringify([mics, render]) !== JSON.stringify([this.microphones, this.outputs])
 				) {
 					this.micVerified = false;
@@ -271,7 +272,7 @@ export class PreflightController {
 				}
 				this.microphones = mics;
 				this.outputs = render;
-				this.#loaded = true;
+				this.devicesLoaded = true;
 				this.validateSelection();
 			} while (this.#refreshAgain && !this.#disposed);
 		} catch (e) {

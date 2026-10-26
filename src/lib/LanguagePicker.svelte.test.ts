@@ -108,3 +108,29 @@ it('keeps the first match active while typing, even after a pin reorders the lis
 	expect(active()?.textContent).toBe(first);
 	view.unmount();
 });
+
+it('offers no language first, leaves out the excluded one, and chooses none as null', async () => {
+	locale.set('en');
+	const onchange = vi.fn();
+	const view = render(LanguagePicker, {
+		...base,
+		value: null,
+		label: 'Second caption language',
+		none: 'None',
+		exclude: 'en',
+		onchange
+	});
+	const input = view.getByRole('combobox', { name: 'Second caption language' }) as HTMLInputElement;
+	expect(input.value).toBe('None');
+	input.focus();
+	await waitFor(() => expect(input).toHaveAttribute('aria-expanded', 'true'));
+	const options = view.getAllByRole('option');
+	expect(options[0]).toHaveTextContent('None');
+	expect(options[0]).toHaveAttribute('aria-selected', 'true');
+	expect(options.some((o) => o.textContent?.includes('English'))).toBe(false);
+	await fireEvent.keyDown(input, { key: 'ArrowDown' });
+	await fireEvent.keyDown(input, { key: 'ArrowUp' });
+	await fireEvent.keyDown(input, { key: 'Enter' });
+	expect(onchange).toHaveBeenCalledWith(null);
+	view.unmount();
+});

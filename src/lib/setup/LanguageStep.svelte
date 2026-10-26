@@ -6,7 +6,7 @@
 	import Field from '../ui/Field.svelte';
 	import LanguageCard from '../ui/LanguageCard.svelte';
 	import Select from '../ui/Select.svelte';
-	import { displayNames, languageName, languageRows } from '../languages';
+	import { displayNames, languageName } from '../languages';
 	import { locale, t } from '../i18n';
 	import { languageFavourites, options } from '../stores';
 	import { isLocalWhisper, providerDetectsLanguage } from '../providers';
@@ -26,16 +26,12 @@
 		languageError: string;
 	} = $props();
 
-	// The second caption language: favourites first, then every language the engine offers,
-	// never the first language itself. A stored choice the engine does not offer stays listed,
-	// so the select shows it and the language error explains it rather than hiding it.
-	const secondChoices = $derived(
-		languageRows($options.provider, $languageFavourites, '', $locale).filter(
-			(row) =>
-				row.code !== $options.targetLanguage &&
-				(row.supported || row.code === $options.secondTargetLanguage)
-		)
-	);
+	// Both caption-language pickers share one list of favourites.
+	function pin(code: TargetLanguage) {
+		languageFavourites.update((pins) =>
+			pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
+		);
+	}
 
 	// This step asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself (Voxtral then takes names and terms).
@@ -89,11 +85,8 @@
 			favourites={$languageFavourites}
 			disabled={locked}
 			error={languageError}
-			onchange={actions.setTarget}
-			onpin={(code) =>
-				languageFavourites.update((pins) =>
-					pins.includes(code) ? pins.filter((p) => p !== code) : [...pins, code]
-				)}
+			onchange={(code) => code && actions.setTarget(code)}
+			onpin={pin}
 		/>
 		{#if isLocalWhisper($options.provider)}
 			<!-- English is the only caption language, so there is nothing to flip to and no
@@ -105,19 +98,22 @@
 			<p class="hint inline-hint">
 				<span>{$t.rail.flipHint}</span><Kbd command="direction" />
 			</p>
-			<Field label={$t.language.second}>
-				<Select
-					value={$options.secondTargetLanguage ?? ''}
+			<!-- The same searchable picker as the first language, not a <label>: it holds pin
+			     buttons as well as its field, and names the field itself. -->
+			<div class="ui-field">
+				<span aria-hidden="true">{$t.language.second}</span>
+				<LanguagePicker
+					value={$options.secondTargetLanguage ?? null}
+					provider={$options.provider}
+					favourites={$languageFavourites}
 					disabled={locked}
-					onchange={(e) =>
-						actions.setSecondTarget((e.currentTarget.value || null) as TargetLanguage | null)}
-				>
-					<option value="">{$t.language.secondNone}</option>
-					{#each secondChoices as row (row.code)}
-						<option value={row.code}>{row.name}</option>
-					{/each}
-				</Select>
-			</Field>
+					label={$t.language.second}
+					none={$t.language.secondNone}
+					exclude={$options.targetLanguage}
+					onchange={actions.setSecondTarget}
+					onpin={pin}
+				/>
+			</div>
 			<p class="hint">{$t.language.secondHint}</p>
 		{/if}
 	{:else}

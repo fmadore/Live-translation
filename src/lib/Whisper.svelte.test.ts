@@ -207,6 +207,17 @@ it('shows the backlog only once Whisper falls behind, without announcing the cou
 	expect(view.getByText(/Audio waiting/).closest('[role]')).toBeNull();
 	expect(status.textContent).toBe('');
 	expect(changes()).toBe(0);
+
+	// Once shown it holds until the backlog is down to one window, rather than showing and
+	// hiding, and moving the stage, as it hovers around the threshold.
+	progress({ origin: 'system', pendingMs: 20000, finalizing: false });
+	await waitFor(() =>
+		expect(view.getByText('Audio waiting to be processed · 20 s')).toBeInTheDocument()
+	);
+	progress({ origin: 'system', pendingMs: 11000, finalizing: false });
+	await waitFor(() =>
+		expect(view.queryByText(/Audio waiting to be processed/)).not.toBeInTheDocument()
+	);
 	view.unmount();
 });
 

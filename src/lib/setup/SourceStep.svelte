@@ -27,6 +27,21 @@
 	const preflight = preflightContext();
 	// Only then are applications listed: see `SystemCapturePicker`.
 	const applicationCapture = $derived(usesSystem && $options.systemCapture?.kind === 'application');
+
+	// The button shows itself busy only for the refresh it asked for. Changing mode or engine
+	// re-lists devices too, and that quick background pass used to flash its label.
+	let refreshAsked = $state(false);
+	async function refreshDevices() {
+		refreshAsked = true;
+		try {
+			await Promise.all([
+				preflight.refresh(),
+				applicationCapture ? preflight.refreshApplications() : undefined
+			]);
+		} finally {
+			refreshAsked = false;
+		}
+	}
 </script>
 
 <section class="rail-section">
@@ -119,7 +134,10 @@
 			>
 				<option value="">{$t.rail.systemDefault}</option>
 				{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
-					<option value={$options.micDeviceId}>{$t.devices.missing}</option>
+					<!-- Not "missing" before the first list has even arrived: that flashed at launch. -->
+					<option value={$options.micDeviceId}
+						>{preflight.devicesLoaded ? $t.devices.missing : '…'}</option
+					>
 				{/if}
 				{#each preflight.microphones as dev (dev.id)}
 					<option value={dev.id}>
@@ -134,6 +152,7 @@
 		<SystemCapturePicker
 			{locked}
 			outputs={preflight.outputs}
+			devicesLoaded={preflight.devicesLoaded}
 			applications={preflight.applications}
 			supported={preflight.applicationCaptureSupported}
 			refresh={preflight.refreshApplications}
@@ -142,15 +161,11 @@
 	{/if}
 	{#if $options.provider !== 'ondevice'}
 		<ToolButton
-			disabled={browserMode || preflight.refreshing || preflight.refreshingApplications}
-			aria-busy={preflight.refreshing || preflight.refreshingApplications}
-			onclick={() =>
-				Promise.all([
-					preflight.refresh(),
-					applicationCapture ? preflight.refreshApplications() : undefined
-				])}
+			disabled={browserMode || refreshAsked}
+			aria-busy={refreshAsked}
+			onclick={refreshDevices}
 		>
-			{preflight.refreshing ? $t.devices.refreshing : $t.devices.refresh}
+			{refreshAsked ? $t.devices.refreshing : $t.devices.refresh}
 		</ToolButton>
 	{/if}
 	<div class="meters">

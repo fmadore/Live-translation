@@ -1,3 +1,17 @@
+<script lang="ts" module>
+	import type { Provider } from './types';
+
+	/** Each engine's last keychain answer, so switching back to an engine shows its row as it
+	 *  was while the keychain is asked again, rather than flashing the key form for a round
+	 *  trip. Per engine, so one engine never borrows another's answer. */
+	const knownKeys = new Map<Provider, boolean>();
+
+	/** For tests, which each start from a keychain nobody has asked yet. */
+	export function forgetKnownKeys() {
+		knownKeys.clear();
+	}
+</script>
+
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { api, isTauri } from './tauri';
@@ -6,7 +20,6 @@
 	import { PROVIDER_META, providerKeyName } from './providers';
 	import ChecklistRow from './ui/ChecklistRow.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
-	import type { Provider } from './types';
 
 	interface Props {
 		provider: Provider;
@@ -43,6 +56,7 @@
 		const currentRequest = ++requestId;
 		try {
 			const result = await api.hasApiKey(activeProvider);
+			knownKeys.set(activeProvider, result);
 			if (currentRequest !== requestId || provider !== activeProvider) return;
 			available = result;
 			onAvailability(activeProvider, result);
@@ -61,8 +75,8 @@
 		untrack(() => {
 			editing = false;
 			apiKeyInput = '';
-			available = false;
-			onAvailability(activeProvider, false);
+			available = knownKeys.get(activeProvider) ?? false;
+			onAvailability(activeProvider, available);
 			void checkKey(activeProvider);
 		});
 	});
@@ -78,6 +92,7 @@
 		saving = true;
 		try {
 			await api.setApiKey(target, key);
+			knownKeys.set(target, true);
 			onAvailability(target, true);
 			if (provider !== target) return;
 			apiKeyInput = '';
@@ -95,6 +110,7 @@
 		const target = provider;
 		try {
 			await api.clearApiKey(target);
+			knownKeys.set(target, false);
 			onAvailability(target, false);
 			if (provider === target) available = false;
 		} catch (error) {
