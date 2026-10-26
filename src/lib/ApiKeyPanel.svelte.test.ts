@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
-import ApiKeyPanel from './ApiKeyPanel.svelte';
+import ApiKeyPanel, { forgetKnownKeys } from './ApiKeyPanel.svelte';
+
+beforeEach(forgetKnownKeys);
 
 // Hoisted so `vi.mock` below can reach them: the factory runs before these declarations do.
 const mocks = vi.hoisted(() => ({
@@ -92,6 +94,25 @@ describe('ApiKeyPanel', () => {
 
 		expect(onAvailability).not.toHaveBeenCalledWith('gemini', true);
 		expect(onAvailability).toHaveBeenLastCalledWith('openai', false);
+	});
+
+	// Switching Gemini → OpenAI → Gemini used to show the key form for a keychain round trip
+	// before the saved row came back: the whole checklist flashed.
+	it('shows an engine it has already asked about as it was, while asking again', async () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(true);
+		const { rerender, queryByLabelText, onAvailability } = mount('gemini');
+		await waitFor(() => expect(onAvailability).toHaveBeenCalledWith('gemini', true));
+		await rerender({ provider: 'openai' });
+		await waitFor(() => expect(onAvailability).toHaveBeenCalledWith('openai', true));
+
+		mocks.hasApiKey.mockReturnValue(new Promise<boolean>(() => {}));
+		onAvailability.mockClear();
+		await rerender({ provider: 'gemini' });
+
+		expect(onAvailability).toHaveBeenCalledWith('gemini', true);
+		expect(onAvailability).not.toHaveBeenCalledWith('gemini', false);
+		expect(queryByLabelText('Gemini key')).toBeNull();
 	});
 
 	// Review U10: the engine cards stay enabled while a key is saved, and the answer used to be

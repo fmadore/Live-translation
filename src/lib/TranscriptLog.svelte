@@ -93,62 +93,67 @@
 {/snippet}
 
 {#if paragraphs.length || pending.length}
-	<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Scrollable transcript needs keyboard scrolling, a focus target after Jump to latest, and Ctrl+A that selects only the log.) -->
-	<div
-		class="log-scroll"
-		class:reader
-		id={logId}
-		role="region"
-		aria-label={$t.transcript.heading}
-		tabindex="0"
-		onscroll={noteScroll}
-		onkeydown={selectLog}
-		bind:this={logEl}
-	>
-		<ul class="log">
-			{#each paragraphs as paragraph (paragraph.id)}
-				<li class="origin-{paragraph.origin}">
-					<span class="side"
-						>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
-								>{paragraph.language}</span
-							>{/if}</span
-					>
-					{@render caption(
-						paragraph.text,
-						loggedLanguage(paragraph),
-						false,
-						showOriginal && paragraph.lane === 0 ? paragraph.sourceText : ''
-					)}
-				</li>
-			{/each}
-			<!-- Keyed by track: a turn keeps its row while it streams, whatever id it has. -->
-			{#each pending as line (`${line.origin}-${line.lane ?? 0}`)}
-				<li class="origin-{line.origin} pending" aria-describedby={pendingNoteId}>
-					<span class="side"
-						>{sideLabel[line.origin]}{#if line.language}<span class="language">{line.language}</span
-							>{/if}</span
-					>
-					{@render caption(
-						line.text,
-						line.language ?? laneLanguage($options, line.lane ?? 0),
-						true,
-						showOriginal && (line.lane ?? 0) === 0 ? line.sourceText : ''
-					)}
-				</li>
-			{/each}
-		</ul>
-	</div>
-	{#if !following}
-		<ToolButton
-			variant="ghost"
-			size="sm"
-			class="jump-latest"
-			aria-controls={logId}
-			onclick={jumpToLatest}
+	<!-- Jump to latest floats over the log's foot rather than taking a row under it, so
+	     scrolling up never pushes the rest of the panel down. -->
+	<div class="log-frame" class:reader>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions (Scrollable transcript needs keyboard scrolling, a focus target after Jump to latest, and Ctrl+A that selects only the log.) -->
+		<div
+			class="log-scroll"
+			class:reader
+			id={logId}
+			role="region"
+			aria-label={$t.transcript.heading}
+			tabindex="0"
+			onscroll={noteScroll}
+			onkeydown={selectLog}
+			bind:this={logEl}
 		>
-			{$t.transcript.jumpToLatest}
-		</ToolButton>
-	{/if}
+			<ul class="log">
+				{#each paragraphs as paragraph (paragraph.id)}
+					<li class="origin-{paragraph.origin}">
+						<span class="side"
+							>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
+									>{paragraph.language}</span
+								>{/if}</span
+						>
+						{@render caption(
+							paragraph.text,
+							loggedLanguage(paragraph),
+							false,
+							showOriginal && paragraph.lane === 0 ? paragraph.sourceText : ''
+						)}
+					</li>
+				{/each}
+				<!-- Keyed by track: a turn keeps its row while it streams, whatever id it has. -->
+				{#each pending as line (`${line.origin}-${line.lane ?? 0}`)}
+					<li class="origin-{line.origin} pending" aria-describedby={pendingNoteId}>
+						<span class="side"
+							>{sideLabel[line.origin]}{#if line.language}<span class="language"
+									>{line.language}</span
+								>{/if}</span
+						>
+						{@render caption(
+							line.text,
+							line.language ?? laneLanguage($options, line.lane ?? 0),
+							true,
+							showOriginal && (line.lane ?? 0) === 0 ? line.sourceText : ''
+						)}
+					</li>
+				{/each}
+			</ul>
+		</div>
+		{#if !following}
+			<ToolButton
+				variant="ghost"
+				size="sm"
+				class="jump-latest"
+				aria-controls={logId}
+				onclick={jumpToLatest}
+			>
+				{$t.transcript.jumpToLatest}
+			</ToolButton>
+		{/if}
+	</div>
 {:else}
 	<p class="hint">
 		{mode === 'translate' ? $t.transcript.emptyTranslate : $t.transcript.emptySubtitles}
@@ -156,10 +161,24 @@
 {/if}
 
 <style>
-	/* Beside the log in the monitor's column, at the column's right edge. */
+	.log-frame {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+	}
+	.log-frame.reader {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+	/* Over the log's bottom-right corner, raised off the text it covers. */
 	.log-scroll ~ :global(.jump-latest) {
-		align-self: flex-end;
+		position: absolute;
+		right: var(--space-3);
+		bottom: var(--space-2);
+		max-width: calc(100% - 2 * var(--space-3));
 		white-space: normal;
+		background: var(--surface-2);
+		box-shadow: var(--shadow-flyout);
 	}
 	.hint {
 		margin: 0;

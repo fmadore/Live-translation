@@ -9,17 +9,29 @@
 		favourites,
 		disabled = false,
 		error = '',
+		label,
+		none,
+		exclude,
 		onchange,
 		onpin
 	}: {
-		value: TargetLanguage;
+		value: TargetLanguage | null;
 		provider: Provider;
 		favourites: TargetLanguage[];
 		disabled?: boolean;
 		error?: string;
-		onchange: (code: TargetLanguage) => void;
+		/** The field's accessible name; the caption language by default. */
+		label?: string;
+		/** Offer "no language" first, worded this way, for a choice that may be left empty. */
+		none?: string;
+		/** A language never listed here: the second caption language is never the first. */
+		exclude?: TargetLanguage;
+		onchange: (code: TargetLanguage | null) => void;
 		onpin: (code: TargetLanguage) => void;
 	} = $props();
+	// "No language" in the keyboard's list of rows, which are otherwise language codes.
+	const NONE = '' as const;
+	type Choice = TargetLanguage | typeof NONE;
 	const id = $props.id();
 	let root: HTMLDivElement;
 	let input: HTMLInputElement;
@@ -35,32 +47,40 @@
 	});
 	let query = $state('');
 	let edited = $state(false);
-	const rows = $derived(languageRows(provider, favourites, query, $locale));
+	const rows = $derived(
+		languageRows(provider, favourites, query, $locale).filter((r) => r.code !== exclude)
+	);
+	// The "no language" row leads the unfiltered list; a search is for a language.
+	const noneRow = $derived(!!none && !query);
+	const choices = $derived<Choice[]>([...(noneRow ? [NONE] : []), ...rows.map((r) => r.code)]);
 	// The row the operator last moved to. While the list is open the active option is that row
 	// if the filter still shows it, and the first row otherwise, so a query or an unpinned
 	// language never leaves the list without an active option.
-	let chosen = $state<TargetLanguage | undefined>();
-	const active = $derived(open && !rows.some((r) => r.code === chosen) ? rows[0]?.code : chosen);
+	let chosen = $state<Choice | undefined>();
+	const active = $derived(open && !choices.includes(chosen as Choice) ? choices[0] : chosen);
 	function gridRow(index: number) {
 		return (
 			index +
 			1 +
+			(noneRow ? 1 : 0) +
 			(query
 				? 0
 				: 1 + (rows[0]?.favourite && rows.slice(0, index + 1).some((r) => !r.favourite) ? 1 : 0))
 		);
 	}
-	const display = $derived(`${value.toUpperCase()} · ${languageName(value, $locale)}`);
-	const activeRow = $derived(rows.find((r) => r.code === active));
+	const display = $derived(
+		value ? `${value.toUpperCase()} · ${languageName(value, $locale)}` : (none ?? '')
+	);
+	const optionId = (code: Choice) => `${id}-${code || 'none'}`;
 	$effect(() => {
-		if (open && active)
-			document.getElementById(`${id}-${active}`)?.scrollIntoView?.({ block: 'nearest' });
+		if (open && active !== undefined)
+			document.getElementById(optionId(active))?.scrollIntoView?.({ block: 'nearest' });
 	});
 	async function show() {
 		if (disabled || open) return;
 		query = '';
 		edited = false;
-		chosen = value;
+		chosen = value ?? NONE;
 		open = true;
 		await tick();
 		input.select();
@@ -71,9 +91,9 @@
 		query = '';
 		edited = false;
 	}
-	function choose(code: TargetLanguage) {
-		if (disabled || !rows.find((r) => r.code === code)?.supported) return;
-		onchange(code);
+	function choose(code: Choice) {
+		if (disabled || (code !== NONE && !rows.find((r) => r.code === code)?.supported)) return;
+		onchange(code || null);
 		input.focus();
 		close();
 	}
@@ -86,7 +106,7 @@
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			if (!open) void show();
-			else if (active) choose(active);
+			else if (active !== undefined) choose(active);
 			return;
 		}
 		if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
@@ -98,14 +118,14 @@
 			return;
 		}
 		event.preventDefault();
-		const index = rows.findIndex((r) => r.code === active);
+		const index = choices.indexOf(active as Choice);
 		const next =
 			event.key === 'Home'
 				? 0
 				: event.key === 'End'
-					? rows.length - 1
-					: Math.max(0, Math.min(rows.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
-		chosen = rows[next]?.code;
+					? choices.length - 1
+					: Math.max(0, Math.min(choices.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
+		chosen = choices[next];
 	}
 </script>
 
@@ -124,10 +144,10 @@
 	<input
 		bind:this={input}
 		role="combobox"
-		aria-label={$t.usability.language}
+		aria-label={label ?? $t.usability.language}
 		aria-expanded={open}
 		aria-controls={`${id}-list`}
-		aria-activedescendant={open && activeRow ? `${id}-${active}` : undefined}
+		aria-activedescendant={open && active !== undefined ? optionId(active) : undefined}
 		aria-autocomplete="list"
 		aria-invalid={!!error}
 		aria-describedby={`${id}-help${error ? ` ${id}-error` : ''}`}
@@ -151,7 +171,25 @@
 	{#if open}
 		<div class="results" bind:this={results}>
 			<!-- Pin buttons are siblings of the listbox, never interactive children of options. -->
-			<div role="listbox" id={`${id}-list`} aria-label={$t.usability.language}>
+			<div role="listbox" id={`${id}-list`} aria-label={label ?? $t.usability.language}>
+				{#if noneRow}
+					<div
+						class="option"
+						class:active={active === NONE}
+						style:grid-row={1}
+						id={optionId(NONE)}
+						role="option"
+						aria-selected={value === null}
+						tabindex="-1"
+						onpointerdown={(e) => e.preventDefault()}
+						onclick={() => choose(NONE)}
+						onkeydown={(e) => {
+							if (e.key === 'Enter') choose(NONE);
+						}}
+					>
+						<span>{none}</span>
+					</div>
+				{/if}
 				{#each rows as row, i (row.code)}
 					{#if !query && (i === 0 || row.favourite !== rows[i - 1].favourite)}
 						<div class="group" role="presentation" style:grid-row={gridRow(i) - 1}>
@@ -163,7 +201,7 @@
 						class:active={active === row.code}
 						class:unsupported={!row.supported}
 						style:grid-row={gridRow(i)}
-						id={`${id}-${row.code}`}
+						id={optionId(row.code)}
 						role="option"
 						aria-selected={row.code === value}
 						aria-disabled={!row.supported}
@@ -182,6 +220,7 @@
 				{/each}
 			</div>
 			<div class="pins">
+				{#if noneRow}<div class="pin-row" style:grid-row={1} aria-hidden="true"></div>{/if}
 				{#each rows as row, i (row.code)}
 					{#if !query && (i === 0 || row.favourite !== rows[i - 1].favourite)}<div
 							class="group pin-group"

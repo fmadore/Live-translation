@@ -34,7 +34,17 @@
 	// The strip is for a backlog, not for the windows every session is filling and transcribing;
 	// finishing is always shown, because Stop is waiting on it.
 	const finishing = $derived($isRunning && $finalizing);
-	const shown = $derived(finishing || ($isRunning && $pending > KEEPING_UP_SECONDS));
+	// Once shown, the strip stays until the backlog is down to the window being filled, so a
+	// backlog hovering at the threshold does not show and hide it every second, moving the
+	// whole stage each time.
+	const CAUGHT_UP_SECONDS = WINDOW_SECONDS + 1;
+	let wasBehind = false;
+	const behind = $derived.by(() => {
+		wasBehind =
+			$isRunning && (wasBehind ? $pending > CAUGHT_UP_SECONDS : $pending > KEEPING_UP_SECONDS);
+		return wasBehind;
+	});
+	const shown = $derived(finishing || behind);
 	// Progress arrives about once a second, so a live region around the seconds would speak for
 	// the whole session. Narrator hears the changes of state instead: finishing starting, and a
 	// discard being confirmed. `$derived` is writable again: Discard sets it, and finishing

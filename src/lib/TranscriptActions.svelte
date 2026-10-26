@@ -170,6 +170,9 @@
 		>
 			{$t.transcript.copy}
 		</ToolButton>
+		<!-- Floats under Copy for its few seconds rather than taking a row above the log, which
+		     pushed the log down and pulled it back up. -->
+		{#if copyNotice}<p class="copied" aria-hidden="true">{copyNotice}</p>{/if}
 	</div>
 	<ExportFormatSelect compact disabled={saving} />
 	{#if bilingual}<Preference
@@ -206,7 +209,6 @@
 <p class="sr-only" role="status">{saveAnnouncement}</p>
 <!-- The same arrangement for Copy, which a screen reader otherwise does not hear at all. -->
 <p class="sr-only" role="status">{copyNotice}</p>
-{#if copyNotice}<p class="saved" aria-hidden="true">{copyNotice}</p>{/if}
 <!-- History saving that starts failing, said once. A failing recovery copy needs no region of
      its own: its first failure reaches the window's status line, which is one already. -->
 <p class="sr-only" role="status">{historyFailing ? $t.transcript.historyFailing : ''}</p>
@@ -300,8 +302,25 @@
 	}
 
 	.copy {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
+	}
+	.copied {
+		position: absolute;
+		top: calc(100% + var(--space-1));
+		right: 0;
+		z-index: 1;
+		margin: 0;
+		padding: var(--space-1) var(--space-2);
+		white-space: nowrap;
+		font-size: var(--type-small);
+		color: var(--accent-soft);
+		background: var(--surface-2);
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-control);
+		box-shadow: var(--shadow-flyout);
+		pointer-events: none;
 	}
 </style>

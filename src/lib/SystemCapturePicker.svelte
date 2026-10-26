@@ -8,6 +8,7 @@
 	let {
 		locked,
 		outputs,
+		devicesLoaded = true,
 		applications,
 		supported,
 		refresh,
@@ -15,6 +16,8 @@
 	}: {
 		locked: boolean;
 		outputs: AudioDevice[];
+		/** The first device list has arrived: before then a stored output is not yet missing. */
+		devicesLoaded?: boolean;
 		applications: CaptureApplication[];
 		supported: boolean | null;
 		refresh: () => Promise<void>;
@@ -97,7 +100,7 @@
 			>
 				<option value="">{$t.rail.systemDefault}</option>
 				{#if $options.systemDeviceId && !outputs.some((d) => d.id === $options.systemDeviceId)}<option
-						value={$options.systemDeviceId}>{$t.devices.missing}</option
+						value={$options.systemDeviceId}>{devicesLoaded ? $t.devices.missing : '…'}</option
 					>{/if}
 				{#each outputs as dev (dev.id)}<option value={dev.id}
 						>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
