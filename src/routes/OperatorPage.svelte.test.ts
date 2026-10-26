@@ -486,3 +486,40 @@ it('applies a chosen theme to the page and its title bar, and keeps it', async (
 		theme.set('system');
 	}
 });
+
+// Sharing with Zoom outlives Stop and Start, and the window that reloads mid-meeting: it asks
+// the core where sharing stands as it loads, and follows its events from then on.
+it('picks up a Zoom share already running, and follows what the core reports', async () => {
+	core.handle('zoom_captions_status', () => ({
+		state: 'sharing',
+		lane: 0,
+		origins: ['microphone'],
+		sent: 7,
+		dropped: 0
+	}));
+	render(Page);
+	const button = await screen.findByRole('button', { name: 'Captions in Zoom: sharing' });
+
+	await core.emit('zoom-captions', {
+		state: 'refused',
+		lane: 0,
+		origins: ['microphone'],
+		sent: 7,
+		dropped: 1,
+		httpStatus: 403
+	});
+	await waitFor(() => expect(button).toHaveAccessibleName('Captions in Zoom: refused'));
+
+	await fireEvent.click(button);
+	const dialog = await screen.findByRole('dialog', { name: 'Captions in Zoom' });
+	expect(button).toHaveAttribute('aria-expanded', 'true');
+	expect(within(dialog).getByRole('status')).toHaveTextContent(
+		'Zoom refused this link. It may have expired: copy a new API token.'
+	);
+	// Closing it leaves sharing as it was: the dialog is a view of the share, not its owner.
+	await fireEvent.keyDown(window, { key: 'Escape' });
+	await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+	expect(button).toHaveAttribute('aria-expanded', 'false');
+	expect(button).toHaveAccessibleName('Captions in Zoom: refused');
+	expect(core.callsTo('stop_zoom_captions')).toHaveLength(0);
+});

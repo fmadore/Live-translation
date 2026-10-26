@@ -516,6 +516,59 @@ export const fr: Messages = {
 		madeBy: (name: string) => `Conçu par ${name}`
 	},
 
+	zoom: {
+		button: 'Zoom',
+		title: 'Sous-titres dans Zoom',
+		buttonLabel: (state: string) => `Sous-titres dans Zoom : ${state}`,
+		state: {
+			sharing: 'actif',
+			waiting: 'en attente',
+			refused: 'refusé',
+			unreachable: 'injoignable'
+		},
+		close: 'Fermer',
+		intro:
+			'Affiche ces sous-titres dans la barre de sous-titres de Zoom ; les participants les activent dans Zoom. Seul le texte des sous-titres est envoyé — la capture audio ne change pas.',
+		steps: {
+			settings:
+				'Dans les paramètres web de Zoom, activez le sous-titrage manuel et autorisez le jeton d’API de sous-titrage pour les services tiers.',
+			meeting:
+				'Pendant la réunion, l’hôte ou un co-hôte choisit Afficher les sous-titres › Configurer le sous-titreur manuel › Copier le jeton d’API.',
+			paste: 'Collez-le ici et lancez le partage.'
+		},
+		/** Opens the setup guide, which is in English, in the browser. */
+		guide: 'Guide de configuration pas à pas (en anglais)',
+		link: 'Lien de sous-titrage (jeton d’API)',
+		linkHint:
+			'Traité comme un mot de passe : conservé seulement jusqu’à la fermeture de l’application, jamais enregistré dans les configurations ni dans les profils.',
+		language: 'Langue des sous-titres',
+		sources: 'Partager les sous-titres de',
+		origin: {
+			microphone: 'Salle (microphone)',
+			system: 'Distant (audio système)'
+		},
+		privacy:
+			'Le partage envoie le texte des sous-titres à Zoom, même quand ils sont produits sur ce PC par Whisper.',
+		status: {
+			off: 'Aucun partage en cours.',
+			sharing: 'Partage avec Zoom en cours.',
+			waiting:
+				'Zoom indique que la réunion n’a pas encore commencé. Les sous-titres apparaîtront dès qu’elle aura débuté.',
+			refused: 'Zoom a refusé ce lien. Il a peut-être expiré : copiez un nouveau jeton d’API.',
+			unreachable: 'Impossible de joindre Zoom. Nouvel essai à chaque nouveau sous-titre.'
+		},
+		// French puts zero in the singular.
+		sent: (n: number) => (n < 2 ? `${n} sous-titre envoyé.` : `${n} sous-titres envoyés.`),
+		dropped: (n: number) =>
+			n < 2
+				? `${n} sous-titre a été abandonné, faute d’avoir pu être transmis à temps.`
+				: `${n} sous-titres ont été abandonnés, faute d’avoir pu être transmis à temps.`,
+		start: 'Lancer le partage',
+		stop: 'Arrêter le partage',
+		test: 'Envoyer un sous-titre de test',
+		testCaption: 'Sous-titre de test envoyé par Live Translation.'
+	},
+
 	stage: {
 		browserBanner: {
 			before:
@@ -825,6 +878,11 @@ export const fr: Messages = {
 		providerRejected:
 			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
 		providerStopped: 'Le fournisseur a mis fin à la session',
-		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours'
+		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours',
+		zoomLink:
+			'Ce n’est pas un lien de sous-titrage Zoom. Pendant la réunion, choisissez Configurer le sous-titreur manuel et copiez de nouveau le jeton d’API',
+		zoomRefused:
+			'Zoom a refusé le lien de sous-titrage : il a peut-être expiré, été révoqué ou été copié de façon incomplète. Copiez un nouveau jeton d’API',
+		zoomNotSharing: 'Les sous-titres ne sont pas partagés avec Zoom'
 	}
 };

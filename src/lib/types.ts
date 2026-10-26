@@ -405,7 +405,32 @@ export interface OverlayStateMsg {
 export const TRAY_COMMANDS = ['toggle-overlay', 'stop-session', 'quit'] as const;
 export type TrayCommand = (typeof TRAY_COMMANDS)[number];
 
-/** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand.
+/** Where sharing captions with a Zoom meeting stands. `waiting`: Zoom says the meeting has not
+ *  started; `refused`: the link has expired, been revoked or was copied incompletely;
+ *  `unreachable`: no connection, a timeout or a Zoom server error, retried with each new
+ *  caption. Mirrors `ZoomState` in `src-tauri/src/zoom.rs`. */
+export const ZOOM_STATES = ['off', 'sharing', 'waiting', 'refused', 'unreachable'] as const;
+export type ZoomState = (typeof ZOOM_STATES)[number];
+
+/** What the core reports on `zoom-captions` after every change of state and every caption it
+ *  delivered or gave up on. Never carries the caption link: the renderer is the only side that
+ *  shows it, and it already has it. */
+export interface ZoomStatus {
+	state: ZoomState;
+	/** The caption language being shared. */
+	lane: Lane;
+	/** The sources whose captions are shared. */
+	origins: Origin[];
+	/** Captions Zoom accepted since this share started. */
+	sent: number;
+	/** Captions given up on: the queue was full, they waited too long, or Zoom would not take
+	 *  them. */
+	dropped: number;
+	/** The last failure's HTTP status, when Zoom answered with one. */
+	httpStatus?: number;
+}
+
+/** Event names. Rust→front-end: caption/level/status/closeRequested/trayCommand/zoomCaptions.
  *  Operator→overlay: overlayConfig. Overlay→operator: overlayState, which the core sends on
  *  the overlay's behalf (`report_overlay_state`): the overlay may listen but not emit. */
 export const EVT = {
@@ -420,5 +445,6 @@ export const EVT = {
 	overlayConfig: 'overlay-config',
 	overlayState: 'overlay-state',
 	textScale: 'text-scale',
-	displaysChanged: 'displays-changed'
+	displaysChanged: 'displays-changed',
+	zoomCaptions: 'zoom-captions'
 } as const;

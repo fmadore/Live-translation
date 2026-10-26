@@ -13,6 +13,8 @@ scripted demo ───────── deterministic caption timeline ──�
                                               operator + caption overlay
                                                              │
                                               transcript / export / history
+
+caption events ── optional, opt-in ── Zoom caption sender → Zoom meeting
 ```
 
 1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
@@ -233,8 +235,10 @@ installed Whisper model on a supported processor, or the bundled demo),
 `quitController.svelte.ts` (tray and close prompts),
 `overlayController.svelte.ts` (appearance and window commands), `sessionClock.svelte.ts`,
 `setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
-failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer) and
-`nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
+failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer),
+`zoomCaptions.svelte.ts` (the share with Zoom: its status, and the caption link, held in
+memory only) and `nativeSync.svelte.ts` (effects that mirror state to the core and the
+overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
 when imported. Page teardown disposes the preflight timers and capture test.
 `launchController.svelte.ts` owns the rehearsal flag and the launch path: Start, Rehearse and
@@ -245,8 +249,8 @@ components that need them through a Svelte context, instead of props through eve
 
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
 its actions), `DeviceRecoveryBanner`, `SetupSheet` (its four steps under `src/lib/setup/`) or
-`LiveRail`, `IdleStage` (with `PreflightChecklist`) or `RunningStage` (with `LiveTurns`), and
-`SettingsDialog`, over the shared primitives in `src/lib/ui/`. The transcript
+`LiveRail`, `IdleStage` (with `PreflightChecklist`) or `RunningStage` (with `LiveTurns`),
+`SettingsDialog` and `ZoomCaptionsDialog`, over the shared primitives in `src/lib/ui/`. The transcript
 (`TranscriptMonitor`: `TranscriptActions` over `TranscriptLog`) is mounted once in the stage
 column for both states, so its copy window, follow state and an in-flight save survive Start
 and Stop. Every button is
@@ -373,6 +377,27 @@ Lane 0 keeps the bare origin as its key, so a one-language session is keyed exac
 Committed lines of a two-language run record `lane` and `language`; `groupTranscript` groups
 each lane on its own and merges the paragraphs by first line, and exports section or label by
 language.
+
+## Captions in Zoom
+
+`zoom.rs` sends one caption language to a Zoom meeting's third-party caption URL
+([captions in Zoom](zoom-captions.md)). It taps the one place every engine's captions leave the
+core, `Events::caption` for `AppHandle`, so no provider, the demo or Whisper knows about it.
+The tap is cheap and cannot block: it filters by lane and origin, works out what is newly safe
+to publish, cuts it into captions of at most 120 characters and `try_send`s them into a queue of
+64, counting a full queue as a drop. A sender task owns the queue, the HTTP client and Zoom's
+`seq` counter, and reports a `zoom-captions` status after each delivery or drop.
+
+Only text that cannot change is published. `SessionManager::start` tells the module whether the
+session's provider only ever appends to an interim line (Gemini Live Translate, OpenAI and
+Mistral do; Gemini Transcribe revises); for those, a completed sentence goes as soon as the next
+begins, and the rest of the line when it is final. Every other engine publishes final lines
+only. Each stream `(origin, lane)` remembers how far into its current turn it has published.
+
+Sharing is independent of the caption session: it is started and stopped by its own commands,
+outlives Stop and Start, and costs nothing while off. The caption URL is a credential: the
+renderer holds it in memory only, the core never logs it (reqwest errors are logged
+`without_url`), and validation errors name the rule that failed, not the URL.
 
 ## Responsive caption overlay
 
@@ -507,8 +532,9 @@ whose content-security policy blocks direct connections. Only debug builds load 
 honour the `*_WS_HOST` host overrides. Local Whisper sends no audio over the network and
 deletes its temporary audio file on close; its pinned model downloads are integrity-checked and
 available only to the operator window. The built-in demo opens no audio device, uses no
-network and needs no credential. The developer operates no backend, relay, telemetry,
-analytics or crash-reporting service. See [`SECURITY.md`](../SECURITY.md) and the
+network and needs no credential. Caption text reaches Zoom only while the operator shares it
+with a meeting. The developer operates no backend, relay, telemetry, analytics or
+crash-reporting service. See [`SECURITY.md`](../SECURITY.md) and the
 [privacy policy](privacy.md) for what is stored and what leaves the machine.
 
 ## The two windows are not equally trusted

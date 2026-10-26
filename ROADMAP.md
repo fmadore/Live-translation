@@ -79,6 +79,17 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - Experimental Windows APIs remain outside Store builds until Microsoft documents them as stable
   and Store-eligible.
 
+## Next
+
+[#187](https://github.com/fmadore/Live-translation/issues/187) was triaged on 26 October 2026:
+captions in Zoom first, then Whisper's names-and-terms prompt and speech detection; OBS output
+and a display-only corrections list only if needed; Teams CART, the LAN audience viewer, richer
+glossaries, live corrections and offline text translation are not planned.
+
+- **Captions in Zoom:** sharing one caption language with a Zoom meeting's own caption bar
+  ([guide](docs/zoom-captions.md)). It needs the live meeting checks listed there before it
+  ships.
+
 ## Unscheduled and research
 
 - [#32 — Windows AI speech-recognition prototype](https://github.com/fmadore/Live-translation/issues/32)
@@ -99,16 +110,17 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   profile already carries a placement with its setup, and since 1.7.0 a display unplugged or
   reconnected mid-session moves the overlay off it and back; what remains is choosing among
   several without a profile and without move mode.
-- Per-origin caption styling on the overlay, such as a subtle prefix when both sources are live.
 - Make rate-card verification dates visible: apart from Mistral's, whose source and date are in
   the [Mistral API notes](docs/mistral-realtime-api.md#scope), the rates in `providers.ts` have
   no in-repo source or date
   ([6 October review](docs/app-review-2026-10-06.md#5-dependencies-and-provider-drift)).
 - The other feature candidates of the
-  [6 October review](docs/app-review-2026-10-06.md#6-feature-candidates), beyond #12 (its F3)
-  and per-origin styling (F5): captions on attendees' phones over the LAN and an OBS mode (F4),
-  small provider adoptions (F6), an opt-in transcript polish after the session (F7) and
-  research into local text translation (F8).
+  [6 October review](docs/app-review-2026-10-06.md#6-feature-candidates), beyond #12 (its F3):
+  an OBS mode (F4), only if livestreaming needs it; small provider adoptions (F6); and an opt-in
+  transcript polish after the session (F7). Per-origin labels (F5) already show on the overlay
+  whenever both sources are on screen; captions on attendees' phones over the LAN (F4) and local
+  text translation (F8) were set aside in the
+  [#187](https://github.com/fmadore/Live-translation/issues/187) triage.
 - A billable provider smoke workflow: an explicitly manual run of live credentials against a
   golden audio fixture. It is intentionally not automatic because it costs money and CI secrets
   are not available to forked pull requests.

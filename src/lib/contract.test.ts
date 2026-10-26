@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	AUDIO_SOURCES,
@@ -8,7 +8,8 @@ import {
 	PROVIDERS,
 	SESSION_STATES,
 	TRAY_COMMANDS,
-	WHISPER_MODELS
+	WHISPER_MODELS,
+	ZOOM_STATES
 } from './types';
 import { DEMO_LANGUAGES } from './languages';
 
@@ -129,5 +130,14 @@ describe('shared enums', () => {
 		['ModelId', rust('whisper/models.rs'), WHISPER_MODELS]
 	] as const)('%s has the same values on both sides', (name, source, values) => {
 		expect(sorted(values)).toEqual(sorted(serdeVariants(source, name)));
+	});
+
+	// Read when the test runs rather than in the table above, which is built as the file loads:
+	// the module may be a file or a folder, and a missing one should fail this test alone.
+	it('ZoomState has the same values on both sides', () => {
+		const file = existsSync(new URL('../../src-tauri/src/zoom.rs', import.meta.url))
+			? 'zoom.rs'
+			: 'zoom/mod.rs';
+		expect(sorted(ZOOM_STATES)).toEqual(sorted(serdeVariants(rust(file), 'ZoomState')));
 	});
 });

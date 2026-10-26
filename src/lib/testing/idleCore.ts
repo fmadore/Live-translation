@@ -14,7 +14,8 @@ import type {
 	OnDeviceReadiness,
 	StoredRecovery,
 	WhisperCpuSupport,
-	WhisperModelInfo
+	WhisperModelInfo,
+	ZoomStatus
 } from '../types';
 
 /** How one command is answered. A thrown error, or a rejected promise, is the command failing. */
@@ -46,5 +47,13 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 	recover_overlay_placement: () => false,
 	read_recovery: (): StoredRecovery | null => null,
 	list_history: (): HistoryListing => ({ sessions: [], removed: [] }),
+	// Nothing is shared with Zoom until the operator starts it, as `ZoomStatus::off` says.
+	zoom_captions_status: (): ZoomStatus => ({
+		state: 'off',
+		lane: 0,
+		origins: [],
+		sent: 0,
+		dropped: 0
+	}),
 	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`
 };

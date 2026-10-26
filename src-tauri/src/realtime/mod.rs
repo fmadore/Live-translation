@@ -14,7 +14,7 @@ mod wire;
 
 use std::time::Duration;
 
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::watch;
 use tokio::time::Instant;
@@ -42,6 +42,11 @@ pub trait Events: Send + Sync {
 
 impl Events for AppHandle {
     fn caption(&self, caption: Caption<'_>) {
+        // Every engine's captions pass here, so this is where a Zoom share takes its copy. It
+        // only queues, so the windows never wait on Zoom; see `zoom::ZoomCaptions::offer`.
+        if let Some(zoom) = self.try_state::<crate::zoom::ZoomCaptions>() {
+            zoom.offer(&caption);
+        }
         let _ = self.emit(events::CAPTION, caption);
     }
 
