@@ -38,7 +38,7 @@ unchanged. What's new covers the changes since 1.10.0; the certification notes a
    Settings › App › Theme set to **Dark** whatever mode the PC is in, so the set shows one
    theme. The 21 October 2026 set, from the 1.7.1 MSIX, predates the Live and Transcript tabs.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "27 October 2026 (documents the 1.11.0 release)" and has the *Support link* section.
+   reads "26 October 2026 (documents the 1.11.0 release)" and has the *Support link* section.
    It is published from `docs/privacy.md` on `main`, so it updates when the release PR merges.
 
 ## Pricing and properties

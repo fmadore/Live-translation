@@ -22,7 +22,7 @@ repository-code: "https://github.com/fmadore/Live-translation"
 url: "https://github.com/fmadore/Live-translation"
 license: MIT
 version: 1.11.0
-date-released: "2026-10-27"
+date-released: "2026-10-26"
 keywords:
   - live captions
   - speech translation

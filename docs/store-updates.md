@@ -47,7 +47,7 @@ The Microsoft Store supporter add-on in #180 is not in this release.
   (10.8.4).
 
 The [privacy policy](privacy.md) gains a *Support link* section and a new effective date,
-27 October 2026. [GitHub release copy](release-1.11.0.md) ·
+26 October 2026. [GitHub release copy](release-1.11.0.md) ·
 [EN/FR/DE Store fields](store-listing.md) ·
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
@@ -55,8 +55,8 @@ The [privacy policy](privacy.md) gains a *Support link* section and a new effect
 
 - [x] #181 and #182 merged, each after all its CI jobs passed.
 - [x] App manifests, root lockfile entries and citation set to 1.11.0; `npm test` checks that
-  all six agree. The citation date, 27 October 2026, is the planned tag date; correct it in
-  the release PR if the tag moves to another day.
+  all six agree. The citation date was first set to 27 October 2026, the planned tag date,
+  and corrected to 26 October 2026 when the tag came a day early.
 - [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
 - [x] Validation of the release branch on Windows 11 ARM64:
   - `npm run test:coverage`: 826 passed, 1 skipped, in 83 files.
@@ -71,9 +71,13 @@ The [privacy policy](privacy.md) gains a *Support link* section and a new effect
 
 ### Testing
 
-- [ ] Merge the release PR.
-- [ ] **Maintainer test** of the side-by-side Local Test build of the merge commit (ARM64),
-  **before the tag**:
+- [x] Merge the release PR ([#183](https://github.com/fmadore/Live-translation/pull/183)),
+  then the README badges ([#184](https://github.com/fmadore/Live-translation/pull/184)) and
+  1.10.0's live record ([#185](https://github.com/fmadore/Live-translation/pull/185)), both
+  docs only.
+- [x] **Maintainer test** of the side-by-side Local Test build of `7eb9f3d`, the merge of #184
+  (ARM64), **before the tag**: "it works", reported by the maintainer on 26 October 2026. The
+  report did not itemise the lines below, so they are recorded as passed together:
   - **the support link** from Settings › App and from the start screen's credit line opens
     `https://buymeacoffee.com/fmadore` in the default browser, not in a window of the app,
     with the mouse and with Enter; it is not shown during a session;
@@ -83,7 +87,7 @@ The [privacy policy](privacy.md) gains a *Support link* section and a new effect
     names-and-terms list shown, at 100% and 150% text size, and the top bar stays in view;
   - Light, Dark and a contrast theme: the coffee cup keeps its yellow circle, or an outlined
     one in a contrast theme.
-- [ ] **No release candidate.** Tag `v1.11.0` straight from the merge once the test passes. A
+- [x] **No release candidate.** Tag `v1.11.0` straight from the merge once the test passes. A
   bug found afterwards ships as 1.11.1; never move a tag.
 
 Still open from earlier handoffs, never recorded as done, on x64 and ARM64 unless a line says
@@ -124,7 +128,7 @@ otherwise:
   still outstanding; see [store-screenshots](store-screenshots/README.md).
 - [ ] Run Windows App Certification Kit.
 - [ ] Check that the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-  shows the 27 October 2026 date and the *Support link* section.
+  shows the 26 October 2026 date and the *Support link* section.
 - [ ] Submit the single combined bundle in Partner Center with the 1.11.0
   What's new, the three descriptions, the updated certification notes and the **Product
   declaration** for purchases outside Microsoft commerce (see

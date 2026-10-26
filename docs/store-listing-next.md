@@ -45,6 +45,6 @@ Before submission, complete:
 - the German copy review;
 - Windows App Certification Kit.
 
-The privacy policy gains a *Support link* section and takes effect on 27 October 2026 for
+The privacy policy gains a *Support link* section and takes effect on 26 October 2026 for
 1.11.0; check that the published page shows it before submitting. Use the normal Store identity:
 the side-by-side Local Test installation is for feedback, not the Store submission package.
