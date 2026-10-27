@@ -5,12 +5,12 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.11.0 in the Store
+## Current status — 1.11.0 in the Store, 1.12.0 prepared
 
 The Store serves [**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)
 (26 October 2026, MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
 ([handoff](docs/store-updates.md#release-1110-handoff), [release notes](docs/release-1.11.0.md)).
-No next release is prepared. 1.11.0 replaced 1.10.0 (batches 4–6 of the
+1.11.0 replaced 1.10.0 (batches 4–6 of the
 [22 October app review](docs/app-review-2026-10-22.md), which also lists what is left) and
 added:
 - [#182](https://github.com/fmadore/Live-translation/pull/182): an optional Buy Me a Coffee
@@ -19,6 +19,17 @@ added:
   It is the Buy Me a Coffee half of
   [#180](https://github.com/fmadore/Live-translation/issues/180); the Store supporter add-on is
   on hold.
+
+**1.12.0** is prepared, not yet tagged or submitted, and awaits the maintainer's test of the
+Local Test build ([handoff](docs/store-updates.md#release-1120-handoff),
+[release notes](docs/release-1.12.0.md)):
+- [#189](https://github.com/fmadore/Live-translation/pull/189): captions in Zoom, one caption
+  language sent to a Zoom meeting's own caption bar through the host's caption API token
+  ([guide](docs/zoom-captions.md)), with a toolbar button labelled *Zoom captions* and a generic
+  captions mark rather than Zoom's logo.
+- [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
+  setup and the transcript. On the same branch as these docs, the pre-flight says why Start
+  waits for an application.
 
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
@@ -87,8 +98,8 @@ and a display-only corrections list only if needed; Teams CART, the LAN audience
 glossaries, live corrections and offline text translation are not planned.
 
 - **Captions in Zoom:** sharing one caption language with a Zoom meeting's own caption bar
-  ([guide](docs/zoom-captions.md)). It needs the live meeting checks listed there before it
-  ships.
+  ([guide](docs/zoom-captions.md)) is prepared for 1.12.0. The live meeting checks listed in the
+  guide are still its condition for shipping.
 
 ## Unscheduled and research
 

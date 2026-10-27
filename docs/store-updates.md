@@ -9,11 +9,129 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Next release
+## Release 1.12.0 handoff
 
-**None prepared.** The Store serves **1.11.0.0**, accepted as reported by the maintainer on
-26 October 2026, the day it was tagged. Start the next handoff here; the
-[1.11.0 handoff](#release-1110-handoff) lists the manual checks that carry over.
+**Prepared; not yet tagged or submitted.** The Store serves **1.11.0.0**, accepted as reported
+by the maintainer on 26 October 2026. Target app version: **1.12.0**, MSIX **1.12.0.0**. What's
+new and the certification notes cover the changes since 1.11.0. Awaiting the maintainer's test
+of the Local Test build.
+
+1.12.0 adds Captions in Zoom and two sets of fixes:
+
+- [#189](https://github.com/fmadore/Live-translation/pull/189) (the first item of the
+  [#187](https://github.com/fmadore/Live-translation/issues/187) triage): **Captions in Zoom**.
+  The operator pastes the caption link (API token) a meeting's host copies with *Show Captions ›
+  Set up manual captioner › Copy the API token*, and the app posts one caption language's
+  finished text directly to that Zoom URL, so attendees see it in Zoom's own caption bar. Off
+  until started; outlives Stop and Start; ends with *Stop sharing* or when the app quits. States:
+  sharing, waiting (HTTP 400, the meeting has not started), refused (401, 403 or 404),
+  unreachable. *Send test caption* posts one fixed line. The link is held in memory only and
+  never logged. [Guide](zoom-captions.md).
+- On this branch (`afe95b9`): the toolbar button reads *Zoom captions* (*Sous-titres Zoom*,
+  *Zoom-Untertitel*) with a generic captions mark, not Zoom's logo, which needs Zoom's written
+  licence; Zoom is named only descriptively.
+- [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
+  setup and the transcript (*Jump to latest* and the copy confirmation float, no key-form flash
+  between Gemini and OpenAI, *Refresh devices* busy only when asked, a steady Whisper backlog
+  strip, no stored device labelled missing before the first list, the second caption language
+  in the searchable picker).
+- On this branch (`c107a4c`): with system capture set to one application and none chosen, or the
+  chosen one closed, the pre-flight's audio row asks for the application instead of reading as
+  ready while Start and Test audio are disabled.
+- No Dependabot updates since 1.11.0. `8fc6960` makes the style tests reload once when a bundle
+  chunk is refused (test-only).
+
+**Changed under the surface:**
+- **Five new operator commands** (`src-tauri/src/zoom.rs`): `start_zoom_captions`,
+  `stop_zoom_captions`, `send_zoom_test_caption`, `zoom_captions_status` and `open_zoom_guide`,
+  pinned to the operator window in `command_names.rs` and `capabilities/operator.json`; the
+  overlay's capability is unchanged. `open_zoom_guide` takes no argument and opens the fixed
+  guide URL through `support::open`, like `open_support_page`. The link must be `https` on
+  `zoom.us`, a `*.zoom.us` host or a `*.zoomgov.com` host, and is checked before anything is sent.
+- Every engine's captions reach the share in `Events::caption`, and `SessionManager::start` tells
+  it a session has begun; the share only queues, and sends on its own task. No crate was added
+  (`reqwest` was already a dependency) and `Cargo.toml` is unchanged.
+- The package still declares only `runFullTrust` and `microphone`; `AppxManifest.xml.template`
+  is unchanged since `v1.11.0`.
+- **New for the Store:** the app can now send user content (caption text, including Whisper's)
+  to a third party the user names, Zoom. The [privacy policy](privacy.md) covers it in
+  *Optional captions in Zoom*; the listing names Zoom descriptively with a trademark line; the
+  certification notes explain how to exercise or skip the feature. See
+  [store-listing-next.md](store-listing-next.md).
+
+The [privacy policy](privacy.md) gains a pointer to the Zoom section, a paragraph on personal
+information in shared captions, and a new effective date, 27 October 2026.
+[GitHub release copy](release-1.12.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
+[Partner Center walkthrough](partner-center-walkthrough.md).
+
+### Preparation and validation
+
+- [x] #188 and #189 merged.
+- [ ] `feat/zoom-captions-label` (`afe95b9`, `c107a4c` and these docs) reviewed and merged after
+  all its CI jobs pass.
+- [ ] **Version bump** in the release PR: app manifests, root lockfile entries and
+  `CITATION.cff` (`version`, `date-released`) set to 1.12.0; `npm test` checks that all six
+  agree. Commit as `chore(release): 1.12.0` with `docs/release-1.12.0.md`, and replace "Not yet
+  tagged" in [release-notes.md](release-notes.md) with the tag date.
+- [ ] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
+- [ ] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
+  `format:check`, `check:languages`, `build` and `test:style`; `cargo fmt --check`, Clippy with
+  `-D warnings` and `cargo test --locked`. Record the counts here.
+- [ ] The Store fields are within Partner Center's limits. Counted when drafted, not yet checked
+  in Partner Center: What's new EN 702, FR 900, DE 838 of 1,500 characters; 20 of 20 features,
+  the longest 135 of 200; descriptions EN 4,694, FR 5,642, DE 5,264 of 10,000.
+- [ ] Update the version-bound guides in the release PR, as 1.11.0's did:
+  [partner-center-walkthrough.md](partner-center-walkthrough.md) (1.12.0 target, no new product
+  declaration, the published privacy page showing 27 October 2026 and the Zoom section),
+  [microsoft-store.md](microsoft-store.md), [packaging-msix.md](packaging-msix.md) and the
+  "current for 1.11.0" lines in other guides; README, ROADMAP and docs/README once tagged.
+
+### Testing
+
+- [ ] **Maintainer test** of the side-by-side Local Test build of the release merge (ARM64),
+  **before the tag**:
+  - **Captions in Zoom in a real meeting**: passed on a free (Basic) account on 27 October 2026,
+    on the Local Test build of #189 ([live verification](zoom-captions.md#live-verification));
+    repeat briefly on the release merge, with *Show captions on this screen too*; at least host setup, the start check against
+    a meeting not yet started, one started and an expired link, *Send test caption*, captions
+    arriving from Whisper and from a cloud engine, Stop and Start while sharing, and *Stop
+    sharing*, with the Zoom client version, account type and date recorded in the guide;
+  - the *Step-by-step setup guide* link opens the guide in the default browser;
+  - the button's label and states, and the dialog, in English, French and German, with Narrator;
+  - the pre-flight asking for an application with One application selected and none chosen,
+    and after the chosen application closes;
+  - the setup and transcript no longer jumping: *Jump to latest*, Copy's confirmation,
+    switching Gemini and OpenAI, *Refresh devices*, a Whisper backlog at its threshold.
+- [ ] **No release candidate.** Tag `v1.12.0` straight from the merge once the test passes. A
+  bug found afterwards ships as 1.12.1; never move a tag.
+
+Still open from the [1.11.0 handoff](#release-1110-handoff) and earlier, never recorded as done:
+its list carries over unchanged.
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.12.0` (annotated: "Live Translation & Subtitles v1.12.0") on the merge of the
+  release PR, and push it.
+- [ ] The workflow publishes the release with `docs/release-1.12.0.md` once the bundle is
+  attached; if a job fails, the release stays a draft and the failed job is re-run.
+- [ ] Verify `Live.Translation_1.12.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
+  at **1.12.0.0**, and record the sizes and SHA-256 digests here.
+- [ ] Sideload-test the per-architecture MSIX packages and walk the
+  [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
+- [ ] **Screenshots:** the toolbar gains a *Zoom captions* button, which the 1.7.1 images do
+  not show. Decide whether to retake; if so, keep Zoom's windows and artwork out of them. See
+  [store-screenshots](store-screenshots/README.md).
+- [ ] Run Windows App Certification Kit.
+- [ ] Check that the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
+  shows the 27 October 2026 date and the *Optional captions in Zoom* section.
+- [ ] Submit the single combined bundle in Partner Center with the 1.12.0 What's new, the three
+  descriptions (with the Zoom trademark line), the twentieth feature line and the updated
+  certification notes. The product declarations are unchanged from 1.11.0. Rollout: capture is
+  untouched, but every caption and each session start now pass through the Zoom share; decide
+  between a full and a gradual rollout.
+- [ ] Record submission and certification, and confirm with
+  `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` (`SignatureKind` `Store`, Version
+  `1.12.0.0`).
 
 ## The route
 

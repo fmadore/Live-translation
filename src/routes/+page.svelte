@@ -400,7 +400,14 @@
 {/if}
 
 {#if zoomOpen}
-	<ZoomCaptionsDialog {zoom} onClose={() => (zoomOpen = false)} />
+	<ZoomCaptionsDialog
+		{zoom}
+		onClose={() => (zoomOpen = false)}
+		showOnScreen={overlay.overlayVisible}
+		onShowOnScreen={(show) => {
+			if (show !== overlay.overlayVisible) void overlay.toggleOverlayVisible();
+		}}
+	/>
 {/if}
 
 <!-- Both are modal on purpose: each is the last moment at which an event's record can still

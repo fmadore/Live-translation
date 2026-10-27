@@ -57,16 +57,27 @@
 					? 'microphone'
 					: 'both'
 	);
+	// System capture set to one application with none usable blocks Start and the audio test
+	// alike. The row is where that reads, since a disabled button cannot say why: never chosen
+	// asks for one, chosen but since closed asks for it again. Not before the first list of
+	// applications has arrived, so a stored choice does not flash as missing at launch.
+	const applicationMissing = $derived(
+		preflight.applicationCaptureSupported !== null && !preflight.applicationReady($options)
+	);
 	const audioCheckDesc = $derived(
 		$options.provider === 'ondevice'
 			? $t.preflight.audio.heard.demo
-			: preflight.audioTesting
-				? audioHearing
-					? $t.preflight.audio.hearing[audioSubject]
-					: $t.preflight.audio.listening
-				: audioVerified
-					? $t.preflight.audio.heard[audioSubject]
-					: $t.preflight.audio.unchecked
+			: applicationMissing
+				? $options.systemCapture?.kind === 'application' && $options.systemCapture.process
+					? $t.applications.missing
+					: $t.preflight.audio.chooseApplication
+				: preflight.audioTesting
+					? audioHearing
+						? $t.preflight.audio.hearing[audioSubject]
+						: $t.preflight.audio.listening
+					: audioVerified
+						? $t.preflight.audio.heard[audioSubject]
+						: $t.preflight.audio.unchecked
 	);
 </script>
 
@@ -110,10 +121,10 @@
 	{/if}
 
 	<ChecklistRow
-		status={audioVerified ? 'ok' : 'wait'}
+		status={audioVerified && !applicationMissing ? 'ok' : 'wait'}
 		title={$t.preflight.audio.title[audioSubject]}
 		desc={audioCheckDesc}
-		warn={preflight.audioTesting && !audioHearing}
+		warn={applicationMissing || (preflight.audioTesting && !audioHearing)}
 	>
 		{#snippet action()}
 			<!-- The demo opens no device, so there is nothing to test. Otherwise the row keeps

@@ -517,10 +517,10 @@ export const en = {
 	 *  them in this language. */
 	zoom: {
 		/** The toolbar button's visible label. */
-		button: 'Zoom',
+		button: 'Zoom captions',
 		title: 'Captions in Zoom',
 		/** The toolbar button's accessible name while sharing is on; `state` is one of `state`. */
-		buttonLabel: (state: string) => `Captions in Zoom: ${state}`,
+		buttonLabel: (state: string) => `Zoom captions: ${state}`,
 		/** Beside the button's status dot, and in its accessible name. */
 		state: {
 			sharing: 'sharing',
@@ -568,7 +568,11 @@ export const en = {
 		stop: 'Stop sharing',
 		test: 'Send test caption',
 		/** What the test sends to everyone in the meeting. */
-		testCaption: 'Test caption from Live Translation.'
+		testCaption: 'Test caption from Live Translation.',
+		/** The overlay's own show/hide, offered here for captioning Zoom only. */
+		showOnScreen: 'Show captions on this screen too',
+		showOnScreenNote:
+			'Turn off to caption Zoom only: the overlay stays hidden until you show it again.'
 	},
 
 	stage: {
@@ -642,6 +646,9 @@ export const en = {
 			},
 			listening: 'Listening — say something into the mic or play some audio',
 			unchecked: 'Not checked yet — audio is only monitored during a test or a running session',
+			/** Replaces `unchecked` while system capture is set to one application and none is
+			 *  usable: Start and Test audio wait for it, and a disabled button says nothing. */
+			chooseApplication: 'Choose an application under Where the audio comes from — Start needs one',
 			test: 'Test audio',
 			retest: 'Re-test',
 			stopTest: 'Stop test'

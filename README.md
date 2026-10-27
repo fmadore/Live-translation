@@ -19,6 +19,9 @@ is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8L
 latest on GitHub: an optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link that
 unlocks nothing, and a fix for an empty band at the bottom of the window. See its
 [release notes](docs/release-1.11.0.md) and [Store handoff](docs/store-updates.md#release-1110-handoff).
+**1.12.0** is the next release, prepared and not yet tagged: captions in a Zoom meeting's own
+caption bar, and fixes for flashes and layout shifts. See its
+[release notes](docs/release-1.12.0.md) and [Store handoff](docs/store-updates.md#release-1120-handoff).
 
 ## What it does
 
@@ -51,6 +54,11 @@ unlocks nothing, and a fix for an empty band at the bottom of the window. See it
   copy the last 5, 10 or 30 minutes as plain text. Export text, Markdown, SRT or WebVTT.
   Optional local history adds session titles, search and reopening; optional recovery protects
   unsaved captions. Both are off by default.
+- **Captions in Zoom** (from 1.12.0, not yet released). Share one caption language with a Zoom
+  meeting's own caption bar, using the caption API token the host copies in Zoom; attendees
+  turn captions on in Zoom. Only caption text is sent, and only once you start sharing
+  ([guide](docs/zoom-captions.md)). Zoom is a trademark of Zoom Communications, Inc.; this
+  project is not affiliated with Zoom.
 
 ## Start captioning
 

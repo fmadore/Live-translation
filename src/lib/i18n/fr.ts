@@ -517,9 +517,9 @@ export const fr: Messages = {
 	},
 
 	zoom: {
-		button: 'Zoom',
+		button: 'Sous-titres Zoom',
 		title: 'Sous-titres dans Zoom',
-		buttonLabel: (state: string) => `Sous-titres dans Zoom : ${state}`,
+		buttonLabel: (state: string) => `Sous-titres Zoom : ${state}`,
 		state: {
 			sharing: 'actif',
 			waiting: 'en attente',
@@ -566,7 +566,10 @@ export const fr: Messages = {
 		start: 'Lancer le partage',
 		stop: 'Arrêter le partage',
 		test: 'Envoyer un sous-titre de test',
-		testCaption: 'Sous-titre de test envoyé par Live Translation.'
+		testCaption: 'Sous-titre de test envoyé par Live Translation.',
+		showOnScreen: 'Afficher aussi les sous-titres sur cet écran',
+		showOnScreenNote:
+			'Désactivez pour sous-titrer Zoom seulement : la surimpression reste masquée jusqu’à ce que vous la réaffichiez.'
 	},
 
 	stage: {
@@ -640,6 +643,8 @@ export const fr: Messages = {
 			listening: 'Écoute en cours — parlez dans le micro ou lancez un son',
 			unchecked:
 				'Pas encore vérifié — l’audio n’est surveillé que pendant un test ou une session en cours',
+			chooseApplication:
+				'Choisissez une application dans D’où vient l’audio — impossible de démarrer sans elle',
 			test: 'Tester l’audio',
 			retest: 'Retester',
 			stopTest: 'Arrêter le test'

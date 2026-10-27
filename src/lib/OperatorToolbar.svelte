@@ -47,8 +47,9 @@
 		unreachable: 'warn',
 		refused: 'bad'
 	};
+	// Starts with the visible label, so speech control finds the button by the words it shows.
 	const zoomLabel = $derived(
-		zoomState === 'off' ? $t.zoom.title : $t.zoom.buttonLabel($t.zoom.state[zoomState])
+		zoomState === 'off' ? $t.zoom.button : $t.zoom.buttonLabel($t.zoom.state[zoomState])
 	);
 </script>
 
@@ -79,7 +80,8 @@
 	<div class="end">
 		<!-- Sharing with Zoom outlives Stop and Start, so it reports beside the session's state
 	     rather than inside it. The dot is the glance; the word beside it is the state, for
-	     anyone who cannot tell the colours apart and for a contrast theme, which drops the dot. -->
+	     anyone who cannot tell the colours apart and for a contrast theme, which drops the dot.
+	     The mark is a generic captions one: Zoom's logo needs Zoom's written licence. -->
 		<ToolButton
 			variant="ghost"
 			size="sm"
@@ -88,6 +90,20 @@
 			aria-label={zoomLabel}
 			onclick={onOpenZoom}
 		>
+			<svg
+				width="14"
+				height="14"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.75"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<rect x="3" y="5" width="18" height="14" rx="2" />
+				<path d="M7 11h2M13 11h4M7 15h4M15 15h2" />
+			</svg>
 			{#if zoomState !== 'off'}<span class="zoom-dot {zoomTone[zoomState]}"></span>{/if}
 			{$t.zoom.button}
 			{#if zoomState !== 'off'}<span class="zoom-state {zoomTone[zoomState]}"

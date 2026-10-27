@@ -514,9 +514,9 @@ export const de: Messages = {
 	},
 
 	zoom: {
-		button: 'Zoom',
+		button: 'Zoom-Untertitel',
 		title: 'Untertitel in Zoom',
-		buttonLabel: (state: string) => `Untertitel in Zoom: ${state}`,
+		buttonLabel: (state: string) => `Zoom-Untertitel: ${state}`,
 		state: {
 			sharing: 'aktiv',
 			waiting: 'wartet',
@@ -563,7 +563,10 @@ export const de: Messages = {
 		start: 'Teilen starten',
 		stop: 'Teilen beenden',
 		test: 'Testuntertitel senden',
-		testCaption: 'Testuntertitel von Live Translation.'
+		testCaption: 'Testuntertitel von Live Translation.',
+		showOnScreen: 'Untertitel auch auf diesem Bildschirm anzeigen',
+		showOnScreenNote:
+			'Ausschalten, um nur Zoom zu untertiteln: Das Overlay bleibt ausgeblendet, bis Sie es wieder einblenden.'
 	},
 
 	stage: {
@@ -640,6 +643,8 @@ export const de: Messages = {
 			listening: 'Es wird zugehört – sprechen Sie ins Mikrofon oder spielen Sie Audio ab',
 			unchecked:
 				'Noch nicht geprüft – Audio wird nur während eines Tests oder einer laufenden Sitzung überwacht',
+			chooseApplication:
+				'Wählen Sie unter „Woher das Audio kommt“ eine Anwendung – ohne sie lässt sich nicht starten',
 			test: 'Audio testen',
 			retest: 'Erneut testen',
 			stopTest: 'Test beenden'
