@@ -640,6 +640,8 @@ export const fr: Messages = {
 			listening: 'Écoute en cours — parlez dans le micro ou lancez un son',
 			unchecked:
 				'Pas encore vérifié — l’audio n’est surveillé que pendant un test ou une session en cours',
+			chooseApplication:
+				'Choisissez une application dans D’où vient l’audio — impossible de démarrer sans elle',
 			test: 'Tester l’audio',
 			retest: 'Retester',
 			stopTest: 'Arrêter le test'

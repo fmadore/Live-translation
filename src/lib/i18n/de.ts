@@ -640,6 +640,8 @@ export const de: Messages = {
 			listening: 'Es wird zugehört – sprechen Sie ins Mikrofon oder spielen Sie Audio ab',
 			unchecked:
 				'Noch nicht geprüft – Audio wird nur während eines Tests oder einer laufenden Sitzung überwacht',
+			chooseApplication:
+				'Wählen Sie unter „Woher das Audio kommt“ eine Anwendung – ohne sie lässt sich nicht starten',
 			test: 'Audio testen',
 			retest: 'Erneut testen',
 			stopTest: 'Test beenden'

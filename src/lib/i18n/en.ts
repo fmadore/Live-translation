@@ -642,6 +642,9 @@ export const en = {
 			},
 			listening: 'Listening — say something into the mic or play some audio',
 			unchecked: 'Not checked yet — audio is only monitored during a test or a running session',
+			/** Replaces `unchecked` while system capture is set to one application and none is
+			 *  usable: Start and Test audio wait for it, and a disabled button says nothing. */
+			chooseApplication: 'Choose an application under Where the audio comes from — Start needs one',
 			test: 'Test audio',
 			retest: 'Re-test',
 			stopTest: 'Stop test'
