@@ -33,7 +33,7 @@ this page.
    the meeting controls, chooses **Set up manual captioner**, then **Copy the API token**. The
    host can send it to the person running this app in the meeting chat. A token belongs to one
    meeting: copy a new one for the next.
-3. **In the app**, choose **Zoom** in the toolbar, paste the link into **Caption link (API
+3. **In the app**, choose **Zoom captions** in the toolbar, paste the link into **Caption link (API
    token)**, choose the caption language (with two caption languages) and the sources (with the
    microphone and system audio both captured), and **Start sharing**. Starting asks Zoom for the
    meeting's last caption number, which checks the link without showing anything to attendees.

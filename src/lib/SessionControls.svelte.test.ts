@@ -190,22 +190,22 @@ describe('the operator toolbar', () => {
 	// named in full for a screen reader, and written beside the dot for anyone who cannot tell
 	// its colours apart.
 	it.each([
-		['off', 'Captions in Zoom', ''],
-		['sharing', 'Captions in Zoom: sharing', 'sharing'],
-		['waiting', 'Captions in Zoom: waiting', 'waiting'],
-		['refused', 'Captions in Zoom: refused', 'refused'],
-		['unreachable', 'Captions in Zoom: unreachable', 'unreachable']
+		['off', 'Zoom captions', ''],
+		['sharing', 'Zoom captions: sharing', 'sharing'],
+		['waiting', 'Zoom captions: waiting', 'waiting'],
+		['refused', 'Zoom captions: refused', 'refused'],
+		['unreachable', 'Zoom captions: unreachable', 'unreachable']
 	] as const)('names the Zoom button for its state while %s', (state, name, word) => {
 		const button = toolbar(state).getByRole('button', { name });
 		expect(button).toHaveAttribute('aria-haspopup', 'dialog');
 		expect(button).toHaveAttribute('aria-expanded', 'false');
-		expect(button.textContent?.replace(/\s+/g, ' ').trim()).toBe(`Zoom ${word}`.trim());
+		expect(button.textContent?.replace(/\s+/g, ' ').trim()).toBe(`Zoom captions ${word}`.trim());
 	});
 
 	it('opens the Zoom dialog from its button', async () => {
 		const onOpenZoom = vi.fn();
 		await fireEvent.click(
-			toolbar('off', onOpenZoom).getByRole('button', { name: 'Captions in Zoom' })
+			toolbar('off', onOpenZoom).getByRole('button', { name: 'Zoom captions' })
 		);
 		expect(onOpenZoom).toHaveBeenCalledOnce();
 	});

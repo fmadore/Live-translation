@@ -517,9 +517,9 @@ export const fr: Messages = {
 	},
 
 	zoom: {
-		button: 'Zoom',
+		button: 'Sous-titres Zoom',
 		title: 'Sous-titres dans Zoom',
-		buttonLabel: (state: string) => `Sous-titres dans Zoom : ${state}`,
+		buttonLabel: (state: string) => `Sous-titres Zoom : ${state}`,
 		state: {
 			sharing: 'actif',
 			waiting: 'en attente',

@@ -514,9 +514,9 @@ export const de: Messages = {
 	},
 
 	zoom: {
-		button: 'Zoom',
+		button: 'Zoom-Untertitel',
 		title: 'Untertitel in Zoom',
-		buttonLabel: (state: string) => `Untertitel in Zoom: ${state}`,
+		buttonLabel: (state: string) => `Zoom-Untertitel: ${state}`,
 		state: {
 			sharing: 'aktiv',
 			waiting: 'wartet',

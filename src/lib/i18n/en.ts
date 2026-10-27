@@ -517,10 +517,10 @@ export const en = {
 	 *  them in this language. */
 	zoom: {
 		/** The toolbar button's visible label. */
-		button: 'Zoom',
+		button: 'Zoom captions',
 		title: 'Captions in Zoom',
 		/** The toolbar button's accessible name while sharing is on; `state` is one of `state`. */
-		buttonLabel: (state: string) => `Captions in Zoom: ${state}`,
+		buttonLabel: (state: string) => `Zoom captions: ${state}`,
 		/** Beside the button's status dot, and in its accessible name. */
 		state: {
 			sharing: 'sharing',

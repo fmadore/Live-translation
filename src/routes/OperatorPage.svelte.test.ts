@@ -498,7 +498,7 @@ it('picks up a Zoom share already running, and follows what the core reports', a
 		dropped: 0
 	}));
 	render(Page);
-	const button = await screen.findByRole('button', { name: 'Captions in Zoom: sharing' });
+	const button = await screen.findByRole('button', { name: 'Zoom captions: sharing' });
 
 	await core.emit('zoom-captions', {
 		state: 'refused',
@@ -508,7 +508,7 @@ it('picks up a Zoom share already running, and follows what the core reports', a
 		dropped: 1,
 		httpStatus: 403
 	});
-	await waitFor(() => expect(button).toHaveAccessibleName('Captions in Zoom: refused'));
+	await waitFor(() => expect(button).toHaveAccessibleName('Zoom captions: refused'));
 
 	await fireEvent.click(button);
 	const dialog = await screen.findByRole('dialog', { name: 'Captions in Zoom' });
@@ -520,6 +520,6 @@ it('picks up a Zoom share already running, and follows what the core reports', a
 	await fireEvent.keyDown(window, { key: 'Escape' });
 	await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 	expect(button).toHaveAttribute('aria-expanded', 'false');
-	expect(button).toHaveAccessibleName('Captions in Zoom: refused');
+	expect(button).toHaveAccessibleName('Zoom captions: refused');
 	expect(core.callsTo('stop_zoom_captions')).toHaveLength(0);
 });
