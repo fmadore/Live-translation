@@ -563,7 +563,10 @@ export const de: Messages = {
 		start: 'Teilen starten',
 		stop: 'Teilen beenden',
 		test: 'Testuntertitel senden',
-		testCaption: 'Testuntertitel von Live Translation.'
+		testCaption: 'Testuntertitel von Live Translation.',
+		showOnScreen: 'Untertitel auch auf diesem Bildschirm anzeigen',
+		showOnScreenNote:
+			'Ausschalten, um nur Zoom zu untertiteln: Das Overlay bleibt ausgeblendet, bis Sie es wieder einblenden.'
 	},
 
 	stage: {

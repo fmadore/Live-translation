@@ -17,7 +17,18 @@
 	import { LANES, ORIGINS, laneCount, laneLanguage, type Lane } from './types';
 	import { openZoomGuide, ZOOM_GUIDE_URL, type ZoomCaptions } from './zoomCaptions.svelte';
 
-	let { zoom, onClose }: { zoom: ZoomCaptions; onClose: () => void } = $props();
+	let {
+		zoom,
+		onClose,
+		showOnScreen,
+		onShowOnScreen
+	}: {
+		zoom: ZoomCaptions;
+		onClose: () => void;
+		/** The overlay is showing. Offered here as well as in the rail, for captioning Zoom only. */
+		showOnScreen: boolean;
+		onShowOnScreen: (show: boolean) => void;
+	} = $props();
 
 	let guideError = $state<string | null>(null);
 
@@ -172,6 +183,14 @@
 				{/each}
 			</fieldset>
 		{/if}
+
+		<!-- The same show/hide as the rail, the tray and the shortcut, not a setting of its own:
+		     never locked, since it does not change what is shared. -->
+		<Preference
+			label={$t.zoom.showOnScreen}
+			note={$t.zoom.showOnScreenNote}
+			bind:checked={() => showOnScreen, (show) => onShowOnScreen(show)}
+		/>
 
 		<p class="note">{$t.zoom.privacy}</p>
 

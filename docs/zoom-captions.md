@@ -1,9 +1,10 @@
 # Captions in Zoom
 
 **Status:** on `main`, not yet released. It is prepared for 1.12.0
-([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)) and ships
-once the [live checks](#live-verification) below have been made in a real meeting
-([#187](https://github.com/fmadore/Live-translation/issues/187)).
+([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)). The
+maintainer's test in a real meeting, the condition for shipping, passed on 27 October 2026 (see
+[live verification](#live-verification);
+[#187](https://github.com/fmadore/Live-translation/issues/187)).
 
 The app can send its captions to Zoom's own caption bar, so attendees turn them on in Zoom like
 any other captions and nobody installs anything. It uses Zoom's third-party caption interface,
@@ -45,6 +46,10 @@ this page.
 Sharing can start before or during a caption session, and it carries on across Stop and Start:
 it ends with **Stop sharing** or when the app quits. To change the language or the sources,
 stop sharing and start again.
+
+To caption Zoom only, untick **Show captions on this screen too** in the dialog. It hides the
+overlay, exactly as the overlay's own Hide button, the tray menu and Ctrl+Shift+O do, and the
+overlay stays hidden until it is shown again by any of them; sharing is unaffected.
 
 ### What the status means
 
@@ -107,9 +112,14 @@ language posted to a meeting at once rather than letting each attendee choose on
 
 ## Live verification
 
-Not yet done. Each check records the Zoom client version, the account type and the date.
+The maintainer tested the Local Test build in a real meeting on 27 October 2026, on a free
+(Basic) Zoom account, and reported that it works: the caption API token is available on a Basic
+account, and captions arrived in Zoom's caption bar. That test is the release gate for 1.12.0.
+The finer checks below are still to be recorded one by one, with the Zoom client version, the
+account type and the date; they no longer hold the release.
 
-- [ ] Host setup as described above, on a licensed account and on a basic account.
+- [x] Host setup as described above on a basic (free) account (27 October 2026).
+- [ ] Host setup on a licensed account.
 - [ ] The start check against a meeting that has not started, one that has, and an expired link.
 - [ ] Attendees on Windows, macOS, a phone and the web client see the captions, with accents
       and a right-to-left language intact.

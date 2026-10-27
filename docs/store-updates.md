@@ -90,8 +90,9 @@ information in shared captions, and a new effective date, 27 October 2026.
 
 - [ ] **Maintainer test** of the side-by-side Local Test build of the release merge (ARM64),
   **before the tag**:
-  - **Captions in Zoom in a real meeting**: the [live checks](zoom-captions.md#live-verification)
-    the guide sets as its condition for shipping; at least host setup, the start check against
+  - **Captions in Zoom in a real meeting**: passed on a free (Basic) account on 27 October 2026,
+    on the Local Test build of #189 ([live verification](zoom-captions.md#live-verification));
+    repeat briefly on the release merge, with *Show captions on this screen too*; at least host setup, the start check against
     a meeting not yet started, one started and an expired link, *Send test caption*, captions
     arriving from Whisper and from a cloud engine, Stop and Start while sharing, and *Stop
     sharing*, with the Zoom client version, account type and date recorded in the guide;

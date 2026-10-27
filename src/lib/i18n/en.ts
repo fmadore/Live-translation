@@ -568,7 +568,11 @@ export const en = {
 		stop: 'Stop sharing',
 		test: 'Send test caption',
 		/** What the test sends to everyone in the meeting. */
-		testCaption: 'Test caption from Live Translation.'
+		testCaption: 'Test caption from Live Translation.',
+		/** The overlay's own show/hide, offered here for captioning Zoom only. */
+		showOnScreen: 'Show captions on this screen too',
+		showOnScreenNote:
+			'Turn off to caption Zoom only: the overlay stays hidden until you show it again.'
 	},
 
 	stage: {

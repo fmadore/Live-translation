@@ -34,9 +34,9 @@ earlier submissions did not:
   says what the feature sends and where, that it is off until the user starts it, and how a
   tester can exercise it (a Zoom meeting they host, with manual captioning and the third-party
   caption API token allowed) or skip it (opening the dialog and pasting a non-Zoom address,
-  which the app refuses without sending anything). The certification team cannot be expected to
-  have a Zoom account; the credential-free Whisper and demo routes still cover the rest of the
-  app.
+  which the app refuses without sending anything). A free Basic Zoom account is enough (confirmed
+  by the maintainer on 27 October 2026), but the certification team cannot be expected to have
+  one; the credential-free Whisper and demo routes still cover the rest of the app.
 - **Trademark (Policies 10.1 and 11.2).** Zoom is named only descriptively, to say what the
   feature works with; the app shows no Zoom logo (its toolbar mark is a generic captions
   symbol, deliberately, because Zoom's logo needs Zoom's written licence), and neither the
@@ -60,9 +60,9 @@ stays ticked, and Zoom captions involve no payment. The MSIX capabilities are un
 - [Partner Center walkthrough](partner-center-walkthrough.md)
 
 Before submission, complete:
-- the maintainer's test of the Local Test build of the release merge, above all Captions in Zoom
-  in a real meeting (the [live checks](zoom-captions.md#live-verification) are a release gate
-  the guide sets: it says the feature ships once they have been made), the pre-flight asking for
+- the maintainer's test of the Local Test build of the release merge: Captions in Zoom already
+  passed in a real meeting on a free account (27 October 2026), so this is a final pass over
+  the merge, including the *Show captions on this screen too* switch, the pre-flight asking for
   an application, and the setup and transcript no longer jumping;
 - the version bump and the tag;
 - the final-package checks, and the checks still open from earlier releases;

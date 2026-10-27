@@ -35,13 +35,18 @@ to be captured and none is chosen.
 - **The link is treated like a password.** It is kept in memory until the app quits, never
   written to the saved setup, a meeting profile, history, the recovery copy or a log, and its
   field is masked in case the operator's screen is projected.
+- **Zoom only, if you prefer.** Untick *Show captions on this screen too* in the dialog to hide
+  the overlay and caption the meeting through Zoom alone. It is the overlay's usual show and
+  hide, so the overlay's button, the tray menu and Ctrl+Shift+O bring it back.
+- **Works on a free Zoom account.** The caption API token is available on a Basic account as
+  well as a licensed one.
 - **A plain name.** The button reads *Zoom captions* (*Sous-titres Zoom*, *Zoom-Untertitel*)
   with a generic captions mark, so it cannot be mistaken for magnification. Zoom is named only
   to say what the feature works with; the app does not use Zoom's logo and is not affiliated
   with Zoom.
 
-Zoom's caption bar has not yet been checked in a live meeting for reading pace, delay or
-interaction with Zoom's own captions; breakout rooms and Zoom Rooms are untested. The
+Captions in Zoom has been tested in a real meeting on a free account. Reading pace, delay and
+interaction with Zoom's own captions have not yet been measured one by one; breakout rooms and Zoom Rooms are untested. The
 [guide's limits](zoom-captions.md#limits) list what is known.
 
 ## Fixes

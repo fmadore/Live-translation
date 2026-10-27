@@ -55,10 +55,13 @@ afterEach(async () => {
 
 function mount(zoom: ZoomCaptions = createZoomCaptions()) {
 	const onClose = vi.fn();
-	const view = render(ZoomCaptionsDialog, { props: { zoom, onClose } });
+	const onShowOnScreen = vi.fn();
+	const view = render(ZoomCaptionsDialog, {
+		props: { zoom, onClose, showOnScreen: true, onShowOnScreen }
+	});
 	const link = view.getByLabelText('Caption link (API token)') as HTMLInputElement;
 	const start = () => view.getByRole('button', { name: 'Start sharing' });
-	return { ...view, zoom, onClose, link, start };
+	return { ...view, zoom, onClose, onShowOnScreen, link, start };
 }
 
 describe('starting to share', () => {
@@ -105,7 +108,8 @@ describe('starting to share', () => {
 		options.set({ ...DEFAULT_START_OPTIONS, source: 'system' });
 		const { queryByRole, link, start } = mount();
 		expect(queryByRole('combobox')).toBeNull();
-		expect(queryByRole('checkbox')).toBeNull();
+		// No source choice; the one checkbox left is the overlay's show/hide.
+		expect(queryByRole('group', { name: 'Share captions from' })).toBeNull();
 
 		await fireEvent.input(link, { target: { value: LINK } });
 		await fireEvent.click(start());
@@ -303,6 +307,42 @@ describe('the setup guide', () => {
 		expect(await view.findByRole('alert')).toHaveTextContent(
 			'Windows could not open the page in your browser'
 		);
+	});
+});
+
+// Captioning Zoom only: the overlay's own show/hide, offered where the operator is thinking
+// about Zoom. It never locks, since it does not change what is shared.
+describe('showing captions on this screen', () => {
+	it.each([
+		['en', 'Show captions on this screen too', /^Turn off to caption Zoom only/],
+		['fr', 'Afficher aussi les sous-titres sur cet écran', /^Désactivez pour sous-titrer Zoom/],
+		['de', 'Untertitel auch auf diesem Bildschirm anzeigen', /^Ausschalten, um nur Zoom/]
+	] as const)('hides the overlay from the dialog (%s)', async (lang, name, note) => {
+		setLocale(lang);
+		const onShowOnScreen = vi.fn();
+		const view = render(ZoomCaptionsDialog, {
+			props: { zoom: createZoomCaptions(), onClose: vi.fn(), showOnScreen: true, onShowOnScreen }
+		});
+		const toggle = view.getByRole('checkbox', { name });
+		expect(toggle).toBeChecked();
+		expect(toggle).toHaveAccessibleDescription(note);
+		await fireEvent.click(toggle);
+		expect(onShowOnScreen).toHaveBeenCalledExactlyOnceWith(false);
+	});
+
+	it('reflects an overlay hidden elsewhere, and stays usable while sharing', async () => {
+		core.handle('zoom_captions_status', () => status());
+		const zoom = createZoomCaptions();
+		await zoom.resync();
+		const onShowOnScreen = vi.fn();
+		const view = render(ZoomCaptionsDialog, {
+			props: { zoom, onClose: vi.fn(), showOnScreen: false, onShowOnScreen }
+		});
+		const toggle = view.getByRole('checkbox', { name: 'Show captions on this screen too' });
+		expect(toggle).not.toBeChecked();
+		expect(toggle).toBeEnabled();
+		await fireEvent.click(toggle);
+		expect(onShowOnScreen).toHaveBeenCalledExactlyOnceWith(true);
 	});
 });
 

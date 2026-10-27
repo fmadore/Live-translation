@@ -566,7 +566,10 @@ export const fr: Messages = {
 		start: 'Lancer le partage',
 		stop: 'Arrêter le partage',
 		test: 'Envoyer un sous-titre de test',
-		testCaption: 'Sous-titre de test envoyé par Live Translation.'
+		testCaption: 'Sous-titre de test envoyé par Live Translation.',
+		showOnScreen: 'Afficher aussi les sous-titres sur cet écran',
+		showOnScreenNote:
+			'Désactivez pour sous-titrer Zoom seulement : la surimpression reste masquée jusqu’à ce que vous la réaffichiez.'
 	},
 
 	stage: {
