@@ -11,10 +11,10 @@ packages are built.
 
 ## Release 1.12.0 handoff
 
-**Prepared; not yet tagged or submitted.** The Store serves **1.11.0.0**, accepted as reported
-by the maintainer on 26 October 2026. Target app version: **1.12.0**, MSIX **1.12.0.0**. What's
-new and the certification notes cover the changes since 1.11.0. Awaiting the maintainer's test
-of the Local Test build.
+**Tagged 27 October 2026; not yet submitted.** The Store serves **1.11.0.0**, accepted as
+reported by the maintainer on 26 October 2026. Target app version: **1.12.0**, MSIX
+**1.12.0.0**, in `Live.Translation_1.12.0.msixbundle`. What's new and the certification notes
+cover the changes since 1.11.0.
 
 1.12.0 adds Captions in Zoom and two sets of fixes:
 
@@ -67,20 +67,23 @@ information in shared captions, and a new effective date, 27 October 2026.
 ### Preparation and validation
 
 - [x] #188 and #189 merged.
-- [ ] `feat/zoom-captions-label` (`afe95b9`, `c107a4c` and these docs) reviewed and merged after
-  all its CI jobs pass.
-- [ ] **Version bump** in the release PR: app manifests, root lockfile entries and
+- [x] `feat/zoom-captions-label` (`afe95b9`, `c107a4c`, `c1847be` and these docs) merged as
+  [#190](https://github.com/fmadore/Live-translation/pull/190) after all its CI jobs passed.
+- [x] **Version bump** in the release PR: app manifests, root lockfile entries and
   `CITATION.cff` (`version`, `date-released`) set to 1.12.0; `npm test` checks that all six
-  agree. Commit as `chore(release): 1.12.0` with `docs/release-1.12.0.md`, and replace "Not yet
-  tagged" in [release-notes.md](release-notes.md) with the tag date.
-- [ ] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
-- [ ] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
+  agree. The citation date is 27 October 2026, the tag date, and
+  [release-notes.md](release-notes.md) gives the same date in place of "Not yet tagged".
+- [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
+- [x] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
   `format:check`, `check:languages`, `build` and `test:style`; `cargo fmt --check`, Clippy with
-  `-D warnings` and `cargo test --locked`. Record the counts here.
+  `-D warnings` and `cargo test --locked`. Recorded on 27 October 2026 (ARM64): Vitest 866
+  passed, 1 skipped, in 84 files; svelte-check 556 files, 0 errors, 0 warnings; style 143 passed
+  (4 timed out while Rust compiled alongside and passed on rerun); Rust 358 passed, 5 ignored;
+  fmt, Clippy, lint, knip, format and languages clean.
 - [ ] The Store fields are within Partner Center's limits. Counted when drafted, not yet checked
   in Partner Center: What's new EN 702, FR 900, DE 838 of 1,500 characters; 20 of 20 features,
   the longest 135 of 200; descriptions EN 4,694, FR 5,642, DE 5,264 of 10,000.
-- [ ] Update the version-bound guides in the release PR, as 1.11.0's did:
+- [x] Update the version-bound guides in the release PR, as 1.11.0's did:
   [partner-center-walkthrough.md](partner-center-walkthrough.md) (1.12.0 target, no new product
   declaration, the published privacy page showing 27 October 2026 and the Zoom section),
   [microsoft-store.md](microsoft-store.md), [packaging-msix.md](packaging-msix.md) and the

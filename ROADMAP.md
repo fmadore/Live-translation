@@ -5,7 +5,7 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.11.0 in the Store, 1.12.0 prepared
+## Current status — 1.11.0 in the Store, 1.12.0 tagged
 
 The Store serves [**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)
 (26 October 2026, MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
@@ -20,16 +20,16 @@ added:
   [#180](https://github.com/fmadore/Live-translation/issues/180); the Store supporter add-on is
   on hold.
 
-**1.12.0** is prepared, not yet tagged or submitted, and awaits the maintainer's test of the
-Local Test build ([handoff](docs/store-updates.md#release-1120-handoff),
-[release notes](docs/release-1.12.0.md)):
+[**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) was tagged on
+27 October 2026 and is not yet submitted to the Store
+([handoff](docs/store-updates.md#release-1120-handoff), [release notes](docs/release-1.12.0.md)):
 - [#189](https://github.com/fmadore/Live-translation/pull/189): captions in Zoom, one caption
   language sent to a Zoom meeting's own caption bar through the host's caption API token
   ([guide](docs/zoom-captions.md)), with a toolbar button labelled *Zoom captions* and a generic
   captions mark rather than Zoom's logo.
 - [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
-  setup and the transcript. On the same branch as these docs, the pre-flight says why Start
-  waits for an application.
+  setup and the transcript; [#190](https://github.com/fmadore/Live-translation/pull/190): the
+  pre-flight says why Start waits for an application.
 
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
@@ -39,7 +39,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.11.0 handoff](docs/store-updates.md#release-1110-handoff) carries the open checks.
+[1.12.0 handoff](docs/store-updates.md#release-1120-handoff) carries the open checks.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -98,8 +98,9 @@ and a display-only corrections list only if needed; Teams CART, the LAN audience
 glossaries, live corrections and offline text translation are not planned.
 
 - **Captions in Zoom:** sharing one caption language with a Zoom meeting's own caption bar
-  ([guide](docs/zoom-captions.md)) is prepared for 1.12.0. The live meeting checks listed in the
-  guide are still its condition for shipping.
+  ([guide](docs/zoom-captions.md)) shipped in 1.12.0, after the maintainer's test in a real
+  meeting on 27 October 2026. The finer live meeting checks listed in the guide are still to be
+  recorded.
 
 ## Unscheduled and research
 
@@ -138,6 +139,12 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
+- **1.12.0** (27 October 2026; not yet submitted to the Store): captions in Zoom, one caption
+  language in a Zoom meeting's own caption bar
+  ([#189](https://github.com/fmadore/Live-translation/pull/189)); no flashes or layout shifts in
+  setup and the transcript ([#188](https://github.com/fmadore/Live-translation/pull/188)); and a
+  pre-flight that says why Start waits for an application.
+  [Release body](docs/release-1.12.0.md).
 - **1.11.0** (26 October 2026; accepted in the Store, reported 26 October 2026): an optional Buy Me a Coffee link that unlocks
   nothing, and no empty band at the bottom of the operator window
   ([#182](https://github.com/fmadore/Live-translation/pull/182)).

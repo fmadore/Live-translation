@@ -1,6 +1,6 @@
 # Partner Center listing text — 1.12.0
 
-Written for **1.12.0 / MSIX 1.12.0.0**, prepared and not yet submitted. The Store serves 1.11.0
+Written for **1.12.0 / MSIX 1.12.0.0**, tagged on 27 October 2026 and not yet submitted. The Store serves 1.11.0
 (MSIX 1.11.0.0), accepted as reported by the maintainer on 26 October 2026, so What's new covers
 only the changes since 1.11.0. For the next version, replace What's new and the certification
 notes' first two paragraphs. Paste each block into its named field after the

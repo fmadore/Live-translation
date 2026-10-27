@@ -1,10 +1,9 @@
 # Next Store submission — 1.12.0
 
-**Prepared, not submitted; awaiting the maintainer's test of the Local Test build.** The Store
-serves **1.11.0.0**, accepted as reported by the maintainer on 26 October 2026. The next
-submission is **1.12.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.12.0/Live.Translation_1.12.0.msixbundle`
-once `v1.12.0` is tagged. The version files still read 1.11.0; the release PR bumps them.
+**Tagged 27 October 2026; not yet submitted.** The Store serves **1.11.0.0**, accepted as
+reported by the maintainer on 26 October 2026. The next submission is **1.12.0.0**: one
+unsigned bundle with native x64 and ARM64 packages, at
+`https://github.com/fmadore/Live-translation/releases/download/v1.12.0/Live.Translation_1.12.0.msixbundle`.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -64,7 +63,6 @@ Before submission, complete:
   passed in a real meeting on a free account (27 October 2026), so this is a final pass over
   the merge, including the *Show captions on this screen too* switch, the pre-flight asking for
   an application, and the setup and transcript no longer jumping;
-- the version bump and the tag;
 - the final-package checks, and the checks still open from earlier releases;
 - the screenshots: the toolbar gains a *Zoom captions* button, which the current images (from
   1.7.1) do not show; decide whether a retake is wanted, and if one is taken, keep any Zoom

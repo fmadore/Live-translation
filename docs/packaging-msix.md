@@ -5,8 +5,8 @@ install it, and check what CI cannot: microphone capture, WASAPI loopback, Crede
 the overlay and the export path, all running under package identity.
 
 [`microsoft-store.md`](microsoft-store.md) has the certification approach, the assigned identity
-values and the acceptance checklist; the [handoff](store-updates.md#release-1110-handoff)
-records the **1.11.0** release's Store status.
+values and the acceptance checklist; the [handoff](store-updates.md#release-1120-handoff)
+records the **1.12.0** release's Store status.
 
 ## What is committed
 
@@ -52,7 +52,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.11.0.0"
+  Version="1.12.0.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -147,15 +147,15 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.11.0.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.11.0.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.12.0.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.12.0.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`; CI renames them (see
 [What CI does](#what-ci-does)). For local verification, use the per-architecture `.msix`, not
 the bundle.
 
-Substitute the current `tauri.conf.json` version for `1.11.0` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.12.0` throughout this file. Every
 release built on this machine stays in `target/msix/`, which is why the commands below derive
 the name instead of spelling it out.
 
