@@ -5,6 +5,9 @@ These guides describe **[1.11.0](https://github.com/fmadore/Live-translation/rel
 day: an optional Buy Me a Coffee link that unlocks nothing, and a fix for an empty band at the
 bottom of the operator window. 1.10.0 before it completed the fixes of the
 [22 October app review](app-review-2026-10-22.md), which also lists what is left.
+**1.12.0** is prepared and not yet tagged or submitted: captions in a Zoom meeting's own caption
+bar, fixes for flashes and layout shifts in setup and the transcript, and a pre-flight that says
+why Start waits for an application.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
@@ -16,7 +19,7 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Meeting controls and profiles](usability.md): Pause, two caption languages and shortcuts.
 - [Caption layout](caption-layout.md): overlay placement, reading modes and filler-word lists.
 - [Captions in Zoom](zoom-captions.md): sharing one caption language with a Zoom meeting's
-  caption bar (not yet released).
+  caption bar (prepared for 1.12.0, not yet released).
 - [Transcript export](transcript-export.md) and [optional history](transcript-history.md).
 - [Privacy](privacy.md), [accessibility checks](accessibility.md) and [interface localization](localization.md).
 
@@ -25,6 +28,11 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Architecture](architecture.md) and [native Whisper build requirements](local-whisper.md#building).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md).
 - [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
+
+## Release 1.12.0 (prepared, not yet tagged)
+
+- [Release notes](release-1.12.0.md), [release handoff](store-updates.md#release-1120-handoff)
+  and [what the next Store submission needs](store-listing-next.md).
 
 ## Release 1.11.0 (in the Store)
 

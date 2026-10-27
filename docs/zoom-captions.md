@@ -1,7 +1,8 @@
 # Captions in Zoom
 
-**Status:** on `main`, not yet released. It ships in the first release after 1.11.0, once the
-[live checks](#live-verification) below have been made in a real meeting
+**Status:** on `main`, not yet released. It is prepared for 1.12.0
+([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)) and ships
+once the [live checks](#live-verification) below have been made in a real meeting
 ([#187](https://github.com/fmadore/Live-translation/issues/187)).
 
 The app can send its captions to Zoom's own caption bar, so attendees turn them on in Zoom like

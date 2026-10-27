@@ -1,6 +1,6 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 26 October 2026 (documents the 1.11.0 release)
+**Effective date:** 27 October 2026 (documents the 1.12.0 release)
 
 ## What this app is
 
@@ -12,6 +12,10 @@ Live Translation & Subtitles is a Windows desktop application with three kinds o
   by the user: Google Gemini, OpenAI, or Mistral; and
 - a scripted demonstration of the caption display, overlay, timer, level meter, transcript
   and export workflow.
+
+Whichever of these makes the captions, the user can optionally share one caption language with
+a Zoom meeting's own caption bar, as described under
+[Optional captions in Zoom](#optional-captions-in-zoom).
 
 The built-in demonstration is explicitly labeled as a demonstration. It does not capture or
 recognize speech.
@@ -122,7 +126,11 @@ sends caption text in the chosen caption language, from the chosen sources, dire
 which shows it to the meeting's participants. This applies to local Whisper captions too: once
 sharing is started, their text leaves the computer, although the audio does not. No audio,
 API key, device name or transcript file is sent, and nothing passes through a server of the
-developer's.
+developer's. Caption text is what was said, so it can include names and other personal
+information about the people speaking; it is shown to everyone in the meeting who turns
+captions on. **Send test caption** sends one fixed sentence, in the
+interface language ("Test caption from Live Translation." in English), to the meeting. Sharing ends with **Stop sharing** or when the app quits, and
+it carries on across Stop and Start of a caption session until then.
 
 The caption link is held in memory only, until the app quits, so that sharing can be stopped
 and started again without pasting it anew. It is not saved in preferences, meeting profiles,

@@ -1,50 +1,76 @@
-# Next Store submission — 1.11.0
+# Next Store submission — 1.12.0
 
-**Submitted and accepted**, as reported by the maintainer on 26 October 2026; it replaced
-**1.10.0.0**. No later submission is prepared. The 1.11.0 submission was
-**1.11.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.11.0/Live.Translation_1.11.0.msixbundle`.
+**Prepared, not submitted; awaiting the maintainer's test of the Local Test build.** The Store
+serves **1.11.0.0**, accepted as reported by the maintainer on 26 October 2026. The next
+submission is **1.12.0.0**: one unsigned bundle with native x64 and ARM64 packages, at
+`https://github.com/fmadore/Live-translation/releases/download/v1.12.0/Live.Translation_1.12.0.msixbundle`
+once `v1.12.0` is tagged. The version files still read 1.11.0; the release PR bumps them.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
 controls. New installations open on Whisper / Base / automatic detection, and existing saved
 setups are preserved. Model download and capture remain explicit user actions.
 
-1.11.0 adds an optional Buy Me a Coffee link
-([#182](https://github.com/fmadore/Live-translation/pull/182), part of
-[#180](https://github.com/fmadore/Live-translation/issues/180)) and fixes an empty band at the
-bottom of the operator window. It is the first version with a way to pay anyone, so it needs
-three things the earlier submissions did not:
+1.12.0 adds **Captions in Zoom**
+([#189](https://github.com/fmadore/Live-translation/pull/189), part of
+[#187](https://github.com/fmadore/Live-translation/issues/187)): the operator pastes the caption
+link (API token) the meeting's host copied in Zoom, and the app posts one caption language
+directly to Zoom's caption bar. It also fixes flashes and layout shifts in setup and the
+transcript ([#188](https://github.com/fmadore/Live-translation/pull/188)) and says why Start
+waits for an application. It is the first version that can send **user content to a third
+party other than the speech provider the user chose**, including captions made offline with
+Whisper, and the first whose listing names another company's product. So it needs things the
+earlier submissions did not:
 
-- **Properties › Product declarations:** tick *This product allows users to make purchases, but
-  does not use the Microsoft Store commerce system*. Store Policy 10.8.2 requires the use of a
-  third-party payment provider to be noted in Partner Center, and Microsoft's
-  [product declarations guide](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/product-declarations)
-  says to tick this box for any app that does not use Microsoft Commerce.
-- **Notes for certification:** the new second paragraph in [store-listing.md](store-listing.md)
-  explains the link, names Buy Me a Coffee as the payment provider and states that a donation
-  unlocks nothing.
-- **Descriptions:** one added sentence per language saying the link is optional and unlocks
-  nothing (Policy 10.8.4).
+- **Privacy policy (Store Policy 10.5, personal information).** Caption text can contain
+  personal information, such as the names of people speaking, and sharing sends it to Zoom. The
+  published [privacy policy](privacy.md) must describe that flow: its *Optional captions in Zoom*
+  section and the Zoom line under *Third-party processing* do, with the effective date
+  27 October 2026 for 1.12.0. Sharing is opt-in by construction: nothing is sent until the user
+  pastes a link and chooses **Start sharing**, and the dialog says, before that button, that
+  caption text goes to Zoom even when Whisper makes it. Check that the published page shows the
+  new date and the Zoom section before submitting.
+- **Notes for certification.** The new second paragraph in [store-listing.md](store-listing.md)
+  says what the feature sends and where, that it is off until the user starts it, and how a
+  tester can exercise it (a Zoom meeting they host, with manual captioning and the third-party
+  caption API token allowed) or skip it (opening the dialog and pasting a non-Zoom address,
+  which the app refuses without sending anything). The certification team cannot be expected to
+  have a Zoom account; the credential-free Whisper and demo routes still cover the rest of the
+  app.
+- **Trademark (Policies 10.1 and 11.2).** Zoom is named only descriptively, to say what the
+  feature works with; the app shows no Zoom logo (its toolbar mark is a generic captions
+  symbol, deliberately, because Zoom's logo needs Zoom's written licence), and neither the
+  screenshots nor the logo use Zoom's artwork. Each description ends with "Zoom is a trademark of
+  Zoom Communications, Inc. Live Translation & Subtitles is not affiliated with or endorsed by
+  Zoom." in its language, so the line sits wherever the listing names Zoom. Zoom is not added
+  to the keywords.
+- **Descriptions, features and What's new.** One sentence per description on Zoom captions,
+  one on the caption text it sends in the privacy paragraph, a twentieth feature line (the most
+  Partner Center allows), and a new What's new in all three languages.
 
-The Microsoft Store supporter add-on in #180 is not part of 1.11.0.
+No product declaration changes: the purchases-outside-Microsoft-commerce box ticked for 1.11.0
+stays ticked, and Zoom captions involve no payment. The MSIX capabilities are unchanged
+(`runFullTrust` and `microphone`).
 
 - [EN/FR/DE descriptions, What's new and certification notes](store-listing.md)
-- [Release notes](release-1.11.0.md)
-- [Build evidence and acceptance checklist](store-updates.md#release-1110-handoff)
+- [Release notes](release-1.12.0.md)
+- [Build evidence and acceptance checklist](store-updates.md#release-1120-handoff)
+- [Captions in Zoom guide](zoom-captions.md), which the app's dialog opens
 - [Screenshot plan](store-screenshots/README.md)
 - [Partner Center walkthrough](partner-center-walkthrough.md)
 
 Before submission, complete:
-- the maintainer's test of the Local Test build of the merge commit, above all the support link
-  opening the default browser from Settings and from the start screen, and the operator window
-  no longer scrolling as a whole;
+- the maintainer's test of the Local Test build of the release merge, above all Captions in Zoom
+  in a real meeting (the [live checks](zoom-captions.md#live-verification) are a release gate
+  the guide sets: it says the feature ships once they have been made), the pre-flight asking for
+  an application, and the setup and transcript no longer jumping;
+- the version bump and the tag;
 - the final-package checks, and the checks still open from earlier releases;
-- the screenshots: the start screen gains a one-line credit at its foot, which needs no retake;
-  retake them only if the 1.9.0 retake is still outstanding;
-- the German copy review;
+- the screenshots: the toolbar gains a *Zoom captions* button, which the current images (from
+  1.7.1) do not show; decide whether a retake is wanted, and if one is taken, keep any Zoom
+  window and Zoom's artwork out of it;
+- the German copy review, now including the Zoom sentences;
 - Windows App Certification Kit.
 
-The privacy policy gains a *Support link* section and takes effect on 26 October 2026 for
-1.11.0; check that the published page shows it before submitting. Use the normal Store identity:
-the side-by-side Local Test installation is for feedback, not the Store submission package.
+Use the normal Store identity: the side-by-side Local Test installation is for feedback, not the
+Store submission package.
