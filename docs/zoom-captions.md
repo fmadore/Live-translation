@@ -1,6 +1,6 @@
 # Captions in Zoom
 
-**Status:** on `main`, not yet released. It is prepared for 1.12.0
+**Status:** released in 1.12.0 on 27 October 2026, pending Store submission and certification
 ([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)). The
 maintainer's test in a real meeting, the condition for shipping, passed on 27 October 2026 (see
 [live verification](#live-verification);

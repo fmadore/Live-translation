@@ -1,12 +1,20 @@
 # Microsoft Store submission
 
 **Current Store release: 1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on
-26 October 2026, the day it was tagged; it replaced 1.10.0. No next submission is prepared.
-1.11.0 adds an optional Buy Me a Coffee link that unlocks nothing, and fixes an empty band at
-the bottom of the operator window. The link is the app's first way to pay anyone, so its
-submission ticked a Product declaration and explained the link in the certification notes
-([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)).
-See the [1.11.0 handoff](store-updates.md#release-1110-handoff),
+26 October 2026, the day it was tagged; it replaced 1.10.0. It added an optional Buy Me a
+Coffee link that unlocks nothing, the app's first way to pay anyone, so its submission ticked a
+Product declaration and explained the link in the certification notes
+([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
+declaration stays ticked.
+
+**Next submission: 1.12.0 / MSIX 1.12.0.0**, tagged on 27 October 2026 and not yet submitted.
+1.12.0 adds Captions in Zoom, which shares one caption language with a Zoom meeting's own
+caption bar, and fixes flashes and layout shifts in setup and the transcript. It is the first
+version that can send caption text to a third party the user names, and the first whose listing
+names another company's product, so its submission checks the published privacy policy's Zoom
+section, explains the feature in the certification notes and carries a trademark line in each
+description ([what it needs](store-listing-next.md)).
+See the [1.12.0 handoff](store-updates.md#release-1120-handoff),
 [listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -58,8 +66,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.11.0; both MSIX manifests and the combined bundle
-  report 1.11.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.12.0; both MSIX manifests and the combined bundle
+  report 1.12.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -108,7 +116,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-1110-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-1120-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing

@@ -15,12 +15,12 @@ Free, with every feature included. If it is useful to you, you can
 **Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
 
 **[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X) and the
-latest on GitHub: an optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link that
-unlocks nothing, and a fix for an empty band at the bottom of the window. See its
-[release notes](docs/release-1.11.0.md) and [Store handoff](docs/store-updates.md#release-1110-handoff).
-**1.12.0** is the next release, prepared and not yet tagged: captions in a Zoom meeting's own
-caption bar, and fixes for flashes and layout shifts. See its
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): an
+optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link that unlocks nothing, and a
+fix for an empty band at the bottom of the window.
+**[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
+is the latest on GitHub, pending Store certification: captions in a Zoom meeting's own caption
+bar, and fixes for flashes and layout shifts. See its
 [release notes](docs/release-1.12.0.md) and [Store handoff](docs/store-updates.md#release-1120-handoff).
 
 ## What it does
@@ -54,7 +54,7 @@ caption bar, and fixes for flashes and layout shifts. See its
   copy the last 5, 10 or 30 minutes as plain text. Export text, Markdown, SRT or WebVTT.
   Optional local history adds session titles, search and reopening; optional recovery protects
   unsaved captions. Both are off by default.
-- **Captions in Zoom** (from 1.12.0, not yet released). Share one caption language with a Zoom
+- **Captions in Zoom** (from 1.12.0). Share one caption language with a Zoom
   meeting's own caption bar, using the caption API token the host copies in Zoom; attendees
   turn captions on in Zoom. Only caption text is sent, and only once you start sharing
   ([guide](docs/zoom-captions.md)). Zoom is a trademark of Zoom Communications, Inc.; this
