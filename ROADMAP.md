@@ -16,9 +16,9 @@ added:
 - [#182](https://github.com/fmadore/Live-translation/pull/182): an optional Buy Me a Coffee
   link in Settings › App and on the start screen, which unlocks nothing, with a README section
   and the repository's Sponsor button; and no empty band at the bottom of the operator window.
-  It is the Buy Me a Coffee half of
-  [#180](https://github.com/fmadore/Live-translation/issues/180); the Store supporter add-on is
-  on hold.
+  It closed [#180](https://github.com/fmadore/Live-translation/issues/180). The Store
+  supporter add-on that issue also proposed is not planned: the Store cannot sell a pure
+  donation, and a paid cosmetic extra would contradict "unlocks nothing".
 
 [**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) was tagged on
 27 October 2026 and is not yet submitted to the Store
@@ -113,10 +113,6 @@ glossaries, live corrections and offline text translation are not planned.
   stays unmilestoned and is blocked on evidence: it crashed natively on the target ARM64
   Surface during the 1.0.x certification attempts, must survive a clean ARM64 and a clean x64
   machine before it is considered, and cannot enter a Store build while the API is experimental.
-- [#180 — Microsoft Store supporter add-on](https://github.com/fmadore/Live-translation/issues/180):
-  the optional one-time Supporter Pack, a durable Store add-on with a small cosmetic benefit, is
-  on hold. Its benefit, price, Partner Center product and Store purchase handling are undecided;
-  the Buy Me a Coffee half shipped in 1.11.0.
 - [#12 — automatic FR ⇄ EN direction](https://github.com/fmadore/Live-translation/issues/12)
   needs a measured provider-switching design before it becomes a release commitment. Two
   caption languages already serve the bilingual room: both directions run side by side, at
