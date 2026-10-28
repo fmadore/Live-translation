@@ -10,6 +10,7 @@ import {
 	providerDetectsLanguage,
 	providerKeyName,
 	providerRequiresKey,
+	providerTakesGlossary,
 	rateText
 } from './providers';
 import { en } from './i18n/en';
@@ -53,6 +54,21 @@ describe('providerDetectsLanguage', () => {
 		// Whisper detects what is spoken, but translating, the room reads English, and that is
 		// the operator's choice like any other caption language.
 		expect(providerDetectsLanguage('whisper-translate')).toBe(false);
+	});
+});
+
+// The names-and-terms list goes to every engine with a field or a prompt for it.
+describe('providerTakesGlossary', () => {
+	it('is true for the speech engines and false for the translation models and the demo', () => {
+		for (const provider of [
+			'mistral',
+			'gemini-transcribe',
+			'whisper',
+			'whisper-translate'
+		] as const)
+			expect(providerTakesGlossary(provider), provider).toBe(true);
+		for (const provider of ['gemini', 'openai', 'ondevice'] as const)
+			expect(providerTakesGlossary(provider), provider).toBe(false);
 	});
 });
 

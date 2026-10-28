@@ -3,7 +3,7 @@
 use anyhow::Result;
 
 use crate::types::{AudioSource, Origin, OutputMode, Provider, StartOptions, TargetLanguage};
-use crate::{mistral, whisper};
+use crate::{glossary, whisper};
 
 fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
     anyhow::ensure!(
@@ -19,8 +19,8 @@ pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     if options.provider.is_local_whisper() {
         whisper::validate_language(options.spoken_language.as_deref())?;
     }
-    if options.provider == Provider::Mistral {
-        mistral::validate_glossary(&options.glossary)?;
+    if options.provider.takes_glossary() {
+        glossary::validate(&options.glossary)?;
     }
     anyhow::ensure!(
         options.target_language.supported_by(options.provider),
@@ -191,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn only_mistral_checks_the_glossary_it_sends() {
+    fn the_glossary_is_checked_wherever_it_is_sent() {
         let start = |provider: &str, glossary: serde_json::Value| {
             let options: StartOptions = serde_json::from_value(serde_json::json!({
                 "source": "microphone",
@@ -203,10 +203,12 @@ mod tests {
             .unwrap();
             validate_start(&options)
         };
-        assert!(start("mistral", serde_json::json!(["Voxtral", "IWAC"])).is_ok());
-        assert!(start("mistral", serde_json::json!(["Voxtral", " "])).is_err());
-        // Kept with the setup for when Mistral is chosen again, not sent anywhere else.
-        assert!(start("whisper", serde_json::json!([" "])).is_ok());
+        for provider in ["mistral", "gemini-transcribe", "whisper"] {
+            assert!(start(provider, serde_json::json!(["Voxtral", "IWAC"])).is_ok());
+            assert!(start(provider, serde_json::json!(["Voxtral", " "])).is_err());
+        }
+        // Kept with the setup for when such an engine is chosen again, not sent anywhere else.
+        assert!(start("ondevice", serde_json::json!([" "])).is_ok());
     }
 
     #[test]

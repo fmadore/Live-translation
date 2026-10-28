@@ -82,6 +82,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
         for (frame, expected) in [
@@ -132,6 +133,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
         assert_eq!(
@@ -148,6 +150,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
         for frame in [

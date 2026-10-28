@@ -32,6 +32,8 @@ pub(super) enum ProviderSettings {
     GeminiTranscribe {
         host: String,
         model: String,
+        /// The session's glossary; see `with_glossary`.
+        custom_vocabulary: Vec<String>,
     },
     OpenAi {
         host: String,
@@ -74,6 +76,7 @@ impl ProviderSettings {
             Provider::GeminiTranscribe => Self::GeminiTranscribe {
                 host: host("GEMINI_WS_HOST", DEFAULT_HOST),
                 model: value("GEMINI_TRANSCRIBE_MODEL", DEFAULT_TRANSCRIBE_MODEL),
+                custom_vocabulary: Vec::new(),
             },
             Provider::OpenAi => Self::OpenAi {
                 host: host("OPENAI_WS_HOST", DEFAULT_OPENAI_HOST),
@@ -95,10 +98,20 @@ impl ProviderSettings {
         })
     }
 
-    /// Add the session's glossary, which only Mistral sends; every other provider ignores it.
+    /// Add the session's glossary for the realtime clients that send it: Mistral as
+    /// `context_bias`, Gemini Transcribe as `customVocabulary`. Local Whisper takes it from the
+    /// start options (`SessionBuilder::add_local_source`); the translation clients ignore it.
     pub(super) fn with_glossary(mut self, glossary: &[String]) -> Self {
-        if let Self::Mistral { context_bias, .. } = &mut self {
-            *context_bias = glossary.to_vec();
+        match &mut self {
+            Self::Mistral {
+                context_bias: terms,
+                ..
+            }
+            | Self::GeminiTranscribe {
+                custom_vocabulary: terms,
+                ..
+            } => *terms = glossary.to_vec(),
+            Self::Gemini { .. } | Self::OpenAi { .. } | Self::OnDevice | Self::Whisper => {}
         }
         self
     }
@@ -120,10 +133,15 @@ impl ProviderSettings {
                 target_language_code,
                 origin,
             }),
-            Self::GeminiTranscribe { host, model } => io.spawn_realtime(GeminiTranscribeConfig {
+            Self::GeminiTranscribe {
+                host,
+                model,
+                custom_vocabulary,
+            } => io.spawn_realtime(GeminiTranscribeConfig {
                 api_key,
                 model: model.clone(),
                 host: host.clone(),
+                custom_vocabulary: custom_vocabulary.clone(),
                 origin,
             }),
             Self::OpenAi {
@@ -217,7 +235,7 @@ mod tests {
     }
 
     #[test]
-    fn only_mistral_takes_the_glossary() {
+    fn the_realtime_speech_clients_take_the_glossary() {
         let glossary = ["IWAC".to_string()];
         let none = |_: &str| None;
         let ProviderSettings::Mistral { context_bias, .. } =
@@ -228,10 +246,23 @@ mod tests {
             panic!("wrong provider settings")
         };
         assert_eq!(context_bias, glossary);
-        let gemini = ProviderSettings::resolve_with(Provider::GeminiTranscribe, none).unwrap();
-        assert_eq!(
-            gemini.with_glossary(&glossary),
-            ProviderSettings::resolve_with(Provider::GeminiTranscribe, none).unwrap()
-        );
+        let ProviderSettings::GeminiTranscribe {
+            custom_vocabulary, ..
+        } = ProviderSettings::resolve_with(Provider::GeminiTranscribe, none)
+            .unwrap()
+            .with_glossary(&glossary)
+        else {
+            panic!("wrong provider settings")
+        };
+        assert_eq!(custom_vocabulary, glossary);
+        // The translation models document no vocabulary field.
+        for provider in [Provider::Gemini, Provider::OpenAi] {
+            assert_eq!(
+                ProviderSettings::resolve_with(provider, none)
+                    .unwrap()
+                    .with_glossary(&glossary),
+                ProviderSettings::resolve_with(provider, none).unwrap()
+            );
+        }
     }
 }

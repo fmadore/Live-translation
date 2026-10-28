@@ -4,6 +4,7 @@
 pub mod cpu;
 mod language;
 pub mod models;
+mod prompt;
 mod reconcile;
 mod segment;
 pub mod spool;
@@ -26,6 +27,7 @@ use crate::sync::lock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
 use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};
+use prompt::Prompt;
 use reconcile::{RawSegment, Reconciler};
 use segment::{Segmenter, Window};
 use spool::{Next, Spool, TimedChunk};
@@ -132,6 +134,8 @@ pub struct LocalSession {
     pub language: Option<String>,
     /// Write English, whatever is spoken, rather than what was said in its own language.
     pub translate: bool,
+    /// The session's names and terms, given to every window as its prompt.
+    pub glossary: Vec<String>,
     pub origin: Origin,
     pub input: Receiver<TimedChunk>,
     pub spool: Arc<Spool>,
@@ -146,6 +150,7 @@ pub async fn run(config: LocalSession) {
         model,
         language,
         translate,
+        glossary,
         origin,
         input,
         spool,
@@ -165,8 +170,11 @@ pub async fn run(config: LocalSession) {
     drive(pipeline, move |spool, abort, emit, report| {
         transcribe(
             &model,
-            language.as_deref(),
-            translate,
+            &Task {
+                language: language.as_deref(),
+                translate,
+                glossary: &glossary,
+            },
             spool,
             abort,
             emit,
@@ -307,18 +315,26 @@ async fn drive<E: LocalEvents>(
     }
 }
 
+/// What a source's windows are decoded as: the spoken language, or `None` to detect it; whether
+/// to translate into English; and the session's names and terms, for the prompt.
+struct Task<'a> {
+    language: Option<&'a str>,
+    translate: bool,
+    glossary: &'a [String],
+}
+
 fn transcribe(
     model: &LoadedModel,
-    language: Option<&str>,
-    translate: bool,
+    task: &Task<'_>,
     spool: &Spool,
     abort: &CancellationToken,
     mut emit: impl FnMut(&str, u64, u64, u64),
     mut report: impl FnMut(),
 ) -> Result<()> {
     let mut state = model.context.create_state()?;
+    let prompt = glossary_prompt(&model.context, task.glossary);
     let mut reconciler = Reconciler::default();
-    let mut languages = Languages::new(language);
+    let mut languages = Languages::new(task.language);
     let threads = inference_threads(std::thread::available_parallelism().map_or(2, usize::from));
     let process = |window: Window| -> Result<()> {
         if abort.is_cancelled() {
@@ -327,7 +343,7 @@ fn transcribe(
         if window.speech {
             let duration_ms = window.samples.len() as u64 / 16;
             let spoken = languages.for_window(duration_ms);
-            let mut params = decode_params(spoken, translate, threads);
+            let mut params = decode_params(spoken, task.translate, threads, &prompt.tokens);
             // whisper-rs 0.16's closure helper has an incorrect user-data cast and leaks its
             // allocation. Use the C callback with a borrowed, thread-safe token instead.
             // SAFETY: full() is synchronous; abort outlives the entire call, and the callback
@@ -356,6 +372,9 @@ fn transcribe(
                 let Some(segment) = raw_segment(&segment) else {
                     continue;
                 };
+                if prompt.is_echo(&segment.text) {
+                    continue;
+                }
                 if let Some(line) = reconciler.accept(window.start_ms, duration_ms, &segment) {
                     emit(&line.text, line.start_ms, line.end_ms, line.turn);
                     captioned = true;
@@ -372,14 +391,44 @@ fn transcribe(
     pump(spool, abort, IDLE, process)
 }
 
+/// The session's names and terms as tokens for every window's prompt: as many as fit, from the
+/// top of the list. whisper.cpp gives a prompt at most half the text context, less the token
+/// that opens it — 223 tokens with every Whisper model, a few dozen names.
+fn glossary_prompt(context: &WhisperContext, glossary: &[String]) -> Prompt {
+    let budget = usize::try_from(context.n_text_ctx() / 2 - 1).unwrap_or(0);
+    // Every token stands for at least one byte, so the text's length is room enough: whisper-rs
+    // mishandles whisper.cpp's "needs more room" answer, so it must never get one.
+    let prompt = Prompt::fit(glossary, budget, |text| {
+        context.tokenize(text, text.len() + 1).ok()
+    });
+    if prompt.len() < glossary.len() {
+        tracing::info!(
+            kept = prompt.len(),
+            listed = glossary.len(),
+            "Whisper's prompt holds only the first names and terms"
+        );
+    }
+    prompt
+}
+
 /// How one window is decoded. `spoken` is the language it was spoken in, or `None` to detect
 /// it; `translate` turns the task from transcription into translation into English. Translating
 /// still starts from the spoken language — it is what Whisper translates from — so detection
 /// and the operator's choice mean the same either way, and `Languages` keeps learning from what
-/// whisper.cpp detected.
-fn decode_params(spoken: Option<&str>, translate: bool, threads: i32) -> FullParams<'_, '_> {
+/// whisper.cpp detected. `prompt` is the session's names and terms, empty when there are none.
+fn decode_params<'a, 'b>(
+    spoken: Option<&'a str>,
+    translate: bool,
+    threads: i32,
+    prompt: &'b [i32],
+) -> FullParams<'a, 'b> {
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
     params.set_language(spoken);
+    // `no_context` below drops the text of earlier windows, not this: whisper.cpp clears its
+    // history first, then puts the prompt in front of every decoding pass of the window.
+    if !prompt.is_empty() {
+        params.set_tokens(prompt);
+    }
     // `detect_language=true` asks whisper.cpp to return after detection. Leaving it false with
     // language=None performs detection followed by the task.
     params.set_translate(translate);
@@ -694,14 +743,23 @@ mod tests {
     fn the_task_reaches_whisper_with_the_spoken_language_still_set() {
         // whisper-rs exposes no getters; its Debug output shows the native parameters.
         for translate in [false, true] {
-            let params = format!("{:?}", decode_params(Some("fr"), translate, 4));
+            let params = format!("{:?}", decode_params(Some("fr"), translate, 4, &[]));
             assert!(
                 params.contains(&format!("translate: {translate},")),
                 "{params}"
             );
             assert!(params.contains("n_threads: 4,"), "{params}");
             assert!(params.contains("detect_language: false,"), "{params}");
+            assert!(params.contains("prompt_n_tokens: 0,"), "{params}");
         }
+    }
+
+    #[test]
+    fn the_glossary_prompt_reaches_every_window() {
+        let params = format!("{:?}", decode_params(None, false, 4, &[50, 51, 52]));
+        assert!(params.contains("prompt_n_tokens: 3,"), "{params}");
+        // The text of earlier windows still stays out.
+        assert!(params.contains("no_context: true,"), "{params}");
     }
 
     #[test]
@@ -843,13 +901,31 @@ mod tests {
         let manager = ModelManager::default();
         smoke_model(&manager, &dir).await;
         let model = load_lease(manager.lease(&dir, ModelId::Tiny).unwrap()).unwrap();
-        for (fixture, language, translate, expected) in [
-            ("rehearsal-en.wav", None, false, Some("caption")),
-            ("rehearsal-fr.wav", Some("fr"), false, Some("public")),
+        // The names-and-terms prompt, tokenized by the real model: the top of a long list fits.
+        let long: Vec<String> = (0..100).map(|i| format!("Université numéro {i}")).collect();
+        let prompt = glossary_prompt(&model.context, &long);
+        assert!(
+            prompt.len() > 10 && prompt.len() < long.len(),
+            "{}",
+            prompt.len()
+        );
+        assert!(prompt.tokens.len() <= 223);
+        let glossary = ["IWAC".to_string(), "Voxtral".to_string()];
+        for (fixture, language, translate, expected, terms) in [
+            ("rehearsal-en.wav", None, false, Some("caption"), &[][..]),
+            // The same recording with a prompt still reads as what was said.
+            (
+                "rehearsal-en.wav",
+                None,
+                false,
+                Some("caption"),
+                &glossary[..],
+            ),
+            ("rehearsal-fr.wav", Some("fr"), false, Some("public"), &[]),
             // Tiny translates poorly, and its wording moves with the instruction set: ARM64 said
             // "This is a recording of repetition…", x64 "This is an arrangement of repetition…".
             // So the translation is held to being English, not to any one word.
-            ("rehearsal-fr.wav", None, true, None),
+            ("rehearsal-fr.wav", None, true, None, &[]),
         ] {
             let samples = crate::audio::fixture::load_fixture(
                 &std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -880,8 +956,11 @@ mod tests {
             let started = std::time::Instant::now();
             transcribe(
                 &model,
-                language,
-                translate,
+                &Task {
+                    language,
+                    translate,
+                    glossary: terms,
+                },
                 &spool,
                 &CancellationToken::new(),
                 |caption, start, end, _| {

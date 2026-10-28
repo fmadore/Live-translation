@@ -225,8 +225,9 @@ export interface StartOptions {
 	/** Caption in this language as well, from a second translation session per source (lane
 	 *  1). Translation only; null or absent for one language. See `secondCaptionLanguageOf`. */
 	secondTargetLanguage?: TargetLanguage | null;
-	/** Names and terms Voxtral is asked to favour for the whole session (`context_bias`). Kept
-	 *  whatever the engine, so switching away and back loses nothing; only `mistral` uses it.
+	/** Names and terms the speech engine is asked to favour for the whole session. Kept
+	 *  whatever the engine, so switching away and back loses nothing; only the engines in
+	 *  `providerTakesGlossary` use it.
 	 *  Absent or empty means none. Within the limits in `glossary.ts`, which the core checks
 	 *  again at Start. */
 	glossary?: string[];

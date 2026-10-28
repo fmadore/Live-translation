@@ -19,11 +19,6 @@ pub const DEFAULT_MISTRAL_HOST: &str = "api.mistral.ai";
 /// A small context window keeps subtitles responsive while improving recognition quality.
 pub const DEFAULT_TARGET_STREAMING_DELAY_MS: u32 = 480;
 const FINALIZE_AFTER: Duration = Duration::from_millis(900);
-/// The glossary's limits, the same in the setup sheet (`src/lib/glossary.ts`). Its entries
-/// share the model's context window with the audio, so a long list costs recognition.
-pub const MAX_GLOSSARY_TERMS: usize = 100;
-pub const MAX_GLOSSARY_TERM_CHARS: usize = 200;
-
 #[derive(Clone)]
 pub struct MistralConfig {
     pub api_key: String,
@@ -33,22 +28,6 @@ pub struct MistralConfig {
     /// The session's glossary, sent as `context_bias`.
     pub context_bias: Vec<String>,
     pub origin: Origin,
-}
-
-/// Reject a glossary the setup sheet would not have produced.
-pub fn validate_glossary(terms: &[String]) -> Result<()> {
-    anyhow::ensure!(
-        terms.len() <= MAX_GLOSSARY_TERMS,
-        "The glossary holds at most {MAX_GLOSSARY_TERMS} names and terms"
-    );
-    for term in terms {
-        anyhow::ensure!(!term.trim().is_empty(), "A glossary entry is empty");
-        anyhow::ensure!(
-            term.chars().count() <= MAX_GLOSSARY_TERM_CHARS,
-            "A glossary entry is longer than {MAX_GLOSSARY_TERM_CHARS} characters"
-        );
-    }
-    Ok(())
 }
 
 impl MistralConfig {
@@ -340,17 +319,6 @@ mod tests {
         for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
             assert!(!ends_sentence(text), "{text}");
         }
-    }
-
-    #[test]
-    fn a_glossary_the_setup_sheet_would_not_make_is_refused() {
-        let term = |chars: usize| "é".repeat(chars);
-        assert!(validate_glossary(&[]).is_ok());
-        assert!(validate_glossary(&[term(MAX_GLOSSARY_TERM_CHARS)]).is_ok());
-        assert!(validate_glossary(&[term(MAX_GLOSSARY_TERM_CHARS + 1)]).is_err());
-        assert!(validate_glossary(&["  ".into()]).is_err());
-        assert!(validate_glossary(&vec!["IWAC".to_string(); MAX_GLOSSARY_TERMS]).is_ok());
-        assert!(validate_glossary(&vec!["IWAC".to_string(); MAX_GLOSSARY_TERMS + 1]).is_err());
     }
 
     #[test]

@@ -178,6 +178,7 @@ impl SessionBuilder<'_> {
                 language: self.options.spoken_language.clone(),
                 // The only difference between the two Whisper providers.
                 translate: self.options.provider.can_translate(),
+                glossary: self.options.glossary.clone(),
                 origin,
                 input,
                 spool,

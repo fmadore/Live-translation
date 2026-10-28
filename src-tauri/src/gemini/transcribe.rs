@@ -32,6 +32,8 @@ pub struct GeminiTranscribeConfig {
     pub api_key: String,
     pub model: String,
     pub host: String,
+    /// The session's names and terms, sent as `customVocabulary`.
+    pub custom_vocabulary: Vec<String>,
     pub origin: Origin,
 }
 
@@ -48,7 +50,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
 
     fn setup_json(&self) -> Result<String> {
         Ok(serde_json::to_string(
-            &TranscribeSetupMessage::live_transcribe(&self.model),
+            &TranscribeSetupMessage::live_transcribe(&self.model, &self.custom_vocabulary),
         )?)
     }
 
@@ -162,6 +164,7 @@ mod smart_tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
         assert_eq!(
@@ -196,6 +199,7 @@ mod smart_tests {
             api_key: "gemini-test".to_string(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         };
         let translate = crate::gemini::GeminiConfig {
@@ -226,6 +230,7 @@ mod smart_tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
         let interim =
@@ -291,6 +296,8 @@ mod live_probe {
             api_key,
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            // Proves the server takes the field where the client puts it, not that it helps.
+            custom_vocabulary: vec!["Gemini".to_string(), "Voxtral".to_string()],
             origin: Origin::Microphone,
         };
 

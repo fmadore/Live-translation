@@ -9,7 +9,7 @@
 	import { displayNames, languageName } from '../languages';
 	import { locale, t } from '../i18n';
 	import { languageFavourites, options } from '../stores';
-	import { isLocalWhisper, providerDetectsLanguage } from '../providers';
+	import { isLocalWhisper, providerDetectsLanguage, providerTakesGlossary } from '../providers';
 	import type { TargetLanguage } from '../types';
 	import type { SetupActions } from '../setupActions';
 
@@ -34,7 +34,8 @@
 	}
 
 	// This step asks which language to render into, which demo script to play, or nothing when
-	// the backend detects the spoken language itself (Voxtral then takes names and terms).
+	// the backend detects the spoken language itself; then the names and terms for the engines
+	// that take them.
 	const spokenChoices = $derived.by(() => {
 		const names = displayNames($locale, 'none');
 		return whisperLanguages
@@ -75,9 +76,6 @@
 		{@render spokenLanguage($t.whisper.languageHint)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
-		<!-- Only Voxtral takes a list of names and terms. The list stays in the setup with any
-		     other engine, so choosing Voxtral again brings it back. -->
-		{#if $options.provider === 'mistral'}<GlossaryList {locked} />{/if}
 	{:else if $options.mode === 'translate'}
 		<LanguagePicker
 			value={$options.targetLanguage}
@@ -136,6 +134,9 @@
 		</div>
 		<p class="hint">{$t.rail.demoLanguageHint}</p>
 	{/if}
+	<!-- The translation models take no list. It stays in the setup with them, so choosing an
+	     engine that takes one again brings it back. -->
+	{#if providerTakesGlossary($options.provider)}<GlossaryList {locked} />{/if}
 </section>
 
 <style>
