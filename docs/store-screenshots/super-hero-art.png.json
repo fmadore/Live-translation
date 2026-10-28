@@ -1,0 +1,25 @@
+{
+	"file": "super-hero-art.png",
+	"generator": "OpenAI Image API",
+	"model": "gpt-image-2.5-flare",
+	"prompt": "A single luminous speech waveform, irregular like a real voice recording (bursts of tall peaks, then small ripples), enters from the left edge and travels to the exact horizontal centre of the frame. There it splits into five smooth, rounded ribbons that fan out to the right, spreading both upwards and downwards, like one voice becoming several streams of captions in different languages. Each ribbon gradually straightens into a calm horizontal line made of short rounded bars of varying length, the rhythm of a line of subtitles, but with no letters at all.\n\nEach of the five caption lines has its own subtle tint so they read as distinct languages: pale mint, soft off-white, pale teal, very light sky blue, and pale warm sand. The tints are gentle and harmonious, never saturated.\n\nSetting: an abstract dark space, a deep charcoal gradient from #191d23 at the top to #0e1013 at the bottom, with a soft mint-green glow (#5ad1a0) blooming behind the split point.\n\nComposition: wide 16:9 banner. The split point is at the exact horizontal centre of the image and slightly above the vertical middle. The waveform is large and fills the left half with energy, with tall peaks, so the upper left is not empty. The caption lines end well before the right edge, leaving a clear dark margin of about one tenth of the width on the right; nothing touches any edge. All key shapes stay in the top two thirds; the bottom third is only the dark gradient with a faint, out-of-focus reflection.\n\nStyle and medium: clean, modern abstract 3D illustration, soft glowing translucent tubes with subtle depth of field, crisp but not photographic. Minimal and premium, in the spirit of a Windows app hero image.\n\nPalette: the waveform is mint green #5ad1a0; the caption lines shift from mint green into their own pale tints as they straighten; background charcoal #191d23 to #0e1013.\n\nAvoid: no text, no letters, no numbers, no glyphs or pseudo-writing of any kind, no logos, no flags, no people, no faces, no microphones, no computers, screens, phones or devices, no app interface, no video-call imagery, no watermark, no border. The split must be at the centre, not on the left third; the lines must not reach the right edge.",
+	"size": "2560x1440",
+	"quality": "high",
+	"background": "opaque",
+	"output_format": "png",
+	"created": "2026-10-28T07:54:06.000Z",
+	"usage": {
+		"input_tokens": 982,
+		"input_tokens_details": {
+			"image_tokens": 0,
+			"text_tokens": 982
+		},
+		"output_tokens": 3685,
+		"output_tokens_details": {
+			"image_tokens": 3685,
+			"text_tokens": 0
+		},
+		"total_tokens": 4667
+	},
+	"postprocess": "Rendered at 2560x1440 (variant 2 of 2), resized to 1920x1080 with Pillow Lanczos"
+}

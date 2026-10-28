@@ -30,6 +30,20 @@ a real meeting, API key, account or personal window.
 Whisper ran on the Base model, so its transcripts keep a few recognition slips (for example
 in the German history detail). Gemini wording is as returned, not edited.
 
+## Super hero art
+
+`super-hero-art.png` is the listing's 16:9 Super hero art, uploaded under **Trailers and
+additional assets**, where the Store shows it at the top of the listing and in promotional
+layouts. It is an illustration generated with OpenAI GPT Image (`gpt-image-2.5-flare`, high
+quality, 28 October 2026), rendered at 2560×1440 and resized to 1920×1080; the prompt and
+model are in `super-hero-art.png.json`, kept beside it.
+
+It extends the icon's wave-to-words mark: a speech wave splits at the centre into five
+caption lines, each tinted for a different language. Microsoft's rules for this image
+exclude text, app UI, devices and flags, and ask for the key content in the centre and out
+of the bottom third. It has no text, so one file serves every language. To change it, edit
+the prompt from the sidecar, draft at low quality, and keep the new sidecar with the image.
+
 ## Recapturing
 
 Re-capture whenever the UI these show changes, from a sideloaded MSIX rather than a dev
