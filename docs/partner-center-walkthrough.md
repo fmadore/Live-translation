@@ -144,6 +144,13 @@ that listing if it is not already present. For each language, paste:
 6. Packaged-app screenshots with matching localized captions, showing the current interface
    in the Dark theme.
 7. **Store logos**: see below.
+8. **16:9 Super hero art**, below the Store logos under **Trailers and additional assets** ›
+   **Windows and Xbox image** (in the French interface: *Bandes-annonces et ressources
+   supplémentaires* › *Image de Windows et de Xbox* › *Image de super héros 16:9*; expand the
+   section if its details are hidden): upload
+   [`super-hero-art.png`](store-screenshots/super-hero-art.png) (1920 × 1080). It has no text,
+   so the same file goes into every listing language. Leave the **Xbox images** slots empty:
+   their 1920 × 1080 titled hero art must carry the product title.
 
 The package's tiles and `StoreLogo` carry the wave-to-words icon, unchanged since 1.6.1, so the
 bundle leaves the icon the Store takes from the package as it is. Since 1.7.1 the package also
@@ -181,7 +188,8 @@ Suggested `runFullTrust` justification:
 Confirm all sections are complete, the Product declaration for purchases outside Microsoft
 commerce is still ticked, each description ends with the Zoom trademark line, packages and copy
 agree on 1.12.0.0, screenshots and Store
-logos match the final UI and the wave-to-words icon, and the privacy page is current. Test both
+logos match the final UI and the wave-to-words icon, each listing carries the super hero art,
+and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
