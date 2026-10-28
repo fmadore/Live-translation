@@ -33,8 +33,9 @@ bar, and fixes for flashes and layout shifts. See its
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets and OpenAI 13 in
-  the app's catalog. Gemini and Mistral also offer same-language subtitles; with Mistral, a list
-  of names and terms helps it spell speakers, institutions and jargon. Cloud engines need your
+  the app's catalog. Gemini and Mistral also offer same-language subtitles; with them, and with
+  local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
+  Cloud engines need your
   own compatible account, API key and internet connection; provider usage charges apply.
 - **Your choice of audio.** Capture a microphone, Windows system audio, one application's
   process tree, or microphone and system audio together. Test levels before starting.

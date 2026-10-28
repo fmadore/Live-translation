@@ -114,13 +114,16 @@ comes first ([architecture](architecture.md#provider-contracts) has the runner's
 
 ## Glossary
 
-Step 03 of the setup sheet, with Voxtral selected, has a **Names and terms** list (see
-`GlossaryList.svelte`): speaker names, institutions, acronyms and jargon to favour for the
-whole session, sent as `context_bias`.
+Step 03 of the setup sheet has a **Names and terms** list (see `GlossaryList.svelte`): speaker
+names, institutions, acronyms and jargon to favour for the whole session. Voxtral receives it as
+`context_bias`. The same list goes to Gemini Transcribe as `customVocabulary`
+([Gemini notes](gemini-live-api.md)) and to local Whisper as its decoder prompt
+([Whisper notes](local-whisper.md#names-and-terms)); the translation engines take none
+(`Provider::takes_glossary`).
 
 - **Limits:** up to 100 entries of up to 200 characters each. Duplicates are compared without
   case. The setup sheet enforces these limits (`glossary.ts`), and the core checks them again
-  at Start (`mistral::validate_glossary`).
+  at Start (`glossary::validate`), whichever engine it is sent to.
 - **Storage:** the list is saved with the last setup and in meeting profiles, and kept when
   another engine is selected.
 - **Context window:** the entries share Realtime 3's 65,536-token window with the audio. A

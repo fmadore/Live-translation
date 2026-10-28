@@ -1,6 +1,7 @@
-// The operator's names and terms for Voxtral Realtime 3: speaker names, institutions, acronyms
-// and jargon the engine is asked to favour for a whole session (`context_bias` in Mistral's
-// API, see `docs/mistral-realtime-api.md`). Part of the session setup, so it is saved with the
+// The operator's names and terms: speaker names, institutions, acronyms and jargon the speech
+// engine is asked to favour for a whole session — Voxtral's `context_bias`, Gemini Transcribe's
+// `customVocabulary` and local Whisper's decoder prompt (`providerTakesGlossary`; see
+// `docs/mistral-realtime-api.md#glossary`). Part of the session setup, so it is saved with the
 // last setup and in meeting profiles, and kept whichever engine is selected. The Rust core
 // checks every Start against the same rules and refuses a list that breaks them, so nothing
 // here may ever produce one.

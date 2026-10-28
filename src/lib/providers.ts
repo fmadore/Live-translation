@@ -40,6 +40,13 @@ export function providerDetectsLanguage(provider: Provider): boolean {
 	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
 }
 
+/** Whether the engine takes the setup's names and terms: Voxtral's `context_bias`, Gemini
+ *  Transcribe's `customVocabulary` and Whisper's decoder prompt. The translation models document
+ *  no vocabulary field. Mirrors `Provider::takes_glossary`. */
+export function providerTakesGlossary(provider: Provider): boolean {
+	return provider === 'mistral' || provider === 'gemini-transcribe' || isLocalWhisper(provider);
+}
+
 export interface ProviderMeta {
 	id: Provider;
 	/** Exact model id, rendered in the mono face. Not translated — it is an identifier.

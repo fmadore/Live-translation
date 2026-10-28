@@ -156,6 +156,12 @@ impl Provider {
     pub fn is_local_whisper(self) -> bool {
         matches!(self, Provider::Whisper | Provider::WhisperTranslate)
     }
+
+    /// Whether the engine takes the session's names and terms (`glossary`). The translation
+    /// models document no vocabulary field, and the demo recognises nothing.
+    pub fn takes_glossary(self) -> bool {
+        matches!(self, Provider::Mistral | Provider::GeminiTranscribe) || self.is_local_whisper()
+    }
 }
 
 #[cfg(test)]
@@ -177,6 +183,21 @@ mod provider_tests {
         assert!(Provider::WhisperTranslate.can_translate());
         assert!(!Provider::Whisper.can_translate());
         assert!(!Provider::Gemini.is_local_whisper() && !Provider::OnDevice.is_local_whisper());
+    }
+
+    #[test]
+    fn the_speech_engines_take_the_glossary_and_the_translation_models_do_not() {
+        for provider in [
+            Provider::Mistral,
+            Provider::GeminiTranscribe,
+            Provider::Whisper,
+            Provider::WhisperTranslate,
+        ] {
+            assert!(provider.takes_glossary(), "{provider:?}");
+        }
+        for provider in [Provider::Gemini, Provider::OpenAi, Provider::OnDevice] {
+            assert!(!provider.takes_glossary(), "{provider:?}");
+        }
     }
 }
 
@@ -224,9 +245,9 @@ pub struct StartOptions {
     pub whisper_model: crate::whisper::models::ModelId,
     #[serde(default)]
     pub spoken_language: Option<String>,
-    /// Names and terms the speech engine should spell as written. Only Mistral uses it,
-    /// sent as `context_bias`; the setup keeps it whatever the engine, so switching away and
-    /// back does not lose it.
+    /// Names and terms the speech engine should spell as written, for the engines that take
+    /// them (`Provider::takes_glossary`; see `crate::glossary`). The setup keeps it whatever
+    /// the engine, so switching away and back does not lose it.
     #[serde(default)]
     pub glossary: Vec<String>,
 }

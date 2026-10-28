@@ -15,6 +15,7 @@ mod commands;
 mod errors;
 mod export;
 mod gemini;
+mod glossary;
 mod history;
 mod lifecycle;
 mod mistral;

@@ -369,7 +369,10 @@ export const de: Messages = {
 		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
 		glossary: {
 			heading: 'Namen und Begriffe',
-			hint: 'Voxtral bevorzugt diese Schreibweisen: Namen der Vortragenden, Institutionen, Abkürzungen, Fachbegriffe. Ein Name oder Begriff pro Eintrag. Gilt ab dem nächsten Start.',
+			hint: (engine: string) =>
+				`${engine} bevorzugt diese Schreibweisen: Namen der Vortragenden, Institutionen, Abkürzungen, Fachbegriffe. Ein Name oder Begriff pro Eintrag. Gilt ab dem nächsten Start.`,
+			whisperLimit:
+				'Whisper liest die Liste als kurzen Prompt: Ab einigen Dutzend Einträgen zählen nur die ersten. Stellen Sie die wichtigsten an den Anfang.',
 			empty: 'Noch keine Namen oder Begriffe.',
 			add: 'Namen oder Begriff hinzufügen',
 			addButton: 'Hinzufügen',

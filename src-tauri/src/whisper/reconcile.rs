@@ -112,7 +112,7 @@ fn unspaced(c: char) -> bool {
 
 /// A word as compared across the boundary: case-folded, punctuation dropped, so "We," at the
 /// start of one window matches "we" at the end of the last.
-fn normalise(word: &str) -> String {
+pub(super) fn normalise(word: &str) -> String {
     word.chars()
         .filter(|c| c.is_alphanumeric())
         .flat_map(char::to_lowercase)

@@ -129,19 +129,42 @@ describe('Whisper translation', () => {
 	});
 });
 
-describe('Voxtral’s names and terms', () => {
-	it('are offered under the auto-detect note with Voxtral, and kept through another engine', async () => {
+describe('Names and terms', () => {
+	it('are offered under the auto-detect note with Voxtral and Gemini Transcribe', async () => {
 		options.set({ ...DEFAULT_START_OPTIONS, provider: 'mistral', glossary: ['UNESCO'] });
 		const view = mount(false);
 		expect(view.getByText(/Voxtral auto-detects the spoken language/)).toBeInTheDocument();
 		expect(view.getByRole('group', { name: 'Names and terms' })).toBeInTheDocument();
+		expect(view.getByText(/^Voxtral favours these spellings/)).toBeInTheDocument();
 		expect(view.getByRole('button', { name: 'Remove “UNESCO”' })).toBeInTheDocument();
 
 		await fireEvent.click(view.getByRole('button', { name: /^Google Gemini/ }));
-		expect(view.queryByRole('group', { name: 'Names and terms' })).toBeNull();
 		expect(get(options)).toMatchObject({ provider: 'gemini-transcribe', glossary: ['UNESCO'] });
-
-		await fireEvent.click(view.getByRole('button', { name: /^Mistral Voxtral/ }));
+		expect(view.getByText(/^Gemini favours these spellings/)).toBeInTheDocument();
 		expect(view.getByRole('button', { name: 'Remove “UNESCO”' })).toBeInTheDocument();
+		// Only Whisper cuts a long list.
+		expect(view.queryByText(/reads the list as a short prompt/)).toBeNull();
+	});
+
+	it('are offered with Whisper, which says a long list is cut', () => {
+		for (const [mode, provider] of [
+			['transcribe', 'whisper'],
+			['translate', 'whisper-translate']
+		] as const) {
+			options.set({ ...DEFAULT_START_OPTIONS, mode, provider, glossary: ['UNESCO'] });
+			const view = mount(false);
+			expect(view.getByRole('group', { name: 'Names and terms' })).toBeInTheDocument();
+			expect(view.getByText(/^Whisper reads the list as a short prompt/)).toBeInTheDocument();
+			view.unmount();
+		}
+	});
+
+	it('are hidden with the translation models, and kept for when one that takes them returns', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'mistral', glossary: ['UNESCO'] });
+		const view = mount(false);
+		await fireEvent.click(view.getByRole('button', { name: /^Live translation/ }));
+		expect(get(options).provider).not.toBe('mistral');
+		expect(view.queryByRole('group', { name: 'Names and terms' })).toBeNull();
+		expect(get(options).glossary).toEqual(['UNESCO']);
 	});
 });

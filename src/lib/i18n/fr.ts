@@ -370,7 +370,10 @@ export const fr: Messages = {
 		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
 		glossary: {
 			heading: 'Noms et termes',
-			hint: 'Voxtral privilégie ces graphies : noms des intervenants, institutions, sigles, jargon. Un nom ou un terme par entrée. S’applique au prochain démarrage.',
+			hint: (engine: string) =>
+				`${engine} privilégie ces graphies : noms des intervenants, institutions, sigles, jargon. Un nom ou un terme par entrée. S’applique au prochain démarrage.`,
+			whisperLimit:
+				'Whisper lit la liste comme une courte amorce : au-delà de quelques dizaines d’entrées, seules les premières comptent. Placez les plus importantes en tête.',
 			empty: 'Aucun nom ni terme pour l’instant.',
 			add: 'Ajouter un nom ou un terme',
 			addButton: 'Ajouter',

@@ -112,6 +112,10 @@ pub struct AudioTranscriptionConfig {
     pub language_codes: Vec<String>,
     /// `VERBATIM` or `SMART`.
     pub mode: &'static str,
+    /// The session's names and terms (`crate::glossary`), which bias recognition toward their
+    /// spelling. Up to 1,000 documented, best results at up to 100; left out when empty.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub custom_vocabulary: Vec<String>,
 }
 
 /// Cleaned-up transcription: fillers and false starts removed, self-corrections resolved,
@@ -120,7 +124,7 @@ pub struct AudioTranscriptionConfig {
 pub const MODE_SMART: &str = "SMART";
 
 impl TranscribeSetupMessage {
-    pub fn live_transcribe(model: &str) -> Self {
+    pub fn live_transcribe(model: &str, custom_vocabulary: &[String]) -> Self {
         Self {
             setup: TranscribeSetup {
                 model: format!("models/{model}"),
@@ -132,6 +136,7 @@ impl TranscribeSetupMessage {
                 input_audio_transcription: AudioTranscriptionConfig {
                     language_codes: Vec::new(),
                     mode: MODE_SMART,
+                    custom_vocabulary: custom_vocabulary.to_vec(),
                 },
             },
         }
@@ -226,6 +231,7 @@ mod tests {
     fn live_transcribe_setup_matches_current_documented_shape() {
         let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
             "gemini-3.5-transcribe-live",
+            &[],
         ))
         .unwrap();
         let setup = &value["setup"];
@@ -242,10 +248,28 @@ mod tests {
         assert!(setup["generationConfig"]
             .get("inputAudioTranscription")
             .is_none());
+        // No names and terms, no field.
+        assert!(setup["inputAudioTranscription"]
+            .get("customVocabulary")
+            .is_none());
 
         // Transcription has no translation target and generates no audio to transcribe back.
         assert!(setup["generationConfig"].get("translationConfig").is_none());
         assert!(setup.get("outputAudioTranscription").is_none());
+    }
+
+    #[test]
+    fn the_glossary_goes_in_the_input_sidecar_as_custom_vocabulary() {
+        let terms = ["IWAC".to_string(), "Université Joseph Ki-Zerbo".to_string()];
+        let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
+            "gemini-3.5-transcribe-live",
+            &terms,
+        ))
+        .unwrap();
+        assert_eq!(
+            value["setup"]["inputAudioTranscription"]["customVocabulary"],
+            serde_json::json!(["IWAC", "Université Joseph Ki-Zerbo"])
+        );
     }
 
     #[test]

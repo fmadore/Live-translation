@@ -102,6 +102,11 @@ glossaries, live corrections and offline text translation are not planned.
   meeting on 27 October 2026. The finer live meeting checks listed in the guide are still to be
   recorded.
 
+- **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
+  `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
+  ([Whisper notes](docs/local-whisper.md#names-and-terms)). Whisper's speech detection is next.
+  The translation models document no vocabulary field, so translated captions take no list.
+
 ## Unscheduled and research
 
 - [#32 — Windows AI speech-recognition prototype](https://github.com/fmadore/Live-translation/issues/32)

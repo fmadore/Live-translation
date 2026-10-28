@@ -197,10 +197,11 @@ API keys, device identifiers, or usage data from the application.
 ## Third-party processing
 
 Starting a cloud session sends audio directly to the chosen provider under the user’s relationship
-with that provider. With Mistral, the names and terms entered for its subtitles, if any, are sent
-to Mistral at the start of each session, together with the audio, so that its model favours
-those spellings. They may include the names of the people speaking; enter only what may be
-shared with Mistral. The providers' terms and privacy policies apply:
+with that provider. With Mistral or Gemini subtitles, the names and terms entered in the setup, if
+any, are sent to that provider at the start of each session, together with the audio, so that
+its model favours those spellings. They may include the names of the people speaking; enter only
+what may be shared with that provider. Local Whisper keeps them on the computer, and the
+translation engines are not sent them. The providers' terms and privacy policies apply:
 
 - [Google Privacy Policy](https://policies.google.com/privacy)
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)

@@ -366,7 +366,10 @@ export const en = {
 		/** Step 03 with Voxtral: the names and terms it is asked to favour for the session. */
 		glossary: {
 			heading: 'Names and terms',
-			hint: 'Voxtral favours these spellings: speaker names, institutions, acronyms, jargon. One name or term per entry. Applies from the next Start.',
+			hint: (engine: string) =>
+				`${engine} favours these spellings: speaker names, institutions, acronyms, jargon. One name or term per entry. Applies from the next Start.`,
+			whisperLimit:
+				'Whisper reads the list as a short prompt: from a few dozen entries on, only the first ones count, so put the most important at the top.',
 			empty: 'No names or terms yet.',
 			add: 'Add a name or term',
 			addButton: 'Add',

@@ -9,15 +9,17 @@
 		removeGlossaryTerm,
 		type GlossaryProblem
 	} from './glossary';
+	import { isLocalWhisper } from './providers';
 	import Field from './ui/Field.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 
-	/** Voxtral's names and terms: shown, added one at a time and removed. Part of the setup, so
-	 *  saved with it and in profiles, and sent once at Start: nothing changes mid-session. */
+	/** The engine's names and terms: shown, added one at a time and removed. Part of the setup,
+	 *  so saved with it and in profiles, and sent once at Start: nothing changes mid-session. */
 	let { locked }: { locked: boolean } = $props();
 	const id = $props.id();
 	const m = $derived($t.rail.glossary);
 	const glossary = $derived($options.glossary ?? []);
+	const engine = $derived($t.engine[$options.provider]);
 
 	let draft = $state('');
 	let problem = $state<{ kind: Exclude<GlossaryProblem, 'blank'>; term: string } | null>(null);
@@ -74,7 +76,9 @@
 
 <div class="glossary" role="group" aria-labelledby="{id}-heading">
 	<span class="heading" id="{id}-heading">{m.heading}</span>
-	<p class="note">{m.hint}</p>
+	<p class="note">{m.hint(engine)}</p>
+	<!-- Whisper reads the list as a prompt of about 220 tokens, so a long list is cut. -->
+	{#if isLocalWhisper($options.provider)}<p class="note">{m.whisperLimit}</p>{/if}
 	{#if glossary.length}
 		<ul bind:this={chips} aria-labelledby="{id}-heading">
 			{#each glossary as term, index (term.toLowerCase())}

@@ -59,6 +59,28 @@ partial file an interrupted one left behind (quitting mid-download cannot clean 
 bytes are verified again before passing them to the native loader. Files in use cannot be
 deleted or replaced.
 
+## Names and terms
+
+The setup's **Names and terms** list (step 03, shared with Voxtral and Gemini Transcribe) is
+Whisper's decoder prompt: the terms, joined with commas, stand in for text said before every
+window, which steers its spelling of names and jargon. Translating, it helps Whisper recognise
+the names it carries into English.
+
+- **Size:** whisper.cpp gives a prompt at most 223 tokens (half the 448-token text context,
+  less its opening token), a few dozen names. It would keep the *end* of a longer prompt, so
+  the app tokenizes the list once per source at Start and keeps the terms from the top that
+  fit (`whisper/prompt.rs`). The setup sheet says so under the list.
+- **Each window:** the tokens go in with `set_tokens`, not `set_initial_prompt`, which would
+  tokenize again and leak a C string for every window. `no_context` still drops the text of
+  earlier windows; whisper.cpp clears that history before adding the prompt, and drops the
+  prompt itself on its high-temperature fallbacks.
+- **Echoes:** over noise it cannot make out, Whisper may write the prompt back. A segment made
+  of two or more of the list's terms, in the list's order and nothing else, is dropped; a term
+  said on its own is kept. Speech detection (#187) will reduce how much noise reaches the model.
+
+`local_whisper_smoke` runs the English rehearsal again with two terms in the prompt and checks
+that a 100-entry list is cut to what fits the real tokenizer.
+
 ## Translation into English
 
 Whisper's models have a second task besides transcription: translating what is said, in any of

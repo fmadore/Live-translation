@@ -135,7 +135,14 @@ message and transcription fields differ.
   [15 September 2026 audio announcement](https://blog.google/innovation-and-ai/technology/developers-tools/build-real-time-voice-applications-gemini-audio/)
   confirms the disfluency removal; its Gemini 3.8 Live models are conversational audio models,
   not replacements for this integration.
-- `customVocabulary` (up to 1,000 terms, best under 100) is available and not yet wired up.
+- `customVocabulary` carries the setup's **Names and terms** list, inside
+  `inputAudioTranscription` beside `languageCodes`, and is left out when the list is empty.
+  Google documents up to 1,000 terms with the best results at up to 100; the app's list holds
+  100 (see [the glossary limits](mistral-realtime-api.md#glossary)). The guide says nothing
+  about changing it mid-session, so the app sends it once, in the setup message.
+  `transcribe::live_probe` sends two terms, which proves the server accepts the field where the
+  client puts it, not how much it helps. Live Translate documents no such field ("no support
+  for tools or instructions"), so translated captions take no list.
 
 ### Streaming and events
 
