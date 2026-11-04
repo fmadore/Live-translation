@@ -67,11 +67,31 @@ pub(crate) fn open(url: &str) -> Result<(), AppError> {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: `NSWorkspace` hands the page to the default browser. Public AppKit, allowed in the
+/// App Sandbox, and no process is started.
+#[cfg(target_os = "macos")]
+pub(crate) fn open(url: &str) -> Result<(), AppError> {
+    use objc2_app_kit::NSWorkspace;
+    use objc2_foundation::{NSString, NSURL};
+
+    let Some(address) = NSURL::URLWithString(&NSString::from_str(url)) else {
+        return Err(AppError::with(id::OPEN_LINK, "not a valid address"));
+    };
+    if NSWorkspace::sharedWorkspace().openURL(&address) {
+        Ok(())
+    } else {
+        Err(AppError::with(
+            id::OPEN_LINK,
+            "NSWorkspace could not open the page",
+        ))
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub(crate) fn open(_url: &str) -> Result<(), AppError> {
     Err(AppError::with(
         id::OPEN_LINK,
-        "opening a browser is only implemented on Windows",
+        "opening a browser is only implemented on Windows and macOS",
     ))
 }
 

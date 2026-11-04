@@ -1,18 +1,18 @@
 //! Native Save As and atomic transcript writes. Only the operator may invoke this.
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 use std::io;
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 use std::path::Path;
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 use std::sync::atomic::{AtomicU64, Ordering};
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 static NEXT_FILE: AtomicU64 = AtomicU64::new(0);
 
 /// `atomic_file::replace_via`, staged under a hidden name of this process's own. The folder is
 /// the operator's, so a name derived from the target's could already belong to one of their
 /// files; this one cannot, and would be refused rather than truncated if it somehow existed.
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
     let parent = path
         .parent()
@@ -25,7 +25,7 @@ fn atomic_write(path: &Path, content: &[u8]) -> io::Result<()> {
     crate::atomic_file::replace_via(path, &staging, content)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn save(
     app: tauri::AppHandle,
     window: tauri::WebviewWindow,
@@ -34,7 +34,8 @@ pub fn save(
 ) -> Result<Option<String>, crate::errors::AppError> {
     use crate::errors::{id, AppError};
     use tauri::Manager;
-    // A dedicated thread keeps the dialog's STA isolated from audio workers' COM state.
+    // A dedicated thread keeps the dialog's STA isolated from audio workers' COM state. On
+    // macOS rfd runs the panel on the main thread and waits for it here.
     std::thread::spawn(move || {
         let extension = Path::new(&filename)
             .extension()
@@ -69,11 +70,12 @@ pub fn save(
         if let Some(dir) = remembered.or_else(|| app.path().document_dir().ok()) {
             dialog = dialog.set_directory(dir);
         }
-        // Windows' IFileSaveDialog supplies the normal overwrite confirmation.
+        // Windows' IFileSaveDialog and macOS's NSSavePanel supply the normal overwrite
+        // confirmation.
         let Some(path) = dialog.save_file() else {
             return Ok(None);
         };
-        atomic_write(&path, content.as_bytes()).map_err(|e| {
+        write_export(&path, content.as_bytes()).map_err(|e| {
             AppError::with(id::TRANSCRIPT_WRITE, format!("{} — {e}", path.display()))
         })?;
         // Remember only successful saves. A preference failure must not undo a completed export.
@@ -96,7 +98,25 @@ pub fn save(
     })?
 }
 
-#[cfg(not(windows))]
+/// Write the chosen file. Atomic everywhere it can be: see [`atomic_write`].
+///
+/// In the macOS App Sandbox the Save panel grants the chosen file and nothing beside it, so
+/// the staging file cannot be created in its folder. Only then is the file written in place,
+/// which leaves a partly written transcript if the disk fails mid-write, but never one from
+/// another session. Outside the sandbox nothing changes.
+#[cfg(any(windows, target_os = "macos"))]
+fn write_export(path: &Path, content: &[u8]) -> io::Result<()> {
+    match atomic_write(path, content) {
+        #[cfg(target_os = "macos")]
+        Err(error) if error.kind() == io::ErrorKind::PermissionDenied => {
+            tracing::warn!("no access beside the export (App Sandbox); writing it in place");
+            std::fs::write(path, content)
+        }
+        other => other,
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn save(
     _: tauri::AppHandle,
     _: tauri::WebviewWindow,
@@ -105,7 +125,7 @@ pub fn save(
 ) -> Result<Option<String>, crate::errors::AppError> {
     Err(crate::errors::AppError::with(
         crate::errors::id::TRANSCRIPT_WRITE,
-        "native transcript export requires Windows",
+        "native transcript export requires Windows or macOS",
     ))
 }
 

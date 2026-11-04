@@ -127,6 +127,56 @@ pub fn show_operator_window(app: &AppHandle) {
     let _ = window.set_focus();
 }
 
+/// Id of the application menu's Quit on macOS.
+#[cfg(target_os = "macos")]
+const ID_APP_QUIT: &str = "app-quit";
+
+/// macOS: Tauri's default application menu, which gives text fields their Edit shortcuts
+/// (⌘C, ⌘V for pasting an API key, ⌘A…), with its Quit replaced. The system's Quit ends the
+/// process at once; this one runs the same shutdown as Quit in the tray (`tray::request_quit`):
+/// stop the session, finalize, and ask about an unsaved transcript.
+#[cfg(target_os = "macos")]
+pub fn install_app_menu(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{Menu, MenuItem, MenuItemKind};
+
+    let handle = app.handle();
+    let menu = Menu::default(handle)?;
+    // The application menu comes first and ends with Quit.
+    if let Some(MenuItemKind::Submenu(app_menu)) = menu.items()?.into_iter().next() {
+        if let Some(quit) = app_menu.items()?.into_iter().last() {
+            app_menu.remove(&quit)?;
+        }
+        let name = handle.package_info().name.clone();
+        app_menu.append(&MenuItem::with_id(
+            handle,
+            ID_APP_QUIT,
+            format!("Quit {name}"),
+            true,
+            Some("CmdOrCtrl+Q"),
+        )?)?;
+    }
+    app.set_menu(menu)?;
+    app.on_menu_event(|app, event| {
+        if event.id() == ID_APP_QUIT {
+            show_operator_window(app);
+            crate::tray::request_quit(app);
+        }
+    });
+    Ok(())
+}
+
+/// What the process does with an application event outside any window. On macOS a click on the
+/// Dock icon, or opening the app again from Finder, brings back an operator window that was
+/// hidden to the menu bar.
+pub fn on_run_event(app: &AppHandle, event: &tauri::RunEvent) {
+    #[cfg(target_os = "macos")]
+    if let tauri::RunEvent::Reopen { .. } = event {
+        show_operator_window(app);
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (app, event);
+}
+
 /// Sent the moment the front-end receives a close or quit request, before it starts stopping
 /// the session. It only claims "something is handling this"; the answer follows separately.
 #[tauri::command]

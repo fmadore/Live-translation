@@ -130,7 +130,7 @@ pub fn run_microphone(
         handle_stream_error(e, &error_tx, &stream_error_cancel);
     };
 
-    let stream = open_stream(&device, config, state, err_fn)?;
+    let stream = open_stream(&device, config, state, err_fn, "microphone")?;
     stream.play().context("failed to start microphone stream")?;
     wait_while_present(&device, cancel)?;
 
@@ -141,12 +141,15 @@ pub fn run_microphone(
     }
 }
 
-/// Open `device` in its default format, feeding every buffer it delivers to `state`.
-fn open_stream(
+/// Open `device` for input in `config`, feeding every buffer it delivers to `state`. `what`
+/// names the source in the log. On macOS the system-audio path opens an output device here:
+/// cpal then records it through a Core Audio process tap (`loopback.rs`).
+pub(super) fn open_stream(
     device: &cpal::Device,
     config: cpal::SupportedStreamConfig,
     mut state: CaptureState,
     err_fn: impl FnMut(cpal::Error) + Send + 'static,
+    what: &'static str,
 ) -> Result<cpal::Stream> {
     let sample_format = config.sample_format();
     let channels = usize::from(config.channels());
@@ -154,7 +157,7 @@ fn open_stream(
         rate = config.sample_rate(),
         channels,
         ?sample_format,
-        "starting microphone capture"
+        "starting {what} capture"
     );
     let config: cpal::StreamConfig = config.into();
 

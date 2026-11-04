@@ -1,0 +1,217 @@
+name: macOS test build
+
+# The Mac app for trying on a real Mac (issue #195, docs/macos.md): built on Apple silicon,
+# started on the runner, and uploaded as a workflow artifact with two variants of the same build.
+#
+# - `Live Translation.app` in a disk image: signed ad hoc with the hardened runtime and the
+#   direct build's entitlements (src-tauri/macos/Entitlements.plist), as a Developer ID build
+#   would be. Run on demand with the Developer ID secrets present (the same six Kalamu uses,
+#   listed in docs/macos.md), it is signed with the Developer ID and notarised instead.
+# - `Live Translation (sandbox).app` in a zip: the same app signed again ad hoc inside the App
+#   Sandbox (src-tauri/macos/Sandbox.plist), the spike for a Mac App Store build. Never
+#   notarised; a runner has no provisioning profile, so it carries no App ID either.
+#
+# Pull requests never see signing secrets: they are read only on `workflow_dispatch`, which
+# only people with write access can start, and on the branch they choose.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sign:
+        description: Sign with the Developer ID and notarise (needs the APPLE_* secrets)
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - .github/workflows/macos.yml
+      - src-tauri/**
+      - src/**
+      - package.json
+      - package-lock.json
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build, start and upload (Apple silicon)
+    runs-on: macos-15
+    # Notarisation can sit in Apple's queue for a long time on a first submission.
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+          # As in ci.yml; the job name keeps this release-profile cache apart from its tests'.
+          prefix-key: whisper-cpu-${{ runner.arch }}-v2
+          cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check the Developer ID secrets
+        id: signing
+        if: github.event_name == 'workflow_dispatch' && inputs.sign
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+            APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          # Without them Tauri would sign ad hoc and skip notarisation with only a warning.
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets for Developer ID signing: ${missing[*]}."
+            exit 1
+          fi
+
+      # `tauri.macos.conf.json` is merged on macOS: app and dmg bundles, the .icns icon, macOS
+      # 15 and later, ad-hoc signing with the hardened runtime. The APPLE_* variables, set only
+      # when signing was asked for and checked above, override the identity and notarise.
+      - name: Build the app and disk image
+        env:
+          APPLE_CERTIFICATE: ${{ steps.signing.outcome == 'success' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.signing.outcome == 'success' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ steps.signing.outcome == 'success' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.signing.outcome == 'success' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.signing.outcome == 'success' && secrets.APPLE_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ steps.signing.outcome == 'success' && secrets.APPLE_TEAM_ID || '' }}
+        run: |
+          # Empty variables would still count as set for the bundler.
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+            APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || unset "$name"
+          done
+          npx tauri build --bundles app,dmg
+
+      - name: Inspect the bundle
+        id: bundle
+        run: |
+          bundle="src-tauri/target/release/bundle"
+          app="$bundle/macos/Live Translation.app"
+          test -d "$app" || { echo "::error::No app bundle at $app"; ls -R "$bundle"; exit 1; }
+          dmg=$(ls "$bundle"/dmg/*.dmg | head -n 1)
+          exe="$app/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+          {
+            echo "app=$app"
+            echo "dmg=$dmg"
+            echo "exe=$exe"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "== Info.plist"
+          plutil -p "$app/Contents/Info.plist"
+          for key in NSMicrophoneUsageDescription NSAudioCaptureUsageDescription LSMinimumSystemVersion; do
+            /usr/libexec/PlistBuddy -c "Print :$key" "$app/Contents/Info.plist" >/dev/null \
+              || { echo "::error::Info.plist lacks $key."; exit 1; }
+          done
+          echo "== signature"
+          codesign -dv --verbose=2 "$app" 2>&1
+          codesign --verify --strict --verbose=2 "$app"
+          codesign -d --entitlements - --xml "$app" 2>/dev/null | grep -q 'com.apple.security.device.audio-input' \
+            || { echo "::error::The microphone entitlement is missing; the hardened runtime would block it."; exit 1; }
+          echo "== architecture and linked libraries (nothing outside the system)"
+          lipo -archs "$exe"
+          otool -L "$exe"
+          if otool -L "$exe" | tail -n +2 | grep -v -E '^\s*(/System/Library/|/usr/lib/)'; then
+            echo "::error::The app links a library macOS does not provide."
+            exit 1
+          fi
+
+      - name: Check notarisation and Gatekeeper
+        if: steps.signing.outcome == 'success'
+        run: |
+          xcrun stapler validate "${{ steps.bundle.outputs.app }}"
+          spctl --assess --type execute --verbose=2 "${{ steps.bundle.outputs.app }}"
+
+      # The sandbox spike: the same binary, signed again inside the App Sandbox.
+      - name: Make the sandboxed variant
+        id: sandbox
+        run: |
+          sandboxed="$RUNNER_TEMP/Live Translation (sandbox).app"
+          ditto "${{ steps.bundle.outputs.app }}" "$sandboxed"
+          codesign --force --sign - --options runtime \
+            --entitlements src-tauri/macos/Sandbox.plist "$sandboxed"
+          codesign --verify --strict --verbose=2 "$sandboxed"
+          codesign -d --entitlements - --xml "$sandboxed" 2>/dev/null | grep -q 'com.apple.security.app-sandbox' \
+            || { echo "::error::The sandboxed variant is not sandboxed."; exit 1; }
+          echo "app=$sandboxed" >> "$GITHUB_OUTPUT"
+
+      # The runner has a logged-in desktop, so both variants can start for real: the windows
+      # open, the webview loads, the tray icon is made. Run straight from the executable so its
+      # log is kept; macOS applies the signature's sandbox all the same.
+      - name: Start both variants
+        env:
+          DIRECT: ${{ steps.bundle.outputs.app }}
+          SANDBOXED: ${{ steps.sandbox.outputs.app }}
+        run: |
+          start() {
+            local app="$1" log="$2" exe
+            exe="$app/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
+            RUST_LOG=live_translation_lib=debug,warn "$exe" > "$log" 2>&1 &
+            local pid=$!
+            sleep 25
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "::error::$(basename "$app") exited during startup."
+              cat "$log"
+              return 1
+            fi
+            kill "$pid"
+            wait "$pid" 2>/dev/null || true
+            echo "== $(basename "$app") log"
+            cat "$log"
+          }
+          start "$DIRECT" "$RUNNER_TEMP/direct.log"
+          start "$SANDBOXED" "$RUNNER_TEMP/sandbox.log"
+          container="$HOME/Library/Containers/io.github.fmadore.live-translation"
+          test -d "$container" \
+            || { echo "::error::The sandboxed variant made no container; it did not run sandboxed."; exit 1; }
+          echo "== container"
+          find "$container/Data/Library" -maxdepth 3 -not -path '*/Caches/*' | head -n 50
+
+      # `ditto` keeps the signatures and extended attributes a plain zip would drop.
+      - name: Pack the artifact
+        env:
+          DMG: ${{ steps.bundle.outputs.dmg }}
+          SANDBOXED: ${{ steps.sandbox.outputs.app }}
+        run: |
+          out="$RUNNER_TEMP/artifact"
+          mkdir -p "$out"
+          cp "$DMG" "$out/"
+          ditto -c -k --keepParent "$SANDBOXED" "$out/Live-Translation-sandbox.zip"
+          git rev-parse HEAD > "$out/commit.txt"
+          ls -la "$out"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: live-translation-macos-${{ github.sha }}
+          path: ${{ runner.temp }}/artifact/
+          retention-days: 14
+          if-no-files-found: error

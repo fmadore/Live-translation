@@ -1,9 +1,18 @@
 //! System (loopback) audio capture — the "audio coming out of the laptop" path: a remote
-//! speaker on Zoom or Teams, a browser tab, a media player. On Windows this uses WASAPI
-//! loopback, which captures the render endpoint mix — every application's output, whatever
-//! it is — without any virtual audio device. On other platforms it is a stub.
+//! speaker on Zoom or Teams, a browser tab, a media player. Neither system needs a virtual
+//! audio device:
 //!
-//! The Windows path follows the current `wasapi` event-driven shared-stream API.
+//! - **Windows** uses WASAPI loopback, which captures the render endpoint mix (every
+//!   application's output), or one application's output through a process loopback client.
+//!   It follows the current `wasapi` event-driven shared-stream API.
+//! - **macOS** (14.6 and later) uses a Core Audio process tap on the selected output, through
+//!   cpal: opening an output device for input makes cpal create a private tap of every
+//!   process's output and a private aggregate device to read it, both destroyed with the
+//!   stream. macOS asks once for *System Audio Recording* (`NSAudioCaptureUsageDescription`
+//!   in `Info.plist`); no screen content is captured. Capturing one application is not
+//!   offered on macOS yet (`applications::list` reports it unsupported).
+//! - Elsewhere it is a stub.
+//!
 //! Everything downstream (resampling, chunking, leveling via `CaptureState`) is shared
 //! with the mic path and is exercised by tests.
 
@@ -13,7 +22,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::types::AudioLevel;
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn run_system_loopback(
     _device_id: Option<String>,
     _capture: super::applications::SystemCapture,
@@ -22,7 +31,132 @@ pub fn run_system_loopback(
     _chunk_tx: crate::audio::sink::AudioSink,
     _cancel: &CancellationToken,
 ) -> Result<()> {
-    anyhow::bail!("System (loopback) capture is only supported on Windows in this build")
+    anyhow::bail!("System (loopback) capture is only supported on Windows and macOS")
+}
+
+#[cfg(target_os = "macos")]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "the Windows build's signature, which consumes them"
+)]
+pub fn run_system_loopback(
+    device_id: Option<String>,
+    capture: super::applications::SystemCapture,
+    target_rate: u32,
+    level_tx: Sender<AudioLevel>,
+    chunk_tx: crate::audio::sink::AudioSink,
+    cancel: &CancellationToken,
+) -> Result<()> {
+    macos_impl::run(
+        device_id.as_deref(),
+        &capture,
+        target_rate,
+        level_tx,
+        chunk_tx,
+        cancel,
+    )
+}
+
+#[cfg(target_os = "macos")]
+mod macos_impl {
+    use std::time::Duration;
+
+    use anyhow::{anyhow, Context, Result};
+    use cpal::traits::{DeviceTrait, StreamTrait};
+    use tokio::sync::mpsc::Sender;
+    use tokio_util::sync::CancellationToken;
+
+    use crate::audio::applications::SystemCapture;
+    use crate::audio::capture::{open_stream, CaptureState};
+    use crate::audio::devices::{pick_output, PresenceCheck};
+    use crate::types::{AudioLevel, Origin};
+
+    /// How often the tapped output's presence is checked. macOS sends no device-change
+    /// notification to this app yet, so the fallback interval does all the work.
+    const PRESENCE_INTERVAL: Duration = Duration::from_secs(1);
+
+    pub fn run(
+        device_id: Option<&str>,
+        capture: &SystemCapture,
+        target_rate: u32,
+        level_tx: Sender<AudioLevel>,
+        chunk_tx: crate::audio::sink::AudioSink,
+        cancel: &CancellationToken,
+    ) -> Result<()> {
+        // Never widen a selected application to the whole output mix.
+        if let SystemCapture::Application { .. } = capture {
+            anyhow::bail!(
+                "capturing one application is not available on macOS yet; choose all output audio"
+            );
+        }
+        let device = pick_output(device_id)?;
+        // The output's own format: the tap delivers the mix as the device plays it.
+        let config = device
+            .default_output_config()
+            .context("failed to read the output device's format")?;
+        let state = CaptureState::new(
+            Origin::System,
+            config.sample_rate(),
+            target_rate,
+            level_tx,
+            chunk_tx,
+        );
+
+        let stream_error_cancel = cancel.clone();
+        let (error_tx, error_rx) = std::sync::mpsc::sync_channel(1);
+        let err_fn = move |error: cpal::Error| {
+            // As for the microphone: quality notices are not failures, and the callback never
+            // blocks or talks to the interface.
+            if matches!(
+                error.kind(),
+                cpal::ErrorKind::Xrun | cpal::ErrorKind::RealtimeDenied
+            ) {
+                return;
+            }
+            let _ = error_tx.try_send(anyhow!("system audio stream error: {error}"));
+            stream_error_cancel.cancel();
+        };
+
+        // Creating the process tap and its aggregate device is where this fails, if it does.
+        // A refused System Audio Recording permission may instead deliver silence: see
+        // docs/macos.md.
+        let stream = open_stream(
+            &device,
+            config,
+            state,
+            err_fn,
+            "system audio (Core Audio tap)",
+        )
+        .context("could not tap the output's audio")?;
+        stream
+            .play()
+            .context("failed to start the system audio tap")?;
+        wait_while_present(&device, cancel)?;
+        drop(stream);
+
+        tracing::info!("Core Audio tap capture stopped");
+        match error_rx.try_recv() {
+            Ok(error) => Err(error),
+            Err(_) => Ok(()),
+        }
+    }
+
+    /// Park until `cancel` fires or the tapped output disappears. The stream stays pinned to
+    /// its output; it never follows a new default.
+    fn wait_while_present(device: &cpal::Device, cancel: &CancellationToken) -> Result<()> {
+        let pinned_id = device
+            .id()
+            .context("failed to identify the tapped output device")?;
+        let mut presence = PresenceCheck::new(PRESENCE_INTERVAL);
+        while !cancel.is_cancelled() {
+            std::thread::sleep(Duration::from_millis(100));
+            if presence.due() {
+                let available = crate::audio::devices::output_ids()?.contains(&pinned_id);
+                anyhow::ensure!(available, "selected output device disconnected or disabled");
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(windows)]

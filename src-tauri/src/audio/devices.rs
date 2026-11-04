@@ -45,13 +45,89 @@ impl PresenceCheck {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 #[allow(
     clippy::unnecessary_wraps,
     reason = "the Windows build's signature, which can fail"
 )]
 pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
     Ok(Vec::new())
+}
+
+/// The outputs whose mix the system-audio source can tap, through cpal's Core Audio host.
+/// Ids are cpal's stable device ids, which `pick_output` takes back.
+///
+/// A device that also has inputs (a USB headset or speakerphone) is left out: cpal opens such
+/// a device's own input instead of tapping its output, which would caption the room's
+/// microphone while the operator believes it is the computer's sound. See [`tappable`].
+#[cfg(target_os = "macos")]
+pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    let host = cpal::default_host();
+    let default_id = host
+        .default_output_device()
+        .and_then(|device| device.id().ok());
+    let mut out = Vec::new();
+    for device in host
+        .output_devices()
+        .context("failed to enumerate output devices")?
+        .filter(tappable)
+    {
+        if let Ok(id) = device.id() {
+            out.push(AudioDevice {
+                is_default: Some(&id) == default_id.as_ref(),
+                id: id.to_string(),
+                name: device.to_string(),
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// Whether cpal records this output through a process tap. It does only for a device with no
+/// input of its own; for any other it opens that input, a microphone.
+#[cfg(target_os = "macos")]
+fn tappable(device: &cpal::Device) -> bool {
+    use cpal::traits::DeviceTrait;
+    !device.supports_input()
+}
+
+/// The output to tap: the one with this id, or the default output. Refuses an output that
+/// cpal would not tap (see [`tappable`]) rather than record a microphone in its place.
+#[cfg(target_os = "macos")]
+pub fn pick_output(id: Option<&str>) -> anyhow::Result<cpal::Device> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    let host = cpal::default_host();
+    let device = match id {
+        Some(wanted) => host
+            .output_devices()
+            .context("failed to enumerate output devices")?
+            .find(|device| device.id().is_ok_and(|id| id.to_string() == wanted))
+            .ok_or_else(|| anyhow::anyhow!("selected output device unavailable")),
+        None => host
+            .default_output_device()
+            .ok_or_else(|| anyhow::anyhow!("no default output device")),
+    }?;
+    anyhow::ensure!(
+        tappable(&device),
+        "this output also has a microphone, and system audio cannot be captured from it on \
+         macOS yet; choose another output"
+    );
+    Ok(device)
+}
+
+/// The ids of the outputs present now, for the tap's presence check.
+#[cfg(target_os = "macos")]
+pub fn output_ids() -> anyhow::Result<Vec<cpal::DeviceId>> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    Ok(cpal::default_host()
+        .output_devices()
+        .context("failed to check output availability")?
+        .filter_map(|device| device.id().ok())
+        .collect())
 }
 
 #[cfg(windows)]

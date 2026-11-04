@@ -61,9 +61,30 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # against the same devices. Registered first in the builder chain, as the plugin requires.
 tauri-plugin-single-instance = "2.5.2"
 
+# The native Save As for transcript export (`src/export.rs`): IFileSaveDialog on Windows,
+# NSSavePanel on macOS. No default features: those are the Linux portal and Wayland backends.
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+rfd = { version = "0.17.2", default-features = false }
+
+# Public AppKit for the caption overlay's window level and Spaces (`src/overlay.rs`) and for
+# opening the app's fixed pages in the browser (`src/support.rs`). The versions tao, wry and
+# rfd already compile, so this adds no crate to the macOS build.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.4"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSResponder",
+  "NSWindow",
+  "NSWorkspace",
+] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "NSString",
+  "NSURL",
+] }
+
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]
-rfd = { version = "0.17.2", default-features = false }
 # Direct event-driven WASAPI access for render-device loopback capture.
 wasapi = "0.26"
 # Win32 z-order/activation control for the caption overlay (`src/overlay.rs`), and
