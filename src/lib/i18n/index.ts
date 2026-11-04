@@ -6,14 +6,24 @@
 
 import { derived, writable } from 'svelte/store';
 import { readStored, writeStored } from '../persisted';
+import { isMac } from '../platform';
 import { de } from './de';
 import { en, type Messages } from './en';
 import { fr } from './fr';
+import { macDe, macEn, macFr, withOverrides } from './mac';
 
 export const LOCALES = ['en', 'fr', 'de'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-const CATALOGS: Record<Locale, Messages> = { en, fr, de };
+/** The catalogs as this system reads them: on a Mac, with the messages that name Windows
+ *  places in macOS's words (`mac.ts`). Exported for the tests. */
+export function catalogsFor(mac: boolean): Record<Locale, Messages> {
+	return mac
+		? { en: withOverrides(en, macEn), fr: withOverrides(fr, macFr), de: withOverrides(de, macDe) }
+		: { en, fr, de };
+}
+
+const CATALOGS: Record<Locale, Messages> = catalogsFor(isMac);
 
 /** Each language's name in its own language — a selector that says "French" to someone who
  *  cannot read English has not helped them. */

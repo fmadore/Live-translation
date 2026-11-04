@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	ariaKeyShortcut,
 	keyLabel,
+	keyParts,
 	shortcut,
 	SHORTCUT_KEYS,
 	type KeyName,
@@ -11,6 +12,7 @@ import {
 import { en } from './i18n/en';
 import { de } from './i18n/de';
 import { fr } from './i18n/fr';
+import { catalogsFor } from './i18n';
 it('requires the modifier combination and suppresses repeat, dialogs and text editing', () => {
 	const event = new KeyboardEvent('keydown', { code: 'Space', ctrlKey: true, shiftKey: true });
 	expect(shortcut(event, false)).toBe('toggleSession');
@@ -71,5 +73,34 @@ describe('the shortcut table', () => {
 		expect(keyLabel('toggleSession', fr.keys)).toBe('Ctrl+Maj+Espace');
 		expect(keyLabel('toggleSession', de.keys)).toBe('Strg+Umschalt+Leertaste');
 		expect(keyLabel('smaller', en.keys)).toBe('Ctrl+Shift+↓');
+	});
+});
+
+// On a Mac the table's `ctrl` is Command: the listener answers ⌘, never Control, and the keys
+// are written as macOS writes them, in the catalog's Mac names.
+describe('on a Mac', () => {
+	const mac = catalogsFor(true);
+
+	it('answers Command, and leaves Control alone', () => {
+		const command = new KeyboardEvent('keydown', { code: 'Space', metaKey: true, shiftKey: true });
+		expect(shortcut(command, false, true)).toBe('toggleSession');
+		const control = new KeyboardEvent('keydown', { code: 'Space', ctrlKey: true, shiftKey: true });
+		expect(shortcut(control, false, true)).toBeNull();
+		// And Windows the other way round: the Windows key is never the modifier.
+		expect(shortcut(command, false, false)).toBeNull();
+		expect(shortcut(new KeyboardEvent('keydown', { key: 'F2' }), false, true)).toBe('direction');
+	});
+
+	it('announces Command as Meta', () => {
+		expect(ariaKeyShortcut('togglePause', true)).toBe('Meta+Shift+P');
+		expect(ariaKeyShortcut('direction', true)).toBe('F2');
+	});
+
+	it('writes Shift before Command, with nothing between the keys', () => {
+		expect(keyLabel('togglePause', mac.en.keys, true)).toBe('⇧⌘P');
+		expect(keyLabel('toggleSession', mac.fr.keys, true)).toBe('⇧⌘Espace');
+		expect(keyLabel('larger', mac.de.keys, true)).toBe('⇧⌘↑');
+		expect(keyParts('toggleOverlay', mac.en.keys, true)).toEqual(['⇧', '⌘', 'O']);
+		expect(keyLabel('direction', mac.en.keys, true)).toBe('F2');
 	});
 });
