@@ -1,10 +1,12 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 27 October 2026 (documents the 1.12.0 release)
+**Effective date:** 4 November 2026 (adds the macOS app, distributed as a disk image and through
+the Mac App Store; the Windows app is unchanged from the 1.12.0 release)
 
 ## What this app is
 
-Live Translation & Subtitles is a Windows desktop application with three kinds of operation:
+Live Translation & Subtitles is a desktop application for Windows and macOS with three kinds of
+operation:
 
 - local multilingual speech transcription, or translation into English, using Whisper on the
   user’s computer;
@@ -27,10 +29,13 @@ level data and English/French caption text are bundled inside the application an
 device.
 
 When a live provider is selected, the app captures only the audio source selected by the user:
-a chosen microphone, Windows system audio, or both. With a cloud provider, audio is processed
-in memory and streamed directly to that provider for the duration of the session. System capture can use
-all audio on a selected output or only the selected application and its child processes.
-The latter includes that application’s notifications and may include several browser tabs.
+a chosen microphone, the computer's system audio, or both. With a cloud provider, audio is
+processed in memory and streamed directly to that provider for the duration of the session.
+System capture can use all audio on a selected output or only the selected application: on
+Windows with its child processes, on macOS with its helper processes. This includes that
+application’s notifications and may include several browser tabs. On macOS, system audio is
+captured through a Core Audio process tap, which macOS permits only after the user allows
+*System Audio Recording*; it captures sound only, never screen content.
 Application titles and process identities are used locally to select the source, not sent
 to the speech provider. Cloud captioning does not write captured audio to disk.
 
@@ -46,7 +51,8 @@ storage while metering remains active.
 Whisper model files are downloaded only when the user chooses **Download model**. Downloads
 contact Hugging Face and its file-delivery infrastructure, which receive ordinary network
 request information such as the user's IP address. No captured audio, captions or provider
-key is included. When a proxy server is set in Windows Settings (or through the
+key is included. When a proxy server is set in Windows Settings or macOS's network settings (or
+through the
 `HTTPS_PROXY`/`HTTP_PROXY` variables), downloads go through it, so it sees the same request
 information. While downloading, the file is held as `<model>.part` in the models folder; it is
 deleted if the download fails or is cancelled, or at the start of the next download if the app
@@ -68,10 +74,11 @@ in the full session transcript. The layout feature creates no additional disk hi
 network requests.
 
 **Copy**, in the session transcript or a saved session's transcript, places the chosen part of
-the transcript on the Windows clipboard as plain text, only when the user chooses it. From there
+the transcript on the system clipboard as plain text, only when the user chooses it. From there
 other applications can read it. If the user has turned on clipboard history or clipboard sync
-across devices in Windows Settings, Windows keeps or syncs it as it would any copied text. The
-app writes to the clipboard but never reads it.
+across devices in Windows Settings, Windows keeps or syncs it as it would any copied text; on
+macOS, Universal Clipboard may offer it to the user's other Apple devices nearby. The app writes
+to the clipboard but never reads it.
 
 Closing the app with unsaved caption text asks whether to save or discard it first.
 
@@ -141,8 +148,9 @@ transcript or recording, is governed by Zoom's terms and the meeting host's sett
 
 ## API keys
 
-No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are stored in
-Windows Credential Manager and read only by the native application core. A key is sent only to
+No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are
+stored in Windows Credential Manager or the macOS Keychain and read only by the native
+application core. A key is sent only to
 the provider that issued it to authenticate the live connection. The developer does not receive,
 copy, proxy, or store provider keys.
 
@@ -156,7 +164,7 @@ layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, whether a running session shows the Live or the Transcript view, the names and
 terms entered for Mistral subtitles, and whether closing the window leaves the app running in
-the notification area.
+the notification area (the menu bar on macOS).
 The app also remembers the folder of the last successful transcript export, the chosen export
 format, and whether system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch. A Zoom caption link is never stored.
@@ -170,11 +178,12 @@ Raw transcripts preserve the text returned by the provider. Gemini Smart transcr
 remove hesitations and resolve spoken corrections before that text reaches this app; turning
 off the local overlay filter does not switch off provider-side cleanup.
 
-## Running in the notification area
+## Running in the notification area or the menu bar
 
-The app does not start with Windows and does not run as a background service. It appears in the
-notification area only while it is running, and closing the window quits it unless the user turns
-on *Keep running in the tray when I close this window*. With that on, the first time the window
+The app does not start with the computer and does not run as a background service. It appears in
+the Windows notification area, or the macOS menu bar, only while it is running, and closing the
+window quits it unless the user turns on *Keep running in the tray when I close this window*
+(*in the menu bar* on macOS). With that on, the first time the window
 is hidden the app says so explicitly, and quitting from the notification-area icon stops any
 active capture before it exits.
 
@@ -186,7 +195,20 @@ fixed address to the default web browser and nothing else: it sends no informati
 user, the device or its use, and it contacts no payment service itself. Anything entered on
 that page, including any payment, is between the user and Buy Me a Coffee, under the
 [Buy Me a Coffee privacy policy](https://buymeacoffee.com/privacy-policy). Supporting is
-optional and changes nothing in the app.
+optional and changes nothing in the app. The Mac App Store version does not show the link.
+
+## macOS
+
+On macOS the app asks the system for the microphone and for System Audio Recording the first time
+a session uses them; either can be withdrawn in System Settings › Privacy & Security. Its data
+folder (Whisper models, the optional history and recovery copy) is
+`~/Library/Application Support/io.github.fmadore.live-translation`, or, for the Mac App Store
+version, the same path inside the app's sandbox container
+(`~/Library/Containers/io.github.fmadore.live-translation`). When the Mac App Store version first
+starts, macOS moves the disk image version's data folder into that container. Distribution
+through Apple (notarisation of the disk image, and the App Store and TestFlight) involves Apple
+receiving the application from the developer, not anything of the user's; the App Store's own
+handling of downloads and purchases is governed by Apple's privacy policy.
 
 ## What the developer collects
 

@@ -28,7 +28,8 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 
 - [Architecture](architecture.md) and [native Whisper build requirements](local-whisper.md#building).
 - [macOS port](macos.md): what is implemented, the test build and the checklist for a first run
-  on a Mac ([#195](https://github.com/fmadore/Live-translation/issues/195)).
+  on a Mac ([#195](https://github.com/fmadore/Live-translation/issues/195)), and the
+  [Mac App Store submission](mac-app-store.md).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md).
 - [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
 
