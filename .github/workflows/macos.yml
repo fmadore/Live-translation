@@ -119,7 +119,9 @@ jobs:
           bundle="src-tauri/target/release/bundle"
           app="$bundle/macos/Live Translation.app"
           test -d "$app" || { echo "::error::No app bundle at $app"; ls -R "$bundle"; exit 1; }
-          dmg=$(ls "$bundle"/dmg/*.dmg | head -n 1)
+          dmgs=("$bundle"/dmg/*.dmg)
+          dmg=${dmgs[0]}
+          test -f "$dmg" || { echo "::error::No disk image in $bundle/dmg"; exit 1; }
           exe="$app/Contents/MacOS/$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")"
           {
             echo "app=$app"
