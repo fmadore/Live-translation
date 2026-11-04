@@ -66,21 +66,47 @@ tauri-plugin-single-instance = "2.5.2"
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 rfd = { version = "0.17.2", default-features = false }
 
-# Public AppKit for the caption overlay's window level and Spaces (`src/overlay.rs`) and for
-# opening the app's fixed pages in the browser (`src/support.rs`). The versions tao, wry and
-# rfd already compile, so this adds no crate to the macOS build.
+# Public AppKit for the caption overlay's window level and Spaces (`src/overlay.rs`), opening
+# the app's fixed pages in the browser (`src/support.rs`) and listing running applications
+# (`src/audio/applications.rs`); Core Audio for the system-audio tap (`src/audio/tap.rs`) and
+# device notifications; libc for a process's start time. The versions tao, wry, rfd and cpal
+# already compile, so this adds no crate to the macOS build.
 [target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2.189"
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = [
   "std",
+  "libc",
+  "NSApplication",
   "NSResponder",
+  "NSRunningApplication",
   "NSWindow",
   "NSWorkspace",
 ] }
+objc2-core-audio = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "AudioHardware",
+  "objc2",
+  "objc2-core-audio-types",
+  "objc2-foundation",
+] }
+objc2-core-audio-types = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "CoreAudioBaseTypes",
+] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = [
+  "std",
+  "CFArray",
+  "CFDictionary",
+  "CFString",
+] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = [
   "std",
+  "NSArray",
   "NSString",
   "NSURL",
+  "NSUUID",
+  "NSValue",
 ] }
 
 # WASAPI loopback capture is Windows-only.

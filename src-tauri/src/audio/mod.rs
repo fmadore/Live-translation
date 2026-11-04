@@ -1,4 +1,5 @@
-//! Audio capture: microphone (cpal, cross-platform) and system loopback (WASAPI, Windows).
+//! Audio capture: microphone (cpal, cross-platform) and system loopback (WASAPI on Windows, a
+//! Core Audio process tap on macOS).
 //! Both feed a uniform stream of mono PCM-16 chunks to the active translation client at the
 //! provider's input rate (16 kHz for Gemini, 24 kHz for OpenAI), and emit a level meter to the
 //! UI. The target rate is chosen per session and threaded into capture.
@@ -13,6 +14,9 @@ mod com;
 pub mod fixture;
 pub mod loopback;
 pub mod resample;
+// Core Audio process taps: the system-audio source on macOS.
+#[cfg(target_os = "macos")]
+mod tap;
 
 /// We send ~100 ms chunks, the cadence the realtime APIs recommend.
 pub const CHUNK_MS: usize = 100;

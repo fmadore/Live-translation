@@ -5,12 +5,10 @@
 //! - **Windows** uses WASAPI loopback, which captures the render endpoint mix (every
 //!   application's output), or one application's output through a process loopback client.
 //!   It follows the current `wasapi` event-driven shared-stream API.
-//! - **macOS** (14.6 and later) uses a Core Audio process tap on the selected output, through
-//!   cpal: opening an output device for input makes cpal create a private tap of every
-//!   process's output and a private aggregate device to read it, both destroyed with the
-//!   stream. macOS asks once for *System Audio Recording* (`NSAudioCaptureUsageDescription`
-//!   in `Info.plist`); no screen content is captured. Capturing one application is not
-//!   offered on macOS yet (`applications::list` reports it unsupported).
+//! - **macOS** uses a Core Audio process tap (`tap.rs`): of every process playing to the
+//!   selected output, or of one application and its helper processes. macOS asks once for
+//!   *System Audio Recording* (`NSAudioCaptureUsageDescription` in `Info.plist`); no screen
+//!   content is captured.
 //! - Elsewhere it is a stub.
 //!
 //! Everything downstream (resampling, chunking, leveling via `CaptureState`) is shared
@@ -61,19 +59,19 @@ pub fn run_system_loopback(
 mod macos_impl {
     use std::time::Duration;
 
-    use anyhow::{anyhow, Context, Result};
-    use cpal::traits::{DeviceTrait, StreamTrait};
+    use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
     use tokio_util::sync::CancellationToken;
 
-    use crate::audio::applications::SystemCapture;
-    use crate::audio::capture::{open_stream, CaptureState};
-    use crate::audio::devices::{pick_output, PresenceCheck};
+    use crate::audio::applications::{audio_processes, ProcessGuard, SystemCapture};
+    use crate::audio::capture::CaptureState;
+    use crate::audio::devices::{output_uids, pick_output, PresenceCheck};
+    use crate::audio::tap::{Tap, Target};
     use crate::types::{AudioLevel, Origin};
 
-    /// How often the tapped output's presence is checked. macOS sends no device-change
-    /// notification to this app yet, so the fallback interval does all the work.
-    const PRESENCE_INTERVAL: Duration = Duration::from_secs(1);
+    /// How often the tapped output's presence, or the captured application's processes, are
+    /// checked, unless Core Audio reports a device change first.
+    const CHECK_INTERVAL: Duration = Duration::from_secs(1);
 
     pub fn run(
         device_id: Option<&str>,
@@ -83,78 +81,57 @@ mod macos_impl {
         chunk_tx: crate::audio::sink::AudioSink,
         cancel: &CancellationToken,
     ) -> Result<()> {
-        // Never widen a selected application to the whole output mix.
-        if let SystemCapture::Application { .. } = capture {
-            anyhow::bail!(
-                "capturing one application is not available on macOS yet; choose all output audio"
-            );
-        }
-        let device = pick_output(device_id)?;
-        // The output's own format: the tap delivers the mix as the device plays it.
-        let config = device
-            .default_output_config()
-            .context("failed to read the output device's format")?;
-        let state = CaptureState::new(
-            Origin::System,
-            config.sample_rate(),
-            target_rate,
-            level_tx,
-            chunk_tx,
-        );
-
-        let stream_error_cancel = cancel.clone();
-        let (error_tx, error_rx) = std::sync::mpsc::sync_channel(1);
-        let err_fn = move |error: cpal::Error| {
-            // As for the microphone: quality notices are not failures, and the callback never
-            // blocks or talks to the interface.
-            if matches!(
-                error.kind(),
-                cpal::ErrorKind::Xrun | cpal::ErrorKind::RealtimeDenied
-            ) {
-                return;
+        let make_state =
+            |rate| CaptureState::new(Origin::System, rate, target_rate, level_tx, chunk_tx);
+        match capture {
+            SystemCapture::Output => {
+                let uid = pick_output(device_id)?;
+                let _tap = Tap::start(&Target::Output { device_uid: &uid }, make_state)?;
+                let mut presence = PresenceCheck::new(CHECK_INTERVAL);
+                while !cancel.is_cancelled() {
+                    std::thread::sleep(Duration::from_millis(100));
+                    if presence.due() {
+                        anyhow::ensure!(
+                            output_uids()?.contains(&uid),
+                            "selected output device disconnected or disabled"
+                        );
+                    }
+                }
             }
-            let _ = error_tx.try_send(anyhow!("system audio stream error: {error}"));
-            stream_error_cancel.cancel();
-        };
-
-        // Creating the process tap and its aggregate device is where this fails, if it does.
-        // A refused System Audio Recording permission may instead deliver silence: see
-        // docs/macos.md.
-        let stream = open_stream(
-            &device,
-            config,
-            state,
-            err_fn,
-            "system audio (Core Audio tap)",
-        )
-        .context("could not tap the output's audio")?;
-        stream
-            .play()
-            .context("failed to start the system audio tap")?;
-        wait_while_present(&device, cancel)?;
-        drop(stream);
-
+            SystemCapture::Application { process } => {
+                // Never widened to the output mix: no selection, or an application that has
+                // gone, is a failure.
+                let identity = process
+                    .as_ref()
+                    .context("select an application before starting capture")?;
+                let guard = ProcessGuard::selected(identity)?;
+                let mut objects = audio_processes(identity.pid)?;
+                let mut tap = Tap::start(&Target::Processes(&objects), make_state)?;
+                tracing::info!(processes = objects.len(), "capturing one application");
+                let mut check = PresenceCheck::new(CHECK_INTERVAL);
+                while !cancel.is_cancelled() {
+                    std::thread::sleep(Duration::from_millis(100));
+                    if !check.due() {
+                        continue;
+                    }
+                    anyhow::ensure!(
+                        guard.running(),
+                        "selected application has closed; select it again"
+                    );
+                    // A helper that starts playing later (a browser's audio service) joins.
+                    let now = audio_processes(identity.pid)?;
+                    if now != objects {
+                        tap.set_processes(&now)?;
+                        tracing::info!(
+                            processes = now.len(),
+                            "captured application's processes changed"
+                        );
+                        objects = now;
+                    }
+                }
+            }
+        }
         tracing::info!("Core Audio tap capture stopped");
-        match error_rx.try_recv() {
-            Ok(error) => Err(error),
-            Err(_) => Ok(()),
-        }
-    }
-
-    /// Park until `cancel` fires or the tapped output disappears. The stream stays pinned to
-    /// its output; it never follows a new default.
-    fn wait_while_present(device: &cpal::Device, cancel: &CancellationToken) -> Result<()> {
-        let pinned_id = device
-            .id()
-            .context("failed to identify the tapped output device")?;
-        let mut presence = PresenceCheck::new(PRESENCE_INTERVAL);
-        while !cancel.is_cancelled() {
-            std::thread::sleep(Duration::from_millis(100));
-            if presence.due() {
-                let available = crate::audio::devices::output_ids()?.contains(&pinned_id);
-                anyhow::ensure!(available, "selected output device disconnected or disabled");
-            }
-        }
         Ok(())
     }
 }
