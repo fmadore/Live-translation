@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The Mac App Store build's entitlements (docs/mac-app-store.md): Sandbox.plist's (the App
+     Sandbox, outgoing connections, the microphone, the file picked in Save As) plus the App ID
+     and team, which the provisioning profile embedded by .github/workflows/app-store.yml grants. -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+	<key>com.apple.application-identifier</key>
+	<string>3HMSG8WB7K.io.github.fmadore.live-translation</string>
+	<key>com.apple.developer.team-identifier</key>
+	<string>3HMSG8WB7K</string>
+</dict>
+</plist>

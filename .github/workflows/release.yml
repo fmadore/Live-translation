@@ -1,15 +1,19 @@
 name: Release installers
 
-# Builds the x64 one-click installers and attaches them to a draft GitHub release, then packages
-# native x64 and ARM64 MSIX packages and combines them into one unsigned multi-architecture
-# .msixbundle for the Microsoft Store (see docs/microsoft-store.md, docs/packaging-msix.md
-# and docs/store-updates.md).
+# Builds the x64 one-click installers and the signed, notarised macOS disk image and attaches
+# them to a draft GitHub release, then packages native x64 and ARM64 MSIX packages and combines
+# them into one unsigned multi-architecture .msixbundle for the Microsoft Store (see
+# docs/microsoft-store.md, docs/packaging-msix.md, docs/store-updates.md and docs/macos.md).
 #
 # The ordinary installer remains x64. Store packages are x64 + native ARM64 because every
 # cloud-provider path is architecture-native.
 #
 # Release assets: Live.Translation_<version>_<arch>.msix  — sideload/verification packages
 #                 Live.Translation_<version>.msixbundle   — the Store submission artifact
+#                 Live.Translation_<version>_aarch64.dmg  — the macOS disk image, Apple silicon,
+#                                                           signed and notarised (docs/macos.md)
+#
+# The Mac App Store build is uploaded by its own workflow, app-store.yml, run by hand.
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2. `prepare` checks the tag against
 # the version files and creates the release as a draft; `build` attaches the installers, `msix`
@@ -231,6 +235,105 @@ jobs:
           releaseId: ${{ needs.prepare.outputs.release_id }}
           args: --target ${{ matrix.target }}
 
+  # The macOS disk image, for Apple silicon, built natively, signed with the Developer ID
+  # Application certificate and notarised by Apple, so Gatekeeper opens it after its usual
+  # question (docs/macos.md). The bundler imports APPLE_CERTIFICATE (the .p12, base64) into a
+  # temporary keychain, signs the app with APPLE_SIGNING_IDENTITY, which overrides the ad-hoc
+  # "-" of src-tauri/tauri.macos.conf.json that local and CI builds keep, sends it to Apple's
+  # notary service with APPLE_ID, an app-specific APPLE_PASSWORD and APPLE_TEAM_ID, and staples
+  # the ticket. These are the six secrets Kalamu's release uses, for the same team.
+  macos:
+    name: Disk image (Apple silicon)
+    needs: prepare
+    runs-on: macos-15
+    # Notarisation usually answers in minutes, but Apple's queue can hold a submission for
+    # hours, a new app's first ones especially.
+    timeout-minutes: 240
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+          prefix-key: whisper-cpu-${{ runner.arch }}-v2
+          # Restore only, as for the Windows build.
+          save-if: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Without them the bundler would fall back to ad-hoc signing and skip notarisation with
+      # only a warning: a release must not ship that way unnoticed.
+      - name: Check the signing secrets
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=()
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+            APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repository secrets for signing and notarising the Mac app: ${missing[*]}. See docs/macos.md."
+            exit 1
+          fi
+
+      - name: Build, sign, notarise and attach the disk image
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          releaseId: ${{ needs.prepare.outputs.release_id }}
+          args: --bundles dmg
+
+      # What the image holds, as a user gets it: the app signed with the Developer ID and the
+      # hardened runtime, with the microphone entitlement, its ticket stapled and accepted by
+      # Gatekeeper. Tauri removes the bare .app once the image is made, so the image is opened.
+      - name: Check the app
+        run: |
+          dmg=$(ls src-tauri/target/release/bundle/dmg/*_aarch64.dmg)
+          mnt=$(mktemp -d)
+          hdiutil attach -readonly -nobrowse -mountpoint "$mnt" "$dmg"
+          trap 'hdiutil detach "$mnt" -quiet || true' EXIT
+          app="$mnt/Live Translation.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          details=$(codesign -dv --verbose=4 "$app" 2>&1)
+          grep -E 'Authority|TeamIdentifier|Identifier|flags' <<< "$details"
+          grep -q '^Authority=Developer ID Application:' <<< "$details" \
+            || { echo "::error::The app is not signed with the Developer ID."; exit 1; }
+          grep -q 'flags=.*runtime' <<< "$details" \
+            || { echo "::error::The app lacks the hardened runtime notarisation needs."; exit 1; }
+          codesign -d --entitlements - --xml "$app" 2>/dev/null | grep -q 'com.apple.security.device.audio-input' \
+            || { echo "::error::The microphone entitlement is missing."; exit 1; }
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=4 "$app"
+          ls -l src-tauri/target/release/bundle/dmg/
+
   # Microsoft Store package. Tauri has no MSIX bundle target, so @choochmeque/tauri-windows-bundle
   # drives `tauri build --no-bundle` and then packs the payload with the Windows SDK's MakeAppx
   # (it finds the SDK through HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots, which is
@@ -339,7 +442,8 @@ jobs:
   # (docs/store-updates.md).
   bundle:
     name: Store bundle (x64 + ARM64)
-    needs: msix
+    # Also waits for the disk image, so a release is published only with every asset.
+    needs: [msix, macos]
     runs-on: windows-latest
     timeout-minutes: 15
     steps:

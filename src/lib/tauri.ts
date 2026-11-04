@@ -176,6 +176,9 @@ export const api = {
 	/** Open the Buy Me a Coffee page in the default browser; see `support.ts`. */
 	openSupportPage: () => invoke<void>('open_support_page'),
 
+	/** Whether the support link may be shown: false only in the Mac App Store build. */
+	supportLinkAllowed: () => invoke<boolean>('support_link_allowed'),
+
 	// Captions in Zoom (`zoom.rs`): one caption language from the chosen sources, posted to the
 	// meeting's third-party caption URL. Independent of the caption session, so it outlives Stop
 	// and Start until it is stopped here or the app quits.

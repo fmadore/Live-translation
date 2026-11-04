@@ -1,0 +1,11 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "macOS": {
+      "entitlements": "./macos/AppStore.plist",
+      "files": {
+        "Resources/container-migration.plist": "./macos/container-migration.plist"
+      }
+    }
+  }
+}

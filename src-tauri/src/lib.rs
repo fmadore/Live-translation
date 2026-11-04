@@ -187,6 +187,7 @@ pub fn run() {
             lifecycle::confirm_close,
             tray::set_tray_state,
             support::open_support_page,
+            support::support_link_allowed,
             zoom::start_zoom_captions,
             zoom::stop_zoom_captions,
             zoom::send_zoom_test_caption,

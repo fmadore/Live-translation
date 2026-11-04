@@ -61,6 +61,7 @@ pub const COMMANDS: &[&str] = &[
     "confirm_close",
     "set_tray_state",
     "open_support_page",
+    "support_link_allowed",
     "start_zoom_captions",
     "stop_zoom_captions",
     "send_zoom_test_caption",

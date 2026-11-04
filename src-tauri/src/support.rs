@@ -13,9 +13,29 @@ pub const SUPPORT_URL: &str = "https://buymeacoffee.com/fmadore";
 
 #[tauri::command]
 pub async fn open_support_page() -> Result<(), AppError> {
+    if app_store_build() {
+        return Err(AppError::with(
+            id::OPEN_LINK,
+            "the support page is not offered in the Mac App Store build",
+        ));
+    }
     tauri::async_runtime::spawn_blocking(|| open(SUPPORT_URL))
         .await
         .map_err(|e| AppError::with(id::TASK_FAILED, e))?
+}
+
+/// Whether the interface may show the support link. Not in the Mac App Store build: App Review
+/// Guideline 3.1.1 allows tips there only through in-app purchase, and the store build is free
+/// with nothing to buy, as Kalamu's is. The Microsoft Store and the direct downloads keep it.
+#[tauri::command]
+pub fn support_link_allowed() -> bool {
+    !app_store_build()
+}
+
+/// Whether this is the Mac App Store build. It is the only sandboxed one, and macOS sets
+/// `APP_SANDBOX_CONTAINER_ID` in a sandboxed app's environment.
+pub(crate) fn app_store_build() -> bool {
+    cfg!(target_os = "macos") && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
 }
 
 /// Open one of the app's own fixed pages in the default browser: this one, or the Zoom setup
