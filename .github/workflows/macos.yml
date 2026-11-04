@@ -11,8 +11,8 @@ name: macOS test build
 #   Sandbox (src-tauri/macos/Sandbox.plist), the spike for a Mac App Store build. Never
 #   notarised; a runner has no provisioning profile, so it carries no App ID either.
 #
-# Pull requests never see signing secrets: they are read only on `workflow_dispatch`, which
-# only people with write access can start, and on the branch they choose.
+# Pushes never see signing secrets: they are read only on `workflow_dispatch`, which only people
+# with write access can start, on the branch they choose.
 
 on:
   workflow_dispatch:
@@ -21,22 +21,23 @@ on:
         description: Sign with the Developer ID and notarise (needs the APPLE_* secrets)
         type: boolean
         default: false
-  pull_request:
+  # Any branch of this repository, so a branch can be tried on a Mac before it has a pull
+  # request. Forks build in their own repositories.
+  push:
     paths:
       - .github/workflows/macos.yml
       - src-tauri/**
       - src/**
       - package.json
       - package-lock.json
-  push:
-    branches: [main]
 
 permissions:
   contents: read
 
+# A branch's new push supersedes its running build; each main commit runs to the end.
 concurrency:
-  group: macos-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: macos-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   CARGO_TERM_COLOR: always

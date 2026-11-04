@@ -84,8 +84,8 @@ a Mac with a person at it. The interface still uses Windows wording in places (s
 
 ## Getting a test build
 
-1. GitHub → **Actions → macOS test build**. Every pull request touching the app, and every
-   push to `main`, builds one. For a signed and notarised build, **Run workflow** on the branch
+1. GitHub → **Actions → macOS test build**. Every push to a branch of the repository that
+   touches the app builds one. For a signed and notarised build, **Run workflow** on the branch
    with *sign* ticked (needs the secrets below).
 2. Download the artifact `live-translation-macos-<commit>` (kept 14 days). It holds:
    - `Live Translation_<version>_aarch64.dmg`, the direct app;
