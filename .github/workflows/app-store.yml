@@ -2,26 +2,115 @@ name: Mac App Store
 
 # The Mac App Store build (docs/mac-app-store.md): the same app as the disk image, free, in the
 # App Sandbox, signed for the store and sent to App Store Connect, where it reaches TestFlight
-# and then App Review. Run by hand only, on the tag or branch chosen. macos.yml already builds
-# and starts a sandboxed variant on every push; this job adds the store's configuration
-# (src-tauri/tauri.appstore.conf.json), the provisioning profile and the store's signatures.
+# and then App Review. Kalamu's workflow of the same name is the model.
+#
+# - `sandbox` runs on pull requests that touch the store build's files, and on demand. It builds
+#   the app with the store's configuration (src-tauri/tauri.appstore.conf.json), signs it ad hoc
+#   with the sandbox's entitlements (a runner has no provisioning profile), starts it, and checks
+#   that it runs in its container and that the disk image's data folder was moved into it.
+# - `upload` runs only on demand, with `upload` ticked, on the tag or branch chosen, after
+#   `sandbox` passed: it signs the app and the installer package with the Apple Distribution and
+#   Mac Installer Distribution certificates, embeds the provisioning profile, and uploads.
 
 on:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: Sign the build for the store and upload it to App Store Connect
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - .github/workflows/app-store.yml
+      - src-tauri/Info.plist
+      - src-tauri/macos/**
+      - src-tauri/tauri.appstore.conf.json
+      - src-tauri/tauri.macos.conf.json
+      - src-tauri/src/support.rs
 
 permissions:
   contents: read
 
+# A pull request's new push supersedes its check; an upload always runs to the end.
 concurrency:
   group: app-store-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  sandbox:
+    name: Sandboxed build starts (Apple silicon)
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+          prefix-key: whisper-cpu-${{ runner.arch }}-v2
+          save-if: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build the app with the store's configuration
+        run: >-
+          npx tauri build --bundles app --no-sign
+          --config src-tauri/tauri.appstore.conf.json
+
+      - name: Sign it ad hoc with the sandbox's entitlements
+        run: |
+          app="src-tauri/target/release/bundle/macos/Live Translation.app"
+          test -f "$app/Contents/Resources/container-migration.plist"             || { echo "::error::The container migration manifest is missing."; exit 1; }
+          codesign --force --sign - --options runtime             --entitlements src-tauri/macos/Sandbox.plist "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -d --entitlements - --xml "$app" 2>/dev/null | grep -q 'com.apple.security.app-sandbox'             || { echo "::error::The app is not signed into the sandbox."; exit 1; }
+
+      # What the disk image would have left: its data folder, which macOS moves into the
+      # container the first time the sandboxed app starts (src-tauri/macos/container-migration.plist).
+      - name: Leave a disk image's data folder behind
+        run: |
+          mkdir -p "$HOME/Library/Application Support/io.github.fmadore.live-translation"
+          echo "from the disk image" > "$HOME/Library/Application Support/io.github.fmadore.live-translation/migrated.txt"
+
+      - name: Start the sandboxed app and check its container
+        run: |
+          app="$PWD/src-tauri/target/release/bundle/macos/Live Translation.app"
+          exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          data="$HOME/Library/Containers/io.github.fmadore.live-translation/Data/Library/Application Support/io.github.fmadore.live-translation"
+          open "$app"
+          for _ in $(seq 1 60); do
+            [ -d "$data/whisper-models" ] && break
+            sleep 2
+          done
+          # Leave the windows, the webview and the tray time to fail if they are going to.
+          sleep 10
+          alive=yes
+          pgrep -x "$exe" >/dev/null || alive=no
+          echo "== container data folder"; ls -la "$data" || true
+          pkill -x "$exe" || true
+
+          [ "$alive" = yes ]             || { echo "::error::The sandboxed app exited during startup."; exit 1; }
+          test -d "$data/whisper-models"             || { echo "::error::The sandboxed app made no data folder in its container."; exit 1; }
+          grep -q "from the disk image" "$data/migrated.txt"             || { echo "::error::The disk image's data folder was not moved into the container."; exit 1; }
+
   upload:
     name: Sign and upload to App Store Connect
+    if: github.event_name == 'workflow_dispatch' && inputs.upload
+    needs: sandbox
     runs-on: macos-15
     timeout-minutes: 90
     steps:

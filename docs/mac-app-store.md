@@ -6,7 +6,7 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (4 November 2026)
+## Status (5 November 2026)
 
 **Not yet submitted; nothing has run on a real Mac.** The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
@@ -20,13 +20,35 @@ What is ready in the repository:
   the disk image's data folder into the sandbox (`src-tauri/macos/container-migration.plist`);
 - a sandboxed variant built and started on every push by the *macOS test build* workflow, to
   try on a Mac before the store build exists;
+- the *Mac App Store* workflow's `sandbox` job, which builds the app with the store's
+  configuration, starts it in the sandbox and checks its container and the moved data folder,
+  on pull requests that touch the store build and before every upload;
+- the question before audio first goes to each cloud provider (Guideline 5.1.2(i)), on both
+  systems ([decision](decisions/2026-11-05-mac-app-store.md));
 - the *Mac App Store* workflow, which signs the app and its installer package and uploads them
   to App Store Connect;
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
-- the privacy policy's macOS section, effective 4 November 2026.
+- the privacy policy's macOS section and the provider question, effective 5 November 2026.
 
-What only the maintainer can do: the Apple portal and App Store Connect steps, the GitHub
-secrets, the screenshots (on a Mac), and the first test on a real Mac through TestFlight.
+The GitHub secrets were set on 5 November 2026, all but `APPLE_PROVISIONING_PROFILE` and the
+`APPLE_APP_ID` variable, which wait for steps 1, 3 and 5 below. What only the maintainer can do:
+the Apple portal and App Store Connect steps, the screenshots (on a Mac), and the first test on
+a real Mac through TestFlight, which also answers the one open question:
+[system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox).
+
+## The open question: system audio in the sandbox
+
+System audio and one-application capture use Core Audio process taps
+(`src-tauri/src/audio/tap.rs`). Apple documents no entitlement for them and says nothing about
+the App Sandbox; developers report both that taps work sandboxed with the microphone
+entitlement and that they deliver silence there. One-application capture also reads other
+processes' start times (`proc_pidinfo`), which the sandbox may refuse. No runner can grant
+*System Audio Recording*, so only a Mac can tell. If taps fail in the store build:
+
+- ship it with microphone capture only, saying so in the listing, and keep system audio in the
+  disk image; or
+- capture system audio through ScreenCaptureKit, which sandboxed apps use, at the cost of the
+  broader *Screen Recording* permission.
 
 ## Once: at Apple
 
@@ -165,7 +187,7 @@ Real speech recognition without any account or API key:
 
 Setup-free check without audio: choose the engine Built-in demo and click Start demo subtitles. It plays a prepared English or French script through the overlay, timer, level meter and export, without capturing or recognizing any audio, and says so on screen.
 
-Optional cloud engines (Google Gemini, OpenAI, Mistral) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. The app sells no access and the developer receives nothing.
+Optional cloud engines (Google Gemini, OpenAI, Mistral) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
 
 The overlay uses public AppKit only: a borderless transparent window at a high window level that joins every Space and full-screen apps and ignores mouse events while captions run.
 ```
@@ -174,8 +196,9 @@ The overlay uses public AppKit only: a borderless transparent window at a high w
 
 1. **Release it as usual** (the release workflow builds the Windows packages and the notarised
    disk image). The store build reads the version from `src-tauri/tauri.conf.json`.
-2. **Upload**: Actions → *Mac App Store* → *Run workflow*, on the tag. It builds the sandboxed
-   app, signs it and the package, validates and uploads. The build number is the workflow's run
+2. **Upload**: Actions → *Mac App Store* → *Run workflow*, on the tag, with *upload* ticked.
+   It builds the sandboxed app and checks that it starts in its container, then signs it and
+   the package, validates and uploads. The build number is the workflow's run
    number, which always rises, as App Store Connect requires.
 3. **Wait for processing**: the build appears under TestFlight within about an hour, or App Store
    Connect emails the reason it was refused.
@@ -192,10 +215,9 @@ The overlay uses public AppKit only: a borderless transparent window at a high w
 - **Downloaded models (2.4.5(iv), 2.5.2).** Whisper models are downloaded from Settings: weights
   for the recognizer in the reviewed build, not code. The review notes say so. If refused, the
   fallback is to bundle the Tiny model in the store build.
-- **Bring-your-own keys and third-party AI (5.1.2(i)).** The key panel names the provider and
-  what it needs before a key is saved, and the privacy policy says where audio goes. If App
-  Review asks for an explicit notice before the first session sent to each provider, add one,
-  as Kalamu did.
+- **Bring-your-own keys and third-party AI (5.1.2(i)).** Before the first session or rehearsal
+  with each provider, the app asks, names the provider and what is sent, and gives the privacy
+  policy's address, as Kalamu does; the review notes point to it.
 - **The overlay (2.4.5, 4).** Public AppKit only; it never takes focus while captions run.
 - **Screenshots (2.3.3)** must show the Mac app.
 - **Privacy manifest** (`PrivacyInfo.xcprivacy`): not checked whether App Store Connect wants one
