@@ -825,6 +825,14 @@ export const fr: Messages = {
 			noteAfter: '.',
 			hide: 'Compris — réduire dans la zone de notification',
 			quit: 'Quitter plutôt'
+		},
+		aiConsent: {
+			title: (vendor: string) => `Envoyer l’audio à ${vendor} ?`,
+			body: (vendor: string) =>
+				`Avec ce moteur, l’audio capté part de cet ordinateur vers ${vendor} pour être sous-titré, avec tout ce qui y est dit, y compris des noms et d’autres informations personnelles. Il est envoyé avec votre propre compte et votre clé d’API, selon les conditions de ${vendor}, qui peut vous le facturer. Le développeur de cette application ne reçoit rien.`,
+			note: 'Demandé une seule fois par fournisseur. Whisper local et la démo intégrée n’envoient rien. La politique de confidentialité :',
+			send: (vendor: string) => `Envoyer à ${vendor}`,
+			cancel: 'Annuler'
 		}
 	},
 

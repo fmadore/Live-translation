@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
+import { get } from 'svelte/store';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 
 // The operator page with a scripted core: what Start, Rehearse and the start shortcut accept is
@@ -54,6 +55,7 @@ import Page from '../routes/+page.svelte';
 import { applyStatus, clearTranscript, options } from './stores';
 import { locale } from './i18n';
 import { PROFILES_KEY } from './profiles';
+import { aiConsent } from './aiConsent';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import type { StartOptions } from './types';
 
@@ -74,6 +76,8 @@ beforeEach(() => {
 	native.hasApiKey.mockResolvedValue(true);
 	native.listMicrophones.mockResolvedValue([{ id: 'mic-1', name: 'Mic', isDefault: true }]);
 	localStorage.removeItem(PROFILES_KEY);
+	// Agreed already: the question has its own test below.
+	aiConsent.set(['Gemini', 'OpenAI', 'Mistral']);
 });
 
 it('holds Rehearse, like Start, while a meeting profile is loading', async () => {
@@ -143,4 +147,26 @@ it('starts from the shortcut only when Start itself could', async () => {
 	await fireEvent.keyDown(window, shortcut);
 	await waitFor(() => expect(native.startSession).toHaveBeenCalledOnce());
 	ready.unmount();
+});
+
+// App Review Guideline 5.1.2(i): the first start with a cloud provider asks before any audio
+// goes to it; Cancel starts nothing, and Send is remembered for that provider.
+it('asks once before audio first goes to a cloud provider', async () => {
+	aiConsent.set([]);
+	const view = render(Page);
+	const start = () => view.getByRole('button', { name: /Start translating/ });
+	await waitFor(() => expect(start()).toBeEnabled());
+
+	await fireEvent.click(start());
+	const dialog = await view.findByRole('dialog', { name: 'Send audio to Google Gemini?' });
+	expect(dialog).toHaveTextContent('The developer of this app receives nothing.');
+	await fireEvent.click(view.getByRole('button', { name: 'Cancel' }));
+	expect(view.queryByRole('dialog')).toBeNull();
+	expect(native.startSession).not.toHaveBeenCalled();
+
+	await fireEvent.click(start());
+	await fireEvent.click(await view.findByRole('button', { name: 'Send to Google Gemini' }));
+	await waitFor(() => expect(native.startSession).toHaveBeenCalledOnce());
+	expect(get(aiConsent)).toEqual(['Gemini']);
+	view.unmount();
 });

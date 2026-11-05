@@ -819,6 +819,14 @@ export const de: Messages = {
 			noteAfter: '.',
 			hide: 'Verstanden – in den Infobereich',
 			quit: 'Stattdessen beenden'
+		},
+		aiConsent: {
+			title: (vendor: string) => `Audio an ${vendor} senden?`,
+			body: (vendor: string) =>
+				`Mit dieser Engine geht das aufgenommene Audio von diesem Computer an ${vendor}, um untertitelt zu werden – mit allem, was darin gesagt wird, auch Namen und anderen personenbezogenen Daten. Es läuft über Ihr eigenes Konto und Ihren API-Schlüssel, zu den Bedingungen von ${vendor}, die Ihnen dafür Kosten berechnen können. Der Entwickler dieser App erhält nichts.`,
+			note: 'Wird einmal pro Anbieter gefragt. Lokales Whisper und die integrierte Demo senden nichts. Die Datenschutzerklärung:',
+			send: (vendor: string) => `An ${vendor} senden`,
+			cancel: 'Abbrechen'
 		}
 	},
 

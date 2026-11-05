@@ -820,6 +820,16 @@ export const en = {
 			noteAfter: '.',
 			hide: 'Got it — hide to the tray',
 			quit: 'Quit instead'
+		},
+		/** Asked once for each cloud provider before audio is first sent to it (App Review
+		 *  Guideline 5.1.2(i); `aiConsent.ts`). */
+		aiConsent: {
+			title: (vendor: string) => `Send audio to ${vendor}?`,
+			body: (vendor: string) =>
+				`With this engine, the audio you capture goes from this computer to ${vendor} to be captioned, with whatever is said in it, including names and other personal information. It goes under your own account and API key and ${vendor}’s terms, which may charge you for it. The developer of this app receives nothing.`,
+			note: 'Asked once for each provider. Local Whisper and the built-in demo send nothing. The privacy policy:',
+			send: (vendor: string) => `Send to ${vendor}`,
+			cancel: 'Cancel'
 		}
 	},
 

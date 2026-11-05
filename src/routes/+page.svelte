@@ -19,6 +19,8 @@
 	import ActiveSessionPrompt from '#lib/ActiveSessionPrompt.svelte';
 	import RecoveryPrompt from '#lib/RecoveryPrompt.svelte';
 	import TrayHidePrompt from '#lib/TrayHidePrompt.svelte';
+	import ProviderConsentPrompt from '#lib/ProviderConsentPrompt.svelte';
+	import { aiConsent, grantAiConsent, needsAiConsent } from '#lib/aiConsent.js';
 	import UnsavedPrompt from '#lib/UnsavedPrompt.svelte';
 	import ZoomCaptionsDialog from '#lib/ZoomCaptionsDialog.svelte';
 	import { createPreflightController } from '#lib/preflightController.svelte.js';
@@ -53,7 +55,7 @@
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
 	import { followTheme } from '#lib/theme.js';
-	import type { SessionState } from '#lib/types.js';
+	import type { Provider, SessionState } from '#lib/types.js';
 	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
@@ -108,8 +110,29 @@
 
 	// Start, Rehearse and the start shortcut: what blocks them, and the launch they share.
 	// Created before the meter gates below, which depend on whether a rehearsal is running.
+	// The question before audio first goes to a cloud provider: the launch waits on the
+	// operator's answer, and nothing starts on Cancel or Escape.
+	let consentAsk = $state<{
+		provider: Provider;
+		answer: (send: boolean) => void;
+	} | null>(null);
+	function askConsent(provider: Provider): Promise<boolean> {
+		if (!needsAiConsent(provider, $aiConsent)) return Promise.resolve(true);
+		return new Promise((resolve) => {
+			consentAsk = {
+				provider,
+				answer: (send) => {
+					consentAsk = null;
+					if (send) grantAiConsent(provider);
+					resolve(send);
+				}
+			};
+		});
+	}
+
 	const launch = createLaunchController({
 		browserMode,
+		consent: askConsent,
 		start: (selected) => session.start(selected),
 		sessionBusy,
 		profileBusy: () => profileBusy,
@@ -419,6 +442,13 @@
 		path={recoveryOffer.offer.path}
 		onRestore={() => void recoveryOffer.answer(true)}
 		onDelete={() => void recoveryOffer.answer(false)}
+	/>
+{/if}
+
+{#if consentAsk}
+	<ProviderConsentPrompt
+		vendor={$t.provider.vendor[consentAsk.provider]}
+		onChoice={consentAsk.answer}
 	/>
 {/if}
 

@@ -40,6 +40,7 @@ function setup(
 		engineReady: () => ready.engine,
 		applicationReady: () => ready.application,
 		launching,
+		consent: () => Promise.resolve(true),
 		...port
 	});
 	/** A status from the core, as the page's listener hands it on. */
@@ -195,4 +196,25 @@ it('rehearses on the language the room is not reading, and in English for the su
 	expect(launch.fixtureLanguage).toBe('en');
 	options.set({ ...DEFAULT_START_OPTIONS, provider: 'ondevice', targetLanguage: 'fr' });
 	expect(launch.fixtureLanguage).toBe('fr');
+});
+
+// App Review Guideline 5.1.2(i): audio reaches a cloud provider only after the operator agreed.
+describe('the provider question', () => {
+	it('asks about the engine’s provider before a start or a rehearsal', async () => {
+		const consent = vi.fn().mockResolvedValue(true);
+		const { launch, startSession } = setup({ consent });
+		await launch.rehearse();
+		expect(consent).toHaveBeenCalledWith('gemini');
+		expect(startSession).toHaveBeenCalledOnce();
+	});
+
+	it('starts nothing, and keeps the capture-failure banner, when the answer is no', async () => {
+		const { launch, launching, startSession } = setup({
+			consent: () => Promise.resolve(false)
+		});
+		await launch.start();
+		expect(startSession).not.toHaveBeenCalled();
+		expect(launching).not.toHaveBeenCalled();
+		expect(launch.canStart).toBe(true);
+	});
 });

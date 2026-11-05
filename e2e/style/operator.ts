@@ -207,6 +207,8 @@ const STATES = {
 			await press(page, 'button', startsWith(t.rail.translate.title));
 			await press(page, 'button', t.source.both);
 			await press(page, 'button', t.preflight.start.translate);
+			// The first start with a cloud provider asks before any audio goes to it.
+			await press(page, 'button', t.prompt.aiConsent.send(t.provider.vendor.gemini));
 			await expect.poll(() => core.callsTo('start_session').length).toBe(1);
 			for (const origin of ['system', 'microphone'] as const) {
 				await core.emit('status', { state: 'connecting', origin } satisfies StatusUpdate);

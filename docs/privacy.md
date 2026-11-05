@@ -1,7 +1,8 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 4 November 2026 (adds the macOS app, distributed as a disk image and through
-the Mac App Store; the Windows app is unchanged from the 1.12.0 release)
+**Effective date:** 5 November 2026 (adds the macOS app, distributed as a disk image and through
+the Mac App Store, and the question asked before audio first goes to each cloud provider, on
+both systems)
 
 ## What this app is
 
@@ -163,8 +164,9 @@ scaling, so the overlay reopens where it was placed on them), caption size,
 layout (Fit window, Compact or Stable reading),
 compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
 copy is enabled, whether a running session shows the Live or the Transcript view, the names and
-terms entered for Mistral subtitles, and whether closing the window leaves the app running in
-the notification area (the menu bar on macOS).
+terms entered for Mistral subtitles, whether closing the window leaves the app running in
+the notification area (the menu bar on macOS), and which cloud providers the user has agreed to
+send audio to.
 The app also remembers the folder of the last successful transcript export, the chosen export
 format, and whether system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch. A Zoom caption link is never stored.
@@ -219,7 +221,11 @@ API keys, device identifiers, or usage data from the application.
 ## Third-party processing
 
 Starting a cloud session sends audio directly to the chosen provider under the user’s relationship
-with that provider. With Mistral or Gemini subtitles, the names and terms entered in the setup, if
+with that provider. Before the first session or rehearsal with each provider, the app asks: it
+names the provider, says that the captured audio goes to it with whatever is said, under the
+user's own account, API key and the provider's terms, and gives this policy's address. Nothing
+is sent unless the user chooses to send; the answer is remembered on the device for that
+provider. Removing the provider's API key stops anything being sent to it. With Mistral or Gemini subtitles, the names and terms entered in the setup, if
 any, are sent to that provider at the start of each session, together with the audio, so that
 its model favours those spellings. They may include the names of the people speaking; enter only
 what may be shared with that provider. Local Whisper keeps them on the computer, and the
