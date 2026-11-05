@@ -45,7 +45,7 @@ env:
 jobs:
   build:
     name: Build, start and upload (Apple silicon)
-    runs-on: macos-15
+    runs-on: macos-26
     # Notarisation can sit in Apple's queue for a long time on a first submission.
     timeout-minutes: 150
     steps:

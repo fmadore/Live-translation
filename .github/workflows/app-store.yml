@@ -11,6 +11,9 @@ name: Mac App Store
 # - `upload` runs only on demand, with `upload` ticked, on the tag or branch chosen, after
 #   `sandbox` passed: it signs the app and the installer package with the Apple Distribution and
 #   Mac Installer Distribution certificates, embeds the provisioning profile, and uploads.
+#
+# Both on macos-26, whose Xcode 26 is what App Store Connect requires of uploads since
+# 28 April 2026 (the first upload, from macos-15's Xcode 16.4, was accepted all the same).
 
 on:
   workflow_dispatch:
@@ -42,7 +45,7 @@ env:
 jobs:
   sandbox:
     name: Sandboxed build starts (Apple silicon)
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7
@@ -111,7 +114,7 @@ jobs:
     name: Sign and upload to App Store Connect
     if: github.event_name == 'workflow_dispatch' && inputs.upload
     needs: sandbox
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v7

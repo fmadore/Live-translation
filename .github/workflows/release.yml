@@ -245,7 +245,7 @@ jobs:
   macos:
     name: Disk image (Apple silicon)
     needs: prepare
-    runs-on: macos-15
+    runs-on: macos-26
     # Notarisation usually answers in minutes, but Apple's queue can hold a submission for
     # hours, a new app's first ones especially.
     timeout-minutes: 240
