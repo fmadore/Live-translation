@@ -187,6 +187,7 @@ pub fn run() {
             lifecycle::confirm_close,
             tray::set_tray_state,
             support::open_support_page,
+            support::support_link_allowed,
             zoom::start_zoom_captions,
             zoom::stop_zoom_captions,
             zoom::send_zoom_test_caption,
@@ -259,6 +260,8 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            lifecycle::install_app_menu(app)?;
             audio::devices::watch(app.handle().clone());
             // Before anything else: once a session is live, the tray is the only surface that
             // can stop it with the window hidden.
@@ -283,8 +286,9 @@ pub fn run() {
             textscale::watch(app.handle());
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running the Live Translation app");
+        .build(tauri::generate_context!())
+        .expect("error while building the Live Translation app")
+        .run(|app, event| lifecycle::on_run_event(app, &event));
 }
 
 #[cfg(test)]

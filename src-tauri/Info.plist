@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Merged by Tauri into the Mac app's Info.plist (ignored on Windows).
+     - The two usage descriptions are what macOS shows when it first asks for the microphone and
+       for System Audio Recording (the Core Audio tap in src/audio/loopback.rs). Without them
+       macOS refuses the capture outright.
+     - Only HTTPS and the system's own encryption are used, which is exempt: App Store Connect
+       then asks no export compliance question. -->
+<plist version="1.0">
+<dict>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Live Translation turns what is said into the microphone you choose into captions. Audio goes only to the caption engine you selected.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Live Translation turns the sound your Mac plays (a remote speaker, a video) into captions. It records no screen content, and audio goes only to the caption engine you selected.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+</dict>
+</plist>

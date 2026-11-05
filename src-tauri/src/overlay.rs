@@ -9,6 +9,13 @@
 //! On Windows the overlay is also marked no-activate while it is click-through, so raising
 //! it can never pull focus away from the presenter's application. That flag is cleared in
 //! "Move overlay" mode, where the window has to be focusable to be dragged and resized.
+//!
+//! macOS has no such contest within a band, only window levels: the overlay is put once at the
+//! screen-saver level, above other applications' floating panels and full-screen windows, and
+//! allowed into every Space and beside full-screen apps (Keynote, PowerPoint, a browser in full
+//! screen). It stays when the operator hides the app (⌘H). So there is no raising timer on
+//! macOS; the level holds. While click-through it cannot become the key window, so showing or
+//! raising it never takes the keyboard from the presenter's application.
 
 use std::time::Duration;
 
@@ -73,6 +80,18 @@ const RAISE_INTERVAL: Duration = Duration::from_millis(500);
 
 /// Raise the overlay to the top of the always-on-top band without activating it.
 pub fn raise(window: &WebviewWindow) {
+    #[cfg(target_os = "macos")]
+    {
+        // AppKit only on the main thread; the commands that call this run off it.
+        let target = window.clone();
+        if window
+            .run_on_main_thread(move || macos::float(&target))
+            .is_ok()
+        {
+            return;
+        }
+    }
+
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::{
@@ -141,9 +160,56 @@ pub fn set_no_activate(window: &WebviewWindow, enabled: bool) {
         }
     }
 
-    #[cfg(not(windows))]
+    // macOS: a window that cannot become key takes no keystrokes and never pulls the
+    // keyboard from the slides, which is what no-activate gives on Windows. Tao's `focusable`
+    // flag is that, through `canBecomeKeyWindow`.
+    #[cfg(target_os = "macos")]
+    {
+        if let Err(error) = window.set_focusable(!enabled) {
+            tracing::warn!("could not change whether the overlay takes focus: {error}");
+        }
+    }
+
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         let _ = (window, enabled);
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod macos {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::{NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior};
+    use tauri::WebviewWindow;
+
+    /// Put the overlay above other applications' windows, full-screen ones included, in
+    /// every Space, and bring it to the front of its level if it is showing. Public AppKit
+    /// only. Main thread.
+    pub(super) fn float(window: &WebviewWindow) {
+        let Some(_main) = MainThreadMarker::new() else {
+            tracing::warn!("overlay level not set: not on the main thread");
+            return;
+        };
+        let Ok(pointer) = window.ns_window() else {
+            return;
+        };
+        // SAFETY: Tauri hands out the live `NSWindow` of a window this process owns, and this
+        // runs on the main thread (checked above), where AppKit may be called. The reference
+        // does not outlive the call.
+        let ns_window: &NSWindow = unsafe { &*pointer.cast::<NSWindow>() };
+        ns_window.setLevel(NSScreenSaverWindowLevel);
+        ns_window.setCollectionBehavior(
+            NSWindowCollectionBehavior::CanJoinAllSpaces
+                | NSWindowCollectionBehavior::FullScreenAuxiliary
+                | NSWindowCollectionBehavior::Stationary
+                | NSWindowCollectionBehavior::IgnoresCycle,
+        );
+        // ⌘H hides the operator window, not the captions the room is reading.
+        ns_window.setCanHide(false);
+        if ns_window.isVisible() {
+            // Front of its level without activating the app or making the window key.
+            ns_window.orderFrontRegardless();
+        }
     }
 }
 
@@ -152,6 +218,10 @@ pub fn set_no_activate(window: &WebviewWindow, enabled: bool) {
 /// Runs for the lifetime of the app and stops if the overlay window is destroyed. Raising
 /// happens on the main thread, where window handles are safe to touch.
 pub fn spawn_topmost_keeper(app: &AppHandle) {
+    // The window level set by `raise` holds on macOS; a timer would only spend power.
+    if cfg!(target_os = "macos") {
+        return;
+    }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         let mut ticker = tokio::time::interval(RAISE_INTERVAL);

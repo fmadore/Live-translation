@@ -14,7 +14,7 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 ## How this app handles credentials
 
 - Provider API keys (Gemini, OpenAI, Mistral) are stored in the OS credential store —
-  Windows Credential Manager — and are read only by the Rust core. They are never written to
+  Windows Credential Manager or the macOS Keychain — and are read only by the Rust core. They are never written to
   frontend storage, application settings, transcript files or logs.
 - The webview runs under a restrictive CSP (`connect-src 'self'`); all provider WebSocket
   traffic originates from Rust, not the frontend.
@@ -25,14 +25,14 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 ## What leaves the machine
 
 Cloud modes stream captured audio directly to the selected provider under that provider's
-terms. Local Whisper keeps audio on the PC, with pending speech in a delete-on-close temporary
+terms. Local Whisper keeps audio on the computer, with pending speech in a delete-on-close temporary
 file. User-requested model downloads contact Hugging Face; size and SHA-256 are verified
 before installation and again before loading. Models remain cached until removed. The built-in
 demo captures no audio and uses no network. The developer receives no audio, keys or transcripts.
 
 Save as writes text, Markdown, SRT or VTT to the folder the user selects in the native
-Windows dialog. The optional local recovery copy is off by default and stores finalized
-caption text on the same PC. Saved transcripts and recovery data are not uploaded.
+Windows or macOS dialog. The optional local recovery copy is off by default and stores finalized
+caption text on the same computer. Saved transcripts and recovery data are not uploaded.
 Optional session history is also off by default. It stores unencrypted finalized text
 locally until the user deletes it; disabling history stops new saves but retains existing
 sessions. Meeting profiles store setup preferences and device identifiers, never API keys
@@ -51,3 +51,9 @@ The NSIS installers on GitHub Releases remain **unsigned**, so Windows SmartScre
 first launch ("Windows protected your PC" — choose **More info → Run anyway**). If you use
 them, verify the download came from the official releases page linked above. See
 [`docs/microsoft-store.md`](docs/microsoft-store.md).
+
+The macOS disk image on GitHub Releases is signed with the developer's Apple Developer ID and
+notarised by Apple, with the hardened runtime, so Gatekeeper only asks the usual question about
+an app downloaded from the internet. The release workflow refuses to attach an ad-hoc-signed
+image. Test builds from the *macOS test build* workflow are signed ad hoc and are not for
+general use. The Mac App Store version is signed by Apple. See [`docs/macos.md`](docs/macos.md).

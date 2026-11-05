@@ -38,3 +38,6 @@ npm-debug.log*
 *.key
 *.pfx
 *.cer
+
+# The Mac App Store provisioning profile, written by app-store.yml for its build only.
+src-tauri/macos/embedded.provisionprofile

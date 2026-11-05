@@ -20,6 +20,10 @@ export interface LaunchPort {
 	applicationReady: (options: StartOptions) => boolean;
 	/** Called as a launch goes ahead, before the start: the capture-failure banner goes. */
 	launching: () => void;
+	/** Whether audio may go to the engine's provider: true at once for an offline engine or a
+	 *  provider already agreed to, otherwise the operator's answer to the question
+	 *  (`aiConsent.ts`). False starts nothing. */
+	consent: (provider: StartOptions['provider']) => Promise<boolean>;
 }
 
 /** Start, Rehearse and the start shortcut: what keeps a session from starting, and the one
@@ -131,6 +135,8 @@ export class LaunchController {
 			else if (rehearsal === undefined) statusMessage.set((m) => m.applications.missing);
 			return;
 		}
+		// A rehearsal sends the sample recording to the same provider, so it asks too.
+		if (!(await this.#port.consent(this.#options.current.provider))) return;
 		this.rehearsing = rehearsal !== undefined;
 		this.#port.launching();
 		const setup = this.#options.current;

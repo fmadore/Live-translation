@@ -1,0 +1,244 @@
+# Live Translation on macOS
+
+Tracking issue: [#195](https://github.com/fmadore/Live-translation/issues/195). This page
+records what the macOS port does, why, how to get a test build, and the checklist for a first run
+on a real Mac (a rented Scaleway Mac mini). The Mac App Store's own steps are in
+[mac-app-store.md](mac-app-store.md).
+
+## Status (4 November 2026)
+
+**Implemented; nothing has run on a real Mac yet.** CI compiles, lints and tests the Rust core
+on Apple silicon, runs the multilingual Whisper smoke test there, builds the app and starts it on
+the runner, in and out of the App Sandbox. Everything below marked *to test* needs a Mac with a
+person at it.
+
+| Area | macOS implementation | State |
+| --- | --- | --- |
+| Microphone | cpal (Core Audio), as on Windows | to test |
+| System audio | Core Audio process tap on the chosen output (`audio/tap.rs`) | to test |
+| Application capture | a tap of the application's process and its helpers | to test |
+| Device changes | Core Audio notifications, as Windows' endpoint notifications | to test |
+| Caption overlay | screen-saver window level, every Space, beside full-screen apps; not key while click-through | to test |
+| Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | to test |
+| External links | `NSWorkspace` opens the support page and the Zoom guide | to test |
+| API keys | login Keychain (keyring's Apple backend) | to test |
+| Local Whisper | CPU, ARMv8.2 dot-product and FP16, Accelerate's BLAS; Metal off | CI smoke test |
+| Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | to test |
+| Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | to test |
+| Packaging | `.app` and `.dmg`, ad hoc in CI; signed and notarised in each release | CI |
+| Mac App Store | free; sandboxed build, signing and upload workflow; no support link | ready, not submitted |
+
+## Decisions
+
+- **Apple silicon only, macOS 15 and later for now.** The Core Audio tap API exists from macOS
+  14.2 and cpal documents its loopback from 14.6; 15 is the issue's provisional baseline and the
+  oldest release likely to be tested soon. Lower it to 14.6 once it has run there.
+  `src-tauri/tauri.macos.conf.json` sets it, which also sets the deployment target the native
+  Whisper build compiles for.
+- **System audio through a Core Audio tap, not ScreenCaptureKit.** The issue proposed
+  prototyping ScreenCaptureKit first and taps if that made audio-only capture awkward. A tap is
+  audio only by design, needs no screen-recording permission, and its process list gives
+  application capture directly. `src-tauri/src/audio/tap.rs` creates a private process tap and
+  a private aggregate device holding only that tap, reads it from Core Audio's I/O callback, and
+  destroys both when the source stops. macOS asks once for *System Audio Recording*, with the
+  text of `NSAudioCaptureUsageDescription`. The tap's float buffers go to the same
+  `CaptureState` as the microphone's: downmix, resampling, chunks and meter.
+  - cpal 0.18 can also record an output through a tap, and the first version used it, but it
+    opens a device's *input* when the device has one: a USB headset or speakerphone would have
+    captioned its microphone while the operator believed it was the computer's sound. Our own
+    tap names the output by its UID, so every output works the same.
+  - **The output mode** taps every process playing to the chosen output. The stream stays on
+    that output, as on Windows: it never follows a new default, and an output that disappears
+    ends the source with an error.
+  - **The application mode** taps a stereo mix of the selected application's own process and
+    its helpers, the processes whose bundle identifier extends the application's
+    (`com.google.Chrome.helper` for `com.google.Chrome`), which is where browsers and Electron
+    apps play. The list is checked every second, so a helper that starts playing later joins.
+    The application is identified by PID and start time (`proc_pidinfo`), so a recycled PID
+    never stands in for it, and its exit ends the source with an error: it never widens to the
+    whole output. Safari plays through a WebKit process macOS shares with other apps, so it is
+    captured with the output mode; the interface says so. This is not Windows' process tree,
+    and browser tabs are not isolated.
+  - **A refused permission may look like silence.** Whether macOS fails the tap or feeds it
+    zeros when System Audio Recording is refused is one of the things to test; the level meter
+    shows it either way. The acceptance criterion is that a refusal never passes for a working
+    session, so this needs an answer before a release is announced.
+- **Device changes** are reported by Core Audio property listeners (devices, default input,
+  default output), which wake the capture threads' presence checks and refresh the interface's
+  lists, as Windows' endpoint notifications do.
+- **The overlay floats by window level, not a raising timer.** On Windows the overlay is raised
+  every 500 ms because topmost windows compete within one band. On macOS it is set once to the
+  screen-saver level, joins every Space, is allowed beside full-screen windows (Keynote,
+  PowerPoint, a browser in full screen), and stays when the app is hidden with ⌘H. The timer
+  does not run on macOS. While click-through it cannot become the key window (tao's
+  `focusable`), the counterpart of Windows' `WS_EX_NOACTIVATE`; move mode makes it focusable
+  again. Public AppKit only (`NSWindow` level, collection behaviour, `orderFrontRegardless`).
+  Tauri 2.12's `macOSPrivateApi` is a no-op and is not set; transparency is Tauri's own.
+- **Export keeps its atomic write.** The Save panel replaces Windows' Save As through the same
+  crate (rfd). Inside the App Sandbox the panel grants the chosen file and nothing beside it, so
+  the staging file cannot be made in that folder; only then is the file written in place
+  (`export::write_export`). Outside the sandbox nothing changes.
+- **⌘Q is the app's own Quit.** Tauri's default macOS menu is kept for its Edit shortcuts (⌘V
+  to paste a key), with Quit replaced by one that runs the tray's Quit: the system's would end
+  the process at once, without stopping the session cleanly or asking about an unsaved
+  transcript. Closing the operator window behaves as on Windows (the app quits, or hides to the
+  menu bar if the operator asked for that); the Dock icon brings a hidden window back.
+- **The interface speaks macOS where it differs.** `src/lib/platform.ts` is the interface's one
+  test of the system. `src/lib/i18n/mac.ts` replaces, in all three languages, every message that
+  names a Windows place: the Keychain for Credential Manager, the menu bar for the notification
+  area, System Settings paths for `ms-settings:` ones, "this Mac" for "this PC". Components are
+  unchanged. Shortcuts use Command, are announced as Meta and written as macOS writes them
+  (⇧⌘P); Control is left alone, as Windows leaves the Windows key.
+- **Per-feature `cfg`, as before.** The Windows code already keeps each system's implementation
+  beside the shared logic of its feature (`loopback.rs`, `overlay.rs`, `export.rs`,
+  `support.rs`); macOS follows the same pattern rather than a new `platform/` layer.
+- **Distribution.** Each GitHub release attaches an Apple silicon disk image signed with the
+  Developer ID and notarised (`release.yml`, job `macos`), and is published only once it is
+  there. The Mac App Store version is free, like Windows; the trial and unlock proposed in #195
+  were dropped on 4 November 2026. It is the only sandboxed build, which the core recognises by
+  `APP_SANDBOX_CONTAINER_ID`, and shows no support link (App Review Guideline 3.1.1). See
+  [mac-app-store.md](mac-app-store.md).
+- **Two signed variants of one build for testing** (`.github/workflows/macos.yml`):
+  - the direct app, in a disk image, with the hardened runtime and one entitlement, the
+    microphone (`src-tauri/macos/Entitlements.plist`), as a Developer ID build will be;
+  - the sandbox spike, the same app re-signed ad hoc inside the App Sandbox
+    (`src-tauri/macos/Sandbox.plist`: network client, microphone, user-selected files), to learn
+    early what a Mac App Store build breaks. No App ID: that needs a provisioning profile.
+
+## Getting a test build
+
+1. GitHub → **Actions → macOS test build**. Every push to a branch of the repository that
+   touches the app builds one. For a signed and notarised build, **Run workflow** on the branch
+   with *sign* ticked (needs the secrets below).
+2. Download the artifact `live-translation-macos-<commit>` (kept 14 days). It holds:
+   - `Live Translation_<version>_aarch64.dmg`, the direct app;
+   - `Live-Translation-sandbox.zip`, the sandboxed app;
+   - `commit.txt`, the commit it was built from.
+3. Copy it to the Mac. From Windows: `scp live-translation-macos-*.zip user@<address>:~/`.
+   A file copied this way is not quarantined, so Gatekeeper does not ask; downloaded in Safari,
+   an ad-hoc build is refused as "damaged" until it is cleared:
+   `xattr -dr com.apple.quarantine "/Applications/Live Translation.app"`. A notarised build
+   only asks the usual question.
+
+### Developer ID secrets
+
+Needed by every release (the disk image) and optional for a test build. The Developer ID
+certificate made for Kalamu belongs to the team (`3HMSG8WB7K`), not to one app, so the same six
+repository secrets work here (Settings → Secrets and variables → Actions):
+`APPLE_CERTIFICATE` (the `.p12`, base64), `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY` (`Developer ID Application: Frédérick Madore (3HMSG8WB7K)`),
+`APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID`. The test-build workflow
+reads them only when run by hand with *sign* ticked, never on a push, and both it and the
+release stop if one is missing rather than sign ad hoc silently. A signed build keeps its microphone and System Audio
+Recording permissions and its Keychain access across rebuilds; an ad-hoc build may be asked
+again after each one.
+
+## Test checklist: a day on a Scaleway Mac
+
+A Scaleway Mac mini has speakers but **no microphone**, and VNC carries neither direction of
+sound. So system audio is tested by playing files on the Mac itself (`afplay`), and the
+microphone only for its permission and error paths, unless a virtual input such as BlackHole
+is installed for the day. Tick each box and note failures in [Results](#results): what you did,
+what you expected, what happened, with a screenshot or the log.
+
+**Before:** a cloud provider test key with a low spending cap (Gemini, OpenAI or Mistral), the
+artifact on the Mac, and macOS's version noted (`sw_vers`). To keep the app's log, start it
+from Terminal:
+
+```bash
+RUST_LOG=live_translation_lib=debug,warn "/Applications/Live Translation.app/Contents/MacOS/live-translation" 2>&1 | tee ~/lt-direct.log
+```
+
+The speech samples ship inside the app:
+`/Applications/Live Translation.app/Contents/Resources/fixtures/rehearsal-en.wav` and
+`rehearsal-fr.wav`. Play one, in a second Terminal, with `afplay <file>`.
+
+### Part A: the direct app (disk image)
+
+- [ ] Open the disk image, drag the app to Applications, open it. Both windows appear: the
+      operator window, and the transparent caption overlay with no frame or shadow.
+- [ ] **Keyless demonstration:** the engine *Built-in demo* plays captions with no key, no
+      network and no audio captured.
+- [ ] **Whisper offline:** download the Tiny or Base model; start a session with *system audio*
+      as the source and the Mac mini's speakers as the output; `afplay rehearsal-en.wav`.
+      macOS asks for *System Audio Recording*, naming Live Translation with the description
+      text. Allow: captions appear in the overlay and the transcript; the level meter moves.
+- [ ] **French and translation:** the same with `rehearsal-fr.wav`, spoken language French, and
+      translation into English.
+- [ ] **Refusal:** System Settings → Privacy & Security → *Screen & System Audio Recording*
+      (*System Audio Recording Only* section): turn Live Translation off, restart the app, start
+      again. Note exactly what happens: an error, or a session that runs silent. A silent
+      session counts as a failure to fix.
+- [ ] **Output list:** the system-audio picker lists the speakers and any other output. If a
+      USB headset is at hand, it is listed and its output is captured, not its microphone.
+- [ ] **One application:** open a YouTube video in Chrome (or Firefox, or play a file in
+      QuickTime Player); in system capture choose *One application* and that app. Captions
+      follow it; `afplay` in Terminal at the same time is not captioned. Quit the app: the source
+      stops with an error and nothing else is captured. Try Safari too and note what happens
+      (expected: silence, as the interface warns).
+- [ ] **Device change:** with a session running on the speakers, plug or unplug an output
+      (or create one in Audio MIDI Setup). The device lists refresh without pressing Refresh.
+- [ ] **Microphone path:** with no input device, starting a microphone session fails with an
+      error rather than running silent. With BlackHole installed, macOS asks for the
+      microphone once with the description text, and captions follow what is played into it.
+- [ ] **Cloud provider:** paste the test key (⌘V works in the field), start a cloud session on
+      system audio, play a sample. Quit and reopen: the key is still there (Keychain). Note any
+      Keychain password prompt.
+- [ ] **Overlay:** move mode lets you drag and resize it; locking makes it click-through again
+      (clicks reach the window behind). Typing in another app while captions run: the overlay
+      never takes the keyboard.
+- [ ] **Full screen:** open a file in Keynote or a video in Safari full screen; the overlay
+      stays above it. Switch Spaces (Control-→): it follows. ⌘H on Live Translation: the
+      overlay stays.
+- [ ] **Export:** save the transcript as TXT, Markdown, WebVTT and SRT: the Save panel opens,
+      remembers the folder, asks before replacing an existing file, and writes a folder and file
+      name with accents (`~/Documents/Données Frédérick/transcription.md`).
+- [ ] **Links:** the support link and the Zoom guide open in Safari.
+- [ ] **Quit:** with unsaved lines, ⌘Q asks about them; with a live session, it stops it first.
+      With *Keep running in the tray when I close this window* on (still worded for Windows), the
+      red button hides the window; the menu-bar icon and the Dock icon bring it back.
+- [ ] **Sleep:** with a session running, sleep the Mac (Apple menu → Sleep) and wake it over
+      VNC. Note what the source does.
+- [ ] **WebKit:** make the operator window narrow and then full screen; nothing scrolls
+      sideways or overlaps. Switch the interface to French and German.
+- [ ] **Mac wording:** Settings and the API key panel say Keychain and menu bar, never
+      Credential Manager, the notification area or "this PC", in all three languages; the
+      keyboard help writes ⇧⌘Space, and ⇧⌘Space starts and stops a session.
+
+### Part B: the sandboxed app
+
+Quit the direct app first. Unzip `Live-Translation-sandbox.zip` (Finder or `ditto -x -k`) and
+start `Live Translation (sandbox).app` from Terminal the same way, logging to
+`~/lt-sandbox.log`.
+
+- [ ] It starts; its data is in `~/Library/Containers/io.github.fmadore.live-translation/`.
+- [ ] Whisper: the model downloads into the container and captions system audio
+      (`afplay`). **The main question of the spike: does the tap work inside the sandbox?**
+- [ ] Cloud provider over the network; the key saved and read back from the Keychain.
+- [ ] Export to `~/Documents` and to a new folder; replacing an existing file works. Note
+      whether the log says the write fell back to writing in place.
+- [ ] Links open in Safari; the support link (Buy Me a Coffee) is absent from Settings and the
+      start screen, as in the store build.
+- [ ] One application, as in Part A: does the tap work for a single app inside the sandbox?
+
+### Results
+
+Copy into the issue, one line per failure; keep "CI passed", "native automated test passed"
+and "real meeting passed" apart.
+
+| Part | Step | Build (commit, signing) | macOS, Mac | What happened |
+| --- | --- | --- | --- | --- |
+| | | | | |
+
+## Not done yet
+
+1. **What the Scaleway day finds**, fixed first; then the decisions the issue leaves to
+   evidence: the oldest macOS supported (14.6 if it runs there), and Metal acceleration for
+   Whisper, measured against the CPU.
+2. **A refused System Audio Recording permission** must never pass for a working session.
+3. **The Developer ID secrets** in this repository before the next release tag, or the release's
+   `macos` job stops (on purpose) and the release stays a draft until they are added and the
+   job is re-run.
+4. **The Mac App Store submission**: the steps in [mac-app-store.md](mac-app-store.md), the
+   screenshots on a Mac, and a TestFlight run.
+5. **README badge and store link** once the Mac App Store version is public.

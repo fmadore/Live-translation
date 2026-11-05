@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- The App Sandbox spike (issue #195): the entitlements a Mac App Store build is expected to
+     need, without the App ID and team, which only a provisioning profile may grant. CI signs the
+     test app ad hoc with these so it can be tried in the sandbox on a Mac before any store work:
+     outgoing connections (providers, model downloads, Zoom), the microphone, and the file the
+     operator picks in Save As. System audio through a Core Audio tap has no entitlement of its
+     own; whether the sandbox allows it is one of the things the spike is for. -->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+</dict>
+</plist>

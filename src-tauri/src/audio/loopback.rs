@@ -1,9 +1,16 @@
 //! System (loopback) audio capture — the "audio coming out of the laptop" path: a remote
-//! speaker on Zoom or Teams, a browser tab, a media player. On Windows this uses WASAPI
-//! loopback, which captures the render endpoint mix — every application's output, whatever
-//! it is — without any virtual audio device. On other platforms it is a stub.
+//! speaker on Zoom or Teams, a browser tab, a media player. Neither system needs a virtual
+//! audio device:
 //!
-//! The Windows path follows the current `wasapi` event-driven shared-stream API.
+//! - **Windows** uses WASAPI loopback, which captures the render endpoint mix (every
+//!   application's output), or one application's output through a process loopback client.
+//!   It follows the current `wasapi` event-driven shared-stream API.
+//! - **macOS** uses a Core Audio process tap (`tap.rs`): of every process playing to the
+//!   selected output, or of one application and its helper processes. macOS asks once for
+//!   *System Audio Recording* (`NSAudioCaptureUsageDescription` in `Info.plist`); no screen
+//!   content is captured.
+//! - Elsewhere it is a stub.
+//!
 //! Everything downstream (resampling, chunking, leveling via `CaptureState`) is shared
 //! with the mic path and is exercised by tests.
 
@@ -13,7 +20,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::types::AudioLevel;
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn run_system_loopback(
     _device_id: Option<String>,
     _capture: super::applications::SystemCapture,
@@ -22,7 +29,111 @@ pub fn run_system_loopback(
     _chunk_tx: crate::audio::sink::AudioSink,
     _cancel: &CancellationToken,
 ) -> Result<()> {
-    anyhow::bail!("System (loopback) capture is only supported on Windows in this build")
+    anyhow::bail!("System (loopback) capture is only supported on Windows and macOS")
+}
+
+#[cfg(target_os = "macos")]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "the Windows build's signature, which consumes them"
+)]
+pub fn run_system_loopback(
+    device_id: Option<String>,
+    capture: super::applications::SystemCapture,
+    target_rate: u32,
+    level_tx: Sender<AudioLevel>,
+    chunk_tx: crate::audio::sink::AudioSink,
+    cancel: &CancellationToken,
+) -> Result<()> {
+    macos_impl::run(
+        device_id.as_deref(),
+        &capture,
+        target_rate,
+        level_tx,
+        chunk_tx,
+        cancel,
+    )
+}
+
+#[cfg(target_os = "macos")]
+mod macos_impl {
+    use std::time::Duration;
+
+    use anyhow::{Context, Result};
+    use tokio::sync::mpsc::Sender;
+    use tokio_util::sync::CancellationToken;
+
+    use crate::audio::applications::{audio_processes, ProcessGuard, SystemCapture};
+    use crate::audio::capture::CaptureState;
+    use crate::audio::devices::{output_uids, pick_output, PresenceCheck};
+    use crate::audio::tap::{Tap, Target};
+    use crate::types::{AudioLevel, Origin};
+
+    /// How often the tapped output's presence, or the captured application's processes, are
+    /// checked, unless Core Audio reports a device change first.
+    const CHECK_INTERVAL: Duration = Duration::from_secs(1);
+
+    pub fn run(
+        device_id: Option<&str>,
+        capture: &SystemCapture,
+        target_rate: u32,
+        level_tx: Sender<AudioLevel>,
+        chunk_tx: crate::audio::sink::AudioSink,
+        cancel: &CancellationToken,
+    ) -> Result<()> {
+        let make_state =
+            |rate| CaptureState::new(Origin::System, rate, target_rate, level_tx, chunk_tx);
+        match capture {
+            SystemCapture::Output => {
+                let uid = pick_output(device_id)?;
+                let _tap = Tap::start(&Target::Output { device_uid: &uid }, make_state)?;
+                let mut presence = PresenceCheck::new(CHECK_INTERVAL);
+                while !cancel.is_cancelled() {
+                    std::thread::sleep(Duration::from_millis(100));
+                    if presence.due() {
+                        anyhow::ensure!(
+                            output_uids()?.contains(&uid),
+                            "selected output device disconnected or disabled"
+                        );
+                    }
+                }
+            }
+            SystemCapture::Application { process } => {
+                // Never widened to the output mix: no selection, or an application that has
+                // gone, is a failure.
+                let identity = process
+                    .as_ref()
+                    .context("select an application before starting capture")?;
+                let guard = ProcessGuard::selected(identity)?;
+                let mut objects = audio_processes(identity.pid)?;
+                let mut tap = Tap::start(&Target::Processes(&objects), make_state)?;
+                tracing::info!(processes = objects.len(), "capturing one application");
+                let mut check = PresenceCheck::new(CHECK_INTERVAL);
+                while !cancel.is_cancelled() {
+                    std::thread::sleep(Duration::from_millis(100));
+                    if !check.due() {
+                        continue;
+                    }
+                    anyhow::ensure!(
+                        guard.running(),
+                        "selected application has closed; select it again"
+                    );
+                    // A helper that starts playing later (a browser's audio service) joins.
+                    let now = audio_processes(identity.pid)?;
+                    if now != objects {
+                        tap.set_processes(&now)?;
+                        tracing::info!(
+                            processes = now.len(),
+                            "captured application's processes changed"
+                        );
+                        objects = now;
+                    }
+                }
+            }
+        }
+        tracing::info!("Core Audio tap capture stopped");
+        Ok(())
+    }
 }
 
 #[cfg(windows)]

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Read by macOS the first time the Mac App Store build starts, when it creates the app's
+     container: the data folder the disk image used (Whisper models, history, the recovery copy)
+     is moved to the same place inside it, where the app finds it through HOME. Preferences kept
+     by the webview are not carried over. -->
+<plist version="1.0">
+<dict>
+	<key>Move</key>
+	<array>
+		<string>${ApplicationSupport}/io.github.fmadore.live-translation</string>
+	</array>
+</dict>
+</plist>

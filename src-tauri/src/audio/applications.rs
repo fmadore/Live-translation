@@ -1,4 +1,9 @@
 //! Explicit process selection. Creation time prevents a recycled PID capturing another app.
+//!
+//! Windows captures the selected process and its child processes. macOS has no process tree for
+//! audio; it captures the selected application's own process and its helpers, the processes
+//! whose bundle identifier extends the application's (`com.google.Chrome.helper` for
+//! `com.google.Chrome`), which is where browsers and Electron apps play their sound.
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,18 +39,18 @@ pub fn validate(capture: &SystemCapture) -> anyhow::Result<()> {
         let identity = process
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("select an application before starting capture"))?;
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         let _ = ProcessGuard::selected(identity)?;
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             let _ = identity;
-            anyhow::bail!("application capture requires Windows");
+            anyhow::bail!("application capture requires Windows or macOS");
         }
     }
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 #[allow(
     clippy::unnecessary_wraps,
     reason = "the Windows build's signature, which can fail"
@@ -59,6 +64,161 @@ pub fn list() -> anyhow::Result<ApplicationList> {
 
 #[cfg(windows)]
 pub use platform::{list, ProcessGuard};
+
+#[cfg(target_os = "macos")]
+pub use mac::{audio_processes, list, ProcessGuard};
+
+/// Whether a process with bundle identifier `process` belongs to the application `app`: the
+/// application itself, or one of its helpers, whose identifiers extend the application's.
+/// `com.google.Chrome.helper` belongs to `com.google.Chrome`; `com.google.Chromecast` does not.
+#[cfg(any(target_os = "macos", test))]
+fn belongs_to(process: &str, app: &str) -> bool {
+    !app.is_empty()
+        && process
+            .strip_prefix(app)
+            .is_some_and(|rest| rest.is_empty() || rest.starts_with('.'))
+}
+
+#[cfg(target_os = "macos")]
+mod mac {
+    use super::{belongs_to, Application, ApplicationList, ProcessIdentity};
+    use crate::audio::tap::{get_ids, get_property, get_string};
+    use objc2_app_kit::{NSApplicationActivationPolicy, NSRunningApplication, NSWorkspace};
+    use objc2_core_audio::{
+        kAudioHardwarePropertyProcessObjectList, kAudioObjectSystemObject,
+        kAudioProcessPropertyBundleID, kAudioProcessPropertyPID, AudioObjectID,
+    };
+
+    /// The selected application, checked by its start time so that a recycled PID never stands
+    /// in for it.
+    pub struct ProcessGuard {
+        identity: ProcessIdentity,
+    }
+
+    impl ProcessGuard {
+        pub fn selected(identity: &ProcessIdentity) -> anyhow::Result<Self> {
+            let guard = Self {
+                identity: identity.clone(),
+            };
+            anyhow::ensure!(
+                guard.running(),
+                "selected application has closed; select it again"
+            );
+            Ok(guard)
+        }
+
+        /// Still the same process: alive, and started when it was when selected.
+        pub fn running(&self) -> bool {
+            started_at(self.identity.pid).as_deref() == Some(self.identity.created_at.as_str())
+        }
+    }
+
+    /// When the process started, as `seconds.microseconds`, or `None` if there is no such
+    /// process (or it is not ours to ask about).
+    fn started_at(pid: u32) -> Option<String> {
+        let pid = i32::try_from(pid).ok()?;
+        let size = i32::try_from(size_of::<libc::proc_bsdinfo>()).ok()?;
+        // SAFETY: plain data, for which all zeroes is a valid value.
+        let mut info: libc::proc_bsdinfo = unsafe { std::mem::zeroed() };
+        // SAFETY: `info` has room for `size` bytes, which is what PROC_PIDTBSDINFO writes.
+        let written = unsafe {
+            libc::proc_pidinfo(pid, libc::PROC_PIDTBSDINFO, 0, (&raw mut info).cast(), size)
+        };
+        (written == size).then(|| format!("{}.{:06}", info.pbi_start_tvsec, info.pbi_start_tvusec))
+    }
+
+    /// The applications with a Dock presence, apart from this one, by name.
+    #[allow(
+        clippy::unnecessary_wraps,
+        reason = "the Windows build's signature, which can fail"
+    )]
+    pub fn list() -> anyhow::Result<ApplicationList> {
+        let own = std::process::id();
+        let mut applications = Vec::new();
+        for app in NSWorkspace::sharedWorkspace().runningApplications().iter() {
+            if app.activationPolicy() != NSApplicationActivationPolicy::Regular
+                || app.isTerminated()
+            {
+                continue;
+            }
+            let Ok(pid) = u32::try_from(app.processIdentifier()) else {
+                continue;
+            };
+            if pid == own {
+                continue;
+            }
+            let Some(created_at) = started_at(pid) else {
+                continue;
+            };
+            let name = app
+                .localizedName()
+                .map_or_else(|| format!("PID {pid}"), |name| name.to_string());
+            applications.push(Application {
+                process: ProcessIdentity { pid, created_at },
+                name,
+            });
+        }
+        applications.sort_by_key(|app| app.name.to_lowercase());
+        Ok(ApplicationList {
+            supported: true,
+            applications,
+        })
+    }
+
+    /// The Core Audio process objects to tap for the application with this PID: its own and
+    /// its helpers'. A process appears only once it has used audio, so this is asked again
+    /// while capturing.
+    pub fn audio_processes(pid: u32) -> anyhow::Result<Vec<AudioObjectID>> {
+        let bundle = i32::try_from(pid)
+            .ok()
+            .and_then(NSRunningApplication::runningApplicationWithProcessIdentifier)
+            .and_then(|app| app.bundleIdentifier())
+            .map(|id| id.to_string());
+        let system = AudioObjectID::try_from(kAudioObjectSystemObject).unwrap_or(1);
+        let mut objects = Vec::new();
+        for object in get_ids(system, kAudioHardwarePropertyProcessObjectList)? {
+            let own = get_property::<i32>(object, kAudioProcessPropertyPID)
+                .ok()
+                .and_then(|p| u32::try_from(p).ok())
+                == Some(pid);
+            let helper = bundle.as_deref().is_some_and(|app| {
+                get_string(object, kAudioProcessPropertyBundleID)
+                    .is_ok_and(|process| belongs_to(&process, app))
+            });
+            if own || helper {
+                objects.push(object);
+            }
+        }
+        objects.sort_unstable();
+        Ok(objects)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn this_process_is_recognised_and_a_stale_identity_refused() {
+            let pid = std::process::id();
+            let created_at = started_at(pid).expect("this process has a start time");
+            let guard = ProcessGuard::selected(&ProcessIdentity {
+                pid,
+                created_at: created_at.clone(),
+            })
+            .unwrap();
+            assert!(guard.running());
+            assert!(ProcessGuard::selected(&ProcessIdentity {
+                pid,
+                created_at: "0.000000".into()
+            })
+            .is_err());
+            // Listing must not fail on a machine with no window server session either.
+            let _ = list().unwrap();
+            // A process that is not playing anything simply has no objects.
+            let _ = audio_processes(pid).unwrap();
+        }
+    }
+}
 
 #[cfg(windows)]
 mod platform {
@@ -272,6 +432,19 @@ mod tests {
         assert!(validate(&SystemCapture::Output).is_ok());
         assert!(serde_json::from_str::<SystemCapture>(r#"{"kind":"unknown"}"#).is_err());
     }
+    #[test]
+    fn helpers_belong_to_their_application_and_nothing_else_does() {
+        assert!(belongs_to("com.google.Chrome", "com.google.Chrome"));
+        assert!(belongs_to("com.google.Chrome.helper", "com.google.Chrome"));
+        assert!(belongs_to(
+            "com.google.Chrome.helper.Renderer",
+            "com.google.Chrome"
+        ));
+        assert!(!belongs_to("com.google.Chromecast", "com.google.Chrome"));
+        assert!(!belongs_to("com.apple.WebKit.GPU", "com.apple.Safari"));
+        assert!(!belongs_to("anything", ""));
+    }
+
     #[cfg(windows)]
     #[test]
     fn enumeration_and_stale_identity_are_safe() {

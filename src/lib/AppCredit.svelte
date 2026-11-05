@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t } from './i18n';
 	import SupportLink from './SupportLink.svelte';
+	import { supportShown } from './support';
 
 	/** The idle stage's last line: who made the app, and the support link (issue #180).
 	 *  Idle only, at the foot of the stage, so it never sits beside a running session. */
@@ -9,8 +10,10 @@
 
 <footer class="credit">
 	<span>{$t.support.madeBy(AUTHOR)}</span>
-	<span class="sep" aria-hidden="true">·</span>
-	<SupportLink variant="inline" />
+	{#if $supportShown}
+		<span class="sep" aria-hidden="true">·</span>
+		<SupportLink variant="inline" />
+	{/if}
 </footer>
 
 <style>

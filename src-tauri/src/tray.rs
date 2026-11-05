@@ -232,7 +232,7 @@ fn emit(app: &AppHandle, command: TrayCommand) {
 /// that is where the transcript and the session state are. The watchdog is what makes it
 /// safe to depend on that: if nothing claims the request, the app leaves anyway rather than
 /// stranding an operator whose only remaining handle is this menu.
-fn request_quit(app: &AppHandle) {
+pub(crate) fn request_quit(app: &AppHandle) {
     let attempt = app.state::<CloseGuard>().begin_attempt();
     emit(app, TrayCommand::Quit);
 

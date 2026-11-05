@@ -40,6 +40,7 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 		canPrepare: false
 	}),
 	text_scale_factor: () => 1,
+	support_link_allowed: () => true,
 	// One 1920×1080 display at 100%, with the overlay where `tauri.conf.json` creates it.
 	display_layout: () => '0,0 1920x1080 100%',
 	get_overlay_placement: (): Placement => ({ x: 320, y: 460, width: 1280, height: 160 }),

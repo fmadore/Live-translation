@@ -2,7 +2,7 @@
 
 Live captions over your meetings, video calls and slides. Transcribe speech locally with
 **Whisper**, or translate it — into English locally with Whisper, or into many languages with
-**Google Gemini** or **OpenAI** — in a transparent Windows overlay.
+**Google Gemini** or **OpenAI** — in a transparent overlay on Windows or macOS.
 
 <a href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>&nbsp;&nbsp;<a href="https://buymeacoffee.com/fmadore"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="48"></a>
 
@@ -12,7 +12,12 @@ Free, with every feature included. If it is useful to you, you can
 [GitHub releases](https://github.com/fmadore/Live-translation/releases) ·
 [Privacy](docs/privacy.md) · [Documentation](docs/README.md)
 
-**Windows 11 · Native x64 and ARM64 · English, French and German interface · MIT license**
+**Windows 11, native x64 and ARM64 · macOS 15+ on Apple silicon (in testing) · English, French
+and German interface · MIT license**
+
+The macOS version is new and has not yet been tried on a real Mac: see the
+[macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
+and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
 
 **[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026)
 is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): an
@@ -37,8 +42,9 @@ bar, and fixes for flashes and layout shifts. See its
   local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
   Cloud engines need your
   own compatible account, API key and internet connection; provider usage charges apply.
-- **Your choice of audio.** Capture a microphone, Windows system audio, one application's
-  process tree, or microphone and system audio together. Test levels before starting.
+- **Your choice of audio.** Capture a microphone, the computer's system audio, one application
+  (its process tree on Windows, the app and its helpers on macOS), or microphone and system
+  audio together. Test levels before starting.
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
   over slides or calls; it reopens where you last placed it on each display setup. Adjust
   fonts, colour, contrast, size and reading pace; choose Fit window, Compact or Stable reading.
@@ -84,10 +90,10 @@ any setup.
 
 ## Privacy and local processing
 
-Whisper audio stays on the PC. Pending audio uses an automatically deleted temporary file;
+Whisper audio stays on the computer. Pending audio uses an automatically deleted temporary file;
 it is not a saved recording. Models download from Hugging Face only when requested and are
 verified before use. Cloud audio goes directly to the chosen provider. API keys stay in
-Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry.
+Windows Credential Manager or the macOS Keychain. The developer receives no audio, keys, transcripts or telemetry.
 See the [privacy policy](docs/privacy.md) for temporary storage, history and recovery details.
 
 ## Support development
@@ -96,13 +102,15 @@ Live Translation & Subtitles is free, and every captioning, translation and expo
 free. If the app is useful to you, you can help fund its development on
 [Buy Me a Coffee](https://buymeacoffee.com/fmadore). Supporting is entirely optional and does not
 unlock additional features; cloud providers bill their own usage separately. The same link is
-in the app under Settings › App.
+in the app under Settings › App, except in the Mac App Store version.
 
 ## Build and contribute
 
 Use Windows with Node 22.13+ or 24, rustup (`rust-toolchain.toml` pins the Rust version, which
 rustup installs on first use), Visual Studio C++ Build Tools and the Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
-[native compiler setup](docs/local-whisper.md#building) before building the desktop app.
+[native compiler setup](docs/local-whisper.md#building) before building the desktop app. On a
+Mac (Apple silicon), Xcode's command-line tools, rustup and Node are enough; see
+[macOS](docs/macos.md).
 
 ```powershell
 npm ci
@@ -132,10 +140,11 @@ See [MSIX packaging](docs/packaging-msix.md), [architecture](docs/architecture.m
 [security](SECURITY.md) and the [roadmap](ROADMAP.md). `npm run test:style` checks the
 operator window's styles and overflow in Edge; `npm run test:e2e` builds a separate debug copy
 of the app and drives it end to end, and needs the Rust toolchain. Both test the last
-`npm run build`. CI checks the frontend, Rust on Linux and Windows x64/ARM64, both Playwright
-suites, dependencies and workflows, and reports test coverage (`npm run test:coverage`
-locally). Tagged releases build installers and a
-combined Store bundle; Partner Center submission is manual.
+`npm run build`. CI checks the frontend, Rust on Linux, Windows x64/ARM64 and macOS, both
+Playwright suites, dependencies and workflows, and reports test coverage
+(`npm run test:coverage` locally); every push builds a Mac test app. Tagged releases build
+installers, a combined Store bundle and a notarised Mac disk image; Partner Center and App Store
+submissions are started by hand.
 
 Originally developed for the workshop *Digital Humanities and Artificial Intelligence in
 African Studies*, STIAS, Stellenbosch, 21–24 September 2026. Thanks to

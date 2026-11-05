@@ -1,3 +1,5 @@
+import { isMac } from './platform';
+
 export type Shortcut =
 	'toggleSession' | 'togglePause' | 'toggleOverlay' | 'larger' | 'smaller' | 'direction';
 
@@ -32,28 +34,49 @@ const KEY: Record<
 };
 
 /** The value for `aria-keyshortcuts`, which is in ARIA's key names whatever the interface
- *  language: `Control+Shift+Space`. */
-export function ariaKeyShortcut(command: Shortcut): string {
+ *  language: `Control+Shift+Space`, or `Meta+Shift+Space` on a Mac, where the table's `ctrl`
+ *  is the Command key. */
+export function ariaKeyShortcut(command: Shortcut, mac = isMac): string {
 	return SHORTCUT_KEYS[command]
-		.map((key) => (key === 'ctrl' ? 'Control' : key === 'shift' ? 'Shift' : KEY[key].aria))
+		.map((key) =>
+			key === 'ctrl' ? (mac ? 'Meta' : 'Control') : key === 'shift' ? 'Shift' : KEY[key].aria
+		)
 		.join('+');
 }
 
-/** The shortcut as the operator reads it, in the interface language: `Ctrl+Shift+Space`,
- *  written the way Windows writes key combinations. */
-export function keyLabel(command: Shortcut, names: Record<KeyName, string>): string {
-	return SHORTCUT_KEYS[command].map((key) => names[key]).join('+');
+/** The shortcut's keys in the order the system writes them: as the table lists them on
+ *  Windows (Ctrl, Shift, key), Shift before Command on a Mac (⇧⌘P), as macOS's menus do. The
+ *  names come from the catalog, which on a Mac already holds ⌘ and ⇧. */
+export function keyParts(command: Shortcut, names: Record<KeyName, string>, mac = isMac): string[] {
+	const keys = SHORTCUT_KEYS[command];
+	const ordered = mac ? [...keys].sort((a, b) => macRank(a) - macRank(b)) : keys;
+	return ordered.map((key) => names[key]);
 }
 
-/** App-local shortcuts. Never intercept typing, repeats, IME or a dialog's own keys. */
-export function shortcut(event: KeyboardEvent, dialogOpen: boolean): Shortcut | null {
+/** On a Mac, Shift comes first, then Command, then the key itself. */
+function macRank(key: KeyName): number {
+	return key === 'shift' ? 0 : key === 'ctrl' ? 1 : 2;
+}
+
+/** The shortcut as the operator reads it, in the interface language: `Ctrl+Shift+Space`,
+ *  written the way Windows writes key combinations, or `⇧⌘Space` the way a Mac does. */
+export function keyLabel(command: Shortcut, names: Record<KeyName, string>, mac = isMac): string {
+	return keyParts(command, names, mac).join(mac ? '' : '+');
+}
+
+/** App-local shortcuts. Never intercept typing, repeats, IME or a dialog's own keys. The
+ *  table's `ctrl` is the Control key on Windows and the Command key on a Mac, where Control is
+ *  left alone, as Windows leaves the Windows key alone. */
+export function shortcut(event: KeyboardEvent, dialogOpen: boolean, mac = isMac): Shortcut | null {
+	const modifier = mac ? event.metaKey : event.ctrlKey;
+	const other = mac ? event.ctrlKey : event.metaKey;
 	if (
 		dialogOpen ||
 		event.defaultPrevented ||
 		event.repeat ||
 		event.isComposing ||
 		event.altKey ||
-		event.metaKey
+		other
 	)
 		return null;
 	const target = event.target;
@@ -65,7 +88,7 @@ export function shortcut(event: KeyboardEvent, dialogOpen: boolean): Shortcut | 
 	for (const [command, keys] of Object.entries(SHORTCUT_KEYS) as [Shortcut, KeyName[]][]) {
 		const main = KEY[keys.find((key) => key !== 'ctrl' && key !== 'shift') as keyof typeof KEY];
 		if (
-			event.ctrlKey === keys.includes('ctrl') &&
+			modifier === keys.includes('ctrl') &&
 			event.shiftKey === keys.includes('shift') &&
 			(event.code === main.code || (main.key !== undefined && event.key === main.key))
 		)

@@ -3,7 +3,9 @@ import { de } from './de';
 import { en } from './en';
 import { fr } from './fr';
 import { get } from 'svelte/store';
+import { macDe, macEn, macFr } from './mac';
 import {
+	catalogsFor,
 	detectLocale,
 	locale,
 	t,
@@ -160,7 +162,7 @@ describe('French typography', () => {
 				: [];
 
 	it('uses a non-breaking space before its double punctuation', () => {
-		for (const message of strings(fr)) {
+		for (const message of [...strings(fr), ...strings(macFr)]) {
 			expect(message, `"${message}" has an ordinary space before its punctuation`).not.toMatch(
 				/ [:;?!]/
 			);
@@ -168,7 +170,7 @@ describe('French typography', () => {
 	});
 
 	it('uses the typographic apostrophe', () => {
-		for (const message of strings(fr)) {
+		for (const message of [...strings(fr), ...strings(macFr)]) {
 			expect(message, `"${message}" uses a straight apostrophe`).not.toMatch(/\w'\w/);
 		}
 	});
@@ -302,4 +304,55 @@ it('preserves accented design labels without replacement characters', () => {
 			if (typeof value === 'string') expect(value, path).not.toContain('\uFFFD');
 		}
 	}
+});
+
+// On a Mac the messages that name Windows places are replaced (`mac.ts`). Each replacement has to
+// land on a real message of the same kind, and every language has to replace the same ones, or a
+// French Mac would read one sentence about Credential Manager.
+describe('the Mac wording', () => {
+	const OVERRIDES = { en: macEn, fr: macFr, de: macDe } as const;
+
+	it.each(Object.keys(OVERRIDES) as (keyof typeof OVERRIDES)[])(
+		'replaces only messages %s has, with the same kind of message',
+		(code) => {
+			const base = { en, fr, de }[code];
+			for (const path of paths(OVERRIDES[code])) {
+				const original = at(base, path);
+				const replacement = at(OVERRIDES[code], path);
+				expect(typeof original, `${path} is not a message in ${code}`).toBe(typeof replacement);
+				if (typeof original === 'function' && typeof replacement === 'function') {
+					expect(replacement.length, path).toBe(original.length);
+				}
+			}
+		}
+	);
+
+	it('replaces the same messages in every language', () => {
+		expect(paths(macFr).sort()).toEqual(paths(macEn).sort());
+		expect(paths(macDe).sort()).toEqual(paths(macEn).sort());
+	});
+
+	it('leaves no Windows place behind on a Mac', () => {
+		const windowsy =
+			/Windows|this PC|ce PC|diesem PC|ms-settings|Credential|Infobereich|zone de notification|notification area|taskbar|Taskleiste|barre des tâches/;
+		for (const [code, catalog] of Object.entries(catalogsFor(true))) {
+			for (const path of paths(catalog)) {
+				let message = at(catalog, path);
+				if (typeof message === 'function') message = message(2, 'X');
+				if (typeof message !== 'string') continue;
+				expect(message, `${code}: ${path}`).not.toMatch(windowsy);
+			}
+		}
+	});
+
+	it('changes nothing elsewhere', () => {
+		const windows = catalogsFor(false);
+		expect(windows.en).toBe(en);
+		expect(windows.fr).toBe(fr);
+		expect(windows.de).toBe(de);
+		const mac = catalogsFor(true);
+		expect(mac.en.key.saved).toBe(macEn.key?.saved);
+		expect(mac.en.key.title('Gemini')).toBe(en.key.title('Gemini'));
+		expect(mac.en.keys.space).toBe(en.keys.space);
+	});
 });

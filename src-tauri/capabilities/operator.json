@@ -49,6 +49,7 @@
     "allow-confirm-close",
     "allow-set-tray-state",
     "allow-open-support-page",
+    "allow-support-link-allowed",
     "allow-start-zoom-captions",
     "allow-stop-zoom-captions",
     "allow-send-zoom-test-caption",

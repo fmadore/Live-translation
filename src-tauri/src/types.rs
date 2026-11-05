@@ -418,8 +418,9 @@ pub mod events {
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";
-    /// Windows endpoint notifications; other platforms use manual device refresh.
-    #[cfg(windows)]
+    /// Windows endpoint and macOS Core Audio notifications; other platforms use manual
+    /// device refresh.
+    #[cfg(any(windows, target_os = "macos"))]
     pub const AUDIO_DEVICES_CHANGED: &str = "audio-devices-changed";
     /// Deliberately separate from `STATUS`: a preflight audio test is not a session, and
     /// must never move the operator UI's session state machine.

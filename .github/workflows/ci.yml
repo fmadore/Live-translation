@@ -100,7 +100,10 @@ jobs:
         # Ubuntu by version, not `ubuntu-latest`: this lane apt-installs WebKitGTK 4.1 and GTK 3
         # by package name, and `ubuntu-latest` moving to a new release (26.04, from 19 October
         # 2026) can rename or drop them under it. Move it on purpose, with those packages.
-        os: [ubuntu-24.04, windows-latest, windows-11-arm]
+        # macOS on Apple silicon (issue #195): the Core Audio tap, AppKit overlay and Save
+        # panel code is behind cfg(target_os = "macos"), and the smoke test runs Whisper on
+        # Apple's CPU. By version, like Ubuntu, so the macOS and Xcode under it move on purpose.
+        os: [ubuntu-24.04, windows-latest, windows-11-arm, macos-15]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:

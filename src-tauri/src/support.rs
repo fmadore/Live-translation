@@ -13,9 +13,29 @@ pub const SUPPORT_URL: &str = "https://buymeacoffee.com/fmadore";
 
 #[tauri::command]
 pub async fn open_support_page() -> Result<(), AppError> {
+    if app_store_build() {
+        return Err(AppError::with(
+            id::OPEN_LINK,
+            "the support page is not offered in the Mac App Store build",
+        ));
+    }
     tauri::async_runtime::spawn_blocking(|| open(SUPPORT_URL))
         .await
         .map_err(|e| AppError::with(id::TASK_FAILED, e))?
+}
+
+/// Whether the interface may show the support link. Not in the Mac App Store build: App Review
+/// Guideline 3.1.1 allows tips there only through in-app purchase, and the store build is free
+/// with nothing to buy, as Kalamu's is. The Microsoft Store and the direct downloads keep it.
+#[tauri::command]
+pub fn support_link_allowed() -> bool {
+    !app_store_build()
+}
+
+/// Whether this is the Mac App Store build. It is the only sandboxed one, and macOS sets
+/// `APP_SANDBOX_CONTAINER_ID` in a sandboxed app's environment.
+pub(crate) fn app_store_build() -> bool {
+    cfg!(target_os = "macos") && std::env::var_os("APP_SANDBOX_CONTAINER_ID").is_some()
 }
 
 /// Open one of the app's own fixed pages in the default browser: this one, or the Zoom setup
@@ -67,11 +87,31 @@ pub(crate) fn open(url: &str) -> Result<(), AppError> {
     }
 }
 
-#[cfg(not(windows))]
+/// macOS: `NSWorkspace` hands the page to the default browser. Public AppKit, allowed in the
+/// App Sandbox, and no process is started.
+#[cfg(target_os = "macos")]
+pub(crate) fn open(url: &str) -> Result<(), AppError> {
+    use objc2_app_kit::NSWorkspace;
+    use objc2_foundation::{NSString, NSURL};
+
+    let Some(address) = NSURL::URLWithString(&NSString::from_str(url)) else {
+        return Err(AppError::with(id::OPEN_LINK, "not a valid address"));
+    };
+    if NSWorkspace::sharedWorkspace().openURL(&address) {
+        Ok(())
+    } else {
+        Err(AppError::with(
+            id::OPEN_LINK,
+            "NSWorkspace could not open the page",
+        ))
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub(crate) fn open(_url: &str) -> Result<(), AppError> {
     Err(AppError::with(
         id::OPEN_LINK,
-        "opening a browser is only implemented on Windows",
+        "opening a browser is only implemented on Windows and macOS",
     ))
 }
 

@@ -102,6 +102,15 @@ glossaries, live corrections and offline text translation are not planned.
   meeting on 27 October 2026. The finer live meeting checks listed in the guide are still to be
   recorded.
 
+- **macOS ([#195](https://github.com/fmadore/Live-translation/issues/195)):** implemented for
+  Apple silicon, macOS 15 and later: system audio and one-application capture through Core Audio
+  taps, device notifications, the overlay by window level, the Save panel, the Keychain, ⌘Q and
+  the Dock, macOS wording and ⌘ shortcuts in all three languages, a macOS CI lane, a test build
+  on every push, a notarised disk image in each release and a free Mac App Store build with its
+  upload workflow ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). Not
+  yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the checklist in
+  the notes. The paid trial proposed in the issue was dropped: the Mac version is free.
+
 - **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
   `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
   ([Whisper notes](docs/local-whisper.md#names-and-terms)). Whisper's speech detection is next.

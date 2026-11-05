@@ -8,8 +8,9 @@ use crate::types::AudioDevice;
 /// Bumped each time Windows reports an endpoint change, after the watcher's debounce.
 static CHANGES: AtomicU64 = AtomicU64::new(0);
 
-// Only the Windows watcher reports changes; elsewhere the fallback interval does the work.
-#[cfg_attr(not(windows), allow(dead_code))]
+// Only the Windows and macOS watchers report changes; elsewhere the fallback interval does the
+// work.
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
 fn note_change() {
     CHANGES.fetch_add(1, Ordering::Relaxed);
 }
@@ -45,13 +46,75 @@ impl PresenceCheck {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 #[allow(
     clippy::unnecessary_wraps,
     reason = "the Windows build's signature, which can fail"
 )]
 pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
     Ok(Vec::new())
+}
+
+/// The outputs whose mix the system-audio source can tap, through cpal's Core Audio host.
+/// Ids are cpal's stable device ids (`coreaudio:<UID>`), which `pick_output` takes back.
+#[cfg(target_os = "macos")]
+pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    let host = cpal::default_host();
+    let default_id = host
+        .default_output_device()
+        .and_then(|device| device.id().ok());
+    let mut out = Vec::new();
+    for device in host
+        .output_devices()
+        .context("failed to enumerate output devices")?
+    {
+        if let Ok(id) = device.id() {
+            out.push(AudioDevice {
+                is_default: Some(&id) == default_id.as_ref(),
+                id: id.to_string(),
+                name: device.to_string(),
+            });
+        }
+    }
+    Ok(out)
+}
+
+/// The Core Audio UID of the output to tap: the one with this id, or the default output as it
+/// is now. The tap stays on that output; it never follows a later default.
+#[cfg(target_os = "macos")]
+pub fn pick_output(id: Option<&str>) -> anyhow::Result<String> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    let host = cpal::default_host();
+    let device = match id {
+        Some(wanted) => host
+            .output_devices()
+            .context("failed to enumerate output devices")?
+            .find(|device| device.id().is_ok_and(|id| id.to_string() == wanted))
+            .ok_or_else(|| anyhow::anyhow!("selected output device unavailable"))?,
+        None => host
+            .default_output_device()
+            .ok_or_else(|| anyhow::anyhow!("no default output device"))?,
+    };
+    Ok(device
+        .id()
+        .context("failed to identify the output device")?
+        .id()
+        .to_owned())
+}
+
+/// The Core Audio UIDs of the outputs present now, for the tap's presence check.
+#[cfg(target_os = "macos")]
+pub fn output_uids() -> anyhow::Result<Vec<String>> {
+    use anyhow::Context;
+    use cpal::traits::{DeviceTrait, HostTrait};
+    Ok(cpal::default_host()
+        .output_devices()
+        .context("failed to check output availability")?
+        .filter_map(|device| device.id().ok().map(|id| id.id().to_owned()))
+        .collect())
 }
 
 #[cfg(windows)]
@@ -119,8 +182,80 @@ mod tests {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn watch(_app: tauri::AppHandle) {}
+
+/// macOS: Core Audio reports a device added or removed, or a new default input or output, on
+/// its own notification thread. As on Windows, the callback only wakes this worker, which
+/// waits for the burst to settle and then tells the capture threads and the interface.
+#[cfg(target_os = "macos")]
+pub fn watch(app: tauri::AppHandle) {
+    use std::ffi::c_void;
+    use std::ptr::NonNull;
+    use std::sync::mpsc::SyncSender;
+
+    use objc2_core_audio::{
+        kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
+        kAudioHardwarePropertyDevices, kAudioObjectSystemObject, AudioObjectAddPropertyListener,
+        AudioObjectID, AudioObjectPropertyAddress,
+    };
+    use tauri::Emitter;
+
+    unsafe extern "C-unwind" fn changed(
+        _object: AudioObjectID,
+        _count: u32,
+        _addresses: NonNull<AudioObjectPropertyAddress>,
+        client: *mut c_void,
+    ) -> i32 {
+        // SAFETY: `client` is the sender leaked below, alive for the rest of the process.
+        let wake = unsafe { &*client.cast::<SyncSender<()>>() };
+        let _ = wake.try_send(());
+        0
+    }
+
+    let (tx, rx) = std::sync::mpsc::sync_channel::<()>(1);
+    // The listeners stay registered for the life of the process, so their client data does too.
+    let client: *mut SyncSender<()> = Box::into_raw(Box::new(tx));
+    let system = AudioObjectID::try_from(kAudioObjectSystemObject).unwrap_or(1);
+    let mut registered = 0;
+    for selector in [
+        kAudioHardwarePropertyDevices,
+        kAudioHardwarePropertyDefaultInputDevice,
+        kAudioHardwarePropertyDefaultOutputDevice,
+    ] {
+        let address = super::tap::address(selector);
+        // SAFETY: `changed` matches `AudioObjectPropertyListenerProc`, and `client` is never
+        // freed.
+        let status = unsafe {
+            AudioObjectAddPropertyListener(
+                system,
+                NonNull::from(&address),
+                Some(changed),
+                client.cast(),
+            )
+        };
+        match super::tap::status(status, "could not watch the audio devices") {
+            Ok(()) => registered += 1,
+            Err(error) => tracing::warn!("{error:#}"),
+        }
+    }
+    if registered == 0 {
+        return;
+    }
+    let result = std::thread::Builder::new()
+        .name("audio-device-events".into())
+        .spawn(move || {
+            while rx.recv().is_ok() {
+                std::thread::sleep(std::time::Duration::from_millis(150));
+                while rx.try_recv().is_ok() {}
+                note_change();
+                let _ = app.emit(crate::types::events::AUDIO_DEVICES_CHANGED, ());
+            }
+        });
+    if let Err(error) = result {
+        tracing::warn!("Audio-device watcher unavailable: {error}");
+    }
+}
 
 #[cfg(windows)]
 pub fn watch(app: tauri::AppHandle) {
