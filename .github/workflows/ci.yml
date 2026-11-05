@@ -102,8 +102,10 @@ jobs:
         # 2026) can rename or drop them under it. Move it on purpose, with those packages.
         # macOS on Apple silicon (issue #195): the Core Audio tap, AppKit overlay and Save
         # panel code is behind cfg(target_os = "macos"), and the smoke test runs Whisper on
-        # Apple's CPU. By version, like Ubuntu, so the macOS and Xcode under it move on purpose.
-        os: [ubuntu-24.04, windows-latest, windows-11-arm, macos-15]
+        # Apple's CPU. By version, like Ubuntu, so the macOS and Xcode under it move on purpose:
+        # macos-26 has Xcode 26, the SDK App Store Connect requires, as macos.yml, release.yml
+        # and app-store.yml use.
+        os: [ubuntu-24.04, windows-latest, windows-11-arm, macos-26]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     steps:
