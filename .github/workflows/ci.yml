@@ -184,14 +184,17 @@ jobs:
         run: cargo fmt --all --check
         working-directory: src-tauri
 
-      - name: clippy (Whisper Vulkan helper)
+      # On Windows the helper builds in a short target folder: ggml configures its Vulkan shader
+      # generator as a nested CMake project deep inside Cargo's build folder, and under
+      # src-tauri/target its paths pass Windows' 260-character limit (rc.exe then cannot write
+      # its files). scripts/build-whisper-vulkan.mjs does the same for releases.
+      - name: clippy and tests (Whisper Vulkan helper)
         if: matrix.os == 'windows-latest' || runner.os == 'Linux'
-        run: cargo clippy --locked -p whisper-vulkan --all-targets -- -D warnings
-        working-directory: src-tauri
-
-      - name: tests (Whisper Vulkan helper)
-        if: matrix.os == 'windows-latest' || runner.os == 'Linux'
-        run: cargo test --locked -p whisper-vulkan
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then export CARGO_TARGET_DIR="$RUNNER_TEMP/wv"; fi
+          cargo clippy --locked -p whisper-vulkan --all-targets -- -D warnings
+          cargo test --locked -p whisper-vulkan
         working-directory: src-tauri
 
       - name: clippy

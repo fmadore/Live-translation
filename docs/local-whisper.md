@@ -287,6 +287,10 @@ node scripts/build-whisper-vulkan.mjs x86_64-pc-windows-msvc   # or aarch64-pc-w
 npm run tauri build -- --config src-tauri/tauri.vulkan.conf.json
 ```
 
+The script builds in `\wv` at the root of the drive (the runner's temporary folder on CI;
+`WHISPER_VULKAN_TARGET_DIR` chooses another): under `src-tauri\target`, the folders ggml makes for
+its Vulkan shader generator pass Windows' 260-character path limit and the build fails.
+
 To try it from a development build, copy `src-tauri/binaries/whisper-vulkan-<target>.exe` beside
 the app's executable as `whisper-vulkan.exe`. On Linux, `cargo build -p whisper-vulkan` needs
 the distribution's Vulkan headers and `glslc`.
