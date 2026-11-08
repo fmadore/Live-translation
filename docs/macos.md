@@ -163,6 +163,9 @@ The speech samples ship inside the app:
       as the source and the Mac mini's speakers as the output; `afplay rehearsal-en.wav`.
       macOS asks for *System Audio Recording*, naming Live Translation with the description
       text. Allow: captions appear in the overlay and the transcript; the level meter moves.
+- [ ] **Whisper on Metal:** the log says `Whisper model loaded device=metal`; time the same
+      recording with *Use the graphics processor* on and off (`device=cpu`), and try Large v3
+      Turbo. A silent stretch produces no captions (speech detection).
 - [ ] **French and translation:** the same with `rehearsal-fr.wav`, spoken language French, and
       translation into English.
 - [ ] **Refusal:** System Settings → Privacy & Security → *Screen & System Audio Recording*

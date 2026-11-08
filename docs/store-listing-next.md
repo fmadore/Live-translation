@@ -72,3 +72,135 @@ Before submission, complete:
 
 Use the normal Store identity: the side-by-side Local Test installation is for feedback, not the
 Store submission package.
+
+## The version after 1.12.0
+
+**Draft, not yet tagged.** Whisper on the graphics processor, bundled speech detection, loop and
+credit filters and Large v3 Turbo
+([local Whisper notes](local-whisper.md#graphics-processor)). Apply these once 1.12.0 has been
+submitted and [store-listing.md](store-listing.md) is rolled forward to the new version; until
+then that file stays the 1.12.0 copy. Every block below replaces the named paragraph or line
+in [store-listing.md](store-listing.md) word for word; nothing else in the listing changes (short
+descriptions, keywords, screenshots, trademark line). The French and German sentences need the
+maintainer's review, as each release's do.
+
+What the submission needs beyond the copy:
+
+- **A second executable in the package.** `whisper-vulkan.exe` sits beside the app's executable.
+  It is part of the same full-trust app, started and stopped only by it, opens no network
+  connection, and needs no new capability: it reaches the graphics processor through the
+  graphics driver already installed. The certification notes say so (below).
+- **A bundled model.** `models/ggml-silero-v5.1.2.bin` (864 KiB, Silero VAD, MIT) ships in the
+  package. The Whisper speech models are still downloaded only at the user's request.
+- **No privacy-policy change in substance.** Audio still never leaves the PC with Whisper; the
+  [privacy policy](privacy.md) gained a sentence naming the helper, without a new effective
+  date, since nothing new is sent or kept.
+- **Screenshots** need no retake: the setup gains one switch under the model, *Use the graphics
+  processor*.
+
+### Description: the offline-subtitles paragraph (third paragraph)
+
+English:
+
+```text
+For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your PC with no account, API key or internet connection: on its graphics processor when it has a suitable one, otherwise on its processor. Built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly and Large v3 Turbo only transcribes. For any other language, use cloud translation.
+```
+
+Français :
+
+```text
+Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base, Small et Large v3 Turbo se téléchargent séparément et pèsent environ 31, 57, 182 et 547 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur votre PC, sans compte, clé API ni connexion Internet : sur son processeur graphique s'il en a un qui convient, sinon sur son processeur. La détection de la parole intégrée ignore les silences et la musique, pour que Whisper n'invente pas de sous-titres dans une salle silencieuse. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal et Large v3 Turbo ne fait que transcrire. Pour toute autre langue, utilisez la traduction cloud.
+```
+
+Deutsch:
+
+```text
+Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base, Small und Large v3 Turbo werden separat heruntergeladen (etwa 31, 57, 182 und 547 MiB). Danach läuft die Erkennung auf Ihrem PC, ohne Konto, API-Schlüssel oder Internetverbindung: auf dem Grafikprozessor, wenn ein geeigneter vorhanden ist, sonst auf der CPU. Die eingebaute Spracherkennung überspringt Stille und Musik, damit Whisper in einem stillen Raum keine Untertitel erfindet. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen und Large v3 Turbo nur transkribiert. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
+```
+
+### What's new in this version
+
+English:
+
+```text
+Faster offline captions: Whisper now runs on your PC's graphics processor when it has a suitable one, and returns to the processor by itself if anything goes wrong; a switch under the model turns it off. Built-in speech detection skips silence and music, so a quiet room no longer produces invented captions, and words repeated over and over or stray subtitle credits are removed.
+
+A new model, Large v3 Turbo (547 MiB), gives the most accurate offline subtitles. It transcribes only: keep Small for translation into English.
+```
+
+Français :
+
+```text
+Des sous-titres hors ligne plus rapides : Whisper s'exécute désormais sur le processeur graphique de votre PC s'il en a un qui convient, et revient de lui-même au processeur en cas de problème ; un interrupteur sous le modèle le désactive. La détection de la parole intégrée ignore les silences et la musique : une salle silencieuse ne produit plus de sous-titres inventés, et les mots répétés en boucle ou les crédits de sous-titrage parasites sont retirés.
+
+Un nouveau modèle, Large v3 Turbo (547 Mio), donne les sous-titres hors ligne les plus précis. Il ne fait que transcrire : gardez Small pour traduire vers l'anglais.
+```
+
+Deutsch:
+
+```text
+Schnellere Offline-Untertitel: Whisper läuft jetzt auf dem Grafikprozessor Ihres PCs, wenn ein geeigneter vorhanden ist, und wechselt bei Problemen von selbst zurück zur CPU; ein Schalter unter dem Modell schaltet das aus. Die eingebaute Spracherkennung überspringt Stille und Musik: Ein stiller Raum erzeugt keine erfundenen Untertitel mehr, und endlos wiederholte Wörter oder eingestreute Untertitel-Abspanne werden entfernt.
+
+Ein neues Modell, Large v3 Turbo (547 MiB), liefert die genauesten Offline-Untertitel. Es transkribiert nur: Für die Übersetzung ins Englische bleibt Small die Wahl.
+```
+
+### Features: the first two lines
+
+English:
+
+```text
+Offline Whisper captions in 99 spoken languages or automatic detection, on the graphics processor when available
+Download Tiny, Base, Small or Large v3 Turbo once, then transcribe without an account, API key or internet
+```
+
+Français :
+
+```text
+Sous-titres Whisper hors ligne dans 99 langues parlées ou détection automatique, sur le processeur graphique s'il convient
+Téléchargez Tiny, Base, Small ou Large v3 Turbo, puis transcrivez sans compte, clé API ni connexion Internet
+```
+
+Deutsch:
+
+```text
+Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung, auf dem Grafikprozessor, wenn verfügbar
+Tiny, Base, Small oder Large v3 Turbo herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
+```
+
+### Additional system requirements: the second line, and the note under the list
+
+```text
+Whisper: internet for the initial model download (31–547 MiB), then offline transcription or translation into English on the processor or a suitable graphics processor
+```
+
+Recommended memory: 8 GB; Large v3 Turbo takes about 1 GB more while it runs. Whisper speed
+depends on the processor, the graphics processor and the model; this is not a guarantee of
+real-time processing on all supported hardware.
+
+```text
+Whisper : Internet pour télécharger le modèle (31–547 Mio), puis transcription ou traduction vers l'anglais hors ligne sur le processeur ou un processeur graphique adapté
+```
+
+```text
+Whisper: Internet für den Modelldownload (31–547 MiB), danach Offline-Transkription oder Übersetzung ins Englische auf der CPU oder einem geeigneten Grafikprozessor
+```
+
+### Notes for certification
+
+The first paragraph, with the version filled in:
+
+```text
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: <version>.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.12.0, this update runs offline Whisper on a suitable graphics processor through whisper-vulkan.exe, a helper program in the package that the app alone starts and stops, which opens no network connection and uses the graphics driver already installed; on a PC without a suitable graphics processor, or if the helper fails, Whisper runs on the processor as before. It also adds speech detection, with a 0.9 MB voice-activity model bundled in the package, and an optional Large v3 Turbo model download (about 547 MiB, transcription only). It adds no capability and no product declaration. The test routes below are those of 1.12.0.
+```
+
+In step 3 of *Real speech recognition*, replace "Allow for CPU processing time." with:
+
+```text
+Allow for processing time; on a PC with a suitable graphics processor, captions arrive sooner. The Use the graphics processor switch under the model turns this off.
+```
+
+The last paragraph:
+
+```text
+The full-trust desktop process performs WASAPI/microphone capture, Whisper transcription and translation (on the processor, or on the graphics processor through the bundled whisper-vulkan.exe helper it starts), speech detection with a bundled model, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. Captions in Zoom, when the user starts it, sends caption text directly to the Zoom address the user pasted. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
+```

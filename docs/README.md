@@ -13,8 +13,8 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 
 ## Using the app
 
-- [Local Whisper](local-whisper.md): models, languages, offline setup, translation into English,
-  pending audio and Stop.
+- [Local Whisper](local-whisper.md): models (Large v3 Turbo included), languages, offline setup,
+  translation into English, speech detection, the graphics processor, pending audio and Stop.
 - [Language coverage](language-coverage.md): translation targets, spoken-language selection and verification limits.
 - [Audio checks](audio-device-testing.md) and [application capture](application-capture.md).
 - [Meeting controls and profiles](usability.md): Pause, two caption languages and shortcuts.
@@ -38,6 +38,12 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 
 - [Release notes](release-1.12.0.md), [release handoff](store-updates.md#release-1120-handoff)
   and [what the next Store submission needs](store-listing-next.md).
+
+## The version after 1.12.0 (in development)
+
+- Whisper on the graphics processor (Metal on a Mac, a Vulkan helper on Windows), bundled speech
+  detection, loop and credit filters and Large v3 Turbo: [local Whisper](local-whisper.md#graphics-processor),
+  and the [listing changes it needs](store-listing-next.md#the-version-after-1120).
 
 ## Release 1.11.0 (in the Store)
 

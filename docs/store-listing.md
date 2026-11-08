@@ -7,6 +7,11 @@ notes' first two paragraphs. Paste each block into its named field after the
 [release checks](store-updates.md). These descriptions lead with the actual captioning
 workflow; the scripted demo is a secondary setup aid.
 
+The changes the version after 1.12.0 needs (Whisper on the graphics processor, speech detection,
+Large v3 Turbo) are drafted, in all three languages, in
+[store-listing-next.md](store-listing-next.md#the-version-after-1120); apply them when this file
+moves on from 1.12.0.
+
 For 1.12.0, What's new is replaced in all three languages: one paragraph on Captions in Zoom
 ([#189](https://github.com/fmadore/Live-translation/pull/189), part of
 [#187](https://github.com/fmadore/Live-translation/issues/187)) and one on the fixes (#188 and
