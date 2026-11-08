@@ -309,7 +309,8 @@ mod platform {
         }
     }
     unsafe extern "system" fn visit(window: HWND, data: LPARAM) -> i32 {
-        if IsWindowVisible(window) == 0 {
+        // SAFETY: `window` is a top-level window handle `EnumWindows` passes for this call.
+        if unsafe { IsWindowVisible(window) } == 0 {
             return 1;
         }
         let mut title = [0u16; 512];
@@ -318,14 +319,18 @@ mod platform {
             clippy::cast_possible_wrap,
             reason = "the buffer is 512 units long"
         )]
-        let length = GetWindowTextW(window, title.as_mut_ptr(), title.len() as i32);
+        // SAFETY: the same handle, and `title` is writable for the length passed.
+        let length = unsafe { GetWindowTextW(window, title.as_mut_ptr(), title.len() as i32) };
         // Zero for an untitled window or a failure; never documented as negative.
         let Some(length) = usize::try_from(length).ok().filter(|&n| n > 0) else {
             return 1;
         };
         let mut pid = 0;
-        GetWindowThreadProcessId(window, &mut pid);
-        let apps = &mut *(data as *mut Vec<Application>);
+        // SAFETY: the same handle, and `pid` is a valid place for the id.
+        unsafe { GetWindowThreadProcessId(window, &mut pid) };
+        // SAFETY: `data` is the `&mut Vec<Application>` that `list` passes to `EnumWindows`,
+        // borrowed by nothing else until `EnumWindows` returns.
+        let apps = unsafe { &mut *(data as *mut Vec<Application>) };
         if apps.iter().any(|app| app.process.pid == pid) {
             return 1;
         }
