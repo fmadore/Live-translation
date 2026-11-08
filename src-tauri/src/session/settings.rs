@@ -6,16 +6,16 @@ use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 
 use super::builder::ClientIo;
 use crate::gemini::{
-    GeminiConfig, GeminiTranscribeConfig, DEFAULT_HOST, DEFAULT_TRANSCRIBE_MODEL,
-    DEFAULT_TRANSLATE_MODEL,
+    DEFAULT_HOST, DEFAULT_TRANSCRIBE_MODEL, DEFAULT_TRANSLATE_MODEL, GeminiConfig,
+    GeminiTranscribeConfig,
 };
 use crate::mistral::{
-    MistralConfig, DEFAULT_MISTRAL_HOST, DEFAULT_MISTRAL_MODEL, DEFAULT_TARGET_STREAMING_DELAY_MS,
+    DEFAULT_MISTRAL_HOST, DEFAULT_MISTRAL_MODEL, DEFAULT_TARGET_STREAMING_DELAY_MS, MistralConfig,
 };
 use crate::ondevice::{self, OnDeviceConfig};
 use crate::openai::{
-    OpenAiConfig, DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
-    DEFAULT_OPENAI_TRANSLATE_MODEL,
+    DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSLATE_MODEL,
+    OpenAiConfig,
 };
 use crate::types::{Provider, TargetLanguage};
 

@@ -22,9 +22,9 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::timing::SessionClock;
-use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
+use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use policy::{After, Reconnect, RunEnd};
 use socket::{Backlog, SocketIo};
 pub use wire::{bearer_request, classify_json, parse_or_log};

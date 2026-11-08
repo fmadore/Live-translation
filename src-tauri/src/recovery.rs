@@ -18,7 +18,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 
 use crate::atomic_file;
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::sync::lock;
 
 /// Exactly one committed spool, replaced from a flushed sibling file (`atomic_file`). It

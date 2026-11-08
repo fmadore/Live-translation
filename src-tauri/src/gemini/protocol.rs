@@ -242,16 +242,22 @@ mod tests {
 
         // Same placement rule as live translate: the sidecar is a setup field.
         assert_eq!(setup["inputAudioTranscription"]["mode"], "SMART");
-        assert!(setup["inputAudioTranscription"]["languageCodes"]
-            .as_array()
-            .is_some_and(|codes| codes.is_empty()));
-        assert!(setup["generationConfig"]
-            .get("inputAudioTranscription")
-            .is_none());
+        assert!(
+            setup["inputAudioTranscription"]["languageCodes"]
+                .as_array()
+                .is_some_and(|codes| codes.is_empty())
+        );
+        assert!(
+            setup["generationConfig"]
+                .get("inputAudioTranscription")
+                .is_none()
+        );
         // No names and terms, no field.
-        assert!(setup["inputAudioTranscription"]
-            .get("customVocabulary")
-            .is_none());
+        assert!(
+            setup["inputAudioTranscription"]
+                .get("customVocabulary")
+                .is_none()
+        );
 
         // Transcription has no translation target and generates no audio to transcribe back.
         assert!(setup["generationConfig"].get("translationConfig").is_none());

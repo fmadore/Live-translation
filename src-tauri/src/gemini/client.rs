@@ -6,9 +6,9 @@ use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::gemini_request;
-use super::protocol::{RealtimeInputMessage, ServerMessage, SetupMessage, AUDIO_STREAM_END};
+use super::protocol::{AUDIO_STREAM_END, RealtimeInputMessage, ServerMessage, SetupMessage};
 use crate::realtime::{
-    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator, parse_or_log,
 };
 use crate::types::Origin;
 
@@ -106,7 +106,7 @@ impl RealtimeProtocol for GeminiConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{handshake, Emitted, Harness};
+    use crate::realtime::test_support::{Emitted, Harness, handshake};
     use crate::realtime::{MessageControl, Signal};
 
     fn config(api_key: &str) -> GeminiConfig {

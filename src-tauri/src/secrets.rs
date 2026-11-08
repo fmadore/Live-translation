@@ -152,18 +152,18 @@ pub fn resolve_api_key(provider: Provider) -> Result<String> {
     let Some(env_var) = env_var(provider) else {
         anyhow::bail!("{} needs no API key", label(provider));
     };
-    if let Ok(pw) = entry(provider).and_then(|e| e.get_password().map_err(Into::into)) {
-        if !pw.trim().is_empty() {
-            return Ok(pw);
-        }
+    if let Ok(pw) = entry(provider).and_then(|e| e.get_password().map_err(Into::into))
+        && !pw.trim().is_empty()
+    {
+        return Ok(pw);
     }
     if let Some(migrated) = take_legacy_key(provider) {
         return Ok(migrated);
     }
-    if let Ok(env_key) = std::env::var(env_var) {
-        if !env_key.trim().is_empty() {
-            return Ok(env_key);
-        }
+    if let Ok(env_key) = std::env::var(env_var)
+        && !env_key.trim().is_empty()
+    {
+        return Ok(env_key);
     }
     anyhow::bail!(
         "No {} API key found. Save one in the operator window or set {}.",

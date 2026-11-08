@@ -9,8 +9,8 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    bearer_request, classify_json, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome,
-    RealtimeProtocol, Signal, TurnAccumulator,
+    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, Signal, TurnAccumulator,
+    bearer_request, classify_json, parse_or_log,
 };
 use crate::types::Origin;
 
@@ -144,10 +144,11 @@ impl RealtimeProtocol for MistralClient {
             "transcription.done" => {
                 // `done.text` contains the full session transcript. Only use it when the
                 // server sent no deltas; otherwise idle-finalized turns would be duplicated.
-                if !self.received_delta && acc.text.is_empty() {
-                    if let Some(full_text) = event.text {
-                        acc.text = full_text;
-                    }
+                if !self.received_delta
+                    && acc.text.is_empty()
+                    && let Some(full_text) = event.text
+                {
+                    acc.text = full_text;
                 }
                 let caption = if acc.is_empty() {
                     CaptionUpdate::None
@@ -212,8 +213,8 @@ fn ends_sentence(text: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{handshake, Emitted, Harness};
     use crate::realtime::Signal;
+    use crate::realtime::test_support::{Emitted, Harness, handshake};
 
     fn config(api_key: &str) -> MistralConfig {
         MistralConfig {
@@ -511,7 +512,7 @@ mod tests {
     #[ignore = "streams the bundled fixture to Mistral and bills the key; run with --ignored"]
     async fn realtime_3_closes_a_sentence_at_its_detected_end() {
         use crate::audio::fixture::load_fixture;
-        use crate::audio::{chunk_samples, resample::f32_to_pcm16_le, AudioChunk};
+        use crate::audio::{AudioChunk, chunk_samples, resample::f32_to_pcm16_le};
 
         let _ = dotenvy::dotenv();
         let mut config = config(

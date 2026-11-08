@@ -20,8 +20,8 @@ use anyhow::{Context, Result};
 use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tauri::{AppHandle, Manager};
-use tokio::sync::watch;
 use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
 use crate::errors::AppError;
@@ -32,7 +32,7 @@ use crate::timing::SessionClock;
 use crate::types::{Origin, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
 use builder::SessionBuilder;
-use capture::{join_threads, spawn_level_forwarder, CaptureTarget};
+use capture::{CaptureTarget, join_threads, spawn_level_forwarder};
 use options::{session_origins, validate_start};
 use preflight::ActiveTest;
 use settings::ProviderSettings;

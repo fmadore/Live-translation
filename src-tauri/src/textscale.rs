@@ -78,9 +78,9 @@ mod platform {
     use std::sync::OnceLock;
 
     use tauri::AppHandle;
-    use windows::core::Result;
     use windows::Foundation::TypedEventHandler;
     use windows::UI::ViewManagement::UISettings;
+    use windows::core::Result;
 
     /// `TextScaleFactorChanged` unregisters when the `UISettings` that owns it is dropped, so
     /// the instance has to outlive the call that made it. There is exactly one process and
@@ -116,7 +116,7 @@ mod platform {
 
 #[cfg(test)]
 mod tests {
-    use super::{clamp, DEFAULT, MAX, MIN};
+    use super::{DEFAULT, MAX, MIN, clamp};
 
     #[test]
     fn the_windows_range_passes_through_untouched() {

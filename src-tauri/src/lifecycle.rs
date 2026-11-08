@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use tauri::{AppHandle, Manager, State};
 
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::overlay::OVERLAY_LABEL;
 use crate::session::SessionManager;
 

@@ -70,11 +70,7 @@ fn rank(name: &str) -> u8 {
     ]
     .iter()
     .any(|s| name.contains(s));
-    if discrete || intel_card {
-        0
-    } else {
-        1
-    }
+    if discrete || intel_card { 0 } else { 1 }
 }
 
 #[cfg(test)]

@@ -9,13 +9,13 @@
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::Receiver;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::AudioChunk;
-use crate::realtime::{emit_caption, wait_for_resume, Events, PauseRx, TurnAccumulator};
+use crate::realtime::{Events, PauseRx, TurnAccumulator, emit_caption, wait_for_resume};
 use crate::timing::SessionClock;
-use crate::types::{events, AudioLevel, DemoLanguage, Origin, SessionState, StatusUpdate};
+use crate::types::{AudioLevel, DemoLanguage, Origin, SessionState, StatusUpdate, events};
 
 pub struct OnDeviceConfig {
     pub origin: Origin,
@@ -76,18 +76,15 @@ const FRENCH_SCRIPT: &[DemoLine] = &[
     },
     DemoLine {
         partial: "Les sous-titres apparaissent dans la fenêtre",
-        final_text:
-            "Les sous-titres apparaissent dans la fenêtre de contrôle et dans la surimpression.",
+        final_text: "Les sous-titres apparaissent dans la fenêtre de contrôle et dans la surimpression.",
     },
     DemoLine {
         partial: "Le temps écoulé et le niveau audio",
-        final_text:
-            "Le temps écoulé et le niveau audio continuent d’avancer pendant la démonstration.",
+        final_text: "Le temps écoulé et le niveau audio continuent d’avancer pendant la démonstration.",
     },
     DemoLine {
         partial: "Vous pouvez arrêter et enregistrer",
-        final_text:
-            "Vous pouvez arrêter la démonstration et enregistrer cette transcription à tout moment.",
+        final_text: "Vous pouvez arrêter la démonstration et enregistrer cette transcription à tout moment.",
     },
 ];
 
@@ -244,9 +241,11 @@ mod tests {
         for language in DemoLanguage::ALL {
             let lines = script(language);
             assert!(lines.len() >= 3);
-            assert!(lines
-                .iter()
-                .all(|line| !line.partial.is_empty() && !line.final_text.is_empty()));
+            assert!(
+                lines
+                    .iter()
+                    .all(|line| !line.partial.is_empty() && !line.final_text.is_empty())
+            );
             let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("resources/fixtures")
                 .join(language.fixture_file());

@@ -39,7 +39,7 @@ mod zoom;
 use tauri::{Emitter, Manager};
 use tracing_subscriber::prelude::*;
 
-use lifecycle::{show_operator_window, CloseGuard, OnClose, ACK_TIMEOUT, OPERATOR_LABEL};
+use lifecycle::{ACK_TIMEOUT, CloseGuard, OPERATOR_LABEL, OnClose, show_operator_window};
 use overlay::OVERLAY_LABEL;
 use session::SessionManager;
 use tray::TrayMenu;
@@ -62,7 +62,7 @@ fn assert_webview_runtime() {
 
     #[cfg(windows)]
     {
-        use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
+        use windows_sys::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW};
 
         // Win32 wants NUL-terminated UTF-16.
         fn wide(text: &str) -> Vec<u16> {

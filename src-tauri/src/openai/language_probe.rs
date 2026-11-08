@@ -2,7 +2,7 @@
 use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::{
     connect_async,
-    tungstenite::{client::IntoClientRequest, Message},
+    tungstenite::{Message, client::IntoClientRequest},
 };
 
 #[tokio::test]
@@ -42,10 +42,10 @@ async fn probe_target_language_codes() -> anyhow::Result<()> {
                             return Ok::<_, anyhow::Error>(format!(
                                 "accepted: {}",
                                 event["session"]["audio"]["output"]["language"]
-                            ))
+                            ));
                         }
                         Some("error") => {
-                            return Ok(format!("rejected: {}", event["error"]["message"]))
+                            return Ok(format!("rejected: {}", event["error"]["message"]));
                         }
                         _ => {}
                     }

@@ -5,22 +5,22 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
-use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tauri::AppHandle;
-use tokio::sync::mpsc::{channel, error::TrySendError, Receiver, Sender};
+use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
+use tokio::sync::mpsc::{Receiver, Sender, channel, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
-use super::capture::{report_source_failure, CaptureTarget};
+use super::ActiveSession;
+use super::capture::{CaptureTarget, report_source_failure};
 use super::options::caption_languages;
 use super::settings::ProviderSettings;
-use super::ActiveSession;
+use crate::audio::AudioChunk;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::sink::{AudioSink, CaptureCompletion};
-use crate::audio::AudioChunk;
-use crate::realtime::{run_session, Events, PauseRx, RealtimeProtocol};
+use crate::realtime::{Events, PauseRx, RealtimeProtocol, run_session};
 use crate::timing::SessionClock;
 use crate::types::{AudioLevel, Origin, Provider, StartOptions, TargetLanguage};
-use crate::whisper::{self, spool::Spool, LoadedModel, LocalSession};
+use crate::whisper::{self, LoadedModel, LocalSession, spool::Spool};
 
 /// At most half a second of 100 ms chunks. The realtime consumer coalesces queued chunks
 /// to the newest one after a stall, favoring live latency over replaying stale speech.

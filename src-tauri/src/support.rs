@@ -5,7 +5,7 @@
 //! nothing else. A plain `target="_blank"` link is not enough either: with no new-window
 //! handler, WebView2 opens it in a popup of its own rather than in the operator's browser.
 
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 
 /// The creator's page. Also in `src/lib/support.ts`, which shows it and opens it in a browser
 /// preview, in the README and in `.github/FUNDING.yml`; a test below keeps the first in step.
@@ -44,7 +44,7 @@ pub(crate) fn app_store_build() -> bool {
 pub(crate) fn open(url: &str) -> Result<(), AppError> {
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::System::Com::{
-        CoInitializeEx, CoUninitialize, COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE,
+        COINIT_APARTMENTTHREADED, COINIT_DISABLE_OLE1DDE, CoInitializeEx, CoUninitialize,
     };
     use windows_sys::Win32::UI::Shell::ShellExecuteW;
     use windows_sys::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;

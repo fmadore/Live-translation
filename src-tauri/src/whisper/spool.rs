@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::sync::lock;
 
-use anyhow::{ensure, Result};
+use anyhow::{Result, ensure};
 
 pub struct TimedChunk {
     pub start_ms: u64,

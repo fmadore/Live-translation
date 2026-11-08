@@ -32,7 +32,7 @@ pub fn save(
     content: String,
     filename: String,
 ) -> Result<Option<String>, crate::errors::AppError> {
-    use crate::errors::{id, AppError};
+    use crate::errors::{AppError, id};
     use tauri::Manager;
     // A dedicated thread keeps the dialog's STA isolated from audio workers' COM state. On
     // macOS rfd runs the panel on the main thread and waits for it here.
@@ -50,7 +50,7 @@ pub fn save(
                 return Err(AppError::with(
                     id::TRANSCRIPT_WRITE,
                     "unsupported transcript format",
-                ))
+                ));
             }
         };
         let preference = app

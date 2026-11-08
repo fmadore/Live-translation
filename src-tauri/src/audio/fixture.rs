@@ -14,13 +14,13 @@
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tauri::{AppHandle, Manager};
 use tokio::sync::mpsc::Sender;
 use tokio_util::sync::CancellationToken;
 
 use super::capture::CaptureState;
-use super::{chunk_samples, CHUNK_MS};
+use super::{CHUNK_MS, chunk_samples};
 use crate::types::{AudioLevel, DemoLanguage, Origin};
 
 /// Directory the fixtures are bundled into, relative to the app's resource directory —

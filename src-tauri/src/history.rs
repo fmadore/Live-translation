@@ -6,7 +6,7 @@
 //! session no longer rewrites everything it has already saved every few seconds. Files from
 //! before the log format are a single JSON object, and are still read and renamed.
 use crate::atomic_file;
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::sync::lock;
 use serde::Serialize;
 use std::{
@@ -156,7 +156,7 @@ fn list_sessions(
             return Ok(HistoryListing {
                 sessions: vec![],
                 removed: known.keys().cloned().collect(),
-            })
+            });
         }
         Err(e) => return Err(e),
     };
@@ -395,9 +395,11 @@ mod tests {
         std::fs::write(&second, [0xff, 0x00]).unwrap();
         let reopened = list(&dir, &[]).sessions;
         assert_eq!(reopened.len(), 2);
-        assert!(reopened
-            .iter()
-            .any(|s| s.contents.as_deref() == Some("complete session")));
+        assert!(
+            reopened
+                .iter()
+                .any(|s| s.contents.as_deref() == Some("complete session"))
+        );
         atomic_file::remove(&first).unwrap();
         atomic_file::remove(&first).unwrap();
         assert_eq!(list(&dir, &[]).sessions.len(), 1);

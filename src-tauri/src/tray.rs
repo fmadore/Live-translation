@@ -21,7 +21,7 @@ use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, Wry};
 
-use crate::lifecycle::{show_operator_window, CloseGuard, ACK_TIMEOUT};
+use crate::lifecycle::{ACK_TIMEOUT, CloseGuard, show_operator_window};
 use crate::sync::lock;
 use crate::types::events;
 

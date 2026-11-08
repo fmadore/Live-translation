@@ -9,12 +9,12 @@ use tokio::sync::mpsc::channel;
 use tokio_util::sync::CancellationToken;
 
 use super::builder::AUDIO_CHANNEL_CAPACITY;
-use super::capture::{join_threads, source_failure, spawn_level_forwarder, CaptureTarget};
+use super::capture::{CaptureTarget, join_threads, source_failure, spawn_level_forwarder};
 use super::options::live_origins;
-use super::{lock, SessionManager};
-use crate::audio::applications::SystemCapture;
+use super::{SessionManager, lock};
 use crate::audio::AudioChunk;
-use crate::types::{events, AudioSource, AudioTestUpdate, Origin};
+use crate::audio::applications::SystemCapture;
+use crate::types::{AudioSource, AudioTestUpdate, Origin, events};
 
 /// The preflight test throws its audio away, and `audio/capture.rs` accumulates the level meter
 /// over the mono signal *before* resampling, so this rate reaches nothing that can observe it.

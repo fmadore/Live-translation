@@ -9,7 +9,7 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use tokio_util::sync::CancellationToken;
 
 use super::engine::{self, Decode, RawSegment, Request, Response};
@@ -155,7 +155,7 @@ impl Worker {
             }
             match self.answers.recv_timeout(POLL) {
                 Ok(answer) => {
-                    return answer.context("The graphics processor helper's answer was unreadable")
+                    return answer.context("The graphics processor helper's answer was unreadable");
                 }
                 Err(RecvTimeoutError::Timeout) if Instant::now() < deadline => {}
                 Err(RecvTimeoutError::Timeout) => {

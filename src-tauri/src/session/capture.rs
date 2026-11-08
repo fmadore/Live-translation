@@ -6,16 +6,16 @@ use std::time::Duration;
 
 use anyhow::Result;
 use tauri::{AppHandle, Emitter};
-use tokio::sync::mpsc::{channel, Sender};
+use tokio::sync::mpsc::{Sender, channel};
 use tokio_util::sync::CancellationToken;
 
 use crate::audio::applications::SystemCapture;
-use crate::audio::capture::{run_microphone, MicrophoneRuntimeError};
+use crate::audio::capture::{MicrophoneRuntimeError, run_microphone};
 use crate::audio::loopback::run_system_loopback;
 use crate::audio::sink::AudioSink;
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::realtime::Events;
-use crate::types::{events, AudioLevel, Origin, SessionState, StartOptions, StatusUpdate};
+use crate::types::{AudioLevel, Origin, SessionState, StartOptions, StatusUpdate, events};
 
 const LEVEL_CHANNEL_CAPACITY: usize = 8;
 /// Capture threads stop within a wake or two of their token being cancelled. One that has not

@@ -7,20 +7,20 @@ use std::time::Duration;
 
 use anyhow::Context;
 use base64::Engine;
-use futures_util::{stream::SplitSink, stream::SplitStream, SinkExt, StreamExt};
+use futures_util::{SinkExt, StreamExt, stream::SplitSink, stream::SplitStream};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Receiver;
-use tokio::time::{sleep, sleep_until, timeout, Instant, MissedTickBehavior};
+use tokio::time::{Instant, MissedTickBehavior, sleep, sleep_until, timeout};
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 use tokio_tungstenite::tungstenite::{Bytes, Message};
-use tokio_tungstenite::{connect_async_with_config, MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async_with_config};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
-use super::wire::{classify, Verdict};
+use super::wire::{Verdict, classify};
 use super::{
-    apply_caption, emit_caption, finalize_accumulator, CaptionUpdate, Events, MessageControl,
-    MessageOutcome, PauseRx, RealtimeProtocol, Signal, TurnAccumulator,
+    CaptionUpdate, Events, MessageControl, MessageOutcome, PauseRx, RealtimeProtocol, Signal,
+    TurnAccumulator, apply_caption, emit_caption, finalize_accumulator,
 };
 use crate::audio::AudioChunk;
 use crate::types::{SessionState, StatusUpdate};
@@ -149,7 +149,7 @@ pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
             return Ended {
                 end,
                 established: false,
-            }
+            };
         }
     };
     Ended {

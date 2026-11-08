@@ -11,11 +11,11 @@ use anyhow::{Context, Result};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
-use crate::realtime::{classify_json, MessageControl, MessageOutcome, RealtimeProtocol};
+use crate::realtime::{MessageControl, MessageOutcome, RealtimeProtocol, classify_json};
 use protocol::ServerMessage;
 
-pub use client::{GeminiConfig, DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL};
-pub use transcribe::{GeminiTranscribeConfig, DEFAULT_TRANSCRIBE_MODEL};
+pub use client::{DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL, GeminiConfig};
+pub use transcribe::{DEFAULT_TRANSCRIBE_MODEL, GeminiTranscribeConfig};
 
 /// The handshake both models share: one endpoint, authenticated by a `key` query parameter
 /// rather than a header; the model is named in the setup message. `provider` names the client
