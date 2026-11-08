@@ -6,15 +6,15 @@
 
 use std::time::{Duration, Instant};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{FromSample, Sample, SampleFormat, SizedSample, I24, U24};
-use tokio::sync::mpsc::{error::TrySendError, Sender};
+use cpal::{FromSample, I24, Sample, SampleFormat, SizedSample, U24};
+use tokio::sync::mpsc::{Sender, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
 use super::devices::PresenceCheck;
-use super::resample::{downmix_to_mono, f32_to_pcm16_le, f64_to_f32, Resampler};
-use super::{chunk_samples, AudioChunk};
+use super::resample::{Resampler, downmix_to_mono, f32_to_pcm16_le, f64_to_f32};
+use super::{AudioChunk, chunk_samples};
 use crate::types::{AudioDevice, AudioLevel, Origin};
 
 /// How often the microphone re-enumerates inputs when Windows has reported no change. A

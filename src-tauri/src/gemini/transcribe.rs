@@ -12,10 +12,10 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::gemini_request;
 use super::protocol::{
-    RealtimeInputMessage, ServerMessage, TranscribeSetupMessage, AUDIO_STREAM_END,
+    AUDIO_STREAM_END, RealtimeInputMessage, ServerMessage, TranscribeSetupMessage,
 };
 use crate::realtime::{
-    parse_or_log, CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator, parse_or_log,
 };
 use crate::types::Origin;
 
@@ -266,8 +266,8 @@ mod live_probe {
     use super::*;
     use crate::audio::fixture::load_fixture;
     use crate::audio::{chunk_samples, resample::f32_to_pcm16_le};
-    use crate::gemini::protocol::AUDIO_STREAM_END;
     use crate::gemini::DEFAULT_HOST;
+    use crate::gemini::protocol::AUDIO_STREAM_END;
 
     /// The Live API replies in **binary** frames carrying UTF-8 JSON, not text frames —
     /// undocumented, and the reason this probe reads them the way `realtime/socket.rs` does

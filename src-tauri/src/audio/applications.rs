@@ -63,10 +63,10 @@ pub fn list() -> anyhow::Result<ApplicationList> {
 }
 
 #[cfg(windows)]
-pub use platform::{list, ProcessGuard};
+pub use platform::{ProcessGuard, list};
 
 #[cfg(target_os = "macos")]
-pub use mac::{audio_processes, list, ProcessGuard};
+pub use mac::{ProcessGuard, audio_processes, list};
 
 /// Whether a process with bundle identifier `process` belongs to the application `app`: the
 /// application itself, or one of its helpers, whose identifiers extend the application's.
@@ -81,12 +81,12 @@ fn belongs_to(process: &str, app: &str) -> bool {
 
 #[cfg(target_os = "macos")]
 mod mac {
-    use super::{belongs_to, Application, ApplicationList, ProcessIdentity};
+    use super::{Application, ApplicationList, ProcessIdentity, belongs_to};
     use crate::audio::tap::{get_ids, get_property, get_string};
     use objc2_app_kit::{NSApplicationActivationPolicy, NSRunningApplication, NSWorkspace};
     use objc2_core_audio::{
-        kAudioHardwarePropertyProcessObjectList, kAudioObjectSystemObject,
-        kAudioProcessPropertyBundleID, kAudioProcessPropertyPID, AudioObjectID,
+        AudioObjectID, kAudioHardwarePropertyProcessObjectList, kAudioObjectSystemObject,
+        kAudioProcessPropertyBundleID, kAudioProcessPropertyPID,
     };
 
     /// The selected application, checked by its start time so that a recycled PID never stands
@@ -207,11 +207,13 @@ mod mac {
             })
             .unwrap();
             assert!(guard.running());
-            assert!(ProcessGuard::selected(&ProcessIdentity {
-                pid,
-                created_at: "0.000000".into()
-            })
-            .is_err());
+            assert!(
+                ProcessGuard::selected(&ProcessIdentity {
+                    pid,
+                    created_at: "0.000000".into()
+                })
+                .is_err()
+            );
             // Listing must not fail on a machine with no window server session either.
             let _ = list().unwrap();
             // A process that is not playing anything simply has no objects.
@@ -227,8 +229,8 @@ mod platform {
         CloseHandle, FILETIME, HANDLE, HWND, LPARAM, WAIT_TIMEOUT,
     };
     use windows_sys::Win32::System::Threading::{
-        GetProcessTimes, OpenProcess, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
-        PROCESS_SYNCHRONIZE,
+        GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SYNCHRONIZE,
+        WaitForSingleObject,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         EnumWindows, GetWindowTextW, GetWindowThreadProcessId, IsWindowVisible,
@@ -388,11 +390,13 @@ mod platform {
         );
         let guard = ProcessGuard::open(child.0.id()).unwrap();
         let identity = guard.identity(child.0.id()).unwrap();
-        assert!(ProcessGuard::selected(&ProcessIdentity {
-            created_at: "0".into(),
-            ..identity.clone()
-        })
-        .is_err());
+        assert!(
+            ProcessGuard::selected(&ProcessIdentity {
+                created_at: "0".into(),
+                ..identity.clone()
+            })
+            .is_err()
+        );
         let cancel = tokio_util::sync::CancellationToken::new();
         cancel.cancel();
         let (levels, _) = tokio::sync::mpsc::channel(1);
@@ -449,10 +453,12 @@ mod tests {
     #[test]
     fn enumeration_and_stale_identity_are_safe() {
         let _ = list().unwrap();
-        assert!(ProcessGuard::selected(&ProcessIdentity {
-            pid: std::process::id(),
-            created_at: "0".into()
-        })
-        .is_err());
+        assert!(
+            ProcessGuard::selected(&ProcessIdentity {
+                pid: std::process::id(),
+                created_at: "0".into()
+            })
+            .is_err()
+        );
     }
 }

@@ -27,14 +27,14 @@ use std::time::Instant;
 
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
-use tokio::sync::{mpsc, Mutex as AsyncMutex};
+use tokio::sync::{Mutex as AsyncMutex, mpsc};
 use tokio_util::sync::CancellationToken;
 
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::sync::lock;
-use crate::types::{events, Caption, Origin, Provider};
+use crate::types::{Caption, Origin, Provider, events};
 use link::Link;
-use publish::{chunk, Publisher, Selection};
+use publish::{Publisher, Selection, chunk};
 use sender::{Queued, Reply, Sender, Timing};
 
 /// Captions waiting for the sender. Past this the tap drops rather than waits: a Zoom that
@@ -415,7 +415,7 @@ pub async fn open_zoom_guide() -> Result<(), AppError> {
 
 #[cfg(test)]
 mod tests {
-    use super::test_support::{quick, recorder, Answer, Server};
+    use super::test_support::{Answer, Server, quick, recorder};
     use super::*;
     use std::time::Duration;
 
@@ -713,10 +713,12 @@ mod tests {
         zoom.begin_session(Provider::Gemini);
         let shared = "The first session shares this sentence. And";
         let mut inner = lock(&zoom.inner);
-        assert!(inner
-            .publisher
-            .take(&caption(Origin::Microphone, 0, 1, shared, false))
-            .is_some());
+        assert!(
+            inner
+                .publisher
+                .take(&caption(Origin::Microphone, 0, 1, shared, false))
+                .is_some()
+        );
         drop(inner);
         zoom.begin_session(Provider::Gemini);
         inner = lock(&zoom.inner);

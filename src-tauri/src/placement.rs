@@ -11,7 +11,7 @@
 use std::time::Duration;
 
 use crate::{
-    errors::{id, AppError},
+    errors::{AppError, id},
     overlay::OVERLAY_LABEL,
     types::events,
 };

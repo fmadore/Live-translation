@@ -14,8 +14,8 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
-    bearer_request, classify_json, parse_or_log, CaptionUpdate, MessageControl, MessageOutcome,
-    RealtimeProtocol, TurnAccumulator,
+    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
+    bearer_request, classify_json, parse_or_log,
 };
 use crate::types::Origin;
 
@@ -144,8 +144,8 @@ fn error_control(error: &serde_json::Value) -> MessageControl {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::realtime::test_support::{handshake, Emitted, Harness};
     use crate::realtime::Signal;
+    use crate::realtime::test_support::{Emitted, Harness, handshake};
 
     fn config(api_key: &str) -> OpenAiConfig {
         OpenAiConfig {

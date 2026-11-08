@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::http::{header::AUTHORIZATION, HeaderValue};
+use tokio_tungstenite::tungstenite::http::{HeaderValue, header::AUTHORIZATION};
 
 use super::MessageControl;
 

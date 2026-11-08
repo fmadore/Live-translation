@@ -327,9 +327,11 @@ mod tests {
             .unwrap();
         assert_eq!((line.start_ms, line.end_ms, line.turn), (6_000, 8_000, 2));
         // A segment ending before the last caption ended adds nothing.
-        assert!(reconciler
-            .accept(6_500, 10_000, &segment("old", 0, 100))
-            .is_none());
+        assert!(
+            reconciler
+                .accept(6_500, 10_000, &segment("old", 0, 100))
+                .is_none()
+        );
         // One that starts inside the last caption is moved to its end.
         let line = reconciler
             .accept(7_000, 10_000, &segment("later", 50, 300))
@@ -356,9 +358,11 @@ mod tests {
         // A segment that is nothing but the overlap is dropped without advancing the turn.
         let mut reconciler = Reconciler::default();
         reconciler.accept(0, 10_000, &segment("yes yes", 800, 1_000));
-        assert!(reconciler
-            .accept(9_000, 10_000, &segment("Yes, yes.", 0, 150))
-            .is_none());
+        assert!(
+            reconciler
+                .accept(9_000, 10_000, &segment("Yes, yes.", 0, 150))
+                .is_none()
+        );
         let line = reconciler
             .accept(9_000, 10_000, &segment("no", 150, 200))
             .unwrap();
@@ -372,9 +376,11 @@ mod tests {
             .accept(0, 5_000, &segment("caf\u{FFFD} au lait", 0, 100))
             .unwrap();
         assert_eq!(line.text, "caf au lait");
-        assert!(reconciler
-            .accept(0, 5_000, &segment(" \u{FFFD}\u{FFFD} ", 100, 200))
-            .is_none());
+        assert!(
+            reconciler
+                .accept(0, 5_000, &segment(" \u{FFFD}\u{FFFD} ", 100, 200))
+                .is_none()
+        );
     }
 
     #[test]
@@ -410,13 +416,17 @@ mod tests {
             " Subtitles by the Amara.org community",
             "Sous-titrage ST' 501",
         ] {
-            assert!(reconciler
-                .accept(0, 5_000, &segment(credit, 0, 100))
-                .is_none());
+            assert!(
+                reconciler
+                    .accept(0, 5_000, &segment(credit, 0, 100))
+                    .is_none()
+            );
         }
-        assert!(reconciler
-            .accept(0, 5_000, &segment("Merci à Amara pour son exposé", 0, 100))
-            .is_some());
+        assert!(
+            reconciler
+                .accept(0, 5_000, &segment("Merci à Amara pour son exposé", 0, 100))
+                .is_some()
+        );
     }
 
     #[test]
@@ -444,16 +454,22 @@ mod tests {
             ..segment(text, 0, 100)
         };
         // The window looks like noise and the model was unsure: a hallucination.
-        assert!(reconciler
-            .accept(0, 5_000, &judged("Thank you.", 0.9, -1.4))
-            .is_none());
+        assert!(
+            reconciler
+                .accept(0, 5_000, &judged("Thank you.", 0.9, -1.4))
+                .is_none()
+        );
         // The same window score with confident text is speech, and kept.
-        assert!(reconciler
-            .accept(0, 5_000, &judged("Merci à tous", 0.9, -0.2))
-            .is_some());
+        assert!(
+            reconciler
+                .accept(0, 5_000, &judged("Merci à tous", 0.9, -0.2))
+                .is_some()
+        );
         // Unsure text in a window that clearly holds speech is kept too.
-        assert!(reconciler
-            .accept(1_000, 5_000, &judged("mumbled", 0.2, -1.6))
-            .is_some());
+        assert!(
+            reconciler
+                .accept(1_000, 5_000, &judged("mumbled", 0.2, -1.6))
+                .is_some()
+        );
     }
 }

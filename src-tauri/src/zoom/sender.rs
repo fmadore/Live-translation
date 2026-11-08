@@ -337,7 +337,7 @@ fn gave_up(status: &mut ZoomStatus, reply: &Reply) {
 mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    use super::super::test_support::{quick, recorder, Answer, Recorded, Server};
+    use super::super::test_support::{Answer, Recorded, Server, quick, recorder};
     use super::*;
     use crate::types::Origin;
 

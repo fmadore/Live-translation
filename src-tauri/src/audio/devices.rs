@@ -195,9 +195,9 @@ pub fn watch(app: tauri::AppHandle) {
     use std::sync::mpsc::SyncSender;
 
     use objc2_core_audio::{
+        AudioObjectAddPropertyListener, AudioObjectID, AudioObjectPropertyAddress,
         kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyDefaultOutputDevice,
-        kAudioHardwarePropertyDevices, kAudioObjectSystemObject, AudioObjectAddPropertyListener,
-        AudioObjectID, AudioObjectPropertyAddress,
+        kAudioHardwarePropertyDevices, kAudioObjectSystemObject,
     };
     use tauri::Emitter;
 

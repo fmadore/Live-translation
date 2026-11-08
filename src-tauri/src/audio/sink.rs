@@ -1,8 +1,8 @@
 //! Provider-specific capture delivery. Local capture has a bounded disk-writer queue;
 //! overflowing it stops capture visibly instead of silently omitting speech.
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
-use tokio::sync::mpsc::{error::TrySendError, Sender};
+use std::sync::atomic::Ordering;
+use tokio::sync::mpsc::{Sender, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
 use super::AudioChunk;
@@ -160,11 +160,12 @@ mod tests {
             pcm_le: vec![0; 3200],
         })
         .unwrap();
-        assert!(sink
-            .try_send(AudioChunk {
+        assert!(
+            sink.try_send(AudioChunk {
                 pcm_le: vec![0; 3200]
             })
-            .is_err());
+            .is_err()
+        );
         assert!(cancel.is_cancelled());
         assert!(spool.overflowed.load(Ordering::Relaxed));
         assert!(rx.try_recv().unwrap().start_ms >= 4900);

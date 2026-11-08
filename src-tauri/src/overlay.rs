@@ -95,8 +95,8 @@ pub fn raise(window: &WebviewWindow) {
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::{
-            SetWindowPos, HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER,
-            SWP_NOSENDCHANGING, SWP_NOSIZE,
+            HWND_TOPMOST, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSENDCHANGING,
+            SWP_NOSIZE, SetWindowPos,
         };
 
         if let Ok(hwnd) = window.hwnd() {
@@ -134,7 +134,7 @@ pub fn set_no_activate(window: &WebviewWindow, enabled: bool) {
     #[cfg(windows)]
     {
         use windows_sys::Win32::UI::WindowsAndMessaging::{
-            GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_NOACTIVATE,
+            GWL_EXSTYLE, GetWindowLongPtrW, SetWindowLongPtrW, WS_EX_NOACTIVATE,
         };
 
         if let Ok(hwnd) = window.hwnd() {

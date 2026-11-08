@@ -16,13 +16,13 @@ use futures_util::{SinkExt, StreamExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{mpsc, watch};
 use tokio::task::JoinHandle;
-use tokio::time::{sleep, timeout, timeout_at, Instant};
+use tokio::time::{Instant, sleep, timeout, timeout_at};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
-use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::{self, Message};
-use tokio_tungstenite::{accept_async, WebSocketStream};
+use tokio_tungstenite::{WebSocketStream, accept_async};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION};
@@ -1007,10 +1007,11 @@ async fn the_end_of_a_turn_waits_out_its_grace_when_the_idle_boundary_comes_firs
     peer.send("more:The last words").await;
     client.expect(interim("The last words")).await;
     // The idle boundary is now 300 ms after the `turn.end` below, inside its 480 ms grace.
-    assert!(peer
-        .listen_for(FINALIZE_AFTER - Duration::from_millis(300))
-        .await
-        .is_empty());
+    assert!(
+        peer.listen_for(FINALIZE_AFTER - Duration::from_millis(300))
+            .await
+            .is_empty()
+    );
 
     peer.send("turnend").await;
     let ended = Instant::now();

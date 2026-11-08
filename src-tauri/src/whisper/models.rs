@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use crate::sync::lock;
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use tauri::{AppHandle, Manager};
@@ -364,7 +364,7 @@ impl ModelManager {
 struct DownloadGuard(ModelManager);
 impl Drop for DownloadGuard {
     fn drop(&mut self) {
-        lock(&self.0 .0).download = None;
+        lock(&self.0.0).download = None;
     }
 }
 
@@ -708,10 +708,12 @@ mod tests {
             body: Vec::new(),
             hang: false,
         });
-        assert!(ModelManager::default()
-            .download_from(dir.path(), ModelId::Tiny, &transfer(url))
-            .await
-            .is_err());
+        assert!(
+            ModelManager::default()
+                .download_from(dir.path(), ModelId::Tiny, &transfer(url))
+                .await
+                .is_err()
+        );
         assert_eq!(files(dir.path()), [ModelId::Base.file(), "notes.txt"]);
     }
 }

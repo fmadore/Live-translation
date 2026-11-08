@@ -144,10 +144,12 @@ mod tests {
         let breakout =
             Link::parse("https://us02wmcc.zoom.us/closedcaption?id=7&subconfid=9&signature=abc")
                 .unwrap();
-        assert!(breakout
-            .caption(3)
-            .as_str()
-            .ends_with("subconfid=9&signature=abc&seq=3"));
+        assert!(
+            breakout
+                .caption(3)
+                .as_str()
+                .ends_with("subconfid=9&signature=abc&seq=3")
+        );
     }
 
     #[test]

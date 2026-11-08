@@ -23,20 +23,20 @@ pub mod spool;
 mod vad;
 
 use std::path::{Path, PathBuf};
-use std::sync::{atomic::Ordering, Arc, Mutex};
+use std::sync::{Arc, Mutex, atomic::Ordering};
 use std::time::Duration;
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
 use whisper_rs::{WhisperContext, WhisperContextParameters, WhisperState};
 
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::realtime::Events;
 use crate::sync::lock;
-use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
+use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use engine::RawSegment;
 use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};

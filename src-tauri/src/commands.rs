@@ -11,13 +11,13 @@
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::audio::list_input_devices;
-use crate::errors::{id, AppError};
+use crate::errors::{AppError, id};
 use crate::ondevice::{self, OnDeviceReadiness};
 use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
 use crate::textscale;
-use crate::types::{events, AudioDevice, AudioSource, Provider, StartOptions};
+use crate::types::{AudioDevice, AudioSource, Provider, StartOptions, events};
 
 #[tauri::command]
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, AppError> {
