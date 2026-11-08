@@ -225,6 +225,15 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # Whisper on the graphics processor (docs/local-whisper.md#graphics-processor): the helper
+      # is built here and declared as a sidecar by tauri.vulkan.conf.json, for release builds
+      # only, so CI's tests and `tauri dev` never need the Vulkan SDK.
+      - name: Vulkan SDK
+        uses: ./.github/actions/vulkan-sdk
+
+      - name: Build the Whisper Vulkan helper
+        run: node scripts/build-whisper-vulkan.mjs ${{ matrix.target }}
+
       # With a release id, tauri-action skips its own release lookup and only uploads, replacing
       # assets of the same name. Draft or published is decided by `prepare` and `bundle`.
       - name: Build app and attach installers to the release
@@ -233,7 +242,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           releaseId: ${{ needs.prepare.outputs.release_id }}
-          args: --target ${{ matrix.target }}
+          args: --target ${{ matrix.target }} --config src-tauri/tauri.vulkan.conf.json
 
   # The macOS disk image, for Apple silicon, built natively, signed with the Developer ID
   # Application certificate and notarised by Apple, so Gatekeeper opens it after its usual
@@ -354,8 +363,10 @@ jobs:
         include:
           - arch: x64
             runner: windows-latest
+            target: x86_64-pc-windows-msvc
           - arch: arm64
             runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -396,6 +407,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # As in `build`: scripts/bundle-msix.mjs puts the helper in the package.
+      - name: Vulkan SDK
+        uses: ./.github/actions/vulkan-sdk
+
+      - name: Build the Whisper Vulkan helper
+        run: node scripts/build-whisper-vulkan.mjs ${{ matrix.target }}
+
       # Writes an architecture-specific .msix and a single-architecture .msixbundle wrapper.
       # Only the bare .msix is kept: the `bundle` job below combines both architectures into
       # the one multi-architecture bundle the Store submission wants.
@@ -415,6 +433,18 @@ jobs:
           $msixAsset = Join-Path 'src-tauri/target/msix' "Live.Translation_${version}_${{ matrix.arch }}.msix"
           Move-Item -LiteralPath $msix.FullName -Destination $msixAsset -Force
           "msix=$msixAsset" >> $env:GITHUB_OUTPUT
+
+      # The package must carry the Whisper Vulkan helper and the speech-detection model: the bundler copies what the configuration declares, and
+      # this checks the result, so a package without it never reaches the release.
+      - name: Check what the package carries
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip = [System.IO.Compression.ZipFile]::OpenRead('${{ steps.package.outputs.msix }}')
+          try { $entries = $zip.Entries | ForEach-Object { $_.FullName -replace '\\', '/' } } finally { $zip.Dispose() }
+          $missing = @('live-translation.exe', 'whisper-vulkan.exe', 'models/ggml-silero-v5.1.2.bin') | Where-Object { $_ -notin $entries }
+          if ($missing) { throw "The package lacks: $($missing -join ', ')" }
+          Write-Output "The package carries every required file."
 
       # The bare .msix is what a tester signs and installs locally (scripts/install-local-msix.ps1):
       # signing a bundle does not sign the packages inside it, so a bundle cannot be side-loaded

@@ -22,7 +22,7 @@ person at it.
 | Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | to test |
 | External links | `NSWorkspace` opens the support page and the Zoom guide | to test |
 | API keys | login Keychain (keyring's Apple backend) | to test |
-| Local Whisper | CPU, ARMv8.2 dot-product and FP16, Accelerate's BLAS; Metal off | CI smoke test |
+| Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16 and Accelerate's BLAS | CI smoke test (Metal) |
 | Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | to test |
 | Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | to test |
 | Packaging | `.app` and `.dmg`, ad hoc in CI; signed and notarised in each release | CI |
@@ -163,6 +163,9 @@ The speech samples ship inside the app:
       as the source and the Mac mini's speakers as the output; `afplay rehearsal-en.wav`.
       macOS asks for *System Audio Recording*, naming Live Translation with the description
       text. Allow: captions appear in the overlay and the transcript; the level meter moves.
+- [ ] **Whisper on Metal:** the log says `Whisper model loaded device=metal`; time the same
+      recording with *Use the graphics processor* on and off (`device=cpu`), and try Large v3
+      Turbo. A silent stretch produces no captions (speech detection).
 - [ ] **French and translation:** the same with `rehearsal-fr.wav`, spoken language French, and
       translation into English.
 - [ ] **Refusal:** System Settings → Privacy & Security → *Screen & System Audio Recording*
@@ -233,8 +236,8 @@ and "real meeting passed" apart.
 ## Not done yet
 
 1. **What the Scaleway day finds**, fixed first; then the decisions the issue leaves to
-   evidence: the oldest macOS supported (14.6 if it runs there), and Metal acceleration for
-   Whisper, measured against the CPU.
+   evidence: the oldest macOS supported (14.6 if it runs there), and Whisper's speed on Metal,
+   now on by default, measured against the CPU with the setup's graphics-processor switch.
 2. **A refused System Audio Recording permission** must never pass for a working session.
 3. **The Developer ID secrets** in this repository before the next release tag, or the release's
    `macos` job stops (on purpose) and the release stays a draft until they are added and the

@@ -41,3 +41,8 @@ npm-debug.log*
 
 # The Mac App Store provisioning profile, written by app-store.yml for its build only.
 src-tauri/macos/embedded.provisionprofile
+
+# The Vulkan helper, built into src-tauri/binaries/ by scripts/build-whisper-vulkan.mjs for a
+# release build, and the tauri.windows.conf.json scripts/bundle-msix.mjs lays in while it runs.
+src-tauri/binaries/
+src-tauri/tauri.windows.conf.json

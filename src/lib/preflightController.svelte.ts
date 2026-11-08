@@ -16,6 +16,7 @@ import type {
 	WhisperCpuSupport,
 	WhisperModelInfo
 } from './types';
+import { whisperModelTranslates } from './types';
 
 export interface PreflightGates {
 	/** Setup is locked: a session, a start or a profile load is under way. Nothing is tested or
@@ -126,6 +127,7 @@ export class PreflightController {
 		if (isLocalWhisper(selected.provider)) {
 			// Until the core has said this processor can run it, Whisper cannot start.
 			const model = selected.whisperModel ?? 'base';
+			if (selected.provider === 'whisper-translate' && !whisperModelTranslates(model)) return false;
 			return (
 				this.whisperCpu?.supported === true &&
 				models.some((m) => m.id === model && m.installed && !m.downloading)

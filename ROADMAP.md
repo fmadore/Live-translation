@@ -113,7 +113,14 @@ glossaries, live corrections and offline text translation are not planned.
 
 - **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
   `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
-  ([Whisper notes](docs/local-whisper.md#names-and-terms)). Whisper's speech detection is next.
+  ([Whisper notes](docs/local-whisper.md#names-and-terms)).
+
+- **Whisper's speech detection, graphics processor and Turbo:** Silero's voice-activity model,
+  bundled, skips windows without speech; loops and subtitle credits are cut from captions;
+  Whisper runs on the graphics processor through Metal on a Mac and a Vulkan helper on Windows,
+  falling back to the processor; Large v3 Turbo is offered for subtitles
+  ([Whisper notes](docs/local-whisper.md#speech-detection)). Speeds on real graphics
+  processors are still to be measured.
   The translation models document no vocabulary field, so translated captions take no list.
 
 ## Unscheduled and research

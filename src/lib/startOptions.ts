@@ -72,6 +72,7 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 		...(whisperChoices
 			? {
 					whisperModel: oneOf(WHISPER_MODELS, stored.whisperModel, 'base'),
+					...(stored.whisperGpu === false ? { whisperGpu: false } : {}),
 					spokenLanguage:
 						typeof stored.spokenLanguage === 'string' &&
 						whisperLanguages.some((l) => l.code === stored.spokenLanguage)

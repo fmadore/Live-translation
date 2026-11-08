@@ -21,8 +21,8 @@ See the [1.12.0 handoff](store-updates.md#release-1120-handoff),
 
 Whisper gives real local speech recognition without an account or API key: the user downloads
 a verified multilingual model once, then captions microphone or system audio offline, in the
-spoken language or translated into English. CPU speed, model choice and language affect
-latency and accuracy. Optional cloud translation and subtitles
+spoken language or translated into English. Processor or graphics-processor speed, model choice
+and language affect latency and accuracy. Optional cloud translation and subtitles
 need the user's provider account, key and network connection, with possible usage charges.
 Every localized description discloses these dependencies at the start.
 
@@ -80,7 +80,12 @@ before submission; a passing local check does not imply certification.
   x64 PC without AVX2, if one is available, Whisper is listed as unavailable and the demo is
   selected.
 - [ ] Whisper translation into English with Small works offline on x64 and ARM64; any caption
-  language but English is refused.
+  language but English is refused, and Large v3 Turbo is not offered for translation.
+- [ ] From the version after 1.12.0: the package carries `whisper-vulkan.exe` beside the app and
+  `models/ggml-silero-v5.1.2.bin`; on a PC with a usable graphics processor the log names it
+  (`Whisper model loaded device=vulkan: …`), with *Use the graphics processor* off it says
+  `cpu`, and on a Snapdragon it stays on the processor. A quiet room produces no invented
+  captions; Large v3 Turbo downloads and transcribes.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.

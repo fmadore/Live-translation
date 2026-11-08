@@ -7,7 +7,8 @@ microphone / system / application audio
                   │
           resampling + PCM16
                   ├── cloud WebSocket client(s) ──────────────┐
-                  └── temporary spool → Whisper CPU worker ──┤
+                  └── temporary spool → speech detection → Whisper worker ─┤
+                                     (processor, Metal, or the Vulkan helper)
 scripted demo ───────── deterministic caption timeline ──────┤
                                                              ▼
                                               operator + caption overlay
@@ -32,9 +33,13 @@ caption events ── optional, opt-in ── Zoom caption sender → Zoom meeti
    paths on x64 and ARM64. It is presented as a demonstration, not speech recognition.
 4. **Local Whisper.** The `whisper` provider (subtitles) and `whisper-translate` (translation
    into English, whisper.cpp's translate task) share one pipeline, `Provider::is_local_whisper`:
-   16 kHz PCM16, a bounded writer queue, an anonymous temporary audio file and a separate CPU
-   inference worker per source. A verified multilingual model context is shared, and the
-   sources take turns at inference on it; each source owns its inference state. Capture
+   16 kHz PCM16, a bounded writer queue, an anonymous temporary audio file and a separate
+   inference worker per source. Silero's bundled voice-activity model (`whisper/vad.rs`) skips
+   windows without speech and trims the rest. One verified model is shared, and the sources take
+   turns at inference on it: in the app, on the processor or on a Mac's graphics processor
+   (Metal); or on Windows in `whisper-vulkan`, a helper program on the graphics processor
+   (`whisper/gpu.rs`, `src-tauri/whisper-vulkan/`), with the processor as the fallback. Each
+   source owns its inference state. Capture
    timestamps travel with the audio, so a slow recognizer preserves meeting timing. ggml is
    compiled for AVX2 on x64 and for dot-product on ARM64, so `whisper/cpu.rs` refuses an older
    processor before any native code runs and the interface offers another engine. See
@@ -588,5 +593,6 @@ await window.__TAURI_INTERNALS__.invoke('stop_session')
 - Windows is the supported release target; native x64 and ARM64 packages are built.
 - CI contract-tests provider messages but does not call billable services.
 - Cloud caption accuracy and availability depend on the selected third-party provider. Local
-  Whisper accuracy and speed depend on its model, language and the computer’s CPU.
+  Whisper accuracy and speed depend on its model, language and the computer’s processor or
+  graphics processor.
 - The built-in demo verifies product presentation and workflow, not microphone recognition.

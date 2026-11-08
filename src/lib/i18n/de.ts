@@ -188,6 +188,14 @@ export const de: Messages = {
 		tiny: 'Tiny — am schnellsten',
 		base: 'Base — ausgewogen',
 		small: 'Small — genauer',
+		turbo: 'Large v3 Turbo — am genauesten',
+		turboHint:
+			'Das genaueste und anspruchsvollste Modell: Es hält mit der Sprache Schritt, wenn ein Grafikprozessor oder ein schneller Prozessor vorhanden ist. Testen Sie es vor einer Veranstaltung.',
+		turboCannotTranslate:
+			'Large v3 Turbo transkribiert nur und kann nicht übersetzen. Wählen Sie Small für die Übersetzung ins Englische.',
+		graphics: 'Grafikprozessor verwenden',
+		graphicsNote:
+			'Schneller, wenn der Computer einen geeigneten hat; sonst, oder wenn er versagt, läuft Whisper auf dem Prozessor.',
 		download: 'Modell herunterladen',
 		remove: 'Modell entfernen',
 		cancel: 'Download abbrechen',

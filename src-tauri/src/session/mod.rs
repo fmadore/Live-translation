@@ -101,9 +101,9 @@ impl SessionManager {
         let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
         let local_model = if provider.is_local_whisper() {
             let app = app.clone();
-            let model = options.whisper_model;
+            let (model, graphics) = (options.whisper_model, options.whisper_gpu);
             Some(
-                tauri::async_runtime::spawn_blocking(move || whisper::load(&app, model))
+                tauri::async_runtime::spawn_blocking(move || whisper::load(&app, model, graphics))
                     .await
                     .context("Whisper model loading stopped unexpectedly")??,
             )

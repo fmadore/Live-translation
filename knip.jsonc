@@ -15,5 +15,8 @@
 	//
 	// Any hint fails the run, so an ignore added here later is dropped once it stops being
 	// needed instead of quietly hiding the next real finding.
-	"treatConfigHintsAsErrors": true
+	"treatConfigHintsAsErrors": true,
+	// scripts/bundle-msix.mjs runs the bundler's CLI by its path in node_modules, to lay the
+	// release-only tauri.vulkan.conf.json in around it, which knip cannot follow.
+	"ignoreDependencies": ["@choochmeque/tauri-windows-bundle"]
 }

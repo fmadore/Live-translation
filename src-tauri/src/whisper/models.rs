@@ -15,7 +15,7 @@ use tokio_util::sync::CancellationToken;
 
 const REVISION: &str = "5359861c739e955e79d9a303bcbc70fb988958b1";
 
-/// No overall deadline: Small is 182 MiB, and a slow or proxied network is still a network.
+/// No overall deadline: Turbo is 547 MiB, and a slow or proxied network is still a network.
 /// A connection that stops delivering is what fails, after this long without a byte.
 const STALL: Duration = Duration::from_secs(60);
 
@@ -31,16 +31,25 @@ pub enum ModelId {
     #[default]
     Base,
     Small,
+    /// Large v3 Turbo: far more accurate than Small, and fast enough to follow speech on a
+    /// graphics processor. It was trained without the translate task, so it only transcribes.
+    Turbo,
 }
 
 impl ModelId {
-    pub const ALL: [Self; 3] = [Self::Tiny, Self::Base, Self::Small];
+    pub const ALL: [Self; 4] = [Self::Tiny, Self::Base, Self::Small, Self::Turbo];
+
+    /// Whether the model can run Whisper's translate task (`whisper-translate`).
+    pub fn translates(self) -> bool {
+        self != Self::Turbo
+    }
 
     pub fn file(self) -> &'static str {
         match self {
             Self::Tiny => "ggml-tiny-q5_1.bin",
             Self::Base => "ggml-base-q5_1.bin",
             Self::Small => "ggml-small-q5_1.bin",
+            Self::Turbo => "ggml-large-v3-turbo-q5_0.bin",
         }
     }
 
@@ -49,14 +58,16 @@ impl ModelId {
             Self::Tiny => 32_152_673,
             Self::Base => 59_707_625,
             Self::Small => 190_085_487,
+            Self::Turbo => 574_041_195,
         }
     }
 
-    fn sha256(self) -> &'static str {
+    pub(super) fn sha256(self) -> &'static str {
         match self {
             Self::Tiny => "818710568da3ca15689e31a743197b520007872ff9576237bda97bd1b469c3d7",
             Self::Base => "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
             Self::Small => "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+            Self::Turbo => "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2",
         }
     }
 
@@ -363,6 +374,10 @@ pub struct ModelLease {
     pub path: PathBuf,
 }
 impl ModelLease {
+    pub fn id(&self) -> ModelId {
+        self.id
+    }
+
     /// Check cached bytes too: a corrupt/replaced local file must never reach native inference.
     pub fn read_verified(&self) -> Result<Vec<u8>> {
         read_verified(&self.path, self.id)

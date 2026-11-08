@@ -132,7 +132,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libasound2-dev \
-            libsoup-3.0-dev libjavascriptcoregtk-4.1-dev pkg-config cmake clang libclang-dev
+            libsoup-3.0-dev libjavascriptcoregtk-4.1-dev pkg-config cmake clang libclang-dev \
+            libvulkan-dev glslc mesa-vulkan-drivers
 
       - name: Configure native Whisper compiler
         if: runner.os == 'Windows'
@@ -172,8 +173,32 @@ jobs:
           # main's entries out of the 10 GB the repository gets.
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
+      # The Whisper Vulkan helper (src-tauri/whisper-vulkan) builds with LunarG's SDK on
+      # Windows, with the distribution's Vulkan packages on Linux. Windows ARM64 builds it in
+      # release.yml; this lane and Linux keep it compiling, linting and tested in between.
+      - name: Vulkan SDK
+        if: matrix.os == 'windows-latest'
+        uses: ./.github/actions/vulkan-sdk
+
       - name: rustfmt
-        run: cargo fmt --check
+        run: cargo fmt --all --check
+        working-directory: src-tauri
+
+      # On Windows the helper builds in a short target folder: ggml configures its Vulkan shader
+      # generator as a nested CMake project deep inside Cargo's build folder, and under
+      # src-tauri/target its paths pass Windows' 260-character limit (rc.exe then cannot write
+      # its files). scripts/build-whisper-vulkan.mjs does the same for releases.
+      # PowerShell, not Git Bash: Git Bash rewrites environment values that look like paths for
+      # the programs it starts, which turned CXXFLAGS=/EHsc into C:/Program Files/Git/EHsc.
+      - name: clippy and tests (Whisper Vulkan helper)
+        if: matrix.os == 'windows-latest' || runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          if ($IsWindows) { $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'wv' }
+          cargo clippy --locked -p whisper-vulkan --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo test --locked -p whisper-vulkan
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         working-directory: src-tauri
 
       - name: clippy
@@ -222,6 +247,23 @@ jobs:
         run: >-
           cargo llvm-cov test --no-report --locked --all-features local_whisper_smoke
           -- --ignored --nocapture
+        working-directory: src-tauri
+
+      # The whole graphics-processor path — the helper started, the model loaded and every
+      # window decoded through it — on Mesa's software Vulkan renderer (lavapipe), which the
+      # helper accepts only when the test asks. Slow, and no measure of speed; it proves the
+      # messages, the fallback-free path and the captions, which GitHub's GPU-less runners
+      # cannot otherwise show.
+      - name: Local Whisper smoke test through the Vulkan helper (lavapipe, instrumented)
+        if: runner.os == 'Linux'
+        timeout-minutes: 20
+        env:
+          WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
+          GGML_VK_VISIBLE_DEVICES: "0"
+        run: |
+          cargo build --locked -p whisper-vulkan
+          WHISPER_VULKAN_HELPER="$PWD/target/debug/whisper-vulkan" cargo llvm-cov test \
+            --no-report --locked --all-features local_whisper_vulkan_smoke -- --ignored --nocapture
         working-directory: src-tauri
 
       - name: Rust coverage summary

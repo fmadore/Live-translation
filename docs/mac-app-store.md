@@ -145,7 +145,7 @@ captions,subtitles,translate,transcribe,whisper,offline,overlay,meeting,lecture,
 **Promotional text** (170):
 
 ```text
-Live captions over your slides, calls and videos. Transcribe offline with Whisper on your Mac, or translate with your own Gemini or OpenAI key.
+Live captions over your slides, calls and videos. Transcribe offline with Whisper on your Mac's graphics processor, or translate with your own Gemini or OpenAI key.
 ```
 
 **Description**:
@@ -155,7 +155,7 @@ Put live captions over any meeting, lecture, video call or slide deck. Live Tran
 
 Captions appear in a transparent overlay that floats above your slides, your call or a full-screen presentation, in every Space, and lets clicks pass through to the window beneath. Choose what to listen to: a room microphone, the sound your Mac plays, a single app, or the microphone and system audio together. In a Zoom meeting, you can also share one caption language with Zoom's own caption bar, using the caption link the host copies in Zoom.
 
-For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your Mac with no account, API key or internet connection. Whisper captions in the language being spoken, or translates it into English; for any other language, use cloud translation: Gemini into 78 languages or OpenAI into 13, with two languages on screen at once if you like.
+For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your Mac's graphics processor with no account, API key or internet connection, and built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Whisper captions in the language being spoken, or translates it into English (with Small; Large v3 Turbo only transcribes); for any other language, use cloud translation: Gemini into 78 languages or OpenAI into 13, with two languages on screen at once if you like.
 
 Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Save meeting profiles for the rooms you use often, and pause during breaks. Copy the transcript, export it as text, Markdown, SRT or WebVTT, and keep an optional local history of past sessions.
 
@@ -180,7 +180,7 @@ review fields, never in the listing.
 Live Translation & Subtitles puts live captions of speech over other apps. It is free, with no in-app purchase and no account.
 
 Real speech recognition without any account or API key:
-1. Open the app. In Subtitles, the engine Local Whisper is selected. Download the Tiny (about 31 MiB) or Base (about 57 MiB) model with the Download button; the model is data for the speech recognizer already in the app, downloaded from Hugging Face over HTTPS and checked against its SHA-256 before use. No code is downloaded.
+1. Open the app. In Subtitles, the engine Local Whisper is selected. Download the Tiny (about 31 MiB) or Base (about 57 MiB) model with the Download button; the model is data for the speech recognizer already in the app, downloaded from Hugging Face over HTTPS and checked against its SHA-256 before use. No code is downloaded. Recognition runs on the Mac's graphics processor through Metal (the Use the graphics processor switch under the model moves it to the processor), and a speech-detection model bundled in the app skips silence before recognition.
 2. Choose System audio as the source and start. macOS asks for System Audio Recording (the app records sound only, never the screen): allow it. Play any speech on the Mac, for example a video in Safari, or the bundled sample at /Applications/Live Translation.app/Contents/Resources/fixtures/rehearsal-en.wav. Captions appear in the operator window and in the transparent overlay.
 3. Or choose a microphone as the source: macOS asks for microphone access.
 4. Stop, then export the transcript as text, Markdown, SRT or WebVTT with the Save panel.
@@ -214,7 +214,8 @@ The overlay uses public AppKit only: a borderless transparent window at a high w
 
 - **Downloaded models (2.4.5(iv), 2.5.2).** Whisper models are downloaded from Settings: weights
   for the recognizer in the reviewed build, not code. The review notes say so. If refused, the
-  fallback is to bundle the Tiny model in the store build.
+  fallback is to bundle the Tiny model in the store build. The speech-detection model (Silero
+  VAD, 864 KiB) is already bundled, in `Contents/Resources/models/`.
 - **Bring-your-own keys and third-party AI (5.1.2(i)).** Before the first session or rehearsal
   with each provider, the app asks, names the provider and what is sent, and gives the privacy
   policy's address, as Kalamu does; the review notes point to it.

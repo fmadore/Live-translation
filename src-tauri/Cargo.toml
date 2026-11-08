@@ -18,6 +18,13 @@ publish = false
 name = "live_translation_lib"
 crate-type = ["rlib"]
 
+# The Vulkan helper (`whisper-vulkan/`) shares this lock file and target folder but is built on
+# its own (`cargo build -p whisper-vulkan`): it turns on whisper-rs's `vulkan` feature, which the
+# app itself must never link, so the two are never compiled in one invocation. Commands run here
+# without `-p` or `--workspace` build the app alone.
+[workspace]
+members = ["whisper-vulkan"]
+
 [build-dependencies]
 tauri-build = { version = "2.7.1", features = [] }
 
@@ -72,6 +79,10 @@ rfd = { version = "0.17.2", default-features = false }
 # device notifications; libc for a process's start time. The versions tao, wry, rfd and cpal
 # already compile, so this adds no crate to the macOS build.
 [target.'cfg(target_os = "macos")'.dependencies]
+# Whisper on the graphics processor through Metal, its shaders built into the app: every Apple
+# silicon Mac has one. The same pin as above, with the feature added for macOS only; `build.rs`
+# links the clang runtime library Metal's code needs.
+whisper-rs = { version = "=0.16.0", default-features = false, features = ["metal"] }
 libc = "0.2.189"
 objc2 = "0.6.4"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = [

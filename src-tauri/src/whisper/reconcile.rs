@@ -1,18 +1,7 @@
 //! What each recognised segment adds to the transcript. Pure: no model, no audio, so the
 //! decisions at window boundaries can be tested directly.
 
-/// One segment as whisper.cpp reported it, before the app decides whether to caption it.
-pub struct RawSegment {
-    /// Decoded leniently: a token split mid-character must not end the source.
-    pub text: String,
-    /// Centiseconds from the start of the window, as whisper.cpp counts them.
-    pub start_cs: i64,
-    pub end_cs: i64,
-    /// One value for the whole window: whisper.cpp asks once, before decoding.
-    pub no_speech: f32,
-    /// Mean log-probability of the segment's tokens.
-    pub mean_logprob: f32,
-}
+pub use super::engine::RawSegment;
 
 /// A caption ready for the transcript.
 #[derive(Debug, PartialEq)]
@@ -44,6 +33,9 @@ pub struct Reconciler {
     turn: u64,
     previous_text: String,
     previous_end: u64,
+    /// The words of the last line captioned, and how many lines in a row have said them since.
+    last_said: Vec<String>,
+    repeats: usize,
 }
 
 impl Reconciler {
@@ -69,12 +61,25 @@ impl Reconciler {
         }
         // U+FFFD is what lossy decoding leaves of a broken byte sequence: nothing to read.
         let cleaned = segment.text.replace('\u{FFFD}', "");
-        let text = trim_overlap(
-            &self.previous_text,
-            cleaned.trim(),
-            start < self.previous_end,
-        );
+        if is_credit(&cleaned) {
+            return None;
+        }
+        let collapsed = collapse_repeats(cleaned.trim());
+        let text = trim_overlap(&self.previous_text, &collapsed, start < self.previous_end);
         if text.is_empty() {
+            return None;
+        }
+        // The same line a third time running is Whisper looping over noise, not a speaker:
+        // people repeat themselves, but rarely three windows in a row.
+        let said = words(text);
+        if said == self.last_said {
+            self.repeats += 1;
+        } else {
+            self.last_said = said;
+            self.repeats = 0;
+        }
+        if self.repeats >= 2 {
+            self.previous_end = end;
             return None;
         }
         self.turn += 1;
@@ -89,6 +94,59 @@ impl Reconciler {
         self.previous_end = end;
         Some(line)
     }
+}
+
+/// How many times running a word, or a group of words, is repeated before it counts as a loop:
+/// Whisper's known failure on noise and silence, which people saying "non, non, non" do not reach.
+const LOOP_WORD: usize = 6;
+const LOOP_GROUP: usize = 4;
+
+/// The text with a word said over and over, or a group of up to eight words, kept once. Words
+/// repeated a few times, as people do, are left. Ported from Kalamu's `whisper.rs`.
+fn collapse_repeats(text: &str) -> String {
+    let all: Vec<&str> = text.split_whitespace().collect();
+    let keys: Vec<String> = all.iter().map(|w| normalise(w)).collect();
+    let mut out: Vec<&str> = Vec::new();
+    let mut i = 0;
+    'words: while i < all.len() {
+        for n in 1..=8 {
+            let needed = if n == 1 { LOOP_WORD } else { LOOP_GROUP };
+            if i + n * needed > all.len() || keys[i..i + n].iter().all(String::is_empty) {
+                continue;
+            }
+            let mut times = 1;
+            while i + (times + 1) * n <= all.len()
+                && keys[i + times * n..i + (times + 1) * n] == keys[i..i + n]
+            {
+                times += 1;
+            }
+            if times >= needed {
+                out.extend(&all[i..i + n]);
+                i += times * n;
+                continue 'words;
+            }
+        }
+        out.push(all[i]);
+        i += 1;
+    }
+    out.join(" ")
+}
+
+/// Subtitle credits Whisper learnt from its training data and writes over silence or music.
+fn is_credit(text: &str) -> bool {
+    let text = text.trim().to_lowercase();
+    text.contains("amara.org")
+        || ["sous-titres réalisés", "sous-titrage st", "subtitles by"]
+            .iter()
+            .any(|credit| text.starts_with(credit))
+}
+
+/// A line's words as compared for a loop: case and punctuation dropped.
+fn words(text: &str) -> Vec<String> {
+    text.split_whitespace()
+        .map(normalise)
+        .filter(|w| !w.is_empty())
+        .collect()
 }
 
 /// Scripts written without spaces between words, where the only boundaries to compare on are
@@ -317,6 +375,64 @@ mod tests {
         assert!(reconciler
             .accept(0, 5_000, &segment(" \u{FFFD}\u{FFFD} ", 100, 200))
             .is_none());
+    }
+
+    #[test]
+    fn loops_are_cut_back_and_what_people_say_twice_is_kept() {
+        assert_eq!(
+            collapse_repeats("Il a dit merci merci merci merci merci merci merci."),
+            "Il a dit merci"
+        );
+        assert_eq!(
+            collapse_repeats("on y va, on y va, on y va, on y va, on y va et puis"),
+            "on y va, et puis"
+        );
+        assert_eq!(
+            collapse_repeats("non, non, non, je ne crois pas"),
+            "non, non, non, je ne crois pas"
+        );
+        let mut reconciler = Reconciler::default();
+        let looped = reconciler
+            .accept(
+                0,
+                5_000,
+                &segment("thank you thank you thank you thank you thank you", 0, 100),
+            )
+            .unwrap();
+        assert_eq!(looped.text, "thank you");
+    }
+
+    #[test]
+    fn subtitle_credits_are_dropped() {
+        let mut reconciler = Reconciler::default();
+        for credit in [
+            "Sous-titres réalisés par la communauté d'Amara.org",
+            " Subtitles by the Amara.org community",
+            "Sous-titrage ST' 501",
+        ] {
+            assert!(reconciler
+                .accept(0, 5_000, &segment(credit, 0, 100))
+                .is_none());
+        }
+        assert!(reconciler
+            .accept(0, 5_000, &segment("Merci à Amara pour son exposé", 0, 100))
+            .is_some());
+    }
+
+    #[test]
+    fn the_same_line_a_third_time_running_is_dropped() {
+        let mut reconciler = Reconciler::default();
+        let mut shown = Vec::new();
+        for (i, text) in ["Merci.", "Merci.", "merci", "Merci !", "Au revoir."]
+            .iter()
+            .enumerate()
+        {
+            let start = i as u64 * 10_000;
+            if let Some(line) = reconciler.accept(start, 10_000, &segment(text, 0, 100)) {
+                shown.push(line.text);
+            }
+        }
+        assert_eq!(shown, ["Merci.", "Merci.", "Au revoir."]);
     }
 
     #[test]

@@ -30,10 +30,13 @@ bar, and fixes for flashes and layout shifts. See its
 
 ## What it does
 
-- **Offline subtitles.** Whisper runs on your CPU with 99 spoken-language choices or automatic
-  detection. Download Tiny (31 MiB), Base (57 MiB) or Small (182 MiB) once; then caption without
-  an account, API key or internet connection. Speed and accuracy depend on the computer,
-  model and language; on x64, Whisper needs a processor with AVX2.
+- **Offline subtitles.** Whisper runs on your computer with 99 spoken-language choices or
+  automatic detection: on the graphics processor where there is a usable one (Metal on a Mac,
+  Vulkan on Windows), otherwise on the processor. Download Tiny (31 MiB), Base (57 MiB), Small
+  (182 MiB) or Large v3 Turbo (547 MiB) once; then caption without an account, API key or
+  internet connection. Speech detection skips silence and music before Whisper sees them. Speed
+  and accuracy depend on the computer, model and language; on x64, Whisper needs a processor
+  with AVX2.
 - **Offline translation into English.** Whisper also translates any of those languages into
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.

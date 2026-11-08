@@ -182,6 +182,17 @@ export const en = {
 		tiny: 'Tiny — fastest',
 		base: 'Base — balanced',
 		small: 'Small — more accurate',
+		turbo: 'Large v3 Turbo — most accurate',
+		/** Under the model list when Turbo is chosen for subtitles. */
+		turboHint:
+			'The most accurate model, and the heaviest: it keeps up with speech on a graphics processor or a fast processor. Try it before an event.',
+		/** Under the model list when Turbo is still chosen but the engine is translation. */
+		turboCannotTranslate:
+			'Large v3 Turbo transcribes only and cannot translate. Choose Small for translation into English.',
+		/** The switch for running Whisper on the graphics processor, and the note under it. */
+		graphics: 'Use the graphics processor',
+		graphicsNote:
+			'Faster where the computer has a suitable one; otherwise, or if it fails, Whisper runs on the processor.',
 		download: 'Download model',
 		remove: 'Remove model',
 		cancel: 'Cancel download',

@@ -51,7 +51,8 @@
     "copyright": "© 2026 Frédérick Madore. MIT licensed.",
     "resources": {
       "resources/fixtures/*": "fixtures/",
-      "resources/licenses/*": "licenses/"
+      "resources/licenses/*": "licenses/",
+      "resources/models/*": "models/"
     },
     "icon": [
       "icons/32x32.png",

@@ -4,8 +4,9 @@
 	import { options, whisperModels, statusMessage } from './stores';
 	import { api } from './tauri';
 	import { asStatus } from './errors';
-	import { WHISPER_MODELS, type WhisperModelId } from './types';
+	import { WHISPER_MODELS, whisperModelTranslates, type WhisperModelId } from './types';
 	import Field from './ui/Field.svelte';
+	import Preference from './ui/Preference.svelte';
 	import Select from './ui/Select.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 
@@ -17,6 +18,12 @@
 	const model = $derived($whisperModels.find((m) => m.id === selected));
 	const downloading = $derived($whisperModels.some((m) => m.downloading));
 	const percent = $derived(model ? Math.floor((model.downloadedBytes / model.bytes) * 100) : 0);
+	const translating = $derived($options.provider === 'whisper-translate');
+	// Turbo only transcribes, so translation does not offer it; a Turbo chosen for subtitles
+	// stays chosen, and the note below says why translation cannot start with it.
+	const offered = $derived(
+		WHISPER_MODELS.filter((id) => !translating || whisperModelTranslates(id) || id === selected)
+	);
 
 	async function refresh() {
 		if (browserMode || disposed || refreshing) return;
@@ -82,7 +89,7 @@
 			onchange={(e) =>
 				($options = { ...$options, whisperModel: e.currentTarget.value as WhisperModelId })}
 		>
-			{#each WHISPER_MODELS as id (id)}
+			{#each offered as id (id)}
 				<option value={id}
 					>{$t.whisper[id]}{#if $whisperModels.find((m) => m.id === id)}
 						— {Math.ceil($whisperModels.find((m) => m.id === id)!.bytes / 1048576)} MiB{/if}</option
@@ -92,7 +99,13 @@
 	</Field>
 	<!-- Translation is where the small models fall short, so it is the one place to say so. -->
 	<p class="hint">
-		{$options.provider === 'whisper-translate' ? $t.whisper.translateHint : $t.whisper.hint}
+		{translating
+			? whisperModelTranslates(selected)
+				? $t.whisper.translateHint
+				: $t.whisper.turboCannotTranslate
+			: selected === 'turbo'
+				? $t.whisper.turboHint
+				: $t.whisper.hint}
 	</p>
 	<!-- A live region, so it says the model's state and nothing that ticks: the download is
 	     polled every 500 ms, and the percentage is the progress bar's to carry. -->
@@ -125,6 +138,13 @@
 			>
 		{/if}
 	</div>
+	<Preference
+		label={$t.whisper.graphics}
+		note={$t.whisper.graphicsNote}
+		checked={$options.whisperGpu !== false}
+		disabled={locked}
+		onchange={(on) => ($options = { ...$options, whisperGpu: on })}
+	/>
 </div>
 
 <style>
