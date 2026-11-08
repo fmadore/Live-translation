@@ -33,6 +33,8 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
   [decision record](decisions/2026-11-05-mac-app-store.md).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md).
 - [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
+- [Repository statistics](repository-statistics.md): downloads per version and visits to the
+  repository, recorded daily on the `stats` branch.
 
 ## Release 1.12.0 (tagged 27 October 2026, not yet submitted)
 
