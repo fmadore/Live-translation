@@ -188,13 +188,17 @@ jobs:
       # generator as a nested CMake project deep inside Cargo's build folder, and under
       # src-tauri/target its paths pass Windows' 260-character limit (rc.exe then cannot write
       # its files). scripts/build-whisper-vulkan.mjs does the same for releases.
+      # PowerShell, not Git Bash: Git Bash rewrites environment values that look like paths for
+      # the programs it starts, which turned CXXFLAGS=/EHsc into C:/Program Files/Git/EHsc.
       - name: clippy and tests (Whisper Vulkan helper)
         if: matrix.os == 'windows-latest' || runner.os == 'Linux'
-        shell: bash
+        shell: pwsh
         run: |
-          if [ "$RUNNER_OS" = Windows ]; then export CARGO_TARGET_DIR="$RUNNER_TEMP/wv"; fi
+          if ($IsWindows) { $env:CARGO_TARGET_DIR = Join-Path $env:RUNNER_TEMP 'wv' }
           cargo clippy --locked -p whisper-vulkan --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cargo test --locked -p whisper-vulkan
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         working-directory: src-tauri
 
       - name: clippy
