@@ -19,6 +19,10 @@ pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     if options.provider.is_local_whisper() {
         whisper::validate_language(options.spoken_language.as_deref())?;
     }
+    anyhow::ensure!(
+        options.provider != Provider::WhisperTranslate || options.whisper_model.translates(),
+        "Large v3 Turbo cannot translate; choose Small for translation into English"
+    );
     if options.provider.takes_glossary() {
         glossary::validate(&options.glossary)?;
     }
@@ -178,6 +182,34 @@ mod tests {
         let mut options = local("whisper-translate", "translate", "en");
         options.spoken_language = Some("fake".into());
         assert!(validate_start(&options).is_err());
+    }
+
+    #[test]
+    fn turbo_transcribes_but_cannot_translate() {
+        use crate::whisper::models::ModelId;
+        let mut subtitles = local("whisper", "transcribe", "en");
+        subtitles.whisper_model = ModelId::Turbo;
+        assert!(validate_start(&subtitles).is_ok());
+        let mut translation = local("whisper-translate", "translate", "en");
+        translation.whisper_model = ModelId::Turbo;
+        let error = validate_start(&translation).unwrap_err().to_string();
+        assert!(error.contains("cannot translate"), "{error}");
+        translation.whisper_model = ModelId::Small;
+        assert!(validate_start(&translation).is_ok());
+    }
+
+    #[test]
+    fn the_graphics_processor_is_on_unless_turned_off() {
+        assert!(local("whisper", "transcribe", "en").whisper_gpu);
+        let off: StartOptions = serde_json::from_value(serde_json::json!({
+            "source": "microphone",
+            "targetLanguage": "en",
+            "provider": "whisper",
+            "mode": "transcribe",
+            "whisperGpu": false,
+        }))
+        .unwrap();
+        assert!(!off.whisper_gpu);
     }
 
     #[test]

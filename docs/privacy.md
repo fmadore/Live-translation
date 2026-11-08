@@ -49,6 +49,11 @@ or closing the app before it has finished, keeps captions already produced but l
 transcript incomplete. Pause excludes newly captured audio from recognition and temporary
 storage while metering remains active.
 
+On Windows, Whisper may run in `whisper-vulkan`, a helper program installed with the app that
+uses the graphics processor; audio reaches it only through the computer's own memory, never a
+network, and it keeps nothing once the session ends. The speech-detection model that skips
+silence before Whisper is part of the app and is never downloaded.
+
 Whisper model files are downloaded only when the user chooses **Download model**. Downloads
 contact Hugging Face and its file-delivery infrastructure, which receive ordinary network
 request information such as the user's IP address. No captured audio, captions or provider

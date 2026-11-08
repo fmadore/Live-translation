@@ -42,8 +42,10 @@ export const PROVIDERS = [
 	'whisper-translate'
 ] as const;
 export type Provider = (typeof PROVIDERS)[number];
-export const WHISPER_MODELS = ['tiny', 'base', 'small'] as const;
+export const WHISPER_MODELS = ['tiny', 'base', 'small', 'turbo'] as const;
 export type WhisperModelId = (typeof WHISPER_MODELS)[number];
+/** Large v3 Turbo was trained without Whisper's translate task: it only transcribes. */
+export const whisperModelTranslates = (id: WhisperModelId): boolean => id !== 'turbo';
 export interface WhisperModelInfo {
 	id: WhisperModelId;
 	bytes: number;
@@ -208,6 +210,8 @@ export interface StartOptions {
 	/** Realtime translation/transcription backend. */
 	provider: Provider;
 	whisperModel?: WhisperModelId;
+	/** Run Whisper on the graphics processor where there is a usable one. Absent means on. */
+	whisperGpu?: boolean;
 	spokenLanguage?: string | null;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;

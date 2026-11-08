@@ -1,14 +1,28 @@
-//! Multilingual, CPU-only local transcription, or translation into English with Whisper's
-//! translate task. Capture, disk ingestion and inference run independently; normal Stop closes
-//! input then drains every accepted frame.
+//! Multilingual local transcription, or translation into English with Whisper's translate task.
+//! Capture, disk ingestion and inference run independently; normal Stop closes input then
+//! drains every accepted frame.
+//!
+//! Where the windows are decoded: on Windows, on the graphics processor through the Vulkan
+//! helper (`gpu.rs`) when one is installed and finds a usable device; on a Mac, on the graphics
+//! processor through Metal, in the app; otherwise, and whenever the graphics processor fails,
+//! on the processor. Silero's speech detection (`vad.rs`) decides first whether a window is
+//! worth decoding at all.
 pub mod cpu;
+// Shared word for word with the Vulkan helper, so both decode a window the same way. Some of
+// it (the helper's half of the messages) is only used there.
+#[allow(dead_code)]
+#[path = "../../whisper-vulkan/src/engine.rs"]
+mod engine;
+mod gpu;
 mod language;
 pub mod models;
 mod prompt;
 mod reconcile;
 mod segment;
 pub mod spool;
+mod vad;
 
+use std::path::{Path, PathBuf};
 use std::sync::{atomic::Ordering, Arc, Mutex};
 use std::time::Duration;
 
@@ -17,18 +31,17 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::Receiver;
 use tokio_util::sync::CancellationToken;
-use whisper_rs::{
-    FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperSegment,
-};
+use whisper_rs::{WhisperContext, WhisperContextParameters, WhisperState};
 
 use crate::errors::{id, AppError};
 use crate::realtime::Events;
 use crate::sync::lock;
 use crate::types::{events, Caption, Origin, SessionState, StatusUpdate};
+use engine::RawSegment;
 use language::Languages;
 use models::{ModelId, ModelLease, ModelManager};
 use prompt::Prompt;
-use reconcile::{RawSegment, Reconciler};
+use reconcile::Reconciler;
 use segment::{Segmenter, Window};
 use spool::{Next, Spool, TimedChunk};
 
@@ -40,36 +53,196 @@ const IDLE: Duration = Duration::from_secs(1);
 const LONG_WINDOW_BACKLOG_MS: u64 = 30_000;
 
 pub struct LoadedModel {
-    context: WhisperContext,
-    /// One inference at a time across sources. With Both sources, two concurrent passes would
-    /// each start a full set of ggml workers, which spin while they wait and leave capture and
-    /// the interface fighting for what is left; taking turns finishes both sooner.
-    inference: Mutex<()>,
-    _lease: ModelLease,
+    /// Where windows are decoded, one at a time across sources. With Both sources, two
+    /// concurrent passes would each start a full set of ggml workers, which spin while they
+    /// wait and leave capture and the interface fighting for what is left; taking turns
+    /// finishes both sooner. The graphics processor helper takes one window at a time anyway.
+    inference: Mutex<Backend>,
+    vad: Option<vad::Vad>,
+    lease: ModelLease,
 }
 
-pub fn load(app: &AppHandle, id: ModelId) -> Result<Arc<LoadedModel>> {
+enum Backend {
+    /// whisper.cpp in this process: on the processor, or on a Mac's graphics processor (Metal).
+    InProcess {
+        context: WhisperContext,
+        device: &'static str,
+    },
+    /// The Vulkan helper, on the graphics processor it chose.
+    Helper(gpu::Worker),
+}
+
+/// Where a session asks for its model to run.
+struct Placement<'a> {
+    /// Metal, in this process (macOS).
+    metal: bool,
+    /// The Vulkan helper to try first (Windows).
+    helper: Option<&'a Path>,
+    /// Let the helper choose a software renderer: the tests' only graphics processor.
+    allow_software: bool,
+}
+
+/// Load `id` for a session. `graphics` is the operator's choice to use the graphics processor
+/// where there is one.
+pub fn load(app: &AppHandle, id: ModelId, graphics: bool) -> Result<Arc<LoadedModel>> {
     let lease = app
         .state::<ModelManager>()
         .lease(&models::directory(app)?, id)?;
-    load_lease(lease)
+    let helper = graphics.then(gpu::helper_path).flatten();
+    load_lease(
+        lease,
+        vad_path(app).as_deref(),
+        &Placement {
+            metal: graphics && cfg!(target_os = "macos"),
+            helper: helper.as_deref(),
+            allow_software: false,
+        },
+    )
 }
 
-fn load_lease(lease: ModelLease) -> Result<Arc<LoadedModel>> {
+/// The bundled speech-detection model, where the installer put it.
+fn vad_path(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .resolve(vad::RESOURCE, tauri::path::BaseDirectory::Resource)
+        .ok()
+}
+
+fn load_lease(
+    lease: ModelLease,
+    vad: Option<&Path>,
+    placement: &Placement<'_>,
+) -> Result<Arc<LoadedModel>> {
     // First native call of a session: refuse here, not with an illegal instruction inside it.
+    // Speech detection and the fallback run on this processor even when the helper decodes.
     cpu::ensure_supported()?;
+    let helper = placement.helper.and_then(|program| {
+        gpu::Worker::start(program, &lease, placement.allow_software)
+            .inspect_err(|error| {
+                tracing::info!("Whisper stays on the processor: {error:#}");
+            })
+            .ok()
+    });
+    let backend = match helper {
+        Some(worker) => Backend::Helper(worker),
+        None => in_process(&lease, placement.metal)?,
+    };
+    let model = LoadedModel {
+        inference: Mutex::new(backend),
+        vad: vad.and_then(vad::Vad::load),
+        lease,
+    };
+    tracing::info!(device = %model.device(), "Whisper model loaded");
+    Ok(Arc::new(model))
+}
+
+/// The leased model in this process, with Metal when `metal`.
+fn in_process(lease: &ModelLease, metal: bool) -> Result<Backend> {
     // Read through Rust's Unicode-aware filesystem API (Windows usernames may contain
     // non-ASCII characters), then pass the exact verified bytes to the native loader.
     let bytes = lease.read_verified()?;
     let mut params = WhisperContextParameters::default();
-    params.use_gpu(false);
+    params.use_gpu(metal);
+    if metal {
+        // Attention computed in one pass, as whisper.cpp's own tools do on a graphics processor.
+        params.flash_attn(true);
+    }
     let context = WhisperContext::new_from_buffer_with_params(&bytes, params)
         .context("Could not load Whisper model")?;
-    Ok(Arc::new(LoadedModel {
+    Ok(Backend::InProcess {
         context,
-        inference: Mutex::new(()),
-        _lease: lease,
-    }))
+        device: if metal { "metal" } else { "cpu" },
+    })
+}
+
+/// What one window decoded to: its segments, and the language whisper.cpp decoded it in.
+struct Decoded {
+    segments: Vec<RawSegment>,
+    language: i32,
+}
+
+impl LoadedModel {
+    /// Where the model runs now: `cpu`, `metal`, or the graphics processor the helper chose.
+    pub fn device(&self) -> String {
+        match &*lock(&self.inference) {
+            Backend::InProcess { device, .. } => (*device).to_owned(),
+            Backend::Helper(worker) => format!("vulkan: {}", worker.device),
+        }
+    }
+
+    fn text_context(&self) -> i32 {
+        match &*lock(&self.inference) {
+            Backend::InProcess { context, .. } => context.n_text_ctx(),
+            Backend::Helper(worker) => worker.text_context,
+        }
+    }
+
+    fn tokenize(&self, text: &str) -> Option<Vec<i32>> {
+        match &mut *lock(&self.inference) {
+            // Every token stands for at least one byte, so the text's length is room enough:
+            // whisper-rs mishandles whisper.cpp's "needs more room" answer, so it must never
+            // get one.
+            Backend::InProcess { context, .. } => context.tokenize(text, text.len() + 1).ok(),
+            Backend::Helper(worker) => worker.tokenize(text),
+        }
+    }
+
+    /// The part of a window that holds speech; all of it without speech detection.
+    fn speech(&self, samples: &[f32]) -> Option<std::ops::Range<usize>> {
+        match &self.vad {
+            Some(vad) => vad.speech(samples),
+            None => Some(0..samples.len()),
+        }
+    }
+
+    /// Decode one window. `state` is the source's own whisper.cpp state, made on first use in
+    /// this process. `None` when the operator discarded the remaining audio meanwhile. A helper
+    /// that fails is replaced, for the rest of the session, by the model on the processor, and
+    /// the window is decoded there.
+    fn decode(
+        &self,
+        state: &mut Option<WhisperState>,
+        decode: &engine::Decode,
+        samples: &[f32],
+        abort: &CancellationToken,
+    ) -> Result<Option<Decoded>> {
+        let mut backend = lock(&self.inference);
+        if let Backend::Helper(worker) = &mut *backend {
+            match worker.decode(decode, samples, abort) {
+                Ok((segments, language)) => return Ok(Some(Decoded { segments, language })),
+                Err(_) if abort.is_cancelled() => return Ok(None),
+                Err(error) => {
+                    tracing::warn!(
+                        "Whisper's graphics processor failed; carrying on on the processor: {error:#}"
+                    );
+                    *backend = in_process(&self.lease, false)?;
+                }
+            }
+        }
+        let Backend::InProcess { context, .. } = &*backend else {
+            anyhow::bail!("Whisper has no model to decode with");
+        };
+        let state = match state {
+            Some(state) => state,
+            None => state.insert(context.create_state()?),
+        };
+        let mut params = engine::params(decode);
+        // whisper-rs 0.16's closure helper has an incorrect user-data cast and leaks its
+        // allocation. Use the C callback with a borrowed, thread-safe token instead.
+        // SAFETY: full() is synchronous; abort outlives the entire call, and the callback
+        // only reads CancellationToken. No pointer escapes this invocation.
+        unsafe {
+            params.set_abort_callback(Some(abort_requested));
+            params.set_abort_callback_user_data(std::ptr::from_ref(abort).cast_mut().cast());
+        }
+        match state.full(params, samples) {
+            Ok(()) => Ok(Some(Decoded {
+                segments: engine::segments(state),
+                language: state.full_lang_id_from_state(),
+            })),
+            Err(_) if abort.is_cancelled() => Ok(None),
+            Err(error) => Err(error.into()),
+        }
+    }
 }
 
 /// ggml's workers busy-wait between operations, so a thread per hardware thread starves
@@ -331,8 +504,8 @@ fn transcribe(
     mut emit: impl FnMut(&str, u64, u64, u64),
     mut report: impl FnMut(),
 ) -> Result<()> {
-    let mut state = model.context.create_state()?;
-    let prompt = glossary_prompt(&model.context, task.glossary);
+    let mut state = None;
+    let prompt = glossary_prompt(model, task.glossary);
     let mut reconciler = Reconciler::default();
     let mut languages = Languages::new(task.language);
     let threads = inference_threads(std::thread::available_parallelism().map_or(2, usize::from));
@@ -340,47 +513,39 @@ fn transcribe(
         if abort.is_cancelled() {
             return Ok(());
         }
-        if window.speech {
-            let duration_ms = window.samples.len() as u64 / 16;
+        // Silence by the segmenter's measure, or no speech by Silero's: nothing to decode.
+        if let Some(speech) = window
+            .speech
+            .then(|| model.speech(&window.samples))
+            .flatten()
+        {
+            let start_ms = window.start_ms + speech.start as u64 / 16;
+            let mut samples = window.samples[speech].to_vec();
+            let duration_ms = samples.len() as u64 / 16;
             let spoken = languages.for_window(duration_ms);
-            let mut params = decode_params(spoken, task.translate, threads, &prompt.tokens);
-            // whisper-rs 0.16's closure helper has an incorrect user-data cast and leaks its
-            // allocation. Use the C callback with a borrowed, thread-safe token instead.
-            // SAFETY: full() is synchronous; abort outlives the entire call, and the callback
-            // only reads CancellationToken. No pointer escapes this invocation.
-            unsafe {
-                params.set_abort_callback(Some(abort_requested));
-                params.set_abort_callback_user_data(std::ptr::from_ref(abort).cast_mut().cast());
-            }
+            let decode = engine::Decode {
+                language: spoken.map(str::to_owned),
+                translate: task.translate,
+                threads,
+                prompt: prompt.tokens.clone(),
+            };
             // Whisper needs enough samples for its analysis window, including a final
             // phrase shorter than a second. Padding affects inference only, not timestamps.
-            let mut samples = window.samples;
             samples.resize(samples.len().max(16_000), 0.0);
-            let inferred = {
-                let _turn = lock(&model.inference);
-                state.full(params, &samples)
+            let Some(decoded) = model.decode(&mut state, &decode, &samples, abort)? else {
+                return Ok(());
             };
-            if let Err(error) = inferred {
-                if abort.is_cancelled() {
-                    return Ok(());
-                }
-                return Err(error.into());
-            }
             let mut captioned = false;
-            for segment in state.as_iter() {
-                // A segment whisper.cpp cannot describe is skipped, never fatal to the source.
-                let Some(segment) = raw_segment(&segment) else {
-                    continue;
-                };
+            for segment in &decoded.segments {
                 if prompt.is_echo(&segment.text) {
                     continue;
                 }
-                if let Some(line) = reconciler.accept(window.start_ms, duration_ms, &segment) {
+                if let Some(line) = reconciler.accept(start_ms, duration_ms, segment) {
                     emit(&line.text, line.start_ms, line.end_ms, line.turn);
                     captioned = true;
                 }
             }
-            let detected = whisper_rs::get_lang_str(state.full_lang_id_from_state())
+            let detected = whisper_rs::get_lang_str(decoded.language)
                 .filter(|&code| validate_language(Some(code)).is_ok());
             languages.observe(duration_ms, spoken, captioned, detected);
         }
@@ -394,13 +559,9 @@ fn transcribe(
 /// The session's names and terms as tokens for every window's prompt: as many as fit, from the
 /// top of the list. whisper.cpp gives a prompt at most half the text context, less the token
 /// that opens it — 223 tokens with every Whisper model, a few dozen names.
-fn glossary_prompt(context: &WhisperContext, glossary: &[String]) -> Prompt {
-    let budget = usize::try_from(context.n_text_ctx() / 2 - 1).unwrap_or(0);
-    // Every token stands for at least one byte, so the text's length is room enough: whisper-rs
-    // mishandles whisper.cpp's "needs more room" answer, so it must never get one.
-    let prompt = Prompt::fit(glossary, budget, |text| {
-        context.tokenize(text, text.len() + 1).ok()
-    });
+fn glossary_prompt(model: &LoadedModel, glossary: &[String]) -> Prompt {
+    let budget = usize::try_from(model.text_context() / 2 - 1).unwrap_or(0);
+    let prompt = Prompt::fit(glossary, budget, |text| model.tokenize(text));
     if prompt.len() < glossary.len() {
         tracing::info!(
             kept = prompt.len(),
@@ -409,38 +570,6 @@ fn glossary_prompt(context: &WhisperContext, glossary: &[String]) -> Prompt {
         );
     }
     prompt
-}
-
-/// How one window is decoded. `spoken` is the language it was spoken in, or `None` to detect
-/// it; `translate` turns the task from transcription into translation into English. Translating
-/// still starts from the spoken language — it is what Whisper translates from — so detection
-/// and the operator's choice mean the same either way, and `Languages` keeps learning from what
-/// whisper.cpp detected. `prompt` is the session's names and terms, empty when there are none.
-fn decode_params<'a, 'b>(
-    spoken: Option<&'a str>,
-    translate: bool,
-    threads: i32,
-    prompt: &'b [i32],
-) -> FullParams<'a, 'b> {
-    let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_language(spoken);
-    // `no_context` below drops the text of earlier windows, not this: whisper.cpp clears its
-    // history first, then puts the prompt in front of every decoding pass of the window.
-    if !prompt.is_empty() {
-        params.set_tokens(prompt);
-    }
-    // `detect_language=true` asks whisper.cpp to return after detection. Leaving it false with
-    // language=None performs detection followed by the task.
-    params.set_translate(translate);
-    params.set_no_context(true);
-    params.set_n_threads(threads);
-    params.set_print_progress(false);
-    params.set_print_realtime(false);
-    params.set_print_timestamps(false);
-    params.set_print_special(false);
-    params.set_suppress_blank(true);
-    params.set_suppress_nst(true);
-    params
 }
 
 /// Feed spooled audio through the segmenter to `process` until input ends or is discarded.
@@ -473,29 +602,6 @@ fn pump(
         }
     }
     Ok(())
-}
-
-fn raw_segment(segment: &WhisperSegment<'_>) -> Option<RawSegment> {
-    // Lossy: a token boundary inside a multi-byte character must cost one character, not the
-    // rest of the meeting's transcript.
-    let text = segment.to_str_lossy().ok()?.into_owned();
-    let tokens = segment.n_tokens();
-    let mean_logprob = if tokens > 0 {
-        (0..tokens)
-            .filter_map(|i| segment.get_token(i))
-            .map(|token| token.token_data().plog)
-            .sum::<f32>()
-            / tokens as f32
-    } else {
-        0.0
-    };
-    Some(RawSegment {
-        text,
-        start_cs: segment.start_timestamp(),
-        end_cs: segment.end_timestamp(),
-        no_speech: segment.no_speech_probability(),
-        mean_logprob,
-    })
 }
 
 unsafe extern "C" fn abort_requested(data: *mut std::ffi::c_void) -> bool {
@@ -743,7 +849,7 @@ mod tests {
     fn the_task_reaches_whisper_with_the_spoken_language_still_set() {
         // whisper-rs exposes no getters; its Debug output shows the native parameters.
         for translate in [false, true] {
-            let params = format!("{:?}", decode_params(Some("fr"), translate, 4, &[]));
+            let params = format!("{:?}", engine::decode_params(Some("fr"), translate, 4, &[]));
             assert!(
                 params.contains(&format!("translate: {translate},")),
                 "{params}"
@@ -756,7 +862,7 @@ mod tests {
 
     #[test]
     fn the_glossary_prompt_reaches_every_window() {
-        let params = format!("{:?}", decode_params(None, false, 4, &[50, 51, 52]));
+        let params = format!("{:?}", engine::decode_params(None, false, 4, &[50, 51, 52]));
         assert!(params.contains("prompt_n_tokens: 3,"), "{params}");
         // The text of earlier windows still stays out.
         assert!(params.contains("no_context: true,"), "{params}");
@@ -887,23 +993,71 @@ mod tests {
             .expect("WHISPER_SMOKE_MODEL_CACHE must be writable");
     }
 
+    /// The bundled speech-detection model, from the source tree.
+    fn bundled_vad() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join(vad::RESOURCE)
+    }
+
     /// Explicit opt-in: downloads the 31 MiB pinned model (or takes it from CI's cache), then
-    /// exercises the production spool, segmentation, inference and EOF-draining path against
-    /// both bundled fixtures, and translates the French one into English with its language
-    /// detected. CI runs this on native x64 and ARM64, without a GPU, microphone or provider key.
+    /// exercises the production spool, segmentation, speech detection, inference and
+    /// EOF-draining path against both bundled fixtures, and translates the French one into
+    /// English with its language detected. CI runs this on native x64 and ARM64 on the
+    /// processor, and on Apple silicon with Metal, without a microphone or provider key.
     #[tokio::test]
     #[ignore = "downloads a Whisper model; run with --ignored local_whisper_smoke"]
     async fn local_whisper_smoke() {
+        let placement = Placement {
+            metal: cfg!(target_os = "macos"),
+            helper: None,
+            allow_software: false,
+        };
+        let expected = if cfg!(target_os = "macos") {
+            "metal"
+        } else {
+            "cpu"
+        };
+        smoke(&placement, expected).await;
+    }
+
+    /// The same, through the Vulkan helper named by `WHISPER_VULKAN_HELPER` (built with
+    /// `cargo build -p whisper-vulkan`). A software renderer is allowed, so CI's Linux lane runs
+    /// it on Mesa's lavapipe with `GGML_VK_VISIBLE_DEVICES=0`: slow, but the whole path.
+    #[tokio::test]
+    #[ignore = "needs the Vulkan helper; run with --ignored local_whisper_vulkan_smoke"]
+    async fn local_whisper_vulkan_smoke() {
+        let helper = PathBuf::from(
+            std::env::var_os("WHISPER_VULKAN_HELPER").expect("set WHISPER_VULKAN_HELPER"),
+        );
+        let placement = Placement {
+            metal: false,
+            helper: Some(&helper),
+            allow_software: true,
+        };
+        smoke(&placement, "vulkan: ").await;
+    }
+
+    async fn smoke(placement: &Placement<'_>, expected_device: &str) {
         let temp = tempfile::tempdir().unwrap();
         // Non-ASCII on purpose: a Windows username can put such characters in the real path.
         let dir = temp.path().join("réunion-日本語");
         std::fs::create_dir(&dir).unwrap();
         let manager = ModelManager::default();
         smoke_model(&manager, &dir).await;
-        let model = load_lease(manager.lease(&dir, ModelId::Tiny).unwrap()).unwrap();
+        let model = load_lease(
+            manager.lease(&dir, ModelId::Tiny).unwrap(),
+            Some(&bundled_vad()),
+            placement,
+        )
+        .unwrap();
+        assert!(model.vad.is_some(), "speech detection did not load");
+        let device = model.device();
+        eprintln!("device: {device}");
+        assert!(device.starts_with(expected_device), "{device}");
         // The names-and-terms prompt, tokenized by the real model: the top of a long list fits.
         let long: Vec<String> = (0..100).map(|i| format!("Université numéro {i}")).collect();
-        let prompt = glossary_prompt(&model.context, &long);
+        let prompt = glossary_prompt(&model, &long);
         assert!(
             prompt.len() > 10 && prompt.len() < long.len(),
             "{}",

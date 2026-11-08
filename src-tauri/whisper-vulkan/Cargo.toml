@@ -1,0 +1,36 @@
+[package]
+name = "whisper-vulkan"
+version = "1.12.0"
+description = "Live Translation's Whisper on a graphics processor, through Vulkan, as a helper program"
+authors = ["Frédérick Madore"]
+edition = "2021"
+rust-version = "1.99.1"
+license = "MIT"
+repository = "https://github.com/fmadore/Live-translation"
+publish = false
+
+# A program of its own rather than part of the app: whisper.cpp's Vulkan backend calls the
+# Vulkan loader (`vulkan-1.dll`) directly, so whatever links it cannot start on a PC without
+# one, and it initialises Vulkan even to run on the processor. Here, a PC without the loader,
+# a graphics driver fault or a graphics processor out of memory ends this program and the app
+# carries on, on the processor. See `docs/local-whisper.md#graphics-processor`.
+[[bin]]
+name = "whisper-vulkan"
+path = "src/main.rs"
+
+[dependencies]
+# The app's pins (`../Cargo.toml`), with Vulkan.
+whisper-rs = { version = "=0.16.0", default-features = false, features = ["vulkan"] }
+whisper-rs-sys = "=0.15.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[lints.clippy]
+cast_possible_truncation = "warn"
+cast_sign_loss = "warn"
+cast_possible_wrap = "warn"
+cast_lossless = "warn"
+needless_pass_by_value = "warn"
+match_same_arms = "warn"
+unnecessary_wraps = "warn"

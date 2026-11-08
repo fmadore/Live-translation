@@ -243,6 +243,11 @@ pub struct StartOptions {
     pub second_target_language: Option<TargetLanguage>,
     #[serde(default)]
     pub whisper_model: crate::whisper::models::ModelId,
+    /// Run Whisper on the graphics processor where there is a usable one (Metal on a Mac, the
+    /// Vulkan helper on Windows). On unless the operator turns it off; older front-ends that
+    /// omit it get the default.
+    #[serde(default = "graphics_by_default")]
+    pub whisper_gpu: bool,
     #[serde(default)]
     pub spoken_language: Option<String>,
     /// Names and terms the speech engine should spell as written, for the engines that take
@@ -250,6 +255,10 @@ pub struct StartOptions {
     /// the engine, so switching away and back does not lose it.
     #[serde(default)]
     pub glossary: Vec<String>,
+}
+
+fn graphics_by_default() -> bool {
+    true
 }
 
 /// Borrows the turn's text rather than owning it: a caption is serialized the moment it is

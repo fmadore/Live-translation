@@ -220,6 +220,15 @@ it('calls an engine ready only on the key, model or check that belongs to it', a
 	expect(probe.engineReady(whisper, [base])).toBe(true);
 	expect(probe.engineReady(whisper, [{ ...base, downloading: true }])).toBe(false);
 	expect(probe.engineReady({ ...whisper, whisperModel: 'small' }, [base])).toBe(false);
+	// Turbo transcribes, and cannot translate however installed it is.
+	const turbo: WhisperModelInfo = { ...base, id: 'turbo' };
+	expect(probe.engineReady({ ...whisper, whisperModel: 'turbo' }, [turbo])).toBe(true);
+	expect(
+		probe.engineReady(
+			{ ...whisper, provider: 'whisper-translate', whisperModel: 'turbo', mode: 'translate' },
+			[turbo]
+		)
+	).toBe(false);
 
 	const demo: StartOptions = { ...DEFAULT_START_OPTIONS, provider: 'ondevice' };
 	expect(probe.engineReady(demo, [])).toBe(false);

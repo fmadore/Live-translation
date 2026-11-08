@@ -21,6 +21,19 @@ it('restores every supported Whisper language and model without falling back to 
 	}
 });
 
+it('keeps the graphics processor on unless the operator turned it off', () => {
+	const stored = (whisperGpu: unknown) =>
+		normalizeStartOptions({ ...DEFAULT_START_OPTIONS, provider: 'whisper', whisperGpu }).whisperGpu;
+	expect(stored(false)).toBe(false);
+	// Absent means on; so does anything that is not an explicit "off".
+	expect(stored(undefined)).toBeUndefined();
+	expect(stored(true)).toBeUndefined();
+	expect(stored('no')).toBeUndefined();
+	expect(
+		normalizeStartOptions({ ...DEFAULT_START_OPTIONS, whisperModel: 'turbo' }).whisperModel
+	).toBe('turbo');
+});
+
 it('defaults old/malformed local settings to multilingual Base with automatic detection', () => {
 	for (const spokenLanguage of [undefined, null, 'yue', 'invalid', 'fr\0suffix']) {
 		const options = normalizeStartOptions({

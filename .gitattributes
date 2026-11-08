@@ -10,6 +10,7 @@
 *.dmg  binary
 *.msi  binary
 *.exe  binary
+*.bin  binary
 
 # Lockfiles: exclude from diffs, PR review noise, and GitHub language stats.
 package-lock.json     -diff linguist-generated

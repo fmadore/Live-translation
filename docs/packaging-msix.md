@@ -59,8 +59,16 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 with `runFullTrust` and `microphone`. The built-in demonstration uses neither capability nor
 network access. The package carries no speech model, Windows AI runtime, WinRT recognizer, or
 `systemAIModels` declaration. Live capture uses microphone/WASAPI through the full-trust
-desktop process. Whisper CPU inference is statically linked; model weights download only
-at the user's request.
+desktop process. Whisper CPU inference is statically linked; `whisper-vulkan.exe`, the
+graphics-processor helper, sits beside the executable, with the speech-detection
+model under `models/`; Whisper's model weights download only at the user's request.
+
+`npm run bundle:msix:<arch>` runs `scripts/bundle-msix.mjs`, which lays
+`tauri.vulkan.conf.json` in as `tauri.windows.conf.json` for the length of the build, so the
+bundler stages the helper declared there as a sidecar, then removes it: an ordinary build or
+`tauri dev` does not need the helper. Build it first with
+`node scripts/build-whisper-vulkan.mjs <target>`, which needs LunarG's Vulkan SDK
+([local Whisper notes](local-whisper.md#building)). The same pattern as Kalamu's packaging.
 
 `Version` is the field that moves: the bundler stamps it from `tauri.conf.json`, with a fourth
 component appended.
@@ -131,6 +139,8 @@ for release packages: build with the normal committed configuration and complete
   `HKLM\SOFTWARE\Microsoft\Windows Kits\Installed Roots` → `KitsRoot10`.
 - **Node 22.13+ or 24**, then `npm ci`.
 - **LLVM/Clang with libclang, CMake and Ninja** for the statically linked Whisper CPU backend.
+- **LunarG's Vulkan SDK** for the graphics-processor helper (`whisper-vulkan.exe`), built with
+  `node scripts/build-whisper-vulkan.mjs <target>` before `npm run bundle:msix:<arch>`.
   Configure the matching Visual Studio target environment as in [local Whisper](local-whisper.md#building).
   Prefer native builds for each architecture, as CI does; cross-compilation also needs the
   target C++ libraries and Windows SDK.

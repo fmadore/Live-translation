@@ -41,10 +41,19 @@ be complete.
 | Tiny Q5_1 | 31 MiB | Lowest CPU and memory demand; try first on slower machines |
 | Base Q5_1 (default) | 57 MiB | A balance between speed and recognition quality |
 | Small Q5_1 | 182 MiB | More capacity, with higher CPU and memory demand |
+| Large v3 Turbo Q5_0 | 547 MiB | The most accurate; transcription only; best with a [graphics processor](#graphics-processor) |
 
-All three are multilingual models, not the English-only `.en` variants. The selector exposes
-all 99 language tokens they support, which is not a claim of equal accuracy across languages.
-The separate Cantonese token introduced with large-v3 is not advertised for these models.
+All four are multilingual models, not the English-only `.en` variants. The selector exposes
+the 99 language tokens they share, which is not a claim of equal accuracy across languages.
+The separate Cantonese token introduced with large-v3 is not advertised.
+
+**Large v3 Turbo** is large-v3 with its decoder cut from 32 layers to 4: close to large-v3's
+accuracy at a fraction of its decoding cost, and the same model Kalamu offers. Its encoder is
+still large-v3's, so on the processor alone it needs a fast machine to keep up with speech;
+on a graphics processor it keeps up comfortably. It was trained without Whisper's translate
+task, so **Live translation** does not offer it: a Turbo still selected when the operator
+switches to translation is named with a note to choose Small, Start waits, and the core refuses
+the combination too.
 
 Models are pinned to Hugging Face `ggerganov/whisper.cpp` revision
 `5359861c739e955e79d9a303bcbc70fb988958b1`. Exact sizes and SHA-256 digests are in
@@ -76,7 +85,8 @@ the names it carries into English.
   prompt itself on its high-temperature fallbacks.
 - **Echoes:** over noise it cannot make out, Whisper may write the prompt back. A segment made
   of two or more of the list's terms, in the list's order and nothing else, is dropped; a term
-  said on its own is kept. Speech detection (#187) will reduce how much noise reaches the model.
+  said on its own is kept. [Speech detection](#speech-detection) keeps most noise from reaching
+  the model in the first place.
 
 `local_whisper_smoke` runs the English rehearsal again with two terms in the prompt and checks
 that a 100-entry list is cut to what fits the real tokenizer.
@@ -124,6 +134,75 @@ Limits worth knowing before an event:
 - **Window boundaries.** The second of overlap between windows is trimmed by comparing the
   English. A translation of that second can be worded differently in each window, so an
   occasional repeated phrase at a boundary is more likely than in transcription.
+
+## Speech detection
+
+Before a window is decoded, Silero's voice-activity model (v5.1.2, MIT, 864 KiB) looks for
+speech in it (`whisper/vad.rs`, from
+[#187](https://github.com/fmadore/Live-translation/issues/187)). A window with none is not
+decoded at all: no processor time is spent on a quiet room, a paused call or music, and Whisper
+gets no chance to invent text over it. A window with speech is decoded from 0.2 s before its
+first words to 0.2 s after its last, and its captions keep their real times.
+
+- **Bundled, not downloaded.** The model ships with the app under `resources/models/`, so it
+  works for an operator who downloaded a Whisper model before this version and is offline at
+  the event. Its size is checked when a session starts; if it is missing or will not load, the
+  session logs it and decodes every window, as before.
+- **Not whisper.cpp's own switch.** whisper.cpp applies its `vad` parameter only in
+  `whisper_full`, while whisper-rs calls `whisper_full_with_state`, where it does nothing. The
+  app runs whisper-rs's standalone `WhisperVadContext` instead, one per session, on the
+  processor whatever decodes the windows.
+- **Never at the cost of words.** If detection fails on a window, the whole window is decoded.
+  The conservative silence gate in the segmenter still runs first and still drives window
+  endings.
+- **Cost.** About 80 ms of processor time for 20 s of speech in a release build, under 1% of
+  real time.
+
+## Loops and credits
+
+Over noise, music or silence, Whisper is known to loop and to write the subtitle credits it
+learnt from its training data. Each caption is cleaned before it is shown (`reconcile.rs`,
+ported from Kalamu):
+
+- a word said six or more times running, or a group of up to eight words four or more times,
+  is kept once ("merci merci merci merci merci merci" becomes "merci"); words repeated a few
+  times, as people do ("non, non, non"), are left;
+- credits such as *Sous-titres réalisés par la communauté d'Amara.org* or *Subtitles by…* are
+  dropped;
+- the same line a third time in a row is dropped: people repeat themselves, but rarely three
+  windows running.
+
+## Graphics processor
+
+**Use the graphics processor**, under the model, is on by default. Where it finds nothing
+usable, or fails, Whisper runs on the processor exactly as before; the log names the device
+each session used (`Whisper model loaded device=…`).
+
+- **macOS: Metal, in the app.** Every Apple silicon Mac has a graphics processor, and whisper.cpp
+  runs on it with Metal, its shaders built into the app, as in Kalamu. `build.rs` links clang's
+  runtime library, which Metal's version checks need.
+- **Windows: Vulkan, in a helper program.** whisper.cpp's Vulkan backend calls the Vulkan loader
+  (`vulkan-1.dll`, installed by graphics drivers) directly: an app linking it would not start on
+  a PC without one, and initialises Vulkan even to run on the processor. So Vulkan lives in
+  `whisper-vulkan.exe` (`src-tauri/whisper-vulkan/`), installed beside the app. A session
+  starts it, sends it the model to load and each window to decode over standard input and
+  output, and stops it when it ends. The decoding parameters and the messages are one file,
+  `whisper-vulkan/src/engine.rs`, compiled into both, so a window is decoded the same way
+  wherever it runs.
+- **Which device.** The helper takes the rules Kalamu measured for its OCR models: a graphics
+  card (NVIDIA, AMD Radeon RX or Pro, Intel Arc A or B) before integrated graphics, Microsoft's
+  Direct3D 12 layer last; never a software renderer, a device under 2 GiB, or Snapdragon's
+  Adreno, where Vulkan computed wrong answers that end normally, so no fallback would catch
+  them. Snapdragon PCs therefore stay on the processor.
+- **When it fails.** A helper that cannot start (no Vulkan loader), finds no usable device or
+  cannot load the model leaves the session on the processor from the start. One that fails or
+  stops answering later (out of graphics memory, a driver fault; a minute without an answer)
+  is stopped, and the session carries on on the processor from that window, which it decodes
+  again there. Its crash never takes the app with it. Discarding the backlog stops it at once.
+- **Integrity.** The helper reads the model through Rust's filesystem API and checks its size
+  and SHA-256 again before whisper.cpp sees it, as the app does.
+- **Speed is not measured yet.** GitHub's runners have no graphics processor. Before an event,
+  try the room's own speech on the event's computer, with the switch on and off.
 
 ## Audio handling and limits
 
@@ -180,9 +259,10 @@ so they do not compete for the same cores with capture and the interface.
 ## Building
 
 `whisper-rs` 0.16.0 vendors whisper.cpp 1.8.3 through `whisper-rs-sys` 0.15.0, both pinned
-exactly in `Cargo.toml`. The CPU backend is statically linked. No Python, external Whisper
-executable, GPU, CUDA or model is bundled in the installer. Model loading uses Rust’s
-filesystem API so non-ASCII Windows usernames work.
+exactly in `Cargo.toml`. The CPU backend is statically linked, with Metal added on macOS. No
+Python, CUDA or Whisper model is bundled in the installer; the speech-detection model and, on
+Windows, the Vulkan helper are. Model loading uses Rust’s filesystem API so non-ASCII Windows
+usernames work.
 
 Install LLVM/Clang with libclang, CMake and Ninja alongside the normal Rust/Tauri Windows
 prerequisites. Run in a Visual Studio Developer PowerShell for the target architecture:
@@ -196,6 +276,20 @@ $env:LIBCLANG_PATH = 'C:\Program Files\LLVM\bin'
 npm ci
 npm run tauri dev
 ```
+
+`npm run tauri dev` and an ordinary build run Whisper on the processor: the Vulkan helper is a
+separate package in the same Cargo workspace (`src-tauri/whisper-vulkan`), built only for a
+release, where `tauri.vulkan.conf.json` declares it as a sidecar. To build it, install LunarG's
+[Vulkan SDK](https://vulkan.lunarg.com/sdk/home) (it sets `VULKAN_SDK`), then:
+
+```powershell
+node scripts/build-whisper-vulkan.mjs x86_64-pc-windows-msvc   # or aarch64-pc-windows-msvc
+npm run tauri build -- --config src-tauri/tauri.vulkan.conf.json
+```
+
+To try it from a development build, copy `src-tauri/binaries/whisper-vulkan-<target>.exe` beside
+the app's executable as `whisper-vulkan.exe`. On Linux, `cargo build -p whisper-vulkan` needs
+the distribution's Vulkan headers and `glslc`.
 
 The native Windows ARM64 backend requires Clang; plain MSVC cannot compile this version of
 GGML’s ARM CPU code. CI and release packaging use native Windows x64 and ARM64 runners with
@@ -241,6 +335,22 @@ draining:
 cd src-tauri
 cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
 ```
+
+`local_whisper_vulkan_smoke` runs the same recordings through the Vulkan helper named by
+`WHISPER_VULKAN_HELPER`. CI's Linux lane runs it on Mesa's software renderer (lavapipe), which
+the helper accepts only when a test asks:
+
+```sh
+cd src-tauri
+cargo build -p whisper-vulkan
+GGML_VK_VISIBLE_DEVICES=0 WHISPER_VULKAN_HELPER=$PWD/target/debug/whisper-vulkan \
+  cargo test --locked --all-features local_whisper_vulkan_smoke -- --ignored --nocapture
+```
+
+The helper's own tests (`cargo test -p whisper-vulkan`) cover the messages, broken streams,
+device choice and the integrity check; the app's cover speech spans, the bundled model finding
+the rehearsal's speech and nothing in silence, loops and credits, Turbo's refusal to translate,
+and the graphics switch's default.
 
 Unit tests cover language vocabulary, corrupt model rejection, active-model protection,
 writer overflow, pause filtering, final-tail handling, timestamp gaps and producer failure
