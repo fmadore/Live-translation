@@ -329,15 +329,14 @@ mod platform {
         if apps.iter().any(|app| app.process.pid == pid) {
             return 1;
         }
-        if let Ok(guard) = ProcessGuard::open(pid) {
-            if let Ok(process) = guard.identity(pid) {
-                if guard.running() {
-                    apps.push(Application {
-                        process,
-                        name: String::from_utf16_lossy(&title[..length]),
-                    });
-                }
-            }
+        if let Ok(guard) = ProcessGuard::open(pid)
+            && let Ok(process) = guard.identity(pid)
+            && guard.running()
+        {
+            apps.push(Application {
+                process,
+                name: String::from_utf16_lossy(&title[..length]),
+            });
         }
         1
     }

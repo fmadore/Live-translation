@@ -323,11 +323,11 @@ impl CaptureState {
             self.pending_start = end;
             // Never block the real-time callback. Cloud queues favor current speech;
             // the local sink stops visibly if its independent writer queue overflows.
-            if let Err(error) = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm }) {
-                if matches!(error, TrySendError::Closed(_)) {
-                    self.pending_start = self.pending.len();
-                    break;
-                }
+            if let Err(error) = self.chunk_tx.try_send(AudioChunk { pcm_le: pcm })
+                && matches!(error, TrySendError::Closed(_))
+            {
+                self.pending_start = self.pending.len();
+                break;
             }
         }
 

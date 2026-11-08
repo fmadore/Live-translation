@@ -394,13 +394,13 @@ mod windows_impl {
                     .capture
                     .read_from_device_to_deque(&mut self.raw)
                     .ctx("failed to read loopback buffer")?;
-                if info.flags.data_discontinuity {
-                    if let Some(earlier) = self.discontinuities.note(Instant::now()) {
-                        tracing::warn!(
-                            "loopback capture lost audio (data discontinuity; {earlier} more \
-                             since the last report)"
-                        );
-                    }
+                if info.flags.data_discontinuity
+                    && let Some(earlier) = self.discontinuities.note(Instant::now())
+                {
+                    tracing::warn!(
+                        "loopback capture lost audio (data discontinuity; {earlier} more \
+                         since the last report)"
+                    );
                 }
                 self.forward_packet(info.flags.silent, state);
             }

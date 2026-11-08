@@ -68,10 +68,11 @@ impl Segmenter {
         let mut ready = Vec::new();
         // A pause/device gap must not collapse the transcript's time axis. A chunk that starts
         // early (capture delivers in bursts) is jitter, not a gap.
-        if !self.samples.is_empty() && chunk.start_ms > self.time_at(self.samples.len()) + GAP_MS {
-            if let Some(window) = self.finish() {
-                ready.push(window);
-            }
+        if !self.samples.is_empty()
+            && chunk.start_ms > self.time_at(self.samples.len()) + GAP_MS
+            && let Some(window) = self.finish()
+        {
+            ready.push(window);
         }
         if self.samples.is_empty() {
             self.start_ms = chunk.start_ms;

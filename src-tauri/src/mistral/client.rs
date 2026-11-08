@@ -144,10 +144,11 @@ impl RealtimeProtocol for MistralClient {
             "transcription.done" => {
                 // `done.text` contains the full session transcript. Only use it when the
                 // server sent no deltas; otherwise idle-finalized turns would be duplicated.
-                if !self.received_delta && acc.text.is_empty() {
-                    if let Some(full_text) = event.text {
-                        acc.text = full_text;
-                    }
+                if !self.received_delta
+                    && acc.text.is_empty()
+                    && let Some(full_text) = event.text
+                {
+                    acc.text = full_text;
                 }
                 let caption = if acc.is_empty() {
                     CaptionUpdate::None

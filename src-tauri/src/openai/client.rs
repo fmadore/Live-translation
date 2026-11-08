@@ -114,10 +114,10 @@ impl RealtimeProtocol for OpenAiConfig {
         {
             // Some preview builds send an explicit completion; finalize immediately.
             if !acc.is_empty() {
-                if acc.text.is_empty() {
-                    if let Some(t) = ev.transcript.as_deref() {
-                        acc.text.push_str(t);
-                    }
+                if acc.text.is_empty()
+                    && let Some(t) = ev.transcript.as_deref()
+                {
+                    acc.text.push_str(t);
                 }
                 return MessageOutcome::caption(CaptionUpdate::Final);
             }

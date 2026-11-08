@@ -596,10 +596,10 @@ fn pump(
             Next::End => break,
         }
     }
-    if !abort.is_cancelled() {
-        if let Some(window) = segmenter.finish() {
-            process(window)?;
-        }
+    if !abort.is_cancelled()
+        && let Some(window) = segmenter.finish()
+    {
+        process(window)?;
     }
     Ok(())
 }
