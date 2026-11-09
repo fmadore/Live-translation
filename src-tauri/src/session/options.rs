@@ -199,6 +199,20 @@ mod tests {
     }
 
     #[test]
+    fn the_echo_filter_is_off_unless_turned_on() {
+        assert!(!local("whisper", "transcribe", "en").drop_mic_echo);
+        let on: StartOptions = serde_json::from_value(serde_json::json!({
+            "source": "both",
+            "targetLanguage": "en",
+            "mode": "transcribe",
+            "provider": "whisper",
+            "dropMicEcho": true,
+        }))
+        .unwrap();
+        assert!(on.drop_mic_echo);
+    }
+
+    #[test]
     fn the_graphics_processor_is_on_unless_turned_off() {
         assert!(local("whisper", "transcribe", "en").whisper_gpu);
         let off: StartOptions = serde_json::from_value(serde_json::json!({

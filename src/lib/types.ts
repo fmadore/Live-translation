@@ -222,6 +222,9 @@ export interface StartOptions {
 	whisperModel?: WhisperModelId;
 	/** Run Whisper on the graphics processor where there is a usable one. Absent means on. */
 	whisperGpu?: boolean;
+	/** With Both sources, leave out room-microphone lines that repeat what the system audio was
+	 *  captioned with (`echo.rs`). Absent means off. */
+	dropMicEcho?: boolean;
 	spokenLanguage?: string | null;
 	/** Input device name for the microphone; null = system default. */
 	micDeviceName?: string | null;

@@ -168,3 +168,24 @@ describe('Names and terms', () => {
 		expect(get(options).glossary).toEqual(['UNESCO']);
 	});
 });
+
+describe('leaving out the call heard by the room mic', () => {
+	const label = 'Leave out the call heard by the room mic';
+
+	it('is offered with Both sources only, and off until turned on', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'whisper', source: 'microphone' });
+		const view = mount(false);
+		expect(view.queryByLabelText(label)).toBeNull();
+		options.set({ ...get(options), source: 'both' });
+		const toggle = await view.findByLabelText(label);
+		expect(toggle).not.toBeChecked();
+		await fireEvent.click(toggle);
+		expect(get(options).dropMicEcho).toBe(true);
+	});
+
+	it('is not offered with the demonstration', () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'ondevice', source: 'both' });
+		const view = mount(false);
+		expect(view.queryByLabelText(label)).toBeNull();
+	});
+});

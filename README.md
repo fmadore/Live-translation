@@ -47,8 +47,8 @@ bar, and fixes for flashes and layout shifts. See its
   own compatible account, API key and internet connection; provider usage charges apply.
 - **Your choice of audio.** Capture a microphone, the computer's system audio, one application
   (its process tree on Windows, the app and its helpers on macOS), or microphone and system
-  audio together, where a meeting played through the room's loudspeakers is captioned once,
-  from the system audio. Test levels before starting.
+  audio together, optionally leaving out the room mic's copy of a call played through the
+  room's loudspeakers, so it is captioned once. Test levels before starting.
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
   over slides or calls; it reopens where you last placed it on each display setup. Adjust
   fonts, colour, contrast, size and reading pace; choose Fit window, Compact or Stable reading.

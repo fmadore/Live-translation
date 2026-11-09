@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LevelMeter from '../LevelMeter.svelte';
 	import SystemCapturePicker from '../SystemCapturePicker.svelte';
+	import Preference from '../ui/Preference.svelte';
 	import ToolButton from '../ui/ToolButton.svelte';
 	import Field from '../ui/Field.svelte';
 	import Select from '../ui/Select.svelte';
@@ -157,6 +158,15 @@
 			supported={preflight.applicationCaptureSupported}
 			refresh={preflight.refreshApplications}
 			changed={preflight.invalidateAudioTest}
+		/>
+	{/if}
+	{#if $options.source === 'both' && $options.provider !== 'ondevice'}
+		<Preference
+			label={$t.rail.dropMicEcho}
+			note={$t.rail.dropMicEchoNote}
+			checked={$options.dropMicEcho === true}
+			disabled={locked}
+			onchange={(on) => ($options = { ...$options, dropMicEcho: on })}
 		/>
 	{/if}
 	{#if $options.provider !== 'ondevice'}

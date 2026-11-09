@@ -127,7 +127,7 @@ Faster offline captions: Whisper now runs on your PC's graphics processor when i
 
 A new model, Large v3 Turbo (547 MiB), gives the most accurate offline subtitles. It transcribes only: keep Small for translation into English.
 
-With the microphone and system audio together, a meeting played through the room's loudspeakers is no longer captioned twice: the microphone's copy of the remote speaker is left out.
+With the microphone and system audio together, a new switch keeps a meeting played through the room's loudspeakers from being captioned twice, by leaving out the microphone's copy of the remote speaker.
 ```
 
 Français :
@@ -137,7 +137,7 @@ Des sous-titres hors ligne plus rapides : Whisper s'exécute désormais sur le p
 
 Un nouveau modèle, Large v3 Turbo (547 Mio), donne les sous-titres hors ligne les plus précis. Il ne fait que transcrire : gardez Small pour traduire vers l'anglais.
 
-Avec le microphone et le son du système ensemble, une réunion diffusée par les haut-parleurs de la salle n'est plus sous-titrée deux fois : la copie de l'intervenant à distance captée par le microphone est écartée.
+Avec le microphone et le son du système ensemble, un nouvel interrupteur évite qu'une réunion diffusée par les haut-parleurs de la salle soit sous-titrée deux fois, en écartant la copie de l'intervenant à distance captée par le microphone.
 ```
 
 Deutsch:
@@ -147,7 +147,7 @@ Schnellere Offline-Untertitel: Whisper läuft jetzt auf dem Grafikprozessor Ihre
 
 Ein neues Modell, Large v3 Turbo (547 MiB), liefert die genauesten Offline-Untertitel. Es transkribiert nur: Für die Übersetzung ins Englische bleibt Small die Wahl.
 
-Mit Mikrofon und Systemaudio zusammen wird ein Meeting, das über die Lautsprecher im Raum läuft, nicht mehr doppelt untertitelt: Die Kopie der zugeschalteten Person, die das Mikrofon aufnimmt, wird weggelassen.
+Mit Mikrofon und Systemaudio zusammen verhindert ein neuer Schalter, dass ein Meeting über die Lautsprecher im Raum doppelt untertitelt wird: Die Kopie der zugeschalteten Person, die das Mikrofon aufnimmt, wird weggelassen.
 ```
 
 ### Features: the first two lines

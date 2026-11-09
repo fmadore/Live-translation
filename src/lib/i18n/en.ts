@@ -372,6 +372,11 @@ export const en = {
 
 		sourceHint:
 			'System audio captures apps playing through the selected output — Zoom, Teams, a browser tab, a media player.',
+		/** With Both sources: a switch to leave out the room microphone's copy of a call played
+		 *  through the room's loudspeakers, and the note under it. */
+		dropMicEcho: 'Leave out the call heard by the room mic',
+		dropMicEchoNote:
+			'For a call on the room’s loudspeakers: a mic line repeating what the system audio just said is left out, so it is not captioned twice. Finished mic lines reach the transcript a few seconds later while the call is sounding. Not needed with headphones.',
 		demoSourceHint:
 			'Uses a bundled deterministic sample. Choose Whisper, Voxtral or Gemini for live microphone or system-audio subtitles.',
 		micDevice: 'Microphone device',

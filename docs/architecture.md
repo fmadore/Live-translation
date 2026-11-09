@@ -406,8 +406,9 @@ windows would commit what they show of it then) or when the session ends (before
 withdrawal is the turn's final caption with no text: the transcript commits nothing for it, and
 the operator stage and the overlay take the turn away. A committed line is never taken back.
 The guard emits under its lock, so a withdrawal cannot overtake the caption it withdraws. It is
-on only for a live session capturing both sources (`SessionManager::start`), never for the
-demonstration.
+off unless the operator turns on *Leave out the call heard by the room mic*, offered under Both
+(`StartOptions.drop_mic_echo`), and then on only for a live session capturing both sources
+(`SessionManager::start`), never for the demonstration. Off, every caption passes as before.
 
 ## Captions in Zoom
 

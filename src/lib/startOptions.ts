@@ -89,6 +89,7 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 				? (stored.secondTargetLanguage as TargetLanguage)
 				: null,
 		...(glossary.length ? { glossary } : {}),
+		...(stored.dropMicEcho === true ? { dropMicEcho: true } : {}),
 		// Remember the privacy choice, never restore a PID across app launches.
 		...((stored.systemCapture as { kind?: string } | null)?.kind === 'application'
 			? { systemCapture: { kind: 'application' as const, process: null } }

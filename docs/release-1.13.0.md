@@ -67,14 +67,15 @@ supported.
 ## One voice, one caption, with both sources
 
 With **Both** sources, a meeting played through the room's loudspeakers also reaches the room
-microphone, so its remote speaker used to be captioned twice. The app now leaves out the
-microphone's copy: a microphone line is dropped when its words are, nearly enough, words the
-system audio was captioned with at the same moment. It compares what the two engines wrote, not
+microphone, so its remote speaker is captioned twice. A new switch under **Both**, **Leave out
+the call heard by the room mic**, off by default, leaves out the microphone's copy: a microphone
+line is dropped when its words are, nearly enough, words the system audio was captioned with at
+the same moment. It compares what the two engines wrote, not
 the sound, so someone in the room speaking over the call is kept, and what it drops is always on
 screen from the system audio. While the call is sounding, a finished microphone line waits a few
 seconds (ten with Whisper) for the system line it may repeat before it reaches the transcript;
-it is on screen meanwhile. It applies with every engine, and with headphones it simply finds
-nothing to drop.
+it is on screen meanwhile. It works with every engine; with headphones there is nothing to drop, so leave it off. Off,
+captions are exactly as before.
 
 ## Names and terms for Gemini Transcribe and Whisper
 

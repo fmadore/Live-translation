@@ -119,10 +119,11 @@ impl SessionManager {
         }
         let origins = session_origins(&options);
         // Only a live session hearing both the room and the computer can caption one voice
-        // twice; the demonstration scripts its two sources apart.
+        // twice, and only the operator decides to drop the copy; the demonstration scripts its
+        // two sources apart.
         let both = origins.contains(&Origin::Microphone) && origins.contains(&Origin::System);
         app.state::<crate::echo::EchoGuard>().begin(
-            both && provider != Provider::OnDevice,
+            options.drop_mic_echo && both && provider != Provider::OnDevice,
             if provider.is_local_whisper() {
                 crate::echo::HOLD_LOCAL
             } else {

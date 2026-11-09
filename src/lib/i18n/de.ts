@@ -366,6 +366,9 @@ export const de: Messages = {
 
 		sourceHint:
 			'Systemaudio nimmt Anwendungen auf, die über die ausgewählte Ausgabe laufen – Zoom, Teams, einen Browser-Tab, einen Medienplayer.',
+		dropMicEcho: 'Vom Raummikrofon gehörten Anruf weglassen',
+		dropMicEchoNote:
+			'Für einen Anruf über die Lautsprecher im Raum: Eine Mikrofonzeile, die wiederholt, was das Systemaudio gerade gesagt hat, wird weggelassen und so nicht doppelt untertitelt. Solange der Anruf läuft, erreichen fertige Mikrofonzeilen das Transkript einige Sekunden später. Mit Kopfhörern nicht nötig.',
 		demoSourceHint:
 			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Whisper, Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
 		micDevice: 'Mikrofongerät',

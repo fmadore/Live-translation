@@ -10,6 +10,13 @@ function storing(record: unknown): void {
 	});
 }
 
+it('keeps the echo filter only when it was turned on', () => {
+	const saved = { source: 'both', mode: 'translate', provider: 'gemini', targetLanguage: 'en' };
+	expect(normalizeStartOptions({ ...saved, dropMicEcho: true }).dropMicEcho).toBe(true);
+	expect(normalizeStartOptions({ ...saved, dropMicEcho: false })).not.toHaveProperty('dropMicEcho');
+	expect(normalizeStartOptions(saved)).not.toHaveProperty('dropMicEcho');
+});
+
 it('restores application scope without restoring an old process identity', () => {
 	storing({
 		source: 'both',

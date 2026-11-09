@@ -123,13 +123,14 @@ glossaries, live corrections and offline text translation are not planned.
   processors are still to be measured.
   The translation models document no vocabulary field, so translated captions take no list.
 
-- **One voice captioned once with Both sources:** a room-microphone line repeating what the
-  system audio was captioned with at the same moment is left out, judged on the text
+- **One voice captioned once with Both sources:** with a switch under Both, off by default, a
+  room-microphone line repeating what the system audio was captioned with at the same moment is
+  left out, judged on the text
   ([architecture](docs/architecture.md#one-voice-captioned-twice)); the setup and the stage say
   where Whisper decoded and why the graphics processor could not be used; on Windows the Vulkan
   helper ends with the app even if a driver call hangs. Learnt from OpenWhispr's meeting
   pipeline (November 2026). A real room with loudspeakers, a call and a local speaker talking
-  over it is still to be tried.
+  over it is still to be tried; once it has been, the switch could default to on.
 
 ## Unscheduled and research
 
