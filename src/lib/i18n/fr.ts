@@ -213,6 +213,13 @@ export const fr: Messages = {
 		discardConfirm:
 			'Abandonner le son restant ? Les sous-titres déjà produits seront conservés, mais la transcription sera incomplète.',
 		discarding: 'Abandon du son restant…',
+		engineGraphics: (device?: string) =>
+			device
+				? `Dernière session : processeur graphique (${device}).`
+				: 'Dernière session : processeur graphique.',
+		engineProcessor: 'Dernière session : processeur.',
+		engineFallback:
+			'Le processeur graphique n’a pas pu être utilisé : Whisper décode donc sur le processeur. Ce qu’il a signalé :',
 		cpuUnsupported: (missing: string) =>
 			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
 		translateTitle: 'Traduction locale vers l’anglais',
@@ -362,6 +369,9 @@ export const fr: Messages = {
 
 		sourceHint:
 			'L’audio système capte les applications utilisant la sortie choisie — Zoom, Teams, un onglet de navigateur, un lecteur multimédia.',
+		dropMicEcho: 'Écarter l’appel capté par le micro de la salle',
+		dropMicEchoNote:
+			'Pour un appel diffusé par les haut-parleurs de la salle : une ligne du micro qui répète ce que l’audio système vient de dire est écartée, pour ne pas être sous-titrée deux fois. Pendant l’appel, les lignes terminées du micro arrivent dans la transcription quelques secondes plus tard. Inutile avec un casque.',
 		demoSourceHint:
 			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Whisper, Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
 		micDevice: 'Périphérique microphone',

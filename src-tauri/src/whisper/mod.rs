@@ -17,13 +17,14 @@ mod gpu;
 mod language;
 pub mod models;
 mod prompt;
-mod reconcile;
+pub(crate) mod reconcile;
 mod segment;
 pub mod spool;
 mod vad;
 
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, atomic::Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use anyhow::{Context, Result, ensure};
@@ -60,6 +61,37 @@ pub struct LoadedModel {
     inference: Mutex<Backend>,
     vad: Option<vad::Vad>,
     lease: ModelLease,
+    /// Why the graphics processor the session asked for is not the one decoding, once it is not.
+    gpu_failure: Mutex<Option<String>>,
+    /// Set when the model moves to the processor mid-session, until the sources have said so.
+    engine_changed: AtomicBool,
+}
+
+/// Where a session's windows are decoded, reported on `whisper-engine` as each source starts
+/// and again if the graphics processor fails, so the operator can see it rather than find it in
+/// a log the installed app does not write.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Engine {
+    /// `cpu`, `metal` or `vulkan`.
+    pub backend: &'static str,
+    /// The graphics processor, as its driver names it: with `vulkan` only.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device: Option<String>,
+    /// Why the graphics processor the operator left switched on is not in use: technical text
+    /// from the driver or the helper, shown as it is under the interface's own sentence.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gpu_failure: Option<String>,
+}
+
+/// The longest failure shown: the cause comes first, and what follows it is detail.
+const MAX_FAILURE_CHARS: usize = 300;
+
+fn failure_text(error: &anyhow::Error) -> String {
+    format!("{error:#}")
+        .chars()
+        .take(MAX_FAILURE_CHARS)
+        .collect()
 }
 
 enum Backend {
@@ -115,10 +147,12 @@ fn load_lease(
     // First native call of a session: refuse here, not with an illegal instruction inside it.
     // Speech detection and the fallback run on this processor even when the helper decodes.
     cpu::ensure_supported()?;
+    let mut gpu_failure = None;
     let helper = placement.helper.and_then(|program| {
         gpu::Worker::start(program, &lease, placement.allow_software)
             .inspect_err(|error| {
                 tracing::info!("Whisper stays on the processor: {error:#}");
+                gpu_failure = Some(failure_text(error));
             })
             .ok()
     });
@@ -130,6 +164,8 @@ fn load_lease(
         inference: Mutex::new(backend),
         vad: vad.and_then(vad::Vad::load),
         lease,
+        gpu_failure: Mutex::new(gpu_failure),
+        engine_changed: AtomicBool::new(false),
     };
     tracing::info!(device = %model.device(), "Whisper model loaded");
     Ok(Arc::new(model))
@@ -166,6 +202,19 @@ impl LoadedModel {
         match &*lock(&self.inference) {
             Backend::InProcess { device, .. } => (*device).to_owned(),
             Backend::Helper(worker) => format!("vulkan: {}", worker.device),
+        }
+    }
+
+    /// Where the windows are decoded now, and why not on the graphics processor if it failed.
+    pub fn engine(&self) -> Engine {
+        let (backend, device) = match &*lock(&self.inference) {
+            Backend::InProcess { device, .. } => (*device, None),
+            Backend::Helper(worker) => ("vulkan", Some(worker.device.clone())),
+        };
+        Engine {
+            backend,
+            device,
+            gpu_failure: lock(&self.gpu_failure).clone(),
         }
     }
 
@@ -214,7 +263,9 @@ impl LoadedModel {
                     tracing::warn!(
                         "Whisper's graphics processor failed; carrying on on the processor: {error:#}"
                     );
+                    *lock(&self.gpu_failure) = Some(failure_text(&error));
                     *backend = in_process(&self.lease, false)?;
+                    self.engine_changed.store(true, Ordering::Relaxed);
                 }
             }
         }
@@ -331,6 +382,8 @@ pub async fn run(config: LocalSession) {
         abort,
         failure,
     } = config;
+    let _ = app.emit(events::WHISPER_ENGINE, model.engine());
+    let engine_app = app.clone();
     let pipeline = Pipeline {
         events: app,
         origin,
@@ -351,7 +404,14 @@ pub async fn run(config: LocalSession) {
             spool,
             abort,
             emit,
-            report,
+            &mut || {
+                report();
+                // The graphics processor failed on a window: say so once, whichever source
+                // decoded it. The other source's report finds the flag already cleared.
+                if model.engine_changed.swap(false, Ordering::Relaxed) {
+                    let _ = engine_app.emit(events::WHISPER_ENGINE, model.engine());
+                }
+            },
         )
     })
     .await;
@@ -1087,58 +1147,136 @@ mod tests {
                     .join(fixture),
             )
             .unwrap();
-            let spool = Spool::new().unwrap();
-            for (i, chunk) in samples.chunks(1600).enumerate() {
-                #[expect(
-                    clippy::cast_possible_truncation,
-                    reason = "the fixture is 16-bit PCM over 32768, so this restores it exactly"
-                )]
-                let pcm = chunk
-                    .iter()
-                    .flat_map(|s| ((*s * 32768.0) as i16).to_le_bytes())
-                    .collect();
-                spool
-                    .push(&TimedChunk {
-                        start_ms: i as u64 * 100,
-                        pcm,
-                    })
-                    .unwrap();
-            }
-            spool.finish();
-            let mut text = String::new();
-            let mut last_end = 0;
             let started = std::time::Instant::now();
-            transcribe(
+            let text = decode_samples(
                 &model,
+                &samples,
                 &Task {
                     language,
                     translate,
                     glossary: terms,
                 },
-                &spool,
-                &CancellationToken::new(),
-                |caption, start, end, _| {
-                    assert!(start >= last_end && end >= start);
-                    assert!(end <= samples.len() as u64 / 16);
-                    last_end = end;
-                    text.push_str(caption);
-                    text.push(' ');
-                },
-                || {},
-            )
-            .unwrap();
+            );
             // The time is the one number CI can compare across instruction-set changes.
             eprintln!("{fixture} ({:.2?}): {text}", started.elapsed());
             match expected {
                 Some(word) => assert!(text.to_lowercase().contains(word), "{fixture}: {text}"),
                 None => assert!(reads_as_english(&text), "{fixture}: {text}"),
             }
-            assert_eq!(
-                spool.pending_ms(),
-                0,
-                "Stop must drain the final partial window"
-            );
         }
+        quiet_audio_with_a_prompt(&model, &glossary);
+    }
+
+    /// The names-and-terms prompt over audio with little or no speech in it, where Whisper is
+    /// known to write the prompt back: OpenWhispr found speech detection that strips most of a
+    /// pause-heavy recording left Whisper decoding near-silence seeded with the prompt, and its
+    /// terms became the transcript. Here, silence and faint noise caption nothing made of the
+    /// terms, and speech broken by long pauses still reads as what was said.
+    fn quiet_audio_with_a_prompt(model: &LoadedModel, glossary: &[String]) {
+        let task = Task {
+            language: Some("en"),
+            translate: false,
+            glossary,
+        };
+        let only_terms = |text: &str| {
+            let words: Vec<String> = text.split_whitespace().map(reconcile::normalise).collect();
+            let terms: Vec<String> = glossary.iter().map(|t| reconcile::normalise(t)).collect();
+            words.iter().any(|w| !w.is_empty())
+                && words.iter().all(|w| w.is_empty() || terms.contains(w))
+        };
+        let silence = vec![0.0_f32; 16_000 * 25];
+        let text = decode_samples(model, &silence, &task);
+        eprintln!("silence with a prompt: {text:?}");
+        assert!(text.trim().is_empty(), "silence with a prompt: {text}");
+
+        // Faint, steady noise, about -50 dBFS: a quiet room with nobody speaking.
+        let mut seed = 0x2545_f491_u32;
+        let noise: Vec<f32> = (0..16_000 * 25)
+            .map(|_| {
+                seed ^= seed << 13;
+                seed ^= seed >> 17;
+                seed ^= seed << 5;
+                #[expect(clippy::cast_precision_loss, reason = "noise needs no precision")]
+                let unit = seed as f32 / u32::MAX as f32;
+                (unit - 0.5) * 0.006
+            })
+            .collect();
+        let text = decode_samples(model, &noise, &task);
+        eprintln!("noise with a prompt: {text:?}");
+        assert!(
+            !only_terms(&text),
+            "noise with a prompt read the terms back: {text}"
+        );
+
+        // The English rehearsal with six seconds of silence after every three of speech.
+        let speech = crate::audio::fixture::load_fixture(
+            &Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/fixtures/rehearsal-en.wav"),
+        )
+        .unwrap();
+        let paused: Vec<f32> = speech
+            .chunks(16_000 * 3)
+            .flat_map(|part| {
+                part.iter()
+                    .copied()
+                    .chain(std::iter::repeat_n(0.0, 16_000 * 6))
+            })
+            .collect();
+        let text = decode_samples(model, &paused, &task);
+        eprintln!("paused speech with a prompt: {text}");
+        assert!(
+            text.to_lowercase().contains("caption"),
+            "paused speech: {text}"
+        );
+        assert!(
+            !only_terms(&text),
+            "paused speech read the terms back: {text}"
+        );
+    }
+
+    /// Run 16 kHz samples through the production spool, segmentation and inference, as a
+    /// source would, and return the captions joined.
+    fn decode_samples(model: &LoadedModel, samples: &[f32], task: &Task<'_>) -> String {
+        let spool = Spool::new().unwrap();
+        for (i, chunk) in samples.chunks(1600).enumerate() {
+            #[expect(
+                clippy::cast_possible_truncation,
+                reason = "the samples are 16-bit PCM over 32768, so this restores them exactly"
+            )]
+            let pcm = chunk
+                .iter()
+                .flat_map(|s| ((*s * 32768.0) as i16).to_le_bytes())
+                .collect();
+            spool
+                .push(&TimedChunk {
+                    start_ms: i as u64 * 100,
+                    pcm,
+                })
+                .unwrap();
+        }
+        spool.finish();
+        let mut text = String::new();
+        let mut last_end = 0;
+        transcribe(
+            model,
+            task,
+            &spool,
+            &CancellationToken::new(),
+            |caption, start, end, _| {
+                assert!(start >= last_end && end >= start);
+                assert!(end <= samples.len() as u64 / 16);
+                last_end = end;
+                text.push_str(caption);
+                text.push(' ');
+            },
+            || {},
+        )
+        .unwrap();
+        assert_eq!(
+            spool.pending_ms(),
+            0,
+            "Stop must drain the final partial window"
+        );
+        text
     }
 
     /// Whether `text` is English rather than French, judged by function words, which survive

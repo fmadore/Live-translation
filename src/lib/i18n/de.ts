@@ -211,6 +211,11 @@ export const de: Messages = {
 		discardConfirm:
 			'Restliches Audio verwerfen? Bereits erstellte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
 		discarding: 'Restliches Audio wird verworfen…',
+		engineGraphics: (device?: string) =>
+			device ? `Letzte Sitzung: Grafikprozessor (${device}).` : 'Letzte Sitzung: Grafikprozessor.',
+		engineProcessor: 'Letzte Sitzung: Prozessor.',
+		engineFallback:
+			'Der Grafikprozessor konnte nicht verwendet werden, daher dekodiert Whisper auf dem Prozessor. Seine Meldung:',
 		cpuUnsupported: (missing: string) =>
 			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
 		translateTitle: 'Lokale Übersetzung ins Englische',
@@ -361,6 +366,9 @@ export const de: Messages = {
 
 		sourceHint:
 			'Systemaudio nimmt Anwendungen auf, die über die ausgewählte Ausgabe laufen – Zoom, Teams, einen Browser-Tab, einen Medienplayer.',
+		dropMicEcho: 'Vom Raummikrofon gehörten Anruf weglassen',
+		dropMicEchoNote:
+			'Für einen Anruf über die Lautsprecher im Raum: Eine Mikrofonzeile, die wiederholt, was das Systemaudio gerade gesagt hat, wird weggelassen und so nicht doppelt untertitelt. Solange der Anruf läuft, erreichen fertige Mikrofonzeilen das Transkript einige Sekunden später. Mit Kopfhörern nicht nötig.',
 		demoSourceHint:
 			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Whisper, Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
 		micDevice: 'Mikrofongerät',

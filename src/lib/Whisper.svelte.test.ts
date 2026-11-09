@@ -5,9 +5,9 @@ import WhisperModels from './WhisperModels.svelte';
 import WhisperActivity from './WhisperActivity.svelte';
 import { options, whisperModels, statusMessage, originStates } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
-import type { WhisperModelInfo, WhisperProgress } from './types';
+import type { WhisperEngine, WhisperModelInfo, WhisperProgress } from './types';
 import { setLocale } from './i18n';
-import { whisperPendingSeconds, whisperProgress } from './whisperProgress';
+import { whisperEngine, whisperPendingSeconds, whisperProgress } from './whisperProgress';
 
 const mocks = vi.hoisted(() => ({
 	models: vi.fn(),
@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 	remove: vi.fn(),
 	discard: vi.fn(),
 	progress: vi.fn(),
+	engine: vi.fn(),
 	unlisten: vi.fn()
 }));
 vi.mock('./tauri', () => ({
@@ -26,7 +27,7 @@ vi.mock('./tauri', () => ({
 		removeWhisperModel: mocks.remove,
 		discardWhisperPending: mocks.discard
 	},
-	on: { whisperProgress: mocks.progress }
+	on: { whisperProgress: mocks.progress, whisperEngine: mocks.engine }
 }));
 const base: WhisperModelInfo = {
 	id: 'base',
@@ -45,8 +46,10 @@ beforeEach(() => {
 	statusMessage.set('');
 	originStates.set({});
 	whisperProgress.set({});
+	whisperEngine.set(undefined);
 	mocks.models.mockResolvedValue([{ ...base }]);
 	mocks.progress.mockResolvedValue(mocks.unlisten);
+	mocks.engine.mockResolvedValue(mocks.unlisten);
 });
 
 it('offers the first-launch model download without downloading automatically', async () => {
@@ -128,7 +131,8 @@ it('requires a separate confirmation to discard pending audio and clears progres
 	await waitFor(() => expect(view.queryByText(/Finishing the transcript/)).not.toBeInTheDocument());
 	expect(get(whisperPendingSeconds)).toBe(0);
 	view.unmount();
-	expect(mocks.unlisten).toHaveBeenCalledOnce();
+	// Both listeners, the backlog's and the engine's, are released.
+	expect(mocks.unlisten).toHaveBeenCalledTimes(2);
 });
 
 /** Counts what Narrator would hear: a live region is announced when its content changes. */
@@ -255,4 +259,36 @@ it('announces finishing once and a confirmed discard once, not the seconds count
 	originStates.set({ system: 'idle' });
 	await waitFor(() => expect(status.textContent).toBe(''));
 	view.unmount();
+});
+
+it('says where the latest session decoded, and why not on the graphics processor', async () => {
+	const view = render(WhisperModels, { locked: false, browserMode: false });
+	await waitFor(() => expect(mocks.models).toHaveBeenCalled());
+	expect(view.queryByText(/Latest session/)).toBeNull();
+	whisperEngine.set({ backend: 'vulkan', device: 'NVIDIA GeForce RTX 4060' });
+	await waitFor(() =>
+		expect(
+			view.getByText('Latest session: graphics processor (NVIDIA GeForce RTX 4060).')
+		).toBeTruthy()
+	);
+	whisperEngine.set({
+		backend: 'cpu',
+		gpuFailure: 'ggml_vulkan: error ErrorDeviceLost at ggml-vulkan.cpp:2209'
+	});
+	await waitFor(() => expect(view.getByText('Latest session: processor.')).toBeTruthy());
+	expect(view.getByText(/ErrorDeviceLost/)).toBeTruthy();
+});
+
+it('shows a graphics processor failure on the stage while the session runs', async () => {
+	let report: ((engine: WhisperEngine) => void) | undefined;
+	mocks.engine.mockImplementation(async (handler: (engine: WhisperEngine) => void) => {
+		report = handler;
+		return mocks.unlisten;
+	});
+	originStates.set({ microphone: 'running' });
+	const view = render(WhisperActivity);
+	await waitFor(() => expect(report).toBeDefined());
+	report?.({ backend: 'cpu', gpuFailure: 'vk::Queue::submit: ErrorDeviceLost' });
+	await waitFor(() => expect(view.getByText('vk::Queue::submit: ErrorDeviceLost')).toBeTruthy());
+	expect(get(whisperEngine)?.backend).toBe('cpu');
 });

@@ -123,6 +123,15 @@ glossaries, live corrections and offline text translation are not planned.
   processors are still to be measured.
   The translation models document no vocabulary field, so translated captions take no list.
 
+- **One voice captioned once with Both sources:** with a switch under Both, off by default, a
+  room-microphone line repeating what the system audio was captioned with at the same moment is
+  left out, judged on the text
+  ([architecture](docs/architecture.md#one-voice-captioned-twice)); the setup and the stage say
+  where Whisper decoded and why the graphics processor could not be used; on Windows the Vulkan
+  helper ends with the app even if a driver call hangs. Learnt from OpenWhispr's meeting
+  pipeline (November 2026). A real room with loudspeakers, a call and a local speaker talking
+  over it is still to be tried; once it has been, the switch could default to on.
+
 ## Unscheduled and research
 
 - [#32 — Windows AI speech-recognition prototype](https://github.com/fmadore/Live-translation/issues/32)
@@ -150,6 +159,13 @@ glossaries, live corrections and offline text translation are not planned.
   whenever both sources are on screen; captions on attendees' phones over the LAN (F4) and local
   text translation (F8) were set aside in the
   [#187](https://github.com/fmadore/Live-translation/issues/187) triage.
+- Streaming local recognition: NVIDIA's cache-aware streaming models (Nemotron Speech
+  Streaming, English; Nemotron 3.5 ASR Streaming, 15 languages with detection) and Parakeet TDT
+  v3 (25 languages) through sherpa-onnx, as OpenWhispr runs them, would give interim captions
+  offline, which Whisper's ten-second windows cannot. Lessons from their Windows packaging:
+  rename the bundled ONNX Runtime and rewrite its importers, because Windows 11 ships an older
+  `onnxruntime.dll` in System32 that some loader configurations pick first; and use sherpa's
+  `-no-tts` archives, whose TTS builds link espeak-ng (GPL-3.0). Research only.
 - A billable provider smoke workflow: an explicitly manual run of live credentials against a
   golden audio fixture. It is intentionally not automatic because it costs money and CI secrets
   are not available to forked pull requests.

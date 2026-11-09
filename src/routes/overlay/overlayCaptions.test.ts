@@ -34,6 +34,18 @@ describe('overlay captions', () => {
 		c.dispose();
 	});
 
+	it('takes a withdrawn turn off the screen without making it a lead-in', () => {
+		const c = createOverlayCaptions(fit);
+		c.push(caption('microphone', 1, 'Room.'));
+		c.push(caption('microphone', 2, 'The remote speaker again', false));
+		c.push(caption('system', 1, 'The remote speaker again.', false));
+		c.push(caption('microphone', 2, ''));
+		expect(c.lines.map((line) => line.origin)).toEqual(['system']);
+		c.push(caption('microphone', 3, 'Next', false));
+		expect(c.lines.find((line) => line.origin === 'microphone')?.lead).toBe('Room.');
+		c.dispose();
+	});
+
 	it('keeps a finished turn as the lead-in to the next one in Fit window', () => {
 		const c = createOverlayCaptions(fit);
 		c.push(caption('system', 1, 'First sentence.'));

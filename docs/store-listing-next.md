@@ -126,6 +126,8 @@ English:
 Faster offline captions: Whisper now runs on your PC's graphics processor when it has a suitable one, and returns to the processor by itself if anything goes wrong; a switch under the model turns it off. Built-in speech detection skips silence and music, so a quiet room no longer produces invented captions, and words repeated over and over or stray subtitle credits are removed.
 
 A new model, Large v3 Turbo (547 MiB), gives the most accurate offline subtitles. It transcribes only: keep Small for translation into English.
+
+With the microphone and system audio together, a new switch keeps a meeting played through the room's loudspeakers from being captioned twice, by leaving out the microphone's copy of the remote speaker.
 ```
 
 Français :
@@ -134,6 +136,8 @@ Français :
 Des sous-titres hors ligne plus rapides : Whisper s'exécute désormais sur le processeur graphique de votre PC s'il en a un qui convient, et revient de lui-même au processeur en cas de problème ; un interrupteur sous le modèle le désactive. La détection de la parole intégrée ignore les silences et la musique : une salle silencieuse ne produit plus de sous-titres inventés, et les mots répétés en boucle ou les crédits de sous-titrage parasites sont retirés.
 
 Un nouveau modèle, Large v3 Turbo (547 Mio), donne les sous-titres hors ligne les plus précis. Il ne fait que transcrire : gardez Small pour traduire vers l'anglais.
+
+Avec le microphone et le son du système ensemble, un nouvel interrupteur évite qu'une réunion diffusée par les haut-parleurs de la salle soit sous-titrée deux fois, en écartant la copie de l'intervenant à distance captée par le microphone.
 ```
 
 Deutsch:
@@ -142,6 +146,8 @@ Deutsch:
 Schnellere Offline-Untertitel: Whisper läuft jetzt auf dem Grafikprozessor Ihres PCs, wenn ein geeigneter vorhanden ist, und wechselt bei Problemen von selbst zurück zur CPU; ein Schalter unter dem Modell schaltet das aus. Die eingebaute Spracherkennung überspringt Stille und Musik: Ein stiller Raum erzeugt keine erfundenen Untertitel mehr, und endlos wiederholte Wörter oder eingestreute Untertitel-Abspanne werden entfernt.
 
 Ein neues Modell, Large v3 Turbo (547 MiB), liefert die genauesten Offline-Untertitel. Es transkribiert nur: Für die Übersetzung ins Englische bleibt Small die Wahl.
+
+Mit Mikrofon und Systemaudio zusammen verhindert ein neuer Schalter, dass ein Meeting über die Lautsprecher im Raum doppelt untertitelt wird: Die Kopie der zugeschalteten Person, die das Mikrofon aufnimmt, wird weggelassen.
 ```
 
 ### Features: the first two lines

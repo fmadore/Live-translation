@@ -42,17 +42,33 @@ pub trait Events: Send + Sync {
 
 impl Events for AppHandle {
     fn caption(&self, caption: Caption<'_>) {
-        // Every engine's captions pass here, so this is where a Zoom share takes its copy. It
-        // only queues, so the windows never wait on Zoom; see `zoom::ZoomCaptions::offer`.
-        if let Some(zoom) = self.try_state::<crate::zoom::ZoomCaptions>() {
-            zoom.offer(&caption);
+        // Every engine's captions pass here, so this is where room-microphone lines repeating
+        // the system audio are dropped (`echo`), before anything sees them.
+        match self.try_state::<crate::echo::EchoGuard>() {
+            Some(guard) => guard.filter(self, &caption, deliver),
+            None => deliver(self, &caption),
         }
-        let _ = self.emit(events::CAPTION, caption);
     }
 
     fn status(&self, update: StatusUpdate) {
+        // The session is over: the lines still held for comparison go out before its Idle.
+        if update.state == SessionState::Idle
+            && update.origin.is_none()
+            && let Some(guard) = self.try_state::<crate::echo::EchoGuard>()
+        {
+            guard.finish(self, deliver);
+        }
         let _ = self.emit(events::STATUS, update);
     }
+}
+
+/// A caption to the windows, and to a Zoom share. The Zoom tap only queues, so the windows
+/// never wait on Zoom; see `zoom::ZoomCaptions::offer`.
+fn deliver(app: &AppHandle, caption: &Caption<'_>) {
+    if let Some(zoom) = app.try_state::<crate::zoom::ZoomCaptions>() {
+        zoom.offer(caption);
+    }
+    let _ = app.emit(events::CAPTION, caption);
 }
 
 /// Wait until the session is no longer paused. False when it ends first — stopped, or its

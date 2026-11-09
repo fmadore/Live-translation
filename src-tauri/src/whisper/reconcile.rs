@@ -151,7 +151,7 @@ fn words(text: &str) -> Vec<String> {
 
 /// Scripts written without spaces between words, where the only boundaries to compare on are
 /// characters: Chinese, Japanese, Thai, Lao, Khmer, Myanmar and Tibetan. Korean uses spaces.
-fn unspaced(c: char) -> bool {
+pub(crate) fn unspaced(c: char) -> bool {
     matches!(c,
         '\u{0E00}'..='\u{0EFF}' // Thai, Lao
         | '\u{0F00}'..='\u{0FFF}' // Tibetan

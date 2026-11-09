@@ -111,6 +111,12 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		(c) => {
 			const track = trackOf(c.origin, c.lane);
 			const cur = current[track];
+			// A withdrawn turn (a room-microphone line repeating the system audio, `echo.rs`)
+			// leaves the screen and joins nothing.
+			if (c.final && !c.text.trim()) {
+				if (cur?.turnId === c.turnId) delete current[track];
+				return;
+			}
 			// A caption for a new turn of this track: keep the finished text as the dimmed
 			// lead-in to the fresh one. A turn can end without ever being flagged final, so this
 			// keys off the turn id changing rather than on `cur.final`.

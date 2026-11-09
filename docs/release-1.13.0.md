@@ -45,9 +45,11 @@ supported.
   has none it can use, or the graphics processor fails or stops answering during a session,
   Whisper carries on on the processor without losing what it was transcribing. Snapdragon PCs
   stay on the processor, because their graphics processor computed wrong answers through Vulkan
-  in Kalamu's tests. **Use the graphics processor**, under the model, turns it off. How much
-  faster it is depends on the computer and has not been measured yet: try your own event's
-  speech with the switch on and off.
+  in Kalamu's tests. **Use the graphics processor**, under the model, turns it off; under it,
+  the setup says where the latest session decoded and, if the graphics processor could not be
+  used, what it reported, which the stage also shows during the session. How much faster it is
+  depends on the computer and has not been measured yet: try your own event's speech with the
+  switch on and off.
 - **Speech detection.** Silero's voice-activity model, part of the app, looks for speech in each
   stretch of audio before Whisper does. A stretch without any is not transcribed at all, so a
   quiet room, a paused call or music costs nothing and Whisper has nothing to invent captions
@@ -61,6 +63,19 @@ supported.
   speech on a graphics processor or a fast processor; try it before an event. It was trained
   without Whisper's translate task, so for translation into English keep Small: translation does
   not offer Turbo.
+
+## One voice, one caption, with both sources
+
+With **Both** sources, a meeting played through the room's loudspeakers also reaches the room
+microphone, so its remote speaker is captioned twice. A new switch under **Both**, **Leave out
+the call heard by the room mic**, off by default, leaves out the microphone's copy: a microphone
+line is dropped when its words are, nearly enough, words the system audio was captioned with at
+the same moment. It compares what the two engines wrote, not
+the sound, so someone in the room speaking over the call is kept, and what it drops is always on
+screen from the system audio. While the call is sounding, a finished microphone line waits a few
+seconds (ten with Whisper) for the system line it may repeat before it reaches the transcript;
+it is on screen meanwhile. It works with every engine; with headphones there is nothing to drop, so leave it off. Off,
+captions are exactly as before.
 
 ## Names and terms for Gemini Transcribe and Whisper
 

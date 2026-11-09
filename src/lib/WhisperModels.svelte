@@ -3,6 +3,7 @@
 	import { t } from './i18n';
 	import { options, whisperModels, statusMessage } from './stores';
 	import { api } from './tauri';
+	import { whisperEngine as engine } from './whisperProgress';
 	import { asStatus } from './errors';
 	import { WHISPER_MODELS, whisperModelTranslates, type WhisperModelId } from './types';
 	import Field from './ui/Field.svelte';
@@ -145,6 +146,18 @@
 		disabled={locked}
 		onchange={(on) => ($options = { ...$options, whisperGpu: on })}
 	/>
+	{#if $engine}
+		<p class="engine">
+			{$engine.backend === 'cpu'
+				? $t.whisper.engineProcessor
+				: $t.whisper.engineGraphics($engine.device)}
+		</p>
+		{#if $engine.gpuFailure}
+			<p class="engine">
+				{$t.whisper.engineFallback} <span class="detail">{$engine.gpuFailure}</span>
+			</p>
+		{/if}
+	{/if}
 </div>
 
 <style>
@@ -167,5 +180,14 @@
 	.actions {
 		display: flex;
 		gap: var(--space-2);
+	}
+	.engine {
+		margin: 0;
+		font-size: var(--type-small);
+		color: var(--text-secondary);
+	}
+	.engine .detail {
+		color: var(--text-muted);
+		overflow-wrap: anywhere;
 	}
 </style>

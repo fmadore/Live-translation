@@ -5,7 +5,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use anyhow::Result;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::{Sender, channel};
 use tokio_util::sync::CancellationToken;
 
@@ -116,6 +116,10 @@ pub(super) fn spawn_level_forwarder(app: &AppHandle) -> Sender<AudioLevel> {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(level) = level_rx.recv().await {
+            // The system source sounding makes a room-microphone line wait for its echo.
+            if let Some(guard) = app.try_state::<crate::echo::EchoGuard>() {
+                guard.level(&level);
+            }
             let _ = app.emit(events::LEVEL, &level);
         }
     });

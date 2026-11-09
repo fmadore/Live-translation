@@ -248,6 +248,10 @@ pub struct StartOptions {
     /// omit it get the default.
     #[serde(default = "graphics_by_default")]
     pub whisper_gpu: bool,
+    /// With Both sources, leave out room-microphone lines that repeat what the system audio was
+    /// captioned with (`echo.rs`). Off unless the operator turns it on.
+    #[serde(default)]
+    pub drop_mic_echo: bool,
     #[serde(default)]
     pub spoken_language: Option<String>,
     /// Names and terms the speech engine should spell as written, for the engines that take
@@ -424,6 +428,9 @@ pub struct AudioDevice {
 /// Event names emitted to the front-end. Mirror `EVT` in types.ts.
 pub mod events {
     pub const WHISPER_PROGRESS: &str = "whisper-progress";
+    /// Where local Whisper decodes, as each source starts and again if the graphics processor
+    /// fails. Payload is `whisper::Engine`.
+    pub const WHISPER_ENGINE: &str = "whisper-engine";
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";

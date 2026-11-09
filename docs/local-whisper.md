@@ -89,7 +89,13 @@ the names it carries into English.
   the model in the first place.
 
 `local_whisper_smoke` runs the English rehearsal again with two terms in the prompt and checks
-that a 100-entry list is cut to what fits the real tokenizer.
+that a 100-entry list is cut to what fits the real tokenizer. It also gives the prompt audio with
+little or no speech, where OpenWhispr saw Whisper write a dictation's terms back as its
+transcript (speech detection had cut most of a pause-heavy recording, leaving near-silence and
+the prompt): 25 seconds of silence and of faint noise caption nothing, and the rehearsal with six
+seconds of silence after every three of speech still reads as what was said, never as the terms.
+Speech detection here keeps everything from a window's first words to its last, pauses included,
+so it cannot leave a window that is mostly the prompt.
 
 ## Translation into English
 
@@ -172,11 +178,27 @@ ported from Kalamu):
 - the same line a third time in a row is dropped: people repeat themselves, but rarely three
   windows running.
 
+## Decoder thresholds
+
+whisper.cpp's whole-pass thresholds stay at its defaults (`entropy_thold` 2.4,
+`logprob_thold` -1.0); `reconcile.rs` applies the no-speech and log-probability pair to each
+segment instead. OpenWhispr raised the entropy threshold to 2.8 and lowered the log-probability
+one to -1.25 for dictation, which cut invented closing lines from 2.25% to 0.06% of 4,814
+dictations, but kept the defaults for meetings: the higher entropy threshold sends more windows
+into whisper.cpp's temperature fallback, which decodes a window up to six times, and a
+continuous stream cannot afford that. Live captions are that continuous stream, and speech
+detection, the per-segment pair and the loop and credit filters already remove the lines those
+thresholds target.
+
 ## Graphics processor
 
 **Use the graphics processor**, under the model, is on by default. Where it finds nothing
-usable, or fails, Whisper runs on the processor exactly as before; the log names the device
-each session used (`Whisper model loaded device=…`).
+usable, or fails, Whisper runs on the processor exactly as before. Under the switch, the setup
+says where the latest session decoded (*Latest session: graphics processor (NVIDIA GeForce RTX
+4060)*), and, when the graphics processor could not be used, what it reported; during a
+session, that report is also on the stage. Each source sends it on `whisper-engine` as it
+starts, and again if the graphics processor fails mid-session. The log names the device too
+(`Whisper model loaded device=…`).
 
 - **macOS: Metal, in the app.** Every Apple silicon Mac has a graphics processor, and whisper.cpp
   runs on it with Metal, its shaders built into the app, as in Kalamu. `build.rs` links clang's
@@ -199,6 +221,20 @@ each session used (`Whisper model loaded device=…`).
   stops answering later (out of graphics memory, a driver fault; a minute without an answer)
   is stopped, and the session carries on on the processor from that window, which it decodes
   again there. Its crash never takes the app with it. Discarding the backlog stops it at once.
+- **Why it failed.** The app sees only an exit code when the helper dies, so it keeps the last
+  40 lines the helper wrote to standard error and picks the one that says why
+  (`gpu.rs::cause`, after OpenWhispr's reading of the same libraries' output): an exception
+  whisper.cpp caught while loading (`vk::…: ErrorOutOfDeviceMemory`), ggml-vulkan's own check
+  before it exits (`ggml_vulkan: error ErrorDeviceLost at …`), then any line with an error word,
+  skipping the warnings the backends recover from (a buffer in ordinary instead of pinned
+  memory, the Vulkan loader skipping a driver), then an assertion, then whisper.cpp's bare
+  "failed to load model". A helper that could not start at all is named by its Windows status:
+  `STATUS_DLL_NOT_FOUND` is a PC without the Vulkan loader. At most 300 characters reach the
+  interface, untranslated, under its own sentence.
+- **It ends with the app.** The helper ends when its input closes, so also when the app exits
+  however it exits; but not while a driver call it is in has hung. On Windows it is therefore
+  put in a job object that ends it when the app's handle to the job closes, which Windows does
+  at exit, so a hung helper cannot be left holding the graphics processor.
 - **Integrity.** The helper reads the model through Rust's filesystem API and checks its size
   and SHA-256 again before whisper.cpp sees it, as the app does.
 - **Speed is not measured yet.** GitHub's runners have no graphics processor. Before an event,

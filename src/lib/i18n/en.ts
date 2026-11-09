@@ -209,6 +209,17 @@ export const en = {
 			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
 		/** Announced once a discard is confirmed, while the core stops working through it. */
 		discarding: 'Discarding the remaining audio…',
+		/** Where the latest local session decodes, under the graphics switch. `device` is the
+		 *  graphics processor's name from its driver, absent on a Mac. */
+		engineGraphics: (device?: string) =>
+			device
+				? `Latest session: graphics processor (${device}).`
+				: 'Latest session: graphics processor.',
+		engineProcessor: 'Latest session: processor.',
+		/** The graphics processor was switched on but could not be used; the driver's or the
+		 *  helper's own words follow, untranslated. */
+		engineFallback:
+			'The graphics processor could not be used, so Whisper decodes on the processor. What it reported:',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>
@@ -361,6 +372,11 @@ export const en = {
 
 		sourceHint:
 			'System audio captures apps playing through the selected output — Zoom, Teams, a browser tab, a media player.',
+		/** With Both sources: a switch to leave out the room microphone's copy of a call played
+		 *  through the room's loudspeakers, and the note under it. */
+		dropMicEcho: 'Leave out the call heard by the room mic',
+		dropMicEchoNote:
+			'For a call on the room’s loudspeakers: a mic line repeating what the system audio just said is left out, so it is not captioned twice. Finished mic lines reach the transcript a few seconds later while the call is sounding. Not needed with headphones.',
 		demoSourceHint:
 			'Uses a bundled deterministic sample. Choose Whisper, Voxtral or Gemini for live microphone or system-audio subtitles.',
 		micDevice: 'Microphone device',
