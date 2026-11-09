@@ -1,10 +1,10 @@
 # Live-translation: statistics
 
-Updated 2026-11-08 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
+Updated 2026-11-09 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
 
 | Downloads, versions | Downloads, all releases | Views, last 14 days |
 | ---: | ---: | ---: |
-| 639 | 639 | 831 |
+| 643 | 643 | 760 |
 
 ## Downloads per version
 
@@ -12,7 +12,7 @@ Every file of a release counts once each time it is downloaded from GitHub. "…
 
 | Release | Published | Downloads | Last 7 days | Last 30 days |
 | --- | --- | ---: | ---: | ---: |
-| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 157 | … | 157 |
+| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 161 | … | 161 |
 | [v1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) | 2026-10-26 | 32 | … | 32 |
 | [v1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) | 2026-10-26 | 2 | … | 2 |
 | [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 2026-10-22 | 55 | … | 55 |
@@ -55,7 +55,7 @@ _Not enough days recorded yet for a chart._
 
 | File | Downloads |
 | --- | ---: |
-| Live.Translation_1.12.0_x64-setup.exe | 120 |
+| Live.Translation_1.12.0_x64-setup.exe | 124 |
 | Live.Translation_1.12.0.msixbundle | 18 |
 | Live.Translation_1.12.0_x64_en-US.msi | 8 |
 | Live.Translation_1.12.0_arm64.msix | 6 |
