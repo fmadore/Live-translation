@@ -12,6 +12,7 @@ mod audio;
 // capability files in step; `build.rs` reads the same file to generate the permissions.
 pub mod command_names;
 mod commands;
+mod echo;
 mod errors;
 mod export;
 mod gemini;
@@ -139,6 +140,7 @@ pub fn run() {
         .manage(CloseGuard::default())
         .manage(TrayMenu::default())
         .manage(zoom::ZoomCaptions::default())
+        .manage(echo::EchoGuard::default())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::list_outputs,

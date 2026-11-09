@@ -424,6 +424,9 @@ pub struct AudioDevice {
 /// Event names emitted to the front-end. Mirror `EVT` in types.ts.
 pub mod events {
     pub const WHISPER_PROGRESS: &str = "whisper-progress";
+    /// Where local Whisper decodes, as each source starts and again if the graphics processor
+    /// fails. Payload is `whisper::Engine`.
+    pub const WHISPER_ENGINE: &str = "whisper-engine";
     pub const CAPTION: &str = "caption";
     pub const LEVEL: &str = "audio-level";
     pub const STATUS: &str = "status";

@@ -209,6 +209,17 @@ export const en = {
 			'Discard the remaining audio? Captions already produced will be kept, but the transcript will be incomplete.',
 		/** Announced once a discard is confirmed, while the core stops working through it. */
 		discarding: 'Discarding the remaining audio…',
+		/** Where the latest local session decodes, under the graphics switch. `device` is the
+		 *  graphics processor's name from its driver, absent on a Mac. */
+		engineGraphics: (device?: string) =>
+			device
+				? `Latest session: graphics processor (${device}).`
+				: 'Latest session: graphics processor.',
+		engineProcessor: 'Latest session: processor.',
+		/** The graphics processor was switched on but could not be used; the driver's or the
+		 *  helper's own words follow, untranslated. */
+		engineFallback:
+			'The graphics processor could not be used, so Whisper decodes on the processor. What it reported:',
 		/** The engine row's reason on a processor the build cannot run on; `missing` lists the
 		 *  absent instruction sets, e.g. "AVX, AVX2". */
 		cpuUnsupported: (missing: string) =>

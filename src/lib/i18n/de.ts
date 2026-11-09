@@ -211,6 +211,11 @@ export const de: Messages = {
 		discardConfirm:
 			'Restliches Audio verwerfen? Bereits erstellte Untertitel bleiben erhalten, das Transkript wird jedoch unvollständig.',
 		discarding: 'Restliches Audio wird verworfen…',
+		engineGraphics: (device?: string) =>
+			device ? `Letzte Sitzung: Grafikprozessor (${device}).` : 'Letzte Sitzung: Grafikprozessor.',
+		engineProcessor: 'Letzte Sitzung: Prozessor.',
+		engineFallback:
+			'Der Grafikprozessor konnte nicht verwendet werden, daher dekodiert Whisper auf dem Prozessor. Seine Meldung:',
 		cpuUnsupported: (missing: string) =>
 			`Auf diesem Prozessor nicht verfügbar (es fehlt ${missing}). Die anderen Engines funktionieren.`,
 		translateTitle: 'Lokale Übersetzung ins Englische',

@@ -3,7 +3,7 @@
 // leaving now would discard.
 
 import { derived, writable } from 'svelte/store';
-import type { Origin, WhisperProgress } from './types';
+import type { Origin, WhisperEngine, WhisperProgress } from './types';
 
 export const whisperProgress = writable<Partial<Record<Origin, WhisperProgress>>>({});
 
@@ -21,3 +21,7 @@ export const whisperFinalizing = derived(whisperProgress, (progress) =>
 export function noteWhisperProgress(update: WhisperProgress) {
 	whisperProgress.update((progress) => ({ ...progress, [update.origin]: update }));
 }
+
+/** Where the latest local session decodes, and why not on the graphics processor if that
+ *  failed. Kept after the session, so the setup can say where the last one ran. */
+export const whisperEngine = writable<WhisperEngine | undefined>(undefined);

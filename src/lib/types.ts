@@ -59,6 +59,16 @@ export interface WhisperProgress {
 	pendingMs: number;
 	finalizing: boolean;
 }
+/** Where a local Whisper session decodes (`whisper::Engine`), reported as each source starts
+ *  and again if the graphics processor fails mid-session. */
+export interface WhisperEngine {
+	backend: 'cpu' | 'metal' | 'vulkan';
+	/** The graphics processor, as its driver names it: with `vulkan` only. */
+	device?: string;
+	/** Why the graphics processor the operator left switched on is not in use: technical text
+	 *  from the driver or the helper, shown as it is under the interface's own sentence. */
+	gpuFailure?: string;
+}
 /** Whether this processor can run the Whisper engine the app was built with (`whisper/cpu.rs`).
  *  `missing` names the absent instruction-set extensions, e.g. `AVX2`. */
 export interface WhisperCpuSupport {
@@ -440,6 +450,7 @@ export interface ZoomStatus {
  *  the overlay's behalf (`report_overlay_state`): the overlay may listen but not emit. */
 export const EVT = {
 	whisperProgress: 'whisper-progress',
+	whisperEngine: 'whisper-engine',
 	caption: 'caption',
 	level: 'audio-level',
 	status: 'status',

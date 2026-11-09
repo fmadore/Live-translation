@@ -6,6 +6,7 @@
 	import { asStatus } from './errors';
 	import {
 		noteWhisperProgress,
+		whisperEngine as engine,
 		whisperFinalizing as finalizing,
 		whisperPendingSeconds as pending,
 		whisperProgress
@@ -64,14 +65,13 @@
 	});
 	onMount(() => {
 		let disposed = false;
-		let cleanup: (() => void) | undefined;
-		void on.whisperProgress(noteWhisperProgress).then((fn) => {
-			if (disposed) fn();
-			else cleanup = fn;
-		});
+		const cleanups: (() => void)[] = [];
+		const keep = (fn: () => void) => (disposed ? fn() : cleanups.push(fn));
+		void on.whisperProgress(noteWhisperProgress).then(keep);
+		void on.whisperEngine((update) => engine.set(update)).then(keep);
 		return () => {
 			disposed = true;
-			cleanup?.();
+			for (const fn of cleanups) fn();
 		};
 	});
 	async function discard() {
@@ -94,6 +94,12 @@
 		{/if}
 	</div>
 {/if}
+{#if $isRunning && $engine?.gpuFailure}
+	<div class="engine-fallback">
+		<p>{$t.whisper.engineFallback}</p>
+		<p class="detail">{$engine.gpuFailure}</p>
+	</div>
+{/if}
 <p class="sr-only" role="status">{announcement}</p>
 {#if confirmDiscard}
 	<div class="discard-confirm" role="alert">
@@ -105,11 +111,20 @@
 
 <style>
 	.local-progress,
-	.discard-confirm {
+	.discard-confirm,
+	.engine-fallback {
 		padding: var(--space-3);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-card);
 		font-size: var(--type-small);
+	}
+	.engine-fallback p {
+		margin: 0;
+	}
+	.engine-fallback .detail {
+		margin-top: var(--space-1);
+		color: var(--text-muted);
+		overflow-wrap: anywhere;
 	}
 	.local-progress {
 		display: flex;

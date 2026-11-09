@@ -42,8 +42,9 @@ caption events ── optional, opt-in ── Zoom caption sender → Zoom meeti
    source owns its inference state. Capture
    timestamps travel with the audio, so a slow recognizer preserves meeting timing. ggml is
    compiled for AVX2 on x64 and for dot-product on ARM64, so `whisper/cpu.rs` refuses an older
-   processor before any native code runs and the interface offers another engine. See
-   [local Whisper](local-whisper.md).
+   processor before any native code runs and the interface offers another engine. Where the
+   windows are decoded, and why not on the graphics processor if it failed, goes to the
+   interface on `whisper-engine` (`whisper::Engine`). See [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -382,6 +383,31 @@ Lane 0 keeps the bare origin as its key, so a one-language session is keyed exac
 Committed lines of a two-language run record `lane` and `language`; `groupTranscript` groups
 each lane on its own and merges the paragraphs by first line, and exports section or label by
 language.
+
+## One voice captioned twice
+
+With Both sources, a meeting played through the room's loudspeakers reaches the room
+microphone too, and its remote speaker would be captioned twice. `echo.rs` sits where every
+caption leaves the core (`Events::caption` for `AppHandle`, before the Zoom tap and the windows)
+and drops the microphone's copy, judged on the text alone: a microphone caption is an echo when
+at least two of its word pairs, and three in five, are pairs a system caption of the same lane
+has within four seconds of session time (characters stand for words in scripts written without
+spaces; a line of one or two words must appear whole, and only once finished). Pairs rather
+than words, because any two sentences share their common words; text rather than audio,
+because a person talking over the loudspeaker correlates with it about as well as its echo
+does, as OpenWhispr's field logs showed. What it drops is on screen from the system source, so
+being wrong that way loses no words.
+
+The engines do not finish in step, so a finished microphone line waits while the system source
+has been loud (the meter's 0.02) or captioned in the last five seconds: four seconds for a cloud
+engine, ten for local Whisper, which decodes the two sources in turn. It is shown meanwhile, as
+an interim, and committed when its time is up, when the next microphone turn begins (the
+windows would commit what they show of it then) or when the session ends (before its Idle). A
+withdrawal is the turn's final caption with no text: the transcript commits nothing for it, and
+the operator stage and the overlay take the turn away. A committed line is never taken back.
+The guard emits under its lock, so a withdrawal cannot overtake the caption it withdraws. It is
+on only for a live session capturing both sources (`SessionManager::start`), never for the
+demonstration.
 
 ## Captions in Zoom
 

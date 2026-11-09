@@ -7,6 +7,7 @@ import type {
 	WhisperModelId,
 	WhisperModelInfo,
 	WhisperProgress,
+	WhisperEngine,
 	ApplicationList,
 	AudioDevice,
 	AudioSource,
@@ -216,6 +217,8 @@ export const api = {
 export const on = {
 	whisperProgress: (h: (p: WhisperProgress) => void) =>
 		listen<WhisperProgress>(EVT.whisperProgress, h),
+	/** Where local Whisper decodes, as each source starts and if the graphics processor fails. */
+	whisperEngine: (h: (e: WhisperEngine) => void) => listen<WhisperEngine>(EVT.whisperEngine, h),
 	devicesChanged: (h: () => void) => listen<null>(EVT.devicesChanged, h),
 	caption: (h: (c: Caption) => void) => listen<Caption>(EVT.caption, h),
 	level: (h: (l: AudioLevel) => void) => listen<AudioLevel>(EVT.level, h),

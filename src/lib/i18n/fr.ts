@@ -213,6 +213,13 @@ export const fr: Messages = {
 		discardConfirm:
 			'Abandonner le son restant ? Les sous-titres déjà produits seront conservés, mais la transcription sera incomplète.',
 		discarding: 'Abandon du son restant…',
+		engineGraphics: (device?: string) =>
+			device
+				? `Dernière session : processeur graphique (${device}).`
+				: 'Dernière session : processeur graphique.',
+		engineProcessor: 'Dernière session : processeur.',
+		engineFallback:
+			'Le processeur graphique n’a pas pu être utilisé : Whisper décode donc sur le processeur. Ce qu’il a signalé :',
 		cpuUnsupported: (missing: string) =>
 			`Indisponible sur ce processeur (il lui manque ${missing}). Les autres moteurs fonctionnent.`,
 		translateTitle: 'Traduction locale vers l’anglais',

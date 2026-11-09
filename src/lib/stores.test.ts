@@ -13,6 +13,7 @@ import {
 	pausedTime,
 	pauseRequested,
 	clearTranscript,
+	currentCaptions,
 	flushTranscript,
 	inFlightLines,
 	markTranscriptSaved,
@@ -115,6 +116,26 @@ describe('turns still being spoken', () => {
 		pushCaption(caption(1, 'partial', false));
 		pushCaption(caption(1, 'partial, then final'));
 		expect(get(inFlightLines)).toEqual([]);
+	});
+});
+
+describe('a withdrawn turn', () => {
+	// The core withdraws a room-microphone line that repeats the system audio with an empty
+	// final (`src-tauri/src/echo.rs`).
+	it('leaves the stage and is never logged', () => {
+		pushCaption({ ...caption(1, 'remote speaker', false), origin: 'system' });
+		pushCaption(caption(4, 'remote speaker as the room heard it', false));
+		pushCaption(caption(4, ''));
+		expect(Object.keys(get(currentCaptions))).toEqual(['system']);
+		expect(get(inFlightLines).map((line) => line.origin)).toEqual(['system']);
+		pushCaption(caption(5, 'a question from the room'));
+		expect(get(transcript).map((line) => line.text)).toEqual(['a question from the room']);
+	});
+
+	it('leaves a newer turn of the same source alone', () => {
+		pushCaption(caption(5, 'the next turn', false));
+		pushCaption(caption(4, ''));
+		expect(get(currentCaptions).microphone?.text).toBe('the next turn');
 	});
 });
 

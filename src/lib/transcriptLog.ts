@@ -106,14 +106,23 @@ export const inFlightLines = derived([currentCaptions, transcript], ([captions])
 		.map((c, i) => toLine(c, nextLineId + i))
 );
 
+/** A final caption with no text ends its turn with nothing to keep: the core withdraws a
+ *  room-microphone line this way when it repeats the system audio (`echo.rs`). */
+function isWithdrawal(c: Caption): boolean {
+	return c.final && !c.text.trim();
+}
+
 export function pushCaption(c: Caption) {
-	noteActivity(c.origin, 'caption');
 	const track = trackOf(c.origin, c.lane);
-	// Re-insert this track last so the object's key order tracks recency.
+	const withdrawn = isWithdrawal(c);
+	if (!withdrawn) noteActivity(c.origin, 'caption');
+	// Re-insert this track last so the object's key order tracks recency; a withdrawn turn
+	// leaves the stage.
 	currentCaptions.update((m) => {
 		const next: Partial<Record<Track, Caption>> = {};
 		for (const t of Object.keys(m) as Track[]) if (t !== track) next[t] = m[t];
-		next[track] = c;
+		if (!withdrawn) next[track] = c;
+		else if (m[track] && m[track].turnId !== c.turnId) next[track] = m[track];
 		return next;
 	});
 	const prev = pending[track];
