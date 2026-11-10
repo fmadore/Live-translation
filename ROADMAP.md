@@ -5,7 +5,14 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.11.0 in the Store, 1.12.0 tagged
+## Current status — 1.11.0 in the Store, 1.12.0 tagged, 1.13.0 in development
+
+1.13.0 is in development on `main` ([draft release notes](docs/release-1.13.0.md)): the Mac
+app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
+Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
+switch that leaves out the call heard by the room microphone with Both sources. The
+[10 November app review](docs/app-review-2026-11-10.md) lists its findings on `main` before the
+tag and tracks their status on the branch `fix/review-2026-11-10`.
 
 The Store serves [**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)
 (26 October 2026, MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
@@ -106,10 +113,17 @@ glossaries, live corrections and offline text translation are not planned.
   Apple silicon, macOS 15 and later: system audio and one-application capture through Core Audio
   taps, device notifications, the overlay by window level, the Save panel, the Keychain, ⌘Q and
   the Dock, macOS wording and ⌘ shortcuts in all three languages, a macOS CI lane, a test build
-  on every push, a notarised disk image in each release and a free Mac App Store build with its
-  upload workflow ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). Not
-  yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the checklist in
-  the notes. The paid trial proposed in the issue was dropped: the Mac version is free.
+  on every push, a notarised disk image built by the release workflow from 1.13.0 on (no release
+  has one yet) and a free Mac App Store build with its upload workflow
+  ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
+  uploaded a build to App Store Connect on 5 November 2026; it has not been submitted for
+  review. Not yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the
+  checklist in the notes. The paid trial proposed in the issue was dropped: the Mac version is
+  free.
+
+- **The [10 November app review](docs/app-review-2026-11-10.md):** its fixes, the release
+  workflow's checks among them, are made on `fix/review-2026-11-10` before 1.13.0 is tagged;
+  the review tracks each finding's status, and what is left for the maintainer.
 
 - **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
   `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
@@ -263,8 +277,9 @@ glossaries, live corrections and offline text translation are not planned.
   recognizers failed on unconfigured review hardware, so 1.0.5 replaced them with a
   deterministic bundled demonstration and became native x64 and ARM64. The lesson stands for
   the next attempt: a keyless path that depends on the reviewer's hardware, language packs or
-  privacy settings is not a keyless path. macOS support was dropped; the Linux CI lane is a
-  compile check only. See [Microsoft Store submission](docs/microsoft-store.md).
+  privacy settings is not a keyless path. macOS support was dropped then; it returned for Apple
+  silicon in [#195](https://github.com/fmadore/Live-translation/issues/195), for 1.13.0. The
+  Linux CI lane is a compile check only. See [Microsoft Store submission](docs/microsoft-store.md).
 - **0.4.0** (August 2026): Mistral Voxtral subtitles, plain-text and Markdown export, current
   provider contracts, a serialized start/stop lifecycle, bounded audio channels, frontend
   tests, Windows and Linux Rust CI with npm/RustSec audits.

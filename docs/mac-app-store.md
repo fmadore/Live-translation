@@ -30,10 +30,12 @@ What is ready in the repository:
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
 - the privacy policy's macOS section and the provider question, effective 5 November 2026.
 
-The GitHub secrets were set on 5 November 2026, all but `APPLE_PROVISIONING_PROFILE` and the
-`APPLE_APP_ID` variable, which wait for steps 1, 3 and 5 below. What only the maintainer can do:
-the Apple portal and App Store Connect steps, the screenshots (on a Mac), and the first test on
-a real Mac through TestFlight, which also answers the one open question:
+Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
+profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
+from `main` the same day and passed: the build is in App Store Connect. As far as the repository
+records, it has not been submitted for review. What only the maintainer can do: the remaining
+App Store Connect steps, the screenshots (on a Mac), and the first test on a real Mac through
+TestFlight, which also answers the one open question:
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox).
 
 ## The open question: system audio in the sandbox

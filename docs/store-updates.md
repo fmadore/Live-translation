@@ -113,10 +113,13 @@ its list carries over unchanged.
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.12.0` (annotated: "Live Translation & Subtitles v1.12.0") on the merge of the
-  release PR, and push it.
-- [ ] The workflow publishes the release with `docs/release-1.12.0.md` once the bundle is
-  attached; if a job fails, the release stays a draft and the failed job is re-run.
+- [x] Tag `v1.12.0` (annotated: "Live Translation & Subtitles v1.12.0") on the merge of the
+  release PR, and push it. It points to `ebff465` and was pushed on 27 October 2026.
+- [x] The workflow publishes the release with `docs/release-1.12.0.md` once the bundle is
+  attached; if a job fails, the release stays a draft and the failed job is re-run. All
+  [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/40471938625)
+  passed, and the release published itself on 27 October 2026, about 19 minutes after the tag
+  push.
 - [ ] Verify `Live.Translation_1.12.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
   at **1.12.0.0**, and record the sizes and SHA-256 digests here.
 - [ ] Sideload-test the per-architecture MSIX packages and walk the
@@ -138,11 +141,13 @@ its list carries over unchanged.
 
 ## The route
 
-1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml` and
-   `src-tauri/tauri.conf.json`, synchronize the root app versions in `package-lock.json`
-   and `src-tauri/Cargo.lock`, and set `version` and `date-released` in `CITATION.cff`.
-   `npm test` fails until all six files agree (`src/lib/version.test.ts`). All three manifests
-   must match and be **higher than the version already in the Store** — Partner Center
+1. **Bump the version** in `package.json`, `src-tauri/Cargo.toml`,
+   `src-tauri/whisper-vulkan/Cargo.toml` and `src-tauri/tauri.conf.json`, synchronize the root
+   app versions in `package-lock.json` and `src-tauri/Cargo.lock` (the `live-translation` and
+   `whisper-vulkan` entries), and set `version` and `date-released` in `CITATION.cff`.
+   `npm test` fails until the files it reads agree (`src/lib/version.test.ts`); the release
+   workflow also refuses a tag when the four manifests differ. They must match and be
+   **higher than the version already in the Store** — Partner Center
    rejects a package that does not increase. The first segment can never be `0`. Commit them
    together as `chore(release): X.Y.Z`, with the release body in `docs/release-X.Y.Z.md`
    ([`release-notes.md`](release-notes.md) has the register). The body has to be **in the
@@ -150,14 +155,16 @@ its list carries over unchanged.
 2. **Tag and push after manual testing**: `git tag vX.Y.Z` then `git push origin vX.Y.Z`,
    with the tested version; never reuse a published tag. The
    [`Release installers`](../.github/workflows/release.yml) workflow first checks that the tag
-   is `v` followed by the version in all three manifests, before anything is built. It then
+   is `v` followed by the version in all four manifests, then that CI passed on the tagged
+   commit, waiting up to an hour for a run still going, before anything is built. It then
    creates the GitHub release as a **draft** and attaches the NSIS and MSI installers, both
    architectures' `.msix` and one multi-architecture `Live.Translation_<version>.msixbundle`.
    Only once the bundle is attached does it publish the release, titled "Live Translation &
    Subtitles X.Y.Z", with `docs/release-X.Y.Z.md` as the body. Download the bundle from there.
 3. **If a job fails, nothing is public.** The release stays a draft; re-run the failed jobs,
-   and the `bundle` job publishes it when it passes. If the version check fails, nothing was
-   built and no release exists for the tag, so it can be deleted (`git push origin --delete
+   and the `bundle` job publishes it when it passes; it refuses to publish until the `build`
+   job's installers are attached. If the version or CI check fails, nothing was built and no
+   release exists for the tag, so it can be deleted (`git push origin --delete
    vX.Y.Z` and `git tag -d vX.Y.Z`) and the fixed commit tagged again. A hyphenated tag
    (`vX.Y.Z-rc.1`) builds the same assets into a draft prerelease, which is never published
    automatically.

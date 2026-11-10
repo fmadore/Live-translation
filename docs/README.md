@@ -8,7 +8,8 @@ Start waits for an application. The Store serves
 accepted as reported by the maintainer the same day: an optional Buy Me a Coffee link that
 unlocks nothing, and a fix for an empty band at the bottom of the operator window. 1.10.0 before
 it completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
-lists what is left.
+lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings on
+`main` before 1.13.0 is tagged and tracks their fixes on `fix/review-2026-11-10`.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
