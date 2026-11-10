@@ -1,7 +1,7 @@
 # Captions in Zoom
 
-**Status:** released in 1.12.0 on 27 October 2026, pending Store submission and certification
-([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)). The
+**Status:** released in 1.12.0 on 27 October 2026, in the Store as 1.12.0.0, as reported by the
+maintainer on 10 November 2026 ([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)). The
 maintainer's test in a real meeting, the condition for shipping, passed on 27 October 2026 (see
 [live verification](#live-verification);
 [#187](https://github.com/fmadore/Live-translation/issues/187)).

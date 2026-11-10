@@ -1,24 +1,25 @@
 # Microsoft Store submission
 
-**Current Store release: 1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on
-26 October 2026, the day it was tagged; it replaced 1.10.0. It added an optional Buy Me a
-Coffee link that unlocks nothing, the app's first way to pay anyone, so its submission ticked a
-Product declaration and explained the link in the certification notes
+**Current Store release: 1.12.0 / MSIX 1.12.0.0**, live as reported by the maintainer on
+10 November 2026; the submission and certification dates were not recorded
+([its handoff](store-updates.md#release-1120-handoff)). It replaced 1.11.0. It added Captions
+in Zoom, the first feature that can send caption text to a third party the user names, so its
+listing carries the privacy policy's Zoom section, a certification-notes paragraph and a
+trademark line in each description.
+
+**1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on 26 October 2026 and
+replaced by 1.12.0, added an optional Buy Me a Coffee link that unlocks nothing, the app's
+first way to pay anyone, so its submission ticked a Product declaration and explained the link
+in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**1.12.0 / MSIX 1.12.0.0** was tagged on 27 October 2026; whether it was submitted is not
-recorded, and the maintainer has to confirm it ([its handoff](store-updates.md#release-1120-handoff)).
-It added Captions in Zoom, the first feature that can send caption text to a third party the
-user names, so its submission needed the privacy policy's Zoom section, a certification-notes
-paragraph and a trademark line in each description.
-
-**Next submission: 1.13.0 / MSIX 1.13.0.0**, not yet tagged. 1.13.0 runs Whisper on a suitable
-graphics processor through `whisper-vulkan.exe`, a second executable in the package, bundles a
-speech-detection model, adds Large v3 Turbo, sends names and terms to Gemini subtitles too, and
-asks once for each cloud provider before audio is first sent to it. Its copy covers the changes
-since 1.11.0 and keeps everything 1.12.0 brought to the listing, so it is right whether or not
-1.12.0 reached the Store ([what it needs](store-listing-next.md)). See the
+**Next submission: 1.13.0 / MSIX 1.13.0.0**, not yet tagged, replacing 1.12.0. 1.13.0 runs
+Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a second executable in
+the package, bundles a speech-detection model, adds Large v3 Turbo, sends names and terms to
+Gemini subtitles too, and asks once for each cloud provider before audio is first sent to it.
+Its copy covers the changes since 1.12.0 and keeps everything 1.12.0 brought to the listing
+([what it needs](store-listing-next.md)). See the
 [1.13.0 handoff](store-updates.md#release-1130-handoff), [listing copy](store-listing.md) and
 [Partner Center walkthrough](partner-center-walkthrough.md).
 

@@ -1,9 +1,8 @@
 # Partner Center submission walkthrough — 1.13.0
 
 Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Not yet tagged.**
-The last Store version on record is 1.11.0 (MSIX 1.11.0.0), accepted as reported by the
-maintainer on 26 October 2026; whether 1.12.0, tagged on 27 October 2026, was ever submitted is
-not recorded, and the maintainer has to confirm it. Keep this walkthrough as the template for the
+The Store serves 1.12.0 (MSIX 1.12.0.0), live as reported by the maintainer on 10 November
+2026; 1.13.0.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
 `https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`.
 The [release handoff](store-updates.md#release-1130-handoff) has the package evidence and
@@ -17,14 +16,14 @@ the certification notes describe the helper, the bundled model and the question;
 descriptions' offline-subtitles paragraph, a sentence on names and terms and one on the question
 change, with three feature lines and the second additional system requirement; and the package
 carries a second executable, which WACK and certification will see. It keeps everything 1.12.0
-brought, needed if 1.12.0 was never submitted: the published **privacy policy**'s Zoom section,
+brought, already in the Store: the published **privacy policy**'s Zoom section,
 the certification notes' **paragraph on Zoom** and each description's **trademark line** (see
 [Captions in Zoom](#captions-in-zoom-privacy-notes-and-trademark) and
 [store-listing-next.md](store-listing-next.md)). There is no new product declaration: the one
 ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new, the
 additional system requirements and the certification notes again from
 [store-listing.md](store-listing.md); the short descriptions and keywords are unchanged. What's
-new covers the changes since 1.11.0; the certification notes already name 1.13.0.0.
+new covers the changes since 1.12.0; the certification notes already name 1.13.0.0.
 
 ## Before Partner Center
 
@@ -146,7 +145,7 @@ that listing if it is not already present. For each language, paste:
    changes the first, second and fifth lines; the twentieth, on Captions in Zoom, stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
 4. **What's new**: the 1.13.0 block, under 1,500 characters. It covers the changes since
-   1.11.0, the last version on record in the Store, with 1.12.0's in its last paragraph.
+   1.12.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters.
    1.13.0 changes the second (Whisper: 31–547 MiB, processor or graphics processor).
 6. Packaged-app screenshots with matching localized captions, showing the current interface
@@ -208,5 +207,5 @@ the echo filter's held lines, the Whisper helper's start, fallback and end).
 
 Submit manually when the [handoff checklist](store-updates.md#release-1130-handoff) is complete,
 and record the submission date and certification result there. Do not mark a version live
-until Partner Center or the public listing confirms publication. 1.11.0's acceptance was
-reported by the maintainer on 26 October 2026; 1.12.0's Store status is not recorded.
+until Partner Center or the public listing confirms publication. 1.12.0 is live as reported by
+the maintainer on 10 November 2026; its submission and certification dates were not recorded.

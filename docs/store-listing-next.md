@@ -1,18 +1,14 @@
 # Next Store submission — 1.13.0
 
-**Not yet tagged.** The last Store version on record is **1.11.0.0**, accepted as reported by
-the maintainer on 26 October 2026. 1.12.0 was tagged and published on GitHub on 27 October 2026;
-whether it was ever submitted to the Store is not recorded (the README says it is pending
-certification, the roadmap that it is not yet submitted), and **the maintainer has to confirm
-it**. The next submission is **1.13.0.0**: one unsigned bundle with native x64 and ARM64
+**Not yet tagged.** The Store serves **1.12.0.0**, live as reported by the maintainer on
+10 November 2026; the submission and certification dates were not recorded. The next
+submission is **1.13.0.0**, replacing it: one unsigned bundle with native x64 and ARM64
 packages, at
 `https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`
 once the tag is built.
 
-The 1.13.0 copy is written to be right whichever version the Store serves. What's new covers the
-changes since 1.11.0, with 1.12.0's Captions in Zoom in its last paragraph, and the submission
-carries everything 1.12.0's would have needed. If 1.12.0 was accepted, those parts are already
-in Partner Center and pasting them again changes nothing.
+What's new and the certification notes' first paragraph cover the changes since 1.12.0. What
+1.12.0 brought to the listing is already in Partner Center and stays.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -37,7 +33,7 @@ release does not reach the Microsoft Store.
 
 ## What the submission needs
 
-Carried from 1.12.0, needed if it was never submitted and harmless if it was:
+In the Store since 1.12.0, and kept:
 
 - **Privacy policy (Store Policy 10.5, personal information).** Caption text can contain
   personal information, and Captions in Zoom sends it to Zoom once the user starts sharing. The
@@ -106,7 +102,6 @@ second requirements line and the certification notes. The French and German sent
 
 Before submission, complete:
 
-- the maintainer's confirmation of 1.12.0's Store status;
 - the validation tag and the maintainer's test of the Local Test build, as itemised in the
   [handoff](store-updates.md#release-1130-handoff);
 - the final-package checks, including `whisper-vulkan.exe` and the bundled model in both

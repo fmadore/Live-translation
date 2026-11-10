@@ -19,13 +19,10 @@ The macOS version is new and has not yet been tried on a real Mac: see the
 [macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
 and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
 
-**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): an
-optional [Buy Me a Coffee](https://buymeacoffee.com/fmadore) link that unlocks nothing, and a
-fix for an empty band at the bottom of the window.
 **[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
-is the latest on GitHub, pending Store certification: captions in a Zoom meeting's own caption
-bar, and fixes for flashes and layout shifts. See its
+is the latest release and the version in the
+[Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): captions in a Zoom meeting's
+own caption bar, and fixes for flashes and layout shifts. See its
 [release notes](docs/release-1.12.0.md) and [Store handoff](docs/store-updates.md#release-1120-handoff).
 
 ## What it does

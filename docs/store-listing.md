@@ -1,27 +1,26 @@
 # Partner Center listing text — 1.13.0
 
-Written for **1.13.0 / MSIX 1.13.0.0**, not yet tagged. The last Store version on record is
-1.11.0 (MSIX 1.11.0.0), accepted as reported by the maintainer on 26 October 2026. 1.12.0 was
-tagged on 27 October 2026; whether it was ever submitted is not recorded, and the maintainer has
-to confirm it ([handoff](store-updates.md#release-1130-handoff)). This copy is right either way:
-What's new covers the changes since 1.11.0, with 1.12.0's Captions in Zoom in a last paragraph
-of its own, and everything 1.12.0 added to the listing (the Zoom sentences, the trademark line,
-the twentieth feature line and the certification notes' Zoom paragraph) stays. For the next
-version, replace What's new and the certification notes' first paragraph. Paste each block into
-its named field after the [release checks](store-updates.md). These descriptions lead with the
-actual captioning workflow; the scripted demo is a secondary setup aid.
+Written for **1.13.0 / MSIX 1.13.0.0**, not yet tagged. The Store serves 1.12.0 (MSIX
+1.12.0.0), live as reported by the maintainer on 10 November 2026
+([handoff](store-updates.md#release-1130-handoff)). What's new covers the changes since 1.12.0;
+everything 1.12.0 added to the listing (the Zoom sentences, the trademark line, the twentieth
+feature line and the certification notes' Zoom paragraph) is already in the Store and stays.
+For the next version, replace What's new and the certification notes' first paragraph. Paste
+each block into its named field after the [release checks](store-updates.md). These
+descriptions lead with the actual captioning workflow; the scripted demo is a secondary setup
+aid.
 
 For 1.13.0, What's new is replaced in all three languages: one paragraph on local Whisper (the
 graphics processor, speech detection, the loop and credit filters, Large v3 Turbo), one on names
 and terms for Gemini subtitles and Whisper, the question before audio first goes to a cloud
-provider and the Both-sources switch, one on the fixes, and one on 1.12.0's Captions in Zoom.
+provider and the Both-sources switch, and one on the fixes.
 Each description changes in three places: the offline-subtitles paragraph (third) is replaced,
 as drafted for 1.13.0 in [store-listing-next.md](store-listing-next.md); the last sentence of the
 cloud paragraph (fourth) now names Gemini, Mistral and Whisper as taking the names-and-terms
 list; and the privacy paragraph gains one sentence on the question asked before audio first goes
 to each cloud provider. The first, second and fifth feature lines change; the second line of the
 additional system requirements and the note under them change. The certification notes change
-in their first paragraph (the version, and everything since 1.11.0), in step 3 of *Real speech
+in their first paragraph (the version, and everything since 1.12.0), in step 3 of *Real speech
 recognition*, in *Optional cloud features* (the question, and names and terms for Gemini) and in
 their last paragraph (the helper and the bundled model). The short descriptions, keywords,
 screenshot captions and the trademark line are unchanged. The French and German sentences new in
@@ -76,10 +75,7 @@ Faster offline captions: Whisper now runs on your PC's graphics processor when i
 
 The Names and terms list now also helps Gemini subtitles and Whisper. Before audio first goes to a cloud provider, the app asks you, once for each provider. With the microphone and system audio together, a new switch keeps a call played through the room's loudspeakers from being captioned twice.
 
-Fixes: a Start that cannot be pressed no longer looks pressable, cloud engines say why a provider ended the connection, and SRT exports keep & < > as typed.
-
-Added in 1.12.0: Captions in Zoom shows one caption language in a Zoom meeting's own caption bar, using the caption link (API token) the meeting's host copies in Zoom. Sharing is off until you start it and sends caption text only, never audio.
-```
+Fixes: a Start that cannot be pressed no longer looks pressable, cloud engines say why a provider ended the connection, and SRT exports keep & < > as typed.```
 
 ### Features — one feature per line
 
@@ -157,10 +153,7 @@ Des sous-titres hors ligne plus rapides : Whisper s'exécute désormais sur le p
 
 La liste Noms et termes aide désormais aussi les sous-titres Gemini et Whisper. L'application demande votre accord avant le premier envoi d'audio à chaque fournisseur cloud. Avec le microphone et l'audio système ensemble, un nouvel interrupteur évite qu'un appel diffusé par les haut-parleurs de la salle soit sous-titré deux fois.
 
-Corrections : un bouton Démarrer inactif ne semble plus cliquable, les moteurs cloud indiquent pourquoi le fournisseur a fermé la connexion, et les exports SRT gardent & < > tels quels.
-
-Nouveauté de la version 1.12.0 : Sous-titres Zoom affiche une langue de sous-titres dans la barre de sous-titres d'une réunion Zoom, avec le lien de sous-titrage (jeton d'API) que l'organisateur copie dans Zoom. Le partage reste désactivé tant que vous ne le lancez pas et n'envoie que le texte des sous-titres, jamais l'audio.
-```
+Corrections : un bouton Démarrer inactif ne semble plus cliquable, les moteurs cloud indiquent pourquoi le fournisseur a fermé la connexion, et les exports SRT gardent & < > tels quels.```
 
 ### Fonctionnalités — une fonctionnalité par ligne
 
@@ -238,10 +231,7 @@ Schnellere Offline-Untertitel: Whisper läuft jetzt auf dem Grafikprozessor Ihre
 
 Die Liste Namen und Begriffe hilft jetzt auch Gemini-Untertiteln und Whisper. Bevor zum ersten Mal Audio an einen Cloud-Anbieter geht, fragt die App nach, einmal pro Anbieter. Mit Mikrofon und Systemaudio zusammen verhindert ein neuer Schalter, dass ein Anruf über die Lautsprecher im Raum doppelt untertitelt wird.
 
-Korrekturen: Ein Start, der sich nicht drücken lässt, sieht nicht mehr aktiv aus, Cloud-Engines sagen, warum der Anbieter die Verbindung beendet hat, und SRT-Exporte behalten & < > unverändert.
-
-Hinzugekommen in 1.12.0: Zoom-Untertitel zeigt eine Untertitelsprache in der eigenen Untertitelleiste eines Zoom-Meetings, mit dem Untertitel-Link (API-Token), den der Host in Zoom kopiert. Das Teilen bleibt aus, bis Sie es starten, und sendet nur Untertiteltext, nie Audio.
-```
+Korrekturen: Ein Start, der sich nicht drücken lässt, sieht nicht mehr aktiv aus, Cloud-Engines sagen, warum der Anbieter die Verbindung beendet hat, und SRT-Exporte behalten & < > unverändert.```
 
 ### Funktionen — eine Funktion pro Zeile
 
@@ -332,7 +322,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.13.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.11.0, this update adds the following. From 1.12.0: optional Captions in Zoom, described in the next paragraph; a pre-flight that says why Start waits when one application is to be captured and none is chosen; no flashes or layout shifts in the setup and transcript. New in 1.13.0: offline Whisper runs on a suitable graphics processor through whisper-vulkan.exe, a helper program in the package that the app alone starts and stops, which opens no network connection and uses the graphics driver already installed; on a PC without a suitable graphics processor, or if the helper fails, Whisper runs on the processor as before. Speech detection, with a 0.9 MB voice-activity model bundled in the package, skips silence before Whisper; an optional Large v3 Turbo model download (about 547 MiB) transcribes only. The Names and terms list now also goes to Gemini subtitles and to Whisper, which keeps it on the PC. Before the first session or rehearsal with each cloud provider, the app asks before sending it audio (see Optional cloud features). With both audio sources, an optional switch, off by default, leaves out the room microphone's copy of a call played through loudspeakers. It adds no capability and no product declaration. The test routes below are those of 1.12.0, with step 3 updated.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.13.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.12.0, this update adds the following. Offline Whisper runs on a suitable graphics processor through whisper-vulkan.exe, a helper program in the package that the app alone starts and stops, which opens no network connection and uses the graphics driver already installed; on a PC without a suitable graphics processor, or if the helper fails, Whisper runs on the processor as before. Speech detection, with a 0.9 MB voice-activity model bundled in the package, skips silence before Whisper; an optional Large v3 Turbo model download (about 547 MiB) transcribes only. The Names and terms list now also goes to Gemini subtitles and to Whisper, which keeps it on the PC. Before the first session or rehearsal with each cloud provider, the app asks before sending it audio (see Optional cloud features). With both audio sources, an optional switch, off by default, leaves out the room microphone's copy of a call played through loudspeakers. It adds no capability and no product declaration. The test routes below are those of 1.12.0, with step 3 updated.
 
 Optional Captions in Zoom (off until the user starts it): the Zoom captions button in the operator window's toolbar opens a dialog where the user pastes the caption link (API token) that a Zoom meeting's host copies with Show Captions > Set up manual captioner > Copy the API token, and chooses Start sharing. From then until Stop sharing or the app quits, the app posts finished caption text in one caption language over HTTPS directly to that zoom.us or zoomgov.com address, and Zoom shows it in the meeting's caption bar. This includes captions made offline with Whisper or by the built-in demo; no audio, API key or device information is sent, and nothing passes through a developer server. The dialog says that caption text is sent to Zoom above its Start sharing button, and the privacy policy describes the flow. The link is held in memory only and never saved. To exercise it, host a Zoom meeting (a free Basic account is enough) on an account whose settings have Manual captions on and the third-party caption API token allowed, copy the API token in the meeting, paste it, start sharing, choose Send test caption, then run the built-in demo or Whisper: attendees see the captions after choosing Show Captions. Without a Zoom meeting, open the dialog and paste any https address outside Zoom: it is refused locally with an explanation and nothing is sent. The rest of the app works the same whether or not Zoom is used. Zoom is named descriptively only; the app uses no Zoom logo and is not affiliated with Zoom Communications, Inc.
 

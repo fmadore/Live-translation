@@ -111,7 +111,7 @@ workflow's Mac, Vulkan and package-check steps will run for the first time on th
 | ID | Finding | Status |
 | --- | --- | --- |
 | D1 | `ROADMAP.md`: the status heading does not say 1.13.0 is in development; "a notarised disk image in each release" (none yet); the App Store upload of 5 November is not recorded; the 1.0.5 entry still says macOS support was dropped. | Done |
-| D2 | `README.md` says 1.12.0 is pending Store certification; `ROADMAP.md` and `docs/README.md` say it is not yet submitted. | Maintainer: which is true |
+| D2 | `README.md` says 1.12.0 is pending Store certification; `ROADMAP.md` and `docs/README.md` say it is not yet submitted. | Done: 1.12.0 is in the Store, as the maintainer reported on 10 November 2026; the documents say so |
 | D3 | `docs/store-updates.md`: the v1.12.0 tag and release steps are unticked although both happened. | Done |
 | D4 | `docs/mac-app-store.md` lists two secrets as missing that are now set; `docs/release-1.13.0.md` says the App Store build has not been uploaded. | Done |
 | D5 | `docs/app-review-2026-10-22.md`: C6 is now closed (security updates, secret scanning, the Rust audit job). | Done |
@@ -200,7 +200,7 @@ lanes do both.
   read by derived values.
 - An optional later step for B2: the Whisper side saying how far the system source has been
   decoded would let held lines go exactly then.
-- E6, S10 and V5, as marked above; C1, C8, C9 and D2 are the maintainer's.
+- E6, S10 and V5, as marked above; C1, C8 and C9 are the maintainer's.
 - The workflows were not linted locally (no `actionlint`); CI lints them.
 
 **Still to check by hand**

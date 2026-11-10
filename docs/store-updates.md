@@ -11,16 +11,13 @@ packages are built.
 
 ## Release 1.13.0 handoff
 
-**Prepared; not yet tagged or submitted.** The last Store version on record is **1.11.0.0**,
-accepted as reported by the maintainer on 26 October 2026. 1.12.0 was tagged and published on
-GitHub on 27 October 2026, but no Store submission of it is recorded: the README says it is
-pending Store certification, the roadmap and docs/README that it is not yet submitted. **The
-maintainer has to confirm which.** Target app version: **1.13.0**, MSIX **1.13.0.0**, in
-`Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.
-What's new and the certification notes cover the changes since 1.11.0, so they are right whether
-the Store serves 1.11.0 or 1.12.0, and the submission carries everything
-[1.12.0's](#release-1120-handoff) needed (the Zoom privacy section, the trademark line, the
-certification notes' Zoom paragraph).
+**Prepared; not yet tagged or submitted.** The Store serves **1.12.0.0**, live as reported by
+the maintainer on 10 November 2026; the submission and certification dates were not recorded
+([1.12.0's handoff](#release-1120-handoff)). Target app version: **1.13.0**, MSIX **1.13.0.0**,
+in `Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.
+What's new and the certification notes cover the changes since 1.12.0. What 1.12.0 brought to
+the listing (the Zoom privacy section, the trademark line, the certification notes' Zoom
+paragraph) is already in the Store and stays.
 
 1.13.0 adds the Mac app, a faster and quieter local Whisper, and the fixes of a review:
 
@@ -87,9 +84,8 @@ certification notes' Zoom paragraph).
   the CI gate on the tagged commit, `msix` without `build`, the shared compiler action and the
   helper's version in `prepare`. **None of these has run on a tag yet.**
 - **New for the Store:** a second executable and a bundled model in the package, and a question
-  before audio first goes to a cloud provider, which the certification notes describe. If 1.12.0
-  was never submitted, also everything it brought: caption text sent to Zoom, the Zoom trademark
-  line and the notes' Zoom paragraph. See [store-listing-next.md](store-listing-next.md).
+  before audio first goes to a cloud provider, which the certification notes describe. See
+  [store-listing-next.md](store-listing-next.md).
 
 The [privacy policy](privacy.md) needs no change for 1.13.0. Its effective date is 5 November
 2026 and it already covers what 1.13.0 sends and keeps: the macOS app (Keychain, *System Audio
@@ -109,9 +105,9 @@ names the other engines: an editorial change for the maintainer, without a new d
 - [ ] [#213](https://github.com/fmadore/Live-translation/pull/213) (`fix/review-2026-11-10`, the
   10 November review's fixes and these docs) reviewed and merged after all its CI jobs pass,
   including the macOS lanes and the helper's, which the branch could not compile locally.
-- [ ] **The maintainer confirms 1.12.0's Store status** (submitted or not, certified or not) and
-  records it in [1.12.0's row](#release-history) and section below; then sets README's Store
-  sentence ("pending Store certification") and ROADMAP's to the same answer.
+- [x] 1.12.0's Store status recorded: live as 1.12.0.0, reported by the maintainer on
+  10 November 2026, in [1.12.0's row](#release-history) and section below, and in README,
+  ROADMAP and docs/README.
 - [ ] **Version bump** in the release PR, in the seven files of [the route](#the-route):
   `package.json`, `src-tauri/Cargo.toml`, `src-tauri/whisper-vulkan/Cargo.toml` and
   `src-tauri/tauri.conf.json`; the `live-translation` and `whisper-vulkan` entries of
@@ -138,10 +134,10 @@ names the other engines: an editorial change for the maintainer, without a new d
   `gh release delete v1.13.0-validation.1 --yes`, `git push origin --delete
   v1.13.0-validation.1` and `git tag -d v1.13.0-validation.1`.
 - [ ] The Store fields are within Partner Center's limits. Counted when drafted (characters in
-  each block, line breaks included), not yet checked in Partner Center: What's new EN 1,247,
-  FR 1,473, DE 1,407 of 1,500; 20 of 20 features, the longest 135 of 200 (FR); descriptions
+  each block, line breaks included), not yet checked in Partner Center: What's new EN 1,043,
+  FR 1,200, DE 1,177 of 1,500; 20 of 20 features, the longest 135 of 200 (FR); descriptions
   EN 5,050, FR 6,071, DE 5,621 of 10,000; short descriptions 264, 268 and 265 of 270; additional
-  requirements, the longest 170 of 200; certification notes 8,731 (no limit is recorded in these
+  requirements, the longest 170 of 200; certification notes 8,488 (no limit is recorded in these
   documents). French What's new is the closest to its limit.
 - [ ] The French and German sentences new in 1.13.0 (What's new, the offline-subtitles
   paragraph, names and terms, the question before audio is sent, the feature lines and the
@@ -231,7 +227,7 @@ over unchanged.
   and the question under *Third-party processing*.
 - [ ] Submit the single combined bundle in Partner Center with the 1.13.0 What's new, the three
   descriptions (with the Zoom trademark line), the changed feature lines, the second requirements
-  line and the updated certification notes. The product declarations are unchanged from 1.11.0.
+  line and the updated certification notes. The product declarations are unchanged from 1.12.0.
   Rollout: **gradual**, starting at 10% ([route step 9](#the-route)): capture changed (wasapi
   0.27) and the session lifecycle changed (the question before a cloud session, the echo
   filter's held lines, the Whisper helper's start, fallback and end).
@@ -404,8 +400,8 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
-| 1.12.0 | [27 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) · [body](release-1.12.0.md) | No submission recorded; the maintainer to confirm whether it was submitted | Captions in Zoom (#189, #190), no flashes or layout shifts in setup and the transcript (#188), and a pre-flight that asks for the application to capture. |
-| 1.11.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) · [body](release-1.11.0.md) | Accepted as 1.11.0.0, reported by the maintainer on 26 October 2026; submission and certification dates not recorded | An optional Buy Me a Coffee link that unlocks nothing, and no empty band at the bottom of the operator window (#182). |
+| 1.12.0 | [27 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) · [body](release-1.12.0.md) | Live as 1.12.0.0, reported by the maintainer on 10 November 2026; submission and certification dates not recorded | Captions in Zoom (#189, #190), no flashes or layout shifts in setup and the transcript (#188), and a pre-flight that asks for the application to capture. |
+| 1.11.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) · [body](release-1.11.0.md) | Accepted as 1.11.0.0, reported by the maintainer on 26 October 2026; submission and certification dates not recorded; replaced by 1.12.0 | An optional Buy Me a Coffee link that unlocks nothing, and no empty band at the bottom of the operator window (#182). |
 | 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Live as 1.10.0.0, reported by the maintainer on 26 October 2026 and confirmed with `Get-AppxPackage` the same day; submission and certification dates not recorded; replaced by 1.11.0 | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
 | 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded; replaced by 1.10.0 | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |
 | 1.8.0 | [21 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) · [body](release-1.8.0.md) | Live as 1.8.0.0, reported by the maintainer on 21 October 2026 and confirmed with `Get-AppxPackage`; submission and certification dates not recorded; replaced by 1.9.0 | The Transcript tab with Copy (#155) and Mistral subtitles on Voxtral Realtime 3 (#156). |
@@ -424,11 +420,9 @@ was submitted were not recorded as done and stay open against the Store build.
 
 ### Release 1.12.0 handoff
 
-**Tagged and published on GitHub on 27 October 2026; no Store submission recorded.** The README
-says it is pending Store certification, the roadmap that it is not yet submitted; the maintainer
-has to confirm which. If it was never submitted, [1.13.0](#release-1130-handoff) carries
-everything it needed: the Zoom privacy section, the trademark line, the certification notes'
-Zoom paragraph and a What's new that covers it.
+**Live as 1.12.0.0**, reported by the maintainer on 10 November 2026; the submission and
+certification dates were not recorded, and no `Get-AppxPackage` reading of 1.12.0.0 is recorded.
+It was tagged and published on GitHub on 27 October 2026. It replaced 1.11.0.
 - **What it shipped:** Captions in Zoom, one caption language posted to a Zoom meeting's own
   caption bar through the caption link (API token) the host copies, held in memory only, behind
   five new operator commands ([#189](https://github.com/fmadore/Live-translation/pull/189));
@@ -457,7 +451,8 @@ Zoom paragraph and a What's new that covers it.
     `91d694bc8c00f26d0618f8c3fed6056b467431358890d6fb0d96a7ef59ee47d3`.
 - **Not recorded:** the Store fields checked in Partner Center, the package checks on the
   published assets, the sideload test, WACK, the screenshot decision, the privacy page check,
-  the submission and a `Get-AppxPackage` reading. They carry over to the next release.
+  the submission and certification dates, and a `Get-AppxPackage` reading. They carry over to
+  the next release.
 
 Still open from this handoff, never recorded as done:
 
@@ -475,8 +470,9 @@ Still open from this handoff, never recorded as done:
   [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows); WACK.
 - [ ] The screenshot decision for the *Zoom captions* button.
 - [ ] The published privacy page showing the *Optional captions in Zoom* section.
-- [ ] Submission in Partner Center, certification, and `Get-AppxPackage` at 1.12.0.0 with
-  `SignatureKind` `Store`, if 1.12.0 is submitted at all.
+- [x] Submission in Partner Center and certification: live as 1.12.0.0, reported by the
+  maintainer on 10 November 2026; dates not recorded.
+- [ ] `Get-AppxPackage` at 1.12.0.0 with `SignatureKind` `Store`.
 
 ### Release 1.11.0 handoff
 

@@ -1,13 +1,12 @@
 # Documentation
 
 These guides describe **[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)**
-(27 October 2026), pending Store certification: captions in a Zoom meeting's own caption bar,
-fixes for flashes and layout shifts in setup and the transcript, and a pre-flight that says why
-Start waits for an application. The Store serves
-**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026),
-accepted as reported by the maintainer the same day: an optional Buy Me a Coffee link that
-unlocks nothing, and a fix for an empty band at the bottom of the operator window. 1.10.0 before
-it completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
+(27 October 2026), the version in the Store, live as reported by the maintainer on 10 November
+2026: captions in a Zoom meeting's own caption bar, fixes for flashes and layout shifts in setup
+and the transcript, and a pre-flight that says why Start waits for an application. It replaced
+**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026):
+an optional Buy Me a Coffee link that unlocks nothing, and a fix for an empty band at the bottom
+of the operator window. 1.10.0 before that completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
 lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings on
 `main` before 1.13.0 is tagged and tracks their fixes on `fix/review-2026-11-10`.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
@@ -37,7 +36,7 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.12.0 (tagged 27 October 2026, not yet submitted)
+## Release 1.12.0 (tagged 27 October 2026, in the Store)
 
 - [Release notes](release-1.12.0.md) and [release handoff](store-updates.md#release-1120-handoff).
 
@@ -51,7 +50,7 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - Whisper on the graphics processor (Metal on a Mac, a Vulkan helper on Windows), bundled speech
   detection, loop and credit filters and Large v3 Turbo: [local Whisper](local-whisper.md#graphics-processor).
 
-## Release 1.11.0 (in the Store)
+## Release 1.11.0 (replaced by 1.12.0) and earlier
 
 - [Release notes](release-1.11.0.md) and [release handoff](store-updates.md#release-1110-handoff).
 - 1.10.0: [release notes](release-1.10.0.md) and [release handoff](store-updates.md#release-1100-handoff).
