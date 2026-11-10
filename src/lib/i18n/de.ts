@@ -40,7 +40,11 @@ export const de: Messages = {
 		trayQuit: 'Beenden',
 		trayStop: 'Sitzung beenden',
 		trayShow: 'Untertitel einblenden',
-		trayHide: 'Untertitel ausblenden'
+		trayHide: 'Untertitel ausblenden',
+		trayElapsed: (minutes: number) =>
+			minutes < 60
+				? `${minutes} Min.`
+				: `${Math.floor(minutes / 60)} Std. ${String(minutes % 60).padStart(2, '0')} Min.`
 	},
 	usability: {
 		hold: 'Anzeigedauer fertiger Untertitel (Sekunden)',
@@ -622,7 +626,7 @@ export const de: Messages = {
 		kicker: 'Vorabprüfung',
 		heading: 'Bereit, wenn Sie es sind',
 		intro:
-			'Vier Prüfungen, dann die Start-Schaltfläche oben im Fenster. Alles auf der linken Seite wird gesperrt, während Untertitel laufen, damit mitten in der Sitzung nichts versehentlich geändert wird.',
+			'Die Prüfungen unten, dann die Start-Schaltfläche oben im Fenster. Alles auf der linken Seite wird gesperrt, während Untertitel laufen, damit mitten in der Sitzung nichts versehentlich geändert wird.',
 
 		demoRow: {
 			title: 'Integrierte Demo · kein Schlüssel nötig',
@@ -893,6 +897,7 @@ export const de: Messages = {
 		recoveryRead: 'Die Wiederherstellungskopie der letzten Sitzung konnte nicht gelesen werden',
 		recoveryDelete: 'Die Wiederherstellungskopie konnte nicht gelöscht werden',
 		historyStorage: 'Der Verlaufsordner konnte nicht gelesen oder geändert werden',
+		historySessionDeleted: 'Diese Sitzung wurde gelöscht und kann nicht mehr umbenannt werden',
 		openLink: 'Windows konnte die Seite nicht im Browser öffnen',
 		taskFailed: 'Eine Hintergrundaufgabe wurde unerwartet beendet',
 		micStream:

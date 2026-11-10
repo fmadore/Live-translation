@@ -16,7 +16,6 @@
 	import { exportLabels, saveTranscriptDocument } from './saveDocument';
 	import {
 		formatTranscript,
-		hasOriginalSpeech,
 		hasTranscriptTiming,
 		recentLines,
 		type TranscriptFormat
@@ -31,11 +30,15 @@
 	let {
 		transcript,
 		pending,
+		bilingual,
 		onError
 	}: {
 		transcript: TranscriptLine[];
 		/** The turns still being spoken, oldest first, which Copy takes with the log. */
 		pending: TranscriptLine[];
+		/** The log has original speech to include (`hasOriginalSpeech`), worked out once by the
+		 *  panel, which needs it too. The option is offered only then: subtitles have none. */
+		bilingual: boolean;
 		onError: (message: string | AppError) => void;
 	} = $props();
 
@@ -43,10 +46,9 @@
 	let saving = $state(false);
 	// The export format is a stored preference (`exportFormat.ts`), not this component's
 	// state, so the quit prompt's Save and the history view use the same one.
-	const timedExportAvailable = $derived(hasTranscriptTiming(transcript));
-	// Offered only when there is something to include: subtitles have no separate original.
-	const bilingual = $derived(hasOriginalSpeech(transcript));
-	const missingTiming = $derived(isTimedFormat($exportFormat) && !timedExportAvailable);
+	// One pass over the log for both the timed export formats and Copy's time window.
+	const timed = $derived(hasTranscriptTiming(transcript));
+	const missingTiming = $derived(isTimedFormat($exportFormat) && !timed);
 	// Clear throws away unsaved text, so when there is any it asks once rather than acting on
 	// the first click. New captions withdraw the question — the log the operator was about to
 	// throw away is no longer the log in front of them — so it is derived from the transcript,
@@ -61,8 +63,7 @@
 	// copied whole.
 	const COPY_WINDOWS = [5, 10, 30, 0] as const;
 	let copyMinutes = $state<(typeof COPY_WINDOWS)[number]>(10);
-	const copyTimed = $derived(hasTranscriptTiming(transcript));
-	const copyWindow = $derived(copyTimed ? copyMinutes : 0);
+	const copyWindow = $derived(timed ? copyMinutes : 0);
 	let copying = $state(false);
 	let copyNotice = $state('');
 	let noticeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -154,7 +155,7 @@
 		<select
 			aria-label={$t.transcript.copyRange}
 			value={copyWindow}
-			disabled={copying || !copyTimed}
+			disabled={copying || !timed}
 			onchange={(e) => (copyMinutes = Number(e.currentTarget.value) as typeof copyMinutes)}
 		>
 			{#each COPY_WINDOWS as minutes (minutes)}
@@ -199,9 +200,11 @@
 		{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
 	</ToolButton>
 </div>
-{#if missingTiming && transcript.length}<p class="hint" role="status">
-		{$t.transcript.noTiming}
-	</p>{/if}
+<!-- The two notes below are statuses that stay in the DOM and change only their text — a live
+     region inserted together with its text is often missed. Empty, they take no room. -->
+<p class="hint live-slot" role="status">
+	{#if missingTiming && transcript.length}{$t.transcript.noTiming}{/if}
+</p>
 
 <!-- The announcement lives in its own always-present region — a live region created at the
      same moment as its text is routinely missed, and this one is out of flow, so it costs
@@ -221,9 +224,9 @@
 	</p>
 {/if}
 
-{#if veryLong && $transcriptDirty}
-	<p class="warn" role="status">{$t.transcript.longSession(TRANSCRIPT_WARN_LINES)}</p>
-{/if}
+<p class="warn live-slot" role="status">
+	{#if veryLong && $transcriptDirty}{$t.transcript.longSession(TRANSCRIPT_WARN_LINES)}{/if}
+</p>
 
 <style>
 	/* Wraps rather than squeezing its buttons below their labels at a large text size. */

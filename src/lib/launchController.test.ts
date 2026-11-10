@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import { createLaunchController, type LaunchPort } from './launchController.svelte';
 import { createSessionController } from './sessionController';
 import { applyStatus, describeStatus, options, statusMessage } from './stores';
+import { aiConsent } from './aiConsent';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { en } from './i18n/en';
 import { locale } from './i18n';
@@ -40,11 +41,10 @@ function setup(
 		engineReady: () => ready.engine,
 		applicationReady: () => ready.application,
 		launching,
-		consent: () => Promise.resolve(true),
 		...port
 	});
 	/** A status from the core, as the page's listener hands it on. */
-	const status = (update: StatusUpdate) => applyStatus(update, { starting: get(session.starting) });
+	const status = (update: StatusUpdate) => applyStatus(update);
 	return { session, launch, launching, startSession, status };
 }
 
@@ -54,6 +54,8 @@ beforeEach(() => {
 	options.set(translation);
 	statusMessage.set('');
 	ready = { engine: true, application: true, profileBusy: false };
+	// Agreed already, so a launch does not stop at the question; asked below.
+	aiConsent.set(['Gemini', 'OpenAI', 'Mistral']);
 });
 
 describe('what blocks a start', () => {
@@ -200,21 +202,48 @@ it('rehearses on the language the room is not reading, and in English for the su
 
 // App Review Guideline 5.1.2(i): audio reaches a cloud provider only after the operator agreed.
 describe('the provider question', () => {
-	it('asks about the engine’s provider before a start or a rehearsal', async () => {
-		const consent = vi.fn().mockResolvedValue(true);
-		const { launch, startSession } = setup({ consent });
-		await launch.rehearse();
-		expect(consent).toHaveBeenCalledWith('gemini');
+	beforeEach(() => aiConsent.set([]));
+
+	it('asks about the engine’s provider before a start or a rehearsal, and remembers yes', async () => {
+		const { launch, startSession } = setup();
+		const rehearsing = launch.rehearse();
+		await Promise.resolve();
+		expect(launch.consentAsk).toBe('gemini');
+		expect(startSession).not.toHaveBeenCalled();
+		launch.answerConsent(true);
+		await rehearsing;
+		expect(launch.consentAsk).toBeNull();
 		expect(startSession).toHaveBeenCalledOnce();
+		expect(get(aiConsent)).toEqual(['Gemini']);
+
+		// Agreed once for the company: its subtitle engine is not asked about again.
+		applyStatus({ state: 'running', origin: 'system' });
+		applyStatus({ state: 'idle' });
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'gemini-transcribe', source: 'system' });
+		await launch.start();
+		expect(launch.consentAsk).toBeNull();
+		expect(startSession).toHaveBeenCalledTimes(2);
 	});
 
-	it('starts nothing, and keeps the capture-failure banner, when the answer is no', async () => {
-		const { launch, launching, startSession } = setup({
-			consent: () => Promise.resolve(false)
-		});
-		await launch.start();
+	it('starts nothing, records nothing and keeps the capture-failure banner on no', async () => {
+		const { launch, launching, startSession } = setup();
+		const starting = launch.start();
+		await Promise.resolve();
+		expect(launch.consentAsk).toBe('gemini');
+		launch.answerConsent(false);
+		await starting;
+		expect(launch.consentAsk).toBeNull();
 		expect(startSession).not.toHaveBeenCalled();
 		expect(launching).not.toHaveBeenCalled();
+		expect(get(aiConsent)).toEqual([]);
 		expect(launch.canStart).toBe(true);
+	});
+
+	it('never asks about an engine that sends nothing', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'ondevice' });
+		const { launch, startSession } = setup();
+		await launch.start();
+		expect(launch.consentAsk).toBeNull();
+		expect(startSession).toHaveBeenCalledOnce();
 	});
 });

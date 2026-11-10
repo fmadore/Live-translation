@@ -4,10 +4,11 @@
 	import Select from './ui/Select.svelte';
 	import Field from './ui/Field.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
+	import ConfirmButton from './ui/ConfirmButton.svelte';
 	import { get } from 'svelte/store';
 	import { t } from './i18n';
 	import { api, isTauri } from './tauri';
-	import { describeError } from './errors';
+	import { asStatus, describeError, type AppError } from './errors';
 	import { validateDevices } from './audioDevices';
 	import { captionLanguageOf } from './types';
 	import { normalizeStartOptions } from './startOptions';
@@ -34,8 +35,10 @@
 	let selected = $state('');
 	let name = $state('');
 	let busy = $state(false);
-	let notice = $state('');
-	let error = $state('');
+	// Kept as a catalogue key and the failure as caught, and worded where they are shown, so a
+	// notice already on screen follows a change of interface language.
+	let notice = $state<'' | 'profileSaved' | 'profileLoaded' | 'profileMissing'>('');
+	let error = $state.raw<string | AppError>('');
 	let confirming = $state(false);
 	let rowMenu = $state('');
 	let renameId = $state('');
@@ -53,7 +56,7 @@
 		try {
 			await action();
 		} catch (e) {
-			error = describeError(e, get(t));
+			error = asStatus(e);
 		} finally {
 			busy = false;
 			onBusy(false);
@@ -75,7 +78,7 @@
 			name = '';
 			editing = null;
 			expanded = true;
-			notice = get(t).usability.profileSaved;
+			notice = 'profileSaved';
 		});
 	}
 	function load() {
@@ -95,15 +98,11 @@
 			notice =
 				(saved.micDeviceId && !checked.micDeviceId) ||
 				(saved.systemDeviceId && !checked.systemDeviceId)
-					? get(t).usability.profileMissing
-					: get(t).usability.profileLoaded;
+					? 'profileMissing'
+					: 'profileLoaded';
 		});
 	}
 	function remove() {
-		if (!confirming) {
-			confirming = true;
-			return;
-		}
 		return perform(async () => {
 			persist(profiles.filter((p) => p.id !== selected));
 			selected = '';
@@ -121,7 +120,7 @@
 			);
 			editing = null;
 			name = '';
-			notice = get(t).usability.profileSaved;
+			notice = 'profileSaved';
 		});
 	}
 </script>
@@ -229,22 +228,21 @@
 									confirming = false;
 								}}>{$t.design.rename}</ToolButton
 							>
-							<ToolButton
+							<ConfirmButton
 								variant="danger"
+								confirming={confirming && selected === p.id}
+								label={$t.usability.deleteProfile}
+								confirmLabel={$t.usability.confirmDelete}
+								cancelLabel={$t.history.cancel}
 								disabled={locked || busy}
-								onclick={() => {
-									if (selected !== p.id) confirming = false;
+								cancelDisabled={busy}
+								onask={() => {
 									selected = p.id;
-									void remove();
+									confirming = true;
 								}}
-								>{confirming && selected === p.id
-									? $t.usability.confirmDelete
-									: $t.usability.deleteProfile}</ToolButton
-							>
-							{#if confirming && selected === p.id}<ToolButton
-									disabled={busy}
-									onclick={() => (confirming = false)}>{$t.history.cancel}</ToolButton
-								>{/if}
+								onconfirm={() => void remove()}
+								oncancel={() => (confirming = false)}
+							/>
 						{/if}
 					</div>
 				</li>
@@ -279,8 +277,11 @@
 			</form>
 		{/if}
 	{/if}
-	{#if notice}<p role="status">{notice}</p>{/if}
-	{#if error}<p role="alert">{error}</p>{/if}
+	<!-- Always in the DOM, so the region exists before it has anything to say. -->
+	<p class="live-slot" role="status">
+		{#if notice}{$t.usability[notice]}{/if}
+	</p>
+	{#if error}<p role="alert">{describeError(error, $t)}</p>{/if}
 </section>
 
 <style>

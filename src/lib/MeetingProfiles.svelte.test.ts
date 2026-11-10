@@ -9,6 +9,7 @@ import { PROFILES_KEY } from './profiles';
 import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
 import { blockStorage } from './testing/storage';
 import { operatorContextMap } from './operatorContext';
+import { locale } from './i18n';
 vi.mock('./tauri', () => ({
 	isTauri: () => true,
 	api: {
@@ -82,6 +83,29 @@ it('saves and reloads setup, revalidates missing devices and excludes old proces
 	expect(JSON.parse(localStorage.getItem(PROFILES_KEY)!)).toHaveLength(1);
 	await fireEvent.click(view.getByText('Delete permanently'));
 	await waitFor(() => expect(JSON.parse(localStorage.getItem(PROFILES_KEY)!)).toHaveLength(0));
+	view.unmount();
+});
+
+// A live region inserted together with its text is often missed (review A1), and a notice
+// kept as a finished sentence stayed in the old language (review A2).
+it('keeps its status in the DOM from the start and words it in the current language', async () => {
+	locale.set('en');
+	const view = render(MeetingProfiles, {
+		props: { locked: false, onLoaded: vi.fn(), onBusy: vi.fn() },
+		context: operatorContextMap({ overlay: createOverlayController() })
+	});
+	const status = view.getByRole('status');
+	expect(status.textContent).toBe('');
+	expect(status.matches('.live-slot:empty')).toBe(true);
+	await fireEvent.click(view.getByRole('button', { name: 'Manage profiles' }));
+	await fireEvent.click(view.getByText('Save current setup…'));
+	await fireEvent.input(view.getByLabelText('Profile name'), { target: { value: 'Hall' } });
+	await fireEvent.click(view.getByText('Save current setup'));
+	await waitFor(() => expect(status).toHaveTextContent('Profile saved.'));
+	expect(view.getByRole('status')).toBe(status);
+	locale.set('fr');
+	await waitFor(() => expect(status).toHaveTextContent('Profil enregistré.'));
+	locale.set('en');
 	view.unmount();
 });
 

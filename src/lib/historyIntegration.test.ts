@@ -30,6 +30,8 @@ it('archives each run independently of clear and the combined document timeline,
 	pushCaption(caption);
 	await sessionHistory.finish();
 	beginSession();
+	// The core stops the first run as the second starts: that Idle is the first run's.
+	applyStatus({ state: 'idle' });
 	pushCaption({ ...caption, text: 'Second', final: false });
 	applyStatus({ state: 'idle' });
 	await sessionHistory.finish();

@@ -30,13 +30,30 @@ describe('timed exports', () => {
 		const result = formatTranscript([mic, system], 'srt');
 		expect(result).toContain('1\n00:00:00,000 --> 00:00:00,001\n[System] English');
 		expect(result).toContain(
-			'2\n00:00:01,000 --> 00:00:03,000\n[Microphone] Bonjour &lt;room&gt; &amp; hello'
+			'2\n00:00:01,000 --> 00:00:03,000\n[Microphone] Bonjour <room> & hello'
 		);
 	});
 	it('writes WebVTT voice labels and hours beyond 24', () => {
 		const result = formatTranscript([{ ...mic, startMs: 90000000, endMs: 90001000 }], 'vtt');
 		expect(result).toContain('WEBVTT\n\n1\n25:00:00.000 --> 25:00:01.000');
 		expect(result).toContain('<v Microphone>');
+	});
+	// Review B9: SRT has no entities, so "Q&A" stays "Q&A"; WebVTT is markup and keeps its
+	// escaping. Neither lets a line of the text end the cue or pass for a timing line.
+	it('escapes only what each format needs', () => {
+		const tricky = { ...mic, text: 'Q&A --> next\n\n<b>bold</b>', sourceText: 'Q & R -->' };
+		const options = { original: true };
+		const srt = formatTranscript([tricky], 'srt', undefined, DEFAULT_LABELS, options);
+		expect(srt).toBe(
+			'1\n00:00:01,000 --> 00:00:03,000\n[Microphone] Q&A -> next <b>bold</b>\n<i>Q & R -></i>\n'
+		);
+		const vtt = formatTranscript([tricky], 'vtt', undefined, DEFAULT_LABELS, options);
+		expect(vtt).toContain(
+			'<v Microphone>Q&amp;A --&gt; next &lt;b&gt;bold&lt;/b&gt;</v>\n<i>Q &amp; R --&gt;</i>'
+		);
+		// One timing line per cue, and no blank line inside it.
+		expect(srt.match(/-->/g)).toHaveLength(1);
+		expect(srt.trimEnd().split('\n\n')).toHaveLength(1);
 	});
 	it('handles empty exports but refuses missing or invalid timings without losing text', () => {
 		expect(formatTranscript([], 'vtt')).toBe('WEBVTT\n\n');

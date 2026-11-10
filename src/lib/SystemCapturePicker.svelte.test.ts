@@ -79,3 +79,23 @@ it('lists applications at once when One application was already chosen', () => {
 	});
 	expect(refresh).toHaveBeenCalledOnce();
 });
+// A live region inserted together with its text is often missed (review A1): the note's
+// region is there from the first render, empty and out of the flow until it has something.
+it('keeps the application note’s status in the DOM and only changes its text', async () => {
+	const view = render(SystemCapturePicker, {
+		locked: false,
+		outputs: [],
+		applications: [],
+		supported: true,
+		refresh: vi.fn().mockResolvedValue(undefined),
+		changed: vi.fn()
+	});
+	const status = view.getByRole('status');
+	expect(status.matches('.live-slot:empty')).toBe(true);
+	await fireEvent.change(view.getByRole('combobox', { name: 'System capture' }), {
+		target: { value: 'application' }
+	});
+	expect(view.getByRole('status')).toBe(status);
+	expect(status.textContent).not.toBe('');
+	expect(status.matches(':empty')).toBe(false);
+});

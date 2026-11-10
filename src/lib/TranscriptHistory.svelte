@@ -1,15 +1,17 @@
 <script lang="ts">
-	import { TARGET_LANGUAGES, languageName } from './languages';
+	import { TARGET_LANGUAGES, captionDirection, languageName } from './languages';
 	import Select from './ui/Select.svelte';
 	import Field from './ui/Field.svelte';
 	import DateField from './ui/DateField.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
+	import ConfirmButton from './ui/ConfirmButton.svelte';
 	import Preference from './ui/Preference.svelte';
 	import ExportFormatSelect from './ExportFormatSelect.svelte';
 	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
 	import { api, isTauri } from './tauri';
-	import { asStatus, describeError, type AppError } from './errors';
+	import { asStatus, type AppError } from './errors';
+	import { describeStatus, type WordedMessage } from './sessionStatus';
 	import { t, locale, localeTag, formatDateTime } from './i18n';
 	import { formatElapsed } from './sessionClock.svelte';
 	import {
@@ -44,9 +46,16 @@
 	// language rather than as "[object Object]". A failed listing and a failed action on the
 	// selected session are told apart: each has its own headline, and a listing that succeeds
 	// clears only its own failure, not the one an action is still reporting.
-	let error = $state.raw<string | AppError>('');
-	let actionError = $state.raw<string | AppError>('');
-	let notice = $state('');
+	let error = $state.raw<Caught>('');
+	let actionError = $state.raw<Caught>('');
+	// Worded where it is shown, like the failures, so it follows a change of interface language.
+	let notice = $state.raw<WordedMessage | ''>('');
+	type Caught = string | AppError | WordedMessage;
+	/** A failure as caught: the core's `{ id, detail? }` or a message worded from the catalogue
+	 *  stays structured until it is shown; anything else becomes its text. */
+	function caught(e: unknown): Caught {
+		return typeof e === 'function' ? (e as WordedMessage) : asStatus(e);
+	}
 	let confirmDelete = $state('');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
 	const timed = $derived(selected ? hasTranscriptTiming(selected.lines) : false);
@@ -70,9 +79,9 @@
 			await sessionHistory.rename(selected, title);
 			cache.forget(selected.id);
 			await refresh();
-			notice = $t.usability.titleSaved;
+			notice = (m) => m.usability.titleSaved;
 		} catch (e) {
-			actionError = asStatus(e);
+			actionError = caught(e);
 		} finally {
 			busy = false;
 		}
@@ -89,7 +98,7 @@
 			sessions = cache.apply(listing);
 			error = '';
 		} catch (e) {
-			if (current === request) error = asStatus(e);
+			if (current === request) error = caught(e);
 		}
 	}
 	// A recording session writes history after every finalized line, and each write bumps the
@@ -148,25 +157,21 @@
 		try {
 			if (kind === 'copy') {
 				await navigator.clipboard.writeText(content(selected, 'text'));
-				notice = $t.history.copied;
+				notice = (m) => m.history.copied;
 			} else {
 				const path = await api.saveTranscript(
 					content(selected, $format),
 					transcriptFilename(new Date(selected.startedAt), $format)
 				);
-				if (path) notice = `${$t.transcript.savedTo} ${path}`;
+				if (path) notice = (m) => `${m.transcript.savedTo} ${path}`;
 			}
 		} catch (e) {
-			actionError = asStatus(e);
+			actionError = caught(e);
 		} finally {
 			busy = false;
 		}
 	}
 	async function remove(id: string) {
-		if (confirmDelete !== id) {
-			confirmDelete = id;
-			return;
-		}
 		busy = true;
 		actionError = '';
 		notice = '';
@@ -176,10 +181,21 @@
 			confirmDelete = '';
 			await refresh();
 		} catch (e) {
-			actionError = asStatus(e);
+			actionError = caught(e);
 		} finally {
 			busy = false;
 		}
+	}
+
+	/** The language a saved line was captioned in, for its `lang` and `dir`: recorded on the
+	 *  line in a session with two languages, otherwise the session's own — the caption
+	 *  language, or the spoken one for subtitles when it was known. */
+	function lineLanguage(session: SavedSession, line: SavedSession['lines'][number]) {
+		if (line.language) return line.language;
+		const lane = line.lane ?? 0;
+		const captioned = lane === 1 ? session.secondTargetLanguage : session.targetLanguage;
+		if (captioned) return captioned;
+		return lane === 0 && session.sourceLanguage !== 'auto' ? session.sourceLanguage : undefined;
 	}
 </script>
 
@@ -196,7 +212,7 @@
 	{#if !desktop}<p class="hint">{$t.design.desktopOnly}</p>{/if}
 
 	{#if $historyError}
-		<p role="alert">{$t.history.failed} {describeError($historyError, $t)}</p>
+		<p role="alert">{$t.history.failed} {describeStatus($historyError, $t, $locale)}</p>
 		<ToolButton disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}
 			>{$t.history.retry}</ToolButton
 		>
@@ -288,15 +304,16 @@
 						disabled={busy || (isTimedFormat($format) && !timed)}
 						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
 					>
-					<ToolButton disabled={busy} onclick={() => remove(selectedId)}
-						>{confirmDelete === selectedId
-							? $t.history.confirmDelete
-							: $t.history.delete}</ToolButton
-					>
-					{#if confirmDelete === selectedId}<ToolButton
-							disabled={busy}
-							onclick={() => (confirmDelete = '')}>{$t.history.cancel}</ToolButton
-						>{/if}
+					<ConfirmButton
+						confirming={confirmDelete === selectedId}
+						label={$t.history.delete}
+						confirmLabel={$t.history.confirmDelete}
+						cancelLabel={$t.history.cancel}
+						disabled={busy}
+						onask={() => (confirmDelete = selectedId)}
+						onconfirm={() => void remove(selectedId)}
+						oncancel={() => (confirmDelete = '')}
+					/>
 				</div>
 				{#if hasOriginalSpeech(selected.lines)}<Preference
 						label={$t.transcript.includeOriginal}
@@ -309,29 +326,46 @@
 					</p>{/if}
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
 				<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
+					<!-- Each line in the language it was captioned in, as the live log does (review U12),
+					     and the original speech once: under the first language's line only, as the
+					     saved documents write it — the second language heard the same speech. The
+					     original's language is not recorded, so it is `lang=""`, its direction taken
+					     from the text. -->
 					{#each [...selected.lines].reverse() as line (line.id)}
-						<p><strong>{$t.transcript.side[line.origin]}</strong> {line.text}</p>
-						{#if line.sourceText}<p class="source">{line.sourceText}</p>{/if}
+						{@const language = lineLanguage(selected, line)}
+						<p>
+							<strong>{$t.transcript.side[line.origin]}</strong>
+							<span lang={language ?? ''} dir={captionDirection(language)}>{line.text}</span>
+						</p>
+						{#if line.sourceText && (line.lane ?? 0) === 0}<p class="source" lang="" dir="auto">
+								{line.sourceText}
+							</p>{/if}
 					{/each}
 				</div>
 			{:else if selectedId}
 				<p class="hint">{$t.history.unreadable}</p>
-				<ToolButton class="danger" disabled={busy} onclick={() => remove(selectedId)}
-					>{confirmDelete === selectedId ? $t.history.confirmDelete : $t.history.delete}</ToolButton
-				>
-				{#if confirmDelete === selectedId}<ToolButton onclick={() => (confirmDelete = '')}
-						>{$t.history.cancel}</ToolButton
-					>{/if}
+				<ConfirmButton
+					class="danger"
+					confirming={confirmDelete === selectedId}
+					label={$t.history.delete}
+					confirmLabel={$t.history.confirmDelete}
+					cancelLabel={$t.history.cancel}
+					disabled={busy}
+					cancelDisabled={false}
+					onask={() => (confirmDelete = selectedId)}
+					onconfirm={() => void remove(selectedId)}
+					oncancel={() => (confirmDelete = '')}
+				/>
 			{:else}<p class="hint">{$t.design.selectSession}</p>
 			{/if}
 		</div>
 	</div>
-	{#if error}<p role="alert">{$t.history.failed} {describeError(error, $t)}</p>{/if}
+	{#if error}<p role="alert">{$t.history.failed} {describeStatus(error, $t, $locale)}</p>{/if}
 	{#if actionError}<p role="alert">
 			{$t.history.actionFailed}
-			{describeError(actionError, $t)}
+			{describeStatus(actionError, $t, $locale)}
 		</p>{/if}
-	<p class="notice" role="status">{notice}</p>
+	<p class="notice" role="status">{notice ? notice($t, $locale) : ''}</p>
 </section>
 
 <style>

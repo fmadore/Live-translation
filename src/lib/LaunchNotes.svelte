@@ -22,9 +22,18 @@
 {/if}
 
 <div class="launch">
-	<span class="rehearse-hint" id="rehearse-hint">
-		{$options.provider === 'ondevice' ? $t.preflight.rehearse.demoHint : $t.preflight.rehearse.hint}
-	</span>
+	<!-- Led by the button's own name, so the note reads as being about Rehearse rather than
+	     about the checklist above it. Only the sentence is the button's description
+	     (`aria-describedby` in SessionControls): the name would be read twice. -->
+	<span class="rehearse-hint"
+		><strong class="lead">{$t.preflight.rehearse.action}</strong><span aria-hidden="true"
+			>{' · '}</span
+		><span id="rehearse-hint"
+			>{$options.provider === 'ondevice'
+				? $t.preflight.rehearse.demoHint
+				: $t.preflight.rehearse.hint}</span
+		></span
+	>
 	<span class="privacy">
 		{$historyEnabled
 			? $t.history.stored
@@ -72,6 +81,13 @@
 		color: var(--text-muted);
 		max-width: 72ch;
 		text-wrap: pretty;
+	}
+
+	/* The button's name, in the label grey and weight, so the eye finds which button the
+	   sentence is about. */
+	.lead {
+		font-weight: 600;
+		color: var(--text-secondary);
 	}
 
 	/* Near the window's minimum height, tighten the vertical rhythm so the pre-flight checklist

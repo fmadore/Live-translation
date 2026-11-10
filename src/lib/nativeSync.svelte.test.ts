@@ -7,7 +7,7 @@ import { mockTauri, type TauriMock } from './testing/tauriMock';
 import { createOverlayController } from './overlayController.svelte';
 import { syncNative } from './nativeSync.svelte';
 import type { SessionClock } from './sessionClock.svelte';
-import { options } from './stores';
+import { applyStatus, options } from './stores';
 import { on } from './tauri';
 import type { OverlayConfig } from './types';
 
@@ -27,10 +27,9 @@ afterEach(async () => {
 });
 
 /** The operator page's part: a controller, its `overlay-state` listener and the mirrors. */
-async function mount() {
+async function mount(clock = { elapsedMs: 0 } as SessionClock) {
 	const overlay = createOverlayController();
 	unlisten = await on.overlayState(overlay.applyState);
-	const clock = { elapsed: '00:00' } as SessionClock;
 	stop = $effect.root(() => syncNative({ desktop: true, overlay, clock }));
 	flushSync();
 	return overlay;
@@ -108,4 +107,38 @@ it('tells the tray the overlay is hidden once the core says so', async () => {
 	await expect.poll(() => overlay.overlayVisible).toBe(false);
 	flushSync();
 	await expect.poll(lastTray).toMatchObject({ overlayVisible: false });
+});
+
+// Review E3: the tray's status line used to carry the clock to the second, so the whole tray
+// state crossed IPC every second of a session. It now gives whole minutes, sent as they change.
+it('tells the tray how long the session has run once a minute, not every second', async () => {
+	let elapsedMs = $state(0);
+	const clock = {
+		get elapsedMs() {
+			return elapsedMs;
+		}
+	} as SessionClock;
+	applyStatus({ state: 'running', origin: 'microphone' });
+	try {
+		await mount(clock);
+		await expect.poll(lastTray).toMatchObject({ labels: { status: 'Live · 0 min' } });
+		const pushes = () => core.callsTo('set_tray_state').length;
+		const before = pushes();
+		for (const seconds of [1, 2, 30, 59]) {
+			elapsedMs = seconds * 1000;
+			flushSync();
+		}
+		await new Promise((resolve) => setTimeout(resolve, 20));
+		expect(pushes()).toBe(before);
+
+		elapsedMs = 60_000;
+		flushSync();
+		await expect.poll(lastTray).toMatchObject({ labels: { status: 'Live · 1 min' } });
+		expect(pushes()).toBe(before + 1);
+		elapsedMs = 61 * 60_000;
+		flushSync();
+		await expect.poll(lastTray).toMatchObject({ labels: { status: 'Live · 1 h 01 min' } });
+	} finally {
+		applyStatus({ state: 'idle' });
+	}
 });

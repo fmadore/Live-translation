@@ -35,11 +35,13 @@
 	const pending = $derived(live ? $inFlightLines : []);
 	// The reader shows what Save and Copy will write, so the original speech appears under
 	// each paragraph exactly when it would be exported.
-	const showOriginal = $derived(reader && hasOriginalSpeech(transcript) && $exportOriginal);
+	// One pass over the log, shared with the toolbar's include-original option.
+	const bilingual = $derived(hasOriginalSpeech(transcript));
+	const showOriginal = $derived(reader && bilingual && $exportOriginal);
 </script>
 
 <section class="monitor" class:reader>
-	<TranscriptActions {transcript} {pending} {onError} />
+	<TranscriptActions {transcript} {pending} {bilingual} {onError} />
 	<TranscriptLog {mode} {transcript} pending={reader ? pending : []} {reader} {showOriginal} />
 	<RecoveryPreference {onError} />
 </section>

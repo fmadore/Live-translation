@@ -286,8 +286,13 @@ input[type='checkbox']:focus-visible {
    where a state change has to be announced without also being drawn. Pinned to the corner
    of its containing block: left at its static position, one deep in a scrolling column (the
    rail's glossary announcer) is positioned against the page instead, sits below the fold and
-   makes the whole window scroll by a band of empty space. */
-.sr-only {
+   makes the whole window scroll by a band of empty space.
+   `.live-slot` is a visible status that has to stay in the DOM while it has nothing to say —
+   a live region inserted together with its text is often missed — so while empty it is taken
+   out of the flow the same way, and adds no gap or margin to the layout around it. Its text
+   goes inside an `{#if}`, so an empty one holds no text node at all, only Svelte's comment. */
+.sr-only,
+.live-slot:empty {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -442,6 +447,17 @@ input {
 	border-color: transparent;
 	color: var(--on-accent);
 	filter: brightness(1.06);
+}
+/* A primary that cannot be pressed yet (Start while a check is waiting) loses the mint
+   altogether: half-transparent mint still read as the button to press. It sinks into the
+   lowest surface with the quiet edge and the muted grey, at full opacity, so its label and
+   printed shortcut keep 4.5:1 on that surface; the checklist says why it waits. */
+.ui-tool.primary:disabled {
+	border-color: var(--line-strong);
+	background: var(--surface-0);
+	color: var(--text-muted);
+	opacity: 1;
+	filter: none;
 }
 .ui-tool.danger {
 	border-color: var(--danger-border);

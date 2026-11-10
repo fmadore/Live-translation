@@ -20,7 +20,6 @@
 	import RecoveryPrompt from '#lib/RecoveryPrompt.svelte';
 	import TrayHidePrompt from '#lib/TrayHidePrompt.svelte';
 	import ProviderConsentPrompt from '#lib/ProviderConsentPrompt.svelte';
-	import { aiConsent, grantAiConsent, needsAiConsent } from '#lib/aiConsent.js';
 	import UnsavedPrompt from '#lib/UnsavedPrompt.svelte';
 	import ZoomCaptionsDialog from '#lib/ZoomCaptionsDialog.svelte';
 	import { createPreflightController } from '#lib/preflightController.svelte.js';
@@ -37,6 +36,7 @@
 	import { createLaunchController } from '#lib/launchController.svelte.js';
 	import { shortcut } from '#lib/shortcuts.js';
 	import { on, isTauri } from '#lib/tauri.js';
+	import { listenAll } from '#lib/coreEvents.js';
 	import { describeError } from '#lib/errors.js';
 	import {
 		sessionState,
@@ -55,7 +55,7 @@
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
 	import { followTheme } from '#lib/theme.js';
-	import type { Provider, SessionState } from '#lib/types.js';
+	import type { SessionState } from '#lib/types.js';
 	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
@@ -73,7 +73,6 @@
 		toggleOverlayVisible: () => overlay.toggleOverlayVisible()
 	});
 	const sessionBusy = session.busy;
-	const sessionStarting = session.starting;
 	let profileBusy = $state(false);
 	const controlsLocked = $derived($isRunning || $sessionBusy || profileBusy);
 	// Test audio follows `controlsLocked`, as its button does. A capture failure holds only the
@@ -110,29 +109,9 @@
 
 	// Start, Rehearse and the start shortcut: what blocks them, and the launch they share.
 	// Created before the meter gates below, which depend on whether a rehearsal is running.
-	// The question before audio first goes to a cloud provider: the launch waits on the
-	// operator's answer, and nothing starts on Cancel or Escape.
-	let consentAsk = $state<{
-		provider: Provider;
-		answer: (send: boolean) => void;
-	} | null>(null);
-	function askConsent(provider: Provider): Promise<boolean> {
-		if (!needsAiConsent(provider, $aiConsent)) return Promise.resolve(true);
-		return new Promise((resolve) => {
-			consentAsk = {
-				provider,
-				answer: (send) => {
-					consentAsk = null;
-					if (send) grantAiConsent(provider);
-					resolve(send);
-				}
-			};
-		});
-	}
-
+	// It also asks before audio first goes to a cloud provider (`launch.consentAsk`).
 	const launch = createLaunchController({
 		browserMode,
-		consent: askConsent,
 		start: (selected) => session.start(selected),
 		sessionBusy,
 		profileBusy: () => profileBusy,
@@ -162,11 +141,12 @@
 
 		// Sharing with Zoom may have outlived the last load of this window. Asked once the
 		// listener is in place, so nothing the core reports in between is missed.
-		const zoomListening = on.zoomCaptions(zoom.apply);
-		void zoomListening.then(() => zoom.resync());
+		const zoomEvents = listenAll([on.zoomCaptions(zoom.apply)]);
+		void zoomEvents.ready.then((listening) => {
+			if (listening) void zoom.resync();
+		});
 
-		const unlisteners: Array<Promise<() => void>> = [
-			zoomListening,
+		const events = listenAll([
 			// Windows' accessibility text size, which WebView2 does not pass on by itself.
 			// This window honours it; the overlay deliberately does not — see
 			// `docs/accessibility.md`.
@@ -177,7 +157,7 @@
 				if (l.rms > 0.02 && $isRunning) noteActivity(l.source, 'audio');
 			}),
 			on.status((s) => {
-				applyStatus(s, { starting: $sessionStarting });
+				applyStatus(s);
 				device.noteStatus(s);
 			}),
 			on.devicesChanged(() => void preflight.refresh()),
@@ -197,11 +177,12 @@
 			// A projector unplugged or plugged back in mid-event: put the overlay where this
 			// layout last had it, once the core has made sure it is on a display at all.
 			on.displaysChanged((layout) => void overlay.handleDisplaysChanged(layout))
-		];
+		]);
 
 		return () => {
 			preflight.dispose();
-			void Promise.all(unlisteners).then((fns) => fns.forEach((f) => f()));
+			zoomEvents.stop();
+			events.stop();
 		};
 	});
 
@@ -445,10 +426,10 @@
 	/>
 {/if}
 
-{#if consentAsk}
+{#if launch.consentAsk}
 	<ProviderConsentPrompt
-		vendor={$t.provider.vendor[consentAsk.provider]}
-		onChoice={consentAsk.answer}
+		vendor={$t.provider.vendor[launch.consentAsk]}
+		onChoice={launch.answerConsent}
 	/>
 {/if}
 

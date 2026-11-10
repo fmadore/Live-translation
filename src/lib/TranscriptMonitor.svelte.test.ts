@@ -232,6 +232,21 @@ describe('long sessions', () => {
 		const { queryByText } = mount(seed(TRANSCRIPT_WARN_LINES - 1));
 		expect(queryByText(WARNING)).toBeNull();
 	});
+
+	// A live region inserted together with its text is often missed (review A1).
+	it('keeps the warning and the timing note in the DOM, empty and out of the flow', async () => {
+		const { container, getByRole, getByText } = mount(seed(2));
+		const warn = container.querySelector('.warn')!;
+		const hint = container.querySelector('.hint.live-slot')!;
+		for (const region of [warn, hint]) {
+			expect(region).toHaveAttribute('role', 'status');
+			expect(region.matches('.live-slot:empty')).toBe(true);
+		}
+		await fireEvent.change(getByRole('combobox', { name: 'Export format' }), {
+			target: { value: 'srt' }
+		});
+		expect(getByText(/recovered transcript has no timing/)).toBe(hint);
+	});
 });
 
 // Issue #24: a save that only turns a badge from "Unsaved" to "Saved" is invisible to a

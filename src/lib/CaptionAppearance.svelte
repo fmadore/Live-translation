@@ -117,29 +117,26 @@
 								onclick={() => overlay.setPalette({ [role]: swatch.hex })}
 							></button>
 						{/each}
+						<!-- Beside its own swatches, under the heading that already names which
+						     colour, so the visible label is only "Custom…" and holds one line in
+						     every language (review V4). Its name still says which colour. -->
+						<label class="swatch">
+							<span class="swatch-label">{$t.design.custom}</span>
+							<input
+								type="color"
+								value={role === 'text' ? $overlayPalette.text : $overlayPalette.scrim}
+								aria-label={`${
+									role === 'text'
+										? $t.overlayControls.captionColour
+										: $t.overlayControls.scrimColour
+								} · ${$t.design.custom}`}
+								aria-describedby={contrastId}
+								oninput={(e) => overlay.setPalette({ [role]: e.currentTarget.value })}
+							/>
+						</label>
 					</div>
 				</div>
 			{/each}
-		</div>
-		<div class="colour-row">
-			<label class="swatch">
-				<span class="swatch-label">{$t.overlayControls.captionColour} · {$t.design.custom}</span>
-				<input
-					type="color"
-					value={$overlayPalette.text}
-					aria-describedby={contrastId}
-					oninput={(e) => overlay.setPalette({ text: e.currentTarget.value })}
-				/>
-			</label>
-			<label class="swatch">
-				<span class="swatch-label">{$t.overlayControls.scrimColour} · {$t.design.custom}</span>
-				<input
-					type="color"
-					value={$overlayPalette.scrim}
-					aria-describedby={contrastId}
-					oninput={(e) => overlay.setPalette({ scrim: e.currentTarget.value })}
-				/>
-			</label>
 		</div>
 		<!-- Stepped in whole percent, the unit it is printed in, rather than in the stored
 		     fraction: the steps and the bounds are then integers, not sums of 0.05. -->
@@ -216,8 +213,12 @@
 		display: grid;
 		gap: var(--space-3);
 	}
+	/* Wraps between items, never inside one: where the column is too narrow for the swatches
+	   and the custom picker, the picker moves to its own line, its label still on one. */
 	.swatches {
 		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
 		gap: var(--space-2);
 		margin-top: var(--space-2);
 	}
@@ -240,18 +241,14 @@
 	.kicker {
 		flex: 0 0 auto;
 	}
-	.colour-row {
-		display: grid;
-		grid-auto-flow: column;
-		grid-auto-columns: 1fr;
-		gap: var(--space-2);
-	}
 	.swatch {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--space-2);
-		padding: var(--space-2) var(--space-2);
+		/* The height of the swatches it sits beside. */
+		min-height: var(--control-sm);
+		padding: var(--space-1) var(--space-2);
 		border-radius: var(--radius-control);
 		border: 1px solid var(--line-strong);
 		background: var(--surface-1);
@@ -259,6 +256,9 @@
 	}
 	.swatch:hover {
 		border-color: var(--line-hover);
+	}
+	.swatch .swatch-label {
+		white-space: nowrap;
 	}
 	.swatch-label {
 		font-size: var(--type-small);

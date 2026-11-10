@@ -117,4 +117,14 @@ describe('the launch notes', () => {
 		const view = render(LaunchNotes, { props: { statusText: 'Disk full' } });
 		expect(view.getByText('Disk full')).toHaveAttribute('aria-hidden', 'true');
 	});
+
+	// Review V3: the note sat unlabelled under the checklist, far from the button it is about.
+	it('lead the rehearsal note with the button’s name, and describe the button with the rest', () => {
+		options.set({ ...DEFAULT_START_OPTIONS, provider: 'gemini' });
+		const view = render(LaunchNotes, { props: { statusText: '' } });
+		const note = view.container.querySelector('.rehearse-hint')!;
+		expect(note.textContent).toMatch(/^Rehearse · Plays a bundled sample recording/);
+		// What Rehearse's `aria-describedby` reads: the sentence alone, not its name again.
+		expect(document.getElementById('rehearse-hint')!.textContent).toMatch(/^Plays a bundled/);
+	});
 });

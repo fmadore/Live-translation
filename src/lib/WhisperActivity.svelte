@@ -3,6 +3,7 @@
 	import { t } from './i18n';
 	import { isRunning, statusMessage } from './stores';
 	import { api, on } from './tauri';
+	import { listenAll } from './coreEvents';
 	import { asStatus } from './errors';
 	import {
 		noteWhisperProgress,
@@ -63,17 +64,13 @@
 		void $pending;
 		if (!$isRunning) whisperProgress.set({});
 	});
-	onMount(() => {
-		let disposed = false;
-		const cleanups: (() => void)[] = [];
-		const keep = (fn: () => void) => (disposed ? fn() : cleanups.push(fn));
-		void on.whisperProgress(noteWhisperProgress).then(keep);
-		void on.whisperEngine((update) => engine.set(update)).then(keep);
-		return () => {
-			disposed = true;
-			for (const fn of cleanups) fn();
-		};
-	});
+	onMount(
+		() =>
+			listenAll([
+				on.whisperProgress(noteWhisperProgress),
+				on.whisperEngine((update) => engine.set(update))
+			]).stop
+	);
 	async function discard() {
 		confirmDiscard = false;
 		discarding = true;

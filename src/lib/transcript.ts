@@ -36,6 +36,17 @@ function cueTime(ms: number, separator: string): string {
 	return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}${separator}${String(ms % 1000).padStart(3, '0')}`;
 }
 
+/** WebVTT cue text is markup: `&`, `<` and `>` are written as entities. */
+function escapeVtt(value: string): string {
+	return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** SRT has no entities, so text is written as it is (review B9: "Q&A" came out `Q&amp;A`).
+ *  Only a literal `-->`, which a reader takes for a timing line, is broken up. */
+function escapeSrt(value: string): string {
+	return value.replace(/-->/g, '->');
+}
+
 function timedTranscript(
 	lines: TranscriptLine[],
 	format: 'vtt' | 'srt',
@@ -53,8 +64,8 @@ function timedTranscript(
 			const start = line.startMs!;
 			// A provider can finalize a whole turn in one frame. Give that cue a minimal interval.
 			const end = Math.max(start + 1, line.endMs!);
-			const escape = (value: string) =>
-				value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+			const escape = format === 'vtt' ? escapeVtt : escapeSrt;
+			// One line per part: a line break, a blank one above all, would end the cue.
 			const oneLine = (value: string) => escape(value.trim().replace(/\s*\r?\n\s*/g, ' '));
 			const text = oneLine(line.text);
 			const origin = escape(speakerLabel(labels, line));

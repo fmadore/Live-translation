@@ -110,11 +110,20 @@ export function describeStatus(
  *  running cost estimate. */
 export const sessionStartedAt = writable<number | null>(null);
 
-/** Whether a source of the current run has reported an active state since `beginSession`.
- *  When a replacement starts, the drained session's Idle can arrive after `beginSession`;
- *  the core stops the old run before starting the new one, so that stale Idle always comes
- *  before this run's first active status — and must not be taken for this run ending. */
+/** Whether a source of the current run has reported an active state since `beginSession`. */
 let runHadActiveSource = false;
+
+/** Whether the core may still hold a session this window started: from `beginSession` until a
+ *  whole-session Idle, or the controller's word that the start failed. The core sends that
+ *  Idle only when it stops a session, by Stop or by the next start stopping it first. */
+let coreHoldsSession = false;
+
+/** The previous run's whole-session Idle is still due (review B4). A start stops the session
+ *  the core still holds before it starts the new one, so that Idle is sent before anything of
+ *  the new run, but events and command answers travel separately: it can land after
+ *  `start_session` has answered. Exactly one is due, so the first whole-session Idle is taken
+ *  for it, as is this run's first active status, which proves it already came. */
+let staleIdleDue = false;
 
 /** When each source last came to be running — at the start, on Resume, after a reconnect.
  *  "No captions for 15 seconds" is measured from here rather than from the run's start:
@@ -122,9 +131,10 @@ let runHadActiveSource = false;
  *  than that raised the alert, and Narrator spoke it, the moment the source resumed. */
 export const runningSince = writable<Partial<Record<Origin, number>>>({});
 
-/** Apply one status event from the Rust core. `starting` says it arrived while a start is in
- *  flight (the session controller's `starting`), when a whole-session Idle is not this run's. */
-export function applyStatus(u: StatusUpdate, { starting = false }: { starting?: boolean } = {}) {
+/** Apply one status event from the Rust core. `local` marks the window's own conclusion rather
+ *  than an event: the session controller's Idle for a start that failed, which the core does not
+ *  send, and which is never the previous run's. */
+export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolean } = {}) {
 	if (u.origin) {
 		const origin = u.origin;
 		// A status with no lane is about the source itself — a capture failure — and so about
@@ -166,6 +176,7 @@ export function applyStatus(u: StatusUpdate, { starting = false }: { starting?: 
 			}
 		} else {
 			runHadActiveSource = true;
+			staleIdleDue = false;
 			// Starting a replacement first drains the old backend session, whose Idle
 			// can arrive after beginSession. Its first active status starts the new clock.
 			if (get(sessionStartedAt) === null) sessionStartedAt.set(Date.now());
@@ -175,8 +186,13 @@ export function applyStatus(u: StatusUpdate, { starting = false }: { starting?: 
 		// ended by itself is still held — so that session's Idle, with its failure, arrives
 		// after `beginSession`. It is the old run's end, not this one's: taken for this run's,
 		// it stopped the new clock and put the old failure back on the status line as the new
-		// run began. A start that fails sends no Idle of its own; the controller reports it.
-		if (starting) return;
+		// run began. A start that fails sends no Idle of its own; the controller reports it,
+		// as `local`, and that leaves the old run's Idle still due.
+		if (!local && staleIdleDue) {
+			staleIdleDue = false;
+			return;
+		}
+		coreHoldsSession = false;
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
@@ -201,6 +217,9 @@ export function applyStatus(u: StatusUpdate, { starting = false }: { starting?: 
 export function beginSession(sessionOptions = get(options)) {
 	beginTranscriptRun(sessionOptions);
 	runHadActiveSource = false;
+	// A session the core may still hold is stopped by this start, with an Idle of its own.
+	staleIdleDue ||= coreHoldsSession;
+	coreHoldsSession = true;
 	originStates.set({});
 	runningSince.set({});
 	pauseRequested.set(false);

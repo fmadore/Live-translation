@@ -25,6 +25,7 @@
 	import { isLocale, locale, t } from '#lib/i18n/index.js';
 	import { isTargetLanguage } from '#lib/languages.js';
 	import { api, on, isTauri } from '#lib/tauri.js';
+	import { listenAll } from '#lib/coreEvents.js';
 	import type { Lane, Origin, TargetLanguage } from '#lib/types.js';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
@@ -138,52 +139,52 @@
 			return cleanup;
 		}
 
-		const unlistenCaption = on.caption((c) => captions.push(c));
-		const unlistenStatus = on.status((status) => captions.status(status));
-		const unlistenConfig = on.overlayConfig((cfg) => {
-			const previous = appearance;
-			appearance = fromOverlayConfig(cfg, appearance);
-			// Handed on only when they change (E2). Every push carries the whole appearance, and
-			// setting the hold restarts every expiry timer while setting the pace releases paced
-			// text: a colour drag mid-session kept finished captions up and let steady-paced text
-			// out early.
-			if (appearance.hold !== previous.hold) captions.setHold(appearance.hold);
-			if (appearance.pace !== previous.pace) captions.setPace(appearance.pace);
-			captions.setHideFillers(appearance.cleanSpeech);
-			if (Array.isArray(cfg.fillerWords))
-				captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
-			if (typeof cfg.showOriginal === 'boolean') captions.setShowOriginal(cfg.showOriginal);
-			captions.setLayout(appearance.layout);
-			captions.setWidth(appearance.width);
-			// The operator owns the interface language; this window follows it.
-			if (isLocale(cfg.locale)) locale.set(cfg.locale);
-			// Unconditional, unlike the rest: an absent caption language is a real answer
-			// ("nobody knows"), so it has to be able to clear one that was set before.
-			captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
-			secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
-				? cfg.secondCaptionLanguage
-				: undefined;
-			if (typeof cfg.interactive === 'boolean')
-				placement.setInteractive(
-					cfg.interactive,
-					typeof cfg.moveExitsSeen === 'number' ? cfg.moveExitsSeen : undefined
-				);
-		});
+		const events = listenAll([
+			on.caption((c) => captions.push(c)),
+			on.status((status) => captions.status(status)),
+			on.overlayConfig((cfg) => {
+				const previous = appearance;
+				appearance = fromOverlayConfig(cfg, appearance);
+				// Handed on only when they change (E2). Every push carries the whole appearance, and
+				// setting the hold restarts every expiry timer while setting the pace releases paced
+				// text: a colour drag mid-session kept finished captions up and let steady-paced text
+				// out early.
+				if (appearance.hold !== previous.hold) captions.setHold(appearance.hold);
+				if (appearance.pace !== previous.pace) captions.setPace(appearance.pace);
+				captions.setHideFillers(appearance.cleanSpeech);
+				if (Array.isArray(cfg.fillerWords))
+					captions.setFillerWords(normalizeFillerWords(cfg.fillerWords));
+				if (typeof cfg.showOriginal === 'boolean') captions.setShowOriginal(cfg.showOriginal);
+				captions.setLayout(appearance.layout);
+				captions.setWidth(appearance.width);
+				// The operator owns the interface language; this window follows it.
+				if (isLocale(cfg.locale)) locale.set(cfg.locale);
+				// Unconditional, unlike the rest: an absent caption language is a real answer
+				// ("nobody knows"), so it has to be able to clear one that was set before.
+				captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
+				secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
+					? cfg.secondCaptionLanguage
+					: undefined;
+				if (typeof cfg.interactive === 'boolean')
+					placement.setInteractive(
+						cfg.interactive,
+						typeof cfg.moveExitsSeen === 'number' ? cfg.moveExitsSeen : undefined
+					);
+			})
+		]);
 
 		// Ready once every listener is in place, and not before: the operator answers with a
 		// whole configuration, and one that arrived while `overlay-config` was still being
 		// subscribed would be lost. Without this, an overlay that loads after the operator's
 		// first push (a cold start, a WebView2 reload) kept empty row labels and `lang=""` until
 		// the operator happened to change a caption language.
-		void Promise.all([unlistenCaption, unlistenStatus, unlistenConfig]).then(() => {
-			if (mounted) void api.reportOverlayState({ ready: true }).catch(() => {});
+		void events.ready.then((listening) => {
+			if (listening && mounted) void api.reportOverlayState({ ready: true }).catch(() => {});
 		});
 
 		return () => {
 			cleanup();
-			void unlistenCaption.then((f) => f());
-			void unlistenStatus.then((f) => f());
-			void unlistenConfig.then((f) => f());
+			events.stop();
 		};
 	});
 

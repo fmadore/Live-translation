@@ -16,8 +16,13 @@ it('opens on the current value, filters and selects with Enter, and restores on 
 	const onchange = vi.fn();
 	const view = render(LanguagePicker, { ...base, onchange });
 	const input = view.getByRole('combobox') as HTMLInputElement;
+	// The error's status is in the DOM before there is an error: a live region inserted
+	// together with its text is often missed.
+	expect(view.getAllByRole('status').map((s) => s.textContent)).toEqual(['']);
 	input.focus();
 	await waitFor(() => expect(input).toHaveAttribute('aria-expanded', 'true'));
+	// The empty-filter status arrives with the list, before it has anything to say.
+	expect(view.getAllByRole('status').map((s) => s.textContent)).toEqual(['', '']);
 	expect(input.selectionEnd).toBe(input.value.length);
 	await fireEvent.input(input, { target: { value: 'francais' } });
 	await waitFor(() => expect(view.getAllByRole('option')).toHaveLength(1));
@@ -29,7 +34,7 @@ it('opens on the current value, filters and selects with Enter, and restores on 
 	expect(input).toHaveAttribute('aria-expanded', 'false');
 	await fireEvent.keyDown(input, { key: 'ArrowDown' });
 	await fireEvent.input(input, { target: { value: 'nonsense' } });
-	expect(view.getByRole('status')).toHaveTextContent('No matching languages');
+	expect(view.getAllByRole('status').map((s) => s.textContent)).toContain('No matching languages.');
 	await fireEvent.keyDown(input, { key: 'Escape' });
 	expect(input.value).toBe('EN · English');
 	view.unmount();
@@ -77,7 +82,14 @@ it('keeps unsupported favourites visible with a reason and refuses selection', a
 	await fireEvent.keyDown(input, { key: 'Enter' });
 	expect(onchange).not.toHaveBeenCalled();
 	expect(input).toHaveAttribute('aria-invalid', 'true');
-	expect(view.getByRole('status')).toHaveTextContent('choose another language');
+	const error = document.getElementById(
+		input
+			.getAttribute('aria-describedby')!
+			.split(' ')
+			.find((id) => id.endsWith('-error'))!
+	);
+	expect(error).toHaveAttribute('role', 'status');
+	expect(error).toHaveTextContent('choose another language');
 	view.unmount();
 });
 

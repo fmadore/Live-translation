@@ -36,6 +36,7 @@ aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-f
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail … section.profiles "Meeting profiles" › div.picker › button.ui-tool "Manage profiles" { font-weight: 500; line-height: 1; text-align: center; display: grid; align-items: center; justify-content: center; gap: 18px; width: 81px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail … button.ui-tool "Manage profiles" › svg { display: block; width: 14px; height: 14px }
+aside.rail … section.profiles "Meeting profiles" › p.live-slot[role=status] { line-height: 1.5; white-space: collapse nowrap; overflow-wrap: anywhere; color: #8b93a1; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 aside.rail › section.rail-section:nth(1) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; max-width: 855px }
 aside.rail › section.rail-section:nth(1) › div.step-head { display: flex; align-items: center; gap: 18px }
 aside.rail › section.rail-section:nth(1) › div.step-head › span.step-no { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; color: #5ad1a0; display: block }
@@ -159,6 +160,7 @@ main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › di
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 29.25px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
 main.stage › div.stage-panel › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 27px; margin: 72px 0px 0px }
 main.stage › div.stage-panel › div.launch › span.rehearse-hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 1113.91px }
+main.stage › div.stage-panel › div.launch › span.rehearse-hint › strong.lead { font-weight: 600; color: #c3c9d2 }
 main.stage › div.stage-panel › div.launch › span.privacy { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 1113.91px }
 footer.credit { font-size: 27px; line-height: 1.5; color: #8b93a1; display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 18px; padding: 72px 0px 0px; margin: auto 0px 0px }
 footer.credit › span { display: block }

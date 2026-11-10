@@ -16,6 +16,7 @@ import {
 	transcriptDirty
 } from './stores';
 import { api, on } from './tauri';
+import { listenAll } from './coreEvents';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayController } from './overlayController.svelte';
 import type { SessionClock } from './sessionClock.svelte';
@@ -54,7 +55,10 @@ export function syncNative({
 	});
 
 	// The tray menu must never describe a state the app has left: pushed on every change, and
-	// once on mount.
+	// once on mount. Its status line gives the session's length in whole minutes, so a running
+	// session crosses IPC once a minute rather than with every tick of the clock (review E3):
+	// the derived value only changes, and the effect only runs, when the minute does.
+	const trayMinutes = $derived(running.current ? Math.floor(clock.elapsedMs / 60_000) : 0);
 	$effect(() => {
 		const m = messages.current;
 		void api
@@ -64,7 +68,7 @@ export function syncNative({
 				stop: m.design.trayStop,
 				show: m.design.trayShow,
 				hide: m.design.trayHide,
-				status: `${m.state[state.current]}${running.current ? ' · ' + clock.elapsed : ''}`
+				status: `${m.state[state.current]}${running.current ? ' · ' + m.design.trayElapsed(trayMinutes) : ''}`
 			})
 			.catch(() => {});
 	});
@@ -100,13 +104,14 @@ export function syncNative({
 	// is the whole of it: appearance, both caption languages, the interface language and
 	// whether move mode is on.
 	$effect(() => {
-		const listening = on.overlayState((msg) => {
-			if (msg.ready !== true) return;
-			overlay.pushOverlayConfig({
-				locale: interfaceLocale.current,
-				interactive: overlay.moveOverlay
-			});
-		});
-		return () => void listening.then((unlisten) => unlisten());
+		return listenAll([
+			on.overlayState((msg) => {
+				if (msg.ready !== true) return;
+				overlay.pushOverlayConfig({
+					locale: interfaceLocale.current,
+					interactive: overlay.moveOverlay
+				});
+			})
+		]).stop;
 	});
 }

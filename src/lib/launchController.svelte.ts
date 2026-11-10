@@ -1,8 +1,9 @@
 import { fromStore, type Readable } from 'svelte/store';
 import { locale, t } from './i18n';
 import { captionLanguageError, type DemoLanguage } from './languages';
+import { aiConsent, grantAiConsent, needsAiConsent } from './aiConsent';
 import { isRunning, options, sessionStartedAt, statusMessage } from './stores';
-import type { StartOptions } from './types';
+import type { Provider, StartOptions } from './types';
 
 /** What a launch reads from the rest of the page: the session it starts, and the readiness
  *  answers other controllers own. */
@@ -20,10 +21,6 @@ export interface LaunchPort {
 	applicationReady: (options: StartOptions) => boolean;
 	/** Called as a launch goes ahead, before the start: the capture-failure banner goes. */
 	launching: () => void;
-	/** Whether audio may go to the engine's provider: true at once for an offline engine or a
-	 *  provider already agreed to, otherwise the operator's answer to the question
-	 *  (`aiConsent.ts`). False starts nothing. */
-	consent: (provider: StartOptions['provider']) => Promise<boolean>;
 }
 
 /** Start, Rehearse and the start shortcut: what keeps a session from starting, and the one
@@ -42,7 +39,9 @@ export class LaunchController {
 	readonly #startedAt = fromStore(sessionStartedAt);
 	readonly #messages = fromStore(t);
 	readonly #locale = fromStore(locale);
+	readonly #agreed = fromStore(aiConsent);
 	readonly #sessionBusy;
+	#consentAnswer: ((send: boolean) => void) | null = null;
 
 	constructor(port: LaunchPort) {
 		this.#port = port;
@@ -59,6 +58,31 @@ export class LaunchController {
 	 *  receives from the session it replaces, can take the rehearsal's rail from it while it
 	 *  runs (review U1). */
 	rehearsing = $state(false);
+
+	/** The provider the operator is being asked about before audio first goes to it (App Review
+	 *  Guideline 5.1.2(i); `aiConsent.ts`), or null. The page shows the question while it is
+	 *  set; the launch waits on `answerConsent`, and nothing starts on Cancel or Escape. */
+	consentAsk = $state<Provider | null>(null);
+
+	/** The operator's answer to `consentAsk`. Yes is recorded for the provider's company. */
+	answerConsent = (send: boolean): void => {
+		const provider = this.consentAsk;
+		const answer = this.#consentAnswer;
+		this.consentAsk = null;
+		this.#consentAnswer = null;
+		if (send && provider) grantAiConsent(provider);
+		answer?.(send);
+	};
+
+	/** Whether audio may go to `provider`: at once for an offline engine or a provider already
+	 *  agreed to, otherwise the operator's answer. */
+	#consent(provider: Provider): Promise<boolean> {
+		if (!needsAiConsent(provider, this.#agreed.current)) return Promise.resolve(true);
+		// A question already open is answered no: only one launch waits on the prompt.
+		this.#consentAnswer?.(false);
+		this.consentAsk = provider;
+		return new Promise((resolve) => (this.#consentAnswer = resolve));
+	}
 
 	/** A run has begun but no source has reported yet (review U7). `start_session` can answer
 	 *  before the first status, and until one arrives the run is open but not yet running: a
@@ -136,7 +160,7 @@ export class LaunchController {
 			return;
 		}
 		// A rehearsal sends the sample recording to the same provider, so it asks too.
-		if (!(await this.#port.consent(this.#options.current.provider))) return;
+		if (!(await this.#consent(this.#options.current.provider))) return;
 		this.rehearsing = rehearsal !== undefined;
 		this.#port.launching();
 		const setup = this.#options.current;
