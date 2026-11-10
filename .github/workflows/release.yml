@@ -89,7 +89,9 @@ jobs:
         run: |
           package=$(jq -r .version package.json)
           tauri=$(jq -r .version src-tauri/tauri.conf.json)
-          # The first `version =` under [package], not a dependency's.
+          # The first `version =` under [package], not a dependency's. An awk program: its `$2`
+          # is awk's field, not the shell's.
+          # shellcheck disable=SC2016
           package_version='/^\[/ { in_package = /^\[package\]/ } in_package && /^version[[:space:]]*=/ { print $2; exit }'
           cargo=$(awk -F'"' "$package_version" src-tauri/Cargo.toml)
           vulkan=$(awk -F'"' "$package_version" src-tauri/whisper-vulkan/Cargo.toml)
