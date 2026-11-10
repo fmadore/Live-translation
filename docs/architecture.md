@@ -153,8 +153,11 @@ once. Whatever ends a drain, the source reports the Pause or Stop that started i
 runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
 drain.
 
-Every provider's `error` event, and a close during setup, goes through one classifier
-(`realtime::wire::classify`), so the providers cannot drift apart. Authentication, permission,
+Every provider's `error` event goes through one classifier (`realtime::wire::classify`), so the
+providers cannot drift apart. A Close frame, during setup or mid-stream, is read by
+`wire::Close`: 1007, 1008 or key, quota or billing wording end the source with the reason;
+any other close, a bare 1000 included, is retried, and its code and reason are the
+Reconnecting detail. For `error` events: Authentication, permission,
 quota, billing and credit wording stop the source with the provider's message, whatever code
 it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, close codes 1001,
 1011, 1012 and 1013, and Google's transient names reconnect with backoff; an expired session
@@ -398,13 +401,25 @@ because a person talking over the loudspeaker correlates with it about as well a
 does, as OpenWhispr's field logs showed. What it drops is on screen from the system source, so
 being wrong that way loses no words.
 
-The engines do not finish in step, so a finished microphone line waits while the system source
-has been loud (the meter's 0.02) or captioned in the last five seconds: four seconds for a cloud
-engine, ten for local Whisper, which decodes the two sources in turn. It is shown meanwhile, as
-an interim, and committed when its time is up, when the next microphone turn begins (the
-windows would commit what they show of it then) or when the session ends (before its Idle). A
-withdrawal is the turn's final caption with no text: the transcript commits nothing for it, and
-the operator stage and the overlay take the turn away. A committed line is never taken back.
+Both sides are compared on their last 200 words, split once and kept per turn, so a turn that
+streams for minutes is still caught and costs no more to check as it grows. A turn withdrawn as
+an echo stays withdrawn until its final, which is judged afresh, so a line near the threshold
+does not blink.
+
+The engines do not finish in step, so a finished microphone line waits when the system source
+was sounding within four seconds of it in session time, sounding meaning loud on the meter
+(0.02) or covered by a system caption. Session time rather than the clock, because local
+Whisper with a backlog captions speech long after it was spoken. The wait is four seconds for a
+cloud engine and thirty for local Whisper, which decodes the two sources in turn in windows of
+up to 28 seconds; it ends early once a system caption starts more than four seconds after the
+line ends. Lines wait in a queue per caption language and leave from the front only, so
+captions keep their order: Whisper emits a window's segments back to back, each a turn of its
+own, and all of them wait together. The first line of the queue is shown meanwhile, as an
+interim, and the microphone turn after the queue is kept back until it empties, because the
+windows commit what they show of a turn when the next one begins. A line is committed when its
+time is up or when the session ends (before its Idle). A withdrawal is the turn's final caption
+with no text: the transcript commits nothing for it, and the operator stage and the overlay
+take the turn away. A committed line is never taken back.
 The guard emits under its lock, so a withdrawal cannot overtake the caption it withdraws. It is
 off unless the operator turns on *Leave out the call heard by the room mic*, offered under Both
 (`StartOptions.drop_mic_echo`), and then on only for a live session capturing both sources
