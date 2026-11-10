@@ -19,11 +19,14 @@ The macOS version is new and has not yet been tried on a real Mac: see the
 [macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
 and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
 
+**[1.13.0](https://github.com/fmadore/Live-translation/releases/tag/v1.13.0)** (10 November 2026)
+is the latest release, not yet submitted to the Store: a Mac app for Apple silicon, Whisper on
+the graphics processor with speech detection and Large v3 Turbo, and the fixes of a review. See
+its [release notes](docs/release-1.13.0.md) and [Store handoff](docs/store-updates.md#release-1130-handoff).
 **[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
-is the latest release and the version in the
-[Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): captions in a Zoom meeting's
-own caption bar, and fixes for flashes and layout shifts. See its
-[release notes](docs/release-1.12.0.md) and [Store handoff](docs/store-updates.md#release-1120-handoff).
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): captions
+in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
+([release notes](docs/release-1.12.0.md)).
 
 ## What it does
 
