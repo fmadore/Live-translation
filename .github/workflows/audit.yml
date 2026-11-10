@@ -42,8 +42,9 @@ jobs:
           persist-credentials: false
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
+          # The version ci.yml pins, and why it is not yet 0.23.0.
           tool: cargo-audit@0.22.2
 
       # Not `cargo audit`: `cargo` is a rustup proxy that would first install the toolchain

@@ -1,0 +1,17 @@
+name: Native Whisper compiler
+description: >-
+  Points the native build of whisper.cpp (whisper-rs-sys, and ggml under it) at clang-cl and
+  Ninja on a Windows runner, for the steps after it: CI's Rust and end-to-end jobs and the
+  release's Windows builds. Windows only; the other runners keep their own compilers.
+
+runs:
+  using: composite
+  steps:
+    - name: Configure native Whisper compiler
+      shell: pwsh
+      run: |
+        "CC=clang-cl" >> $env:GITHUB_ENV
+        "CXX=clang-cl" >> $env:GITHUB_ENV
+        "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
+        "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
+        "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
