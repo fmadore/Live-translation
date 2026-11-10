@@ -167,7 +167,11 @@
 		}}
 	/>
 	<p class="hint" id={`${id}-help`}>{$t.language.searchHint}</p>
-	{#if error}<p class="error" id={`${id}-error`} role="status">{error}</p>{/if}
+	<!-- Both statuses stay in the DOM and only their text changes: a live region inserted
+	     together with its text is often missed. Empty, they take no room (`.live-slot`). -->
+	<p class="error live-slot" id={`${id}-error`} role="status">
+		{#if error}{error}{/if}
+	</p>
 	{#if open}
 		<div class="results" bind:this={results}>
 			<!-- Pin buttons are siblings of the listbox, never interactive children of options. -->
@@ -251,7 +255,9 @@
 					</div>
 				{/each}
 			</div>
-			{#if rows.length === 0}<p role="status">{$t.language.noMatches}</p>{/if}
+			<p class="live-slot" role="status">
+				{#if rows.length === 0}{$t.language.noMatches}{/if}
+			</p>
 		</div>
 	{/if}
 </div>

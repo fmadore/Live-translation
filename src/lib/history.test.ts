@@ -6,8 +6,13 @@ import {
 	encodeSessionAppend,
 	encodeSessionLog,
 	HISTORY_LOG_VERSION,
+	isSessionDeleted,
+	SESSION_DELETED,
 	type SavedSession
 } from './history';
+import { describeError } from './errors';
+import { en } from './i18n/en';
+import { fr } from './i18n/fr';
 import type { StartOptions, TranscriptLine } from './types';
 
 const options: StartOptions = {
@@ -131,8 +136,29 @@ describe('session history', () => {
 		await s.history.retry();
 		expect(decodeSession(s.disk.get(id)!, id)?.title).toBe('Meeting');
 		await s.history.delete(id);
-		await expect(s.history.rename(saved, 'Gone')).rejects.toThrow();
+		await expect(s.history.rename(saved, 'Gone')).rejects.toEqual(SESSION_DELETED);
 		expect(s.disk.size).toBe(0);
+	});
+	// Review B18: renaming a session deleted a moment before showed the English text "Session
+	// deleted" and marked history as not saving. It is refused in the catalogue's words, and
+	// nothing failed to save.
+	it('refuses to rename a deleted session without reporting history as not saving', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.finish();
+		const saved = decodeSession(s.disk.get(id)!, id)!;
+		const deleting = s.history.delete(id);
+		const renaming = s.history.rename(saved, 'Too late');
+		await deleting;
+		const refusal = await renaming.catch((error: unknown) => error);
+		expect(isSessionDeleted(refusal)).toBe(true);
+		expect(isSessionDeleted(new Error('disk full'))).toBe(false);
+		expect(describeError(refusal, en)).toBe(en.error.historySessionDeleted);
+		expect(describeError(refusal, fr)).toBe(fr.error.historySessionDeleted);
+		await s.history.flush();
+		expect(s.error).not.toHaveBeenCalled();
+		expect(s.port.renameHistory).not.toHaveBeenCalled();
 	});
 	it('writes nothing by default or for an empty session', async () => {
 		const s = setup(false);

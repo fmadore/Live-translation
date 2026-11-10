@@ -137,13 +137,7 @@ jobs:
 
       - name: Configure native Whisper compiler
         if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          "CC=clang-cl" >> $env:GITHUB_ENV
-          "CXX=clang-cl" >> $env:GITHUB_ENV
-          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
-          "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
-          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+        uses: ./.github/actions/whisper-compiler
 
       # The version, components and targets pinned in rust-toolchain.toml, which rustup reads
       # from the working directory. llvm-tools is for the Ubuntu lane's instrumented tests.
@@ -155,7 +149,7 @@ jobs:
 
       - name: Install cargo-llvm-cov
         if: runner.os == 'Linux'
-        uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cargo-llvm-cov@0.9.1
 
@@ -368,13 +362,7 @@ jobs:
 
       # As in the rust job.
       - name: Configure native Whisper compiler
-        shell: pwsh
-        run: |
-          "CC=clang-cl" >> $env:GITHUB_ENV
-          "CXX=clang-cl" >> $env:GITHUB_ENV
-          "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
-          "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
-          "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+        uses: ./.github/actions/whisper-compiler
 
       # As in the rust job: what rust-toolchain.toml pins.
       - name: Install Rust (rust-toolchain.toml)
@@ -433,7 +421,7 @@ jobs:
           args: -color
 
   # RustSec advisories against src-tauri/Cargo.lock, with the Linux-only ones that cannot reach
-  # the Windows app ignored, each with its reason, in src-tauri/.cargo/audit.toml. A prebuilt,
+  # the Windows or Mac app ignored, each with its reason, in src-tauri/.cargo/audit.toml. A prebuilt,
   # checksum-verified cargo-audit rather than rustsec/audit-check, which compiled it on every
   # run (about 3 minutes) and targets Node 20.
   rust-security:
@@ -445,8 +433,11 @@ jobs:
           persist-credentials: false
 
       - name: Install cargo-audit
-        uses: taiki-e/install-action@c509219cf42fba86913069efd0ade2458c59337b # v2.90.1
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
+          # 0.22.2, not 0.23.0 (published 10 November 2026): install-action checks a download
+          # against its own manifest, and v2.90.3's stops at 0.22.2; a version it does not list
+          # would leave that check. Move with the first install-action release that lists 0.23.
           tool: cargo-audit@0.22.2
 
       # `cargo-audit audit` is what `cargo audit` runs. Called directly because `cargo` is a

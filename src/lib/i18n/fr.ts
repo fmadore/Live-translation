@@ -40,7 +40,11 @@ export const fr: Messages = {
 		trayQuit: 'Quitter',
 		trayStop: 'Arrêter la session',
 		trayShow: 'Afficher les sous-titres',
-		trayHide: 'Masquer les sous-titres'
+		trayHide: 'Masquer les sous-titres',
+		trayElapsed: (minutes: number) =>
+			minutes < 60
+				? `${minutes} min`
+				: `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}`
 	},
 	usability: {
 		hold: 'Durée des sous-titres terminés (secondes)',
@@ -627,7 +631,7 @@ export const fr: Messages = {
 		kicker: 'Avant de démarrer',
 		heading: 'Prêt quand vous l’êtes',
 		intro:
-			'Quatre vérifications, puis Démarrer en haut de la fenêtre. Tout ce qui se trouve à gauche se verrouille pendant le sous-titrage : rien ne peut être modifié par accident en pleine session.',
+			'Les vérifications ci-dessous, puis Démarrer en haut de la fenêtre. Tout ce qui se trouve à gauche se verrouille pendant le sous-titrage : rien ne peut être modifié par accident en pleine session.',
 
 		demoRow: {
 			title: 'Démo intégrée · aucune clé nécessaire',
@@ -901,6 +905,7 @@ export const fr: Messages = {
 		recoveryRead: 'La copie de récupération de votre dernière session n’a pas pu être lue',
 		recoveryDelete: 'La copie de récupération n’a pas pu être supprimée',
 		historyStorage: 'Le dossier de l’historique n’a pu être ni lu ni modifié',
+		historySessionDeleted: 'Cette session a été supprimée et ne peut plus être renommée',
 		openLink: 'Windows n’a pas pu ouvrir la page dans votre navigateur',
 		taskFailed: 'Une tâche en arrière-plan s’est arrêtée de façon inattendue',
 		micStream:

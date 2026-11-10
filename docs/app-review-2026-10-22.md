@@ -54,6 +54,9 @@ L4's test. Notes from doing it:
   catalogs would need a loading state or an English first frame everywhere.
 - **Left open:** E1, E4, E5, B12's header probe and B13's tunnel; C6, C17 and C18 are the
   maintainer's.
+- **C6 closed since:** the repository's settings, read through the API on 10 November 2026, have
+  Dependabot security updates, secret scanning and push protection on, and `audit.yml` has a
+  weekly Rust job (`cargo-audit`) beside its npm one.
 - **Still to check by hand:** a live Gemini handover (B1, B2) and OpenAI's and Mistral's
   `session_expired`; B5 with system audio and local Whisper under load; overlay move mode
   (drag, edge resize, nudge, Snap on mixed DPI, Escape with a display removed); Alt+F4 then the

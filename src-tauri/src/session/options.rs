@@ -88,6 +88,13 @@ pub(super) fn live_origins(source: AudioSource) -> Vec<Origin> {
     origins
 }
 
+/// Whether the session captions people in the room or on the call: neither a rehearsal, which
+/// plays a bundled recording, nor the built-in demonstration, which plays a bundled script.
+/// Only a live session's captions may leave the machine for an audience (a Zoom share).
+pub(super) fn is_live(options: &StartOptions) -> bool {
+    options.rehearsal.is_none() && options.provider != Provider::OnDevice
+}
+
 /// The sources a session runs. A rehearsal runs exactly one origin, System, off the bundled
 /// fixture: `source` and the microphone selection are deliberately ignored, because the point
 /// of the mode is to exercise the pipeline with no audio hardware involved at all.
@@ -277,6 +284,21 @@ mod tests {
             [Origin::Microphone]
         );
         assert_eq!(session_origins(&options("system", None)), [Origin::System]);
+    }
+
+    #[test]
+    fn only_a_session_on_real_audio_with_a_real_engine_is_live() {
+        assert!(is_live(&options("both", None)));
+        assert!(!is_live(&options("both", Some("en"))), "a rehearsal");
+        let demo: StartOptions = serde_json::from_value(serde_json::json!({
+            "source": "microphone",
+            "targetLanguage": "en",
+            "provider": "ondevice",
+            "mode": "transcribe",
+        }))
+        .unwrap();
+        assert!(!is_live(&demo), "the built-in demonstration");
+        assert!(is_live(&local("whisper", "transcribe", "en")));
     }
 
     #[test]

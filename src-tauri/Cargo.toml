@@ -59,7 +59,7 @@ whisper-rs-sys = "=0.15.0"
 # The same 0.13 Tauri already compiles. SChannel like the WebSockets, and `system-proxy` so
 # model downloads follow the Windows proxy setting that university networks often require.
 reqwest = { version = "0.13", default-features = false, features = ["native-tls", "system-proxy"] }
-sha2 = "0.10"
+sha2 = "0.11"
 tempfile = "3"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -71,7 +71,7 @@ tauri-plugin-single-instance = "2.5.2"
 # The native Save As for transcript export (`src/export.rs`): IFileSaveDialog on Windows,
 # NSSavePanel on macOS. No default features: those are the Linux portal and Wayland backends.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
-rfd = { version = "0.17.2", default-features = false }
+rfd = { version = "0.18.0", default-features = false }
 
 # Public AppKit for the caption overlay's window level and Spaces (`src/overlay.rs`), opening
 # the app's fixed pages in the browser (`src/support.rs`) and listing running applications
@@ -123,7 +123,7 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
 # WASAPI loopback capture is Windows-only.
 [target.'cfg(windows)'.dependencies]
 # Direct event-driven WASAPI access for render-device loopback capture.
-wasapi = "0.26"
+wasapi = "0.27"
 # Win32 z-order/activation control for the caption overlay (`src/overlay.rs`), ShellExecute
 # for the support page (`src/support.rs`), and a job object that ends the Vulkan helper with
 # the app (`src/whisper/gpu.rs`). Already in the dependency graph via tauri/tokio, so this adds

@@ -11,7 +11,7 @@ use anyhow::{Context, Result};
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
-use crate::realtime::{MessageControl, MessageOutcome, RealtimeProtocol, classify_json};
+use crate::realtime::{MessageControl, MessageOutcome, RealtimeProtocol, provider_error};
 use protocol::ServerMessage;
 
 pub use client::{DEFAULT_HOST, DEFAULT_TRANSLATE_MODEL, GeminiConfig};
@@ -53,14 +53,9 @@ impl ServerMessage {
                 time_left,
             }));
         }
-        self.error.as_ref().map(|error| {
-            let control = classify_json(error).control(|| format!("{error_label}: {error}"));
-            if !matches!(control, MessageControl::Fatal(_)) {
-                let origin = proto.origin();
-                tracing::warn!(?origin, %error, "{} reported a transient error", P::NAME);
-            }
-            MessageOutcome::control(control)
-        })
+        self.error
+            .as_ref()
+            .map(|error| provider_error(proto, Some(error_label), error))
     }
 }
 

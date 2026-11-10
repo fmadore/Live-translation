@@ -12,7 +12,7 @@ use cpal::{FromSample, I24, Sample, SampleFormat, SizedSample, U24};
 use tokio::sync::mpsc::{Sender, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
-use super::devices::PresenceCheck;
+use super::devices::park_while_present;
 use super::resample::{Resampler, downmix_to_mono, f32_to_pcm16_le, f64_to_f32};
 use super::{AudioChunk, chunk_samples};
 use crate::types::{AudioDevice, AudioLevel, Origin};
@@ -192,18 +192,14 @@ fn wait_while_present(device: &cpal::Device, cancel: &CancellationToken) -> Resu
     let pinned_id = device
         .id()
         .context("failed to identify active microphone")?;
-    let mut presence = PresenceCheck::new(MIC_PRESENCE_FALLBACK);
-    while !cancel.is_cancelled() {
-        std::thread::sleep(Duration::from_millis(100));
-        if presence.due() {
-            let available = cpal::default_host()
-                .input_devices()
-                .context("failed to check microphone availability")?
-                .any(|device| device.id().is_ok_and(|id| id == pinned_id));
-            anyhow::ensure!(available, "selected microphone disconnected or disabled");
-        }
-    }
-    Ok(())
+    park_while_present(cancel, MIC_PRESENCE_FALLBACK, || {
+        let available = cpal::default_host()
+            .input_devices()
+            .context("failed to check microphone availability")?
+            .any(|device| device.id().is_ok_and(|id| id == pinned_id));
+        anyhow::ensure!(available, "selected microphone disconnected or disabled");
+        Ok(())
+    })
 }
 
 /// Open an input stream whose samples need converting to f32. cpal fixes the sample type of

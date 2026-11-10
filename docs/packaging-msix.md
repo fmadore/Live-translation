@@ -5,8 +5,9 @@ install it, and check what CI cannot: microphone capture, WASAPI loopback, Crede
 the overlay and the export path, all running under package identity.
 
 [`microsoft-store.md`](microsoft-store.md) has the certification approach, the assigned identity
-values and the acceptance checklist; the [handoff](store-updates.md#release-1120-handoff)
-records the **1.12.0** release's Store status.
+values and the acceptance checklist; the [handoff](store-updates.md#release-1130-handoff)
+prepares the **1.13.0** release, the first whose package carries `whisper-vulkan.exe` and
+`models/`.
 
 ## What is committed
 
@@ -52,7 +53,7 @@ The manifest the bundler produces carries the matching `x64` or `arm64` architec
 <Identity
   Name="49346FMadore.LiveTranslationSubtitles"
   Publisher="CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86"
-  Version="1.12.0.0"
+  Version="1.13.0.0"
   ProcessorArchitecture="x64" />
 ```
 
@@ -157,15 +158,15 @@ That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
-src-tauri/target/msix/Live Translation & Subtitles_1.12.0.0_arm64.msix
-src-tauri/target/msix/Live Translation & Subtitles_1.12.0.0.msixbundle
+src-tauri/target/msix/Live Translation & Subtitles_1.13.0.0_arm64.msix
+src-tauri/target/msix/Live Translation & Subtitles_1.13.0.0.msixbundle
 ```
 
 The local names come from the manifest's `DisplayName`; CI renames them (see
 [What CI does](#what-ci-does)). For local verification, use the per-architecture `.msix`, not
 the bundle.
 
-Substitute the current `tauri.conf.json` version for `1.12.0` throughout this file. Every
+Substitute the current `tauri.conf.json` version for `1.13.0` throughout this file. Every
 release built on this machine stays in `target/msix/`, which is why the commands below derive
 the name instead of spelling it out.
 
@@ -175,8 +176,10 @@ Check the staged payload:
 Get-ChildItem src-tauri/target/appx/arm64 -Recurse -Name
 ```
 
-`live-translation.exe`, `AppxManifest.xml`, `Assets\*.png`, and the two neutral rehearsal
-fixtures should be there. There should be no `windows-ai` directory or self-contained ML DLL.
+`live-translation.exe`, `whisper-vulkan.exe`, `AppxManifest.xml`, `Assets\*.png`,
+`models\ggml-silero-v5.1.2.bin` and the two neutral rehearsal fixtures should be there. The
+release workflow refuses a package without the helper or the model. There should be no
+`windows-ai` directory or self-contained ML DLL.
 
 Do **not** pass `--regenerate-assets`. It rebuilds `gen/windows/Assets/` from
 `src-tauri/icons/`, and its wide-tile generator writes an all-black 310×150 image; the
@@ -352,9 +355,11 @@ packaging above — single-architecture, and not what the release workflow uses.
 
 ## What CI does
 
-After the installer job has created the release, the `msix` job in
-`.github/workflows/release.yml` runs the same build command natively per architecture and
-uploads `Live.Translation_<version>_<arch>.msix`. The `bundle` job then combines both into
+Once the `prepare` job has created the draft release, the `msix` job in
+`.github/workflows/release.yml` builds the Vulkan helper and runs the same build command
+natively per architecture, checks that the package carries `live-translation.exe`,
+`whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin`, and uploads
+`Live.Translation_<version>_<arch>.msix`. The `bundle` job then combines both into
 `Live.Translation_<version>.msixbundle` with MakeAppx and uploads that single Store bundle.
 Nothing is signed: Partner Center expects an unsigned package and the Store applies its own
 signature.

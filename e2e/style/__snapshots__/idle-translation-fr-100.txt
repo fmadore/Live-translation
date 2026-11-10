@@ -10,9 +10,9 @@ header.toolbar › span.brand { display: flex; align-items: center; justify-cont
 header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
 header.toolbar › h1.sr-only "Live Translation & Subtitles" { font-size: 32px; font-weight: 700; white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 header.toolbar › div.session-controls { display: contents }
-header.toolbar › div.session-controls › button.ui-tool.primary.lg.start "Démarrer la traduction" { font-size: 14px; font-weight: 600; line-height: 1; text-align: center; color: #05271b; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 24px; border: 1px solid rgba(0, 0, 0, 0); border-radius: 4px; background-color: rgba(0, 0, 0, 0); background-image: linear-gradient(#5ad1a0, #43b989); opacity: 0.5 }
+header.toolbar › div.session-controls › button.ui-tool.primary.lg.start "Démarrer la traduction" { font-size: 14px; font-weight: 600; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 24px; border: 1px solid #262b33; border-radius: 4px; background-color: #0e1013 }
 header.toolbar … button.ui-tool.primary.lg.start "Démarrer la traduction" › svg { display: block; width: 14px; height: 14px }
-header.toolbar … button.ui-tool.primary.lg.start "Démarrer la traduction" › span.shortcut { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; white-space: collapse nowrap; display: block; padding: 0px 0px 0px 8px; margin: 0px 0px 0px 4px; border-left: 1px solid color(srgb 0.02 0.153 0.106 / 0.35) }
+header.toolbar … button.ui-tool.primary.lg.start "Démarrer la traduction" › span.shortcut { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; white-space: collapse nowrap; display: block; padding: 0px 0px 0px 8px; margin: 0px 0px 0px 4px; border-left: 1px solid color(srgb 0.545 0.576 0.631 / 0.35) }
 header.toolbar › div.session-controls › button.ui-tool.ghost.lg "Répéter" { font-size: 14px; font-weight: 600; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 8px 24px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0); opacity: 0.5 }
 header.toolbar … button.ui-tool.ghost.lg "Répéter" › svg { display: block; width: 14px; height: 14px }
 header.toolbar › div.end { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0px; margin: 0px 0px 0px auto }
@@ -37,6 +37,7 @@ aside.rail … section.profiles "Profils de réunion" › div.picker › label.u
 aside.rail … section.profiles "Profils de réunion" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
 aside.rail … section.profiles "Profils de réunion" › div.picker › button.ui-tool "Gérer les profils" { font-weight: 500; line-height: 1; text-align: center; display: grid; align-items: center; justify-content: center; gap: 8px; width: 36px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail … button.ui-tool "Gérer les profils" › svg { display: block; width: 14px; height: 14px }
+aside.rail … section.profiles "Profils de réunion" › p.live-slot[role=status] { line-height: 1.5; white-space: collapse nowrap; overflow-wrap: anywhere; color: #8b93a1; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 aside.rail › section.rail-section:nth(1) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }
 aside.rail › section.rail-section:nth(1) › div.step-head { display: flex; align-items: center; gap: 8px }
 aside.rail › section.rail-section:nth(1) › div.step-head › span.step-no { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; color: #5ad1a0; display: block }
@@ -91,6 +92,7 @@ aside.rail › section.rail-section:nth(3) › div.step-head › h2.kicker "La s
 aside.rail › section.rail-section:nth(3) › div.language-picker { min-width: 0px }
 aside.rail › section.rail-section:nth(3) › div.language-picker › input[role=combobox][type=text] "Langue des sous-titres" { font-size: 12px; color: #c3c9d2; width: 100%; min-width: 0px; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
 aside.rail › section.rail-section:nth(3) › div.language-picker › p.hint { font-size: 12px; overflow-wrap: anywhere; color: #8b93a1; margin: 8px 0px }
+aside.rail › section.rail-section:nth(3) › div.language-picker › p.error.live-slot[role=status] { font-size: 12px; white-space: collapse nowrap; overflow-wrap: anywhere; color: #ffb454; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: 8px 0px }
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint { font-size: 12px; line-height: 1.4; color: #8b93a1; display: flex; align-items: center; gap: 8px; margin: 0px }
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint › span { display: block }
 aside.rail › section.rail-section:nth(3) › p.hint.inline-hint › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; font-weight: 500; line-height: 1; white-space: collapse nowrap; color: #c3c9d2; display: block; padding: 4px 8px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
@@ -99,6 +101,7 @@ aside.rail › section.rail-section:nth(3) › div.ui-field › span { display: 
 aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker { min-width: 0px }
 aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker › input[role=combobox][type=text] "Deuxième langue de sous-titrage" { width: 100%; min-width: 0px; max-width: 100%; padding: 8px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
 aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker › p.hint { overflow-wrap: anywhere; color: #8b93a1; margin: 8px 0px }
+aside.rail › section.rail-section:nth(3) › div.ui-field › div.language-picker › p.error.live-slot[role=status] { white-space: collapse nowrap; overflow-wrap: anywhere; color: #ffb454; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: 8px 0px }
 aside.rail › section.rail-section:nth(3) › p.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › div.divider:nth(3) { flex: 0 0 auto; max-width: 380px; height: 1px; background-color: #1f242b }
 aside.rail › section.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 8px; max-width: 380px }
@@ -146,7 +149,7 @@ main.stage › div.stage-panel › div.checklist › div.check-row.pending › d
 main.stage … a "Obtenir une clé (s’ouvre dans v…" › span.sr-only { white-space: collapse nowrap; display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 main.stage › div.stage-panel › div.checklist › div.check-row.pending › div.actions { display: flex; align-items: center; gap: 8px }
 main.stage › div.stage-panel › div.checklist › div.check-row.pending › div.actions › input[type=password] "Clé Gemini" { font-size: 12px; display: block; width: 165px; max-width: 100%; padding: 8px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-main.stage › div.stage-panel › div.checklist › div.check-row.pending › div.actions › button.ui-tool.primary.sm "Enregistrer" { font-size: 12px; font-weight: 600; line-height: 1; text-align: center; color: #05271b; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 4px 12px; border: 1px solid rgba(0, 0, 0, 0); border-radius: 4px; background-color: rgba(0, 0, 0, 0); background-image: linear-gradient(#5ad1a0, #43b989); opacity: 0.5 }
+main.stage › div.stage-panel › div.checklist › div.check-row.pending › div.actions › button.ui-tool.primary.sm "Enregistrer" { font-size: 12px; font-weight: 600; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0px; max-width: 100%; padding: 4px 12px; border: 1px solid #262b33; border-radius: 4px; background-color: #0e1013 }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 12px; padding: 16px 0px; border-bottom: 1px solid #1f242b }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
@@ -169,6 +172,7 @@ main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › di
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
 main.stage › div.stage-panel › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 12px; margin: 32px 0px 0px }
 main.stage › div.stage-panel › div.launch › span.rehearse-hint { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
+main.stage › div.stage-panel › div.launch › span.rehearse-hint › strong.lead { font-weight: 600; color: #c3c9d2 }
 main.stage › div.stage-panel › div.launch › span.privacy { font-size: 12px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 495.072px }
 footer.credit { font-size: 12px; line-height: 1.5; color: #8b93a1; display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 32px 0px 0px; margin: auto 0px 0px }
 footer.credit › span { display: block }

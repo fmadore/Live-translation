@@ -27,6 +27,16 @@
 	const selected = $derived(
 		$options.systemCapture?.kind === 'application' ? $options.systemCapture.process : null
 	);
+	// What the application list has to say, if anything: unsupported here, or nothing to pick.
+	const note = $derived(
+		!applicationMode
+			? ''
+			: supported === false
+				? $t.applications.unsupported
+				: supported && !applications.length
+					? $t.applications.empty
+					: ''
+	);
 	const selectionKey = $derived(selected ? `${selected.pid}:${selected.createdAt}` : '');
 	// Listing applications opens a query-only handle on every process with a visible window,
 	// a game behind kernel anti-cheat included. So the list is built once One application is
@@ -84,10 +94,6 @@
 				{/each}
 			</Select>
 		</Field>
-		{#if supported === false}<p class="hint" role="status">{$t.applications.unsupported}</p>
-		{:else if supported && !applications.length}<p class="hint" role="status">
-				{$t.applications.empty}
-			</p>{/if}
 	{:else}
 		<Field label={$t.devices.output}>
 			<Select
@@ -108,6 +114,11 @@
 			</Select>
 		</Field>
 	{/if}
+	<!-- Always in the DOM, and empty (so out of the flow) in output mode: a live region inserted
+	     together with its text is often missed. -->
+	<p class="hint live-slot" role="status">
+		{#if note}{note}{/if}
+	</p>
 </div>
 
 <style>

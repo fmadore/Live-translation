@@ -10,7 +10,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
     CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, Signal, TurnAccumulator,
-    bearer_request, classify_json, parse_or_log,
+    bearer_request, parse_or_log, provider_error,
 };
 use crate::types::Origin;
 
@@ -172,15 +172,7 @@ impl RealtimeProtocol for MistralClient {
                         "Mistral realtime transcription error".to_string(),
                     ));
                 };
-                let control = classify_json(&error).control(|| error.to_string());
-                if !matches!(control, MessageControl::Fatal(_)) {
-                    tracing::warn!(
-                        origin = ?self.config.origin,
-                        %error,
-                        "Mistral reported a transient error; reconnecting"
-                    );
-                }
-                return MessageOutcome::control(control);
+                return provider_error(self, None, &error);
             }
             _ => {}
         }

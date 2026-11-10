@@ -184,13 +184,13 @@ describe('source failure lifecycle', () => {
 		statusMessage.set('');
 		beginSession();
 		const startedAt = get(sessionStartedAt);
-		applyStatus({ state: 'idle', message: failure }, { starting: true });
+		applyStatus({ state: 'idle', message: failure });
 		expect(get(sessionStartedAt)).toBe(startedAt);
 		expect(get(statusMessage)).toBe('');
 		applyStatus({ state: 'running', origin: 'system' });
 		expect(get(isRunning)).toBe(true);
 
-		// Once the start has been answered, an Idle is this run's own end again.
+		// Only one was due: the next whole-session Idle is this run's own end.
 		applyStatus({ state: 'idle' });
 		expect(get(isRunning)).toBe(false);
 		expect(get(sessionStartedAt)).toBeNull();

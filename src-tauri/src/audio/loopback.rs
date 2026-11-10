@@ -65,7 +65,7 @@ mod macos_impl {
 
     use crate::audio::applications::{ProcessGuard, SystemCapture, audio_processes};
     use crate::audio::capture::CaptureState;
-    use crate::audio::devices::{PresenceCheck, output_uids, pick_output};
+    use crate::audio::devices::{output_uids, park_while_present, pick_output};
     use crate::audio::tap::{Tap, Target};
     use crate::types::{AudioLevel, Origin};
 
@@ -87,16 +87,13 @@ mod macos_impl {
             SystemCapture::Output => {
                 let uid = pick_output(device_id)?;
                 let _tap = Tap::start(&Target::Output { device_uid: &uid }, make_state)?;
-                let mut presence = PresenceCheck::new(CHECK_INTERVAL);
-                while !cancel.is_cancelled() {
-                    std::thread::sleep(Duration::from_millis(100));
-                    if presence.due() {
-                        anyhow::ensure!(
-                            output_uids()?.contains(&uid),
-                            "selected output device disconnected or disabled"
-                        );
-                    }
-                }
+                park_while_present(cancel, CHECK_INTERVAL, || {
+                    anyhow::ensure!(
+                        output_uids()?.contains(&uid),
+                        "selected output device disconnected or disabled"
+                    );
+                    Ok(())
+                })?;
             }
             SystemCapture::Application { process } => {
                 // Never widened to the output mix: no selection, or an application that has
@@ -108,12 +105,7 @@ mod macos_impl {
                 let mut objects = audio_processes(identity.pid)?;
                 let mut tap = Tap::start(&Target::Processes(&objects), make_state)?;
                 tracing::info!(processes = objects.len(), "capturing one application");
-                let mut check = PresenceCheck::new(CHECK_INTERVAL);
-                while !cancel.is_cancelled() {
-                    std::thread::sleep(Duration::from_millis(100));
-                    if !check.due() {
-                        continue;
-                    }
+                park_while_present(cancel, CHECK_INTERVAL, || {
                     anyhow::ensure!(
                         guard.running(),
                         "selected application has closed; select it again"
@@ -128,7 +120,8 @@ mod macos_impl {
                         );
                         objects = now;
                     }
-                }
+                    Ok(())
+                })?;
             }
         }
         tracing::info!("Core Audio tap capture stopped");
@@ -252,7 +245,7 @@ mod windows_impl {
                     .get_device(&id)
                     .ctx("selected output device unavailable")?,
                 None => enumerator
-                    .get_default_device(&Direction::Render)
+                    .get_default_device(Direction::Render)
                     .ctx("no default render device")?,
             };
             anyhow::ensure!(
@@ -278,7 +271,7 @@ mod windows_impl {
             let client = wasapi::AudioClient::new_application_loopback_client(identity.pid, true)
                 .ctx("failed to capture selected application")?;
             // Process clients have no device mix format.
-            let format = WaveFormat::new(32, 32, &SampleType::Float, 48000, 2, None);
+            let format = WaveFormat::new(32, 32, SampleType::Float, 48000, 2, None);
             Ok(Self {
                 device: None,
                 process: Some(guard),
@@ -313,7 +306,7 @@ mod windows_impl {
             buffer_duration_hns: BUFFER_DURATION_HNS,
         };
         client
-            .initialize_client(format, &Direction::Capture, &mode)
+            .initialize_client(format, Direction::Capture, mode, None)
             .ctx("failed to initialise loopback client")?;
 
         let event = client

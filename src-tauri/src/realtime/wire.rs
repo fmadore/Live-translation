@@ -6,8 +6,9 @@ use serde::de::DeserializeOwned;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::http::{HeaderValue, header::AUTHORIZATION};
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
-use super::MessageControl;
+use super::{MessageControl, MessageOutcome, RealtimeProtocol};
 
 /// A WebSocket handshake authenticated with an `Authorization: Bearer` header, as OpenAI and
 /// Mistral both require. `provider` names it in the errors, which the operator reads as the
@@ -16,8 +17,10 @@ pub fn bearer_request(provider: &str, url: &str, api_key: &str) -> Result<Reques
     let mut request = url
         .into_client_request()
         .with_context(|| format!("failed to build {provider} request"))?;
-    let bearer = HeaderValue::from_str(&format!("Bearer {api_key}"))
+    let mut bearer = HeaderValue::from_str(&format!("Bearer {api_key}"))
         .with_context(|| format!("{provider} API key is not a valid header value"))?;
+    // So a `Debug` of the request or its headers prints `Sensitive`, never the key.
+    bearer.set_sensitive(true);
     request.headers_mut().insert(AUTHORIZATION, bearer);
     Ok(request)
 }
@@ -144,6 +147,71 @@ pub fn classify(code: Option<u64>, names: &[&str], message: &str) -> Verdict {
     }
 }
 
+/// A provider's `error` event as every client acts on it: read by `classify_json`; when it ends
+/// the source, worded `"{label}: {error}"` (the error alone without a label) for the operator,
+/// who reads it after the provider's name; otherwise logged, since the operator sees only the
+/// Reconnecting or the handover it causes.
+pub fn provider_error<P: RealtimeProtocol>(
+    proto: &P,
+    label: Option<&str>,
+    error: &serde_json::Value,
+) -> MessageOutcome {
+    let control = classify_json(error).control(|| match label {
+        Some(label) => format!("{label}: {error}"),
+        None => error.to_string(),
+    });
+    if !matches!(control, MessageControl::Fatal(_)) {
+        let origin = proto.origin();
+        tracing::warn!(?origin, %error, "{} reported an error a new session can get past", P::NAME);
+    }
+    MessageOutcome::control(control)
+}
+
+/// A WebSocket Close frame from the provider, read the same way during setup and mid-stream.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Close {
+    /// `None` for a Close with no status at all (1005 on the wire).
+    pub code: Option<u16>,
+    pub reason: String,
+}
+
+impl Close {
+    pub fn of(frame: Option<&CloseFrame>) -> Self {
+        Self {
+            code: frame.map(|frame| u16::from(frame.code)),
+            reason: frame.map_or_else(String::new, |frame| frame.reason.trim().to_string()),
+        }
+    }
+
+    /// Only a close that says the server will not take what it was sent ends the source: 1007
+    /// (a payload it cannot read), 1008 (a policy it will not waive), or the key, quota or
+    /// billing wording `classify` treats as fatal under any code. Every other close, a Normal
+    /// Closure (1000) and codes nobody documents included, is a connection ending: retried,
+    /// with backoff, and during setup within the cap on failures in a row, so one that keeps
+    /// coming still reports itself.
+    pub fn verdict(&self) -> Verdict {
+        let wording = self.reason.to_lowercase();
+        if matches!(self.code, Some(1007 | 1008))
+            || FATAL_WORDING.iter().any(|word| wording.contains(word))
+        {
+            Verdict::Fatal
+        } else {
+            Verdict::Retry
+        }
+    }
+
+    /// The code and reason, for the operator's detail and the log: "close code 1011: Internal
+    /// error encountered." Empty for a Close that carried neither.
+    pub fn describe(&self) -> String {
+        match (self.code, self.reason.as_str()) {
+            (None, "") => String::new(),
+            (None, reason) => reason.to_string(),
+            (Some(code), "") => format!("close code {code}"),
+            (Some(code), reason) => format!("close code {code}: {reason}"),
+        }
+    }
+}
+
 /// `classify` for an `error` object as the providers send one: OpenAI's `{ type, code,
 /// message }`, Mistral's `{ message, code }` with an integer code and a message that may itself
 /// be an object, Google's `{ code, message, status }`. A bare string is read as the message.
@@ -195,6 +263,69 @@ mod tests {
                 "{code} {reason}"
             );
         }
+    }
+
+    fn close(code: Option<u16>, reason: &str) -> Close {
+        Close {
+            code,
+            reason: reason.into(),
+        }
+    }
+
+    #[test]
+    fn a_close_ends_the_source_only_when_it_refuses_what_it_was_sent() {
+        for (code, reason, verdict) in [
+            (Some(1007), "Invalid JSON payload received.", Verdict::Fatal),
+            (
+                Some(1008),
+                "Requested entity was not found.",
+                Verdict::Fatal,
+            ),
+            (Some(1008), "", Verdict::Fatal),
+            (Some(1011), "API key not valid.", Verdict::Fatal),
+            (
+                Some(1000),
+                "You exceeded your current quota",
+                Verdict::Fatal,
+            ),
+            (None, "", Verdict::Retry),
+            (Some(1000), "", Verdict::Retry),
+            (Some(1000), "session ended", Verdict::Retry),
+            (Some(1001), "", Verdict::Retry),
+            (Some(1011), "Internal error encountered.", Verdict::Retry),
+            (Some(1013), "Try again later", Verdict::Retry),
+            (Some(4000), "", Verdict::Retry),
+        ] {
+            assert_eq!(close(code, reason).verdict(), verdict, "{code:?} {reason}");
+        }
+    }
+
+    #[test]
+    fn a_close_is_described_by_its_code_and_reason() {
+        assert_eq!(close(None, "").describe(), "");
+        assert_eq!(close(Some(1000), "").describe(), "close code 1000");
+        assert_eq!(
+            close(Some(1011), "Internal error.").describe(),
+            "close code 1011: Internal error."
+        );
+        let frame = CloseFrame {
+            code: 1013.into(),
+            reason: "  Try again later \n".into(),
+        };
+        assert_eq!(
+            Close::of(Some(&frame)),
+            close(Some(1013), "Try again later")
+        );
+        assert_eq!(Close::of(None), close(None, ""));
+    }
+
+    #[test]
+    fn the_bearer_key_is_never_printed_by_debug() {
+        let request = bearer_request("Test", "wss://example.invalid/", "sk-secret").unwrap();
+        let header = &request.headers()[AUTHORIZATION];
+        assert!(header.is_sensitive());
+        assert_eq!(header.to_str().unwrap(), "Bearer sk-secret");
+        assert!(!format!("{request:?}").contains("sk-secret"));
     }
 
     #[test]

@@ -1,31 +1,32 @@
-# Partner Center listing text — 1.12.0
+# Partner Center listing text — 1.13.0
 
-Written for **1.12.0 / MSIX 1.12.0.0**, tagged on 27 October 2026 and not yet submitted. The Store serves 1.11.0
-(MSIX 1.11.0.0), accepted as reported by the maintainer on 26 October 2026, so What's new covers
-only the changes since 1.11.0. For the next version, replace What's new and the certification
-notes' first two paragraphs. Paste each block into its named field after the
-[release checks](store-updates.md). These descriptions lead with the actual captioning
-workflow; the scripted demo is a secondary setup aid.
+Written for **1.13.0 / MSIX 1.13.0.0**, not yet tagged. The Store serves 1.12.0 (MSIX
+1.12.0.0), live as reported by the maintainer on 10 November 2026
+([handoff](store-updates.md#release-1130-handoff)). What's new covers the changes since 1.12.0;
+everything 1.12.0 added to the listing (the Zoom sentences, the trademark line, the twentieth
+feature line and the certification notes' Zoom paragraph) is already in the Store and stays.
+For the next version, replace What's new and the certification notes' first paragraph. Paste
+each block into its named field after the [release checks](store-updates.md). These
+descriptions lead with the actual captioning workflow; the scripted demo is a secondary setup
+aid.
 
-The changes the version after 1.12.0 needs (Whisper on the graphics processor, speech detection,
-Large v3 Turbo) are drafted, in all three languages, in
-[store-listing-next.md](store-listing-next.md#the-version-after-1120); apply them when this file
-moves on from 1.12.0.
-
-For 1.12.0, What's new is replaced in all three languages: one paragraph on Captions in Zoom
-([#189](https://github.com/fmadore/Live-translation/pull/189), part of
-[#187](https://github.com/fmadore/Live-translation/issues/187)) and one on the fixes (#188 and
-the pre-flight's application prompt). Each description gains four sentences: one in the overlay
-paragraph, after the audio sources, on sharing a caption language with a Zoom meeting; one in
-the privacy paragraph saying that sharing sends caption text to Zoom; one in the requirements
-paragraph on the host's Zoom settings; and, as a last paragraph, the trademark line "Zoom is a
-trademark of Zoom Communications, Inc." with a statement that the app is not affiliated with
-Zoom (Store Policies 10.1 and 11.2; see [store-listing-next.md](store-listing-next.md)). The
-features gain a twentieth line, the most Partner Center allows. The certification notes change
-in their first paragraph (the version, and what is new since 1.11.0) and gain a second, on
-Captions in Zoom; the paragraph on the support link follows it, unchanged. The short
-descriptions, keywords and requirements are unchanged. The German and French sentences, including Zoom's own menu names, were reviewed by the
-maintainer on 27 October 2026.
+For 1.13.0, What's new is replaced in all three languages: one paragraph on local Whisper (the
+graphics processor, speech detection, the loop and credit filters, Large v3 Turbo), one on names
+and terms for Gemini subtitles and Whisper, the question before audio first goes to a cloud
+provider and the Both-sources switch, and one on the fixes.
+Each description changes in three places: the offline-subtitles paragraph (third) is replaced,
+as drafted for 1.13.0 in [store-listing-next.md](store-listing-next.md); the last sentence of the
+cloud paragraph (fourth) now names Gemini, Mistral and Whisper as taking the names-and-terms
+list; and the privacy paragraph gains one sentence on the question asked before audio first goes
+to each cloud provider. The first, second and fifth feature lines change; the second line of the
+additional system requirements and the note under them change. The certification notes change
+in their first paragraph (the version, and everything since 1.12.0), in step 3 of *Real speech
+recognition*, in *Optional cloud features* (the question, and names and terms for Gemini) and in
+their last paragraph (the helper and the bundled model). The short descriptions, keywords,
+screenshot captions and the trademark line are unchanged. The French and German sentences new in
+1.13.0 need the maintainer's review, as each release's do; 1.12.0's, including Zoom's own menu
+names, were reviewed by the maintainer on 27 October 2026. The listing is for Windows: it does
+not mention the Mac app.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -50,15 +51,15 @@ Put live captions over any meeting, lecture, video call or slide deck. Live Tran
 
 Captions appear in a transparent overlay that stays on top of your slides, call or any other Windows app, and lets clicks pass through to the window beneath. It reopens where you last placed it, remembered for each display setup. Choose what to listen to: a room microphone, the audio playing on your PC, a single app, or the microphone and system audio together. In a Zoom meeting, you can also share one caption language with Zoom's own caption bar, using the caption link the host copies in Zoom; attendees turn the captions on in Zoom and install nothing. Gamers can follow voice chat in another language: the overlay is a separate window, not something injected into the game, so run the game in windowed or borderless mode.
 
-For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base and Small models download separately, at about 31, 57 and 182 MiB. Once a model is installed, recognition runs on your CPU with no account, API key or internet connection. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly. For any other language, use cloud translation.
+For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your PC with no account, API key or internet connection: on its graphics processor when it has a suitable one, otherwise on its processor. Built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly and Large v3 Turbo only transcribes. For any other language, use cloud translation.
 
-For multilingual audiences, translate with Gemini into 78 languages or with OpenAI into 13. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key; for Mistral, a list of names and terms helps it spell speaker names, institutions and acronyms.
+For multilingual audiences, translate with Gemini into 78 languages or with OpenAI into 13. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key. A list of names and terms helps Gemini, Mistral and Whisper spell speaker names, institutions and acronyms.
 
 Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Choose Fit window, Compact or Stable reading, with support for right-to-left scripts. The optional filler filter hides hesitations from the overlay; edit its word list while the raw transcript stays intact. Save meeting profiles for the rooms you use often, and pause during breaks without splitting the session.
 
 During a session, the Transcript tab shows everything said so far, and Copy puts the last 5, 10 or 30 minutes, or the whole transcript, on the clipboard as plain text. Export transcripts as text, Markdown, SRT or WebVTT. Turn on local history to save finalized captions as you go, then name, search, reopen, copy, export and delete past sessions. History and crash recovery stay off until you enable them. With Whisper, Stop lets queued audio finish so the transcript is complete.
 
-With Whisper, audio stays on your PC; speech waiting to be processed sits in a temporary file that is deleted automatically. With a cloud engine, audio goes straight to the provider you chose. Sharing captions with Zoom, which only starts when you choose it, sends caption text, never audio, directly to Zoom. API keys are kept in Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry, and the app sells no subscriptions, credits or API access. An optional Buy Me a Coffee link supports development and unlocks nothing.
+With Whisper, audio stays on your PC; speech waiting to be processed sits in a temporary file that is deleted automatically. With a cloud engine, audio goes straight to the provider you chose, and the first time you start a session with each provider, the app asks before sending it any audio. Sharing captions with Zoom, which only starts when you choose it, sends caption text, never audio, directly to Zoom. API keys are kept in Windows Credential Manager. The developer receives no audio, keys, transcripts or telemetry, and the app sells no subscriptions, credits or API access. An optional Buy Me a Coffee link supports development and unlocks nothing.
 
 Use the interface in English, French or German, whatever the caption language. The operator window works from the keyboard and with Narrator, and follows Windows text size and contrast themes. An optional English/French demo lets you try the display without any setup; it plays a prepared script and does not recognize speech.
 
@@ -67,22 +68,23 @@ Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and
 Zoom is a trademark of Zoom Communications, Inc. Live Translation & Subtitles is not affiliated with or endorsed by Zoom.
 ```
 
-### What's new in this version — 1.12.0
+### What's new in this version — 1.13.0
 
 ```text
-Captions in Zoom: show one caption language in a Zoom meeting's own caption bar, so attendees turn captions on in Zoom and install nothing. Choose Zoom captions in the toolbar, paste the caption link (API token) the meeting's host copies in Zoom, and start sharing; Send test caption confirms that it arrives. Sharing is off until you start it, carries on across Stop and Start, and sends caption text only, never audio, even when Whisper makes the captions on your PC. The link is kept only until the app closes.
+Faster offline captions: Whisper now runs on your PC's graphics processor when it has a suitable one, and goes back to the processor by itself if anything goes wrong; Use the graphics processor, under the model, turns it off. Built-in speech detection skips silence and music, so a quiet room no longer produces invented captions, and words repeated over and over or stray subtitle credits are removed. A new model, Large v3 Turbo (547 MiB), gives the most accurate offline subtitles. It transcribes only: keep Small for translation into English.
 
-Fixes: Start now says when it is waiting for you to choose an application to capture, and the setup and transcript no longer flash or jump when lists load, keys are checked or you scroll.
-```
+The Names and terms list now also helps Gemini subtitles and Whisper. Before audio first goes to a cloud provider, the app asks you, once for each provider. With the microphone and system audio together, a new switch keeps a call played through the room's loudspeakers from being captioned twice.
+
+Fixes: a Start that cannot be pressed no longer looks pressable, cloud engines say why a provider ended the connection, and SRT exports keep & < > as typed.```
 
 ### Features — one feature per line
 
 ```text
-Offline Whisper captions in 99 spoken languages, or automatic language detection
-Download Tiny, Base or Small once, then transcribe without an account, API key or internet
+Offline Whisper captions in 99 spoken languages or automatic detection, on the graphics processor when available
+Download Tiny, Base, Small or Large v3 Turbo once, then transcribe without an account, API key or internet
 Offline translation into English with Whisper, from any of its 99 languages, with no API key
 Cloud translation with your own Gemini or OpenAI key; provider usage charges may apply
-Cloud subtitles with your own Gemini or Mistral key; Mistral takes a list of names and terms to favour
+Cloud subtitles with your own Gemini or Mistral key; Gemini, Mistral and Whisper take a list of names and terms to favour
 Two translation languages at once, plus optional original speech when available
 Capture a microphone, system audio, a single app, or microphone and system audio together
 Transparent, always-on-top, click-through captions over slides and video calls
@@ -127,15 +129,15 @@ Affichez des sous-titres en direct sur vos réunions, cours, appels vidéo et pr
 
 Les sous-titres s'affichent dans une surimpression transparente qui reste au-dessus de vos diapositives, de votre appel ou de toute autre application Windows, et laisse passer les clics vers la fenêtre en dessous. Elle se rouvre là où vous l'avez placée, mémorisée pour chaque configuration d'écrans. Choisissez la source : un microphone de salle, l'audio joué sur votre PC, une application précise, ou le microphone et l'audio système ensemble. Dans une réunion Zoom, vous pouvez aussi partager une langue de sous-titres dans la barre de sous-titres de Zoom, avec le lien de sous-titrage que l'organisateur copie dans Zoom ; les participants activent les sous-titres dans Zoom, sans rien installer. Les joueurs peuvent suivre le chat vocal dans une autre langue : la surimpression est une fenêtre distincte, rien n'est injecté dans le jeu ; lancez donc le jeu en mode fenêtré ou fenêtré sans bordure.
 
-Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base et Small se téléchargent séparément et pèsent environ 31, 57 et 182 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur le processeur de votre PC, sans compte, clé API ni connexion Internet. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal. Pour toute autre langue, utilisez la traduction cloud.
+Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base, Small et Large v3 Turbo se téléchargent séparément et pèsent environ 31, 57, 182 et 547 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur votre PC, sans compte, clé API ni connexion Internet : sur son processeur graphique s'il en a un qui convient, sinon sur son processeur. La détection de la parole intégrée ignore les silences et la musique, pour que Whisper n'invente pas de sous-titres dans une salle silencieuse. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal et Large v3 Turbo ne fait que transcrire. Pour toute autre langue, utilisez la traduction cloud.
 
-Pour un public multilingue, traduisez avec Gemini vers 78 langues ou avec OpenAI vers 13. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API ; pour Mistral, une liste de noms et termes l'aide à écrire correctement les noms d'intervenants, les institutions et les sigles.
+Pour un public multilingue, traduisez avec Gemini vers 78 langues ou avec OpenAI vers 13. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API. Une liste de noms et termes aide Gemini, Mistral et Whisper à écrire correctement les noms d'intervenants, les institutions et les sigles.
 
 Adaptez les sous-titres à la salle : police, taille, couleurs, fond, durée d'affichage et rythme des mises à jour. Choisissez Adapter à la fenêtre, Compact ou Lecture stable, avec prise en charge des écritures de droite à gauche. Le filtre d'hésitations facultatif les masque dans la surimpression, et vous pouvez modifier sa liste de mots sans toucher à la transcription originale. Enregistrez des profils de réunion pour vos salles habituelles et faites une pause sans scinder la session.
 
 Pendant une session, l'onglet Transcription affiche tout ce qui a été dit, et Copier place les 5, 10 ou 30 dernières minutes, ou toute la transcription, dans le presse-papiers en texte brut. Exportez les transcriptions en texte, Markdown, SRT ou WebVTT. Activez l'historique local pour enregistrer les sous-titres finalisés au fil de la session, puis nommez, recherchez, rouvrez, copiez, exportez et supprimez vos sessions. L'historique et la copie de récupération restent désactivés tant que vous ne les activez pas. Avec Whisper, la commande Arrêter laisse l'audio en attente finir son traitement pour que la transcription soit complète.
 
-Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement est placée dans un fichier temporaire supprimé automatiquement. Avec un moteur cloud, l'audio est envoyé directement au fournisseur choisi. Le partage des sous-titres avec Zoom, qui ne démarre que si vous le lancez, envoie directement à Zoom le texte des sous-titres, jamais l'audio. Les clés API sont conservées dans le Gestionnaire d'informations d'identification Windows. Le développeur ne reçoit ni audio, ni clé, ni transcription, ni télémétrie, et l'application ne vend ni abonnement, ni crédits, ni accès API. Un lien facultatif vers Buy Me a Coffee permet de soutenir le développement et ne débloque rien.
+Avec Whisper, l'audio reste sur votre PC ; la parole en attente de traitement est placée dans un fichier temporaire supprimé automatiquement. Avec un moteur cloud, l'audio est envoyé directement au fournisseur choisi, et la première fois que vous démarrez une session avec chaque fournisseur, l'application vous demande votre accord avant de lui envoyer de l'audio. Le partage des sous-titres avec Zoom, qui ne démarre que si vous le lancez, envoie directement à Zoom le texte des sous-titres, jamais l'audio. Les clés API sont conservées dans le Gestionnaire d'informations d'identification Windows. Le développeur ne reçoit ni audio, ni clé, ni transcription, ni télémétrie, et l'application ne vend ni abonnement, ni crédits, ni accès API. Un lien facultatif vers Buy Me a Coffee permet de soutenir le développement et ne débloque rien.
 
 Utilisez l'interface en français, anglais ou allemand, quelle que soit la langue des sous-titres. La fenêtre de contrôle s'utilise au clavier et avec le Narrateur, et suit la taille du texte et les thèmes de contraste de Windows. Une démo facultative en français et en anglais permet d'essayer l'affichage sans configuration ; elle déroule un script préparé et ne reconnaît pas la parole.
 
@@ -144,22 +146,23 @@ Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 e
 Zoom est une marque de Zoom Communications, Inc. Live Translation & Subtitles n'est ni affiliée à Zoom ni approuvée par Zoom.
 ```
 
-### Nouveautés de cette version — 1.12.0
+### Nouveautés de cette version — 1.13.0
 
 ```text
-Sous-titres dans Zoom : affichez une langue de sous-titres dans la barre de sous-titres d'une réunion Zoom ; les participants les activent dans Zoom, sans rien installer. Choisissez Sous-titres Zoom dans la barre d'outils, collez le lien de sous-titrage (jeton d'API) que l'organisateur copie dans Zoom, puis lancez le partage ; Envoyer un sous-titre de test confirme qu'il arrive. Le partage reste désactivé tant que vous ne le lancez pas, continue après Arrêter et Démarrer, et n'envoie que le texte des sous-titres, jamais l'audio, même quand Whisper les produit sur votre PC. Le lien n'est conservé que jusqu'à la fermeture de l'application.
+Des sous-titres hors ligne plus rapides : Whisper s'exécute désormais sur le processeur graphique de votre PC s'il en a un qui convient, et revient de lui-même au processeur en cas de problème ; un interrupteur sous le modèle le désactive. La détection de la parole intégrée ignore les silences et la musique : une salle silencieuse ne produit plus de sous-titres inventés, et les mots répétés en boucle ou les crédits de sous-titrage parasites sont retirés. Un nouveau modèle, Large v3 Turbo (547 Mio), donne les sous-titres hors ligne les plus précis. Il ne fait que transcrire : gardez Small pour traduire vers l'anglais.
 
-Corrections : Démarrer indique désormais qu'il attend le choix d'une application à capter, et la configuration et la transcription ne clignotent ni ne sautent plus quand les listes se chargent, quand les clés sont vérifiées ou quand vous faites défiler.
-```
+La liste Noms et termes aide désormais aussi les sous-titres Gemini et Whisper. L'application demande votre accord avant le premier envoi d'audio à chaque fournisseur cloud. Avec le microphone et l'audio système ensemble, un nouvel interrupteur évite qu'un appel diffusé par les haut-parleurs de la salle soit sous-titré deux fois.
+
+Corrections : un bouton Démarrer inactif ne semble plus cliquable, les moteurs cloud indiquent pourquoi le fournisseur a fermé la connexion, et les exports SRT gardent & < > tels quels.```
 
 ### Fonctionnalités — une fonctionnalité par ligne
 
 ```text
-Sous-titres Whisper hors ligne dans 99 langues parlées, ou détection automatique de la langue
-Téléchargez Tiny, Base ou Small, puis transcrivez sans compte, clé API ni connexion Internet
+Sous-titres Whisper hors ligne dans 99 langues parlées ou détection automatique, sur le processeur graphique s'il convient
+Téléchargez Tiny, Base, Small ou Large v3 Turbo, puis transcrivez sans compte, clé API ni connexion Internet
 Traduction hors ligne vers l'anglais avec Whisper, depuis ses 99 langues, sans clé API
 Traduction cloud avec votre clé Gemini ou OpenAI ; des frais d'utilisation peuvent s'appliquer
-Sous-titres cloud avec votre clé Gemini ou Mistral, et une liste de noms et termes à privilégier pour Mistral
+Sous-titres cloud avec votre clé Gemini ou Mistral ; Gemini, Mistral et Whisper privilégient une liste de noms et termes
 Deux langues de traduction à la fois et affichage facultatif du texte original disponible
 Captez un microphone, l'audio système, une application précise, ou le microphone et l'audio système ensemble
 Sous-titres transparents, toujours visibles et traversables par les clics, sur vos diapositives et appels
@@ -204,15 +207,15 @@ Verfolgen Sie Besprechungen, Vorträge und Videoanrufe mit Untertiteln direkt ü
 
 Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf oder einer anderen Windows-App. Erfassen Sie ein Mikrofon, das Windows-Systemaudio, eine Anwendung mit ihren Unterprozessen oder Mikrofon und Systemaudio gemeinsam. In einem Zoom-Meeting können Sie außerdem eine Untertitelsprache in Zooms eigener Untertitelleiste teilen, mit dem Untertitel-Link, den der Host in Zoom kopiert; die Teilnehmenden schalten die Untertitel in Zoom ein und installieren nichts. Das Overlay bleibt im Vordergrund und lässt Mausklicks zur darunterliegenden Anwendung durch. Es öffnet sich wieder dort, wo Sie es zuletzt platziert haben, gespeichert für jede Bildschirmanordnung. Auch beim Spielen lässt sich der Sprachchat in einer anderen Sprache verfolgen: Das Overlay ist ein eigenes Fenster, in das Spiel wird nichts eingeschleust. Starten Sie das Spiel daher im Fenstermodus oder randlosen Fenstermodus.
 
-Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base und Small werden separat heruntergeladen (etwa 31, 57 und 182 MiB). Danach läuft die Erkennung auf der CPU Ihres PCs, ohne Konto, API-Schlüssel oder Internetverbindung. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
+Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base, Small und Large v3 Turbo werden separat heruntergeladen (etwa 31, 57, 182 und 547 MiB). Danach läuft die Erkennung auf Ihrem PC, ohne Konto, API-Schlüssel oder Internetverbindung: auf dem Grafikprozessor, wenn ein geeigneter vorhanden ist, sonst auf der CPU. Die eingebaute Spracherkennung überspringt Stille und Musik, damit Whisper in einem stillen Raum keine Untertitel erfindet. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen und Large v3 Turbo nur transkribiert. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
 
-Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini oder OpenAI. Die App bietet 78 Zielsprachen für Gemini und 13 für OpenAI. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache; für Mistral hilft eine Liste mit Namen und Begriffen bei der Schreibweise von Namen der Vortragenden, Institutionen und Abkürzungen.
+Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini oder OpenAI. Die App bietet 78 Zielsprachen für Gemini und 13 für OpenAI. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache. Eine Liste mit Namen und Begriffen hilft Gemini, Mistral und Whisper bei der Schreibweise von Namen der Vortragenden, Institutionen und Abkürzungen.
 
 Passen Sie Schrift, Größe, Farbe, Kontrast, Anzeigedauer und Aktualisierungstempo an. Wählen Sie An Fenster anpassen, Kompakt oder Ruhiger Lesemodus, auch für Text von rechts nach links. Bearbeiten Sie die Wörter des optionalen Füllwortfilters, während das Originaltranskript erhalten bleibt. Nutzen Sie gespeicherte Besprechungsprofile und pausieren Sie, ohne die Sitzung aufzuteilen.
 
 Während einer Sitzung zeigt die Ansicht Transkript alles bisher Gesagte, und Kopieren legt die letzten 5, 10 oder 30 Minuten oder das ganze Transkript als reinen Text in die Zwischenablage. Exportieren Sie Transkripte als Text, Markdown, SRT oder WebVTT. Der optionale lokale Verlauf speichert abgeschlossene Untertitel fortlaufend; Sie können Sitzungen benennen, durchsuchen, erneut öffnen, kopieren, exportieren und löschen. Verlauf und Wiederherstellungskopie sind standardmäßig deaktiviert. Bei Whisper verarbeitet Stopp noch ausstehendes Audio, bevor das Transkript vollständig ist.
 
-Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch gelöschten temporären Datei gepuffert. Cloud-Audio geht direkt an den gewählten Anbieter. Das Teilen von Untertiteln mit Zoom, das erst startet, wenn Sie es wählen, sendet Untertiteltext direkt an Zoom, nie Audio. API-Schlüssel liegen in der Windows-Anmeldeinformationsverwaltung. Der Entwickler erhält weder Audio noch Schlüssel, Transkripte oder Telemetrie. Die App verkauft keine Abonnements, Guthaben oder API-Zugänge. Ein freiwilliger Buy-Me-a-Coffee-Link unterstützt die Entwicklung und schaltet nichts frei.
+Whisper-Audio bleibt auf dem PC; ausstehende Sprache wird in einer automatisch gelöschten temporären Datei gepuffert. Cloud-Audio geht direkt an den gewählten Anbieter; vor der ersten Sitzung mit einem Anbieter fragt die App nach, bevor sie ihm Audio sendet. Das Teilen von Untertiteln mit Zoom, das erst startet, wenn Sie es wählen, sendet Untertiteltext direkt an Zoom, nie Audio. API-Schlüssel liegen in der Windows-Anmeldeinformationsverwaltung. Der Entwickler erhält weder Audio noch Schlüssel, Transkripte oder Telemetrie. Die App verkauft keine Abonnements, Guthaben oder API-Zugänge. Ein freiwilliger Buy-Me-a-Coffee-Link unterstützt die Entwicklung und schaltet nichts frei.
 
 Die Oberfläche ist auf Deutsch, Englisch und Französisch verfügbar, unabhängig von der Untertitelsprache. Das Bedienfenster lässt sich per Tastatur und mit der Sprachausgabe bedienen und folgt der Windows-Textgröße und den Kontrastdesigns. Eine optionale skriptbasierte Demo auf Englisch und Französisch zeigt die Anzeigefunktionen ohne Einrichtung; sie erkennt keine Sprache.
 
@@ -221,22 +224,23 @@ Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und AR
 Zoom ist eine Marke von Zoom Communications, Inc. Live Translation & Subtitles ist nicht mit Zoom verbunden und wird nicht von Zoom unterstützt.
 ```
 
-### Neu in dieser Version — 1.12.0
+### Neu in dieser Version — 1.13.0
 
 ```text
-Untertitel in Zoom: Zeigen Sie eine Untertitelsprache in der eigenen Untertitelleiste eines Zoom-Meetings; die Teilnehmenden schalten sie in Zoom ein und installieren nichts. Wählen Sie Zoom-Untertitel in der Symbolleiste, fügen Sie den Untertitel-Link (API-Token) ein, den der Host in Zoom kopiert, und starten Sie das Teilen; Testuntertitel senden bestätigt, dass er ankommt. Das Teilen bleibt aus, bis Sie es starten, läuft über Stopp und Start hinweg weiter und sendet nur Untertiteltext, nie Audio, auch wenn Whisper die Untertitel auf Ihrem PC erzeugt. Der Link wird nur bis zum Schließen der App aufbewahrt.
+Schnellere Offline-Untertitel: Whisper läuft jetzt auf dem Grafikprozessor Ihres PCs, wenn ein geeigneter vorhanden ist, und wechselt bei Problemen von selbst zurück zur CPU; der Schalter Grafikprozessor verwenden unter dem Modell schaltet das aus. Die eingebaute Spracherkennung überspringt Stille und Musik: Ein stiller Raum erzeugt keine erfundenen Untertitel mehr, und endlos wiederholte Wörter oder eingestreute Untertitel-Abspanne werden entfernt. Ein neues Modell, Large v3 Turbo (547 MiB), liefert die genauesten Offline-Untertitel. Es transkribiert nur: Für die Übersetzung ins Englische bleibt Small die Wahl.
 
-Korrekturen: Start sagt jetzt, wenn es auf die Auswahl einer aufzunehmenden Anwendung wartet, und Einrichtung und Transkript flackern oder springen nicht mehr, wenn Listen laden, Schlüssel geprüft werden oder Sie scrollen.
-```
+Die Liste Namen und Begriffe hilft jetzt auch Gemini-Untertiteln und Whisper. Bevor zum ersten Mal Audio an einen Cloud-Anbieter geht, fragt die App nach, einmal pro Anbieter. Mit Mikrofon und Systemaudio zusammen verhindert ein neuer Schalter, dass ein Anruf über die Lautsprecher im Raum doppelt untertitelt wird.
+
+Korrekturen: Ein Start, der sich nicht drücken lässt, sieht nicht mehr aktiv aus, Cloud-Engines sagen, warum der Anbieter die Verbindung beendet hat, und SRT-Exporte behalten & < > unverändert.```
 
 ### Funktionen — eine Funktion pro Zeile
 
 ```text
-Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung
-Tiny, Base oder Small herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
+Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung, auf dem Grafikprozessor, wenn verfügbar
+Tiny, Base, Small oder Large v3 Turbo herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
 Offline-Übersetzung ins Englische mit Whisper aus allen 99 Sprachen, ohne API-Schlüssel
 Cloud-Übersetzung mit eigenem Gemini- oder OpenAI-Schlüssel; nutzungsabhängige Kosten möglich
-Cloud-Untertitel mit eigenem Gemini- oder Mistral-Schlüssel; für Mistral eine Liste mit Namen und Begriffen
+Cloud-Untertitel mit eigenem Gemini- oder Mistral-Schlüssel; Gemini, Mistral und Whisper nutzen eine Liste mit Namen und Begriffen
 Zwei Übersetzungssprachen gleichzeitig und optional der verfügbare Originaltext
 Mikrofon, Systemaudio, eine Anwendung mit Unterprozessen oder Mikrofon und Systemaudio gemeinsam
 Transparente, durchklickbare Untertitel im Vordergrund über Folien und Videoanrufen
@@ -274,7 +278,8 @@ Offline-Spracherkennung
 
 ## Adding the German listing
 
-The interface supports German. Before publishing a German listing, review the German copy.
+The interface supports German. Before publishing a German listing, review the German copy,
+including the sentences new in 1.13.0.
 The German screenshots are captured from the 1.7.1 MSIX with the interface set to German; see
 the [screenshot notes](store-screenshots/README.md).
 
@@ -284,20 +289,21 @@ Enter each line as a separate requirement (under 200 characters):
 
 ```text
 Windows 11 with Microsoft Edge WebView2 Runtime; native x64 and ARM64 packages
-Whisper: internet for the initial model download (31–182 MiB), then offline transcription or translation into English on the CPU
+Whisper: internet for the initial model download (31–547 MiB), then offline transcription or translation into English on the processor or a suitable graphics processor
 Whisper on x64 needs a processor with AVX2, which some budget Celeron and Pentium Silver PCs lack
 Cloud engines: internet, your own compatible provider account and API key; usage charges may apply
 Audio-source access required for speech recognition; a microphone is needed only for microphone capture
 ```
 
-Recommended memory: 8 GB. Whisper speed depends on the CPU and model; this is not a guarantee
-of real-time processing on all supported hardware. Localized requirements:
+Recommended memory: 8 GB; Large v3 Turbo takes about 1 GB more while it runs. Whisper speed
+depends on the processor, the graphics processor and the model; this is not a guarantee of
+real-time processing on all supported hardware. Localized requirements:
 
 ### Configuration supplémentaire — français
 
 ```text
 Windows 11 et Microsoft Edge WebView2 Runtime ; paquets x64 et ARM64 natifs
-Whisper : Internet pour télécharger le modèle (31–182 Mio), puis transcription ou traduction vers l'anglais hors ligne sur le processeur
+Whisper : Internet pour télécharger le modèle (31–547 Mio), puis transcription ou traduction vers l'anglais hors ligne sur le processeur ou un processeur graphique adapté
 Whisper sur x64 nécessite un processeur compatible AVX2, absent de certains PC Celeron et Pentium Silver d'entrée de gamme
 Moteurs cloud : Internet, votre compte et clé API compatibles ; des frais d'utilisation peuvent s'appliquer
 Accès à la source audio pour la reconnaissance ; microphone nécessaire uniquement pour la capture du micro
@@ -307,7 +313,7 @@ Accès à la source audio pour la reconnaissance ; microphone nécessaire unique
 
 ```text
 Windows 11 mit Microsoft Edge WebView2-Runtime; native Pakete für x64 und ARM64
-Whisper: Internet für den Modelldownload (31–182 MiB), danach Offline-Transkription oder Übersetzung ins Englische auf der CPU
+Whisper: Internet für den Modelldownload (31–547 MiB), danach Offline-Transkription oder Übersetzung ins Englische auf der CPU oder einem geeigneten Grafikprozessor
 Whisper auf x64 erfordert einen Prozessor mit AVX2; manche günstigen Celeron- und Pentium-Silver-PCs haben keinen
 Cloud-Engines: Internet, eigenes kompatibles Konto und API-Schlüssel; nutzungsabhängige Kosten möglich
 Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikrofonaufnahme erforderlich
@@ -316,7 +322,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.12.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.11.0, the version in the Store, this update adds optional Captions in Zoom, described in the next paragraph; makes the pre-flight say why Start waits when one application is to be captured and none is chosen; and removes flashes and layout shifts in the setup and transcript. It adds no capability and no product declaration. The test routes below are those of 1.11.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.13.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.12.0, this update adds the following. Offline Whisper runs on a suitable graphics processor through whisper-vulkan.exe, a helper program in the package that the app alone starts and stops, which opens no network connection and uses the graphics driver already installed; on a PC without a suitable graphics processor, or if the helper fails, Whisper runs on the processor as before. Speech detection, with a 0.9 MB voice-activity model bundled in the package, skips silence before Whisper; an optional Large v3 Turbo model download (about 547 MiB) transcribes only. The Names and terms list now also goes to Gemini subtitles and to Whisper, which keeps it on the PC. Before the first session or rehearsal with each cloud provider, the app asks before sending it audio (see Optional cloud features). With both audio sources, an optional switch, off by default, leaves out the room microphone's copy of a call played through loudspeakers. It adds no capability and no product declaration. The test routes below are those of 1.12.0, with step 3 updated.
 
 Optional Captions in Zoom (off until the user starts it): the Zoom captions button in the operator window's toolbar opens a dialog where the user pastes the caption link (API token) that a Zoom meeting's host copies with Show Captions > Set up manual captioner > Copy the API token, and chooses Start sharing. From then until Stop sharing or the app quits, the app posts finished caption text in one caption language over HTTPS directly to that zoom.us or zoomgov.com address, and Zoom shows it in the meeting's caption bar. This includes captions made offline with Whisper or by the built-in demo; no audio, API key or device information is sent, and nothing passes through a developer server. The dialog says that caption text is sent to Zoom above its Start sharing button, and the privacy policy describes the flow. The link is held in memory only and never saved. To exercise it, host a Zoom meeting (a free Basic account is enough) on an account whose settings have Manual captions on and the third-party caption API token allowed, copy the API token in the meeting, paste it, start sharing, choose Send test caption, then run the built-in demo or Whisper: attendees see the captions after choosing Show Captions. Without a Zoom meeting, open the dialog and paste any https address outside Zoom: it is refused locally with an explanation and nothing is sent. The rest of the app works the same whether or not Zoom is used. Zoom is named descriptively only; the app uses no Zoom logo and is not affiliated with Zoom Communications, Inc.
 
@@ -325,7 +331,7 @@ Voluntary support link (Store Policy 10.8.2): the Support development section at
 Real speech recognition without a paid account or API key:
 1. A clean install opens on Subtitles / Whisper / Base / Detect automatically, with the default microphone selected. No download or capture starts automatically. On an x64 processor without AVX2, Whisper is listed as unavailable with the reason and a clean install opens on Built-in demo instead; use the setup-free check below. Choose the microphone or system audio source. Grant microphone access if using a microphone. Existing saved setups are preserved on upgrade.
 2. Choose the spoken language or Detect automatically. Download Tiny (about 31 MiB) for the lightest setup, or Base (about 57 MiB). The initial HTTPS model download needs internet access; the model is not bundled. No account or key is needed.
-3. Start captioning and speak a few sentences or play speech on the selected output. Allow for CPU processing time. Verify captions in the operator window and overlay, elapsed time and input levels. Then select the Transcript tab to read the session so far, choose Last 5 minutes beside Copy, click Copy and paste into Notepad: the captions arrive as plain text.
+3. Start captioning and speak a few sentences or play speech on the selected output. Allow for processing time; on a PC with a suitable graphics processor, captions arrive sooner. The Use the graphics processor switch under the model turns this off. Verify captions in the operator window and overlay, elapsed time and input levels. Then select the Transcript tab to read the session so far, choose Last 5 minutes beside Copy, click Copy and paste into Notepad: the captions arrive as plain text.
 4. Use Move overlay to place it, lock it back to click-through, and try Fit window, Compact and Stable reading. After a restart, the overlay reopens where it was placed. Pause blocks new speech entering recognition; existing pending audio can still finish.
 5. Stop and let Finishing the transcript complete. Export text or Markdown, then SRT or WebVTT. Disconnect the network and repeat with the installed model to verify offline operation.
 6. In Settings, optionally enable transcript history; run a disposable session and reopen, rename, export and delete it. History and recovery are disabled by default. Test the editable filler-word list: it changes only the overlay.
@@ -335,9 +341,9 @@ Setup-free display check if capture hardware or model downloads are unavailable:
 In Subtitles, select Built-in demo in the engine list, choose English and click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the first-launch local speech engine.
 
 Optional cloud features:
-Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it. Mistral subtitles now use Voxtral Realtime 3 (voxtral-mini-transcribe-realtime-3-0), which Mistral lists as a public preview. Entries in the optional Names and terms list, shown in the setup when Mistral is selected, are sent to Mistral with the session.
+Gemini/OpenAI translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it. Mistral subtitles now use Voxtral Realtime 3 (voxtral-mini-transcribe-realtime-3-0), which Mistral lists as a public preview. Before the first session or rehearsal with Gemini, OpenAI or Mistral, the app asks once for that provider: it names the provider, says that the captured audio goes to it under the user's own account, key and terms, and gives the privacy policy's address. Choose Send to (the provider's name) to continue; Cancel, which has the focus, starts nothing. Both Gemini engines share one answer. Entries in the optional Names and terms list, shown in the setup for Mistral, Gemini subtitles and Whisper, are sent to Mistral or Gemini with the session; Whisper keeps them on the PC, and the translation engines are not sent them.
 
-The full-trust desktop process performs WASAPI/microphone capture, CPU Whisper transcription and translation, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. Captions in Zoom, when the user starts it, sends caption text directly to the Zoom address the user pasted. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
+The full-trust desktop process performs WASAPI/microphone capture, Whisper transcription and translation (on the processor, or on the graphics processor through the bundled whisper-vulkan.exe helper it starts), speech detection with a bundled model, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. Captions in Zoom, when the user starts it, sends caption text directly to the Zoom address the user pasted. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
 ```
 
 Resolve cloud test credentials or Microsoft reviewer access requirements before submission;

@@ -34,7 +34,13 @@ export const en = {
 		trayQuit: 'Quit',
 		trayStop: 'Stop session',
 		trayShow: 'Show caption overlay',
-		trayHide: 'Hide caption overlay'
+		trayHide: 'Hide caption overlay',
+		/** How long the session has run, after its state on the tray's status line. Whole
+		 *  minutes: the tray is updated when this changes. */
+		trayElapsed: (minutes: number) =>
+			minutes < 60
+				? `${minutes} min`
+				: `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`
 	},
 	usability: {
 		hold: 'Keep finished captions (seconds)',
@@ -638,7 +644,7 @@ export const en = {
 		kicker: 'Pre-flight',
 		heading: 'Ready when you are',
 		intro:
-			'Four checks, then Start at the top of the window. Everything on the left locks while captions are running, so nothing can be changed by accident mid-session.',
+			'The checks below, then Start at the top of the window. Everything on the left locks while captions are running, so nothing can be changed by accident mid-session.',
 
 		demoRow: {
 			title: 'Built-in demo · no key needed',
@@ -906,6 +912,8 @@ export const en = {
 		recoveryRead: 'The recovery copy from your last session could not be read',
 		recoveryDelete: 'The recovery copy could not be deleted',
 		historyStorage: 'The history folder could not be read or changed',
+		/** The window's own, not the core's: a session renamed just after it was deleted. */
+		historySessionDeleted: 'This session was deleted, so it can no longer be renamed',
 		openLink: 'Windows could not open the page in your browser',
 		taskFailed: 'A background task stopped unexpectedly',
 		micStream:

@@ -1,34 +1,38 @@
-# Partner Center submission walkthrough — 1.12.0
+# Partner Center submission walkthrough — 1.13.0
 
-Target: **Live Translation & Subtitles 1.12.0**, Product ID `9PFB8LR3RR9X`. **Tagged on
-27 October 2026; not yet submitted.** The Store serves 1.11.0 (MSIX 1.11.0.0), accepted as
-reported by the maintainer on 26 October 2026. Keep this walkthrough as the template for the
-next submission. The combined x64 + ARM64 bundle is at
-`https://github.com/fmadore/Live-translation/releases/download/v1.12.0/Live.Translation_1.12.0.msixbundle`.
-The [release handoff](store-updates.md#release-1120-handoff) has the package evidence and
+Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Not yet tagged.**
+The Store serves 1.12.0 (MSIX 1.12.0.0), live as reported by the maintainer on 10 November
+2026; 1.13.0.0 replaces it. Keep this walkthrough as the template for the
+next submission. The combined x64 + ARM64 bundle will be at
+`https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`.
+The [release handoff](store-updates.md#release-1130-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.12.0 adds **Captions in Zoom**, which shares one caption language with a Zoom meeting's own
-caption bar through the caption link (API token) the host copies in Zoom, and fixes flashes and
-layout shifts in setup and the transcript; the pre-flight now says why Start waits for an
-application. It is the first version that can send caption text to a third party the user
-names, and the first whose listing names another company's product, so beyond What's new it
-changes three things in Partner Center: the published **privacy policy** must show its Zoom
-section, the certification notes gain a **paragraph on Zoom**, and each description gains a
-**trademark line** (see [Captions in Zoom](#captions-in-zoom-privacy-notes-and-trademark) and
+1.13.0 runs Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a helper
+program in the package, skips silence with a bundled speech-detection model, offers Large v3
+Turbo, sends names and terms to Gemini subtitles too, and asks once for each cloud provider
+before audio is first sent to it. Beyond What's new it changes three things in Partner Center:
+the certification notes describe the helper, the bundled model and the question; the
+descriptions' offline-subtitles paragraph, a sentence on names and terms and one on the question
+change, with three feature lines and the second additional system requirement; and the package
+carries a second executable, which WACK and certification will see. It keeps everything 1.12.0
+brought, already in the Store: the published **privacy policy**'s Zoom section,
+the certification notes' **paragraph on Zoom** and each description's **trademark line** (see
+[Captions in Zoom](#captions-in-zoom-privacy-notes-and-trademark) and
 [store-listing-next.md](store-listing-next.md)). There is no new product declaration: the one
-ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new and
-the certification notes again from [store-listing.md](store-listing.md); the short
-descriptions, keywords and additional system requirements are unchanged. What's new covers the
-changes since 1.11.0; the certification notes already name 1.12.0.0.
+ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new, the
+additional system requirements and the certification notes again from
+[store-listing.md](store-listing.md); the short descriptions and keywords are unchanged. What's
+new covers the changes since 1.12.0; the certification notes already name 1.13.0.0.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.12.0.msixbundle` contains both native packages at
-   **1.12.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.13.0.msixbundle` contains both native packages at
+   **1.13.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
-   [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`.
+   [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`, and
+   that each package holds `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin`.
 2. Test signed per-architecture MSIX packages on x64 and ARM64. Use
    [packaging instructions](packaging-msix.md); the side-by-side Whisper Test app is separate
    evidence and must not be uploaded as the Store package.
@@ -36,17 +40,20 @@ changes since 1.11.0; the certification notes already name 1.12.0.0.
    offline Whisper transcription and translation after download, cloud features, the
    Transcript tab and Copy, the theme in Light, Dark and System, Stop/backlog, overlay
    placement across launches and move mode, system audio under load, the support link opening
-   the default browser, Captions in Zoom, export and WACK.
-4. The toolbar gains a *Zoom captions* button, which the current
-   [screenshots](store-screenshots/README.md) do not show. Decide whether to retake them; if so,
-   retake them from the 1.12.0 MSIX in all three listing languages, with Settings › App › Theme
-   set to **Dark** whatever mode the PC is in, so the set shows one theme, and keep any Zoom
+   the default browser, Captions in Zoom, Whisper on the graphics processor and its fallback,
+   speech detection, Large v3 Turbo, the question before audio first goes to a cloud provider,
+   export and WACK.
+4. The current [screenshots](store-screenshots/README.md) do not show the *Zoom captions*
+   button (1.12.0) or 1.13.0's setup switches, disabled Start and custom-colour chips. Decide
+   whether to retake them; if so, retake them from the 1.13.0 MSIX in all three listing
+   languages, with Settings › App › Theme set to **Dark** whatever mode the PC is in, so the set shows one theme, and keep any Zoom
    window and Zoom's artwork out of them. The 21 October 2026 set, from the 1.7.1 MSIX,
    predates the Live and Transcript tabs.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "27 October 2026 (documents the 1.12.0 release)" and has the *Optional captions in
-   Zoom* section and the Zoom line under *Third-party processing*. It is published from
-   `docs/privacy.md` on `main`, so it updates when the release PR merges.
+   reads "5 November 2026" and has the *Optional captions in Zoom* section, the *macOS*
+   section, and the Zoom line and the question asked before audio first goes to a provider
+   under *Third-party processing*. 1.13.0 changes nothing in it. It is published from
+   `docs/privacy.md` on `main`.
 
 ## Pricing and properties
 
@@ -63,15 +70,15 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 | Purchases outside Microsoft commerce | **Ticked since 1.11.0; leave it ticked** (Product declarations, below): the Buy Me a Coffee link; provider dependencies and charges disclosed in listing. Captions in Zoom involve no payment |
 | Accessibility certification | Do not claim certification without a completed audit |
 | Generative AI | Yes: optional Gemini/OpenAI translation and local Whisper translation into English generate text |
-| Personal-information transmission | Cloud modes send selected audio directly to third parties, and Mistral also receives any names and terms entered for it; local Whisper does not. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
-| Recommended memory | 8 GB; model/CPU determine Whisper speed |
+| Personal-information transmission | Cloud modes send selected audio directly to third parties, after the app asks once for each provider, and Mistral and Gemini subtitles also receive any names and terms entered; local Whisper sends nothing. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
+| Recommended memory | 8 GB; Large v3 Turbo takes about 1 GB more; model, processor and graphics processor determine Whisper speed |
 
 ### Product declarations: the support link
 
 Store Policy 10.8.2 lets a voluntary donation that gives nothing in return go through a secure
 third-party payment provider, and says: "You must note the use of a secure third-party purchase
 API in Partner Center during the submission process." Since 1.11.0 it is noted in two places,
-and 1.12.0 keeps both:
+and 1.13.0 keeps both:
 
 1. **Properties › Product declarations** (*Propriétés › Déclarations de produit*): tick
    **This product allows users to make purchases, but does not use the Microsoft Store commerce
@@ -94,7 +101,7 @@ or in-app purchase for this release.
 Captions in Zoom needs no product declaration, but three checks in this submission:
 
 1. **Privacy policy URL** (Store Policy 10.5): the URL above is unchanged; check that the page
-   it serves shows the 27 October 2026 date and the *Optional captions in Zoom* section (step 5
+   it serves shows the 5 November 2026 date and the *Optional captions in Zoom* section (step 5
    of [Before Partner Center](#before-partner-center)).
 2. **Notes for certification**: the second paragraph of the
    [notes](store-listing.md#notes-for-certification) says what the feature sends and where, that
@@ -113,7 +120,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.12.0.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.13.0.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -121,7 +128,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.12.0.0` |
+| Version | `1.13.0.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -130,17 +137,17 @@ Use the separate English (United States), French (France) and German (Germany) b
 [store-listing.md](store-listing.md). Complete German review and screenshots before adding
 that listing if it is not already present. For each language, paste:
 
-1. **Description**: full paragraphs, up to 10,000 characters. 1.12.0 adds to each a sentence
-   on Captions in Zoom, one on the caption text it sends in the privacy paragraph, one on the
-   host's Zoom settings in the requirements paragraph, and the trademark line as the last
-   paragraph.
-2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.12.0
-   adds a twentieth line, on Captions in Zoom.
+1. **Description**: full paragraphs, up to 10,000 characters. 1.13.0 replaces the
+   offline-subtitles paragraph, ends the cloud paragraph with Gemini, Mistral and Whisper taking
+   the names-and-terms list, and adds a sentence on the question before audio is sent to the
+   privacy paragraph. 1.12.0's Zoom sentences and the trademark line, the last paragraph, stay.
+2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.13.0
+   changes the first, second and fifth lines; the twentieth, on Captions in Zoom, stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.12.0 block, under 1,500 characters. It covers the changes since
-   1.11.0, the version the Store serves.
-5. **Additional system requirements**: separate supplied lines, each under 200 characters,
-   unchanged since 1.7.1.
+4. **What's new**: the 1.13.0 block, under 1,500 characters. It covers the changes since
+   1.12.0, the version the Store serves.
+5. **Additional system requirements**: separate supplied lines, each under 200 characters.
+   1.13.0 changes the second (Whisper: 31–547 MiB, processor or graphics processor).
 6. Packaged-app screenshots with matching localized captions, showing the current interface
    in the Dark theme.
 7. **Store logos**: see below.
@@ -169,7 +176,8 @@ appears only as a secondary, explicitly scripted feature.
 ## Submission options
 
 Paste [Notes for certification](store-listing.md#notes-for-certification), including the
-second paragraph on Captions in Zoom and the third on the support link. Resolve any
+first paragraph on the helper, the bundled model and the question before audio is sent, the
+second on Captions in Zoom and the third on the support link. Resolve any
 required cloud test credentials privately before submission; no personal keys belong in public
 metadata or screenshots.
 
@@ -181,23 +189,23 @@ installation keeps its saved engine and audio choices.
 
 Suggested `runFullTrust` justification:
 
-> Win32 desktop app packaged as MSIX. The full-trust process handles microphone/WASAPI capture, local CPU Whisper transcription and translation with temporary audio buffering, verified model downloads, Windows Credential Manager, a click-through overlay and transcript export. No driver, service, auto-start task, telemetry or developer relay.
+> Win32 desktop app packaged as MSIX. The full-trust process handles microphone/WASAPI capture, local Whisper transcription and translation with temporary audio buffering (on the processor, or on the graphics processor through the bundled whisper-vulkan.exe helper it starts), verified model downloads, Windows Credential Manager, a click-through overlay and transcript export. No driver, service, auto-start task, telemetry or developer relay.
 
 ## Final review and submission
 
 Confirm all sections are complete, the Product declaration for purchases outside Microsoft
 commerce is still ticked, each description ends with the Zoom trademark line, packages and copy
-agree on 1.12.0.0, screenshots and Store
+agree on 1.13.0.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, each listing carries the super hero art,
 and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Rollout ([route step 9](store-updates.md#the-route)): audio capture is untouched in 1.12.0,
-but every caption and each session start now pass through the Zoom share; decide between a full
-and a gradual rollout.
+Rollout ([route step 9](store-updates.md#the-route)): **gradual**, starting at 10%. 1.13.0
+changes capture (wasapi 0.27) and the session lifecycle (the question before a cloud session,
+the echo filter's held lines, the Whisper helper's start, fallback and end).
 
-Submit manually when the [handoff checklist](store-updates.md#release-1120-handoff) is complete,
+Submit manually when the [handoff checklist](store-updates.md#release-1130-handoff) is complete,
 and record the submission date and certification result there. Do not mark a version live
-until Partner Center or the public listing confirms publication. 1.11.0's acceptance was
-reported by the maintainer on 26 October 2026.
+until Partner Center or the public listing confirms publication. 1.12.0 is live as reported by
+the maintainer on 10 November 2026; its submission and certification dates were not recorded.

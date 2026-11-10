@@ -1,7 +1,7 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
 import { readLine } from './document';
-import { asStatus, type AppError } from './errors';
+import { asStatus, isAppError, type AppError } from './errors';
 import { persistedFlag } from './persisted';
 import { api } from './tauri';
 import {
@@ -269,6 +269,17 @@ export const HISTORY_WRITE_INTERVAL_MS = 5000;
  * any write after a failure, replaces its file whole and atomically; later writes append only
  * the lines that are new. A deleted active session stays deleted; the next Start gets a
  * fresh UUID. */
+/** What `rename` rejects with for a session deleted a moment before (review B18): the
+ *  window's own error, in the core's `{ id }` shape, so `describeError` words it from the
+ *  catalog's `error.historySessionDeleted` like any other. */
+export const SESSION_DELETED: Readonly<AppError> = Object.freeze({
+	id: 'error.historySessionDeleted'
+});
+
+export function isSessionDeleted(error: unknown): boolean {
+	return isAppError(error) && error.id === SESSION_DELETED.id;
+}
+
 export function createHistoryCoordinator(
 	port: Pick<typeof api, 'writeHistory' | 'appendHistory' | 'deleteHistory' | 'renameHistory'>,
 	enabled: () => boolean,
@@ -397,7 +408,7 @@ export function createHistoryCoordinator(
 			titles.set(session.id, title);
 			if (active?.id === session.id) active.title = title;
 			const result = queue.then(async () => {
-				if (deleted.has(session.id)) throw new Error('Session deleted');
+				if (deleted.has(session.id)) throw { ...SESSION_DELETED };
 				// Rename the newest disk record, never the history view's possibly stale copy.
 				try {
 					await port.renameHistory(session.id, title);
@@ -408,7 +419,11 @@ export function createHistoryCoordinator(
 				}
 				onSaved(failed.size > 0);
 			});
-			queue = result.catch(onError);
+			// Refused, not failed: nothing was written, so history is not "not saving". The
+			// caller words the rejection.
+			queue = result.catch((error: unknown) => {
+				if (!isSessionDeleted(error)) onError(error);
+			});
 			return result;
 		},
 		delete(id: string) {

@@ -25,8 +25,8 @@ app asks once before audio is first sent to each cloud provider.
   Settings for permissions, "this Mac" for "this PC", ⌘ shortcuts written as macOS writes them
   (⇧⌘P), in English, French and German. ⌘Q stops the session cleanly and asks about an unsaved
   transcript, as Quit in the menu bar does.
-- **A Mac App Store version** (free, sandboxed, with no support link) is built and ready to
-  upload, but has not been submitted yet.
+- **A Mac App Store version** (free, sandboxed, with no support link) was built and uploaded to
+  App Store Connect on 5 November 2026, but has not been submitted for review yet.
 
 The Mac app is built, tested and started on Apple silicon in GitHub Actions, Whisper's smoke
 test included, but **has not yet been used on a real Mac**. System audio, application capture,
@@ -73,8 +73,8 @@ line is dropped when its words are, nearly enough, words the system audio was ca
 the same moment. It compares what the two engines wrote, not
 the sound, so someone in the room speaking over the call is kept, and what it drops is always on
 screen from the system audio. While the call is sounding, a finished microphone line waits a few
-seconds (ten with Whisper) for the system line it may repeat before it reaches the transcript;
-it is on screen meanwhile. It works with every engine; with headphones there is nothing to drop, so leave it off. Off,
+seconds (up to thirty with Whisper, less once the system audio has been captioned past it) for
+the system line it may repeat before it reaches the transcript; it is on screen meanwhile. It works with every engine; with headphones there is nothing to drop, so leave it off. Off,
 captions are exactly as before.
 
 ## Names and terms for Gemini Transcribe and Whisper
@@ -94,6 +94,31 @@ and where the privacy policy is, and waits for **Send**; **Cancel** starts nothi
 per company, so both Gemini engines share one answer. Local Whisper and the built-in
 demonstration send nothing and are never asked about.
 
+## Fixes
+
+From the [10 November app review](app-review-2026-11-10.md):
+
+- **Captions in Zoom:** a rehearsal or the built-in demo no longer sends its sample captions to
+  a meeting whose sharing was left on.
+- **Cloud engines:** when a provider closes the connection during a session, the app now says
+  why while it reconnects, and stops that source when the provider refuses the session (an
+  invalid request, a policy or the key) rather than retrying for ever. Stop takes effect at once
+  during a session handover, and a session cut off at Stop keeps its last line.
+- **Whisper on the graphics processor:** one window that fails is tried again on the graphics
+  processor before the session moves to the processor, and quitting no longer waits on a
+  graphics driver that hangs while the model loads.
+- **Starting again straight after a stop** can no longer flash the setup screen or clear the
+  new session's status.
+- **The first-use question for a cloud provider** opens with Cancel in focus, so a stray Enter
+  sends nothing.
+- **SRT exports** write `&`, `<` and `>` as they are (`Q&A`, not `Q&amp;A`).
+- **Screen readers** hear the notices that appear with a profile, a language search, the
+  application picker and the transcript's export notes; notices follow a change of interface
+  language; History shows the original speech once per line, marked with its language.
+- **The interface:** a Start that cannot be pressed no longer looks pressable; the custom
+  colour buttons hold one line in French and German; the tray shows the session's length in
+  minutes.
+
 ## Under the surface
 
 - The Windows packages carry `whisper-vulkan.exe` beside the app and the 864 KiB speech-detection
@@ -107,8 +132,10 @@ demonstration send nothing and are never asked about.
   releases, with LunarG's Vulkan SDK; `tauri dev` and ordinary builds do not need it.
 - CI builds and tests the helper on Windows and Linux, and runs the whole Whisper smoke test
   through it on Mesa's software renderer; the macOS lanes run on macOS 26 with Xcode 26.
-- Dependency updates: tokio 1.54.1 and other Rust patch releases, and npm overrides of minimatch
-  and glob for audit advisories.
+- Dependency updates: tokio 1.54.1 and other Rust patch releases, wasapi 0.27, rfd 0.18 and
+  sha2 0.11, SvelteKit 3.2, and npm overrides of minimatch and glob for audit advisories.
+- A release now waits for CI to pass on the tagged commit, and checks the helper's version with
+  the app's.
 
 With Whisper, audio still never leaves the computer: on Windows it reaches the helper only
 through the computer's own memory. Cloud translation and cloud subtitles still require your own

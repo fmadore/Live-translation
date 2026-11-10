@@ -5,10 +5,32 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.11.0 in the Store, 1.12.0 tagged
+## Current status — 1.12.0 in the Store, 1.13.0 in preparation
 
-The Store serves [**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)
-(26 October 2026, MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
+1.13.0 is in preparation, not yet tagged ([draft release notes](docs/release-1.13.0.md),
+[handoff](docs/store-updates.md#release-1130-handoff)): the Mac
+app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
+Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
+switch that leaves out the call heard by the room microphone with Both sources. The
+[10 November app review](docs/app-review-2026-11-10.md) lists its findings on `main` before the
+tag and tracks their status on the branch `fix/review-2026-11-10`.
+
+The Store serves [**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)
+(27 October 2026, MSIX 1.12.0.0), live as reported by the maintainer on 10 November 2026; the
+submission and certification dates were not recorded
+([handoff](docs/store-updates.md#release-1120-handoff), [release notes](docs/release-1.12.0.md)).
+1.12.0 replaced 1.11.0 and added:
+- [#189](https://github.com/fmadore/Live-translation/pull/189): captions in Zoom, one caption
+  language sent to a Zoom meeting's own caption bar through the host's caption API token
+  ([guide](docs/zoom-captions.md)), with a toolbar button labelled *Zoom captions* and a generic
+  captions mark rather than Zoom's logo.
+- [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
+  setup and the transcript; [#190](https://github.com/fmadore/Live-translation/pull/190): the
+  pre-flight says why Start waits for an application.
+
+Before it, the Store served
+[**1.11.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) (26 October 2026,
+MSIX 1.11.0.0), accepted as reported by the maintainer the day it was tagged
 ([handoff](docs/store-updates.md#release-1110-handoff), [release notes](docs/release-1.11.0.md)).
 1.11.0 replaced 1.10.0 (batches 4–6 of the
 [22 October app review](docs/app-review-2026-10-22.md), which also lists what is left) and
@@ -20,17 +42,6 @@ added:
   supporter add-on that issue also proposed is not planned: the Store cannot sell a pure
   donation, and a paid cosmetic extra would contradict "unlocks nothing".
 
-[**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) was tagged on
-27 October 2026 and is not yet submitted to the Store
-([handoff](docs/store-updates.md#release-1120-handoff), [release notes](docs/release-1.12.0.md)):
-- [#189](https://github.com/fmadore/Live-translation/pull/189): captions in Zoom, one caption
-  language sent to a Zoom meeting's own caption bar through the host's caption API token
-  ([guide](docs/zoom-captions.md)), with a toolbar button labelled *Zoom captions* and a generic
-  captions mark rather than Zoom's logo.
-- [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
-  setup and the transcript; [#190](https://github.com/fmadore/Live-translation/pull/190): the
-  pre-flight says why Start waits for an application.
-
 Store copy leads with offline captions and optional cloud translation; the scripted demo stays
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
 detection, while upgrades preserve saved setups.
@@ -39,7 +50,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.12.0 handoff](docs/store-updates.md#release-1120-handoff) carries the open checks.
+[1.13.0 handoff](docs/store-updates.md#release-1130-handoff) carries the open checks.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -106,10 +117,17 @@ glossaries, live corrections and offline text translation are not planned.
   Apple silicon, macOS 15 and later: system audio and one-application capture through Core Audio
   taps, device notifications, the overlay by window level, the Save panel, the Keychain, ⌘Q and
   the Dock, macOS wording and ⌘ shortcuts in all three languages, a macOS CI lane, a test build
-  on every push, a notarised disk image in each release and a free Mac App Store build with its
-  upload workflow ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). Not
-  yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the checklist in
-  the notes. The paid trial proposed in the issue was dropped: the Mac version is free.
+  on every push, a notarised disk image built by the release workflow from 1.13.0 on (no release
+  has one yet) and a free Mac App Store build with its upload workflow
+  ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
+  uploaded a build to App Store Connect on 5 November 2026; it has not been submitted for
+  review. Not yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the
+  checklist in the notes. The paid trial proposed in the issue was dropped: the Mac version is
+  free.
+
+- **The [10 November app review](docs/app-review-2026-11-10.md):** its fixes, the release
+  workflow's checks among them, are made on `fix/review-2026-11-10` before 1.13.0 is tagged;
+  the review tracks each finding's status, and what is left for the maintainer.
 
 - **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
   `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
@@ -172,13 +190,13 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.12.0** (27 October 2026; not yet submitted to the Store): captions in Zoom, one caption
+- **1.12.0** (27 October 2026; live in the Store, reported 10 November 2026): captions in Zoom, one caption
   language in a Zoom meeting's own caption bar
   ([#189](https://github.com/fmadore/Live-translation/pull/189)); no flashes or layout shifts in
   setup and the transcript ([#188](https://github.com/fmadore/Live-translation/pull/188)); and a
   pre-flight that says why Start waits for an application.
   [Release body](docs/release-1.12.0.md).
-- **1.11.0** (26 October 2026; accepted in the Store, reported 26 October 2026): an optional Buy Me a Coffee link that unlocks
+- **1.11.0** (26 October 2026; accepted in the Store, reported 26 October 2026, replaced by 1.12.0): an optional Buy Me a Coffee link that unlocks
   nothing, and no empty band at the bottom of the operator window
   ([#182](https://github.com/fmadore/Live-translation/pull/182)).
   [Release body](docs/release-1.11.0.md).
@@ -263,8 +281,9 @@ glossaries, live corrections and offline text translation are not planned.
   recognizers failed on unconfigured review hardware, so 1.0.5 replaced them with a
   deterministic bundled demonstration and became native x64 and ARM64. The lesson stands for
   the next attempt: a keyless path that depends on the reviewer's hardware, language packs or
-  privacy settings is not a keyless path. macOS support was dropped; the Linux CI lane is a
-  compile check only. See [Microsoft Store submission](docs/microsoft-store.md).
+  privacy settings is not a keyless path. macOS support was dropped then; it returned for Apple
+  silicon in [#195](https://github.com/fmadore/Live-translation/issues/195), for 1.13.0. The
+  Linux CI lane is a compile check only. See [Microsoft Store submission](docs/microsoft-store.md).
 - **0.4.0** (August 2026): Mistral Voxtral subtitles, plain-text and Markdown export, current
   provider contracts, a serialized start/stop lifecycle, bounded audio channels, frontend
   tests, Windows and Linux Rust CI with npm/RustSec audits.

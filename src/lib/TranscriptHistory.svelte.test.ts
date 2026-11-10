@@ -411,3 +411,90 @@ it('matches either caption language, and sessions saved before the second existe
 	).toBe(true);
 	expect(matchesSession(subtitles, { ...filter, language: 'auto' })).toBe(true);
 });
+
+it('re-words a notice already on screen when the interface language changes', async () => {
+	const rename = vi.spyOn(sessionHistory, 'rename').mockResolvedValue();
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.click(view.container.querySelector('.session')!);
+	await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Workshop' } });
+	await fireEvent.click(view.getByText('Save title'));
+	const notice = view.container.querySelector('.notice')!;
+	await waitFor(() => expect(notice).toHaveTextContent('Session title saved.'));
+	locale.set('fr');
+	await tick();
+	expect(notice).toHaveTextContent('Titre de la session enregistré.');
+	rename.mockRestore();
+	view.unmount();
+});
+
+it('words a failed rename from the catalogue, never as raw English', async () => {
+	// What history.ts rejects with for a session deleted a moment before (review B18): the
+	// core's error shape, or a message the window words itself.
+	for (const failure of [
+		{ id: 'error.whisperModel' },
+		(m: { error: { whisperModel: string } }) => m.error.whisperModel
+	]) {
+		const rename = vi.spyOn(sessionHistory, 'rename').mockRejectedValue(failure);
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+		await fireEvent.click(view.container.querySelector('.session')!);
+		await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Gone' } });
+		await fireEvent.click(view.getByText('Save title'));
+		await waitFor(() =>
+			expect(view.getByRole('alert')).toHaveTextContent('The Whisper model could not be prepared')
+		);
+		locale.set('fr');
+		await tick();
+		expect(view.getByRole('alert')).not.toHaveTextContent('The Whisper model');
+		locale.set('en');
+		rename.mockRestore();
+		view.unmount();
+	}
+});
+
+it('previews a two-language session with the original once, each line in its language', async () => {
+	const both: SavedSession = {
+		...saved,
+		secondTargetLanguage: 'ar',
+		lines: [
+			{ ...saved.lines[0], lane: 1, language: 'ar', id: 2, text: 'مرحبا' },
+			{ ...saved.lines[0], lane: 0, language: 'fr', id: 1, text: 'Euh, bonjour.' }
+		]
+	};
+	both.lines[1].sourceText = 'Um, hello.';
+	both.lines[0].sourceText = 'Um, hello.';
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: both.id, contents: encodeSessionLog(both) })
+	);
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.click(view.container.querySelector('.session')!);
+	const preview = view.getByRole('region', { name: 'Saved transcript' });
+	const originals = preview.querySelectorAll('.source');
+	expect(originals).toHaveLength(1);
+	expect(originals[0]).toHaveAttribute('lang', '');
+	expect(originals[0]).toHaveAttribute('dir', 'auto');
+	const arabic = view.getByText('مرحبا');
+	expect(arabic).toHaveAttribute('lang', 'ar');
+	expect(arabic).toHaveAttribute('dir', 'rtl');
+	expect(view.getByText('Euh, bonjour.')).toHaveAttribute('lang', 'fr');
+	view.unmount();
+});
+
+it('words a rename refused because the session was just deleted (review B18)', async () => {
+	const rename = vi
+		.spyOn(sessionHistory, 'rename')
+		.mockRejectedValue({ id: 'error.historySessionDeleted' });
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(view.container.querySelector('.session')).not.toBeNull());
+	await fireEvent.click(view.container.querySelector('.session')!);
+	await fireEvent.input(view.getByLabelText('Session title'), { target: { value: 'Gone' } });
+	await fireEvent.click(view.getByText('Save title'));
+	await waitFor(() =>
+		expect(view.getByRole('alert')).toHaveTextContent('This session was deleted')
+	);
+	expect(view.getByRole('alert')).not.toHaveTextContent('Session deleted');
+	rename.mockRestore();
+	view.unmount();
+});

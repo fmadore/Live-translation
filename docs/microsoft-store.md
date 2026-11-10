@@ -1,21 +1,27 @@
 # Microsoft Store submission
 
-**Current Store release: 1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on
-26 October 2026, the day it was tagged; it replaced 1.10.0. It added an optional Buy Me a
-Coffee link that unlocks nothing, the app's first way to pay anyone, so its submission ticked a
-Product declaration and explained the link in the certification notes
+**Current Store release: 1.12.0 / MSIX 1.12.0.0**, live as reported by the maintainer on
+10 November 2026; the submission and certification dates were not recorded
+([its handoff](store-updates.md#release-1120-handoff)). It replaced 1.11.0. It added Captions
+in Zoom, the first feature that can send caption text to a third party the user names, so its
+listing carries the privacy policy's Zoom section, a certification-notes paragraph and a
+trademark line in each description.
+
+**1.11.0 / MSIX 1.11.0.0**, accepted as reported by the maintainer on 26 October 2026 and
+replaced by 1.12.0, added an optional Buy Me a Coffee link that unlocks nothing, the app's
+first way to pay anyone, so its submission ticked a Product declaration and explained the link
+in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.12.0 / MSIX 1.12.0.0**, tagged on 27 October 2026 and not yet submitted.
-1.12.0 adds Captions in Zoom, which shares one caption language with a Zoom meeting's own
-caption bar, and fixes flashes and layout shifts in setup and the transcript. It is the first
-version that can send caption text to a third party the user names, and the first whose listing
-names another company's product, so its submission checks the published privacy policy's Zoom
-section, explains the feature in the certification notes and carries a trademark line in each
-description ([what it needs](store-listing-next.md)).
-See the [1.12.0 handoff](store-updates.md#release-1120-handoff),
-[listing copy](store-listing.md) and [Partner Center walkthrough](partner-center-walkthrough.md).
+**Next submission: 1.13.0 / MSIX 1.13.0.0**, not yet tagged, replacing 1.12.0. 1.13.0 runs
+Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a second executable in
+the package, bundles a speech-detection model, adds Large v3 Turbo, sends names and terms to
+Gemini subtitles too, and asks once for each cloud provider before audio is first sent to it.
+Its copy covers the changes since 1.12.0 and keeps everything 1.12.0 brought to the listing
+([what it needs](store-listing-next.md)). See the
+[1.13.0 handoff](store-updates.md#release-1130-handoff), [listing copy](store-listing.md) and
+[Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
 
@@ -66,8 +72,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.12.0; both MSIX manifests and the combined bundle
-  report 1.12.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.13.0; both MSIX manifests and the combined bundle
+  report 1.13.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -81,11 +87,14 @@ before submission; a passing local check does not imply certification.
   selected.
 - [ ] Whisper translation into English with Small works offline on x64 and ARM64; any caption
   language but English is refused, and Large v3 Turbo is not offered for translation.
-- [ ] From the version after 1.12.0: the package carries `whisper-vulkan.exe` beside the app and
+- [ ] From 1.13.0: the package carries `whisper-vulkan.exe` beside the app and
   `models/ggml-silero-v5.1.2.bin`; on a PC with a usable graphics processor the log names it
   (`Whisper model loaded device=vulkan: …`), with *Use the graphics processor* off it says
   `cpu`, and on a Snapdragon it stays on the processor. A quiet room produces no invented
   captions; Large v3 Turbo downloads and transcribes.
+- [ ] From 1.13.0: the first session or rehearsal with each cloud provider asks before audio is
+  sent, with Cancel in focus, once per provider; Whisper and the demo are never asked about.
+  Names and terms reach Gemini subtitles and Whisper.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.
@@ -121,7 +130,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
-Record evidence and exceptions in the [release handoff](store-updates.md#release-1120-handoff).
+Record evidence and exceptions in the [release handoff](store-updates.md#release-1130-handoff).
 Previous release checks are historical evidence, not sign-off for new binaries.
 
 ## Package identity and signing

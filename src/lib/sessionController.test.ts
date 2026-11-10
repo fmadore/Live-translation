@@ -5,6 +5,7 @@ import {
 	applyStatus,
 	clearTranscript,
 	describeStatus,
+	isRunning,
 	options,
 	pauseRequested,
 	sessionStartedAt,
@@ -69,35 +70,95 @@ describe('session coordination', () => {
 		locale.set('en');
 	});
 
-	// Review U1: the core stops the session it still holds before it starts the next, and that
-	// session's Idle arrives while the start is in flight. The page reads this to tell them apart.
-	it('says when a start is in flight, until the core answers it', async () => {
-		let finish!: () => void;
-		const controller = createSessionController({
-			startSession: vi.fn().mockReturnValue(
-				new Promise<void>((resolve) => {
-					finish = resolve;
-				})
-			),
-			stopSession: vi.fn(),
-			pauseSession: vi.fn()
-		});
-		expect(get(controller.starting)).toBe(false);
-		const starting = controller.start(get(options));
-		expect(get(controller.starting)).toBe(true);
-		finish();
-		expect(await starting).toBe(true);
-		expect(get(controller.starting)).toBe(false);
-		applyStatus({ state: 'idle' });
+	// Review U1 and B4: every source of a run failed, so the core still holds that session, and
+	// the next start stops it first. Its whole-session Idle, carrying the old failure, is sent
+	// before anything of the new run, but events and command answers travel separately: it can
+	// land while the start is in flight or after the start call has answered.
+	describe('the Idle of the session a start replaced', () => {
+		const failure = { id: 'error.whisperSession', detail: 'decoder stalled' };
 
-		const failing = createSessionController({
-			startSession: vi.fn().mockRejectedValue(new Error('no device')),
-			stopSession: vi.fn(),
-			pauseSession: vi.fn()
+		/** A run that started and then ended by itself: the core still holds it. */
+		async function endedByItself() {
+			const stopSession = vi.fn().mockImplementation(async () => applyStatus({ state: 'idle' }));
+			const startSession = vi.fn().mockResolvedValue(undefined);
+			const controller = createSessionController({
+				startSession,
+				stopSession,
+				pauseSession: vi.fn()
+			});
+			expect(await controller.start(get(options))).toBe(true);
+			applyStatus({ state: 'running', origin: 'microphone' });
+			applyStatus({ state: 'error', origin: 'microphone', message: failure });
+			expect(get(isRunning)).toBe(false);
+			statusMessage.set('');
+			return { controller, startSession, stopSession };
+		}
+
+		it('is not taken for the new run ending when it arrives during the start', async () => {
+			const { controller, startSession } = await endedByItself();
+			startSession.mockImplementationOnce(async () =>
+				applyStatus({ state: 'idle', message: failure })
+			);
+			expect(await controller.start(get(options))).toBe(true);
+			expect(get(sessionStartedAt)).not.toBeNull();
+			expect(get(statusMessage)).toBe('');
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(isRunning)).toBe(true);
+			await controller.stop();
+			expect(get(isRunning)).toBe(false);
+			expect(get(sessionStartedAt)).toBeNull();
 		});
-		expect(await failing.start(get(options))).toBe(false);
-		expect(get(failing.starting)).toBe(false);
+
+		it('is not taken for the new run ending when it arrives after the start call answered', async () => {
+			const { controller } = await endedByItself();
+			expect(await controller.start(get(options))).toBe(true);
+			const startedAt = get(sessionStartedAt);
+			applyStatus({ state: 'idle', message: failure });
+			expect(get(sessionStartedAt)).toBe(startedAt);
+			expect(get(statusMessage)).toBe('');
+			applyStatus({ state: 'connecting', origin: 'microphone' });
+			applyStatus({ state: 'running', origin: 'microphone' });
+			expect(get(isRunning)).toBe(true);
+			expect(get(sessionStartedAt)).toBe(startedAt);
+
+			// Only one was due: the next whole-session Idle is this run's own end.
+			applyStatus({ state: 'idle' });
+			expect(get(isRunning)).toBe(false);
+			expect(get(sessionStartedAt)).toBeNull();
+		});
+
+		it('still lets Stop end a run pressed straight after its Start', async () => {
+			const { controller } = await endedByItself();
+			expect(await controller.start(get(options))).toBe(true);
+			// The old run's Idle, then Stop's own, before any source of the new run reported.
+			applyStatus({ state: 'idle', message: failure });
+			await controller.stop();
+			expect(get(sessionStartedAt)).toBeNull();
+			expect(get(statusMessage)).toBe('');
+		});
+
+		it('keeps a failed start’s reason when the old run’s Idle lands after it', async () => {
+			const { controller, startSession } = await endedByItself();
+			startSession.mockRejectedValueOnce(new Error('missing credential'));
+			expect(await controller.start(get(options))).toBe(false);
+			expect(get(sessionStartedAt)).toBeNull();
+			applyStatus({ state: 'idle' });
+			expect(statusLine()).toContain('missing credential');
+			// That Idle was the one due; a later one is honoured again.
+			applyStatus({ state: 'idle' });
+			expect(get(statusMessage)).toBe('');
+		});
+
+		it('is not expected after a run the core answered with its own Idle', async () => {
+			const { controller } = await endedByItself();
+			await controller.stop();
+			expect(await controller.start(get(options))).toBe(true);
+			// Stop pressed before any source reported: its Idle ends the run at once.
+			await controller.stop();
+			expect(get(sessionStartedAt)).toBeNull();
+		});
 	});
+
 	it('resets the clock when startup fails', async () => {
 		const controller = createSessionController({
 			startSession: vi.fn().mockRejectedValue(new Error('missing credential')),

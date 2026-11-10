@@ -10,7 +10,7 @@
 	import Preference from './ui/Preference.svelte';
 	import Select from './ui/Select.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
-	import { describeError } from './errors';
+	import { asStatus, describeError, type AppError } from './errors';
 	import { locale, t } from './i18n';
 	import { languageName } from './languages';
 	import { options } from './stores';
@@ -30,7 +30,8 @@
 		onShowOnScreen: (show: boolean) => void;
 	} = $props();
 
-	let guideError = $state<string | null>(null);
+	// Kept as caught and worded where it is shown, so it follows a change of interface language.
+	let guideError = $state.raw<string | AppError | null>(null);
 
 	// A real link, so it reads as one and shows its address on hover, but the click goes to the
 	// core, which opens the guide in the default browser rather than in a WebView2 popup.
@@ -40,7 +41,7 @@
 		try {
 			await openZoomGuide();
 		} catch (e) {
-			guideError = describeError(e, $t);
+			guideError = asStatus(e);
 		}
 	}
 
@@ -128,7 +129,7 @@
 		<a href={ZOOM_GUIDE_URL} onclick={openGuide}
 			>{$t.zoom.guide}<span class="sr-only">{$t.support.opensInBrowser}</span></a
 		>
-		{#if guideError}<span class="failed" role="alert">{guideError}</span>{/if}
+		{#if guideError}<span class="failed" role="alert">{describeError(guideError, $t)}</span>{/if}
 	</p>
 
 	<form

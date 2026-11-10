@@ -286,6 +286,7 @@ impl ModelManager {
             manager: self.clone(),
             id,
             path,
+            verified: Mutex::new(None),
         })
     }
 
@@ -372,15 +373,59 @@ pub struct ModelLease {
     manager: ModelManager,
     id: ModelId,
     pub path: PathBuf,
+    /// The file as it was when this session last found it to be the pinned model, by its own
+    /// digest or by the Vulkan helper's: a second load in the same session (the fallback from
+    /// the graphics processor) then skips hashing it again, unless the file has changed since.
+    verified: Mutex<Option<Stamp>>,
 }
+
+/// What can be told of a file without reading it: its length and when it was last written.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Stamp {
+    bytes: u64,
+    modified: Option<std::time::SystemTime>,
+}
+
+fn stamp(path: &Path) -> Result<Stamp> {
+    let metadata = fs::metadata(path)?;
+    Ok(Stamp {
+        bytes: metadata.len(),
+        modified: metadata.modified().ok(),
+    })
+}
+
 impl ModelLease {
     pub fn id(&self) -> ModelId {
         self.id
     }
 
-    /// Check cached bytes too: a corrupt/replaced local file must never reach native inference.
+    /// The model file as it is now, to hand to [`Self::verified`] once something has checked it.
+    pub fn stamp(&self) -> Result<Stamp> {
+        stamp(&self.path)
+    }
+
+    /// Record that the file, as it was at `before`, has been checked against the pinned digest
+    /// (the Vulkan helper refuses to load anything else). Ignored if it has changed since.
+    pub fn verified(&self, before: Stamp) {
+        if self.stamp().is_ok_and(|now| now == before) {
+            *lock(&self.verified) = Some(before);
+        }
+    }
+
+    /// The model's bytes, provided they are the pinned model: a corrupt or replaced local file
+    /// must never reach native inference. Hashed once a session; a later read whose file has
+    /// the same length and write time as the one that was checked only reads it.
     pub fn read_verified(&self) -> Result<Vec<u8>> {
-        read_verified(&self.path, self.id)
+        let before = self.stamp()?;
+        if *lock(&self.verified) == Some(before) && before.bytes == self.id.bytes() {
+            let data = fs::read(&self.path)?;
+            if data.len() as u64 == before.bytes && self.stamp()? == before {
+                return Ok(data);
+            }
+        }
+        let data = read_verified(&self.path, self.id)?;
+        self.verified(before);
+        Ok(data)
     }
 }
 impl Drop for ModelLease {
@@ -445,6 +490,35 @@ mod tests {
         assert!(manager.download(dir.path(), ModelId::Tiny).await.is_err());
         drop(lease);
         manager.remove(dir.path(), ModelId::Tiny).unwrap();
+    }
+
+    /// E2: a file this session already checked is not hashed again, but one that changed since
+    /// is, and is refused.
+    #[test]
+    fn a_checked_model_is_trusted_until_it_changes() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(ModelId::Tiny.file());
+        let size = usize::try_from(ModelId::Tiny.bytes()).unwrap();
+        let file = File::create(&path).unwrap();
+        file.set_len(ModelId::Tiny.bytes()).unwrap();
+        drop(file);
+        let manager = ModelManager::default();
+        let lease = manager.lease(dir.path(), ModelId::Tiny).unwrap();
+        // Zeros are not the model: never checked, so refused.
+        assert!(lease.read_verified().is_err());
+        // As the Vulkan helper's successful load records it.
+        let checked = lease.stamp().unwrap();
+        lease.verified(checked);
+        assert_eq!(lease.read_verified().unwrap().len(), size);
+        // Written since: checked again, and refused.
+        let file = fs::OpenOptions::new().write(true).open(&path).unwrap();
+        file.set_modified(std::time::SystemTime::now() + Duration::from_secs(60))
+            .unwrap();
+        drop(file);
+        assert!(lease.read_verified().is_err());
+        // A stamp taken before a change is never recorded.
+        lease.verified(checked);
+        assert!(lease.read_verified().is_err());
     }
 
     #[test]

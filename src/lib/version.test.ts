@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-// A release writes its version by hand into six files (step 1 of the release route in
+// A release writes its version by hand into seven files (step 1 of the release route in
 // `docs/store-updates.md`), and nothing in the build reads them all: a lock file left behind
 // turns up later as a stray diff in someone else's change, and a stale `CITATION.cff` has the
 // release cited as the one before it. `package.json` is the reference. Each other file is
@@ -51,6 +51,15 @@ const SOURCES: [file: string, where: string, version: () => string | undefined][
 		() =>
 			tomlTables(read('src-tauri/Cargo.lock'))
 				.find((t) => t.header === '[[package]]' && t.values.get('name') === 'live-translation')
+				?.values.get('version')
+	],
+	// The Vulkan helper is a crate of its own and carries the app's version.
+	[
+		'src-tauri/whisper-vulkan/Cargo.toml',
+		'[package] version',
+		() =>
+			tomlTables(read('src-tauri/whisper-vulkan/Cargo.toml'))
+				.find((t) => t.header === '[package]')
 				?.values.get('version')
 	],
 	['src-tauri/tauri.conf.json', 'version', () => manifest('src-tauri/tauri.conf.json').version],
