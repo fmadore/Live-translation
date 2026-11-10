@@ -1,6 +1,6 @@
 # Partner Center submission walkthrough — 1.13.0
 
-Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Not yet tagged.**
+Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Tagged 10 November 2026.**
 The Store serves 1.12.0 (MSIX 1.12.0.0), live as reported by the maintainer on 10 November
 2026; 1.13.0.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at

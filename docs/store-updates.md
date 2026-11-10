@@ -11,7 +11,7 @@ packages are built.
 
 ## Release 1.13.0 handoff
 
-**Prepared; not yet tagged or submitted.** The Store serves **1.12.0.0**, live as reported by
+**Tagged 10 November 2026; not yet submitted.** The Store serves **1.12.0.0**, live as reported by
 the maintainer on 10 November 2026; the submission and certification dates were not recorded
 ([1.12.0's handoff](#release-1120-handoff)). Target app version: **1.13.0**, MSIX **1.13.0.0**,
 in `Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.
@@ -108,14 +108,15 @@ names the other engines: an editorial change for the maintainer, without a new d
 - [x] 1.12.0's Store status recorded: live as 1.12.0.0, reported by the maintainer on
   10 November 2026, in [1.12.0's row](#release-history) and section below, and in README,
   ROADMAP and docs/README.
-- [ ] **Version bump** in the release PR, in the seven files of [the route](#the-route):
+- [x] **Version bump** in the release PR, in the seven files of [the route](#the-route):
   `package.json`, `src-tauri/Cargo.toml`, `src-tauri/whisper-vulkan/Cargo.toml` and
   `src-tauri/tauri.conf.json`; the `live-translation` and `whisper-vulkan` entries of
   `src-tauri/Cargo.lock`, the root entries of `package-lock.json`; and `version` and
   `date-released` in `CITATION.cff`, set to 1.13.0 and the tag date. `npm test` checks that they
   agree. Commit as `chore(release): 1.13.0` with `docs/release-1.13.0.md`, and replace "Not yet
-  tagged" in [release-notes.md](release-notes.md) with the tag date.
-- [ ] Lockfiles: nothing changes besides the root version lines (`git diff --text`).
+  tagged" in [release-notes.md](release-notes.md) with the tag date. Done on 10 November 2026,
+  the tag date.
+- [x] Lockfiles: nothing changes besides the root version lines (`git diff --text`).
 - [ ] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
   `format:check`, `check:languages`, `build` and `test:style`; `cargo fmt --check`, Clippy with
   `-D warnings` and `cargo test --locked`. Record the counts here.
@@ -132,7 +133,9 @@ names the other engines: an editorial change for the maintainer, without a new d
   (`spctl -a -t open --context context:primary-signature -v` and `xcrun stapler validate` on a
   Mac, if one is at hand). Then delete the draft and the tag:
   `gh release delete v1.13.0-validation.1 --yes`, `git push origin --delete
-  v1.13.0-validation.1` and `git tag -d v1.13.0-validation.1`.
+  v1.13.0-validation.1` and `git tag -d v1.13.0-validation.1`. Not done: the maintainer
+  asked for `v1.13.0` to be tagged directly on 10 November 2026, so these steps run for the
+  first time on the release itself; a job that fails leaves the release a draft.
 - [ ] The Store fields are within Partner Center's limits. Counted when drafted (characters in
   each block, line breaks included), not yet checked in Partner Center: What's new EN 1,043,
   FR 1,200, DE 1,177 of 1,500; 20 of 20 features, the longest 135 of 200 (FR); descriptions

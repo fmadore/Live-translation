@@ -5,15 +5,16 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.12.0 in the Store, 1.13.0 in preparation
+## Current status — 1.12.0 in the Store, 1.13.0 tagged
 
-1.13.0 is in preparation, not yet tagged ([draft release notes](docs/release-1.13.0.md),
+1.13.0 was tagged on 10 November 2026 and is not yet submitted to the Store
+([release notes](docs/release-1.13.0.md),
 [handoff](docs/store-updates.md#release-1130-handoff)): the Mac
 app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
 Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
 switch that leaves out the call heard by the room microphone with Both sources. The
-[10 November app review](docs/app-review-2026-11-10.md) lists its findings on `main` before the
-tag and tracks their status on the branch `fix/review-2026-11-10`.
+[10 November app review](docs/app-review-2026-11-10.md) lists the findings fixed before the tag
+([#213](https://github.com/fmadore/Live-translation/pull/213)) and what is still to check by hand.
 
 The Store serves [**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)
 (27 October 2026, MSIX 1.12.0.0), live as reported by the maintainer on 10 November 2026; the
@@ -117,8 +118,7 @@ glossaries, live corrections and offline text translation are not planned.
   Apple silicon, macOS 15 and later: system audio and one-application capture through Core Audio
   taps, device notifications, the overlay by window level, the Save panel, the Keychain, ⌘Q and
   the Dock, macOS wording and ⌘ shortcuts in all three languages, a macOS CI lane, a test build
-  on every push, a notarised disk image built by the release workflow from 1.13.0 on (no release
-  has one yet) and a free Mac App Store build with its upload workflow
+  on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
   uploaded a build to App Store Connect on 5 November 2026; it has not been submitted for
   review. Not yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the
@@ -126,8 +126,9 @@ glossaries, live corrections and offline text translation are not planned.
   free.
 
 - **The [10 November app review](docs/app-review-2026-11-10.md):** its fixes, the release
-  workflow's checks among them, are made on `fix/review-2026-11-10` before 1.13.0 is tagged;
-  the review tracks each finding's status, and what is left for the maintainer.
+  workflow's checks among them, shipped in 1.13.0
+  ([#213](https://github.com/fmadore/Live-translation/pull/213)); the review tracks each
+  finding's status, what is left for the maintainer and what is still to check by hand.
 
 - **Names and terms beyond Voxtral:** the setup's list also goes to Gemini Transcribe as
   `customVocabulary` and to local Whisper as its decoder prompt, cut to the terms that fit
@@ -190,6 +191,16 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
+- **1.13.0** (10 November 2026; not yet submitted to the Store): the Mac app for Apple silicon
+  ([#202](https://github.com/fmadore/Live-translation/pull/202)); Whisper on the graphics
+  processor, speech detection, loop and credit filters and Large v3 Turbo
+  ([#208](https://github.com/fmadore/Live-translation/pull/208)); names and terms for Gemini
+  Transcribe and Whisper; the question before audio first goes to a cloud provider; the switch
+  that leaves out the call heard by the room microphone
+  ([#212](https://github.com/fmadore/Live-translation/pull/212)); and the fixes of the
+  [10 November app review](docs/app-review-2026-11-10.md)
+  ([#213](https://github.com/fmadore/Live-translation/pull/213)).
+  [Release body](docs/release-1.13.0.md).
 - **1.12.0** (27 October 2026; live in the Store, reported 10 November 2026): captions in Zoom, one caption
   language in a Zoom meeting's own caption bar
   ([#189](https://github.com/fmadore/Live-translation/pull/189)); no flashes or layout shifts in

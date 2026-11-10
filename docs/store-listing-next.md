@@ -1,6 +1,6 @@
 # Next Store submission — 1.13.0
 
-**Not yet tagged.** The Store serves **1.12.0.0**, live as reported by the maintainer on
+**Tagged 10 November 2026; not yet submitted.** The Store serves **1.12.0.0**, live as reported by the maintainer on
 10 November 2026; the submission and certification dates were not recorded. The next
 submission is **1.13.0.0**, replacing it: one unsigned bundle with native x64 and ARM64
 packages, at

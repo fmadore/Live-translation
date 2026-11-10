@@ -14,7 +14,7 @@ in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.13.0 / MSIX 1.13.0.0**, not yet tagged, replacing 1.12.0. 1.13.0 runs
+**Next submission: 1.13.0 / MSIX 1.13.0.0**, tagged on 10 November 2026, replacing 1.12.0. 1.13.0 runs
 Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a second executable in
 the package, bundles a speech-detection model, adds Large v3 Turbo, sends names and terms to
 Gemini subtitles too, and asks once for each cloud provider before audio is first sent to it.

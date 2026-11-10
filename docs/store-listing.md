@@ -1,6 +1,6 @@
 # Partner Center listing text — 1.13.0
 
-Written for **1.13.0 / MSIX 1.13.0.0**, not yet tagged. The Store serves 1.12.0 (MSIX
+Written for **1.13.0 / MSIX 1.13.0.0**, tagged on 10 November 2026 and not yet submitted. The Store serves 1.12.0 (MSIX
 1.12.0.0), live as reported by the maintainer on 10 November 2026
 ([handoff](store-updates.md#release-1130-handoff)). What's new covers the changes since 1.12.0;
 everything 1.12.0 added to the listing (the Zoom sentences, the trademark line, the twentieth
