@@ -138,6 +138,9 @@ workflow's Mac, Vulkan and package-check steps will run for the first time on th
 
 ## 10. Notes from doing it
 
+The hand checks below are carried into the
+[1.13.0 handoff](store-updates.md#release-1130-handoff), under *Testing*.
+
 All four batches are on `fix/review-2026-11-10` (10 November 2026), written by six
 implementation agents on separate files and checked together: `cargo fmt`, `clippy -D warnings`
 and `cargo test` on Windows ARM64, and the npm suite with the style snapshots. Not compiled

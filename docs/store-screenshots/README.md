@@ -15,6 +15,25 @@ pixel for pixel. Upload each language's set in filename order, with the matching
 | `5-reading.png` | Settings › Reading: Stable reading and the editable filler-word list. |
 | `6-history.png` | Settings › Transcript history: a titled session found by search, with copy/export controls and the transcript. |
 
+## What has changed since this set
+
+The set predates the Live and Transcript tabs of 1.8.0 and the *Zoom captions* toolbar button
+of 1.12.0. 1.13.0 changes what some of the images would show:
+
+- `1-whisper.png`: the setup gains *Use the graphics processor* under the model, with a line
+  under it saying where the latest session decoded, and the model list gains Large v3 Turbo.
+  With *Both* as the source, *Leave out the call heard by the room mic* appears under it.
+- Any image showing Start while it cannot be pressed: it now has a neutral surface, a border
+  and muted text at full opacity instead of a faded green.
+- `4-appearance.png`: each custom-colour button, labelled *Custom…* (*Personnaliser…*,
+  *Benutzerdefiniert…*), now sits at the end of its own swatches and holds one line in French
+  and German.
+
+None of this makes the current images wrong about what the app does. Whether to retake them
+for 1.13.0 is the maintainer's decision, recorded in the
+[1.13.0 handoff](../store-updates.md#release-1130-handoff); a retake keeps any Zoom window and
+Zoom's artwork out of the images.
+
 ## Content
 
 All speech is a synthesized, neutral talk on community gardens (Windows' Zira, Hortense and

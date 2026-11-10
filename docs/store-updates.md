@@ -9,135 +9,240 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
-## Release 1.12.0 handoff
+## Release 1.13.0 handoff
 
-**Tagged 27 October 2026; not yet submitted.** The Store serves **1.11.0.0**, accepted as
-reported by the maintainer on 26 October 2026. Target app version: **1.12.0**, MSIX
-**1.12.0.0**, in `Live.Translation_1.12.0.msixbundle`. What's new and the certification notes
-cover the changes since 1.11.0.
+**Prepared; not yet tagged or submitted.** The last Store version on record is **1.11.0.0**,
+accepted as reported by the maintainer on 26 October 2026. 1.12.0 was tagged and published on
+GitHub on 27 October 2026, but no Store submission of it is recorded: the README says it is
+pending Store certification, the roadmap and docs/README that it is not yet submitted. **The
+maintainer has to confirm which.** Target app version: **1.13.0**, MSIX **1.13.0.0**, in
+`Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.
+What's new and the certification notes cover the changes since 1.11.0, so they are right whether
+the Store serves 1.11.0 or 1.12.0, and the submission carries everything
+[1.12.0's](#release-1120-handoff) needed (the Zoom privacy section, the trademark line, the
+certification notes' Zoom paragraph).
 
-1.12.0 adds Captions in Zoom and two sets of fixes:
+1.13.0 adds the Mac app, a faster and quieter local Whisper, and the fixes of a review:
 
-- [#189](https://github.com/fmadore/Live-translation/pull/189) (the first item of the
-  [#187](https://github.com/fmadore/Live-translation/issues/187) triage): **Captions in Zoom**.
-  The operator pastes the caption link (API token) a meeting's host copies with *Show Captions ›
-  Set up manual captioner › Copy the API token*, and the app posts one caption language's
-  finished text directly to that Zoom URL, so attendees see it in Zoom's own caption bar. Off
-  until started; outlives Stop and Start; ends with *Stop sharing* or when the app quits. States:
-  sharing, waiting (HTTP 400, the meeting has not started), refused (401, 403 or 404),
-  unreachable. *Send test caption* posts one fixed line. The link is held in memory only and
-  never logged. [Guide](zoom-captions.md).
-- On this branch (`afe95b9`): the toolbar button reads *Zoom captions* (*Sous-titres Zoom*,
-  *Zoom-Untertitel*) with a generic captions mark, not Zoom's logo, which needs Zoom's written
-  licence; Zoom is named only descriptively.
-- [#188](https://github.com/fmadore/Live-translation/pull/188): no flashes or layout shifts in
-  setup and the transcript (*Jump to latest* and the copy confirmation float, no key-form flash
-  between Gemini and OpenAI, *Refresh devices* busy only when asked, a steady Whisper backlog
-  strip, no stored device labelled missing before the first list, the second caption language
-  in the searchable picker).
-- On this branch (`c107a4c`): with system capture set to one application and none chosen, or the
-  chosen one closed, the pre-flight's audio row asks for the application instead of reading as
-  ready while Start and Test audio are disabled.
-- No Dependabot updates since 1.11.0. `8fc6960` makes the style tests reload once when a bundle
-  chunk is refused (test-only).
+- [#202](https://github.com/fmadore/Live-translation/pull/202) (for
+  [#195](https://github.com/fmadore/Live-translation/issues/195)): **the macOS app** for Apple
+  silicon, macOS 15 and later, with Core Audio taps for system audio and one application, the
+  Keychain, the menu bar, macOS's words in all three languages and ⌘ shortcuts; a notarised disk
+  image built by the release workflow, and a free Mac App Store build uploaded by its own
+  workflow. In the same PR: **the question asked once for each cloud provider** before audio is
+  first sent to it, on both systems. [#204](https://github.com/fmadore/Live-translation/pull/204)
+  moved the macOS jobs to macOS 26 with Xcode 26. Not run on a real Mac
+  ([macOS notes](macos.md)).
+- [#208](https://github.com/fmadore/Live-translation/pull/208): **Whisper on the graphics
+  processor** (Metal on a Mac; on Windows, Vulkan in the `whisper-vulkan.exe` helper, with
+  Snapdragon PCs kept on the processor), **bundled speech detection** (Silero VAD), the **loop
+  and credit filters** and **Large v3 Turbo** (547 MiB, transcription only), with *Use the
+  graphics processor* under the model ([local Whisper](local-whisper.md#graphics-processor)).
+- [#193](https://github.com/fmadore/Live-translation/pull/193): the **names-and-terms list** also
+  goes to Gemini Transcribe (`customVocabulary`) and to local Whisper as its decoder prompt, cut
+  to the terms that fit.
+- [#212](https://github.com/fmadore/Live-translation/pull/212): with Both sources, **Leave out
+  the call heard by the room mic**, off by default; the setup says where the latest Whisper
+  session decoded and why the graphics processor could not be used.
+- [#213](https://github.com/fmadore/Live-translation/pull/213), open, from this branch: the
+  fixes of the [10 November app review](app-review-2026-11-10.md) (B1–B19, A1, A2, V1–V4,
+  E1–E5, S1–S9, C2–C7), including no rehearsal captions in a Zoom share, close frames read and
+  reported, a Start that cannot be pressed no longer looking pressable, and the release
+  workflow's CI gate, `msix` without `build` and one compiler action.
+- [#211](https://github.com/fmadore/Live-translation/pull/211): the Rust crates on the 2024
+  edition, and `AGENTS.md`. [#210](https://github.com/fmadore/Live-translation/pull/210): daily
+  download and visit statistics on the `stats` branch (repository only).
+- Dependabot: [#196](https://github.com/fmadore/Live-translation/pull/196)–[#200](https://github.com/fmadore/Live-translation/pull/200),
+  [#205](https://github.com/fmadore/Live-translation/pull/205)–[#207](https://github.com/fmadore/Live-translation/pull/207)
+  (tokio 1.54.1 and other patch releases), and the npm overrides of minimatch and glob
+  ([#201](https://github.com/fmadore/Live-translation/pull/201)). The review's C7 brought wasapi
+  0.27, rfd 0.18 and sha2 0.11.
 
 **Changed under the surface:**
-- **Five new operator commands** (`src-tauri/src/zoom.rs`): `start_zoom_captions`,
-  `stop_zoom_captions`, `send_zoom_test_caption`, `zoom_captions_status` and `open_zoom_guide`,
-  pinned to the operator window in `command_names.rs` and `capabilities/operator.json`; the
-  overlay's capability is unchanged. `open_zoom_guide` takes no argument and opens the fixed
-  guide URL through `support::open`, like `open_support_page`. The link must be `https` on
-  `zoom.us`, a `*.zoom.us` host or a `*.zoomgov.com` host, and is checked before anything is sent.
-- Every engine's captions reach the share in `Events::caption`, and `SessionManager::start` tells
-  it a session has begun; the share only queues, and sends on its own task. No crate was added
-  (`reqwest` was already a dependency) and `Cargo.toml` is unchanged.
-- The package still declares only `runFullTrust` and `microphone`; `AppxManifest.xml.template`
-  is unchanged since `v1.11.0`.
-- **New for the Store:** the app can now send user content (caption text, including Whisper's)
-  to a third party the user names, Zoom. The [privacy policy](privacy.md) covers it in
-  *Optional captions in Zoom*; the listing names Zoom descriptively with a trademark line; the
-  certification notes explain how to exercise or skip the feature. See
-  [store-listing-next.md](store-listing-next.md).
+- **One new operator command, `support_link_allowed`** (`src-tauri/src/support.rs`), in
+  `command_names.rs` and `capabilities/operator.json`: it answers false only in the Mac App
+  Store build, which hides the support link. The overlay's capability is unchanged since
+  `v1.12.0`, and the CSP is unchanged. One new event, `whisper-engine`, tells the operator
+  window where each Whisper source decodes.
+- **New files in the Windows packages and installers:** `whisper-vulkan.exe` beside
+  `live-translation.exe`, declared as a sidecar in `tauri.vulkan.conf.json`, which only release
+  and MSIX builds lay in; and `models/ggml-silero-v5.1.2.bin` (885,098 bytes, 864 KiB), through
+  the new `resources/models/*` entry in `tauri.conf.json`. The release workflow's `msix` job
+  refuses a package that lacks either. The helper is started only by the app, put in a job
+  object that ends it with the app, reads audio only through standard input, and opens no
+  network connection.
+- **The package still declares only `runFullTrust` and `microphone`:**
+  `AppxManifest.xml.template` and `bundle.config.json` are unchanged since `v1.12.0` (and the
+  template since `v1.11.0`).
+- **Cargo:** `src-tauri` is a workspace with `whisper-vulkan` as its second package (whisper-rs
+  with its `vulkan` feature, serde, serde_json and sha2, all already in the app's graph); the
+  edition is 2024. For Windows no crate was added: wasapi 0.26 → 0.27, rfd 0.17.2 → 0.18.0 and
+  sha2 0.10 → 0.11, and `windows-sys` gained the `Win32_Security` and
+  `Win32_System_JobObjects` features for the job object. For macOS only: whisper-rs with
+  `metal`, libc and the `objc2` crates for AppKit and Core Audio.
+- **New macOS configuration** (no effect on Windows): `tauri.macos.conf.json`,
+  `tauri.appstore.conf.json` and the entitlements under `src-tauri/macos/`.
+- **The release workflow** now builds the Vulkan helper, the signed and notarised disk image in
+  a `macos` job that `bundle` waits on, and the package-content check (#202, #208); #213 adds
+  the CI gate on the tagged commit, `msix` without `build`, the shared compiler action and the
+  helper's version in `prepare`. **None of these has run on a tag yet.**
+- **New for the Store:** a second executable and a bundled model in the package, and a question
+  before audio first goes to a cloud provider, which the certification notes describe. If 1.12.0
+  was never submitted, also everything it brought: caption text sent to Zoom, the Zoom trademark
+  line and the notes' Zoom paragraph. See [store-listing-next.md](store-listing-next.md).
 
-The [privacy policy](privacy.md) gains a pointer to the Zoom section, a paragraph on personal
-information in shared captions, and a new effective date, 27 October 2026.
-[GitHub release copy](release-1.12.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
-[Partner Center walkthrough](partner-center-walkthrough.md).
+The [privacy policy](privacy.md) needs no change for 1.13.0. Its effective date is 5 November
+2026 and it already covers what 1.13.0 sends and keeps: the macOS app (Keychain, *System Audio
+Recording*, the Mac App Store sandbox and container), the per-provider question and the answer
+kept on the device, names and terms sent to Gemini subtitles and kept local with Whisper, and
+the Vulkan helper, reached only through the computer's own memory. Its *Preferences* paragraph
+still says "the names and terms entered for Mistral subtitles", which remains true but no longer
+names the other engines: an editorial change for the maintainer, without a new date.
+[GitHub release copy](release-1.13.0.md) · [EN/FR/DE Store fields](store-listing.md) ·
+[Partner Center walkthrough](partner-center-walkthrough.md) ·
+[Mac App Store steps](mac-app-store.md).
 
 ### Preparation and validation
 
-- [x] #188 and #189 merged.
-- [x] `feat/zoom-captions-label` (`afe95b9`, `c107a4c`, `c1847be` and these docs) merged as
-  [#190](https://github.com/fmadore/Live-translation/pull/190) after all its CI jobs passed.
-- [x] **Version bump** in the release PR: app manifests, root lockfile entries and
-  `CITATION.cff` (`version`, `date-released`) set to 1.12.0; `npm test` checks that all six
-  agree. The citation date is 27 October 2026, the tag date, and
-  [release-notes.md](release-notes.md) gives the same date in place of "Not yet tagged".
-- [x] Lockfiles: nothing changes besides the two root version lines (`git diff --text`).
-- [x] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
+- [x] #193, #202, #204, #208, #211 and #212 merged, with the dependency updates #196–#201 and
+  #205–#207.
+- [ ] [#213](https://github.com/fmadore/Live-translation/pull/213) (`fix/review-2026-11-10`, the
+  10 November review's fixes and these docs) reviewed and merged after all its CI jobs pass,
+  including the macOS lanes and the helper's, which the branch could not compile locally.
+- [ ] **The maintainer confirms 1.12.0's Store status** (submitted or not, certified or not) and
+  records it in [1.12.0's row](#release-history) and section below; then sets README's Store
+  sentence ("pending Store certification") and ROADMAP's to the same answer.
+- [ ] **Version bump** in the release PR, in the seven files of [the route](#the-route):
+  `package.json`, `src-tauri/Cargo.toml`, `src-tauri/whisper-vulkan/Cargo.toml` and
+  `src-tauri/tauri.conf.json`; the `live-translation` and `whisper-vulkan` entries of
+  `src-tauri/Cargo.lock`, the root entries of `package-lock.json`; and `version` and
+  `date-released` in `CITATION.cff`, set to 1.13.0 and the tag date. `npm test` checks that they
+  agree. Commit as `chore(release): 1.13.0` with `docs/release-1.13.0.md`, and replace "Not yet
+  tagged" in [release-notes.md](release-notes.md) with the tag date.
+- [ ] Lockfiles: nothing changes besides the root version lines (`git diff --text`).
+- [ ] Validation of the release branch: `npm run test:coverage`, `check`, `lint`, `knip`,
   `format:check`, `check:languages`, `build` and `test:style`; `cargo fmt --check`, Clippy with
-  `-D warnings` and `cargo test --locked`. Recorded on 27 October 2026 (ARM64): Vitest 866
-  passed, 1 skipped, in 84 files; svelte-check 556 files, 0 errors, 0 warnings; style 143 passed
-  (4 timed out while Rust compiled alongside and passed on rerun); Rust 358 passed, 5 ignored;
-  fmt, Clippy, lint, knip, format and languages clean.
-- [ ] The Store fields are within Partner Center's limits. Counted when drafted, not yet checked
-  in Partner Center: What's new EN 702, FR 900, DE 838 of 1,500 characters; 20 of 20 features,
-  the longest 135 of 200; descriptions EN 4,694, FR 5,642, DE 5,264 of 10,000.
-- [x] Update the version-bound guides in the release PR, as 1.11.0's did:
-  [partner-center-walkthrough.md](partner-center-walkthrough.md) (1.12.0 target, no new product
-  declaration, the published privacy page showing 27 October 2026 and the Zoom section),
-  [microsoft-store.md](microsoft-store.md), [packaging-msix.md](packaging-msix.md) and the
-  "current for 1.11.0" lines in other guides; README, ROADMAP and docs/README once tagged.
+  `-D warnings` and `cargo test --locked`. Record the counts here.
+- [ ] **Validation tag, before the real tag.** The release workflow's macOS disk image, Vulkan
+  helper build, package-content check, CI gate on the tagged commit, `msix` without `build` and
+  shared compiler action have never run in a release (review item C1). Push a hyphenated tag
+  such as `v1.13.0-validation.1` on a commit that carries the 1.13.0 version and that CI has
+  passed on (the release PR's head): `prepare` accepts `v<version>-<suffix>` and the workflow
+  builds every asset into a **draft prerelease that is never published**. This is a one-off
+  rehearsal of the workflow for this release, the maintainer's decision; it is not a release
+  candidate of the app, and the convention of tagging `vX.Y.Z` straight from the release merge
+  stands. Check that every job passes, that both MSIX packages list `whisper-vulkan.exe` and
+  `models/ggml-silero-v5.1.2.bin`, and that the disk image is attached, signed and stapled
+  (`spctl -a -t open --context context:primary-signature -v` and `xcrun stapler validate` on a
+  Mac, if one is at hand). Then delete the draft and the tag:
+  `gh release delete v1.13.0-validation.1 --yes`, `git push origin --delete
+  v1.13.0-validation.1` and `git tag -d v1.13.0-validation.1`.
+- [ ] The Store fields are within Partner Center's limits. Counted when drafted (characters in
+  each block, line breaks included), not yet checked in Partner Center: What's new EN 1,247,
+  FR 1,473, DE 1,407 of 1,500; 20 of 20 features, the longest 135 of 200 (FR); descriptions
+  EN 5,050, FR 6,071, DE 5,621 of 10,000; short descriptions 264, 268 and 265 of 270; additional
+  requirements, the longest 170 of 200; certification notes 8,731 (no limit is recorded in these
+  documents). French What's new is the closest to its limit.
+- [ ] The French and German sentences new in 1.13.0 (What's new, the offline-subtitles
+  paragraph, names and terms, the question before audio is sent, the feature lines and the
+  requirements line) reviewed by the maintainer.
+- [ ] Update the version-bound guides in the release PR, as 1.12.0's did:
+  [partner-center-walkthrough.md](partner-center-walkthrough.md),
+  [microsoft-store.md](microsoft-store.md) and [packaging-msix.md](packaging-msix.md) (prepared
+  for 1.13.0 on this branch; check them against the merge); README, ROADMAP and docs/README once
+  tagged.
 
 ### Testing
 
-- [ ] **Maintainer test** of the side-by-side Local Test build of the release merge (ARM64),
-  **before the tag**:
-  - **Captions in Zoom in a real meeting**: passed on a free (Basic) account on 27 October 2026,
-    on the Local Test build of #189 ([live verification](zoom-captions.md#live-verification));
-    repeat briefly on the release merge, with *Show captions on this screen too*; at least host setup, the start check against
-    a meeting not yet started, one started and an expired link, *Send test caption*, captions
-    arriving from Whisper and from a cloud engine, Stop and Start while sharing, and *Stop
-    sharing*, with the Zoom client version, account type and date recorded in the guide;
-  - the *Step-by-step setup guide* link opens the guide in the default browser;
-  - the button's label and states, and the dialog, in English, French and German, with Narrator;
-  - the pre-flight asking for an application with One application selected and none chosen,
-    and after the chosen application closes;
-  - the setup and transcript no longer jumping: *Jump to latest*, Copy's confirmation,
-    switching Gemini and OpenAI, *Refresh devices*, a Whisper backlog at its threshold.
-- [ ] **No release candidate.** Tag `v1.12.0` straight from the merge once the test passes. A
-  bug found afterwards ships as 1.12.1; never move a tag.
+- [ ] **Maintainer test** of the side-by-side Local Test build of the release merge (ARM64, and
+  x64 where a PC is at hand), **before the tag**, from the
+  [10 November review's hand checks](app-review-2026-11-10.md#10-notes-from-doing-it) and the
+  open points of [local Whisper](local-whisper.md#graphics-processor):
+  - **Graphics processor:** on a PC with a usable card, the setup and the log name it
+    (`Whisper model loaded device=vulkan: …`); with *Use the graphics processor* off, `cpu`; on
+    a Snapdragon, the processor. Time the same speech with the switch on and off (speed has not
+    been measured). A window that fails is retried once, then the session moves to the
+    processor; quitting during a hung model load does not wait on it; the stage and the setup
+    say why the graphics processor could not be used.
+  - **Speech detection and filters:** a quiet room, a paused call and music produce no
+    invented captions; speech after silence is captioned at its real time; a word said over
+    and over, and stray subtitle credits, are removed.
+  - **Large v3 Turbo:** downloads, verifies and transcribes real speech, keeping up on the
+    graphics processor or a fast processor; translation does not offer it.
+  - **Names and terms:** with Gemini Transcribe, the list's spellings appear; with Whisper, the
+    note under the list, a long list cut to what fits, and no caption that only reads the list
+    back over noise.
+  - **The question before audio is sent:** on the first session and on the first rehearsal with
+    Gemini, OpenAI and Mistral, in English, French and German; Cancel has the focus and starts
+    nothing; one answer covers both Gemini engines; Whisper and the demo are never asked about;
+    Narrator reads it with Cancel focused.
+  - **Both sources:** *Leave out the call heard by the room mic* in a real room with loudspeakers,
+    with a cloud engine and with local Whisper under a backlog; whether the brief interim of a
+    held line is noticeable; how long local speech over the loudspeaker waits; that the meter's
+    session times line up with caption times. Off, captions are as in 1.12.0.
+  - **Zoom:** a rehearsal with sharing on posts nothing in a real meeting.
+  - **Cloud engines:** how each provider's real mid-stream close codes are classified, and the
+    reason shown while reconnecting.
+  - **Audio devices:** a Bluetooth endpoint no longer causes repeated checks; renaming a device
+    in Sound settings still refreshes the lists; system capture on wasapi 0.27 on x64 and ARM64.
+  - **Session:** Start, then Rehearse, after a run whose sources all failed; Stop straight after
+    Start; no flash of the setup screen and no stuck clock.
+  - **Narrator:** each notice read once (profile saved or loaded, no matching language, the
+    application notes, no timing, long session); Rehearse reads only its sentence.
+  - **By eye:** the disabled Start in Dark, Light and the contrast themes; the custom-colour
+    chips at 980 px in French and German; the tray's minutes in all three languages; the
+    projector unplugged and plugged back.
+  - SRT export of a line with `Q&A` and `<`; History showing the original speech once per line.
+- [ ] **First run on a real Mac**, with Part A of the [macOS checklist](macos.md#part-a-the-direct-app-disk-image)
+  on the disk image (the validation tag's, or the release's), including the menu-bar item opening
+  its menu on a click and the loopback's parking loop, which the review could not compile on
+  Windows. Record the results in [macOS notes](macos.md#results). The Windows release does not
+  wait on it; the Mac App Store submission does.
+- [ ] **No release candidate.** Tag `v1.13.0` straight from the merge once the test passes. A
+  bug found afterwards ships as 1.13.1; never move a tag.
 
-Still open from the [1.11.0 handoff](#release-1110-handoff) and earlier, never recorded as done:
-its list carries over unchanged.
+Still open from the [1.12.0 handoff](#release-1120-handoff), the
+[1.11.0 handoff](#release-1110-handoff) and earlier, never recorded as done: their lists carry
+over unchanged.
 
 ### Release and Store acceptance
 
-- [x] Tag `v1.12.0` (annotated: "Live Translation & Subtitles v1.12.0") on the merge of the
-  release PR, and push it. It points to `ebff465` and was pushed on 27 October 2026.
-- [x] The workflow publishes the release with `docs/release-1.12.0.md` once the bundle is
-  attached; if a job fails, the release stays a draft and the failed job is re-run. All
-  [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/40471938625)
-  passed, and the release published itself on 27 October 2026, about 19 minutes after the tag
-  push.
-- [ ] Verify `Live.Translation_1.12.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
-  at **1.12.0.0**, and record the sizes and SHA-256 digests here.
+- [ ] Tag `v1.13.0` (annotated: "Live Translation & Subtitles v1.13.0") on the merge of the
+  release PR, and push it.
+- [ ] The workflow waits for CI on the tagged commit, then publishes the release with
+  `docs/release-1.13.0.md` once the bundle and the disk image are attached; if a job fails, the
+  release stays a draft and the failed job is re-run.
+- [ ] Verify `Live.Translation_1.13.0.msixbundle` with the [1.8.0 checks](#release-180-handoff)
+  at **1.13.0.0**, plus `whisper-vulkan.exe` (native for each architecture) and
+  `models/ggml-silero-v5.1.2.bin` in both packages, and record the sizes and SHA-256 digests
+  here.
 - [ ] Sideload-test the per-architecture MSIX packages and walk the
-  [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows).
-- [ ] **Screenshots:** the toolbar gains a *Zoom captions* button, which the 1.7.1 images do
-  not show. Decide whether to retake; if so, keep Zoom's windows and artwork out of them. See
+  [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows); under
+  package identity, the helper starts on a PC with a usable graphics processor.
+- [ ] **Screenshots:** the current images, from 1.7.1, do not show the *Zoom captions* button
+  (1.12.0), *Use the graphics processor* under the model, *Leave out the call heard by the room
+  mic* under Both, the disabled Start's new look or the custom-colour chips' new place. Decide
+  whether to retake; if so, keep Zoom's windows and artwork out of them. See
   [store-screenshots](store-screenshots/README.md).
-- [ ] Run Windows App Certification Kit.
+- [ ] Run Windows App Certification Kit on the final packages, the first with a second
+  executable.
 - [ ] Check that the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-  shows the 27 October 2026 date and the *Optional captions in Zoom* section.
-- [ ] Submit the single combined bundle in Partner Center with the 1.12.0 What's new, the three
-  descriptions (with the Zoom trademark line), the twentieth feature line and the updated
-  certification notes. The product declarations are unchanged from 1.11.0. Rollout: capture is
-  untouched, but every caption and each session start now pass through the Zoom share; decide
-  between a full and a gradual rollout.
+  shows the 5 November 2026 date, the *Optional captions in Zoom* section, the *macOS* section
+  and the question under *Third-party processing*.
+- [ ] Submit the single combined bundle in Partner Center with the 1.13.0 What's new, the three
+  descriptions (with the Zoom trademark line), the changed feature lines, the second requirements
+  line and the updated certification notes. The product declarations are unchanged from 1.11.0.
+  Rollout: **gradual**, starting at 10% ([route step 9](#the-route)): capture changed (wasapi
+  0.27) and the session lifecycle changed (the question before a cloud session, the echo
+  filter's held lines, the Whisper helper's start, fallback and end).
 - [ ] Record submission and certification, and confirm with
   `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` (`SignatureKind` `Store`, Version
-  `1.12.0.0`).
+  `1.13.0.0`).
+- [ ] **Mac:** the disk image is on the release; then the [Mac App Store steps for each
+  version](mac-app-store.md#each-version): upload the 1.13.0 build from the tag, TestFlight on a
+  real Mac with [Part B](macos.md#part-b-the-sandboxed-app) (system audio in the sandbox is the
+  open question), the version page, and submission for review. The 5 November 2026 build in App
+  Store Connect has not been submitted for review as far as this repository records.
 
 ## The route
 
@@ -299,6 +404,7 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
+| 1.12.0 | [27 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) · [body](release-1.12.0.md) | No submission recorded; the maintainer to confirm whether it was submitted | Captions in Zoom (#189, #190), no flashes or layout shifts in setup and the transcript (#188), and a pre-flight that asks for the application to capture. |
 | 1.11.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) · [body](release-1.11.0.md) | Accepted as 1.11.0.0, reported by the maintainer on 26 October 2026; submission and certification dates not recorded | An optional Buy Me a Coffee link that unlocks nothing, and no empty band at the bottom of the operator window (#182). |
 | 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Live as 1.10.0.0, reported by the maintainer on 26 October 2026 and confirmed with `Get-AppxPackage` the same day; submission and certification dates not recorded; replaced by 1.11.0 | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
 | 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded; replaced by 1.10.0 | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |
@@ -315,6 +421,62 @@ was submitted were not recorded as done and stay open against the Store build.
 | 1.3.0 | [19 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.3.0) | Not submitted | Transcript history (#81), Stable reading (#79), overlay filler cleanup (#80) and the German interface. |
 | 1.2.4 | [14 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.4) | Live; acceptance date not recorded | Responsive captions: Fit window and optional Compact layout (#77). |
 | 1.2.3 | [8 September 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.2.3) | No submission recorded | Native Save As with timed SRT/VTT export (#26); capture of a selected application (#27). |
+
+### Release 1.12.0 handoff
+
+**Tagged and published on GitHub on 27 October 2026; no Store submission recorded.** The README
+says it is pending Store certification, the roadmap that it is not yet submitted; the maintainer
+has to confirm which. If it was never submitted, [1.13.0](#release-1130-handoff) carries
+everything it needed: the Zoom privacy section, the trademark line, the certification notes'
+Zoom paragraph and a What's new that covers it.
+- **What it shipped:** Captions in Zoom, one caption language posted to a Zoom meeting's own
+  caption bar through the caption link (API token) the host copies, held in memory only, behind
+  five new operator commands ([#189](https://github.com/fmadore/Live-translation/pull/189));
+  a *Zoom captions* toolbar button with a generic captions mark, and *Show captions on this
+  screen too* ([#190](https://github.com/fmadore/Live-translation/pull/190)); no flashes or
+  layout shifts in setup and the transcript
+  ([#188](https://github.com/fmadore/Live-translation/pull/188)); a pre-flight that asks for the
+  application to capture. The privacy policy gained its Zoom sections, effective 27 October 2026.
+- **Validation:** recorded on 27 October 2026 (ARM64): Vitest 866 passed, 1 skipped, in 84
+  files; svelte-check 556 files, 0 errors, 0 warnings; style 143 passed; Rust 358 passed,
+  5 ignored; fmt, Clippy, lint, knip, format and languages clean.
+- **Tested:** Captions in Zoom passed in a real meeting on a free (Basic) account on 27 October
+  2026, on the Local Test build of #189 ([live verification](zoom-captions.md#live-verification)).
+  The maintainer's pass over the release merge is not recorded.
+- **Tag:** `v1.12.0` (annotated) points to `ebff465`, the merge of
+  [#191](https://github.com/fmadore/Live-translation/pull/191); no candidate.
+- **Build:** all [installer/MSIX/bundle jobs](https://github.com/fmadore/Live-translation/actions/runs/40471938625)
+  passed, and the release published itself with its body on 27 October 2026, about 19 minutes
+  after the tag push.
+- **Assets** (GitHub's digests):
+  - Bundle: 12,106,535 bytes, SHA-256
+    `2fbf5291d07853418c43110a86cbca0d58ce891d4b66a5565b6d2b4a4e12495a`.
+  - ARM64 MSIX: 5,931,640 bytes, SHA-256
+    `7498d1d9bca907d31cb58ed510f2af7cc87338325c3b51404bee4c4a0ab845f0`.
+  - x64 MSIX: 6,172,884 bytes, SHA-256
+    `91d694bc8c00f26d0618f8c3fed6056b467431358890d6fb0d96a7ef59ee47d3`.
+- **Not recorded:** the Store fields checked in Partner Center, the package checks on the
+  published assets, the sideload test, WACK, the screenshot decision, the privacy page check,
+  the submission and a `Get-AppxPackage` reading. They carry over to the next release.
+
+Still open from this handoff, never recorded as done:
+
+- [ ] The maintainer's test of the release merge: Captions in Zoom again, with *Show captions on
+  this screen too* (host setup, the start check against a meeting not yet started, one started
+  and an expired link, *Send test caption*, captions from Whisper and from a cloud engine, Stop
+  and Start while sharing, *Stop sharing*), with the Zoom client version, account type and date
+  recorded in the [guide](zoom-captions.md#live-verification); the *Step-by-step setup guide*
+  link; the button's label and states and the dialog in English, French and German, with
+  Narrator; the pre-flight asking for an application; the setup and transcript no longer
+  jumping.
+- [ ] The Store fields checked in Partner Center.
+- [ ] `Live.Translation_1.12.0.msixbundle` verified with the [1.8.0 checks](#release-180-handoff)
+  at 1.12.0.0; the sideload test and the
+  [accessibility release checklist](accessibility.md#release-checklist-manual-on-windows); WACK.
+- [ ] The screenshot decision for the *Zoom captions* button.
+- [ ] The published privacy page showing the *Optional captions in Zoom* section.
+- [ ] Submission in Partner Center, certification, and `Get-AppxPackage` at 1.12.0.0 with
+  `SignatureKind` `Store`, if 1.12.0 is submitted at all.
 
 ### Release 1.11.0 handoff
 

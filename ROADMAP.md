@@ -5,9 +5,10 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.11.0 in the Store, 1.12.0 tagged, 1.13.0 in development
+## Current status — 1.11.0 in the Store, 1.12.0 tagged, 1.13.0 in preparation
 
-1.13.0 is in development on `main` ([draft release notes](docs/release-1.13.0.md)): the Mac
+1.13.0 is in preparation, not yet tagged ([draft release notes](docs/release-1.13.0.md),
+[handoff](docs/store-updates.md#release-1130-handoff)): the Mac
 app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
 Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
 switch that leaves out the call heard by the room microphone with Both sources. The
@@ -46,7 +47,7 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.12.0 handoff](docs/store-updates.md#release-1120-handoff) carries the open checks.
+[1.13.0 handoff](docs/store-updates.md#release-1130-handoff) carries the open checks.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into

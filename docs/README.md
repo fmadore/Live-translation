@@ -39,17 +39,17 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 
 ## Release 1.12.0 (tagged 27 October 2026, not yet submitted)
 
-- [Release notes](release-1.12.0.md), [release handoff](store-updates.md#release-1120-handoff)
-  and [what the next Store submission needs](store-listing-next.md).
+- [Release notes](release-1.12.0.md) and [release handoff](store-updates.md#release-1120-handoff).
 
-## 1.13.0 (in development)
+## 1.13.0 (in preparation, not yet tagged)
 
 - [Draft release notes](release-1.13.0.md): the Mac app, Whisper on the graphics processor,
   speech detection, Large v3 Turbo, names and terms for Gemini Transcribe and Whisper, and the
   prompt before audio first goes to a cloud provider.
+- [Release handoff](store-updates.md#release-1130-handoff) and
+  [what the Store submission needs](store-listing-next.md).
 - Whisper on the graphics processor (Metal on a Mac, a Vulkan helper on Windows), bundled speech
-  detection, loop and credit filters and Large v3 Turbo: [local Whisper](local-whisper.md#graphics-processor),
-  and the [listing changes it needs](store-listing-next.md#the-version-after-1120).
+  detection, loop and credit filters and Large v3 Turbo: [local Whisper](local-whisper.md#graphics-processor).
 
 ## Release 1.11.0 (in the Store)
 
