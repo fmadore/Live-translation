@@ -30,6 +30,11 @@ const ID_OVERLAY: &str = "tray-overlay";
 const ID_STOP: &str = "tray-stop";
 const ID_QUIT: &str = "tray-quit";
 
+/// Each system's click convention. On Windows a left click opens the window, as users expect
+/// of a tray icon, and the menu is the right-click gesture. On macOS a menu-bar item shows its
+/// menu on a click, whichever button; *Open window* is in it. Not yet tried on a Mac (#195).
+const MENU_ON_LEFT_CLICK: bool = cfg!(target_os = "macos");
+
 /// What the front-end is being asked to do. `Open` is absent on purpose: showing a window
 /// needs nothing from the renderer, so the core does it itself and the menu stays responsive
 /// even if the front-end is wedged.
@@ -177,9 +182,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
 
     let mut builder = TrayIconBuilder::with_id("main")
         .menu(&menu)
-        // Left click opens the window, as Windows users expect; the menu is the right-click
-        // gesture. Without this the left click would open the menu instead.
-        .show_menu_on_left_click(false)
+        .show_menu_on_left_click(MENU_ON_LEFT_CLICK)
         .tooltip("Live Translation & Subtitles")
         .on_menu_event(|app, event| on_menu_event(app, event.id().as_ref()))
         .on_tray_icon_event(|tray, event| {
@@ -197,7 +200,8 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
                     ..
                 }
             );
-            if opens {
+            // Where a click opens the menu, it must not also open the window behind it.
+            if opens && !MENU_ON_LEFT_CLICK {
                 show_operator_window(tray.app_handle());
             }
         });

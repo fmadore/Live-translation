@@ -3,13 +3,15 @@
 //! turn bookkeeping, and reconnect backoff so provider modules only describe their wire format.
 //!
 //! `run_session` is the loop; `policy` decides what follows each connection (pure, so pause,
-//! handover and backoff are unit-tested), and `socket` opens, pumps and closes one connection.
+//! handover and backoff are unit-tested), and `socket` opens, pumps and closes one connection,
+//! finalizing turns on the timer `turn_timer` decides (pure too).
 //! `wire` is for the providers: the pieces of a protocol more than one of them speaks.
 
 mod policy;
 mod socket;
 #[cfg(test)]
 mod tests;
+mod turn_timer;
 mod wire;
 
 use std::time::Duration;
@@ -27,7 +29,7 @@ use crate::timing::SessionClock;
 use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use policy::{After, Reconnect, RunEnd};
 use socket::{Backlog, SocketIo};
-pub use wire::{bearer_request, classify_json, parse_or_log};
+pub use wire::{bearer_request, parse_or_log, provider_error};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -275,7 +277,12 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let origin = proto.origin();
     let mut policy = Reconnect::new(origin);
     // Outside the connect loop, so turn ids and turn start times both survive a reconnect.
-    let mut acc = TurnAccumulator::new(clock, lane);
+    // Guarded: a client Stop cuts off for draining too long still finalizes its open turn.
+    let mut acc = FinalizeOnDrop {
+        events: &events,
+        origin,
+        acc: TurnAccumulator::new(clock, lane),
+    };
     // Also outside it: a handover fills it while the old connection drains, the next one
     // replays it.
     let mut backlog = Backlog::default();
@@ -307,7 +314,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             pause: &mut pause,
             backlog: &mut backlog,
         };
-        let ended = socket::connect_and_run(io, &mut proto, &mut acc, plan.catch_up).await;
+        let ended = socket::connect_and_run(io, &mut proto, &mut acc.acc, plan.catch_up).await;
         if ended.established {
             policy.established();
         }
@@ -384,7 +391,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             break;
         }
 
-        finalize_accumulator(&events, origin, &mut acc);
+        finalize_accumulator(&events, origin, &mut acc.acc);
         if cancel.is_cancelled() {
             break;
         }
@@ -406,7 +413,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let report_idle = !cancel.is_cancelled();
     finish_source(
         &cancel,
-        || finalize_accumulator(&events, origin, &mut acc),
+        || finalize_accumulator(&events, origin, &mut acc.acc),
         || {
             if let Some(error) = terminal_error {
                 events.status(StatusUpdate::lane(
@@ -436,6 +443,22 @@ fn drop_stale_audio(audio_rx: &mut Receiver<AudioChunk>, origin: Origin) {
             dropped,
             "dropped stale audio chunks before connect"
         );
+    }
+}
+
+/// A source's turn accumulator, finalized if the client is dropped with a turn still open.
+/// `run_session` finalizes on every way it returns, so this only acts when Stop aborts a
+/// client that is still draining past `session::CLIENT_DRAIN_TIMEOUT`: the turn so far is then
+/// emitted as final, rather than left an interim no final ever replaces.
+struct FinalizeOnDrop<'a, E: Events> {
+    events: &'a E,
+    origin: Origin,
+    acc: TurnAccumulator,
+}
+
+impl<E: Events> Drop for FinalizeOnDrop<'_, E> {
+    fn drop(&mut self) {
+        finalize_accumulator(self.events, self.origin, &mut self.acc);
     }
 }
 

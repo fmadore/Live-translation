@@ -186,21 +186,43 @@ pub struct ZoomCaptions {
 struct Inner {
     publisher: Publisher,
     share: Option<Share>,
+    /// Whether the running caption session captions real speech. A rehearsal or the built-in
+    /// demonstration is not live, and nothing of it reaches a meeting.
+    live: bool,
 }
 
 impl ZoomCaptions {
     /// A caption session is starting with `provider`. Turn ids start again with it, so the
     /// progress kept for the last session's turns is forgotten; and whether interim captions
     /// may be shared before their turn ends depends on how this engine builds them.
-    pub fn begin_session(&self, provider: Provider) {
-        lock(&self.inner).publisher = Publisher::new(interims_only_grow(provider));
+    ///
+    /// A session that is not `live` (a rehearsal, the demonstration) shares nothing. A share
+    /// left running keeps its status meanwhile: the state is Zoom's last answer about the
+    /// link and the count is what Zoom accepted, both still true; neither moves until a live
+    /// session sends again.
+    pub fn begin_session(&self, provider: Provider, live: bool) {
+        let mut inner = lock(&self.inner);
+        inner.publisher = Publisher::new(interims_only_grow(provider));
+        inner.live = live;
+        if !live && inner.share.is_some() {
+            tracing::info!(
+                "this session is a rehearsal or the demonstration; not sharing it with Zoom"
+            );
+        }
     }
 
     /// A caption on its way to the windows. Queues whatever it settles for Zoom, if a share
-    /// wants it, and returns: no I/O, no waiting, one short lock.
+    /// wants it and the session is live, and returns: no I/O, no waiting, one short lock.
     pub fn offer(&self, caption: &Caption<'_>) {
         let mut inner = lock(&self.inner);
-        let Inner { publisher, share } = &mut *inner;
+        let Inner {
+            publisher,
+            share,
+            live,
+        } = &mut *inner;
+        if !*live {
+            return;
+        }
         let Some(share) = share
             .as_ref()
             .filter(|share| share.selection.wants(caption))
@@ -466,7 +488,7 @@ mod tests {
     async fn shares_only_the_chosen_language_and_sources_until_stopped() {
         let server = meeting();
         let zoom = ZoomCaptions::default();
-        zoom.begin_session(Provider::Gemini);
+        zoom.begin_session(Provider::Gemini, true);
         let (reports, report) = recorder();
         let status = zoom
             .start(
@@ -525,6 +547,39 @@ mod tests {
         tokio::time::sleep(Duration::from_millis(100)).await;
         assert_eq!(server.posts().len(), 2);
         assert_eq!(reports.all().len(), reported, "nothing reported after Stop");
+    }
+
+    /// A share left running across Stop and Start never shows the meeting a rehearsal's or
+    /// the demonstration's sample captions, and its status stays what Zoom last said.
+    #[tokio::test]
+    async fn a_session_that_is_not_live_shares_nothing() {
+        let server = meeting();
+        let zoom = ZoomCaptions::default();
+        let (reports, report) = recorder();
+        let status = zoom
+            .start(
+                server.link(),
+                selection(0, &[Origin::System]),
+                quick(),
+                report,
+            )
+            .await
+            .unwrap();
+
+        for provider in [Provider::Gemini, Provider::OnDevice] {
+            zoom.begin_session(provider, false);
+            zoom.offer(&caption(Origin::System, 0, 1, "A rehearsal line.", true));
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        assert!(server.posts().is_empty());
+        assert_eq!(zoom.status(), status);
+        assert_eq!(reports.all(), [status], "only the start was reported");
+
+        // The next live session shares again, from its own turn 1.
+        zoom.begin_session(Provider::Gemini, true);
+        zoom.offer(&caption(Origin::System, 0, 1, "A real line.", true));
+        assert_eq!(wait_for_posts(&server, 1).await, ["A real line."]);
+        zoom.stop(|_| {}).await;
     }
 
     #[tokio::test]
@@ -710,7 +765,7 @@ mod tests {
     #[test]
     fn a_new_session_starts_every_stream_afresh() {
         let zoom = ZoomCaptions::default();
-        zoom.begin_session(Provider::Gemini);
+        zoom.begin_session(Provider::Gemini, true);
         let shared = "The first session shares this sentence. And";
         let mut inner = lock(&zoom.inner);
         assert!(
@@ -720,7 +775,7 @@ mod tests {
                 .is_some()
         );
         drop(inner);
-        zoom.begin_session(Provider::Gemini);
+        zoom.begin_session(Provider::Gemini, true);
         inner = lock(&zoom.inner);
         assert_eq!(
             inner

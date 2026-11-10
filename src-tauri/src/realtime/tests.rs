@@ -26,9 +26,8 @@ use tokio_tungstenite::{WebSocketStream, accept_async};
 use tokio_util::sync::CancellationToken;
 
 use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION};
-use super::socket::{
-    CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, MAX_HOLD, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT,
-};
+use super::socket::{CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT};
+use super::turn_timer::MAX_HOLD;
 use super::*;
 
 /// Long enough for any step of any test, short enough that a hang fails in seconds.
@@ -577,6 +576,48 @@ async fn a_handover_drain_lasts_no_longer_than_the_time_left() {
     client.finished().await;
 }
 
+/// B14: Stop aborts a cloud client still draining after its deadline. The turn it had open is
+/// finalized as the task is dropped, so the windows never keep an interim no final replaces.
+#[tokio::test(start_paused = true)]
+async fn a_client_cut_off_mid_turn_still_finalizes_it() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("text:cut off").await;
+    client.expect(interim("cut off")).await;
+
+    client.task.abort();
+    let ended = timeout(GUARD, &mut client.task).await.unwrap();
+    assert!(ended.unwrap_err().is_cancelled());
+    client.expect(final_("cut off")).await;
+    assert!(client.events.try_recv().is_err(), "nothing more");
+}
+
+/// B11: a Stop during a handover's drain ends it at once, rather than waiting out the provider's
+/// flush for up to `CLOSE_DRAIN_TIMEOUT`; the turn so far is still kept.
+#[tokio::test(start_paused = true)]
+async fn stop_during_a_handover_drain_takes_effect_at_once() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.listen_for(STABLE_CONNECTION).await;
+    peer.send("text:interrupted").await;
+    client.expect(interim("interrupted")).await;
+
+    peer.send("goaway").await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    let stopped_at = Instant::now();
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Close);
+    let at = client.expect(final_("interrupted")).await;
+    assert!(
+        at - stopped_at < Duration::from_millis(100),
+        "took {:?}",
+        at - stopped_at
+    );
+    client.finished().await;
+}
+
 #[tokio::test(start_paused = true)]
 async fn a_handover_straight_after_connecting_backs_off() {
     tick_clock();
@@ -631,6 +672,126 @@ async fn a_server_close_mid_stream_reconnects() {
     drop(next);
     client.cancel.cancel();
     client.finished().await;
+}
+
+/// B3: a close that carries a code says why. One worth retrying reconnects with backoff and
+/// puts its code and reason in the Reconnecting detail; the open turn is kept.
+#[tokio::test(start_paused = true)]
+async fn a_coded_close_mid_stream_reconnects_and_says_why() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("text:cut off").await;
+    client.expect(interim("cut off")).await;
+    let closed_at = Instant::now();
+    peer.close(1011, "Internal error encountered.").await;
+
+    client
+        .expect(Event::Status(
+            SessionState::Reconnecting,
+            Some(id::PROVIDER_RECONNECTING),
+        ))
+        .await;
+    client.expect(final_("cut off")).await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    let mut next = server.accept().await;
+    assert!(Instant::now() - closed_at >= INITIAL_BACKOFF, "backed off");
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// B3: a 1007 or 1008 after setup used to reconnect with backoff for ever. It is the server
+/// refusing what it is sent, so it ends the source with the reason, keeping the turn so far.
+#[tokio::test(start_paused = true)]
+async fn a_refusing_close_mid_stream_ends_the_source() {
+    for (code, reason) in [
+        (1007, "Invalid JSON payload received."),
+        (1008, "Policy violation."),
+        (1011, "API key expired."),
+    ] {
+        tick_clock();
+        let server = Server::bind().await;
+        let (mut client, mut peer, _) = running(&server).await;
+        peer.send("text:last words").await;
+        client.expect(interim("last words")).await;
+        peer.close(code, reason).await;
+
+        client.expect(final_("last words")).await;
+        client
+            .expect(Event::Status(
+                SessionState::Error,
+                Some(id::PROVIDER_STOPPED),
+            ))
+            .await;
+        client.finished().await;
+    }
+}
+
+/// B12: a Normal Closure with no reason during setup says no more than the socket ending, so it
+/// is retried within the cap rather than ending the source.
+#[tokio::test(start_paused = true)]
+async fn a_bare_normal_closure_during_setup_is_retried() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    peer.close(1000, "").await;
+
+    client
+        .expect(Event::Status(
+            SessionState::Reconnecting,
+            Some(id::PROVIDER_RECONNECTING),
+        ))
+        .await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    let mut next = server.accept().await;
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// The operator's detail and the log name the close's code and reason, in setup and after.
+#[test]
+fn a_close_is_reported_with_its_code_and_reason() {
+    let frame = |code: u16, reason: &str| CloseFrame {
+        code: CloseCode::from(code),
+        reason: reason.to_string().into(),
+    };
+    let RunEnd::Failed(error) = socket::stream_closed::<Fake>(Some(&frame(1011, "Busy."))) else {
+        panic!("a retryable close reconnects");
+    };
+    assert_eq!(
+        error.to_string(),
+        "Fake closed the connection (close code 1011: Busy.)"
+    );
+    assert!(matches!(
+        socket::stream_closed::<Fake>(None),
+        RunEnd::Reconnect
+    ));
+    let RunEnd::Fatal(message) = socket::stream_closed::<Fake>(Some(&frame(1008, "No."))) else {
+        panic!("a policy close ends the source");
+    };
+    assert_eq!(message, "Fake closed the session (close code 1008: No.)");
+    let RunEnd::SetupFailed { reason, close_code } =
+        socket::setup_closed::<Fake>(Some(&frame(1000, "")))
+    else {
+        panic!("a bare normal closure during setup is retried");
+    };
+    assert_eq!(
+        (reason.as_str(), close_code),
+        (
+            "Fake closed the connection during setup (close code 1000)",
+            Some(1000)
+        )
+    );
 }
 
 /// A setup timeout is retried like any failure, but a setup that is never confirmed, however

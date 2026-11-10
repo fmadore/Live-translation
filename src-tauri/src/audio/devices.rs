@@ -46,6 +46,27 @@ impl PresenceCheck {
     }
 }
 
+/// How often a parked capture thread wakes to look at its cancellation token.
+const PARK_STEP: Duration = Duration::from_millis(100);
+
+/// Park a capture thread while its stream runs, until `cancel` fires. `check` runs straight
+/// after a device change and otherwise every `fallback` (see [`PresenceCheck`]); the error it
+/// returns, when what is being captured has gone, ends the wait.
+pub fn park_while_present(
+    cancel: &tokio_util::sync::CancellationToken,
+    fallback: Duration,
+    mut check: impl FnMut() -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let mut presence = PresenceCheck::new(fallback);
+    while !cancel.is_cancelled() {
+        std::thread::sleep(PARK_STEP);
+        if presence.due() {
+            check()?;
+        }
+    }
+    Ok(())
+}
+
 #[cfg(not(any(windows, target_os = "macos")))]
 #[allow(
     clippy::unnecessary_wraps,
@@ -143,10 +164,10 @@ fn enumerate_outputs() -> anyhow::Result<Vec<AudioDevice>> {
     use wasapi::{DeviceEnumerator, Direction};
     let enumerator = DeviceEnumerator::new()?;
     let default_id = enumerator
-        .get_default_device(&Direction::Render)
+        .get_default_device(Direction::Render)
         .ok()
         .and_then(|d| d.get_id().ok());
-    let collection = enumerator.get_device_collection(&Direction::Render)?;
+    let collection = enumerator.get_device_collection(Direction::Render)?;
     let mut devices = Vec::new();
     for index in 0..collection.get_nbr_devices()? {
         let device = collection.get_device_at_index(index)?;
@@ -286,8 +307,14 @@ pub fn watch(app: tauri::AppHandle) {
                 callbacks.set_default_device_callback(move |_, _, _| {
                     let _ = wake.try_send(());
                 });
-                callbacks.set_property_value_callback(move |_, _| {
-                    let _ = tx.try_send(());
+                // Endpoints report property changes often (Bluetooth ones repeatedly, for their
+                // battery and codec state), and added, removed, state and default changes each
+                // have their own callback above. Of the properties, only a new name changes
+                // what the device lists show; nothing else is worth a presence check.
+                callbacks.set_property_value_callback(move |_, key| {
+                    if is_name(key.fmtid.to_u128(), key.pid) {
+                        let _ = tx.try_send(());
+                    }
                 });
                 let _registration = enumerator.register_notification_callback(callbacks)?;
                 while rx.recv().is_ok() {
@@ -305,6 +332,17 @@ pub fn watch(app: tauri::AppHandle) {
     if let Err(error) = result {
         tracing::warn!("Audio-device watcher unavailable: {error}");
     }
+}
+
+/// Whether a property key (its format id and property id) is one of the names an endpoint is
+/// listed by: `PKEY_Device_FriendlyName` (what the lists show), `PKEY_Device_DeviceDesc` (the
+/// part of it the operator can rename in Sound settings) or `PKEY_DeviceInterface_FriendlyName`
+/// (the adapter's name, the other part).
+#[cfg(any(windows, test))]
+fn is_name(fmtid: u128, pid: u32) -> bool {
+    const DEVICE: u128 = 0xa45c_254e_df1c_4efd_8020_67d1_46a8_50e0;
+    const INTERFACE: u128 = 0x026e_516e_b814_414b_83cd_856d_6fef_4822;
+    matches!((fmtid, pid), (DEVICE, 14 | 2) | (INTERFACE, 2))
 }
 
 #[cfg(test)]
@@ -329,6 +367,50 @@ mod presence_tests {
         note_change();
         assert!(check.due());
         assert!(!check.due());
+    }
+
+    #[test]
+    fn a_parked_capture_checks_after_a_change_and_ends_on_cancel_or_absence() {
+        let _serial = serial();
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let stop = cancel.clone();
+        let checks = std::sync::atomic::AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            scope.spawn(|| {
+                std::thread::sleep(Duration::from_millis(150));
+                note_change();
+                std::thread::sleep(Duration::from_millis(300));
+                stop.cancel();
+            });
+            park_while_present(&cancel, Duration::from_secs(3600), || {
+                checks.fetch_add(1, Ordering::Relaxed);
+                Ok(())
+            })
+            .unwrap();
+        });
+        assert_eq!(checks.load(Ordering::Relaxed), 1);
+
+        let error = park_while_present(
+            &tokio_util::sync::CancellationToken::new(),
+            Duration::ZERO,
+            || anyhow::bail!("selected microphone disconnected or disabled"),
+        )
+        .unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "selected microphone disconnected or disabled"
+        );
+    }
+
+    #[test]
+    fn only_a_new_name_among_property_changes_counts_as_a_device_change() {
+        // PKEY_Device_FriendlyName, PKEY_Device_DeviceDesc, PKEY_DeviceInterface_FriendlyName.
+        assert!(is_name(0xa45c_254e_df1c_4efd_8020_67d1_46a8_50e0, 14));
+        assert!(is_name(0xa45c_254e_df1c_4efd_8020_67d1_46a8_50e0, 2));
+        assert!(is_name(0x026e_516e_b814_414b_83cd_856d_6fef_4822, 2));
+        // PKEY_AudioEndpoint_FormFactor, and a Bluetooth battery level's key.
+        assert!(!is_name(0x1da5_d803_d492_4edd_8c23_e0c0_ffee_7f0e, 0));
+        assert!(!is_name(0x104e_a319_6ee2_4701_bd47_8ddb_f425_bbe5, 2));
     }
 
     #[test]

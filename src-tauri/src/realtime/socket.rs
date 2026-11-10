@@ -17,7 +17,8 @@ use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async_with_conf
 use tokio_util::sync::CancellationToken;
 
 use super::policy::RunEnd;
-use super::wire::{Verdict, classify};
+use super::turn_timer::TurnTimer;
+use super::wire::{Close, Verdict};
 use super::{
     CaptionUpdate, Events, MessageControl, MessageOutcome, PauseRx, RealtimeProtocol, Signal,
     TurnAccumulator, apply_caption, emit_caption, finalize_accumulator,
@@ -42,12 +43,6 @@ const PING_INTERVAL: Duration = Duration::from_secs(15);
 /// Two unanswered pings: the path is gone (a Wi-Fi handoff, a dropped NAT entry) even though
 /// the operating system has not noticed yet.
 pub(super) const INBOUND_TIMEOUT: Duration = Duration::from_secs(30);
-const IDLE: Duration = Duration::from_secs(24 * 60 * 60);
-/// The longest the idle boundary leaves a turn open at the provider's word that the speaker is
-/// mid-sentence (`keeps_turn_open`), counted from the turn's last text. Mistral ends a turn
-/// after three seconds of silence whatever its model thinks, so a turn still held past this
-/// has lost its end, not merely paused.
-pub(super) const MAX_HOLD: Duration = Duration::from_secs(4);
 /// Four queued 100 ms chunks means the five-slot producer queue was effectively full.
 const STALE_AUDIO_BACKLOG: usize = 4;
 /// About seven seconds of 100 ms chunks: a handover's drain of the old socket (at most
@@ -327,28 +322,44 @@ async fn open<P: RealtimeProtocol, E: Events>(
     }
 }
 
-/// A Close frame in answer to setup, read by its code and reason the way an `error` event is.
-/// 1007 and 1008 (a setup the server will not take), or a reason about the key or the quota,
-/// end the source; a 1011 or 1013 ("try again later") is retried like any setup failure.
-/// A Close with no code at all says no more than the socket ending would, and is retried too.
-fn setup_closed<P: RealtimeProtocol>(frame: Option<&CloseFrame>) -> RunEnd {
-    let code = frame.map(|frame| u16::from(frame.code));
-    let reason = frame.map_or("", |frame| frame.reason.trim());
-    let detail = if reason.is_empty() {
-        String::new()
+/// " (close code 1011: Internal error.)", or nothing for a Close that carried neither.
+fn close_detail(close: &Close) -> String {
+    let described = close.describe();
+    if described.is_empty() {
+        described
     } else {
-        format!(": {reason}")
-    };
-    let verdict = match code {
-        Some(code) => classify(Some(u64::from(code)), &[], reason),
-        None => Verdict::Retry,
-    };
-    match verdict {
+        format!(" ({described})")
+    }
+}
+
+/// A Close frame in answer to setup, read by `Close::verdict`: 1007, 1008 or a reason about
+/// the key or the quota end the source; anything else, a bare Normal Closure included, is
+/// retried like any setup failure, within the cap.
+pub(super) fn setup_closed<P: RealtimeProtocol>(frame: Option<&CloseFrame>) -> RunEnd {
+    let close = Close::of(frame);
+    let detail = close_detail(&close);
+    match close.verdict() {
         Verdict::Fatal => RunEnd::Fatal(format!("{} rejected session setup{detail}", P::NAME)),
         Verdict::Retry | Verdict::Handover => RunEnd::SetupFailed {
             reason: format!("{} closed the connection during setup{detail}", P::NAME),
-            close_code: code,
+            close_code: close.code,
         },
+    }
+}
+
+/// A Close frame once streaming, read the same way as during setup. A refusal ends the source
+/// with the provider's reason; any other close reconnects with backoff, and the code and reason
+/// it carried are the Reconnecting detail, so a provider that keeps closing says why. A Close
+/// with neither says no more than the socket ending, and reconnects as that does.
+pub(super) fn stream_closed<P: RealtimeProtocol>(frame: Option<&CloseFrame>) -> RunEnd {
+    let close = Close::of(frame);
+    let detail = close_detail(&close);
+    match close.verdict() {
+        Verdict::Fatal => RunEnd::Fatal(format!("{} closed the session{detail}", P::NAME)),
+        Verdict::Retry | Verdict::Handover if detail.is_empty() => RunEnd::Reconnect,
+        Verdict::Retry | Verdict::Handover => {
+            RunEnd::Failed(anyhow::anyhow!("{} closed the connection{detail}", P::NAME))
+        }
     }
 }
 
@@ -367,15 +378,10 @@ async fn pump<P: RealtimeProtocol, E: Events>(
         backlog,
     } = io;
     let origin = proto.origin();
-    let finalize_after = proto.finalize_after();
-    let finalize = sleep(IDLE);
+    // When the open turn is finalized on a timer; `finalize` sleeps until its deadline.
+    let mut timer = TurnTimer::new(proto.finalize_after(), Instant::now());
+    let finalize = sleep_until(timer.deadline());
     tokio::pin!(finalize);
-    // Set by `Signal::EndOfTurn` until the turn is finalized, and from then on the finalize
-    // deadline itself: later text pushes it neither back, as it pushes back the idle timer,
-    // nor forward to an idle boundary that falls inside the grace.
-    let mut turn_end: Option<Instant> = None;
-    // When the turn last grew, for `MAX_HOLD`.
-    let mut last_activity = Instant::now();
     let mut ping = tokio::time::interval_at(Instant::now() + PING_INTERVAL, PING_INTERVAL);
     ping.set_missed_tick_behavior(MissedTickBehavior::Delay);
     // Re-armed lazily from `last_inbound` when it fires, rather than reset on every frame.
@@ -427,8 +433,10 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 conn.last_inbound = Instant::now();
                 // Keep-alive traffic proves the path and nothing else; tungstenite answers
                 // the provider's pings itself.
-                if matches!(message, Message::Ping(_) | Message::Pong(_)) {
-                    continue;
+                match &message {
+                    Message::Ping(_) | Message::Pong(_) => continue,
+                    Message::Close(frame) => return stream_closed::<P>(frame.as_ref()),
+                    _ => {}
                 }
                 let outcome = handle_socket_message(events, proto, message, acc);
                 if outcome.caption != CaptionUpdate::None {
@@ -436,20 +444,12 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 }
                 match outcome.signal {
                     Signal::TranscriptActivity => {
-                        last_activity = Instant::now();
-                        // Text inside a turn's grace is its last words arriving; the end
-                        // already set is when they have had time to.
-                        if let (Some(after), None) = (finalize_after, turn_end) {
-                            finalize.as_mut().reset(Instant::now() + after);
-                        }
+                        timer.activity(Instant::now());
+                        finalize.as_mut().reset(timer.deadline());
                     }
                     Signal::EndOfTurn(grace) => {
-                        let end = Instant::now() + grace;
-                        let end = turn_end.map_or(end, |earlier| earlier.min(end));
-                        turn_end = Some(end);
-                        // Even when the idle boundary would come first: closing there is
-                        // what made the final "." a line of its own.
-                        finalize.as_mut().reset(end);
+                        timer.end_of_turn(Instant::now(), grace);
+                        finalize.as_mut().reset(timer.deadline());
                     }
                     Signal::None | Signal::SetupComplete => {}
                 }
@@ -463,10 +463,18 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                     MessageControl::Handover { time_left } => {
                         let limit = time_left
                             .map_or(CLOSE_DRAIN_TIMEOUT, |left| left.min(CLOSE_DRAIN_TIMEOUT));
-                        let queue = Queue { audio_rx: &mut *audio_rx, backlog: &mut *backlog };
+                        let queue = Queue {
+                            audio_rx: &mut *audio_rx,
+                            backlog: &mut *backlog,
+                            cancel,
+                        };
                         tracing::info!(?origin, ?limit, "{} draining before the handover", P::NAME);
                         drain(events, proto, &mut conn, acc, last_caption, limit, Some(queue))
                             .await;
+                        // A Stop during the drain ended it: the source is over, not moving.
+                        if cancel.is_cancelled() {
+                            return RunEnd::Stopped;
+                        }
                         return RunEnd::Handover;
                     }
                     // A provider ending its session mid-stream (OpenAI's `session.closed`,
@@ -502,21 +510,10 @@ async fn pump<P: RealtimeProtocol, E: Events>(
             }
 
             () = &mut finalize => {
-                let now = Instant::now();
-                let ended = turn_end.is_some_and(|end| end <= now);
-                let hold = finalize_after.filter(|_| {
-                    !ended
-                        && now.duration_since(last_activity) < MAX_HOLD
-                        && proto.keeps_turn_open(acc)
-                });
-                if let Some(after) = hold {
-                    // Mid-sentence: look again a boundary later.
-                    finalize.as_mut().reset(turn_end.unwrap_or(now + after));
-                } else {
+                if timer.fire(Instant::now(), || proto.keeps_turn_open(acc)) {
                     finalize_accumulator(events, origin, acc);
-                    turn_end = None;
-                    finalize.as_mut().reset(now + IDLE);
                 }
+                finalize.as_mut().reset(timer.deadline());
             }
         }
     }
@@ -566,16 +563,27 @@ fn handle_socket_message<P: RealtimeProtocol, E: Events>(
     outcome
 }
 
-/// Where a handover's drain puts the audio that arrives while it runs: the next socket's.
+/// Where a handover's drain puts the audio that arrives while it runs: the next socket's. And
+/// the source's Stop, which ends a handover's drain at once.
 struct Queue<'a> {
     audio_rx: &'a mut Receiver<AudioChunk>,
     backlog: &'a mut Backlog,
+    cancel: &'a CancellationToken,
 }
 
 /// The next chunk for a draining handover to hold; never, for a Pause or Stop.
 async fn next_queued(queue: &mut Option<Queue<'_>>) -> Option<AudioChunk> {
     match queue {
         Some(queue) => queue.audio_rx.recv().await,
+        None => std::future::pending().await,
+    }
+}
+
+/// When a Stop arrives during a handover's drain; never, for the drain of a Pause or Stop,
+/// which is that Stop's own flush.
+async fn stopped(cancel: Option<&CancellationToken>) {
+    match cancel {
+        Some(cancel) => cancel.cancelled().await,
         None => std::future::pending().await,
     }
 }
@@ -607,7 +615,7 @@ async fn graceful_close<P: RealtimeProtocol, E: Events>(
 /// started it: a provider that rejects a closing frame must not turn a clean stop into an
 /// error, and the accumulated turn is finalized by the runner either way. A handover passes a
 /// `queue`, so the speech that goes on meanwhile waits for the next socket rather than being
-/// sent to one that has stopped listening.
+/// sent to one that has stopped listening; a Stop then ends the drain at once.
 async fn drain<P: RealtimeProtocol, E: Events>(
     events: &E,
     proto: &mut P,
@@ -647,9 +655,11 @@ async fn drain<P: RealtimeProtocol, E: Events>(
 
     let deadline = sleep(limit);
     tokio::pin!(deadline);
+    let cancel = queue.as_ref().map(|queue| queue.cancel);
     loop {
         tokio::select! {
             _ = &mut deadline => break,
+            () = stopped(cancel) => break,
             Some(chunk) = next_queued(&mut queue) => {
                 if let Some(queue) = &mut queue {
                     queue.backlog.push(chunk);

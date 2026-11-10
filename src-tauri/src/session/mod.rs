@@ -33,7 +33,7 @@ use crate::types::{Origin, Provider, SessionState, StartOptions, StatusUpdate};
 use crate::whisper;
 use builder::SessionBuilder;
 use capture::{CaptureTarget, join_threads, spawn_level_forwarder};
-use options::{session_origins, validate_start};
+use options::{is_live, session_origins, validate_start};
 use preflight::ActiveTest;
 use settings::ProviderSettings;
 
@@ -83,9 +83,10 @@ impl SessionManager {
         self.stop_test_active(app).await;
         validate_start(&options)?;
         // Turn ids start again with this session, and how much of an interim caption a Zoom
-        // share may send depends on the engine.
+        // share may send depends on the engine. A rehearsal or the demonstration is never
+        // shared: a share left running must not show the meeting sample captions.
         app.state::<crate::zoom::ZoomCaptions>()
-            .begin_session(options.provider);
+            .begin_session(options.provider, is_live(&options));
 
         let provider = options.provider;
         // The built-in demo and local Whisper start with no credential.
@@ -99,13 +100,18 @@ impl SessionManager {
             String::new()
         };
         let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
+        // Made before the model loads, so discarding (and quitting) also ends a load that hangs.
+        let abort = CancellationToken::new();
         let local_model = if provider.is_local_whisper() {
-            let app = app.clone();
+            *lock(&self.local_abort) = Some(abort.clone());
+            let (app, abort) = (app.clone(), abort.clone());
             let (model, graphics) = (options.whisper_model, options.whisper_gpu);
             Some(
-                tauri::async_runtime::spawn_blocking(move || whisper::load(&app, model, graphics))
-                    .await
-                    .context("Whisper model loading stopped unexpectedly")??,
+                tauri::async_runtime::spawn_blocking(move || {
+                    whisper::load(&app, model, graphics, &abort)
+                })
+                .await
+                .context("Whisper model loading stopped unexpectedly")??,
             )
         } else {
             None
@@ -113,10 +119,6 @@ impl SessionManager {
 
         let cancel = CancellationToken::new();
         let cancel_guard = cancel.clone().drop_guard();
-        let abort = CancellationToken::new();
-        if provider.is_local_whisper() {
-            *lock(&self.local_abort) = Some(abort.clone());
-        }
         let origins = session_origins(&options);
         // Only a live session hearing both the room and the computer can caption one voice
         // twice, and only the operator decides to drop the copy; the demonstration scripts its
@@ -265,16 +267,28 @@ impl SessionManager {
                 }
             }
             *lock(&self.local_abort) = None;
-        } else if tokio::time::timeout(
-            CLIENT_DRAIN_TIMEOUT,
-            join_all(session.client_tasks.iter_mut()),
-        )
-        .await
-        .is_err()
-        {
-            tracing::warn!("realtime clients did not finish graceful shutdown in time");
-            for task in &session.client_tasks {
-                task.abort();
+        } else {
+            let aborts: Vec<_> = session
+                .client_tasks
+                .iter()
+                .map(|task| task.inner().abort_handle())
+                .collect();
+            // One `JoinAll`, polled again after the timeout: it never polls a finished handle
+            // twice, which a `JoinHandle` does not allow.
+            let joined = join_all(session.client_tasks.iter_mut());
+            tokio::pin!(joined);
+            if tokio::time::timeout(CLIENT_DRAIN_TIMEOUT, &mut joined)
+                .await
+                .is_err()
+            {
+                tracing::warn!("realtime clients did not finish graceful shutdown in time");
+                for abort in &aborts {
+                    abort.abort();
+                }
+                // A client cut off finalizes its open turn as it is dropped (`run_session`).
+                // Wait for that, so its last line comes before the Idle and not into the next
+                // session.
+                joined.await;
             }
         }
     }

@@ -45,7 +45,9 @@ this page.
 
 Sharing can start before or during a caption session, and it carries on across Stop and Start:
 it ends with **Stop sharing** or when the app quits. To change the language or the sources,
-stop sharing and start again.
+stop sharing and start again. A rehearsal and the built-in demo are never shared, even with
+sharing on: the meeting sees nothing of them, and the status keeps Zoom's last answer and count
+until a real session sends again.
 
 To caption Zoom only, untick **Show captions on this screen too** in the dialog. It hides the
 overlay, exactly as the overlay's own Hide button, the tray menu and Ctrl+Shift+O do, and the

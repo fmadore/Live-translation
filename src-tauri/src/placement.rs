@@ -512,12 +512,27 @@ pub fn spawn_display_watcher(app: &AppHandle) {
             let Some(window) = app.get_webview_window(OVERLAY_LABEL) else {
                 break;
             };
-            let screens = match screens(&app) {
-                Ok(screens) => {
-                    failing = false;
-                    screens
-                }
-                Err(error) => {
+            // One hop to the main thread per poll, as `overlay::spawn_topmost_keeper` makes:
+            // there the monitor and window calls are answered inline, where from this worker
+            // each was a blocking round trip of its own. The settle state travels with it and
+            // comes back with the answer, which is awaited rather than blocked on.
+            let (answer, answered) = tokio::sync::oneshot::channel();
+            let main = app.clone();
+            let hop = app.run_on_main_thread(move || {
+                let found = poll_displays(&main, &window, &mut settle);
+                let _ = answer.send((settle, found));
+            });
+            let answer = match hop {
+                Ok(()) => answered.await.ok(),
+                Err(_) => None,
+            };
+            // The event loop has gone: the app is quitting.
+            let Some((returned, found)) = answer else {
+                break;
+            };
+            settle = returned;
+            let layout = match found {
+                Polled::Unreadable(error) => {
                     if failing {
                         tracing::debug!("displays could not be read: {error}");
                     } else {
@@ -526,29 +541,65 @@ pub fn spawn_display_watcher(app: &AppHandle) {
                     failing = true;
                     continue;
                 }
-            };
-            // Mid-switch, Windows can briefly report no display at all. That is not a layout
-            // anyone can place captions on, so it is neither acted on nor remembered.
-            if screens.is_empty() {
-                continue;
-            }
-            if !settle.observe(change_signature(&screens)) {
-                continue;
-            }
-            match recover(&window, &screens) {
-                Ok(true) => {
-                    tracing::info!("displays changed; caption overlay moved back on screen")
+                Polled::Unchanged => {
+                    failing = false;
+                    continue;
                 }
-                Ok(false) => tracing::debug!("displays changed; caption overlay still on screen"),
-                Err(error) => tracing::warn!("caption overlay could not be moved back: {error}"),
-            }
-            let displays: Vec<Display> = screens.iter().map(|s| s.display).collect();
+                Polled::Changed { moved, layout } => {
+                    failing = false;
+                    match moved {
+                        Ok(true) => {
+                            tracing::info!("displays changed; caption overlay moved back on screen")
+                        }
+                        Ok(false) => {
+                            tracing::debug!("displays changed; caption overlay still on screen")
+                        }
+                        Err(error) => {
+                            tracing::warn!("caption overlay could not be moved back: {error}")
+                        }
+                    }
+                    layout
+                }
+            };
             // Broadcast, like every other core event; see the comment in `lib.rs`.
-            if let Err(error) = app.emit(events::DISPLAYS_CHANGED, layout_signature(&displays)) {
+            if let Err(error) = app.emit(events::DISPLAYS_CHANGED, layout) {
                 tracing::warn!("display change could not be announced: {error}");
             }
         }
     });
+}
+
+/// What one poll of the display watcher found.
+enum Polled {
+    Unreadable(AppError),
+    /// No change worth acting on yet, or no display at all for a moment.
+    Unchanged,
+    /// The displays settled into a new arrangement: whether the overlay had to be moved back
+    /// onto one, and the new layout signature for the interface.
+    Changed {
+        moved: Result<bool, AppError>,
+        layout: String,
+    },
+}
+
+/// One poll: read the displays and, once a change has settled, bring the overlay back onto
+/// one. On the main thread, where each of these calls is answered without a round trip.
+fn poll_displays(app: &AppHandle, window: &WebviewWindow, settle: &mut Settle) -> Polled {
+    let screens = match screens(app) {
+        Ok(screens) => screens,
+        Err(error) => return Polled::Unreadable(error),
+    };
+    // Mid-switch, Windows can briefly report no display at all. That is not a layout anyone
+    // can place captions on, so it is neither acted on nor remembered.
+    if screens.is_empty() || !settle.observe(change_signature(&screens)) {
+        return Polled::Unchanged;
+    }
+    let moved = recover(window, &screens);
+    let displays: Vec<Display> = screens.iter().map(|s| s.display).collect();
+    Polled::Changed {
+        moved,
+        layout: layout_signature(&displays),
+    }
 }
 
 #[cfg(test)]

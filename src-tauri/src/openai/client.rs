@@ -15,7 +15,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
     CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
-    bearer_request, classify_json, parse_or_log,
+    bearer_request, parse_or_log, provider_error,
 };
 use crate::types::Origin;
 
@@ -78,16 +78,14 @@ impl RealtimeProtocol for OpenAiConfig {
             return MessageOutcome::default();
         };
 
+        // Its `error` object carries a `type` (`invalid_request_error`, `server_error`, …) and
+        // an optional `code`. `session_expired`, the 60-minute session cap, arrives as an
+        // `invalid_request_error` but is a planned end, so it hands over like Gemini's
+        // `goAway`: after a stable connection the runner reconnects at once and replays the
+        // audio queued meanwhile. An exhausted quota is reported like a rate limit, but no
+        // reconnect refills it, so it stays fatal.
         if let Some(error) = ev.error {
-            let control = error_control(&error);
-            if !matches!(control, MessageControl::Fatal(_)) {
-                tracing::warn!(
-                    origin = ?self.origin,
-                    %error,
-                    "OpenAI ended the session; moving to a new one"
-                );
-            }
-            return MessageOutcome::control(control);
+            return provider_error(self, Some("OpenAI realtime error"), &error);
         }
 
         let kind = ev.kind.as_str();
@@ -129,16 +127,6 @@ impl RealtimeProtocol for OpenAiConfig {
     fn finalize_after(&self) -> Option<Duration> {
         Some(FINALIZE_AFTER)
     }
-}
-
-/// How an `error` event steers the connection, by the shared `classify_json`. Its `error`
-/// object carries a `type` (`invalid_request_error`, `server_error`, …) and an optional `code`.
-/// `session_expired`, the 60-minute session cap, arrives as an `invalid_request_error` but is a
-/// planned end, so it hands over like Gemini's `goAway`: after a stable connection the runner
-/// reconnects at once and replays the audio queued meanwhile. An exhausted quota is reported
-/// like a rate limit, but no reconnect refills it, so it stays fatal.
-fn error_control(error: &serde_json::Value) -> MessageControl {
-    classify_json(error).control(|| format!("OpenAI realtime error: {error}"))
 }
 
 #[cfg(test)]
