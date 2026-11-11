@@ -90,14 +90,17 @@ const FATAL_WORDING: [&str; 9] = [
 /// UNAVAILABLE and DEADLINE_EXCEEDED, and a connection reset between its services. Seen live
 /// from Mistral on 7 October 2026 as code 3803, "gRPC connection error: <AioRpcError …
 /// StatusCode.UNAVAILABLE … Connection reset by peer …>"; a new session reaches a backend that
-/// is up. Specific on purpose: a bare "unavailable" could also describe a model the key cannot
-/// use.
-const TRANSIENT_WORDING: [&str; 5] = [
+/// is up. And on 11 November 2026, during a live stream, as code 3804, "Timeout waiting for
+/// response from streaming transcription.": its recogniser stalled, and a new session gets
+/// another. Specific on purpose: a bare "unavailable" could also describe a model the key cannot
+/// use, and a bare "timeout" a limit the request broke.
+const TRANSIENT_WORDING: [&str; 6] = [
     "statuscode.unavailable",
     "grpc_status:14",
     "statuscode.deadline_exceeded",
     "grpc connection error",
     "connection reset by peer",
+    "timeout waiting for response",
 ];
 
 /// Error names that a new connection can get past: OpenAI's and Mistral's `type`/`code` names,
@@ -387,6 +390,10 @@ mod tests {
             ),
             (
                 r#"{"code":3803,"message":"gRPC connection error: StatusCode.UNAVAILABLE"}"#,
+                Verdict::Retry,
+            ),
+            (
+                r#"{"code":3804,"message":"Timeout waiting for response from streaming transcription."}"#,
                 Verdict::Retry,
             ),
             (

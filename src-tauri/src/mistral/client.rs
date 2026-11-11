@@ -165,7 +165,8 @@ impl RealtimeProtocol for MistralClient {
             // object, `code` an integer it calls an internal code for debugging. The shared
             // `classify_json` reads it: HTTP's transient codes and names, and Mistral's own
             // backend failing to reach an internal service (seen live as code 3803 with a gRPC
-            // UNAVAILABLE message), reconnect; quota wording and anything unknown stay fatal.
+            // UNAVAILABLE message) or timing out on its recogniser (code 3804), reconnect; quota
+            // wording and anything unknown stay fatal.
             "error" => {
                 let Some(error) = event.error else {
                     return MessageOutcome::control(MessageControl::Fatal(
@@ -404,6 +405,11 @@ mod tests {
                     r#"UNAVAILABLE: ipv4:10.235.138.223:50052: recvmsg:Connection reset by "#,
                     r#"peer\"}\"\n>"}"#
                 ),
+                true,
+            ),
+            // As Mistral sent it on 11 November 2026, during a live stream.
+            (
+                r#"{"code":3804,"message":"Timeout waiting for response from streaming transcription."}"#,
                 true,
             ),
             (
