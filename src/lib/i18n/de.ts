@@ -278,7 +278,7 @@ export const de: Messages = {
 		},
 		/** One line under DeepL in the engine picker: why an operator might choose it. */
 		deeplNote:
-			'Bekannt für seine Übersetzungsqualität; Anbieter mit Sitz in der EU. Erfordert einen kostenpflichtigen DeepL-API-Tarif (Growth oder höher).',
+			'Experimentell, noch nicht in einer echten Sitzung erprobt. Bekannt für seine Übersetzungsqualität; Anbieter mit Sitz in der EU. Erfordert einen kostenpflichtigen DeepL-API-Tarif (Growth oder höher).',
 		costNote: {
 			whisper:
 				'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',

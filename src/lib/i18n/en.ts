@@ -288,7 +288,7 @@ export const en = {
 		},
 		/** One line under DeepL in the engine picker: why an operator might choose it. */
 		deeplNote:
-			'Known for its translation quality; provider based in the EU. Needs a paid DeepL API plan (Growth or higher).',
+			'Experimental, not yet tried in a live session. Known for its translation quality; provider based in the EU. Needs a paid DeepL API plan (Growth or higher).',
 		costNote: {
 			whisper:
 				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',

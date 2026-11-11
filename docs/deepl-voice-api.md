@@ -2,6 +2,10 @@
 
 Cloud translation integration: speech in, translated captions out.
 
+**Status: experimental.** Built from DeepL's documentation and tested against its documented
+messages and loopback servers, but not yet run against the live API, which needs a paid DeepL
+API plan. The engine picker says so in its note on DeepL.
+
 Verified 11 November 2026 against DeepL's Voice documentation:
 [the Voice API reference](https://developers.deepl.com/api-reference/voice),
 [request session](https://developers.deepl.com/api-reference/voice/request-session),

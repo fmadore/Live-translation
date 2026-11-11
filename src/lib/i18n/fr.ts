@@ -283,7 +283,7 @@ export const fr: Messages = {
 		},
 		/** One line under DeepL in the engine picker: why an operator might choose it. */
 		deeplNote:
-			'Réputé pour la qualité de ses traductions ; fournisseur établi dans l’UE. Nécessite un forfait API DeepL payant (Growth ou supérieur).',
+			'Expérimental, pas encore essayé en séance réelle. Réputé pour la qualité de ses traductions ; fournisseur établi dans l’UE. Nécessite un forfait API DeepL payant (Growth ou supérieur).',
 		costNote: {
 			whisper:
 				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',

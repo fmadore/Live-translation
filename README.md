@@ -42,7 +42,7 @@ in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
   Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets, DeepL 42 and
   OpenAI 13 in the app's catalog; DeepL needs a paid DeepL API plan, since its Voice API is not
-  on the free one. Gemini and Mistral also offer same-language subtitles; with them, and with
+  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral also offer same-language subtitles; with them, and with
   local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
   Cloud engines need your
   own compatible account, API key and internet connection; provider usage charges apply.
