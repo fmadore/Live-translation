@@ -103,6 +103,8 @@ impl SessionManager {
         } else {
             String::new()
         };
+        // A key from the environment never went through `set_api_key`'s check.
+        secrets::check_plan(provider, &api_key)?;
         let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
         // Made before the model loads, so discarding (and quitting) also ends a load that hangs.
         let abort = CancellationToken::new();

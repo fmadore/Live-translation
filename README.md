@@ -2,7 +2,7 @@
 
 Live captions over your meetings, video calls and slides. Transcribe speech locally with
 **Whisper**, or translate it — into English locally with Whisper, or into many languages with
-**Google Gemini** or **OpenAI** — in a transparent overlay on Windows or macOS.
+**Google Gemini**, **OpenAI** or **DeepL** — in a transparent overlay on Windows or macOS.
 
 <a href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>&nbsp;&nbsp;<a href="https://buymeacoffee.com/fmadore"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="48"></a>
 
@@ -41,8 +41,9 @@ in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
 - **Offline translation into English.** Whisper also translates any of those languages into
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.
-- **Cloud translation and subtitles.** Gemini offers 78 translation targets and OpenAI 13 in
-  the app's catalog. Gemini and Mistral also offer same-language subtitles; with them, and with
+- **Cloud translation and subtitles.** Gemini offers 78 translation targets, DeepL 42 and
+  OpenAI 13 in the app's catalog; DeepL needs a paid DeepL API plan, since its Voice API is not
+  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral also offer same-language subtitles; with them, and with
   local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
   Cloud engines need your
   own compatible account, API key and internet connection; provider usage charges apply.
@@ -80,8 +81,8 @@ in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
    GitHub installers are unsigned; Store packages are signed and update through the Store.
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
-   For translation, choose **Live translation**, Gemini or OpenAI, your key and target language,
-   or **Local Whisper** to translate into English without a key.
+   For translation, choose **Live translation**, Gemini, OpenAI or DeepL, your key and target
+   language, or **Local Whisper** to translate into English without a key.
 3. Test the source, start the session, and use **Move overlay** to position captions. Lock
    the overlay to make it click-through again.
 4. **Pause** during breaks. Cloud connections close after their final turn; Whisper stops

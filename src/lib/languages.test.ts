@@ -24,6 +24,7 @@ it('keeps generated Rust and TypeScript aligned with the provider catalog', () =
 	execFileSync(process.execPath, ['scripts/generate-languages.mjs', '--check']);
 	expect(languageRows('gemini', [], '', 'en')).toHaveLength(78);
 	expect(languageRows('openai', [], '', 'en')).toHaveLength(13);
+	expect(languageRows('deepl', [], '', 'en')).toHaveLength(42);
 	expect(languageRows('ondevice', [], '', 'en').map((r) => r.code)).toEqual(['en', 'fr']);
 	expect(languageRows('whisper-translate', [], '', 'en').map((r) => r.code)).toEqual(['en']);
 });
@@ -117,6 +118,8 @@ it('keeps valid unsupported selections, restores every target, and rejects corru
 	expect(supportsLanguage(switched.provider, switched.targetLanguage)).toBe(false);
 	expect(supportsLanguage('ondevice', 'de')).toBe(false);
 	expect(supportsLanguage('mistral', 'sw')).toBe(true);
+	expect(supportsLanguage('deepl', 'pt-BR')).toBe(true);
+	expect(supportsLanguage('deepl', 'sw')).toBe(false);
 });
 
 it('finds the caption language an engine cannot write, the second one included', () => {

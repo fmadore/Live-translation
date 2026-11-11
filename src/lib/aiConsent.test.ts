@@ -7,6 +7,8 @@ import {
 	loadAiConsent,
 	needsAiConsent
 } from './aiConsent';
+import { providerKeyName, providerRequiresKey } from './providers';
+import { PROVIDERS } from './types';
 
 // The logic project runs in node, which has no localStorage: a memory one stands in.
 const stored = new Map<string, string>();
@@ -41,6 +43,23 @@ describe('the provider question', () => {
 		expect(needsAiConsent('openai', get(aiConsent))).toBe(true);
 		grantAiConsent('gemini');
 		expect(get(aiConsent)).toEqual(['Gemini']);
+	});
+
+	it('asks about DeepL on its own, and reads its answer back', () => {
+		grantAiConsent('openai');
+		expect(needsAiConsent('deepl', get(aiConsent))).toBe(true);
+		grantAiConsent('deepl');
+		expect(needsAiConsent('deepl', get(aiConsent))).toBe(false);
+		expect(loadAiConsent()).toEqual(['OpenAI', 'DeepL']);
+	});
+
+	// Every cloud engine's company has to survive a reload, or the question comes back each
+	// launch.
+	it('knows every company a cloud engine sends audio to', () => {
+		for (const provider of PROVIDERS.filter(providerRequiresKey)) {
+			stored.set(AI_CONSENT_KEY, JSON.stringify([providerKeyName(provider)]));
+			expect(loadAiConsent(), provider).toEqual([providerKeyName(provider)]);
+		}
 	});
 
 	it('keeps the answer, and reads back only the providers it knows', () => {

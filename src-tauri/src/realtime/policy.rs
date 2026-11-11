@@ -57,6 +57,17 @@ impl From<anyhow::Error> for RunEnd {
     }
 }
 
+impl From<super::PrepareError> for RunEnd {
+    fn from(error: super::PrepareError) -> Self {
+        match error {
+            super::PrepareError::Rejected(status) => Self::Rejected(status),
+            super::PrepareError::Fatal(message) => Self::Fatal(message),
+            super::PrepareError::Malformed(error) => Self::Malformed(error),
+            super::PrepareError::Failed(error) => Self::Failed(error),
+        }
+    }
+}
+
 /// Permanent client errors will not improve on retry. Rate limits and timeouts remain
 /// retryable and use the normal exponential backoff path.
 fn fatal_handshake_rejection(error: &anyhow::Error) -> Option<u16> {
@@ -370,6 +381,22 @@ mod tests {
             RunEnd::Malformed(anyhow::anyhow!("API key is not a valid header value")),
         ] {
             assert_eq!(policy.after(&end, LONG), After::Stop);
+        }
+    }
+
+    /// A provider's REST step before connecting ends a connection the way the handshake would.
+    #[test]
+    fn a_failed_preparation_retries_only_what_a_retry_can_fix() {
+        use super::super::PrepareError;
+        let mut policy = Reconnect::new(Origin::Microphone);
+        for (error, stops) in [
+            (PrepareError::Rejected(403), true),
+            (PrepareError::Fatal("HTTP 456: Quota exceeded".into()), true),
+            (PrepareError::Malformed(anyhow::anyhow!("bad key")), true),
+            (PrepareError::Failed(anyhow::anyhow!("HTTP 503")), false),
+        ] {
+            let end = RunEnd::from(error);
+            assert_eq!(policy.after(&end, SHORT) == After::Stop, stops, "{end:?}");
         }
     }
 

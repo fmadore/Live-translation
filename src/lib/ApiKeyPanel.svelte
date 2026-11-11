@@ -145,6 +145,7 @@
 		{#snippet description()}
 			{$t.key.desc.before}
 			<code>{meta.modelId}</code>{$t.key.desc.after}
+			{#if provider === 'deepl'}{$t.key.deeplPlan}{/if}
 			{#if meta.keyUrl}
 				<a href={meta.keyUrl} target="_blank" rel="noopener noreferrer">
 					{$t.key.getKey}<span class="sr-only">{$t.key.opensInBrowser}</span>

@@ -1,6 +1,6 @@
 // What each caption backend can do, its display metadata and its cost model. Provider
-// integration notes and their dated verification sources live in docs/*-realtime-api.md and
-// gemini-live-api.md.
+// integration notes and their dated verification sources live in docs/*-realtime-api.md,
+// gemini-live-api.md and deepl-voice-api.md.
 
 import type { Messages } from './i18n/en';
 import type { Provider } from './types';
@@ -8,7 +8,12 @@ import type { Provider } from './types';
 /** Backends that produce translated captions. The built-in demo is same-language only, and
  *  Whisper translates into English only. */
 export function providerCanTranslate(provider: Provider): boolean {
-	return provider === 'gemini' || provider === 'openai' || provider === 'whisper-translate';
+	return (
+		provider === 'gemini' ||
+		provider === 'openai' ||
+		provider === 'deepl' ||
+		provider === 'whisper-translate'
+	);
 }
 
 /** Whether the engine is local Whisper, for subtitles or for translation into English: one
@@ -29,12 +34,14 @@ export function providerRequiresKey(provider: Provider): boolean {
 export function providerKeyName(provider: Provider): string {
 	if (provider === 'openai') return 'OpenAI';
 	if (provider === 'mistral') return 'Mistral';
+	if (provider === 'deepl') return 'DeepL';
 	return 'Gemini';
 }
 
 /** Whether the backend identifies the spoken language itself, so there is no language for
  *  the operator to choose. True for the subtitle engines; the built-in demo instead picks
- *  which bundled script to play. Whisper's translate task detects the spoken language too, but
+ *  which bundled script to play. DeepL detects the spoken language too, but like Gemini Live
+ *  Translate it writes the caption language the operator picks, so it is false there. Whisper's translate task detects the spoken language too, but
  *  the room reads English, which the operator chooses, so it is false there. */
 export function providerDetectsLanguage(provider: Provider): boolean {
 	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
@@ -111,6 +118,18 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 		hourlyEstimate: 0.48,
 		perStream: true,
 		keyUrl: 'https://console.mistral.ai/api-keys'
+	},
+	deepl: {
+		id: 'deepl',
+		// DeepL publishes no model id for the Voice API: this is the endpoint it is reached at.
+		modelId: 'v3/voice/realtime',
+		// Not on DeepL's public pricing page, which sells speech hours inside its API plans: this
+		// is the overage price per hour of speech to text that third parties report (checked
+		// 2026-11-11). Billed per open stream, like the other cloud engines.
+		hourlyRate: '≈ $1.85',
+		hourlyEstimate: 1.85,
+		perStream: true,
+		keyUrl: 'https://www.deepl.com/your-account/keys'
 	},
 	ondevice: {
 		id: 'ondevice',

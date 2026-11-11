@@ -12,6 +12,7 @@ mod audio;
 // capability files in step; `build.rs` reads the same file to generate the permissions.
 pub mod command_names;
 mod commands;
+mod deepl;
 mod echo;
 mod errors;
 mod export;

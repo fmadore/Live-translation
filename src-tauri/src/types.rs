@@ -46,6 +46,7 @@ mod language_tests {
             for (name, provider) in [
                 ("gemini", Provider::Gemini),
                 ("openai", Provider::OpenAi),
+                ("deepl", Provider::DeepL),
                 ("ondevice", Provider::OnDevice),
                 ("whisper-translate", Provider::WhisperTranslate),
             ] {
@@ -110,6 +111,10 @@ pub enum Provider {
     GeminiTranscribe,
     OpenAi,
     Mistral,
+    /// DeepL Voice API: speech in any language it detects, translated captions out. Spelled
+    /// out so the serde string stays `deepl` whatever the casing rule.
+    #[serde(rename = "deepl")]
+    DeepL,
     /// Bundled deterministic demonstration. Keyless, offline, same-language only.
     OnDevice,
     Whisper,
@@ -129,6 +134,7 @@ impl Provider {
             Provider::Gemini
             | Provider::GeminiTranscribe
             | Provider::Mistral
+            | Provider::DeepL
             | Provider::OnDevice
             | Provider::Whisper
             | Provider::WhisperTranslate => 16_000,
@@ -147,7 +153,7 @@ impl Provider {
     pub fn can_translate(self) -> bool {
         matches!(
             self,
-            Provider::Gemini | Provider::OpenAi | Provider::WhisperTranslate
+            Provider::Gemini | Provider::OpenAi | Provider::DeepL | Provider::WhisperTranslate
         )
     }
 
@@ -195,14 +201,37 @@ mod provider_tests {
         ] {
             assert!(provider.takes_glossary(), "{provider:?}");
         }
-        for provider in [Provider::Gemini, Provider::OpenAi, Provider::OnDevice] {
+        for provider in [
+            Provider::Gemini,
+            Provider::OpenAi,
+            Provider::DeepL,
+            Provider::OnDevice,
+        ] {
             assert!(!provider.takes_glossary(), "{provider:?}");
         }
+    }
+
+    /// The contract with the interface (`src/lib/types.ts`): DeepL translates, from a key of
+    /// its own, at 16 kHz.
+    #[test]
+    fn deepl_is_a_keyed_translation_engine_at_16_khz() {
+        assert_eq!(
+            serde_json::to_string(&Provider::DeepL).unwrap(),
+            "\"deepl\""
+        );
+        assert_eq!(
+            serde_json::from_str::<Provider>("\"deepl\"").unwrap(),
+            Provider::DeepL
+        );
+        assert_eq!(Provider::DeepL.input_sample_rate(), 16_000);
+        assert!(Provider::DeepL.requires_api_key());
+        assert!(Provider::DeepL.can_translate());
+        assert!(!Provider::DeepL.is_local_whisper());
     }
 }
 
 /// What the audience should see. Mistral Voxtral and Gemini Transcribe power same-language
-/// subtitles; Gemini Live Translate and OpenAI power translated captions.
+/// subtitles; Gemini Live Translate, OpenAI and DeepL power translated captions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputMode {

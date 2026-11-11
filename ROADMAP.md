@@ -128,6 +128,17 @@ glossaries, live corrections and offline text translation are not planned.
   checklist in the notes. The paid trial proposed in the issue was dropped: the Mac version is
   free.
 
+- **DeepL Voice as a fourth cloud translation engine** (branch `feat/deepl-voice`): DeepL's
+  realtime Voice API transcribes and translates in one stream, into 42 of the catalog's caption
+  languages, from a company based in the EU ([DeepL notes](docs/deepl-voice-api.md)). Each
+  session first requests a single-use token over HTTPS, then streams 16 kHz PCM over a WebSocket.
+  It needs a paid DeepL API plan: on 11 November 2026 the Voice route answered 404 on the free
+  API host and 403 on the paid one, without credentials, so a free key can never open a session.
+  Still to settle: the rate (about $1.85 an hour from third-party sources, not
+  from DeepL's own page), the target codes `en-US`, `zh-Hans` and `nb`, and the real latency and
+  line breaks on French speech. Later: one DeepL session can carry up to five caption languages,
+  so sharing it between the session's two caption languages would halve the cost.
+
 - **The [10 November app review](docs/app-review-2026-11-10.md):** its fixes, the release
   workflow's checks among them, shipped in 1.13.0
   ([#213](https://github.com/fmadore/Live-translation/pull/213)); the review tracks each

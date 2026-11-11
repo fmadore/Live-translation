@@ -39,6 +39,31 @@ describe('the two Gemini backends', () => {
 	});
 });
 
+// DeepL Voice translates and transcribes in one stream, under its own DeepL API key. It
+// serves the Translate mode only: the operator picks the caption language, DeepL hears which
+// language is spoken, and it takes no names-and-terms list.
+describe('DeepL Voice', () => {
+	it('serves the Translate mode only, with its own credential', () => {
+		expect(providerCanTranslate('deepl')).toBe(true);
+		expect(providerRequiresKey('deepl')).toBe(true);
+		expect(providerKeyName('deepl')).toBe('DeepL');
+		expect(PROVIDER_META.deepl.keyUrl).toBe('https://www.deepl.com/your-account/keys');
+	});
+
+	it('asks for the caption language and takes no glossary', () => {
+		expect(providerDetectsLanguage('deepl')).toBe(false);
+		expect(providerTakesGlossary('deepl')).toBe(false);
+	});
+
+	it('bills each open stream at the reported hourly rate', () => {
+		expect(rateText(PROVIDER_META.deepl, en)).toBe('≈ $1.85/hr');
+		expect(estimateSessionCost('deepl', 3_600_000, 2)).toBeCloseTo(3.7);
+		// No model id to show, so the endpoint stands in for it, whole.
+		expect(modelLabel(PROVIDER_META.deepl, en)).toBe('v3/voice/realtime');
+		expect(modelIdParts('v3/voice/realtime')).toEqual(['v3/voice/realtime']);
+	});
+});
+
 // Step 03 asks for a language only when the operator has one to give. Both subtitle engines
 // identify the spoken language themselves; the built-in demo instead picks which script to play.
 describe('providerDetectsLanguage', () => {
@@ -50,6 +75,7 @@ describe('providerDetectsLanguage', () => {
 	it('is false where the operator still chooses one', () => {
 		expect(providerDetectsLanguage('gemini')).toBe(false);
 		expect(providerDetectsLanguage('openai')).toBe(false);
+		expect(providerDetectsLanguage('deepl')).toBe(false);
 		expect(providerDetectsLanguage('ondevice')).toBe(false);
 		// Whisper detects what is spoken, but translating, the room reads English, and that is
 		// the operator's choice like any other caption language.
@@ -67,7 +93,7 @@ describe('providerTakesGlossary', () => {
 			'whisper-translate'
 		] as const)
 			expect(providerTakesGlossary(provider), provider).toBe(true);
-		for (const provider of ['gemini', 'openai', 'ondevice'] as const)
+		for (const provider of ['gemini', 'openai', 'deepl', 'ondevice'] as const)
 			expect(providerTakesGlossary(provider), provider).toBe(false);
 	});
 });

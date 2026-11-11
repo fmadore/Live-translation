@@ -18,7 +18,7 @@
 	// Each mode is served by its own backends; this step lists the ones for the current mode.
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
-			? ['gemini', 'openai', 'whisper-translate']
+			? ['gemini', 'openai', 'deepl', 'whisper-translate']
 			: ['whisper', 'mistral', 'gemini-transcribe', 'ondevice']
 	);
 </script>
@@ -50,6 +50,7 @@
 									class="model-part">{part}</span
 								>{/each}{:else}{model[0]}{/if}</span
 					>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
+						>{/if}{#if id === 'deepl'}<span class="hint">{$t.provider.deeplNote}</span
 						>{/if}{#if refused}<span class="hint"
 							>{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}</span
 						>{/if}

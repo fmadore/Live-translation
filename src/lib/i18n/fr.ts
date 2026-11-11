@@ -15,8 +15,9 @@
 // - The apostrophe is the typographic one (U+2019), not the straight quote, matching the
 //   Store copy.
 //
-// Product names are not translated (Gemini, OpenAI, Voxtral, WASAPI, Zoom, Teams, Markdown),
-// and neither are the two Windows setting paths an operator has to find on their own screen.
+// Product names are not translated (Gemini, OpenAI, Voxtral, DeepL, WASAPI, Zoom, Teams,
+// Markdown), and neither are the two Windows setting paths an operator has to find on their
+// own screen.
 
 import type { Messages } from './en';
 
@@ -241,6 +242,7 @@ export const fr: Messages = {
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
+		deepl: 'DeepL',
 		ondevice: 'Démo intégrée'
 	},
 
@@ -271,6 +273,7 @@ export const fr: Messages = {
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
 			mistral: 'Mistral Voxtral',
+			deepl: 'DeepL',
 			ondevice: 'Démo intégrée'
 		},
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
@@ -280,6 +283,9 @@ export const fr: Messages = {
 			'whisper-translate': 'Hors ligne · vers l’anglais uniquement',
 			ondevice: 'Échantillon fourni · déterministe'
 		},
+		/** One line under DeepL in the engine picker: why an operator might choose it. */
+		deeplNote:
+			'Expérimental, pas encore essayé en séance réelle. Réputé pour la qualité de ses traductions ; fournisseur établi dans l’UE. Nécessite un forfait API DeepL payant (Growth ou supérieur).',
 		costNote: {
 			whisper:
 				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
@@ -292,6 +298,8 @@ export const fr: Messages = {
 			openai:
 				'OpenAI : l’audio entrant et le texte sortant sont facturés à la minute tant que le flux reste ouvert.',
 			mistral: 'Voxtral : facturé à la minute d’audio transmis, tant que la session reste ouverte.',
+			deepl:
+				'DeepL : les heures de parole incluses dans votre forfait API payant sont utilisées d’abord ; le tarif est le prix rapporté par heure supplémentaire d’audio transmis.',
 			ondevice:
 				'Démonstration intégrée : aucun audio en direct n’est capté, aucun service n’est contacté et rien n’est facturé.'
 		}
@@ -729,6 +737,9 @@ export const fr: Messages = {
 				'Enregistrée dans le Gestionnaire d’informations d’identification Windows, utilisée uniquement depuis le cœur Rust. Nécessite l’accès à',
 			after: '.'
 		},
+		/** Under the DeepL key field: Voice is not on DeepL's free API. */
+		deeplPlan:
+			'DeepL Voice nécessite un forfait API DeepL payant (Growth ou supérieur) : les clés API gratuites, qui se terminent par :fx, sont refusées.',
 		getKey: 'Obtenir une clé',
 		opensInBrowser: ' (s’ouvre dans votre navigateur)',
 		placeholder: (name: string) => `Collez votre clé API ${name}`,
@@ -926,6 +937,8 @@ export const fr: Messages = {
 			'La sortie sous-titrée a été déconnectée ou désactivée. Choisissez une autre sortie, puis redémarrez',
 		providerRejected:
 			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
+		deeplPaidPlan:
+			'DeepL Voice nécessite un forfait API DeepL payant ; les clés API gratuites, qui se terminent par :fx, ne peuvent pas ouvrir de session vocale',
 		providerStopped: 'Le fournisseur a mis fin à la session',
 		providerReconnecting: 'La connexion a été perdue ; reconnexion en cours',
 		zoomLink:

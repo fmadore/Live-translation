@@ -92,6 +92,21 @@ describe('the engine step', () => {
 	});
 });
 
+describe('DeepL', () => {
+	it('is offered among the translation engines, with its endpoint and why to choose it', async () => {
+		options.set({ ...DEFAULT_START_OPTIONS });
+		const view = mount(false);
+		expect(view.queryByRole('button', { name: /^DeepL/ })).toBeNull();
+		await fireEvent.click(view.getByRole('button', { name: /^Live translation/ }));
+		const engine = view.getByRole('button', { name: /^DeepL v3\/voice\/realtime/ });
+		expect(engine).toHaveTextContent('Needs a paid DeepL API plan (Growth or higher).');
+		expect(engine).toHaveTextContent('≈ $1.85/hr');
+		await fireEvent.click(engine);
+		expect(get(options)).toMatchObject({ mode: 'translate', provider: 'deepl' });
+		expect(engine).toHaveAttribute('aria-pressed', 'true');
+	});
+});
+
 describe('Whisper translation', () => {
 	it('is offered among the translation engines, and not among the subtitle ones', async () => {
 		options.set({ ...DEFAULT_START_OPTIONS });

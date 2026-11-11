@@ -8,6 +8,7 @@ evidence, not fresh endpoint verification.
 | --- | --- |
 | Gemini Live Translate | 78 searchable translation targets |
 | OpenAI Realtime Translate | 13 searchable targets; endpoint code probe pending |
+| DeepL Voice | 42 searchable targets; spoken language detected automatically |
 | Local Whisper (subtitles) | 99 spoken languages or automatic detection; same-language subtitles |
 | Local Whisper (translation) | English only, translated from 99 spoken languages or automatic detection |
 | Built-in demo | English/French script buttons only |
@@ -87,6 +88,13 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
 - **Pending:** real speech into a non-EN/FR target on both engines, native Narrator
   announcements and final MSIX checks. Keep #78 open and complete the live code probe and
   real-speech checks before Store submission.
+- 2026-11-11: DeepL Voice added for translation with 42 of DeepL's 48 Voice targets, from
+  [DeepL's supported-languages page](https://developers.deepl.com/docs/voice/supported-voice-languages)
+  (`sources.deepl` in the catalog). Not in the catalog yet: Irish, Maltese, Tagalog, and the
+  Canadian French, Latin American Spanish and British English variants. DeepL detects the
+  spoken language automatically among the languages it transcribes itself; spoken languages it
+  transcribes through a partner are not auto-detected. Real speech through DeepL has not been
+  tried yet; see the [DeepL Voice API notes](deepl-voice-api.md).
 
 ## Live acceptance procedure
 
