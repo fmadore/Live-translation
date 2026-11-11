@@ -289,6 +289,27 @@ writes in place and truncates a longer file it replaces, and the support link is
   and the hidden date input of History overflowed its box by 2px; the tray logged a warning on
   every ⌘Q for the application menu's event.
 
+**Found while taking the App Store screenshots, and fixed:**
+
+- *The overlay vanished over full-screen applications* (Preview in full screen and its slideshow;
+  the same holds for Keynote, PowerPoint or a browser in full screen). For an application with a
+  Dock icon, macOS lets a window into another application's full-screen Space only if it is a
+  non-activating panel, whatever its level and collection behaviour; tried in a prototype, a
+  plain window with the panel's style bit stays out and a panel stays in. The overlay's class is
+  now switched to an `NSPanel` subclass that keeps tao's `focusable` ivar and focus methods
+  (`overlay.rs`), checked to have the same layout first. Retested: on the desktop, over a
+  full-screen window and over a slideshow; move mode, the arrow keys and Enter still work.
+- *The audio test said "WASAPI loopback"* on a Mac, in all three languages; `i18n/mac.ts` now says
+  "system audio".
+- *The audio check's tick went away when the test stopped.* The tap's private aggregate device is
+  invisible to other applications but not to this one, which saw it as an input that appeared and
+  vanished with each capture, as if a device had been plugged in. Every device list now leaves
+  the app's own devices out (`audio::is_own_device`).
+
+**Still open:** a history entry's duration can run past the session (one recorded "17:08" for a
+talk of under a minute that was stopped after three minutes), as if the entry stayed open after
+Stop until the next action.
+
 **Cloud provider, after the fixes:** Gemini live translation (English sample to French) through
 Rehearse, in the direct and the sandboxed build: the WebSocket connects through the system's
 TLS (Security.framework, where Windows uses SChannel) and is set up in under half a second,

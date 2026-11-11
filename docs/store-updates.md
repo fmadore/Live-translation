@@ -9,9 +9,72 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.13.1 handoff
+
+**Prepared; not yet tagged or submitted.** The Store serves **1.12.0.0**. 1.13.0 was tagged and
+published on GitHub on 10 November 2026 and **never submitted**; 1.13.1 replaces it as the next
+submission, as 1.7.1 once replaced 1.7.0. Target app version: **1.13.1**, MSIX **1.13.1.0**, in
+`Live.Translation_1.13.1.msixbundle`, with `Live.Translation_1.13.1_aarch64.dmg` for the Mac.
+What's new and the certification notes still cover everything since 1.12.0, now with one
+sentence on 1.13.1's own fixes ([store-listing.md](store-listing.md),
+[what changed](store-listing-next.md#what-1131-adds)).
+
+1.13.1 is the Mac app's first run on a real Mac (an M2 Mac mini on macOS 26.7.3, direct and
+sandboxed builds; [macOS notes](macos.md#first-run-1011-november-2026)) and its fixes:
+
+- [#218](https://github.com/fmadore/Live-translation/pull/218): Stop no longer hangs while the
+  System Audio Recording question is unanswered, and on Windows too a local Whisper source no
+  longer waits on a capture thread Stop has given up on (`ActiveSession::abandoned`); a refused
+  permission is flagged while something plays (`AudioLevel.silenced`, new optional field on both
+  sides of the contract); no microphone, a closed application and a disconnected output each get
+  their own error id (`error.micNone`, `error.applicationClosed`, `error.outputDisconnected`), on
+  both systems; no single-instance plugin in the App Sandbox; RAUMMIKROFON on one line in
+  WebKit; the hidden date input no longer overflows; README: CMake for a Mac build.
+- The overlay as a non-activating panel on macOS, so it stays over full-screen apps; the audio
+  test's macOS wording; the app's own tap devices left out of device lists. Gemini was tried in
+  both Mac builds.
+- [#214](https://github.com/fmadore/Live-translation/pull/214): two npm dev-dependency updates.
+- The Mac App Store screenshots, English, in
+  [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+
+**Changed under the surface:** no new command or permission; the CSP and both windows'
+capabilities are unchanged since `v1.13.0`. Three new error ids in `errors.rs` and the catalogs.
+The MSIX template, `bundle.config.json` and the package's contents are unchanged. For macOS
+only, `objc2-app-kit` gains its `NSPanel` feature. The [privacy policy](privacy.md) needs no
+change: nothing new is sent or kept.
+
+### Preparation
+
+- [x] #218 merged; the overlay, wording and device-list fixes and the screenshots in the release
+  PR, which carries the version bump in the seven files of [the route](#the-route) and
+  `CITATION.cff` (1.13.1, 11 November 2026) and `docs/release-1.13.1.md`.
+- [ ] The release PR's CI passes, the Windows lanes included (the typed capture errors touch
+  `windows_impl` and `applications.rs`, which the branch could not compile on a Mac).
+- [ ] The French and German sentences new in 1.13.1 (What's new, the certification notes, the
+  macOS strings in `i18n/mac.ts`) reviewed by the maintainer.
+- [ ] Partner Center limits: What's new EN 1,175, FR 1,354, DE 1,330 of 1,500 characters
+  (counted in [store-listing.md](store-listing.md)); the certification notes' first paragraph
+  is 1,411 characters, with no limit recorded.
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.13.1` (annotated: "Live Translation & Subtitles v1.13.1") on the merge of the release
+  PR and push it; the workflow publishes the release with `docs/release-1.13.1.md` once the bundle
+  and the disk image are attached.
+- [ ] Verify the bundle at **1.13.1.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled (`spctl -a -t open --context context:primary-signature -v`, `xcrun stapler validate`).
+- [ ] The open checks of the [1.13.0 handoff](#release-1130-handoff) (maintainer test on Windows,
+  WACK, sideload and accessibility checks, the Store screenshots decision) apply to 1.13.1.
+- [ ] Submit `Live.Translation_1.13.1.msixbundle` in Partner Center with the 1.13.1 copy
+  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
+- [ ] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.13.1 build from
+  its tag and the screenshots in `store-screenshots/mac/en`; not the 5 November upload.
+
 ## Release 1.13.0 handoff
 
-**Tagged 10 November 2026; not yet submitted.** The Store serves **1.12.0.0**, live as reported by
+**Tagged and published on GitHub on 10 November 2026; never submitted: 1.13.1 replaces it
+([handoff](#release-1131-handoff)).** Its open checks carry over to 1.13.1. The Store serves **1.12.0.0**, live as reported by
 the maintainer on 10 November 2026; the submission and certification dates were not recorded
 ([1.12.0's handoff](#release-1120-handoff)). Target app version: **1.13.0**, MSIX **1.13.0.0**,
 in `Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.

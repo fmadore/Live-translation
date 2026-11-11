@@ -1,6 +1,6 @@
 [package]
 name = "live-translation"
-version = "1.13.0"
+version = "1.13.1"
 description = "Real-time speech translation and same-language subtitle overlay"
 authors = ["Frédérick Madore"]
 edition = "2024"
@@ -89,6 +89,7 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = [
   "std",
   "libc",
   "NSApplication",
+  "NSPanel",
   "NSResponder",
   "NSRunningApplication",
   "NSWindow",

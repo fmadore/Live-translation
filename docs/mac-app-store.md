@@ -6,9 +6,12 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (5 November 2026)
+## Status (11 November 2026)
 
-**Not yet submitted; nothing has run on a real Mac.** The decision of 4 November 2026: the Mac
+**Not yet submitted; tried on a real Mac, sandbox included.** The build to upload is **1.13.1**,
+which carries the fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026));
+the English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
 unlock proposed in [#195](https://github.com/fmadore/Live-translation/issues/195) are dropped, so
 no paid-apps agreement, StoreKit code or in-app product is needed.
@@ -34,11 +37,17 @@ Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, 
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. As far as the repository
 records, it has not been submitted for review. What only the maintainer can do: the remaining
-App Store Connect steps, the screenshots (on a Mac), and the first test on a real Mac through
-TestFlight, which also answers the one open question:
-[system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox).
+App Store Connect steps, uploading the 1.13.1 build from its tag, and a TestFlight run of the
+store build itself. The one open question,
+[system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox
+
+**Answered on 11 November 2026: taps work in the App Sandbox.** The sandbox spike (the store's
+entitlements, ad hoc signed) captured system audio on an M2 Mac mini on macOS 26 once *System
+Audio Recording* was allowed, downloaded a model into its container, reached Gemini and wrote
+exports in place ([macOS notes](macos.md#first-run-1011-november-2026)). One-application capture
+was tried with the direct build only. What follows is the question as it stood.
 
 System audio and one-application capture use Core Audio process taps
 (`src-tauri/src/audio/tap.rs`). Apple documents no entitlement for them and says nothing about
@@ -129,8 +138,9 @@ question touches generated content. The expected rating is 4+.
 ## The listing (English, U.S.)
 
 Every paragraph is one unwrapped line for pasting. Screenshots must show the Mac app
-(Guideline 2.3.3) and are taken on a Mac at 1440 × 900 or 2880 × 1800, as in Kalamu's
-`docs/mac-test-day.md`, Part C.
+(Guideline 2.3.3), at one of App Store Connect's Mac sizes (1280 × 800, 1440 × 900, 2560 × 1600
+or 2880 × 1800), with no alpha channel. The current set, six images at 1280 × 800 from the
+sandboxed build, is in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 
 **Name** (30 characters at most): `Live Translation & Subtitles`
 

@@ -153,7 +153,7 @@ impl Tap {
         let pid = std::process::id();
         let properties = aggregate_properties(
             &tap_uid,
-            &format!("io.github.fmadore.live-translation.tap.{pid}.{instance}"),
+            &format!("{}{pid}.{instance}", super::OWN_DEVICE_UID_PREFIX),
             "Live Translation system audio",
         );
         let mut aggregate_id: AudioObjectID = 0;

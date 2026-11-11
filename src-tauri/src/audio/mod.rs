@@ -65,9 +65,35 @@ impl std::fmt::Display for CaptureLost {
 
 impl std::error::Error for CaptureLost {}
 
+/// How the private aggregate devices that macOS system capture reads its tap through are
+/// named (`tap.rs`). No other process sees them, but this one does, as inputs: listed, they
+/// appeared and vanished with every capture, which reset the audio check as if a device had
+/// been plugged in, and could be offered as a microphone. Every device list leaves them out.
+pub const OWN_DEVICE_UID_PREFIX: &str = "io.github.fmadore.live-translation.tap.";
+
+/// Whether a device id (or UID) names one of this app's own tap devices.
+pub fn is_own_device(id: &str) -> bool {
+    id.contains(OWN_DEVICE_UID_PREFIX)
+}
+
 pub use capture::list_input_devices;
 
 pub mod applications;
 pub mod devices;
 
 pub mod sink;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_apps_own_tap_devices_are_told_apart_from_real_ones() {
+        assert!(is_own_device(
+            "coreaudio:io.github.fmadore.live-translation.tap.4242.0"
+        ));
+        assert!(is_own_device("io.github.fmadore.live-translation.tap.1.3"));
+        assert!(!is_own_device("coreaudio:BuiltInSpeakerDevice"));
+        assert!(!is_own_device("{0.0.1.00000000}.{6f1d5c3e}"));
+    }
+}
