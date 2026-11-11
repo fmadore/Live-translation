@@ -222,7 +222,9 @@ fn on_menu_event(app: &AppHandle, id: &str) {
         ID_OVERLAY => emit(app, TrayCommand::ToggleOverlay),
         ID_STOP => emit(app, TrayCommand::StopSession),
         ID_QUIT => request_quit(app),
-        other => tracing::warn!("unknown tray menu id: {other}"),
+        // Tauri hands every menu's events to every menu handler, so on macOS this one also
+        // sees the application menu's (`lifecycle::install_app_menu`), which it leaves alone.
+        other => tracing::debug!("menu id not for the tray: {other}"),
     }
 }
 

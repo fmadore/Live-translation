@@ -96,6 +96,10 @@ export const en = {
 		shortcutDirection: 'Swap the first two favourites before starting with F2',
 		shortcutPause: 'Pause / resume captions',
 		listening: 'Listening — no recent audio signal',
+		/** Something is playing into what is captured, yet only digital silence arrives:
+		 *  `AudioLevel.silenced`. On a Mac, a refused System Audio Recording permission. */
+		silenced:
+			'Sound is playing, but only silence arrives — the system may be blocking this app from recording it',
 		audio: 'Receiving audio',
 		captions: 'Receiving captions',
 		stale:
@@ -387,6 +391,8 @@ export const en = {
 			'Uses a bundled deterministic sample. Choose Whisper, Voxtral or Gemini for live microphone or system-audio subtitles.',
 		micDevice: 'Microphone device',
 		systemDefault: 'System default',
+		/** In place of `systemDefault` when the system lists no microphone at all. */
+		noMicrophone: 'No microphone found',
 		/** Appended to the name of the device Windows would pick on its own. */
 		isDefault: (name: string) => `${name} (default)`,
 
@@ -681,6 +687,8 @@ export const en = {
 				demo: 'Bundled sample is ready — no microphone is opened'
 			},
 			listening: 'Listening — say something into the mic or play some audio',
+			silenced:
+				'Sound is playing, but only silence arrives — the system may be blocking this app from recording it',
 			unchecked: 'Not checked yet — audio is only monitored during a test or a running session',
 			/** Replaces `unchecked` while system capture is set to one application and none is
 			 *  usable: Start and Test audio wait for it, and a disabled button says nothing. */
@@ -920,8 +928,13 @@ export const en = {
 			'The microphone stopped sending audio. Check the connection in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		micCapture:
 			'Microphone capture failed. If access is blocked, enable it under Windows Settings > Privacy & security > Microphone (ms-settings:privacy-microphone), then start again',
+		micNone: 'No microphone is connected to this PC. Connect one, or choose System audio',
 		systemCapture:
 			'System audio capture failed. Check the selected output in Windows Settings > System > Sound (ms-settings:sound), then retry',
+		applicationClosed:
+			'The application being captioned has closed. Open it, select it again, then start again',
+		outputDisconnected:
+			'The output being captioned was disconnected or turned off. Choose another output, then start again',
 		providerRejected: 'The provider rejected the connection — check the API key and model access',
 		providerStopped: 'The provider ended the session',
 		providerReconnecting: 'The connection dropped; reconnecting',

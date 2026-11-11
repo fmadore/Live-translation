@@ -73,7 +73,7 @@ aside.rail … button.tile.ui-card "Both" › svg { display: block; width: 18px;
 aside.rail … button.tile.ui-card "Both" › span { display: block }
 aside.rail › section.rail-section:nth(2) › p.hint { font-size: 12px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › section.rail-section:nth(2) › div.meters { display: flex; flex-direction: column; gap: 8px; margin: 8px 0px 0px }
-aside.rail › section.rail-section:nth(2) › div.meters › div.meter { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
+aside.rail › section.rail-section:nth(2) › div.meters › div.meter { display: grid; align-items: center; grid-template-columns: 116px 1fr; gap: 8px }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter › div.track[role=meter] "Demo audio" { position: relative; height: 8px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
 aside.rail … div.track[role=meter] "Demo audio" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0, 1) }

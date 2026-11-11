@@ -49,10 +49,11 @@
 		display: grid;
 		/* In `em` so the label keeps its column and the bar keeps the rest, whatever the
 		   operator's text size. Wide enough for the longest label any catalog puts here on one
-		   line — German's RAUMMIKROFON, at ~101px — because that is the constraint a space can
-		   no longer solve: "Micro de la salle" wraps to two lines and fits a narrow column, a
-		   German compound has nowhere to break and painted straight across the bar. */
-		grid-template-columns: 6.75em 1fr;
+		   line — German's RAUMMIKROFON, at ~101px in WebView2 and just over 108px in the Mac's
+		   WebKit, which broke it as RAUMMIKROFO/N at 6.75em — because that is the constraint a
+		   space can no longer solve: "Micro de la salle" wraps to two lines and fits a narrow
+		   column, a German compound has nowhere to break and painted straight across the bar. */
+		grid-template-columns: 7.25em 1fr;
 		align-items: center;
 		gap: var(--space-2);
 	}

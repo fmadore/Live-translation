@@ -57,7 +57,7 @@ pub fn run_system_loopback(
 
 #[cfg(target_os = "macos")]
 mod macos_impl {
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     use anyhow::{Context, Result};
     use tokio::sync::mpsc::Sender;
@@ -66,7 +66,7 @@ mod macos_impl {
     use crate::audio::applications::{ProcessGuard, SystemCapture, audio_processes};
     use crate::audio::capture::CaptureState;
     use crate::audio::devices::{output_uids, park_while_present, pick_output};
-    use crate::audio::tap::{Tap, Target};
+    use crate::audio::tap::{Tap, Target, playing};
     use crate::types::{AudioLevel, Origin};
 
     /// How often the tapped output's presence, or the captured application's processes, are
@@ -81,17 +81,20 @@ mod macos_impl {
         chunk_tx: crate::audio::sink::AudioSink,
         cancel: &CancellationToken,
     ) -> Result<()> {
+        let mut silence = SilenceWatch::new(level_tx.clone());
         let make_state =
             |rate| CaptureState::new(Origin::System, rate, target_rate, level_tx, chunk_tx);
         match capture {
             SystemCapture::Output => {
                 let uid = pick_output(device_id)?;
-                let _tap = Tap::start(&Target::Output { device_uid: &uid }, make_state)?;
+                let target = Target::Output { device_uid: &uid };
+                let tap = Tap::start(&target, make_state)?;
                 park_while_present(cancel, CHECK_INTERVAL, || {
                     anyhow::ensure!(
                         output_uids()?.contains(&uid),
-                        "selected output device disconnected or disabled"
+                        crate::audio::CaptureLost::OutputDisconnected
                     );
+                    silence.check(tap.take_heard(), || playing(&target), Instant::now());
                     Ok(())
                 })?;
             }
@@ -108,7 +111,7 @@ mod macos_impl {
                 park_while_present(cancel, CHECK_INTERVAL, || {
                     anyhow::ensure!(
                         guard.running(),
-                        "selected application has closed; select it again"
+                        crate::audio::CaptureLost::ApplicationClosed
                     );
                     // A helper that starts playing later (a browser's audio service) joins.
                     let now = audio_processes(identity.pid)?;
@@ -120,12 +123,133 @@ mod macos_impl {
                         );
                         objects = now;
                     }
+                    silence.check(
+                        tap.take_heard(),
+                        || playing(&Target::Processes(&objects)),
+                        Instant::now(),
+                    );
                     Ok(())
                 })?;
             }
         }
         tracing::info!("Core Audio tap capture stopped");
         Ok(())
+    }
+
+    /// How long something must play while the tap delivers only exact zeros before the meter
+    /// says so. Long enough that a sound starting between two checks, or a stream that opens
+    /// a moment before it carries audio, never trips it.
+    const SILENCED_AFTER: Duration = Duration::from_secs(3);
+
+    /// Tells a tap macOS keeps silent from one with nothing to copy. A refused (or not yet
+    /// answered) System Audio Recording permission does not fail the tap: it runs and delivers
+    /// zeros, which on their own look exactly like a quiet room. So while another process is
+    /// playing into what is tapped and not one non-zero sample has arrived for
+    /// [`SILENCED_AFTER`], each check sends a level marked `silenced`, which the interface
+    /// shows as the permission to look at. Real sound clears it at once.
+    pub(super) struct SilenceWatch {
+        level_tx: Sender<AudioLevel>,
+        /// Since when something has been playing with nothing heard; `None` otherwise.
+        quiet_since: Option<Instant>,
+        warned: bool,
+        /// The last (heard, playing) pair, so the log says when it changes and not every second.
+        last: Option<(bool, bool)>,
+    }
+
+    impl SilenceWatch {
+        pub(super) fn new(level_tx: Sender<AudioLevel>) -> Self {
+            Self {
+                level_tx,
+                quiet_since: None,
+                warned: false,
+                last: None,
+            }
+        }
+
+        /// One check: whether the tap heard anything since the last one, and (only asked when
+        /// it did not) whether anything is playing.
+        pub(super) fn check(&mut self, heard: bool, playing: impl FnOnce() -> bool, now: Instant) {
+            let playing = !heard && playing();
+            let state = (heard, playing);
+            if self.last != Some(state) {
+                tracing::debug!(heard, playing, "system capture signal");
+                self.last = Some(state);
+            }
+            if !playing {
+                self.quiet_since = None;
+                return;
+            }
+            let since = *self.quiet_since.get_or_insert(now);
+            if now.duration_since(since) < SILENCED_AFTER {
+                return;
+            }
+            if !self.warned {
+                self.warned = true;
+                tracing::warn!(
+                    "sound is playing but the tap delivers only silence; System Audio Recording \
+                     may be refused"
+                );
+            }
+            let _ = self.level_tx.try_send(AudioLevel {
+                source: Origin::System,
+                rms: 0.0,
+                peak: 0.0,
+                silenced: true,
+            });
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        fn watch() -> (SilenceWatch, tokio::sync::mpsc::Receiver<AudioLevel>) {
+            let (tx, rx) = tokio::sync::mpsc::channel(16);
+            (SilenceWatch::new(tx), rx)
+        }
+
+        #[test]
+        fn playing_into_a_silent_tap_is_reported_after_a_few_seconds() {
+            let (mut watch, mut rx) = watch();
+            let start = Instant::now();
+            for second in 0..3 {
+                watch.check(false, || true, start + Duration::from_secs(second));
+            }
+            assert!(rx.try_recv().is_err(), "reported before {SILENCED_AFTER:?}");
+            watch.check(false, || true, start + Duration::from_secs(3));
+            let level = rx.try_recv().expect("a silenced level");
+            assert!(level.silenced);
+            assert_eq!(level.source, Origin::System);
+        }
+
+        #[test]
+        fn a_quiet_room_or_real_sound_is_never_reported() {
+            let (mut watch, mut rx) = watch();
+            let start = Instant::now();
+            for second in 0..10 {
+                // Nothing playing: zeros are what the tap should deliver.
+                watch.check(false, || false, start + Duration::from_secs(second));
+            }
+            for second in 10..20 {
+                // Something playing, and heard.
+                watch.check(true, || true, start + Duration::from_secs(second));
+            }
+            assert!(rx.try_recv().is_err());
+        }
+
+        #[test]
+        fn sound_arriving_starts_the_wait_again() {
+            let (mut watch, mut rx) = watch();
+            let start = Instant::now();
+            watch.check(false, || true, start);
+            watch.check(false, || true, start + Duration::from_secs(2));
+            watch.check(true, || true, start + Duration::from_secs(3));
+            watch.check(false, || true, start + Duration::from_secs(4));
+            watch.check(false, || true, start + Duration::from_secs(6));
+            assert!(rx.try_recv().is_err());
+            watch.check(false, || true, start + Duration::from_secs(7));
+            assert!(rx.try_recv().is_ok());
+        }
     }
 }
 
@@ -345,12 +469,12 @@ mod windows_impl {
         if presence.due() {
             anyhow::ensure!(
                 device.is_none_or(|d| matches!(d.get_state(), Ok(wasapi::DeviceState::Active))),
-                "selected output device disconnected or disabled"
+                crate::audio::CaptureLost::OutputDisconnected
             );
         }
         anyhow::ensure!(
             process.is_none_or(ProcessGuard::running),
-            "selected application has closed; select it again"
+            crate::audio::CaptureLost::ApplicationClosed
         );
         Ok(())
     }

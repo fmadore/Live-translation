@@ -97,6 +97,7 @@ fn pipeline() -> (Pipeline<Recorder>, tokio::sync::mpsc::Sender<TimedChunk>) {
         spool: Arc::new(Spool::new().unwrap()),
         capture_cancel: CancellationToken::new(),
         abort: CancellationToken::new(),
+        abandoned: CancellationToken::new(),
         failure: Arc::new(Mutex::new(None)),
     };
     (pipeline, input_tx)
@@ -154,6 +155,30 @@ async fn stop_drains_every_accepted_frame_then_reports_idle() {
     assert!(failure.lock().unwrap().is_none());
 }
 
+/// First run on a real Mac: with the System Audio Recording question unanswered, the capture
+/// thread waited inside Core Audio and never let go of its input, so the source never saw the
+/// end of it and Stop sat on "Stopping…". Once Stop gives up on that thread, the source drains
+/// what it has and ends as it would have.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn a_source_whose_capture_thread_was_left_behind_still_ends() {
+    let (pipeline, input) = pipeline();
+    let (events, abandoned) = (pipeline.events.clone(), pipeline.abandoned.clone());
+    for i in 0..20 {
+        input.send(speech(i * 100)).await.unwrap();
+    }
+    // `input` stays alive, as the wedged thread would keep it.
+    let driving = tokio::spawn(drive(pipeline, echo));
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    assert!(!driving.is_finished(), "ended before the input did");
+    abandoned.cancel();
+    tokio::time::timeout(std::time::Duration::from_secs(10), driving)
+        .await
+        .expect("the source waited on the abandoned input")
+        .unwrap();
+    assert_eq!(events.statuses(), [RUNNING, IDLE]);
+    drop(input);
+}
+
 /// A capture failure recorded on the spool — a capture-thread panic, say (B8) — reaches the
 /// operator once what was captured before it has been captioned.
 #[tokio::test]
@@ -167,18 +192,31 @@ async fn a_capture_failure_is_reported_after_the_audio_before_it() {
     for i in 0..20 {
         input.send(speech(i * 100)).await.unwrap();
     }
-    *spool.capture_error.lock().unwrap() = Some("the capture thread panicked: device lost".into());
+    *spool.capture_error.lock().unwrap() = Some(AppError::with(
+        id::SYSTEM_CAPTURE,
+        "the capture thread panicked: device lost",
+    ));
     drop(input);
     drive(pipeline, echo).await;
 
-    assert_eq!(events.statuses(), [RUNNING, FAILED]);
+    assert_eq!(
+        events.statuses(),
+        [
+            RUNNING,
+            Recorded::Status(SessionState::Error, Some(id::SYSTEM_CAPTURE))
+        ]
+    );
     assert!(
         events.captions() > 0,
         "the audio before the failure was dropped"
     );
+    // Worded as the capture failure it is, not as a transcription that could not finish.
     assert_eq!(
-        whisper_error(&failure),
-        "the capture thread panicked: device lost"
+        failure.lock().unwrap().clone(),
+        Some(AppError::with(
+            id::SYSTEM_CAPTURE,
+            "the capture thread panicked: device lost"
+        ))
     );
 }
 

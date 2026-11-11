@@ -33,6 +33,38 @@ pub struct AudioChunk {
     pub pcm_le: Vec<u8>,
 }
 
+/// A capture that cannot start or go on for a reason the operator can act on directly, and
+/// that the interface words in full (`session::capture::source_failure` gives each its own error id):
+/// there is no technical text underneath worth showing, so none is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+    not(any(windows, target_os = "macos")),
+    allow(
+        dead_code,
+        reason = "only the Windows and macOS system captures can lose an application or output"
+    )
+)]
+pub enum CaptureLost {
+    /// The application being captured has quit, or restarted under another process.
+    ApplicationClosed,
+    /// The output whose sound is being captured was unplugged, disabled or removed.
+    OutputDisconnected,
+    /// No microphone is connected at all, so there is nothing to open.
+    NoMicrophone,
+}
+
+impl std::fmt::Display for CaptureLost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::ApplicationClosed => "selected application has closed; select it again",
+            Self::OutputDisconnected => "selected output device disconnected or disabled",
+            Self::NoMicrophone => "no microphone is connected",
+        })
+    }
+}
+
+impl std::error::Error for CaptureLost {}
+
 pub use capture::list_input_devices;
 
 pub mod applications;

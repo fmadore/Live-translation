@@ -12,7 +12,7 @@ packaging. This file and the docs win where they differ, and every rule here hol
 ## Windows and macOS
 
 - Windows (x64, ARM64) is the release target, through installers and the Microsoft Store. The
-  macOS port is built, signed and launched in CI but has not yet run on a real Mac
+  macOS port is built, signed and launched in CI and has had one first run on a real Mac
   ([docs/macos.md](docs/macos.md), #195): every change must keep it compiling, and a pull
   request says what has not been tried on a Mac.
 - CI runs Rust on Linux, Windows x64, Windows ARM64 and macOS. Code a Windows PC cannot compile

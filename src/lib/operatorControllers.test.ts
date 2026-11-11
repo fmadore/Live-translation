@@ -39,6 +39,22 @@ it('expires live signal while retaining verification until the input changes', (
 	expect(vi.getTimerCount()).toBe(0);
 });
 
+it('holds the silenced warning while the core repeats it and drops it for real sound', () => {
+	vi.useFakeTimers();
+	const probe = createPreflightController(false, { locked: () => false });
+	probe.noteLevel({ source: 'system', rms: 0, peak: 0, silenced: true });
+	expect(probe.systemSilenced).toBe(true);
+	expect(probe.systemSignal).toBe(false);
+	vi.advanceTimersByTime(3000);
+	expect(probe.systemSilenced).toBe(false);
+	probe.noteLevel({ source: 'system', rms: 0, peak: 0, silenced: true });
+	probe.noteLevel({ source: 'system', rms: 0.2, peak: 0.4 });
+	expect(probe.systemSilenced).toBe(false);
+	expect(probe.systemSignal).toBe(true);
+	probe.dispose();
+	expect(vi.getTimerCount()).toBe(0);
+});
+
 it('prevents overlapping test starts and leaves native events authoritative', async () => {
 	let release!: () => void;
 	const startAudioTest = vi.fn(

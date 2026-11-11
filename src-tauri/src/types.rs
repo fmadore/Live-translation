@@ -295,6 +295,12 @@ pub struct AudioLevel {
     pub source: Origin,
     pub rms: f32,
     pub peak: f32,
+    /// Something is playing to what the source captures, yet the capture has delivered nothing
+    /// but digital silence for a few seconds. On macOS that is what a refused (or not yet
+    /// answered) System Audio Recording permission looks like: the tap runs and hands over
+    /// zeros, with no error to report. Left out of the event when false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub silenced: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]

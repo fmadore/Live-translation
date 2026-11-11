@@ -11,7 +11,7 @@ use tokio::sync::mpsc::{Receiver, Sender, channel, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
 use super::ActiveSession;
-use super::capture::{CaptureTarget, report_source_failure};
+use super::capture::{CaptureTarget, report_source_failure, source_failure};
 use super::options::caption_languages;
 use super::settings::ProviderSettings;
 use crate::audio::AudioChunk;
@@ -184,6 +184,7 @@ impl SessionBuilder<'_> {
                 spool,
                 capture_cancel: cancel,
                 abort: self.session.abort.clone(),
+                abandoned: self.session.abandoned.clone(),
                 failure: self.session.failure.clone(),
             })));
         Ok(())
@@ -294,7 +295,7 @@ fn finish_producer(
 ) {
     let local = completion.is_some();
     if let Some(completion) = completion {
-        completion.finish(result.as_ref().err().map(|e| format!("{e:#}")));
+        completion.finish(result.as_ref().err().map(|e| source_failure(origin, e)));
     }
     if let Err(error) = result {
         if local {
@@ -415,13 +416,17 @@ mod tests {
                 &cancel,
             );
             assert!(matches!(input.try_recv(), Err(TryRecvError::Empty)));
-            assert_eq!(spool.capture_error.lock().unwrap().as_deref(), recorded);
+            let detail = || {
+                let error = spool.capture_error.lock().unwrap().clone();
+                error.and_then(|e| e.detail)
+            };
+            assert_eq!(detail().as_deref(), recorded);
             assert_eq!(cancel.is_cancelled(), panics);
             assert!(events.take().is_empty(), "the transcriber reports it");
 
             drop(completion);
             assert!(matches!(input.try_recv(), Err(TryRecvError::Disconnected)));
-            assert_eq!(spool.capture_error.lock().unwrap().as_deref(), recorded);
+            assert_eq!(detail().as_deref(), recorded);
         }
     }
 

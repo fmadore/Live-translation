@@ -83,10 +83,18 @@ pub fn list_input_devices() -> Result<Vec<AudioDevice>> {
 
 fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
     let host = cpal::default_host();
+    // With no input at all, macOS still names a default input device, one that cannot be
+    // opened ('!obj'); its error would send the operator to the privacy settings. Say what is
+    // actually wrong instead.
+    let mut inputs = host
+        .input_devices()
+        .context("failed to enumerate input devices")?
+        .peekable();
+    if inputs.peek().is_none() {
+        return Err(super::CaptureLost::NoMicrophone.into());
+    }
     match name {
-        Some(wanted) => host
-            .input_devices()
-            .context("failed to enumerate input devices")?
+        Some(wanted) => inputs
             .find(|device| {
                 device.id().is_ok_and(|id| id.to_string() == wanted) || device.to_string() == wanted
             })
@@ -349,6 +357,7 @@ impl CaptureState {
             source: self.origin,
             rms,
             peak: self.peak_accum,
+            silenced: false,
         });
         self.last_level = Instant::now();
         self.peak_accum = 0.0;

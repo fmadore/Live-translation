@@ -74,7 +74,9 @@
 				: preflight.audioTesting
 					? audioHearing
 						? $t.preflight.audio.hearing[audioSubject]
-						: $t.preflight.audio.listening
+						: preflight.systemSilenced
+							? $t.preflight.audio.silenced
+							: $t.preflight.audio.listening
 					: audioVerified
 						? $t.preflight.audio.heard[audioSubject]
 						: $t.preflight.audio.unchecked

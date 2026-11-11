@@ -164,6 +164,7 @@ pub async fn run_session(
             source: origin,
             rms: 0.0,
             peak: 0.0,
+            silenced: false,
         },
     );
 }
@@ -196,6 +197,7 @@ impl Pacer<'_> {
                 } else {
                     0.0
                 },
+                silenced: false,
             },
         );
     }

@@ -102,6 +102,8 @@ export const fr: Messages = {
 		shortcutDirection: 'Permuter les deux premiers favoris avant de démarrer avec F2',
 		shortcutPause: 'Mettre en pause / reprendre les sous-titres',
 		listening: 'À l’écoute — aucun signal audio récent',
+		silenced:
+			'Du son est diffusé, mais seul du silence arrive — le système empêche peut-être cette application de l’enregistrer',
 		audio: 'Réception audio',
 		captions: 'Réception des sous-titres',
 		stale:
@@ -380,6 +382,7 @@ export const fr: Messages = {
 			'Utilise un échantillon déterministe fourni avec l’application. Choisissez Whisper, Voxtral ou Gemini pour des sous-titres en direct du microphone ou de l’audio système.',
 		micDevice: 'Périphérique microphone',
 		systemDefault: 'Périphérique par défaut',
+		noMicrophone: 'Aucun microphone détecté',
 		/** Appended to the name of the device Windows would pick on its own. */
 		isDefault: (name: string) => `${name} (par défaut)`,
 
@@ -666,6 +669,8 @@ export const fr: Messages = {
 				demo: 'L’échantillon fourni est prêt — aucun microphone n’est ouvert'
 			},
 			listening: 'Écoute en cours — parlez dans le micro ou lancez un son',
+			silenced:
+				'Du son est diffusé, mais seul du silence arrive — le système empêche peut-être cette application de l’enregistrer',
 			unchecked:
 				'Pas encore vérifié — l’audio n’est surveillé que pendant un test ou une session en cours',
 			chooseApplication:
@@ -912,8 +917,13 @@ export const fr: Messages = {
 			'Le microphone a cessé d’envoyer de l’audio. Vérifiez la connexion dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',
 		micCapture:
 			'La capture du microphone a échoué. Si l’accès est bloqué, activez-le dans Paramètres Windows > Confidentialité et sécurité > Microphone (ms-settings:privacy-microphone), puis redémarrez',
+		micNone: 'Aucun microphone n’est connecté à ce PC. Branchez-en un ou choisissez Audio système',
 		systemCapture:
 			'La capture de l’audio système a échoué. Vérifiez la sortie sélectionnée dans Paramètres Windows > Système > Son (ms-settings:sound), puis réessayez',
+		applicationClosed:
+			'L’application sous-titrée a été fermée. Rouvrez-la, sélectionnez-la de nouveau, puis redémarrez',
+		outputDisconnected:
+			'La sortie sous-titrée a été déconnectée ou désactivée. Choisissez une autre sortie, puis redémarrez',
 		providerRejected:
 			'Le fournisseur a refusé la connexion — vérifiez la clé API et l’accès au modèle',
 		providerStopped: 'Le fournisseur a mis fin à la session',

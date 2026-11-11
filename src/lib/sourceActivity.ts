@@ -8,19 +8,22 @@ import type { AudioLevel, Origin } from './types';
 export const micLevel = writable<AudioLevel>({ source: 'microphone', rms: 0, peak: 0 });
 export const systemLevel = writable<AudioLevel>({ source: 'system', rms: 0, peak: 0 });
 
-export const activityTimes = writable<Partial<Record<Origin, { audio: number; caption: number }>>>(
-	{}
-);
+/** When each source last produced audio and a caption, and when the core last said it is
+ *  receiving only silence while something plays (`AudioLevel.silenced`). */
+export type ActivityKind = 'audio' | 'caption' | 'silenced';
+export const activityTimes = writable<
+	Partial<Record<Origin, Partial<Record<ActivityKind, number>>>>
+>({});
 // Notes arrive with every meter reading (20 Hz per source) and every caption, but they feed
 // labels with a three-second threshold. One note per half-second is indistinguishable there,
 // and keeps the store and the component reading it from updating dozens of times a second.
 const ACTIVITY_RESOLUTION_MS = 500;
 
-export function noteActivity(origin: Origin, kind: 'audio' | 'caption', now = Date.now()) {
+export function noteActivity(origin: Origin, kind: ActivityKind, now = Date.now()) {
 	const last = get(activityTimes)[origin]?.[kind] ?? 0;
 	if (last > 0 && now >= last && now - last < ACTIVITY_RESOLUTION_MS) return;
 	activityTimes.update((value) => ({
 		...value,
-		[origin]: { audio: 0, caption: 0, ...value[origin], [kind]: now }
+		[origin]: { audio: 0, caption: 0, silenced: 0, ...value[origin], [kind]: now }
 	}));
 }

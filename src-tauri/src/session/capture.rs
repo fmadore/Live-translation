@@ -9,6 +9,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::mpsc::{Sender, channel};
 use tokio_util::sync::CancellationToken;
 
+use crate::audio::CaptureLost;
 use crate::audio::applications::SystemCapture;
 use crate::audio::capture::{MicrophoneRuntimeError, run_microphone};
 use crate::audio::loopback::run_system_loopback;
@@ -32,6 +33,14 @@ const CAPTURE_JOIN_TIMEOUT: Duration = Duration::from_secs(3);
 /// denied device and an absent one alike, because cpal reports both the same way. The
 /// underlying error rides along as the detail, so the real cause is still visible.
 pub(super) fn source_failure(origin: Origin, error: &anyhow::Error) -> AppError {
+    // A cause the interface words in full needs no technical text under it.
+    if let Some(lost) = error.chain().find_map(|e| e.downcast_ref::<CaptureLost>()) {
+        return AppError::complete(match lost {
+            CaptureLost::ApplicationClosed => id::APPLICATION_CLOSED,
+            CaptureLost::OutputDisconnected => id::OUTPUT_DISCONNECTED,
+            CaptureLost::NoMicrophone => id::MIC_NONE,
+        });
+    }
     let detail = format!("{error:#}");
     match origin {
         Origin::Microphone if error.downcast_ref::<MicrophoneRuntimeError>().is_some() => {
@@ -127,8 +136,9 @@ pub(super) fn spawn_level_forwarder(app: &AppHandle) -> Sender<AudioLevel> {
 }
 
 /// Join capture threads without blocking the async runtime, giving up after
-/// `CAPTURE_JOIN_TIMEOUT`. `what` names them in the log.
-pub(super) async fn join_threads(handles: Vec<JoinHandle<()>>, what: &'static str) {
+/// `CAPTURE_JOIN_TIMEOUT`. `what` names them in the log. False when it gave up: a thread is
+/// still running, and still holds whatever it was given.
+pub(super) async fn join_threads(handles: Vec<JoinHandle<()>>, what: &'static str) -> bool {
     let joining = tauri::async_runtime::spawn_blocking(move || {
         for handle in handles {
             if handle.join().is_err() {
@@ -137,14 +147,20 @@ pub(super) async fn join_threads(handles: Vec<JoinHandle<()>>, what: &'static st
         }
     });
     match tokio::time::timeout(CAPTURE_JOIN_TIMEOUT, joining).await {
-        Ok(Ok(())) => {}
-        Ok(Err(error)) => tracing::warn!("{what} join task failed: {error}"),
+        Ok(Ok(())) => true,
+        Ok(Err(error)) => {
+            tracing::warn!("{what} join task failed: {error}");
+            true
+        }
         // Detached, not killed: the thread holds nothing a later session needs except possibly
         // its device, and a wedged driver call cannot be interrupted from here anyway.
-        Err(_) => tracing::warn!(
-            "{what} threads did not stop within {} seconds; leaving them behind",
-            CAPTURE_JOIN_TIMEOUT.as_secs()
-        ),
+        Err(_) => {
+            tracing::warn!(
+                "{what} threads did not stop within {} seconds; leaving them behind",
+                CAPTURE_JOIN_TIMEOUT.as_secs()
+            );
+            false
+        }
     }
 }
 
@@ -162,6 +178,24 @@ mod tests {
         );
     }
 
+    #[test]
+    fn a_capture_that_ended_for_a_plain_reason_gets_its_own_sentence_and_no_detail() {
+        for (lost, expected) in [
+            (CaptureLost::ApplicationClosed, id::APPLICATION_CLOSED),
+            (CaptureLost::OutputDisconnected, id::OUTPUT_DISCONNECTED),
+            (CaptureLost::NoMicrophone, id::MIC_NONE),
+        ] {
+            // Found under any context a caller adds on the way up.
+            let error = anyhow::Error::new(lost).context("capture stopped");
+            let origin = if lost == CaptureLost::NoMicrophone {
+                Origin::Microphone
+            } else {
+                Origin::System
+            };
+            assert_eq!(source_failure(origin, &error), AppError::complete(expected));
+        }
+    }
+
     #[tokio::test(start_paused = true)]
     async fn a_wedged_capture_thread_cannot_hold_stop_forever() {
         let (release, wedged) = std::sync::mpsc::channel::<()>();
@@ -169,9 +203,11 @@ mod tests {
             let _ = wedged.recv();
         });
         let started = tokio::time::Instant::now();
-        tokio::time::timeout(Duration::from_secs(60), join_threads(vec![thread], "test"))
-            .await
-            .expect("the join had no deadline");
+        let joined =
+            tokio::time::timeout(Duration::from_secs(60), join_threads(vec![thread], "test"))
+                .await
+                .expect("the join had no deadline");
+        assert!(!joined, "a thread left behind must be reported");
         assert!(started.elapsed() >= CAPTURE_JOIN_TIMEOUT);
         // Lets the detached join finish.
         drop(release);
