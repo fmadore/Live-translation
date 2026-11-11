@@ -43,7 +43,9 @@ pub struct Spool {
     queued_samples: AtomicU64,
     pub overflowed: AtomicBool,
     pub finalizing: AtomicBool,
-    pub capture_error: Mutex<Option<String>>,
+    /// How the capture feeding this spool failed, worded as the operator should hear it:
+    /// what the transcriber reports, once it has drained the audio from before the failure.
+    pub capture_error: Mutex<Option<crate::errors::AppError>>,
 }
 
 impl Spool {

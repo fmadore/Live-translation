@@ -280,6 +280,10 @@ export interface AudioLevel {
 	source: Origin;
 	rms: number;
 	peak: number;
+	/** Something is playing into what this source captures, yet only digital silence has
+	 *  arrived for a few seconds: on a Mac, a refused System Audio Recording permission. Absent
+	 *  when false. */
+	silenced?: boolean;
 }
 
 export const SESSION_STATES = [

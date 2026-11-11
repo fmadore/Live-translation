@@ -15,8 +15,8 @@ Free, with every feature included. If it is useful to you, you can
 **Windows 11, native x64 and ARM64 · macOS 15+ on Apple silicon (in testing) · English, French
 and German interface · MIT license**
 
-The macOS version is new and has not yet been tried on a real Mac: see the
-[macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
+The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
+whose results and open points are in the [macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
 and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
 
 **[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
@@ -110,8 +110,8 @@ in the app under Settings › App, except in the Mac App Store version.
 Use Windows with Node 22.13+ or 24, rustup (`rust-toolchain.toml` pins the Rust version, which
 rustup installs on first use), Visual Studio C++ Build Tools and the Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
 [native compiler setup](docs/local-whisper.md#building) before building the desktop app. On a
-Mac (Apple silicon), Xcode's command-line tools, rustup and Node are enough; see
-[macOS](docs/macos.md).
+Mac (Apple silicon), install Xcode's command-line tools, rustup, Node and CMake (Whisper's native
+build needs it; CI's runners have it already); see [macOS](docs/macos.md).
 
 ```powershell
 npm ci

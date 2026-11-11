@@ -133,7 +133,13 @@
 					};
 				}}
 			>
-				<option value="">{$t.rail.systemDefault}</option>
+				<!-- With no input at all there is no default to fall back on either: say so here
+				     rather than only once Start fails. -->
+				<option value=""
+					>{preflight.devicesLoaded && preflight.microphones.length === 0
+						? $t.rail.noMicrophone
+						: $t.rail.systemDefault}</option
+				>
 				{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
 					<!-- Not "missing" before the first list has even arrived: that flashed at launch. -->
 					<option value={$options.micDeviceId}

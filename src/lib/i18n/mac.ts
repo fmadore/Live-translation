@@ -29,6 +29,8 @@ export type MacMessages = Overrides<Messages>;
 
 export const macEn: MacMessages = {
 	usability: {
+		silenced:
+			'Sound is playing, but only silence arrives. Allow Live Translation under System Settings > Privacy & Security > Screen & System Audio Recording, then start again',
 		profileHint:
 			'Saves setup, appearance and overlay position on this Mac, without API keys. Load while stopped; check the selected devices before starting. Applications must be selected again.',
 		profileMissing:
@@ -95,6 +97,12 @@ export const macEn: MacMessages = {
 			hide: 'Got it — hide to the menu bar'
 		}
 	},
+	preflight: {
+		audio: {
+			silenced:
+				'Sound is playing, but only silence arrives. Allow Live Translation under System Settings > Privacy & Security > Screen & System Audio Recording, then start again'
+		}
+	},
 	error: {
 		deviceEnumeration: 'macOS could not list the audio devices',
 		keychain: 'The macOS Keychain refused the request',
@@ -103,6 +111,7 @@ export const macEn: MacMessages = {
 			'The microphone stopped sending audio. Check the connection in System Settings > Sound, then retry',
 		micCapture:
 			'Microphone capture failed. If access is blocked, allow Live Translation under System Settings > Privacy & Security > Microphone, then start again',
+		micNone: 'No microphone is connected to this Mac. Connect one, or choose System audio',
 		systemCapture:
 			'System audio capture failed. If access is blocked, allow Live Translation under System Settings > Privacy & Security > Screen & System Audio Recording; check the selected output in System Settings > Sound, then retry'
 	}
@@ -110,6 +119,8 @@ export const macEn: MacMessages = {
 
 export const macFr: MacMessages = {
 	usability: {
+		silenced:
+			'Du son est diffusé, mais seul du silence arrive. Autorisez Live Translation dans Réglages Système > Confidentialité et sécurité > Enregistrement de l’écran et de l’audio du système, puis redémarrez',
 		profileHint:
 			'Enregistre la configuration, l’apparence et la position sur ce Mac, sans clé API. Chargez à l’arrêt et vérifiez les périphériques. Sélectionnez à nouveau l’application à capturer.',
 		profileMissing:
@@ -179,6 +190,12 @@ export const macFr: MacMessages = {
 			hide: 'Compris — masquer dans la barre des menus'
 		}
 	},
+	preflight: {
+		audio: {
+			silenced:
+				'Du son est diffusé, mais seul du silence arrive. Autorisez Live Translation dans Réglages Système > Confidentialité et sécurité > Enregistrement de l’écran et de l’audio du système, puis redémarrez'
+		}
+	},
 	error: {
 		deviceEnumeration: 'macOS n’a pas pu énumérer les appareils audio',
 		keychain: 'Le trousseau macOS a refusé la demande',
@@ -187,6 +204,7 @@ export const macFr: MacMessages = {
 			'Le microphone a cessé d’envoyer de l’audio. Vérifiez la connexion dans Réglages Système > Son, puis réessayez',
 		micCapture:
 			'La capture du microphone a échoué. Si l’accès est bloqué, autorisez Live Translation dans Réglages Système > Confidentialité et sécurité > Microphone, puis redémarrez',
+		micNone: 'Aucun microphone n’est connecté à ce Mac. Branchez-en un ou choisissez Audio système',
 		systemCapture:
 			'La capture de l’audio système a échoué. Si l’accès est bloqué, autorisez Live Translation dans Réglages Système > Confidentialité et sécurité > Enregistrement de l’écran et de l’audio du système ; vérifiez la sortie sélectionnée dans Réglages Système > Son, puis réessayez'
 	}
@@ -194,6 +212,8 @@ export const macFr: MacMessages = {
 
 export const macDe: MacMessages = {
 	usability: {
+		silenced:
+			'Es wird Ton abgespielt, aber es kommt nur Stille an. Erlauben Sie Live Translation unter Systemeinstellungen > Datenschutz & Sicherheit > Bildschirm- & Systemaudioaufnahme und starten Sie erneut',
 		profileHint:
 			'Speichert Einstellungen, Aussehen und Overlay-Position auf diesem Mac, ohne API-Schlüssel. Nur bei gestoppter Sitzung laden und Geräte prüfen. Anwendungen müssen erneut ausgewählt werden.',
 		profileMissing: 'Ein Audiogerät fehlt; der macOS-Standard ist ausgewählt. Vor dem Start prüfen.'
@@ -259,6 +279,12 @@ export const macDe: MacMessages = {
 			hide: 'Verstanden – in die Menüleiste'
 		}
 	},
+	preflight: {
+		audio: {
+			silenced:
+				'Es wird Ton abgespielt, aber es kommt nur Stille an. Erlauben Sie Live Translation unter Systemeinstellungen > Datenschutz & Sicherheit > Bildschirm- & Systemaudioaufnahme und starten Sie erneut'
+		}
+	},
 	error: {
 		deviceEnumeration: 'macOS konnte die Audiogeräte nicht auflisten',
 		keychain: 'Der macOS-Schlüsselbund hat die Anfrage abgelehnt',
@@ -267,6 +293,8 @@ export const macDe: MacMessages = {
 			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Systemeinstellungen > Ton und versuchen Sie es erneut',
 		micCapture:
 			'Die Mikrofonaufnahme ist fehlgeschlagen. Falls der Zugriff blockiert ist, erlauben Sie Live Translation unter Systemeinstellungen > Datenschutz & Sicherheit > Mikrofon und starten Sie erneut',
+		micNone:
+			'An diesen Mac ist kein Mikrofon angeschlossen. Schließen Sie eines an oder wählen Sie Systemaudio',
 		systemCapture:
 			'Die Aufnahme des Systemaudios ist fehlgeschlagen. Falls der Zugriff blockiert ist, erlauben Sie Live Translation unter Systemeinstellungen > Datenschutz & Sicherheit > Bildschirm- & Systemaudioaufnahme; prüfen Sie die ausgewählte Ausgabe unter Systemeinstellungen > Ton und versuchen Sie es erneut'
 	}

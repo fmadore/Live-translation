@@ -102,6 +102,8 @@ export const de: Messages = {
 		shortcutDirection: 'Vor dem Start die ersten beiden Favoriten tauschen mit F2',
 		shortcutPause: 'Untertitel pausieren / fortsetzen',
 		listening: 'Bereit — kein aktuelles Audiosignal',
+		silenced:
+			'Es wird Ton abgespielt, aber es kommt nur Stille an – das System hindert diese App möglicherweise an der Aufnahme',
 		audio: 'Audio wird empfangen',
 		captions: 'Untertitel werden empfangen',
 		stale:
@@ -377,6 +379,7 @@ export const de: Messages = {
 			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Whisper, Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
 		micDevice: 'Mikrofongerät',
 		systemDefault: 'Systemstandard',
+		noMicrophone: 'Kein Mikrofon gefunden',
 		/** Appended to the name of the device Windows would pick on its own. */
 		isDefault: (name: string) => `${name} (Standard)`,
 
@@ -664,6 +667,8 @@ export const de: Messages = {
 				demo: 'Mitgeliefertes Beispiel ist bereit – es wird kein Mikrofon geöffnet'
 			},
 			listening: 'Es wird zugehört – sprechen Sie ins Mikrofon oder spielen Sie Audio ab',
+			silenced:
+				'Es wird Ton abgespielt, aber es kommt nur Stille an – das System hindert diese App möglicherweise an der Aufnahme',
 			unchecked:
 				'Noch nicht geprüft – Audio wird nur während eines Tests oder einer laufenden Sitzung überwacht',
 			chooseApplication:
@@ -904,8 +909,14 @@ export const de: Messages = {
 			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
 		micCapture:
 			'Die Mikrofonaufnahme ist fehlgeschlagen. Falls der Zugriff blockiert ist, aktivieren Sie ihn unter Windows-Einstellungen > Datenschutz und Sicherheit > Mikrofon (ms-settings:privacy-microphone) und starten Sie erneut',
+		micNone:
+			'An diesen PC ist kein Mikrofon angeschlossen. Schließen Sie eines an oder wählen Sie Systemaudio',
 		systemCapture:
 			'Die Aufnahme des Systemaudios ist fehlgeschlagen. Prüfen Sie die ausgewählte Ausgabe unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
+		applicationClosed:
+			'Die untertitelte Anwendung wurde geschlossen. Öffnen Sie sie, wählen Sie sie erneut aus und starten Sie erneut',
+		outputDisconnected:
+			'Die untertitelte Ausgabe wurde getrennt oder deaktiviert. Wählen Sie eine andere Ausgabe und starten Sie erneut',
 		providerRejected:
 			'Der Anbieter hat die Verbindung abgelehnt – prüfen Sie den API-Schlüssel und den Modellzugriff',
 		providerStopped: 'Der Anbieter hat die Sitzung beendet',
