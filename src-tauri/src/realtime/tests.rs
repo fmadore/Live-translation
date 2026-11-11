@@ -94,6 +94,18 @@ struct Fake {
     hold: bool,
     /// The setup message cannot be built, as a provider's could not from bad settings.
     broken_setup: bool,
+    /// What its `prepare` does before each connection, as DeepL's session request would.
+    prepare: Prepare,
+    /// Send silence (a chunk tagged 0) after this long without audio.
+    keepalive: Option<Duration>,
+}
+
+#[derive(Clone, Copy)]
+enum Prepare {
+    Ready,
+    /// Never finishes: a session request that hangs.
+    Hang,
+    Reject(u16),
 }
 
 impl Fake {
@@ -102,6 +114,8 @@ impl Fake {
             url: url.into(),
             hold: false,
             broken_setup: false,
+            prepare: Prepare::Ready,
+            keepalive: None,
         }
     }
 }
@@ -120,13 +134,28 @@ impl RealtimeProtocol for Fake {
         Origin::Microphone
     }
 
+    async fn prepare(&mut self) -> Result<(), PrepareError> {
+        match self.prepare {
+            Prepare::Ready => Ok(()),
+            Prepare::Hang => std::future::pending().await,
+            Prepare::Reject(status) => Err(PrepareError::Rejected(status)),
+        }
+    }
+
     fn connect_request(&self) -> anyhow::Result<Request> {
         Ok(self.url.as_str().into_client_request()?)
     }
 
-    fn setup_json(&self) -> anyhow::Result<String> {
+    fn keepalive(&self) -> Option<Keepalive> {
+        self.keepalive.map(|after| Keepalive {
+            after,
+            silence: AudioChunk { pcm_le: vec![0] },
+        })
+    }
+
+    fn setup_json(&self) -> anyhow::Result<Option<String>> {
         anyhow::ensure!(!self.broken_setup, "the setup could not be serialized");
-        Ok("setup".into())
+        Ok(Some("setup".into()))
     }
 
     fn audio_json(&self, base64_pcm: String) -> anyhow::Result<String> {
@@ -1219,5 +1248,96 @@ async fn text_inside_a_long_grace_does_not_close_the_turn_early() {
     client.cancel.cancel();
     assert_eq!(peer.recv().await, Frame::Text("end".into()));
     assert_eq!(peer.recv().await, Frame::Close);
+    client.finished().await;
+}
+
+/// A provider's step before connecting is cut short by Stop, and by Pause, as the handshake is;
+/// one that hangs past the connect timeout is retried.
+#[tokio::test(start_paused = true)]
+async fn a_hanging_preparation_yields_to_pause_stop_and_its_timeout() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        prepare: Prepare::Hang,
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    let at = Instant::now();
+    client
+        .expect(Event::Status(
+            SessionState::Reconnecting,
+            Some(id::PROVIDER_RECONNECTING),
+        ))
+        .await;
+    assert!(
+        Instant::now() - at >= Duration::from_secs(15),
+        "the connect timeout"
+    );
+
+    client.pause.send_replace(true);
+    client.expect(status(SessionState::Paused)).await;
+    client.pause.send_replace(false);
+    client.expect(status(SessionState::Connecting)).await;
+    let stopped_at = Instant::now();
+    client.cancel.cancel();
+    client.finished().await;
+    assert!(Instant::now() - stopped_at < Duration::from_secs(1));
+    assert!(
+        timeout(Duration::from_secs(1), server.listener.accept())
+            .await
+            .is_err(),
+        "no socket opens before the preparation is done"
+    );
+}
+
+/// A preparation the provider refused ends the source as a refused handshake does.
+#[tokio::test(start_paused = true)]
+async fn a_refused_preparation_ends_the_source() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        prepare: Prepare::Reject(403),
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    client
+        .expect(Event::Status(
+            SessionState::Error,
+            Some(id::PROVIDER_REJECTED),
+        ))
+        .await;
+    client.finished().await;
+}
+
+/// A source that sends nothing — system audio while nothing plays — still sends the provider
+/// silence before it gives up on the session, and only when nothing else went out.
+#[tokio::test(start_paused = true)]
+async fn a_quiet_source_sends_silence_to_a_provider_that_needs_it() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        keepalive: Some(Duration::from_secs(5)),
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    peer.ready().await;
+    client.expect(status(SessionState::Running)).await;
+
+    assert_eq!(peer.listen_for(Duration::from_millis(11_500)).await, [0, 0]);
+    // Speech resets the wait: nothing extra while audio flows.
+    for tag in 1..=3 {
+        client.speak(tag);
+        sleep(Duration::from_secs(2)).await;
+    }
+    assert_eq!(
+        peer.listen_for(Duration::from_millis(2_500)).await,
+        [1, 2, 3]
+    );
+    assert_eq!(peer.listen_for(Duration::from_secs(5)).await, [0]);
+
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    drop(peer);
     client.finished().await;
 }

@@ -37,9 +37,9 @@ impl RealtimeProtocol for GeminiConfig {
         gemini_request(Self::NAME, &self.host, &self.api_key)
     }
 
-    fn setup_json(&self) -> Result<String> {
+    fn setup_json(&self) -> Result<Option<String>> {
         let setup = SetupMessage::live_translate(&self.model, &self.target_language_code);
-        Ok(serde_json::to_string(&setup)?)
+        Ok(Some(serde_json::to_string(&setup)?))
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {

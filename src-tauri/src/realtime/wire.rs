@@ -38,6 +38,16 @@ pub fn parse_or_log<T: DeserializeOwned>(provider: &str, text: &str) -> Option<T
     }
 }
 
+/// Whether the text ends a sentence, closing quotes and brackets aside, and the (often
+/// non-breaking) space French sets before them. Mistral holds a line open until one ends;
+/// DeepL closes a line when its concluded translation reaches one.
+pub fn ends_sentence(text: &str) -> bool {
+    text.trim_end_matches(|c: char| {
+        c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
+    })
+    .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
+}
+
 /// What a provider's failure means for the source. Every provider's `error` event, and a close
 /// during setup, is read into one of these by `classify`, so the providers cannot drift apart
 /// on what is worth a reconnect.
@@ -425,6 +435,23 @@ mod tests {
             panic!("expected a fatal control");
         };
         assert_eq!(detail, "refused");
+    }
+
+    #[test]
+    fn sentence_ends_include_closing_quotes_and_other_scripts() {
+        for text in [
+            "direct\u{a0}?",
+            "« Bonjour.\u{a0}»",
+            "(fin.)",
+            "完了。",
+            "انتهى؟",
+            "Ende!  ",
+        ] {
+            assert!(ends_sentence(text), "{text}");
+        }
+        for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
+            assert!(!ends_sentence(text), "{text}");
+        }
     }
 
     #[test]

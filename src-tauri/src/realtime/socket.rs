@@ -202,6 +202,7 @@ async fn open<P: RealtimeProtocol, E: Events>(
     acc: &mut TurnAccumulator,
     catch_up: bool,
 ) -> Result<Connection, RunEnd> {
+    prepare(io, proto, catch_up).await?;
     // Both are built from the source's settings alone, so one that cannot be built now never
     // can: through the ordinary error path, a key with a space in it reconnected every 16
     // seconds for the rest of the event. Built before connecting, so failing costs no socket.
@@ -239,8 +240,10 @@ async fn open<P: RealtimeProtocol, E: Events>(
         read,
         last_inbound: Instant::now(),
     };
-    conn.send(Message::Text(setup.into()), "failed to send setup")
-        .await?;
+    if let Some(setup) = setup {
+        conn.send(Message::Text(setup.into()), "failed to send setup")
+            .await?;
+    }
 
     let origin = proto.origin();
     tracing::info!(?origin, "connected to {}; waiting for setup", P::NAME);
@@ -322,6 +325,38 @@ async fn open<P: RealtimeProtocol, E: Events>(
     }
 }
 
+/// The provider's own step before connecting (`RealtimeProtocol::prepare`), with Pause and Stop
+/// honoured and the audio of a handover's gap held meanwhile, as during the handshake.
+async fn prepare<P: RealtimeProtocol, E: Events>(
+    io: &mut SocketIo<'_, E>,
+    proto: &mut P,
+    catch_up: bool,
+) -> Result<(), RunEnd> {
+    let preparing = timeout(CONNECT_TIMEOUT, proto.prepare());
+    tokio::pin!(preparing);
+    loop {
+        tokio::select! {
+            _ = io.cancel.cancelled() => return Err(RunEnd::Stopped),
+            Ok(()) = io.pause.changed() => {
+                if *io.pause.borrow_and_update() {
+                    return Err(RunEnd::Paused);
+                }
+            }
+            Some(chunk) = io.audio_rx.recv(), if catch_up => io.backlog.push(chunk),
+            prepared = &mut preparing => {
+                return match prepared {
+                    Ok(result) => result.map_err(RunEnd::from),
+                    Err(_) => Err(RunEnd::Failed(anyhow::anyhow!(
+                        "{} did not prepare the connection within {} seconds",
+                        P::NAME,
+                        CONNECT_TIMEOUT.as_secs()
+                    ))),
+                };
+            }
+        }
+    }
+}
+
 /// " (close code 1011: Internal error.)", or nothing for a Close that carried neither.
 fn close_detail(close: &Close) -> String {
     let described = close.describe();
@@ -390,6 +425,14 @@ async fn pump<P: RealtimeProtocol, E: Events>(
     // When this connection last changed a caption. Starts at the connection, not at "never":
     // audio sent in its first seconds may still be on its way back.
     let mut last_caption = Instant::now();
+    // When audio last went out, for the provider's keepalive; re-armed lazily, like `silence`.
+    let keepalive = proto.keepalive();
+    let mut last_audio = Instant::now();
+    let idle_audio = sleep_until(keepalive.as_ref().map_or_else(
+        || Instant::now() + super::turn_timer::IDLE,
+        |keepalive| last_audio + keepalive.after,
+    ));
+    tokio::pin!(idle_audio);
 
     loop {
         tokio::select! {
@@ -414,6 +457,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                         if let Err(end) = conn.send_audio(audio_json(proto, &chunk)).await {
                             return end;
                         }
+                        last_audio = Instant::now();
                     }
                     None => {
                         graceful_close(events, proto, &mut conn, acc, last_caption).await;
@@ -507,6 +551,18 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                     );
                     return RunEnd::Reconnect;
                 }
+            }
+
+            () = &mut idle_audio, if keepalive.is_some() => {
+                let Some(keepalive) = &keepalive else { continue };
+                let deadline = last_audio + keepalive.after;
+                if deadline <= Instant::now() {
+                    if let Err(end) = conn.send_audio(audio_json(proto, &keepalive.silence)).await {
+                        return end;
+                    }
+                    last_audio = Instant::now();
+                }
+                idle_audio.as_mut().reset(last_audio + keepalive.after);
             }
 
             () = &mut finalize => {

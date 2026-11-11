@@ -116,6 +116,7 @@ mod tests {
         for (provider, translates) in [
             (Provider::Gemini, true),
             (Provider::OpenAi, true),
+            (Provider::DeepL, true),
             (Provider::GeminiTranscribe, false),
             (Provider::Mistral, false),
             (Provider::OnDevice, false),

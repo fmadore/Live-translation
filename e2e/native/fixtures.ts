@@ -138,7 +138,8 @@ function appEnvironment(): NodeJS.ProcessEnv {
 	// Keyless means keyless: blank, not absent, so a debug build's `.env` lookup cannot fill
 	// them back in (dotenvy never overrides a variable that is set). Saved keys are another
 	// matter: `secrets.rs` names its keychain service itself, not after the identifier.
-	for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'MISTRAL_API_KEY']) env[key] = '';
+	for (const key of ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'MISTRAL_API_KEY', 'DEEPL_API_KEY'])
+		env[key] = '';
 	return env;
 }
 

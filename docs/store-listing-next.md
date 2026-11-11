@@ -85,6 +85,32 @@ stays ticked, and neither Zoom captions nor anything in 1.13.0 involves a paymen
 capabilities are unchanged (`runFullTrust` and `microphone`); `AppxManifest.xml.template` and
 `bundle.config.json` are unchanged since `v1.12.0`.
 
+## After 1.13.0: DeepL
+
+The release after 1.13.0 adds **DeepL** (DeepL Voice API, by DeepL SE, Cologne) as a fourth
+cloud engine, beside Google Gemini, OpenAI and Mistral. It serves live translation only:
+DeepL hears which language is spoken and writes the caption language the operator chooses, in
+42 of the app's caption languages ([coverage](language-coverage.md)). Its listing copy, to be
+written with that release's [store-listing.md](store-listing.md):
+
+- **Descriptions.** The optional-cloud-translation sentence names DeepL with the other
+  providers, under the user's own DeepL API key. Say plainly that DeepL needs a **paid DeepL
+  API plan**: Voice is not on DeepL's free API, and the app refuses a free key (one ending in
+  `:fx`) with its own message. Nothing in the copy may suggest a free DeepL tier.
+- **Features.** One line, in place of an existing one (the list is at Partner Center's maximum
+  of twenty): live translation through Gemini, OpenAI or DeepL with the user's own key.
+- **Privacy policy.** Its effective date becomes **11 November 2026**: DeepL is named as a
+  recipient (the audio of the chosen sources while a DeepL session runs, and the caption
+  language), with DeepL's privacy policy linked. The question before audio first goes to a
+  provider asks about DeepL on its own. If 1.13.0 is submitted after this change reaches
+  `main`, the published policy already shows the new date and names DeepL, which that package
+  does not contain; that is harmless, but say so to the maintainer.
+- **Certification notes.** The *Optional cloud features* paragraph adds DeepL: a tester needs a
+  key from a paid DeepL API plan to exercise it, and can see the refusal of a free key without
+  one.
+- **Keywords.** Consider "DeepL" only if a keyword slot is free; it is named descriptively, as
+  the other providers are.
+
 ## The copy
 
 [store-listing.md](store-listing.md) is the 1.13.0 copy, with every block in English, French and

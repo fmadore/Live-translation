@@ -11,9 +11,9 @@
 //   language that puts the count last can do so; a `{0}` placeholder could not.
 // - Anything with a plural takes the count and decides for itself. English needs two forms,
 //   French agrees differently, and neither is the other's business.
-// - Proper nouns (Gemini, OpenAI, Voxtral, WASAPI, F2) are repeated in every catalog rather
-//   than pulled out, because deciding whether a product name is translated is exactly the
-//   kind of thing a translator has to be able to decide.
+// - Proper nouns (Gemini, OpenAI, Voxtral, DeepL, WASAPI, F2) are repeated in every catalog
+//   rather than pulled out, because deciding whether a product name is translated is exactly
+//   the kind of thing a translator has to be able to decide.
 
 export const en = {
 	design: {
@@ -245,6 +245,7 @@ export const en = {
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
+		deepl: 'DeepL',
 		ondevice: 'Built-in demo'
 	},
 
@@ -275,6 +276,7 @@ export const en = {
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
 			mistral: 'Mistral Voxtral',
+			deepl: 'DeepL',
 			ondevice: 'Built-in demo'
 		},
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
@@ -284,6 +286,9 @@ export const en = {
 			'whisper-translate': 'Offline · into English only',
 			ondevice: 'Bundled sample · deterministic'
 		},
+		/** One line under DeepL in the engine picker: why an operator might choose it. */
+		deeplNote:
+			'Known for its translation quality; provider based in the EU. Needs a paid DeepL API plan (Growth or higher).',
 		costNote: {
 			whisper:
 				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
@@ -297,6 +302,8 @@ export const en = {
 				'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
 			mistral:
 				'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
+			deepl:
+				'DeepL: speech hours included in your paid API plan are used first; the rate is the reported price per extra hour of audio streamed.',
 			ondevice:
 				'Bundled demonstration: no live audio is captured, no service is contacted, and nothing is billed.'
 		}
@@ -736,6 +743,9 @@ export const en = {
 			before: 'Stored in Windows Credential Manager, used only from the Rust core. Needs access to',
 			after: '.'
 		},
+		/** Under the DeepL key field: Voice is not on DeepL's free API. */
+		deeplPlan:
+			'DeepL Voice needs a paid DeepL API plan (Growth or higher): free API keys, which end in :fx, are refused.',
 		getKey: 'Get a key',
 		opensInBrowser: ' (opens in your browser)',
 		placeholder: (name: string) => `Paste your ${name} API key`,
@@ -923,6 +933,8 @@ export const en = {
 		systemCapture:
 			'System audio capture failed. Check the selected output in Windows Settings > System > Sound (ms-settings:sound), then retry',
 		providerRejected: 'The provider rejected the connection — check the API key and model access',
+		deeplPaidPlan:
+			'DeepL Voice needs a paid DeepL API plan; free API keys, which end in :fx, cannot open a voice session',
 		providerStopped: 'The provider ended the session',
 		providerReconnecting: 'The connection dropped; reconnecting',
 		zoomLink:

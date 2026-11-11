@@ -334,7 +334,10 @@ fn interims_only_grow(provider: Provider) -> bool {
         Provider::Gemini | Provider::OpenAi | Provider::Mistral => true,
         // Transcribe Live replaces its hypothesis; the demonstration rewrites its partial
         // line; Whisper sends finals only.
+        // DeepL's tentative text is replaced by each update, so even the start of a turn that
+        // begins with it can change.
         Provider::GeminiTranscribe
+        | Provider::DeepL
         | Provider::OnDevice
         | Provider::Whisper
         | Provider::WhisperTranslate => false,
@@ -753,6 +756,7 @@ mod tests {
         }
         for provider in [
             Provider::GeminiTranscribe,
+            Provider::DeepL,
             Provider::OnDevice,
             Provider::Whisper,
             Provider::WhisperTranslate,

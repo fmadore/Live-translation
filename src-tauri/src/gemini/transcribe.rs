@@ -48,10 +48,10 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
         gemini_request(Self::NAME, &self.host, &self.api_key)
     }
 
-    fn setup_json(&self) -> Result<String> {
-        Ok(serde_json::to_string(
+    fn setup_json(&self) -> Result<Option<String>> {
+        Ok(Some(serde_json::to_string(
             &TranscribeSetupMessage::live_transcribe(&self.model, &self.custom_vocabulary),
-        )?)
+        )?))
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {
@@ -318,7 +318,7 @@ mod live_probe {
         // Failure here is the one this probe exists for: a setup field in the wrong place
         // comes back as `Unknown name ... Cannot find field`, not as a bad transcript.
         write
-            .send(Message::Text(config.setup_json().unwrap().into()))
+            .send(Message::Text(config.setup_json().unwrap().unwrap().into()))
             .await
             .unwrap();
         let deadline = tokio::time::Instant::now() + DEADLINE;

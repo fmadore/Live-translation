@@ -21,7 +21,7 @@ vi.mock('./tauri', () => ({
 	}
 }));
 
-function mount(provider: 'gemini' | 'openai' = 'gemini') {
+function mount(provider: 'gemini' | 'openai' | 'deepl' = 'gemini') {
 	const onAvailability = vi.fn();
 	const onError = vi.fn();
 	const view = render(ApiKeyPanel, { props: { provider, onAvailability, onError } });
@@ -47,6 +47,18 @@ describe('ApiKeyPanel', () => {
 		const field = getByLabelText('Gemini key');
 		expect(field).toHaveAttribute('type', 'password');
 		expect(field).toHaveAccessibleDescription(/Windows Credential Manager/);
+	});
+
+	// DeepL Voice is not on DeepL's free API: the row says so before a free key is pasted.
+	it('says a DeepL key has to come from a paid plan, and only for DeepL', () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(false);
+		const deepl = mount('deepl');
+		expect(deepl.getByLabelText('DeepL key')).toHaveAccessibleDescription(
+			/paid DeepL API plan \(Growth or higher\): free API keys, which end in :fx, are refused/
+		);
+		deepl.unmount();
+		expect(mount('gemini').getByLabelText('Gemini key')).not.toHaveAccessibleDescription(/DeepL/);
 	});
 
 	// Issue #29: a browser preview has no Credential Manager, and invoking anyway put an

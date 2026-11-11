@@ -37,6 +37,7 @@ export const PROVIDERS = [
 	'gemini-transcribe',
 	'openai',
 	'mistral',
+	'deepl',
 	'ondevice',
 	'whisper',
 	'whisper-translate'

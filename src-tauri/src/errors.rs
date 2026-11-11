@@ -65,6 +65,10 @@ pub mod id {
     /// anything outside printable ASCII — so it was not saved. The detail says which and
     /// where, never the key.
     pub const API_KEY_FORMAT: &str = "error.apiKeyFormat";
+    /// A DeepL API Free key (ending in `:fx`): the Voice API needs a paid plan, so the key is
+    /// refused when saved and a session refused at Start, before any request is made. Raised
+    /// without a detail: the sentence is complete, and the detail would not be translated.
+    pub const DEEPL_PAID_PLAN: &str = "error.deeplPaidPlan";
     /// The bundled demonstration could not be prepared or inspected.
     pub const DEMO_UNAVAILABLE: &str = "error.demoUnavailable";
     /// A session could not be started — bad options, no key, no device.

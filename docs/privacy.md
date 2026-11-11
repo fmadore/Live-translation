@@ -1,6 +1,9 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 5 November 2026 (adds the macOS app, distributed as a disk image and through
+**Effective date:** 11 November 2026 (adds DeepL as a fourth optional cloud provider, for
+translation)
+
+Previous version: 5 November 2026 (added the macOS app, distributed as a disk image and through
 the Mac App Store, and the question asked before audio first goes to each cloud provider, on
 both systems)
 
@@ -12,7 +15,7 @@ operation:
 - local multilingual speech transcription, or translation into English, using Whisper on the
   user’s computer;
 - optional cloud speech captioning or translation through a provider selected and configured
-  by the user: Google Gemini, OpenAI, or Mistral; and
+  by the user: Google Gemini, OpenAI, Mistral, or DeepL; and
 - a scripted demonstration of the caption display, overlay, timer, level meter, transcript
   and export workflow.
 
@@ -234,11 +237,21 @@ provider. Removing the provider's API key stops anything being sent to it. With 
 any, are sent to that provider at the start of each session, together with the audio, so that
 its model favours those spellings. They may include the names of the people speaking; enter only
 what may be shared with that provider. Local Whisper keeps them on the computer, and the
-translation engines are not sent them. The providers' terms and privacy policies apply:
+translation engines are not sent them.
+
+With **DeepL**, which translates only, the audio of the chosen sources is streamed, while a
+DeepL session runs, to DeepL SE (Cologne, Germany) together with the chosen caption language;
+DeepL returns the transcript of what was said and its translation. The DeepL key is stored in
+Windows Credential Manager or the macOS Keychain like the others and sent only to DeepL. DeepL
+Voice is available only on a paid DeepL API plan, under the user's own DeepL account and terms;
+the app refuses a free-plan key rather than sending it audio.
+
+The providers' terms and privacy policies apply:
 
 - [Google Privacy Policy](https://policies.google.com/privacy)
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
 - [Mistral AI Privacy Policy](https://mistral.ai/terms/#privacy-policy)
+- [DeepL Privacy Policy](https://www.deepl.com/privacy)
 
 The built-in demonstration and local Whisper, transcribing or translating, contact none of these
 speech services.

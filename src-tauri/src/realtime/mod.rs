@@ -14,6 +14,7 @@ mod tests;
 mod turn_timer;
 mod wire;
 
+use std::future::Future;
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -29,7 +30,7 @@ use crate::timing::SessionClock;
 use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use policy::{After, Reconnect, RunEnd};
 use socket::{Backlog, SocketIo};
-pub use wire::{bearer_request, parse_or_log, provider_error};
+pub use wire::{Verdict, bearer_request, classify, ends_sentence, parse_or_log, provider_error};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -220,13 +221,60 @@ impl MessageOutcome {
     }
 }
 
+/// Why `RealtimeProtocol::prepare` could not ready the next connection. Each becomes the
+/// runner's own end for a connection, so a provider's REST step reports, retries and stops
+/// exactly as a refused handshake would.
+#[derive(Debug)]
+pub enum PrepareError {
+    /// Refused with an HTTP status no retry changes — a rejected key, a plan without access:
+    /// reported as the provider rejecting the connection, `"{NAME} — HTTP {status}"`.
+    Rejected(u16),
+    /// Refused for a reason the provider words itself (a spent quota, a request it will not
+    /// take): reported verbatim, after the provider's name, as the provider ending the session.
+    Fatal(String),
+    /// What the request is built from cannot make a valid one (a key that is not a header
+    /// value). Every retry would build the same, so none is made.
+    Malformed(anyhow::Error),
+    /// A failure a later attempt can get past — the network, a rate limit, a server error:
+    /// retried with backoff, the chain shown as the Reconnecting detail.
+    Failed(anyhow::Error),
+}
+
+/// Audio the runner sends when the source has sent none for `after`; see
+/// `RealtimeProtocol::keepalive`.
+#[derive(Debug, Clone)]
+pub struct Keepalive {
+    pub after: Duration,
+    pub silence: AudioChunk,
+}
+
 pub trait RealtimeProtocol {
     const NAME: &'static str;
 
     fn origin(&self) -> Origin;
+
+    /// Asynchronous work before every connection, run before `connect_request`: DeepL asks a
+    /// REST endpoint for a session, or to resume one, and gets the single-use URL and token
+    /// the socket then opens with. Pause and Stop cut it short, as they do the handshake, and
+    /// it is bounded by the same connect timeout. Nothing to do, by default.
+    fn prepare(&mut self) -> impl Future<Output = Result<(), PrepareError>> + Send {
+        std::future::ready(Ok(()))
+    }
+
     fn connect_request(&self) -> anyhow::Result<Request>;
-    fn setup_json(&self) -> anyhow::Result<String>;
+    /// The first frame on a new socket, or `None` for a provider whose audio follows the
+    /// handshake directly (DeepL: its session was configured over REST in `prepare`).
+    fn setup_json(&self) -> anyhow::Result<Option<String>>;
     fn audio_json(&self, base64_pcm: String) -> anyhow::Result<String>;
+
+    /// For a provider that ends a session whose input stops — DeepL, after 30 seconds without
+    /// data: silence to send whenever the source has sent no audio for a while. A microphone
+    /// delivers chunks continuously, silence included, but system audio can deliver none while
+    /// nothing plays (event-driven WASAPI loopback is not signalled when no stream renders).
+    /// `None`: send nothing.
+    fn keepalive(&self) -> Option<Keepalive> {
+        None
+    }
 
     /// Whether this provider requires an explicit setup acknowledgement before accepting
     /// audio. Gemini's Live API contract requires clients to wait for `setupComplete`.

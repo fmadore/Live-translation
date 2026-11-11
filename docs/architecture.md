@@ -22,10 +22,10 @@ caption events ── optional, opt-in ── Zoom caption sender → Zoom meeti
    applies a Kaiser-windowed sinc anti-alias filter when downsampling, resamples to the
    provider rate by linear interpolation, converts to mono PCM16,
    and forms roughly 100 ms chunks. Realtime callbacks write only to bounded channels.
-2. **Provider sessions.** Gemini Live Translate and OpenAI produce translated captions;
-   Mistral Voxtral and Gemini Transcribe Live produce same-language captions. One async client
-   runs per selected source and owns setup, timeouts, backoff, reconnect classification, audio
-   pumping, turn finalization, and graceful shutdown.
+2. **Provider sessions.** Gemini Live Translate, OpenAI and DeepL Voice produce translated
+   captions; Mistral Voxtral and Gemini Transcribe Live produce same-language captions. One async
+   client runs per selected source and owns setup, timeouts, backoff, reconnect classification,
+   audio pumping, turn finalization, and graceful shutdown.
 3. **Built-in demonstration.** The compatibility provider id `ondevice` starts
    `ondevice::run_session`, which opens no device and contacts no service. A deterministic
    English or French timeline emits the same status, level, partial- and final-caption events
@@ -111,6 +111,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | --- | --- | --- | --- | --- |
 | Google Gemini Live Translate | Translate | 16 kHz PCM16 | output transcription | audio stream end, drain to turn complete |
 | OpenAI Realtime | Translate | 24 kHz PCM16 | output transcript deltas | close and drain |
+| DeepL Voice API | Translate | 16 kHz PCM16 | concluded and tentative target segments, lines closed at a concluded sentence end | end of source media, drain to end of stream |
 | Mistral Voxtral Realtime 3 | Transcribe | 16 kHz PCM16 | transcription deltas, lines closed at detected turn ends | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
@@ -127,6 +128,17 @@ way, but they are one local pipeline: everything about running it follows
 translating one captions in English only, so validation refuses any other caption language and
 any second one.
 
+DeepL is the one provider that starts a connection over REST. `RealtimeProtocol::prepare`, run
+before every connection and cut short by Pause and Stop like the handshake, asks DeepL for a
+session (or resumes the one whose socket dropped) and receives a single-use streaming URL and
+token; its failures become the runner's usual ends (`PrepareError`), so a refused key, a spent
+quota or a rate limit report and retry as a refused handshake would. Its socket takes no setup
+message (`setup_json` returns `None`), and because DeepL ends a session after 30 seconds
+without audio, while system audio can deliver no chunks at all when nothing plays, the runner sends
+the silence its `keepalive` asks for after 10 quiet seconds. A DeepL Free key (`:fx`) is refused
+when saved and again at Start (`error.deeplPaidPlan`): the Voice API is not on the free host.
+See [`deepl-voice-api.md`](deepl-voice-api.md).
+
 The subtitle backends and the built-in demo are unavailable in translation mode;
 `session/options.rs` enforces this through `Provider::can_translate`.
 
@@ -134,16 +146,19 @@ Providers whose text has no turn boundary of its own close a line in the runner.
 apply, each opt-in through `RealtimeProtocol`:
 
 - **Idle boundary:** a line closes once new caption text has stopped for `finalize_after`
-  (900 ms for OpenAI and Mistral).
+  (900 ms for OpenAI and Mistral, 1 s for DeepL, whose lines mostly close earlier, on a
+  concluded sentence).
 - **End of turn:** `Signal::EndOfTurn(grace)` sets a hard deadline: the line closes after the
   grace, however much text arrives meanwhile. Mistral sends it on `turn.end`, with its
   streaming delay as the grace, because the speaker's last words are still on their way.
 - **Mid-sentence hold:** `keeps_turn_open` lets the provider hold a line at the idle boundary
   while the speaker is mid-sentence. The boundary looks again one interval later, and stops
   holding once the text has been still for `MAX_HOLD` (4 s). Mistral holds while turn
-  detection says the speaker is talking and the text does not end a sentence.
+  detection says the speaker is talking and the text does not end a sentence; DeepL while it
+  still has tentative text it may revise.
 
-See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes).
+See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes) and
+[DeepL's](deepl-voice-api.md#how-a-caption-line-closes).
 
 A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
 `MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open
@@ -166,7 +181,8 @@ it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, clos
 out, hits EOF or is closed with a retryable code is retried the same way, as Reconnecting, and
 the fifth such failure in a row ends the source; an accepted setup resets the count. A
 provider that ends its session mid-stream
-(OpenAI's `session.closed`, Mistral's `transcription.done`) does not end the source either:
+(OpenAI's `session.closed`, Mistral's `transcription.done`, DeepL's `end_of_stream`) does not
+end the source either:
 its last caption is emitted and the runner hands over to a new session.
 
 ## Concurrency and shutdown
@@ -437,7 +453,7 @@ to publish, cuts it into captions of at most 120 characters and `try_send`s them
 
 Only text that cannot change is published. `SessionManager::start` tells the module whether the
 session's provider only ever appends to an interim line (Gemini Live Translate, OpenAI and
-Mistral do; Gemini Transcribe revises); for those, a completed sentence goes as soon as the next
+Mistral do; Gemini Transcribe and DeepL revise); for those, a completed sentence goes as soon as the next
 begins, and the rest of the line when it is final. Every other engine publishes final lines
 only. Each stream `(origin, lane)` remembers how far into its current turn it has published.
 

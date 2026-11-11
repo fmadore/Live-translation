@@ -24,6 +24,7 @@ fn account(provider: Provider) -> Option<&'static str> {
         Provider::Gemini | Provider::GeminiTranscribe => Some("gemini-api-key"),
         Provider::OpenAi => Some("openai-api-key"),
         Provider::Mistral => Some("mistral-api-key"),
+        Provider::DeepL => Some("deepl-api-key"),
         Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => None,
     }
 }
@@ -34,6 +35,7 @@ fn env_var(provider: Provider) -> Option<&'static str> {
         Provider::Gemini | Provider::GeminiTranscribe => Some("GEMINI_API_KEY"),
         Provider::OpenAi => Some("OPENAI_API_KEY"),
         Provider::Mistral => Some("MISTRAL_API_KEY"),
+        Provider::DeepL => Some("DEEPL_API_KEY"),
         Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => None,
     }
 }
@@ -43,6 +45,7 @@ fn label(provider: Provider) -> &'static str {
         Provider::Gemini | Provider::GeminiTranscribe => "Gemini",
         Provider::OpenAi => "OpenAI",
         Provider::Mistral => "Mistral",
+        Provider::DeepL => "DeepL",
         Provider::OnDevice => "Built-in demo",
         Provider::Whisper | Provider::WhisperTranslate => "Whisper",
     }
@@ -120,6 +123,32 @@ fn check_format(key: &str) -> std::result::Result<(), KeyFormat> {
     }
 }
 
+/// A DeepL API Free key, which the Voice API does not take. Reported as `error.deeplPaidPlan`
+/// with no detail; the `Display` is for logs and never repeats the key.
+#[derive(Debug, PartialEq, Eq)]
+pub struct FreePlanKey;
+
+impl std::fmt::Display for FreePlanKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("a DeepL API Free key (it ends in :fx); the Voice API needs a paid plan")
+    }
+}
+
+impl std::error::Error for FreePlanKey {}
+
+/// Refuse a key whose plan cannot reach the provider at all. DeepL marks its Free keys with a
+/// `:fx` suffix, and those authenticate against `api-free.deepl.com`, which has no Voice API
+/// (it answered `POST /v3/voice/realtime` with 404 on 11 November 2026). Caught when the key
+/// is saved and again at Start, so the operator learns it there rather than from a source
+/// that cannot connect.
+pub fn check_plan(provider: Provider, key: &str) -> std::result::Result<(), FreePlanKey> {
+    if provider == Provider::DeepL && key.trim().ends_with(":fx") {
+        Err(FreePlanKey)
+    } else {
+        Ok(())
+    }
+}
+
 /// Store the provider's key in the OS keychain. Whitespace around it is dropped, as a paste
 /// often brings some; anything else a key cannot contain is refused with a `KeyFormat`.
 pub fn set_api_key(provider: Provider, key: &str) -> Result<()> {
@@ -128,6 +157,7 @@ pub fn set_api_key(provider: Provider, key: &str) -> Result<()> {
         anyhow::bail!("API key is empty");
     }
     check_format(key)?;
+    check_plan(provider, key)?;
     entry(provider)?
         .set_password(key)
         .context("failed to write key to keychain")?;
@@ -184,6 +214,26 @@ pub fn has_api_key(provider: Provider) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// DeepL's Free keys end in `:fx` and reach no Voice API; its paid keys, and every other
+    /// provider's keys, are not judged by their ending.
+    #[test]
+    fn a_deepl_free_key_is_refused_for_deepl_only() {
+        let free = "1a2b3c4d-0000-1111-2222-333344445555:fx";
+        assert_eq!(check_plan(Provider::DeepL, free), Err(FreePlanKey));
+        assert_eq!(
+            check_plan(Provider::DeepL, &format!("{free}\n")),
+            Err(FreePlanKey)
+        );
+        assert_eq!(
+            check_plan(Provider::DeepL, "1a2b3c4d-0000-1111-2222-333344445555"),
+            Ok(())
+        );
+        assert_eq!(check_plan(Provider::Mistral, free), Ok(()));
+        assert!(!FreePlanKey.to_string().contains(free));
+        let refused = set_api_key(Provider::DeepL, free).unwrap_err();
+        assert_eq!(refused.downcast_ref::<FreePlanKey>(), Some(&FreePlanKey));
+    }
 
     #[test]
     fn keys_as_the_providers_issue_them_pass() {
@@ -248,7 +298,12 @@ mod tests {
             keyring_core::set_default_store(keyring_core::mock::Store::new().unwrap());
         });
         let guard = crate::sync::lock(&SERIAL);
-        for provider in [Provider::Gemini, Provider::OpenAi, Provider::Mistral] {
+        for provider in [
+            Provider::Gemini,
+            Provider::OpenAi,
+            Provider::Mistral,
+            Provider::DeepL,
+        ] {
             for service in [SERVICE, LEGACY_SERVICE] {
                 let _ = entry_in(service, provider).unwrap().delete_credential();
             }

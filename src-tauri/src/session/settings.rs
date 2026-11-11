@@ -5,6 +5,7 @@ use anyhow::{Context, Result};
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 
 use super::builder::ClientIo;
+use crate::deepl::{DEFAULT_DEEPL_HOST, DeepLConfig};
 use crate::gemini::{
     DEFAULT_HOST, DEFAULT_TRANSCRIBE_MODEL, DEFAULT_TRANSLATE_MODEL, GeminiConfig,
     GeminiTranscribeConfig,
@@ -46,6 +47,9 @@ pub(super) enum ProviderSettings {
         delay_ms: u32,
         /// The session's glossary; see `with_glossary`.
         context_bias: Vec<String>,
+    },
+    DeepL {
+        host: String,
     },
     OnDevice,
     Whisper,
@@ -93,6 +97,11 @@ impl ProviderSettings {
                     .unwrap_or(DEFAULT_TARGET_STREAMING_DELAY_MS),
                 context_bias: Vec::new(),
             },
+            // Always the paid host: `api-free.deepl.com` has no Voice API, and a Free key is
+            // refused before a session starts (`secrets::check_plan`).
+            Provider::DeepL => Self::DeepL {
+                host: host("DEEPL_API_HOST", DEFAULT_DEEPL_HOST),
+            },
             Provider::OnDevice => Self::OnDevice,
             Provider::Whisper | Provider::WhisperTranslate => Self::Whisper,
         })
@@ -111,7 +120,11 @@ impl ProviderSettings {
                 custom_vocabulary: terms,
                 ..
             } => *terms = glossary.to_vec(),
-            Self::Gemini { .. } | Self::OpenAi { .. } | Self::OnDevice | Self::Whisper => {}
+            Self::Gemini { .. }
+            | Self::OpenAi { .. }
+            | Self::DeepL { .. }
+            | Self::OnDevice
+            | Self::Whisper => {}
         }
         self
     }
@@ -168,6 +181,15 @@ impl ProviderSettings {
                     host: host.clone(),
                     target_streaming_delay_ms: *delay_ms,
                     context_bias: context_bias.clone(),
+                    origin,
+                }
+                .into_client(),
+            ),
+            Self::DeepL { host } => io.spawn_realtime(
+                DeepLConfig {
+                    api_key,
+                    api_base: format!("https://{host}"),
+                    target,
                     origin,
                 }
                 .into_client(),
@@ -235,6 +257,29 @@ mod tests {
     }
 
     #[test]
+    fn deepl_uses_the_paid_host_unless_a_debug_build_points_it_elsewhere() {
+        let none = |_: &str| None;
+        assert_eq!(
+            ProviderSettings::resolve_with(Provider::DeepL, none).unwrap(),
+            ProviderSettings::DeepL {
+                host: "api.deepl.com".into()
+            }
+        );
+        let env = |name: &str| (name == "DEEPL_API_HOST").then(|| "localhost:9000".to_string());
+        let ProviderSettings::DeepL { host } =
+            ProviderSettings::resolve_with(Provider::DeepL, env).unwrap()
+        else {
+            panic!("wrong provider settings")
+        };
+        let expected = if cfg!(debug_assertions) {
+            "localhost:9000"
+        } else {
+            DEFAULT_DEEPL_HOST
+        };
+        assert_eq!(host, expected);
+    }
+
+    #[test]
     fn the_realtime_speech_clients_take_the_glossary() {
         let glossary = ["IWAC".to_string()];
         let none = |_: &str| None;
@@ -256,7 +301,7 @@ mod tests {
         };
         assert_eq!(custom_vocabulary, glossary);
         // The translation models document no vocabulary field.
-        for provider in [Provider::Gemini, Provider::OpenAi] {
+        for provider in [Provider::Gemini, Provider::OpenAi, Provider::DeepL] {
             assert_eq!(
                 ProviderSettings::resolve_with(provider, none)
                     .unwrap()
