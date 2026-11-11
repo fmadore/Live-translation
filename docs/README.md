@@ -40,7 +40,13 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 
 - [Release notes](release-1.12.0.md) and [release handoff](store-updates.md#release-1120-handoff).
 
-## Release 1.13.0 (tagged 10 November 2026, not yet submitted)
+## Release 1.13.1 (tagged 11 November 2026, not yet submitted)
+
+- [Release notes](release-1.13.1.md): the fixes from the Mac app's first run on a real Mac.
+- [Release handoff](store-updates.md#release-1131-handoff); 1.13.1 replaces 1.13.0 as the next
+  Store submission. [Mac App Store screenshots](store-screenshots/README.md#mac-app-store-english).
+
+## Release 1.13.0 (tagged 10 November 2026, published on GitHub, never submitted)
 
 - [Release notes](release-1.13.0.md): the Mac app, Whisper on the graphics processor,
   speech detection, Large v3 Turbo, names and terms for Gemini Transcribe and Whisper, and the

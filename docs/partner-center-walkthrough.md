@@ -1,11 +1,13 @@
-# Partner Center submission walkthrough — 1.13.0
+# Partner Center submission walkthrough — 1.13.1
 
-Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Tagged 10 November 2026.**
+Target: **Live Translation & Subtitles 1.13.1**, Product ID `9PFB8LR3RR9X`. **Tagged 11 November 2026.**
+1.13.0 (10 November) was published on GitHub only; 1.13.1 carries it and the fixes from the Mac
+app's first run on a real Mac.
 The Store serves 1.12.0 (MSIX 1.12.0.0), live as reported by the maintainer on 10 November
-2026; 1.13.0.0 replaces it. Keep this walkthrough as the template for the
+2026; 1.13.1.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
-`https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`.
-The [release handoff](store-updates.md#release-1130-handoff) has the package evidence and
+`https://github.com/fmadore/Live-translation/releases/download/v1.13.1/Live.Translation_1.13.1.msixbundle`.
+The [release handoff](store-updates.md#release-1131-handoff) has the package evidence and
 outstanding acceptance checks.
 
 1.13.0 runs Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a helper
@@ -23,12 +25,12 @@ the certification notes' **paragraph on Zoom** and each description's **trademar
 ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new, the
 additional system requirements and the certification notes again from
 [store-listing.md](store-listing.md); the short descriptions and keywords are unchanged. What's
-new covers the changes since 1.12.0; the certification notes already name 1.13.0.0.
+new covers the changes since 1.12.0; the certification notes already name 1.13.1.0.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.13.0.msixbundle` contains both native packages at
-   **1.13.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.13.1.msixbundle` contains both native packages at
+   **1.13.1.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`, and
@@ -120,7 +122,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.13.0.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.13.1.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -128,7 +130,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.13.0.0` |
+| Version | `1.13.1.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -144,7 +146,7 @@ that listing if it is not already present. For each language, paste:
 2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.13.0
    changes the first, second and fifth lines; the twentieth, on Captions in Zoom, stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.13.0 block, under 1,500 characters. It covers the changes since
+4. **What's new**: the 1.13.1 block, under 1,500 characters. It covers the changes since
    1.12.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters.
    1.13.0 changes the second (Whisper: 31–547 MiB, processor or graphics processor).
@@ -195,7 +197,7 @@ Suggested `runFullTrust` justification:
 
 Confirm all sections are complete, the Product declaration for purchases outside Microsoft
 commerce is still ticked, each description ends with the Zoom trademark line, packages and copy
-agree on 1.13.0.0, screenshots and Store
+agree on 1.13.1.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, each listing carries the super hero art,
 and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a

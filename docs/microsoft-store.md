@@ -14,13 +14,14 @@ in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.13.0 / MSIX 1.13.0.0**, tagged on 10 November 2026, replacing 1.12.0. 1.13.0 runs
+**Next submission: 1.13.1 / MSIX 1.13.1.0**, tagged on 11 November 2026, replacing 1.12.0 (1.13.0, tagged on
+10 November, was published on GitHub only). Since 1.12.0 it runs
 Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a second executable in
 the package, bundles a speech-detection model, adds Large v3 Turbo, sends names and terms to
 Gemini subtitles too, and asks once for each cloud provider before audio is first sent to it.
 Its copy covers the changes since 1.12.0 and keeps everything 1.12.0 brought to the listing
 ([what it needs](store-listing-next.md)). See the
-[1.13.0 handoff](store-updates.md#release-1130-handoff), [listing copy](store-listing.md) and
+[1.13.1 handoff](store-updates.md#release-1131-handoff) (with [1.13.0's](store-updates.md#release-1130-handoff)), [listing copy](store-listing.md) and
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -72,8 +73,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.13.0; both MSIX manifests and the combined bundle
-  report 1.13.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.13.1; both MSIX manifests and the combined bundle
+  report 1.13.1.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the

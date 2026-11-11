@@ -5,10 +5,12 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.12.0 in the Store, 1.13.0 tagged
+## Current status — 1.12.0 in the Store, 1.13.1 tagged
 
-1.13.0 was tagged on 10 November 2026 and is not yet submitted to the Store
-([release notes](docs/release-1.13.0.md),
+1.13.1 was tagged on 11 November 2026 with the fixes from the Mac app's first run on a real Mac
+([release notes](docs/release-1.13.1.md), [handoff](docs/store-updates.md#release-1131-handoff));
+it replaces 1.13.0 as the next Store submission. 1.13.0 was tagged on 10 November 2026 and
+published on GitHub only ([release notes](docs/release-1.13.0.md),
 [handoff](docs/store-updates.md#release-1130-handoff)): the Mac
 app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
 Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
@@ -51,7 +53,8 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.13.0 handoff](docs/store-updates.md#release-1130-handoff) carries the open checks.
+[1.13.1 handoff](docs/store-updates.md#release-1131-handoff) carries the open checks, with
+[1.13.0's](docs/store-updates.md#release-1130-handoff).
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -191,7 +194,13 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.13.0** (10 November 2026; not yet submitted to the Store): the Mac app for Apple silicon
+- **1.13.1** (11 November 2026; not yet submitted to the Store): the fixes from the Mac app's
+  first run on a real Mac: the overlay over full-screen apps, Stop while System Audio Recording
+  is unanswered, a refused permission flagged, plainer capture messages on both systems, and
+  the Mac App Store screenshots
+  ([#218](https://github.com/fmadore/Live-translation/pull/218)).
+  [Release body](docs/release-1.13.1.md).
+- **1.13.0** (10 November 2026; published on GitHub, never submitted to the Store): the Mac app for Apple silicon
   ([#202](https://github.com/fmadore/Live-translation/pull/202)); Whisper on the graphics
   processor, speech detection, loop and credit filters and Large v3 Turbo
   ([#208](https://github.com/fmadore/Live-translation/pull/208)); names and terms for Gemini

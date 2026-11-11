@@ -1,10 +1,11 @@
-# Next Store submission — 1.13.0
+# Next Store submission — 1.13.1
 
-**Tagged 10 November 2026; not yet submitted.** The Store serves **1.12.0.0**, live as reported by the maintainer on
+**1.13.1 tagged 11 November 2026; not yet submitted.** 1.13.0 (10 November) was published on
+GitHub only. The Store serves **1.12.0.0**, live as reported by the maintainer on
 10 November 2026; the submission and certification dates were not recorded. The next
-submission is **1.13.0.0**, replacing it: one unsigned bundle with native x64 and ARM64
+submission is **1.13.1.0**, replacing it: one unsigned bundle with native x64 and ARM64
 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`
+`https://github.com/fmadore/Live-translation/releases/download/v1.13.1/Live.Translation_1.13.1.msixbundle`
 once the tag is built.
 
 What's new and the certification notes' first paragraph cover the changes since 1.12.0. What
@@ -14,7 +15,18 @@ The positioning is unchanged. Lead the listing with offline Whisper captions, th
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
 controls. New installations open on Whisper / Base / automatic detection, and existing saved
 setups are preserved. Model download and capture remain explicit user actions. The Store
-listing is for Windows: 1.13.0 also ships a Mac app, which the listing does not mention.
+listing is for Windows: 1.13 also ships a Mac app, which the listing does not mention.
+
+## What 1.13.1 adds
+
+From the [release notes](release-1.13.1.md): mostly the Mac app's fixes from its first run on a
+real Mac, which the Windows listing does not mention. Two reach Windows: Stop no longer waits on
+local Whisper when an audio device stops answering, and a closed application, an unplugged
+output or a missing microphone each get a plain message (`error.applicationClosed`,
+`error.outputDisconnected`, `error.micNone`). [store-listing.md](store-listing.md) adds one
+sentence on them to the end of What's new in each language and to the certification notes' first
+paragraph, and changes the version there to 1.13.1.0. No other field, capability or declaration
+changes.
 
 ## What 1.13.0 adds
 
@@ -87,14 +99,14 @@ capabilities are unchanged (`runFullTrust` and `microphone`); `AppxManifest.xml.
 
 ## The copy
 
-[store-listing.md](store-listing.md) is the 1.13.0 copy, with every block in English, French and
+[store-listing.md](store-listing.md) is the 1.13.1 copy, with every block in English, French and
 German: What's new, the descriptions' new offline-subtitles paragraph and the sentences on names
 and terms and on the question before audio goes to a provider, the changed feature lines, the
 second requirements line and the certification notes. The French and German sentences new in
-1.13.0 need the maintainer's review.
+1.13.0 and 1.13.1 need the maintainer's review.
 
 - [EN/FR/DE descriptions, What's new and certification notes](store-listing.md)
-- [Release notes](release-1.13.0.md)
+- [Release notes](release-1.13.1.md) (and [1.13.0's](release-1.13.0.md))
 - [Build evidence and acceptance checklist](store-updates.md#release-1130-handoff)
 - [Captions in Zoom guide](zoom-captions.md), which the app's dialog opens
 - [Screenshot plan](store-screenshots/README.md)
@@ -107,7 +119,7 @@ Before submission, complete:
 - the final-package checks, including `whisper-vulkan.exe` and the bundled model in both
   packages, and the checks still open from earlier releases;
 - the screenshot decision;
-- the German and French copy review of the 1.13.0 sentences;
+- the German and French copy review of the 1.13.0 and 1.13.1 sentences;
 - Windows App Certification Kit on the final packages, the first with a second executable.
 
 Use the normal Store identity: the side-by-side Local Test installation is for feedback, not the
