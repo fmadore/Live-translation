@@ -99,6 +99,15 @@ export const macEn: MacMessages = {
 	},
 	preflight: {
 		audio: {
+			// What Windows calls WASAPI loopback is a Core Audio tap here.
+			heard: {
+				system: 'System audio was receiving sound',
+				both: 'Both the room mic and system audio were receiving sound'
+			},
+			hearing: {
+				system: 'System audio is receiving sound — stop the test when you are satisfied',
+				both: 'Both the room mic and system audio are receiving sound — stop the test when you are satisfied'
+			},
 			silenced:
 				'Sound is playing, but only silence arrives. Allow Live Translation under System Settings > Privacy & Security > Screen & System Audio Recording, then start again'
 		}
@@ -192,6 +201,15 @@ export const macFr: MacMessages = {
 	},
 	preflight: {
 		audio: {
+			// What Windows calls WASAPI loopback is a Core Audio tap here.
+			heard: {
+				system: 'L’audio système recevait du son',
+				both: 'Le micro de la salle et l’audio système recevaient tous les deux du son'
+			},
+			hearing: {
+				system: 'L’audio système reçoit du son — arrêtez le test quand vous êtes satisfait',
+				both: 'Le micro de la salle et l’audio système reçoivent tous les deux du son — arrêtez le test quand vous êtes satisfait'
+			},
 			silenced:
 				'Du son est diffusé, mais seul du silence arrive. Autorisez Live Translation dans Réglages Système > Confidentialité et sécurité > Enregistrement de l’écran et de l’audio du système, puis redémarrez'
 		}
@@ -281,6 +299,15 @@ export const macDe: MacMessages = {
 	},
 	preflight: {
 		audio: {
+			// What Windows calls WASAPI loopback is a Core Audio tap here.
+			heard: {
+				system: 'Das Systemaudio hat Ton empfangen',
+				both: 'Sowohl das Raummikrofon als auch das Systemaudio haben Ton empfangen'
+			},
+			hearing: {
+				system: 'Das Systemaudio empfängt Ton – beenden Sie den Test, wenn Sie zufrieden sind',
+				both: 'Sowohl das Raummikrofon als auch das Systemaudio empfangen Ton – beenden Sie den Test, wenn Sie zufrieden sind'
+			},
 			silenced:
 				'Es wird Ton abgespielt, aber es kommt nur Stille an. Erlauben Sie Live Translation unter Systemeinstellungen > Datenschutz & Sicherheit > Bildschirm- & Systemaudioaufnahme und starten Sie erneut'
 		}

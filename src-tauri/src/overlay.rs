@@ -178,8 +178,13 @@ pub fn set_no_activate(window: &WebviewWindow, enabled: bool) {
 
 #[cfg(target_os = "macos")]
 mod macos {
-    use objc2::MainThreadMarker;
-    use objc2_app_kit::{NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior};
+    use std::sync::OnceLock;
+
+    use objc2::runtime::{AnyClass, AnyObject, Bool, ClassBuilder, Sel};
+    use objc2::{ClassType, MainThreadMarker, sel};
+    use objc2_app_kit::{
+        NSPanel, NSScreenSaverWindowLevel, NSWindow, NSWindowCollectionBehavior, NSWindowStyleMask,
+    };
     use tauri::WebviewWindow;
 
     /// Put the overlay above other applications' windows, full-screen ones included, in
@@ -197,6 +202,7 @@ mod macos {
         // runs on the main thread (checked above), where AppKit may be called. The reference
         // does not outlive the call.
         let ns_window: &NSWindow = unsafe { &*pointer.cast::<NSWindow>() };
+        make_panel(ns_window);
         ns_window.setLevel(NSScreenSaverWindowLevel);
         ns_window.setCollectionBehavior(
             NSWindowCollectionBehavior::CanJoinAllSpaces
@@ -209,6 +215,103 @@ mod macos {
         if ns_window.isVisible() {
             // Front of its level without activating the app or making the window key.
             ns_window.orderFrontRegardless();
+        }
+    }
+
+    /// The name tao gives the class of every window it makes, and of the ivar in which it
+    /// keeps whether the window may become key (`set_focusable`). WebKit observes the window
+    /// of a web view, so by the time the overlay is floated its class is the subclass
+    /// key-value observing makes, with the same layout.
+    const TAO_CLASSES: [&str; 2] = ["TaoWindow", "NSKVONotifying_TaoWindow"];
+    const FOCUSABLE: &std::ffi::CStr = c"focusable";
+
+    /// Turn the overlay into a non-activating panel, once.
+    ///
+    /// The first run on a real Mac found the overlay gone whenever another application was
+    /// in full screen (a slideshow, a presentation, a full-screen browser): for an
+    /// application with a Dock icon, macOS lets a plain window into another application's
+    /// full-screen Space only if it is a non-activating panel, whatever its level and
+    /// collection behaviour. Tauri makes every window a `TaoWindow`, an `NSWindow` subclass,
+    /// so the overlay's class is switched to an `NSPanel` subclass that keeps what tao's adds:
+    /// the `focusable` ivar, which tao writes in `set_focusable`, and `canBecomeKeyWindow` and
+    /// `canBecomeMainWindow` answering from it. tao's other override, `sendEvent:`, only
+    /// serves windows moved by their background, which the overlay is not.
+    ///
+    /// Done only when the two classes lay instances out alike (`NSPanel` adds nothing to
+    /// `NSWindow`'s size, and the ivar falls at the same offset); otherwise the overlay stays
+    /// a window and keeps the old behaviour. The window then leaves WebKit's key-value
+    /// observing subclass: tried with a web view in a prototype on macOS 26 (reload, close,
+    /// quit), and in the app, the overlay keeps drawing and placing captions.
+    fn make_panel(ns_window: &NSWindow) {
+        let object: &AnyObject = ns_window.as_ref();
+        let current = object.class();
+        if !current
+            .name()
+            .to_str()
+            .is_ok_and(|name| TAO_CLASSES.contains(&name))
+        {
+            // Already a panel, or not a window tao made.
+            tracing::debug!(class = ?current.name(), "overlay left as it is");
+            return;
+        }
+        let Some(panel) = panel_class() else {
+            tracing::warn!("overlay stays a window: the panel class could not be made");
+            return;
+        };
+        let same_layout = current.instance_size() == panel.instance_size()
+            && match (
+                current.instance_variable(FOCUSABLE),
+                panel.instance_variable(FOCUSABLE),
+            ) {
+                (Some(ours), Some(theirs)) => ours.offset() == theirs.offset(),
+                _ => false,
+            };
+        if !same_layout {
+            tracing::warn!("overlay stays a window: tao's window and the panel differ in layout");
+            return;
+        }
+        // SAFETY: both classes descend from `NSWindow` and lay instances out the same way
+        // (checked above), so the object's memory is a valid instance of either; this runs on
+        // the main thread, before anything else could be calling into the window.
+        unsafe {
+            objc2::ffi::object_setClass(std::ptr::from_ref(object).cast_mut(), panel);
+        }
+        ns_window.setStyleMask(ns_window.styleMask() | NSWindowStyleMask::NonactivatingPanel);
+        // SAFETY: the object is now an instance of an `NSPanel` subclass.
+        let panel: &NSPanel = unsafe { &*std::ptr::from_ref(ns_window).cast::<NSPanel>() };
+        // A panel hides when its application is not frontmost unless told otherwise; the
+        // captions must stay while the slides are in front.
+        panel.setHidesOnDeactivate(false);
+        tracing::info!("overlay is a non-activating panel");
+    }
+
+    /// `NSPanel`, plus tao's `focusable` ivar and the two methods that read it.
+    fn panel_class() -> Option<&'static AnyClass> {
+        static CLASS: OnceLock<Option<&'static AnyClass>> = OnceLock::new();
+        *CLASS.get_or_init(|| {
+            let mut builder = ClassBuilder::new(c"LiveTranslationOverlayPanel", NSPanel::class())?;
+            builder.add_ivar::<Bool>(FOCUSABLE);
+            // SAFETY: both methods take the receiver and selector and return a `BOOL`, as
+            // `canBecomeKeyWindow` and `canBecomeMainWindow` do.
+            unsafe {
+                builder.add_method(
+                    sel!(canBecomeKeyWindow),
+                    focusable as extern "C-unwind" fn(_, _) -> _,
+                );
+                builder.add_method(
+                    sel!(canBecomeMainWindow),
+                    focusable as extern "C-unwind" fn(_, _) -> _,
+                );
+            }
+            Some(builder.register())
+        })
+    }
+
+    extern "C-unwind" fn focusable(this: &AnyObject, _: Sel) -> Bool {
+        match this.class().instance_variable(FOCUSABLE) {
+            // SAFETY: the ivar was declared as a `Bool` on this class.
+            Some(ivar) => unsafe { *ivar.load::<Bool>(this) },
+            None => Bool::NO,
         }
     }
 }

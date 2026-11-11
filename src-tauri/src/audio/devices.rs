@@ -91,7 +91,9 @@ pub fn list_outputs() -> anyhow::Result<Vec<AudioDevice>> {
         .output_devices()
         .context("failed to enumerate output devices")?
     {
-        if let Ok(id) = device.id() {
+        if let Ok(id) = device.id()
+            && !super::is_own_device(&id.to_string())
+        {
             out.push(AudioDevice {
                 is_default: Some(&id) == default_id.as_ref(),
                 id: id.to_string(),
@@ -135,6 +137,7 @@ pub fn output_uids() -> anyhow::Result<Vec<String>> {
         .output_devices()
         .context("failed to check output availability")?
         .filter_map(|device| device.id().ok().map(|id| id.id().to_owned()))
+        .filter(|uid| !super::is_own_device(uid))
         .collect())
 }
 

@@ -68,7 +68,9 @@ pub fn list_input_devices() -> Result<Vec<AudioDevice>> {
             .context("failed to enumerate microphones")?;
         for device in devices {
             let name = device.to_string();
-            if let Ok(id) = device.id() {
+            if let Ok(id) = device.id()
+                && !super::is_own_device(&id.to_string())
+            {
                 let is_default = Some(&id) == default_id.as_ref();
                 out.push(AudioDevice {
                     id: id.to_string(),
@@ -89,6 +91,11 @@ fn pick_device(name: Option<&str>) -> Result<cpal::Device> {
     let mut inputs = host
         .input_devices()
         .context("failed to enumerate input devices")?
+        .filter(|device| {
+            !device
+                .id()
+                .is_ok_and(|id| super::is_own_device(&id.to_string()))
+        })
         .peekable();
     if inputs.peek().is_none() {
         return Err(super::CaptureLost::NoMicrophone.into());
