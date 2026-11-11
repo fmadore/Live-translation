@@ -129,8 +129,9 @@ question touches generated content. The expected rating is 4+.
 ## The listing (English, U.S.)
 
 Every paragraph is one unwrapped line for pasting. Screenshots must show the Mac app
-(Guideline 2.3.3) and are taken on a Mac at 1440 × 900 or 2880 × 1800, as in Kalamu's
-`docs/mac-test-day.md`, Part C.
+(Guideline 2.3.3), at one of App Store Connect's Mac sizes (1280 × 800, 1440 × 900, 2560 × 1600
+or 2880 × 1800), with no alpha channel. The current set, six images at 1280 × 800 from the
+sandboxed build, is in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 
 **Name** (30 characters at most): `Live Translation & Subtitles`
 
