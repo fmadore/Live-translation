@@ -23,7 +23,7 @@ direct build and the sandboxed one, through the accessibility interface; see
 | Caption overlay | screen-saver window level, every Space, beside full-screen apps; not key while click-through | level, transparency, move mode tested; click-through, Spaces, full screen to test |
 | Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | tested, direct and sandboxed |
 | External links | `NSWorkspace` opens the support page and the Zoom guide | to test |
-| API keys | login Keychain (keyring's Apple backend) | tested (direct) |
+| API keys | login Keychain (keyring's Apple backend) | tested, direct and sandboxed |
 | Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16 and Accelerate's BLAS | tested (Metal, Base model) |
 | Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | tested |
 | Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | tested |
@@ -289,9 +289,19 @@ writes in place and truncates a longer file it replaces, and the support link is
   and the hidden date input of History overflowed its box by 2px; the tray logged a warning on
   every ⌘Q for the application menu's event.
 
+**Cloud provider, after the fixes:** Gemini live translation (English sample to French) through
+Rehearse, in the direct and the sandboxed build: the WebSocket connects through the system's
+TLS (Security.framework, where Windows uses SChannel) and is set up in under half a second,
+the captions arrive in French, Gemini's planned session handovers (about every nine minutes)
+reconnect without a gap, Stop drains and ends cleanly, and the sandbox's network entitlement
+covers the WebSocket. The key there was copied into the app's entry with `security
+add-generic-password`, so macOS asked for the login password at the first two reads in each
+build (one to check a key exists, one at Start); a key pasted into the app's own field asks
+nothing. While that question waits, Start only says "Starting…". Not tried: OpenAI, Mistral,
+and a cloud session on system audio rather than the bundled sample.
+
 **Not done in that run:** microphone capture (no input device), click-through, Spaces and full
-screen, sleep, the support and Zoom links, SRT/WebVTT export, a cloud provider (no test key),
-and turning System Audio Recording off in System Settings after allowing it (the refusal was
+screen, sleep, the support and Zoom links, SRT/WebVTT export, and turning System Audio Recording off in System Settings after allowing it (the refusal was
 tested by answering "Don't Allow"). Also seen: the first session after a restart
 waits about 7 s on "Starting…" while Metal compiles Whisper's shaders, and the application menu
 stays in English when the interface is French or German.
