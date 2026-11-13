@@ -7,8 +7,30 @@ import {
 	fitCaptionTail,
 	isCaptionLayout,
 	bottomCaptionHeight,
+	originalHeight,
+	rowFontSize,
 	tail
 } from './captionLayout';
+
+describe('row font size', () => {
+	it('keeps the operator size when a line of it fits the row', () => {
+		expect(rowFontSize(52, 128)).toBe(52);
+		expect(rowFontSize(38, 200, true)).toBe(38);
+	});
+
+	it('shrinks so a shallow row still shows a line', () => {
+		// A 160 px strip at 52 px split between two sources: 55 px per row.
+		const size = rowFontSize(52, 55);
+		expect(size).toBeLessThan(52);
+		expect(Math.floor(55 / (size * 1.34))).toBeGreaterThanOrEqual(1);
+		const withOriginal = rowFontSize(52, 90, true);
+		expect(withOriginal * 1.34 + originalHeight(withOriginal, 1) + 4).toBeLessThanOrEqual(90);
+	});
+
+	it('never goes below the smallest overlay size', () => {
+		expect(rowFontSize(52, 5)).toBe(20);
+	});
+});
 
 it('makes room for one line of original speech per row when it is shown', () => {
 	for (const sources of [1, 2]) {
