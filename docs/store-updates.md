@@ -59,10 +59,10 @@ recipient).
   `docs/release-1.14.0.md`.
 - [ ] The release PR's CI passes, the macOS lane included (nothing in it is platform-specific,
   and none of it has been tried on a Mac).
-- [ ] **DeepL:** a live session with a key from a paid DeepL API plan (the ignored `live_probe`,
-  then real speech in the app), checking what [the DeepL notes](deepl-voice-api.md) list as
-  unverified; or the maintainer's decision to submit with DeepL untested and labelled
-  experimental, as the app and the copy say.
+- [x] **DeepL:** the maintainer decided on 13 November 2026 to submit 1.14.0 with DeepL untested
+  against the live API and labelled experimental, as the app and the copy say. A live session
+  with a key from a paid DeepL API plan (the ignored `live_probe`, then real speech in the app)
+  is still owed, checking what [the DeepL notes](deepl-voice-api.md) list as unverified.
 - [ ] **Overlay:** both sources in a 160 px strip on the installed package: each row shows a
   line in Fit window, Compact and Stable reading.
 - [ ] The French and German sentences new in 1.14.0 (What's new, the descriptions' DeepL
