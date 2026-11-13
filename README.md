@@ -19,15 +19,17 @@ The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini
 whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
 and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
 
+**[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
+is the latest release, not yet submitted to the Store: DeepL as an experimental fourth cloud
+translation engine (paid DeepL API plan only), Mistral subtitles that reconnect after a
+transcription timeout, and an overlay that shows a line in every row when both sources share a
+shallow strip. See its [release notes](docs/release-1.14.0.md) and
+[Store handoff](docs/store-updates.md#release-1140-handoff).
 **[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November 2026)
-is the latest release, not yet submitted to the Store: the fixes from the Mac app's first run on
-a real Mac, on top of [1.13.0](docs/release-1.13.0.md) (a Mac app for Apple silicon, Whisper on
-the graphics processor with speech detection and Large v3 Turbo). See its
-[release notes](docs/release-1.13.1.md) and [Store handoff](docs/store-updates.md#release-1131-handoff).
-**[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): captions
-in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
-([release notes](docs/release-1.12.0.md)).
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): the
+fixes from the Mac app's first run on a real Mac, on top of [1.13.0](docs/release-1.13.0.md) (a
+Mac app for Apple silicon, Whisper on the graphics processor with speech detection and Large v3
+Turbo) ([release notes](docs/release-1.13.1.md)).
 
 ## What it does
 

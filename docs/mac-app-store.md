@@ -6,11 +6,14 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (11 November 2026)
+## Status (13 November 2026)
 
-**Not yet submitted; tried on a real Mac, sandbox included.** The build to upload is **1.13.1**,
-which carries the fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026));
-the English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+**Tried on a real Mac, sandbox included; submission not recorded.** 1.13.1 (11 November) carries
+the fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026));
+the repository does not record whether it was uploaded or submitted. If it was not, the build to
+upload is **1.14.0** (prepared, not yet tagged), which adds DeepL as an experimental cloud
+translation engine and the Mistral and overlay fixes, none of them tried on a Mac yet. The
+English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
 unlock proposed in [#195](https://github.com/fmadore/Live-translation/issues/195) are dropped, so
@@ -31,14 +34,14 @@ What is ready in the repository:
 - the *Mac App Store* workflow, which signs the app and its installer package and uploads them
   to App Store Connect;
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
-- the privacy policy's macOS section and the provider question, effective 5 November 2026.
+- the privacy policy's macOS section and the provider question (effective 5 November 2026; the policy now in force, effective 11 November 2026, adds DeepL).
 
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. As far as the repository
 records, it has not been submitted for review. What only the maintainer can do: the remaining
-App Store Connect steps, uploading the 1.13.1 build from its tag, and a TestFlight run of the
-store build itself. The one open question,
+App Store Connect steps, uploading the 1.14.0 build from its tag (or 1.13.1's, if that was
+already done), and a TestFlight run of the store build itself. The one open question,
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox
@@ -199,7 +202,7 @@ Real speech recognition without any account or API key:
 
 Setup-free check without audio: choose the engine Built-in demo and click Start demo subtitles. It plays a prepared English or French script through the overlay, timer, level meter and export, without capturing or recognizing any audio, and says so on screen.
 
-Optional cloud engines (Google Gemini, OpenAI, Mistral) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
+Optional cloud engines (Google Gemini, OpenAI, Mistral, DeepL) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. DeepL, marked experimental in the app, needs a paid DeepL API plan; a free DeepL key (ending in :fx) is refused with an explanation and nothing is sent. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
 
 The overlay uses public AppKit only: a borderless transparent window at a high window level that joins every Space and full-screen apps and ignores mouse events while captions run.
 ```

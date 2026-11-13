@@ -5,12 +5,22 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.12.0 in the Store, 1.13.1 tagged
+## Current status — 1.13.1 in the Store, 1.14.0 prepared
 
-1.13.1 was tagged on 11 November 2026 with the fixes from the Mac app's first run on a real Mac
-([release notes](docs/release-1.13.1.md), [handoff](docs/store-updates.md#release-1131-handoff));
-it replaces 1.13.0 as the next Store submission. 1.13.0 was tagged on 10 November 2026 and
-published on GitHub only ([release notes](docs/release-1.13.0.md),
+1.14.0 is prepared, not yet tagged (planned for 13 November 2026;
+[release notes](docs/release-1.14.0.md), [handoff](docs/store-updates.md#release-1140-handoff)):
+DeepL as an experimental fourth cloud translation engine, for paid DeepL API plans only
+([#220](https://github.com/fmadore/Live-translation/pull/220)); Mistral subtitles that reconnect
+after a transcription timeout (code 3804); and overlay rows that each show a line when both
+sources share a strip sized for one ([#221](https://github.com/fmadore/Live-translation/pull/221)).
+
+The Store serves [**1.13.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)
+(11 November 2026, MSIX 1.13.1.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
+13 November 2026 (SignatureKind Store); the submission and certification dates were not
+recorded ([handoff](docs/store-updates.md#release-1131-handoff),
+[release notes](docs/release-1.13.1.md)). It carries the fixes from the Mac app's first run on a
+real Mac on top of 1.13.0, which was tagged on 10 November 2026 and published on GitHub only
+([release notes](docs/release-1.13.0.md),
 [handoff](docs/store-updates.md#release-1130-handoff)): the Mac
 app, Whisper on the graphics processor, speech detection, Large v3 Turbo, names and terms for
 Gemini Transcribe and Whisper, the prompt before audio first goes to a cloud provider, and the
@@ -18,7 +28,8 @@ switch that leaves out the call heard by the room microphone with Both sources. 
 [10 November app review](docs/app-review-2026-11-10.md) lists the findings fixed before the tag
 ([#213](https://github.com/fmadore/Live-translation/pull/213)) and what is still to check by hand.
 
-The Store serves [**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)
+Before it, the Store served
+[**1.12.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)
 (27 October 2026, MSIX 1.12.0.0), live as reported by the maintainer on 10 November 2026; the
 submission and certification dates were not recorded
 ([handoff](docs/store-updates.md#release-1120-handoff), [release notes](docs/release-1.12.0.md)).
@@ -53,8 +64,13 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.13.1 handoff](docs/store-updates.md#release-1131-handoff) carries the open checks, with
+[1.14.0 handoff](docs/store-updates.md#release-1140-handoff) carries the open checks, with
+[1.13.1's](docs/store-updates.md#release-1131-handoff) and
 [1.13.0's](docs/store-updates.md#release-1130-handoff).
+
+- **DeepL Voice** ([notes](docs/deepl-voice-api.md)): a first live session with a paid key, which
+  confirms the line breaks, segment times, the target codes `en-US`, `zh-Hans` and `nb`, the
+  keepalive and the token lifetime; until then the engine picker calls DeepL experimental.
 
 - **Local Whisper:** live hardware, language and Store-package checks
   ([local Whisper](docs/local-whisper.md)), now including Small translating real speech into
@@ -124,11 +140,14 @@ glossaries, live corrections and offline text translation are not planned.
   on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
   uploaded a build to App Store Connect on 5 November 2026; it has not been submitted for
-  review. Not yet run on a real Mac; the first run is on a rented Scaleway Mac mini, with the
-  checklist in the notes. The paid trial proposed in the issue was dropped: the Mac version is
+  review. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
+  10–11 November 2026, whose fixes shipped in 1.13.1
+  ([macOS notes](docs/macos.md#first-run-1011-november-2026)). The paid trial proposed in the issue was dropped: the Mac version is
   free.
 
-- **DeepL Voice as a fourth cloud translation engine** (branch `feat/deepl-voice`): DeepL's
+- **DeepL Voice as a fourth cloud translation engine** (merged in
+  [#220](https://github.com/fmadore/Live-translation/pull/220), in 1.14.0, marked experimental
+  until a live session has run): DeepL's
   realtime Voice API transcribes and translates in one stream, into 42 of the catalog's caption
   languages, from a company based in the EU ([DeepL notes](docs/deepl-voice-api.md)). Each
   session first requests a single-use token over HTTPS, then streams 16 kHz PCM over a WebSocket.
@@ -205,7 +224,13 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.13.1** (11 November 2026; not yet submitted to the Store): the fixes from the Mac app's
+- **1.14.0** (prepared, not yet tagged; planned for 13 November 2026): DeepL as an experimental
+  fourth cloud translation engine, paid DeepL API plans only
+  ([#220](https://github.com/fmadore/Live-translation/pull/220)); Mistral reconnects after a
+  transcription timeout (code 3804); every overlay row shows a line when both sources share a
+  shallow strip ([#221](https://github.com/fmadore/Live-translation/pull/221)).
+  [Release body](docs/release-1.14.0.md).
+- **1.13.1** (11 November 2026; live in the Store, read 13 November 2026): the fixes from the Mac app's
   first run on a real Mac: the overlay over full-screen apps, Stop while System Audio Recording
   is unanswered, a refused permission flagged, plainer capture messages on both systems, and
   the Mac App Store screenshots
@@ -221,7 +246,7 @@ glossaries, live corrections and offline text translation are not planned.
   [10 November app review](docs/app-review-2026-11-10.md)
   ([#213](https://github.com/fmadore/Live-translation/pull/213)).
   [Release body](docs/release-1.13.0.md).
-- **1.12.0** (27 October 2026; live in the Store, reported 10 November 2026): captions in Zoom, one caption
+- **1.12.0** (27 October 2026; live in the Store, reported 10 November 2026, replaced by 1.13.1): captions in Zoom, one caption
   language in a Zoom meeting's own caption bar
   ([#189](https://github.com/fmadore/Live-translation/pull/189)); no flashes or layout shifts in
   setup and the transcript ([#188](https://github.com/fmadore/Live-translation/pull/188)); and a
