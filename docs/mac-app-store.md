@@ -8,11 +8,11 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 
 ## Status (13 November 2026)
 
-**Tried on a real Mac, sandbox included; submission not recorded.** 1.13.1 (11 November) carries
-the fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026));
-the repository does not record whether it was uploaded or submitted. If it was not, the build to
-upload is **1.14.0** (prepared, not yet tagged), which adds DeepL as an experimental cloud
-translation engine and the Mistral and overlay fixes, none of them tried on a Mac yet. The
+**1.13.1 is in App Review** (the maintainer, 13 November 2026; the upload and submission dates
+were not recorded). It carries the fixes of the first run on a real Mac
+([macOS notes](macos.md#first-run-1011-november-2026)). **1.14.0** (prepared, not yet tagged) is
+the next Mac build to upload once 1.13.1's review is settled: it adds DeepL as an experimental
+cloud translation engine and the Mistral and overlay fixes, none of them tried on a Mac yet. The
 English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
@@ -39,9 +39,9 @@ What is ready in the repository:
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. As far as the repository
-records, it has not been submitted for review. What only the maintainer can do: the remaining
-App Store Connect steps, uploading the 1.14.0 build from its tag (or 1.13.1's, if that was
-already done), and a TestFlight run of the store build itself. The one open question,
+That build was not submitted; 1.13.1 was, and is in App Review (13 November 2026). What only the
+maintainer can do: following 1.13.1's review, then uploading the 1.14.0 build from its tag as
+the next version, and a TestFlight run of the store build itself. The one open question,
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox

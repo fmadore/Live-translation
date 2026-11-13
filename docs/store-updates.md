@@ -87,8 +87,7 @@ recipient).
 - [ ] Submit `Live.Translation_1.14.0.msixbundle` in Partner Center with the 1.14.0 copy
   ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
 - [ ] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.14.0 build from
-  its tag, if 1.13.1 was not uploaded and submitted; the repository does not record whether it
-  was.
+  its tag, as the version after 1.13.1, which is in App Review (13 November 2026).
 
 ## Release 1.13.1 handoff
 
@@ -155,9 +154,9 @@ change: nothing new is sent or kept.
 - [ ] Submit `Live.Translation_1.13.1.msixbundle` in Partner Center with the 1.13.1 copy
   ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%. It was
   submitted and is live (read 13 November 2026); the date and the rollout were not recorded.
-- [ ] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.13.1 build from
-  its tag and the screenshots in `store-screenshots/mac/en`; not the 5 November upload. Not
-  recorded either way; if it was not done, 1.14.0 is the build to upload.
+- [x] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.13.1 build from
+  its tag and the screenshots in `store-screenshots/mac/en`; not the 5 November upload. Submitted,
+  and in App Review on 13 November 2026 (the maintainer); the dates were not recorded.
 
 ## Release 1.13.0 handoff
 

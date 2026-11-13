@@ -17,7 +17,7 @@ and German interface · MIT license**
 
 The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
 whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
-and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
+and a free Mac App Store version, 1.13.1, is in Apple's review ([submission notes](docs/mac-app-store.md)).
 
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
 is the latest release, not yet submitted to the Store: DeepL as an experimental fourth cloud

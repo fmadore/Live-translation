@@ -139,8 +139,8 @@ glossaries, live corrections and offline text translation are not planned.
   the Dock, macOS wording and ⌘ shortcuts in all three languages, a macOS CI lane, a test build
   on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
-  uploaded a build to App Store Connect on 5 November 2026; it has not been submitted for
-  review. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
+  uploaded a build to App Store Connect on 5 November 2026, which was not submitted; 1.13.1 was,
+  and is in App Review (13 November 2026). First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
   10–11 November 2026, whose fixes shipped in 1.13.1
   ([macOS notes](docs/macos.md#first-run-1011-november-2026)). The paid trial proposed in the issue was dropped: the Mac version is
   free.
