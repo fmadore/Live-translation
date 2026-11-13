@@ -17,7 +17,8 @@
 		bottomCaptionHeight,
 		ORIGINAL_GAP,
 		ORIGINAL_SCALE,
-		originalHeight
+		originalHeight,
+		rowFontSize
 	} from '#lib/captionLayout.js';
 	import { readFlag } from '#lib/persisted.js';
 	import { captionCssVars } from '#lib/captionColour.js';
@@ -102,11 +103,15 @@
 				Math.max(1, lines.length)
 		)
 	);
+	const showsOriginal = $derived(lines.some((line) => line.original));
+	// The size the rows are drawn at: the operator's, shrunk only when the window is too shallow
+	// to give every row a line of it. The window keeps its size; Snap to bottom gives the
+	// operator's size its room back.
+	const rowFont = $derived(rowFontSize(fontSize, rowHeight, showsOriginal));
 	// The original takes two of its smaller lines when the row has room for them beside two
 	// caption lines, and one otherwise: it is there to follow along, not to be read in full.
-	const originalRows = $derived(rowHeight >= 4.5 * fontSize ? 2 : 1);
-	const originalRegion = $derived(originalHeight(fontSize, originalRows));
-	const showsOriginal = $derived(lines.some((line) => line.original));
+	const originalRows = $derived(rowHeight >= 4.5 * rowFont ? 2 : 1);
+	const originalRegion = $derived(originalHeight(rowFont, originalRows));
 
 	onMount(() => {
 		const measure = () => {
@@ -239,7 +244,7 @@
 	class:interactive={placement.interactive}
 	class:stable={layout === 'stable'}
 	class:fit={layout !== 'compact'}
-	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {fontSize}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
+	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {rowFont}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"
 >
@@ -269,7 +274,7 @@
 							text={line.text}
 							interim={line.interim}
 							height={line.original ? rowHeight - originalRegion - ORIGINAL_GAP : rowHeight}
-							fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded}
+							fontKey={rowFont + ':' + captionFace + ':' + fontsLoaded}
 							language={rowLanguage(line.lane) ?? ''}
 						/>
 						{#if line.original}
@@ -282,7 +287,7 @@
 									text={line.original}
 									interim={false}
 									height={originalRegion}
-									fontKey={fontSize + ':' + captionFace + ':' + fontsLoaded + ':original'}
+									fontKey={rowFont + ':' + captionFace + ':' + fontsLoaded + ':original'}
 									language=""
 								/>
 							</div>

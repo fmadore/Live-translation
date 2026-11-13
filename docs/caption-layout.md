@@ -40,8 +40,11 @@ again remembers it for the new scaling.
 
 When both sources have visible captions, system audio appears above the microphone,
 with labels, and they share the available height. A single visible source uses the
-available height without an origin label. If the window is too short to fit even one
-complete line at the selected font size, enlarge it or reduce the font size.
+available height without an origin label. When the rows' share of the window is too short
+for one line at the selected font size (a strip sized for one source, which a second source
+then splits), the rows are drawn smaller, down to 20 px, so each still shows a line
+(`rowFontSize`); before 1.14.0 they showed their labels and no caption. Snap to bottom gives
+the selected size its room back.
 
 ## Compact
 
