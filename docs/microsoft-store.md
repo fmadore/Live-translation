@@ -1,8 +1,16 @@
 # Microsoft Store submission
 
-**Current Store release: 1.12.0 / MSIX 1.12.0.0**, live as reported by the maintainer on
-10 November 2026; the submission and certification dates were not recorded
-([its handoff](store-updates.md#release-1120-handoff)). It replaced 1.11.0. It added Captions
+**Current Store release: 1.13.1 / MSIX 1.13.1.0**, read from the installed package with
+`Get-AppxPackage` on the maintainer's ARM64 PC on 13 November 2026 (SignatureKind Store); the
+submission and certification dates were not recorded
+([its handoff](store-updates.md#release-1131-handoff)). It replaced 1.12.0 (1.13.0, tagged on
+10 November, was published on GitHub only). Since 1.12.0 it runs Whisper on a suitable graphics
+processor through `whisper-vulkan.exe`, a second executable in the package, bundles a
+speech-detection model, adds Large v3 Turbo, sends names and terms to Gemini subtitles too, and
+asks once for each cloud provider before audio is first sent to it.
+
+**1.12.0 / MSIX 1.12.0.0**, live as reported by the maintainer on 10 November 2026 and replaced
+by 1.13.1 ([its handoff](store-updates.md#release-1120-handoff)), replaced 1.11.0. It added Captions
 in Zoom, the first feature that can send caption text to a third party the user names, so its
 listing carries the privacy policy's Zoom section, a certification-notes paragraph and a
 trademark line in each description.
@@ -14,14 +22,14 @@ in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.13.1 / MSIX 1.13.1.0**, tagged on 11 November 2026, replacing 1.12.0 (1.13.0, tagged on
-10 November, was published on GitHub only). Since 1.12.0 it runs
-Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a second executable in
-the package, bundles a speech-detection model, adds Large v3 Turbo, sends names and terms to
-Gemini subtitles too, and asks once for each cloud provider before audio is first sent to it.
-Its copy covers the changes since 1.12.0 and keeps everything 1.12.0 brought to the listing
-([what it needs](store-listing-next.md)). See the
-[1.13.1 handoff](store-updates.md#release-1131-handoff) (with [1.13.0's](store-updates.md#release-1130-handoff)), [listing copy](store-listing.md) and
+**Next submission: 1.14.0 / MSIX 1.14.0.0**, prepared, not yet tagged (planned for
+13 November 2026), replacing 1.13.1. It adds DeepL as an experimental fourth cloud translation
+engine, which needs a paid DeepL API plan and refuses a free key; Mistral subtitles reconnect
+after a transcription timeout; and with both sources each overlay row shows a line in a strip
+sized for one. Its What's new and the certification notes' first paragraph cover the changes
+since 1.13.1; the descriptions, one feature line and the certification notes' *Optional cloud
+features* paragraph add DeepL ([what it needs](store-listing-next.md)). See the
+[1.14.0 handoff](store-updates.md#release-1140-handoff), [listing copy](store-listing.md) and
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -73,8 +81,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.13.1; both MSIX manifests and the combined bundle
-  report 1.13.1.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.14.0; both MSIX manifests and the combined bundle
+  report 1.14.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -96,6 +104,10 @@ before submission; a passing local check does not imply certification.
 - [ ] From 1.13.0: the first session or rehearsal with each cloud provider asks before audio is
   sent, with Cancel in focus, once per provider; Whisper and the demo are never asked about.
   Names and terms reach Gemini subtitles and Whisper.
+- [ ] From 1.14.0: a free DeepL key (ending in `:fx`) is refused when saved, with its own
+  sentence; with a key from a paid DeepL API plan, a DeepL translation session captions real
+  speech (or the submission goes ahead with DeepL untested and labelled experimental, by the
+  maintainer's decision). With both sources in a 160 px overlay strip, each row shows a line.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.
