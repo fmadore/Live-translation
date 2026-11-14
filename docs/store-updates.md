@@ -9,9 +9,159 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.14.0 handoff
+
+**Prepared; not yet tagged or submitted** (tag planned for 13 November 2026). The Store serves
+**1.13.1.0**, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
+maintainer's ARM64 PC on 13 November 2026 (Version 1.13.1.0, SignatureKind Store); the
+submission and certification dates were not recorded ([1.13.1's handoff](#release-1131-handoff)).
+Target app version: **1.14.0**, MSIX **1.14.0.0**, in `Live.Translation_1.14.0.msixbundle`, with
+`Live.Translation_1.14.0_aarch64.dmg` for the Mac. What's new and the certification notes' first
+paragraph cover the changes since 1.13.1; the descriptions, the fourth feature line and the
+certification notes' *Optional cloud features* add DeepL ([store-listing.md](store-listing.md),
+[what changed](store-listing-next.md#what-1140-adds)).
+
+Since `v1.13.1`:
+
+- [#220](https://github.com/fmadore/Live-translation/pull/220): DeepL (DeepL Voice API, DeepL SE)
+  as a fourth cloud engine, for live translation only, into 42 caption languages
+  ([DeepL notes](deepl-voice-api.md)). Voice is on DeepL's paid API only: a free key (ending in
+  `:fx`) is refused when saved and again at Start (`error.deeplPaidPlan`), with no request made.
+  Marked **experimental** in the engine picker: built from DeepL's documentation and tested
+  against its documented messages and loopback servers, but never run against the live API. The
+  shared realtime runner gains three hooks (a preparation step before each connection, an
+  optional setup message, a keepalive), no-ops for Gemini, OpenAI and Mistral, whose wire output
+  is unchanged. Privacy policy effective 11 November 2026, naming DeepL.
+- `1d9a5b6`: Mistral's "Timeout waiting for response from streaming transcription" (code 3804),
+  seen in a live stream on 11 November 2026, now reconnects like 3803 instead of stopping the
+  source.
+- [#221](https://github.com/fmadore/Live-translation/pull/221): with both sources, an overlay
+  strip sized for one source (160 px at 150 %, font 52) left each row too shallow for one line,
+  so the Room and Remote labels showed over empty rows; rows are now drawn at the largest size
+  that fits, down to 20 px. Reported from a real Zoom meeting with Mistral subtitles. The release
+  PR is merged after #221.
+
+**Changed under the surface:** no new command or permission; the CSP (`tauri.conf.json`), both
+windows' capabilities and `command_names.rs` are unchanged since `v1.13.1`; DeepL goes through
+the existing session and key commands as a new `Provider` value (`deepl`, on both sides of the
+contract). One new error id, `error.deeplPaidPlan`, in `errors.rs` and the three catalogs. One
+new credential, `deepl-api-key`, in Credential Manager or the Keychain. No new Rust or npm
+dependency (`Cargo.lock` and `package-lock.json` change only in the version). The MSIX template,
+`bundle.config.json` and the package's contents are unchanged. The
+[privacy policy](privacy.md) changed in #220 (effective 11 November 2026, DeepL named as a
+recipient).
+
+### Preparation
+
+- [x] #220 merged; `1d9a5b6` on `main`.
+- [ ] #221 merged, then the release PR, which carries the version bump in the seven files of
+  [the route](#the-route) and `CITATION.cff` (1.14.0, 13 November 2026) and
+  `docs/release-1.14.0.md`.
+- [ ] The release PR's CI passes, the macOS lane included (nothing in it is platform-specific,
+  and none of it has been tried on a Mac).
+- [x] **DeepL:** the maintainer decided on 13 November 2026 to submit 1.14.0 with DeepL untested
+  against the live API and labelled experimental, as the app and the copy say. A live session
+  with a key from a paid DeepL API plan (the ignored `live_probe`, then real speech in the app)
+  is still owed, checking what [the DeepL notes](deepl-voice-api.md) list as unverified.
+- [ ] **Overlay:** both sources in a 160 px strip on the installed package: each row shows a
+  line in Fit window, Compact and Stable reading.
+- [ ] The French and German sentences new in 1.14.0 (What's new, the descriptions' DeepL
+  sentences, the fourth feature line, the certification notes) reviewed by the maintainer; the
+  German listing still awaits a native speaker's review.
+- [ ] Partner Center limits: What's new EN 588, FR 709, DE 718 of 1,500 characters (counted in
+  [store-listing.md](store-listing.md)); feature line 4 EN 130, FR 144, DE 153 of 200; the
+  certification notes' first paragraph is 1,009 characters, with no limit recorded.
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.14.0` (annotated: "Live Translation & Subtitles v1.14.0") on the merge of the release
+  PR and push it; the workflow publishes the release with `docs/release-1.14.0.md` once the bundle
+  and the disk image are attached.
+- [ ] Verify the bundle at **1.14.0.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled (`spctl -a -t open --context context:primary-signature -v`, `xcrun stapler validate`).
+- [ ] The open checks of the [1.13.1](#release-1131-handoff) and [1.13.0](#release-1130-handoff)
+  handoffs (maintainer test on Windows, WACK, sideload and accessibility checks, the Store
+  screenshots decision) apply to 1.14.0.
+- [ ] The published privacy page reads "11 November 2026" and names DeepL.
+- [ ] Submit `Live.Translation_1.14.0.msixbundle` in Partner Center with the 1.14.0 copy
+  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
+- [ ] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.14.0 build from
+  its tag, as the version after 1.13.1, which is in App Review (13 November 2026).
+
+## Release 1.13.1 handoff
+
+**Tagged and published on GitHub on 11 November 2026; live in the Store** as 1.13.1.0, read with
+`Get-AppxPackage` on the maintainer's ARM64 PC on 13 November 2026 (SignatureKind Store). The
+submission and certification dates and the rollout were not recorded; the checks below that
+stay unticked were not recorded as done and stay open against the Store build. 1.14.0 follows it
+([handoff](#release-1140-handoff)). 1.13.0 was tagged and published on GitHub on 10 November 2026
+and **never submitted**; 1.13.1 replaced it, as 1.7.1 once replaced 1.7.0, and replaced 1.12.0.0
+in the Store. Target app version: **1.13.1**, MSIX **1.13.1.0**, in
+`Live.Translation_1.13.1.msixbundle`, with `Live.Translation_1.13.1_aarch64.dmg` for the Mac.
+What's new and the certification notes still cover everything since 1.12.0, now with one
+sentence on 1.13.1's own fixes ([store-listing.md](store-listing.md),
+[what changed](store-listing-next.md#what-1131-adds)).
+
+1.13.1 is the Mac app's first run on a real Mac (an M2 Mac mini on macOS 26.7.3, direct and
+sandboxed builds; [macOS notes](macos.md#first-run-1011-november-2026)) and its fixes:
+
+- [#218](https://github.com/fmadore/Live-translation/pull/218): Stop no longer hangs while the
+  System Audio Recording question is unanswered, and on Windows too a local Whisper source no
+  longer waits on a capture thread Stop has given up on (`ActiveSession::abandoned`); a refused
+  permission is flagged while something plays (`AudioLevel.silenced`, new optional field on both
+  sides of the contract); no microphone, a closed application and a disconnected output each get
+  their own error id (`error.micNone`, `error.applicationClosed`, `error.outputDisconnected`), on
+  both systems; no single-instance plugin in the App Sandbox; RAUMMIKROFON on one line in
+  WebKit; the hidden date input no longer overflows; README: CMake for a Mac build.
+- The overlay as a non-activating panel on macOS, so it stays over full-screen apps; the audio
+  test's macOS wording; the app's own tap devices left out of device lists. Gemini was tried in
+  both Mac builds.
+- [#214](https://github.com/fmadore/Live-translation/pull/214): two npm dev-dependency updates.
+- The Mac App Store screenshots, English, in
+  [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+
+**Changed under the surface:** no new command or permission; the CSP and both windows'
+capabilities are unchanged since `v1.13.0`. Three new error ids in `errors.rs` and the catalogs.
+The MSIX template, `bundle.config.json` and the package's contents are unchanged. For macOS
+only, `objc2-app-kit` gains its `NSPanel` feature. The [privacy policy](privacy.md) needs no
+change: nothing new is sent or kept.
+
+### Preparation
+
+- [x] #218 merged; the overlay, wording and device-list fixes and the screenshots in the release
+  PR, which carries the version bump in the seven files of [the route](#the-route) and
+  `CITATION.cff` (1.13.1, 11 November 2026) and `docs/release-1.13.1.md`.
+- [ ] The release PR's CI passes, the Windows lanes included (the typed capture errors touch
+  `windows_impl` and `applications.rs`, which the branch could not compile on a Mac).
+- [ ] The French and German sentences new in 1.13.1 (What's new, the certification notes, the
+  macOS strings in `i18n/mac.ts`) reviewed by the maintainer.
+- [ ] Partner Center limits: What's new EN 1,175, FR 1,354, DE 1,330 of 1,500 characters
+  (counted in [store-listing.md](store-listing.md)); the certification notes' first paragraph
+  is 1,411 characters, with no limit recorded.
+
+### Release and Store acceptance
+
+- [x] Tag `v1.13.1` (annotated: "Live Translation & Subtitles v1.13.1") on the merge of the release
+  PR and push it; the workflow publishes the release with `docs/release-1.13.1.md` once the bundle
+  and the disk image are attached. Tagged 11 November 2026; the release was published the same
+  day with the bundle and the disk image.
+- [ ] Verify the bundle at **1.13.1.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled (`spctl -a -t open --context context:primary-signature -v`, `xcrun stapler validate`).
+- [ ] The open checks of the [1.13.0 handoff](#release-1130-handoff) (maintainer test on Windows,
+  WACK, sideload and accessibility checks, the Store screenshots decision) apply to 1.13.1.
+- [ ] Submit `Live.Translation_1.13.1.msixbundle` in Partner Center with the 1.13.1 copy
+  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%. It was
+  submitted and is live (read 13 November 2026); the date and the rollout were not recorded.
+- [x] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.13.1 build from
+  its tag and the screenshots in `store-screenshots/mac/en`; not the 5 November upload. Submitted,
+  and in App Review on 13 November 2026 (the maintainer); the dates were not recorded.
+
 ## Release 1.13.0 handoff
 
-**Tagged 10 November 2026; not yet submitted.** The Store serves **1.12.0.0**, live as reported by
+**Tagged and published on GitHub on 10 November 2026; never submitted: 1.13.1 replaces it
+([handoff](#release-1131-handoff)).** Its open checks carry over to 1.13.1. The Store then served **1.12.0.0**, live as reported by
 the maintainer on 10 November 2026; the submission and certification dates were not recorded
 ([1.12.0's handoff](#release-1120-handoff)). Target app version: **1.13.0**, MSIX **1.13.0.0**,
 in `Live.Translation_1.13.0.msixbundle`, with `Live.Translation_1.13.0_aarch64.dmg` for the Mac.
@@ -403,7 +553,7 @@ was submitted were not recorded as done and stay open against the Store build.
 
 | Version | GitHub release | Store | Summary |
 | --- | --- | --- | --- |
-| 1.12.0 | [27 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) · [body](release-1.12.0.md) | Live as 1.12.0.0, reported by the maintainer on 10 November 2026; submission and certification dates not recorded | Captions in Zoom (#189, #190), no flashes or layout shifts in setup and the transcript (#188), and a pre-flight that asks for the application to capture. |
+| 1.12.0 | [27 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) · [body](release-1.12.0.md) | Live as 1.12.0.0, reported by the maintainer on 10 November 2026; submission and certification dates not recorded; replaced by 1.13.1 | Captions in Zoom (#189, #190), no flashes or layout shifts in setup and the transcript (#188), and a pre-flight that asks for the application to capture. |
 | 1.11.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) · [body](release-1.11.0.md) | Accepted as 1.11.0.0, reported by the maintainer on 26 October 2026; submission and certification dates not recorded; replaced by 1.12.0 | An optional Buy Me a Coffee link that unlocks nothing, and no empty band at the bottom of the operator window (#182). |
 | 1.10.0 | [26 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) · [body](release-1.10.0.md) | Live as 1.10.0.0, reported by the maintainer on 26 October 2026 and confirmed with `Get-AppxPackage` the same day; submission and certification dates not recorded; replaced by 1.11.0 | Batches 4–6 of the 22 October review (#171), no process handles outside One application capture (#177) and move mode left on Alt+F4 (#179). |
 | 1.9.0 | [22 October 2026](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) · [body](release-1.9.0.md) | Live as 1.9.0.0, confirmed with `Get-AppxPackage` on 25 October 2026; submission and certification dates not recorded; replaced by 1.10.0 | A light theme that follows Windows' app mode (#159) and batches 1–3 of the 22 October review (#160, #162). |

@@ -62,10 +62,13 @@ pub async fn set_api_key(provider: Provider, key: String) -> Result<(), AppError
 /// "Windows Credential Manager refused the request" would send the operator looking in the
 /// wrong place.
 fn key_error(error: &anyhow::Error) -> AppError {
-    match error.downcast_ref::<secrets::KeyFormat>() {
-        Some(format) => AppError::with(id::API_KEY_FORMAT, format),
-        None => AppError::with(id::KEYCHAIN, error),
+    if let Some(format) = error.downcast_ref::<secrets::KeyFormat>() {
+        return AppError::with(id::API_KEY_FORMAT, format);
     }
+    if error.downcast_ref::<secrets::FreePlanKey>().is_some() {
+        return paid_plan_required();
+    }
+    AppError::with(id::KEYCHAIN, error)
 }
 
 #[tauri::command]
@@ -95,12 +98,31 @@ pub async fn start_session(
         crate::whisper::cpu::ensure_supported()
             .map_err(|error| AppError::with(id::WHISPER_CPU, error))?;
     }
-    manager.start(&app, options).await.map_err(|error| {
-        match error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
-            Some(unsupported) => AppError::with(id::WHISPER_CPU, unsupported),
-            None => AppError::with(id::SESSION_START, &error),
-        }
-    })
+    manager
+        .start(&app, options)
+        .await
+        .map_err(|error| start_error(&error))
+}
+
+/// A DeepL Free key. The one error with no detail: the catalogue's sentence says all there
+/// is to say, and an English detail would follow it in every interface language.
+fn paid_plan_required() -> AppError {
+    AppError {
+        id: id::DEEPL_PAID_PLAN,
+        detail: None,
+    }
+}
+
+/// The failures at Start that no retry fixes get a sentence of their own: "the session could
+/// not be started" would not say that this PC, or this key's plan, can never run it.
+fn start_error(error: &anyhow::Error) -> AppError {
+    if let Some(unsupported) = error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
+        return AppError::with(id::WHISPER_CPU, unsupported);
+    }
+    if error.downcast_ref::<secrets::FreePlanKey>().is_some() {
+        return paid_plan_required();
+    }
+    AppError::with(id::SESSION_START, error)
 }
 
 /// Whether this processor can run local Whisper, asked once by the setup sheet so an
@@ -323,6 +345,20 @@ mod tests {
         assert_eq!(
             key_error(&refused),
             AppError::with(id::API_KEY_FORMAT, "character U+200B at position 4")
+        );
+    }
+
+    /// A DeepL Free key is refused with the plan's sentence, when saved and at Start alike.
+    #[test]
+    fn a_deepl_free_key_gets_the_paid_plan_sentence() {
+        let refused = secrets::set_api_key(Provider::DeepL, "abc-def:fx").unwrap_err();
+        assert_eq!(key_error(&refused), paid_plan_required());
+        let at_start = anyhow::Error::new(secrets::FreePlanKey).context("session start");
+        assert_eq!(start_error(&at_start), paid_plan_required());
+        assert_eq!(paid_plan_required().detail, None);
+        assert_eq!(
+            start_error(&anyhow::anyhow!("no device")).id,
+            id::SESSION_START
         );
     }
 

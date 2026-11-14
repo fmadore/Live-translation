@@ -1,34 +1,36 @@
-# Partner Center submission walkthrough — 1.13.0
+# Partner Center submission walkthrough — 1.14.0
 
-Target: **Live Translation & Subtitles 1.13.0**, Product ID `9PFB8LR3RR9X`. **Tagged 10 November 2026.**
-The Store serves 1.12.0 (MSIX 1.12.0.0), live as reported by the maintainer on 10 November
-2026; 1.13.0.0 replaces it. Keep this walkthrough as the template for the
+Target: **Live Translation & Subtitles 1.14.0**, Product ID `9PFB8LR3RR9X`. **Prepared, not yet
+tagged** (planned for 13 November 2026).
+The Store serves 1.13.1 (MSIX 1.13.1.0), read from the installed package with `Get-AppxPackage`
+on 13 November 2026; 1.14.0.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
-`https://github.com/fmadore/Live-translation/releases/download/v1.13.0/Live.Translation_1.13.0.msixbundle`.
-The [release handoff](store-updates.md#release-1130-handoff) has the package evidence and
+`https://github.com/fmadore/Live-translation/releases/download/v1.14.0/Live.Translation_1.14.0.msixbundle`.
+The [release handoff](store-updates.md#release-1140-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.13.0 runs Whisper on a suitable graphics processor through `whisper-vulkan.exe`, a helper
-program in the package, skips silence with a bundled speech-detection model, offers Large v3
-Turbo, sends names and terms to Gemini subtitles too, and asks once for each cloud provider
-before audio is first sent to it. Beyond What's new it changes three things in Partner Center:
-the certification notes describe the helper, the bundled model and the question; the
-descriptions' offline-subtitles paragraph, a sentence on names and terms and one on the question
-change, with three feature lines and the second additional system requirement; and the package
-carries a second executable, which WACK and certification will see. It keeps everything 1.12.0
-brought, already in the Store: the published **privacy policy**'s Zoom section,
-the certification notes' **paragraph on Zoom** and each description's **trademark line** (see
+1.14.0 adds DeepL (DeepL Voice API, DeepL SE) as a fourth cloud translation engine, marked
+experimental in the app because it has not yet run in a live session; it needs a paid DeepL API
+plan and refuses a free key (one ending in `:fx`) with its own message. Mistral subtitles
+reconnect after a transcription timeout, and with both sources each overlay row shows a line.
+Beyond What's new it changes three things in Partner Center: the descriptions name DeepL in the
+opening and cloud paragraphs; one feature line (the fourth, on cloud translation) names DeepL;
+and the certification notes' *Optional cloud features* paragraph says how to exercise DeepL or
+see the refusal of a free key. The published **privacy policy**, effective 11 November 2026,
+already names DeepL. Everything 1.13.1 and 1.12.0 brought stays: the helper and the bundled
+model in the certification notes' last paragraph, the certification notes' **paragraph on Zoom** and each
+description's **trademark line** (see
 [Captions in Zoom](#captions-in-zoom-privacy-notes-and-trademark) and
 [store-listing-next.md](store-listing-next.md)). There is no new product declaration: the one
-ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new, the
-additional system requirements and the certification notes again from
-[store-listing.md](store-listing.md); the short descriptions and keywords are unchanged. What's
-new covers the changes since 1.12.0; the certification notes already name 1.13.0.0.
+ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new and
+the certification notes again from [store-listing.md](store-listing.md); the short
+descriptions, keywords and additional system requirements are unchanged. What's new covers the
+changes since 1.13.1; the certification notes already name 1.14.0.0.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.13.0.msixbundle` contains both native packages at
-   **1.13.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.14.0.msixbundle` contains both native packages at
+   **1.14.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`, and
@@ -42,18 +44,20 @@ new covers the changes since 1.12.0; the certification notes already name 1.13.0
    placement across launches and move mode, system audio under load, the support link opening
    the default browser, Captions in Zoom, Whisper on the graphics processor and its fallback,
    speech detection, Large v3 Turbo, the question before audio first goes to a cloud provider,
-   export and WACK.
+   DeepL's refusal of a free key and, with a paid key, a DeepL session, the overlay with both
+   sources in a 160 px strip, export and WACK.
 4. The current [screenshots](store-screenshots/README.md) do not show the *Zoom captions*
-   button (1.12.0) or 1.13.0's setup switches, disabled Start and custom-colour chips. Decide
-   whether to retake them; if so, retake them from the 1.13.0 MSIX in all three listing
+   button (1.12.0), 1.13.0's setup switches, disabled Start and custom-colour chips, or DeepL in
+   the translation engine list (1.14.0). Decide whether to retake them; if so, retake them from
+   the 1.14.0 MSIX in all three listing
    languages, with Settings › App › Theme set to **Dark** whatever mode the PC is in, so the set shows one theme, and keep any Zoom
    window and Zoom's artwork out of them. The 21 October 2026 set, from the 1.7.1 MSIX,
    predates the Live and Transcript tabs.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "5 November 2026" and has the *Optional captions in Zoom* section, the *macOS*
-   section, and the Zoom line and the question asked before audio first goes to a provider
-   under *Third-party processing*. 1.13.0 changes nothing in it. It is published from
-   `docs/privacy.md` on `main`.
+   reads "11 November 2026", names DeepL as a recipient with a link to DeepL's privacy policy,
+   and still has the *Optional captions in Zoom* section, the *macOS* section, and the Zoom line
+   and the question asked before audio first goes to a provider under *Third-party processing*.
+   It is published from `docs/privacy.md` on `main`.
 
 ## Pricing and properties
 
@@ -69,7 +73,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 | Support | `https://github.com/fmadore/Live-translation/issues` |
 | Purchases outside Microsoft commerce | **Ticked since 1.11.0; leave it ticked** (Product declarations, below): the Buy Me a Coffee link; provider dependencies and charges disclosed in listing. Captions in Zoom involve no payment |
 | Accessibility certification | Do not claim certification without a completed audit |
-| Generative AI | Yes: optional Gemini/OpenAI translation and local Whisper translation into English generate text |
+| Generative AI | Yes: optional Gemini/OpenAI/DeepL translation and local Whisper translation into English generate text |
 | Personal-information transmission | Cloud modes send selected audio directly to third parties, after the app asks once for each provider, and Mistral and Gemini subtitles also receive any names and terms entered; local Whisper sends nothing. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
 | Recommended memory | 8 GB; Large v3 Turbo takes about 1 GB more; model, processor and graphics processor determine Whisper speed |
 
@@ -78,7 +82,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 Store Policy 10.8.2 lets a voluntary donation that gives nothing in return go through a secure
 third-party payment provider, and says: "You must note the use of a secure third-party purchase
 API in Partner Center during the submission process." Since 1.11.0 it is noted in two places,
-and 1.13.0 keeps both:
+and 1.14.0 keeps both:
 
 1. **Properties › Product declarations** (*Propriétés › Déclarations de produit*): tick
    **This product allows users to make purchases, but does not use the Microsoft Store commerce
@@ -101,7 +105,7 @@ or in-app purchase for this release.
 Captions in Zoom needs no product declaration, but three checks in this submission:
 
 1. **Privacy policy URL** (Store Policy 10.5): the URL above is unchanged; check that the page
-   it serves shows the 5 November 2026 date and the *Optional captions in Zoom* section (step 5
+   it serves shows the 11 November 2026 date and the *Optional captions in Zoom* section (step 5
    of [Before Partner Center](#before-partner-center)).
 2. **Notes for certification**: the second paragraph of the
    [notes](store-listing.md#notes-for-certification) says what the feature sends and where, that
@@ -120,7 +124,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.13.0.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.14.0.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -128,7 +132,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.13.0.0` |
+| Version | `1.14.0.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -137,17 +141,18 @@ Use the separate English (United States), French (France) and German (Germany) b
 [store-listing.md](store-listing.md). Complete German review and screenshots before adding
 that listing if it is not already present. For each language, paste:
 
-1. **Description**: full paragraphs, up to 10,000 characters. 1.13.0 replaces the
-   offline-subtitles paragraph, ends the cloud paragraph with Gemini, Mistral and Whisper taking
-   the names-and-terms list, and adds a sentence on the question before audio is sent to the
-   privacy paragraph. 1.12.0's Zoom sentences and the trademark line, the last paragraph, stay.
-2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.13.0
-   changes the first, second and fifth lines; the twentieth, on Captions in Zoom, stays.
+1. **Description**: full paragraphs, up to 10,000 characters. 1.14.0 names DeepL in the
+   opening paragraph, with its paid DeepL API plan, and in the cloud paragraph (fourth), with its
+   42 languages and its experimental status. 1.13's offline-subtitles paragraph, 1.12.0's Zoom
+   sentences and the trademark line, the last paragraph, stay.
+2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.14.0
+   replaces the fourth line (cloud translation) with one that names DeepL; the list stays at
+   twenty, and the twentieth, on Captions in Zoom, stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.13.0 block, under 1,500 characters. It covers the changes since
-   1.12.0, the version the Store serves.
+4. **What's new**: the 1.14.0 block, under 1,500 characters. It covers the changes since
+   1.13.1, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters.
-   1.13.0 changes the second (Whisper: 31–547 MiB, processor or graphics processor).
+   Unchanged since 1.13.1.
 6. Packaged-app screenshots with matching localized captions, showing the current interface
    in the Dark theme.
 7. **Store logos**: see below.
@@ -176,8 +181,8 @@ appears only as a secondary, explicitly scripted feature.
 ## Submission options
 
 Paste [Notes for certification](store-listing.md#notes-for-certification), including the
-first paragraph on the helper, the bundled model and the question before audio is sent, the
-second on Captions in Zoom and the third on the support link. Resolve any
+first paragraph on the changes since 1.13.1, the second on Captions in Zoom, the third on the
+support link, and *Optional cloud features*, which now covers DeepL. Resolve any
 required cloud test credentials privately before submission; no personal keys belong in public
 metadata or screenshots.
 
@@ -195,17 +200,19 @@ Suggested `runFullTrust` justification:
 
 Confirm all sections are complete, the Product declaration for purchases outside Microsoft
 commerce is still ticked, each description ends with the Zoom trademark line, packages and copy
-agree on 1.13.0.0, screenshots and Store
+agree on 1.14.0.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, each listing carries the super hero art,
 and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Rollout ([route step 9](store-updates.md#the-route)): **gradual**, starting at 10%. 1.13.0
-changes capture (wasapi 0.27) and the session lifecycle (the question before a cloud session,
-the echo filter's held lines, the Whisper helper's start, fallback and end).
+Rollout ([route step 9](store-updates.md#the-route)): **gradual**, starting at 10%. 1.14.0
+adds a cloud engine that has not yet run in a live session, changes the shared runner every
+cloud engine uses (a preparation step, an optional setup message and a keepalive, no-ops for the
+other providers) and changes how Mistral's errors are classified.
 
-Submit manually when the [handoff checklist](store-updates.md#release-1130-handoff) is complete,
+Submit manually when the [handoff checklist](store-updates.md#release-1140-handoff) is complete,
 and record the submission date and certification result there. Do not mark a version live
-until Partner Center or the public listing confirms publication. 1.12.0 is live as reported by
-the maintainer on 10 November 2026; its submission and certification dates were not recorded.
+until Partner Center or the public listing confirms publication. 1.13.1 is live, read from the
+installed package on 13 November 2026; its submission and certification dates were not
+recorded.

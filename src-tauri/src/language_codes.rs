@@ -348,6 +348,51 @@ impl TargetLanguage {
                     | Self::Pt
                     | Self::Zh
             ),
+            Provider::DeepL => matches!(
+                self,
+                Self::Ar
+                    | Self::Bn
+                    | Self::Bg
+                    | Self::Ca
+                    | Self::ZhHans
+                    | Self::ZhHant
+                    | Self::Hr
+                    | Self::Cs
+                    | Self::Da
+                    | Self::Nl
+                    | Self::En
+                    | Self::Et
+                    | Self::Fi
+                    | Self::Fr
+                    | Self::Gl
+                    | Self::De
+                    | Self::El
+                    | Self::He
+                    | Self::Hi
+                    | Self::Hu
+                    | Self::Id
+                    | Self::It
+                    | Self::Ja
+                    | Self::Ko
+                    | Self::Lv
+                    | Self::Lt
+                    | Self::Ms
+                    | Self::No
+                    | Self::Pl
+                    | Self::PtBr
+                    | Self::PtPt
+                    | Self::Ro
+                    | Self::Ru
+                    | Self::Sk
+                    | Self::Sl
+                    | Self::Es
+                    | Self::Sv
+                    | Self::Ta
+                    | Self::Th
+                    | Self::Tr
+                    | Self::Uk
+                    | Self::Vi
+            ),
             Provider::OnDevice => matches!(
                 self,
                 Self::En

@@ -58,14 +58,14 @@ aside.rail … div.activity[role=group] "État des entrées en direct" › p:nth
 aside.rail … div.activity[role=group] "État des entrées en direct" › p:nth(2) { margin: 8px 0px }
 aside.rail … div.activity[role=group] "État des entrées en direct" › p:nth(2) › strong { font-weight: 700 }
 aside.rail › div.rail-section:nth(1) › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
-aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
+aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) { display: grid; align-items: center; grid-template-columns: 116px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(1) › div.track[role=meter] "Salle" { position: relative; height: 10px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
 aside.rail … div.track[role=meter] "Salle" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0.424, 1) }
 aside.rail … div.track[role=meter] "Salle" › div.peak { position: absolute; transform: translate(54.77%, 0px) }
 aside.rail … div.track[role=meter] "Salle" › div.peak::before { content: ""; display: block; position: absolute; border: none; border-radius: 0px; background-color: #e9ebef; background-image: none; box-shadow: none; opacity: 0.7 }
 aside.rail … div.track[role=meter] "Salle" › div.hatch { position: absolute; background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0px, rgba(0, 0, 0, 0) 5px, #0e1013 5px, #0e1013 7px) }
-aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) { display: grid; align-items: center; grid-template-columns: 108px 1fr; gap: 8px }
+aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) { display: grid; align-items: center; grid-template-columns: 116px 1fr; gap: 8px }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › span.label { font-size: 11px; font-weight: 500; line-height: 1; letter-spacing: 1.32px; text-transform: uppercase; overflow-wrap: break-word; color: #8b93a1; display: block }
 aside.rail › div.rail-section:nth(1) › div.meter.active:nth(2) › div.track[role=meter] "Distant" { position: relative; height: 10px; overflow: hidden; border: 1px solid #1f242b; border-radius: 4px; background-color: #191d23 }
 aside.rail … div.track[role=meter] "Distant" › div.fill { position: absolute; background-image: linear-gradient(90deg, #5ad1a0, #5ad1a0 78%, #ffb454); transform: scale(0.566, 1) }

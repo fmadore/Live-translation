@@ -14,9 +14,9 @@
 // The interface addresses the operator formally (Sie), which is what a tool used in front of
 // a room should do.
 //
-// Product names are not translated (Gemini, OpenAI, Voxtral, WASAPI, Zoom, Teams, Markdown),
-// and neither is the app's own name — the Store lists it in English, and inventing a German
-// one would give the same app a third name.
+// Product names are not translated (Gemini, OpenAI, Voxtral, DeepL, WASAPI, Zoom, Teams,
+// Markdown), and neither is the app's own name — the Store lists it in English, and inventing a
+// German one would give the same app a third name.
 
 import type { Messages } from './en';
 
@@ -102,6 +102,8 @@ export const de: Messages = {
 		shortcutDirection: 'Vor dem Start die ersten beiden Favoriten tauschen mit F2',
 		shortcutPause: 'Untertitel pausieren / fortsetzen',
 		listening: 'Bereit — kein aktuelles Audiosignal',
+		silenced:
+			'Es wird Ton abgespielt, aber es kommt nur Stille an – das System hindert diese App möglicherweise an der Aufnahme',
 		audio: 'Audio wird empfangen',
 		captions: 'Untertitel werden empfangen',
 		stale:
@@ -235,6 +237,7 @@ export const de: Messages = {
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
 		mistral: 'Voxtral',
+		deepl: 'DeepL',
 		ondevice: 'Integrierte Demo'
 	},
 
@@ -265,6 +268,7 @@ export const de: Messages = {
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
 			mistral: 'Mistral Voxtral',
+			deepl: 'DeepL',
 			ondevice: 'Integrierte Demo'
 		},
 		/** Shown in the mono face under the vendor. Model ids are not translated; the
@@ -274,6 +278,9 @@ export const de: Messages = {
 			'whisper-translate': 'Offline · nur ins Englische',
 			ondevice: 'Mitgeliefertes Beispiel · deterministisch'
 		},
+		/** One line under DeepL in the engine picker: why an operator might choose it. */
+		deeplNote:
+			'Experimentell, noch nicht in einer echten Sitzung erprobt. Bekannt für seine Übersetzungsqualität; Anbieter mit Sitz in der EU. Erfordert einen kostenpflichtigen DeepL-API-Tarif (Growth oder höher).',
 		costNote: {
 			whisper:
 				'Audio wird auf diesem Computer verarbeitet. Ausstehendes Audio wird vorübergehend in einer Datei gespeichert, die nach der Verarbeitung gelöscht wird. Keine API-Kosten.',
@@ -287,6 +294,8 @@ export const de: Messages = {
 				'OpenAI: Eingehendes Audio und ausgehender Text werden pro Minute abgerechnet, solange der Stream offen bleibt.',
 			mistral:
 				'Voxtral: Abrechnung pro Minute übertragenem Audio, solange die Sitzung offen bleibt.',
+			deepl:
+				'DeepL: Die in Ihrem kostenpflichtigen API-Tarif enthaltenen Sprachstunden werden zuerst verbraucht; der Preis ist der gemeldete Betrag pro zusätzlicher Stunde übertragenem Audio.',
 			ondevice:
 				'Integrierte Demonstration: Es wird kein Live-Audio aufgenommen, kein Dienst kontaktiert und nichts abgerechnet.'
 		}
@@ -377,6 +386,7 @@ export const de: Messages = {
 			'Verwendet ein mitgeliefertes deterministisches Beispiel. Wählen Sie Whisper, Voxtral oder Gemini für Live-Untertitel von Mikrofon oder Systemaudio.',
 		micDevice: 'Mikrofongerät',
 		systemDefault: 'Systemstandard',
+		noMicrophone: 'Kein Mikrofon gefunden',
 		/** Appended to the name of the device Windows would pick on its own. */
 		isDefault: (name: string) => `${name} (Standard)`,
 
@@ -664,6 +674,8 @@ export const de: Messages = {
 				demo: 'Mitgeliefertes Beispiel ist bereit – es wird kein Mikrofon geöffnet'
 			},
 			listening: 'Es wird zugehört – sprechen Sie ins Mikrofon oder spielen Sie Audio ab',
+			silenced:
+				'Es wird Ton abgespielt, aber es kommt nur Stille an – das System hindert diese App möglicherweise an der Aufnahme',
 			unchecked:
 				'Noch nicht geprüft – Audio wird nur während eines Tests oder einer laufenden Sitzung überwacht',
 			chooseApplication:
@@ -721,6 +733,9 @@ export const de: Messages = {
 				'In der Windows-Anmeldeinformationsverwaltung gespeichert, nur vom Rust-Kern verwendet. Benötigt Zugriff auf',
 			after: '.'
 		},
+		/** Under the DeepL key field: Voice is not on DeepL's free API. */
+		deeplPlan:
+			'DeepL Voice erfordert einen kostenpflichtigen DeepL-API-Tarif (Growth oder höher): Kostenlose API-Schlüssel, die auf :fx enden, werden abgelehnt.',
 		getKey: 'Schlüssel holen',
 		opensInBrowser: ' (öffnet sich im Browser)',
 		placeholder: (name: string) => `${name}-API-Schlüssel einfügen`,
@@ -904,10 +919,18 @@ export const de: Messages = {
 			'Das Mikrofon sendet kein Audio mehr. Prüfen Sie die Verbindung unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
 		micCapture:
 			'Die Mikrofonaufnahme ist fehlgeschlagen. Falls der Zugriff blockiert ist, aktivieren Sie ihn unter Windows-Einstellungen > Datenschutz und Sicherheit > Mikrofon (ms-settings:privacy-microphone) und starten Sie erneut',
+		micNone:
+			'An diesen PC ist kein Mikrofon angeschlossen. Schließen Sie eines an oder wählen Sie Systemaudio',
 		systemCapture:
 			'Die Aufnahme des Systemaudios ist fehlgeschlagen. Prüfen Sie die ausgewählte Ausgabe unter Windows-Einstellungen > System > Sound (ms-settings:sound) und versuchen Sie es erneut',
+		applicationClosed:
+			'Die untertitelte Anwendung wurde geschlossen. Öffnen Sie sie, wählen Sie sie erneut aus und starten Sie erneut',
+		outputDisconnected:
+			'Die untertitelte Ausgabe wurde getrennt oder deaktiviert. Wählen Sie eine andere Ausgabe und starten Sie erneut',
 		providerRejected:
 			'Der Anbieter hat die Verbindung abgelehnt – prüfen Sie den API-Schlüssel und den Modellzugriff',
+		deeplPaidPlan:
+			'DeepL Voice erfordert einen kostenpflichtigen DeepL-API-Tarif; kostenlose API-Schlüssel, die auf :fx enden, können keine Sprachsitzung öffnen',
 		providerStopped: 'Der Anbieter hat die Sitzung beendet',
 		providerReconnecting: 'Die Verbindung wurde unterbrochen; Neuverbindung läuft',
 		zoomLink:

@@ -60,9 +60,9 @@ impl RealtimeProtocol for OpenAiConfig {
         bearer_request(Self::NAME, &self.ws_url(), &self.api_key)
     }
 
-    fn setup_json(&self) -> Result<String> {
+    fn setup_json(&self) -> Result<Option<String>> {
         let setup = SessionUpdate::translate(&self.target_language_code, &self.transcribe_model);
-        Ok(serde_json::to_string(&setup)?)
+        Ok(Some(serde_json::to_string(&setup)?))
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {

@@ -22,7 +22,7 @@ use std::ffi::{CStr, c_void};
 use std::panic::AssertUnwindSafe;
 use std::ptr::NonNull;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use anyhow::{Context as _, Result, anyhow};
 use objc2::rc::Retained;
@@ -35,9 +35,13 @@ use objc2_core_audio::{
     AudioObjectPropertyAddress, AudioObjectPropertySelector, AudioObjectSetPropertyData,
     CATapDescription, CATapMuteBehavior, kAudioAggregateDeviceIsPrivateKey,
     kAudioAggregateDeviceNameKey, kAudioAggregateDeviceTapAutoStartKey,
-    kAudioAggregateDeviceTapListKey, kAudioAggregateDeviceUIDKey, kAudioObjectPropertyElementMain,
-    kAudioObjectPropertyScopeGlobal, kAudioSubTapDriftCompensationKey, kAudioSubTapUIDKey,
-    kAudioTapPropertyDescription, kAudioTapPropertyFormat,
+    kAudioAggregateDeviceTapListKey, kAudioAggregateDeviceUIDKey, kAudioDevicePropertyDeviceUID,
+    kAudioHardwarePropertyDevices, kAudioHardwarePropertyProcessObjectList,
+    kAudioObjectPropertyElementMain, kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyScopeOutput, kAudioObjectSystemObject, kAudioProcessPropertyDevices,
+    kAudioProcessPropertyIsRunningOutput, kAudioProcessPropertyPID,
+    kAudioSubTapDriftCompensationKey, kAudioSubTapUIDKey, kAudioTapPropertyDescription,
+    kAudioTapPropertyFormat,
 };
 use objc2_core_audio_types::{
     AudioBuffer, AudioBufferList, AudioStreamBasicDescription, AudioTimeStamp,
@@ -50,6 +54,7 @@ use objc2_core_foundation::{
 use objc2_foundation::{NSArray, NSNumber, NSString};
 
 use super::capture::CaptureState;
+use crate::sync::lock;
 
 /// What a tap copies.
 pub enum Target<'a> {
@@ -63,7 +68,19 @@ pub enum Target<'a> {
 static NEXT_DEVICE: AtomicU32 = AtomicU32::new(0);
 
 /// A running tap and the private aggregate device it is read through.
+///
+/// Dropping it closes the capture at once, then takes the tap down on a thread of its own.
+/// Taking it down can block for as long as macOS likes: while the System Audio Recording
+/// question is still on screen, `AudioDeviceDestroyIOProcID` waits on `coreaudiod`, which is
+/// waiting on the operator. Done on the capture thread, that kept the session's audio channel
+/// open, so Stop never finished and the window sat on "Stopping…".
 pub struct Tap {
+    /// Always `Some` until `Drop` hands it to the teardown thread.
+    inner: Option<Inner>,
+}
+
+/// The Core Audio objects behind a [`Tap`], destroyed together when this is dropped.
+struct Inner {
     tap_id: AudioObjectID,
     aggregate_id: AudioObjectID,
     proc_id: AudioDeviceIOProcID,
@@ -75,9 +92,10 @@ pub struct Tap {
 }
 
 // SAFETY: every field is an object id, a Core Audio handle that any thread may use, or the
-// context pointer, whose `Context` is `Send` and is only reached through its mutex. The
-// description is touched only by the thread that owns the `Tap`.
-unsafe impl Send for Tap {}
+// context pointer, whose `Context` is `Send` and is only reached through its mutex and atomic.
+// The description is touched by one thread at a time: the owner of the `Tap`, then the
+// teardown thread it is handed to.
+unsafe impl Send for Inner {}
 
 /// The most separate channel buffers the callback interleaves; more are left out.
 const MAX_PLANES: usize = 16;
@@ -85,7 +103,12 @@ const MAX_PLANES: usize = 16;
 /// What the I/O callback needs: the layout it was given and where the samples go.
 struct Context {
     interleaved: bool,
-    sink: Mutex<Sink>,
+    /// `None` once the tap is being dropped: the capture state, and with it the session's
+    /// audio and meter channels, is released before Core Audio is asked to stop calling.
+    sink: Mutex<Option<Sink>>,
+    /// Set by the callback when a buffer holds anything but exact zeros; read and cleared by
+    /// [`Tap::take_heard`].
+    heard: AtomicBool,
 }
 
 struct Sink {
@@ -110,7 +133,7 @@ impl Tap {
             "could not create the audio tap (System Audio Recording may be refused)",
         )?;
         // From here on, `Drop` cleans up whatever has been made.
-        let mut tap = Self {
+        let mut tap = Inner {
             tap_id,
             aggregate_id: 0,
             proc_id: None,
@@ -130,7 +153,7 @@ impl Tap {
         let pid = std::process::id();
         let properties = aggregate_properties(
             &tap_uid,
-            &format!("io.github.fmadore.live-translation.tap.{pid}.{instance}"),
+            &format!("{}{pid}.{instance}", super::OWN_DEVICE_UID_PREFIX),
             "Live Translation system audio",
         );
         let mut aggregate_id: AudioObjectID = 0;
@@ -146,10 +169,11 @@ impl Tap {
 
         tap.context = Box::into_raw(Box::new(Context {
             interleaved,
-            sink: Mutex::new(Sink {
+            sink: Mutex::new(Some(Sink {
                 state: make_state(rate),
                 scratch: Vec::with_capacity(4096),
-            }),
+            })),
+            heard: AtomicBool::new(false),
         }));
         let mut proc_id: AudioDeviceIOProcID = None;
         // SAFETY: `io_proc` matches `AudioDeviceIOProc`; `tap.context` stays valid until the
@@ -172,24 +196,36 @@ impl Tap {
             "could not start reading the tap",
         )?;
         tap.started = true;
-        Ok(tap)
+        Ok(Self { inner: Some(tap) })
+    }
+
+    /// Whether anything but digital silence has arrived since the last call.
+    pub fn take_heard(&self) -> bool {
+        self.inner.as_ref().is_some_and(|inner| {
+            // SAFETY: the context lives as long as `inner`, which is alive here.
+            !inner.context.is_null()
+                && unsafe { &*inner.context }
+                    .heard
+                    .swap(false, Ordering::Relaxed)
+        })
     }
 
     /// Tap these process objects instead of the current ones, without stopping. Only for a
     /// [`Target::Processes`] tap.
     pub fn set_processes(&mut self, processes: &[AudioObjectID]) -> Result<()> {
+        let inner = self.inner.as_ref().context("the tap has been taken down")?;
         let list = process_array(processes);
         // SAFETY: setting the process list of a live description, which `CATapDescription`
         // copies.
-        unsafe { self.description.setProcesses(&list) };
-        let pointer: *const CATapDescription = Retained::as_ptr(&self.description);
+        unsafe { inner.description.setProcesses(&list) };
+        let pointer: *const CATapDescription = Retained::as_ptr(&inner.description);
         let address = address(kAudioTapPropertyDescription);
         // SAFETY: the property's value is a `CATapDescription *`; `pointer` is one, alive for
         // the call, and the size passed is the size of that pointer.
         status(
             unsafe {
                 AudioObjectSetPropertyData(
-                    self.tap_id,
+                    inner.tap_id,
                     NonNull::from(&address),
                     0,
                     std::ptr::null(),
@@ -203,6 +239,37 @@ impl Tap {
 }
 
 impl Drop for Tap {
+    fn drop(&mut self) {
+        let Some(inner) = self.inner.take() else {
+            return;
+        };
+        // First let go of the capture state, so whoever reads the session's audio sees it end
+        // now, whatever happens to the Core Audio calls below. The callback only ever
+        // `try_lock`s and holds the lock for one buffer, so this waits a few milliseconds at
+        // most; after it, the callback finds `None` and returns at once.
+        if !inner.context.is_null() {
+            // SAFETY: the context stays alive until `inner` is dropped, below or on the
+            // teardown thread.
+            let sink = lock(&unsafe { &*inner.context }.sink).take();
+            drop(sink);
+        }
+        // Then take the tap down where a long wait harms nothing. If no thread can be started,
+        // the refused closure is dropped here, and `inner` with it: blocking the capture
+        // thread is still better than leaking the tap.
+        let _ = std::thread::Builder::new()
+            .name("tap-teardown".into())
+            .spawn(move || {
+                let started = std::time::Instant::now();
+                drop(inner);
+                let waited = started.elapsed();
+                if waited > std::time::Duration::from_secs(1) {
+                    tracing::warn!(?waited, "Core Audio took a long time to remove the tap");
+                }
+            });
+    }
+}
+
+impl Drop for Inner {
     fn drop(&mut self) {
         // In reverse order of creation. Statuses are ignored: nothing useful can be done with
         // a failure here, and a panic in drop would be worse.
@@ -265,6 +332,48 @@ fn describe(target: &Target<'_>) -> Retained<CATapDescription> {
         description.setName(&NSString::from_str("Live Translation"));
     }
     description
+}
+
+/// Whether another process is playing sound into what `target` taps right now: to that output
+/// device, or, for an application, from one of its processes. With [`Tap::take_heard`] it tells
+/// a tap that macOS keeps silent apart from one that has nothing to copy. A property that
+/// cannot be read counts as not playing, so an unknown never raises a false alarm.
+pub fn playing(target: &Target<'_>) -> bool {
+    let own = i32::try_from(std::process::id()).unwrap_or(-1);
+    let system = AudioObjectID::try_from(kAudioObjectSystemObject).unwrap_or(1);
+    let (objects, device) = match target {
+        Target::Output { device_uid } => (
+            get_ids(system, kAudioHardwarePropertyProcessObjectList).unwrap_or_default(),
+            output_device(device_uid),
+        ),
+        Target::Processes(processes) => (processes.to_vec(), None),
+    };
+    if matches!(target, Target::Output { .. }) && device.is_none() {
+        return false;
+    }
+    objects.into_iter().any(|object| {
+        get_property::<i32>(object, kAudioProcessPropertyPID).is_ok_and(|pid| pid != own)
+            && get_property::<u32>(object, kAudioProcessPropertyIsRunningOutput)
+                .is_ok_and(|running| running != 0)
+            && device.is_none_or(|device| {
+                // Only the output scope answers: in the global scope the list comes back empty.
+                let address = AudioObjectPropertyAddress {
+                    mSelector: kAudioProcessPropertyDevices,
+                    mScope: kAudioObjectPropertyScopeOutput,
+                    mElement: kAudioObjectPropertyElementMain,
+                };
+                get_ids_at(object, &address).is_ok_and(|devices| devices.contains(&device))
+            })
+    })
+}
+
+/// The audio object of the device with this UID.
+fn output_device(uid: &str) -> Option<AudioObjectID> {
+    let system = AudioObjectID::try_from(kAudioObjectSystemObject).unwrap_or(1);
+    get_ids(system, kAudioHardwarePropertyDevices)
+        .ok()?
+        .into_iter()
+        .find(|&device| get_string(device, kAudioDevicePropertyDeviceUID).is_ok_and(|u| u == uid))
 }
 
 fn process_array(processes: &[AudioObjectID]) -> Retained<NSArray<NSNumber>> {
@@ -332,11 +441,22 @@ unsafe extern "C-unwind" fn io_proc(
         let Ok(mut sink) = context.sink.try_lock() else {
             return;
         };
-        let Sink { state, scratch } = &mut *sink;
+        // Detached: the tap is being taken down.
+        let Some(Sink { state, scratch }) = sink.as_mut() else {
+            return;
+        };
+        // A refused permission delivers exact zeros; real sound, however quiet, does not.
+        // Once something has been heard, later buffers are not scanned until the flag is read.
+        let note = |samples: &[f32]| {
+            if !context.heard.load(Ordering::Relaxed) && samples.iter().any(|&s| s != 0.0) {
+                context.heard.store(true, Ordering::Relaxed);
+            }
+        };
         if context.interleaved {
             for buffer in buffers {
                 // SAFETY: Core Audio's buffer, valid for the call, of float samples.
                 let samples = unsafe { samples(buffer) };
+                note(samples);
                 let channels = usize::try_from(buffer.mNumberChannels).unwrap_or(1).max(1);
                 state.push_samples(samples, channels);
             }
@@ -347,6 +467,7 @@ unsafe extern "C-unwind" fn io_proc(
             for (plane, buffer) in planes.iter_mut().zip(buffers) {
                 // SAFETY: Core Audio's buffer, valid for the call, of float samples.
                 *plane = unsafe { samples(buffer) };
+                note(plane);
             }
             let planes = &planes[..channels];
             let frames = planes.iter().map(|plane| plane.len()).min().unwrap_or(0);
@@ -532,7 +653,16 @@ pub(super) fn get_ids(
     object: AudioObjectID,
     selector: AudioObjectPropertySelector,
 ) -> Result<Vec<AudioObjectID>> {
-    let address = address(selector);
+    get_ids_at(object, &address(selector))
+}
+
+/// A list of audio object ids at a full property address, for a property whose answer depends
+/// on its scope.
+fn get_ids_at(
+    object: AudioObjectID,
+    address: &AudioObjectPropertyAddress,
+) -> Result<Vec<AudioObjectID>> {
+    let address = *address;
     let mut size = 0u32;
     // SAFETY: asks only for the size, into a valid place.
     status(

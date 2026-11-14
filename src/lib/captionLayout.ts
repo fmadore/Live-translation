@@ -14,6 +14,23 @@ export function originalHeight(fontSize: number, lines: number): number {
 	return lines * Math.ceil(ORIGINAL_SCALE * fontSize * 1.34);
 }
 
+/** The smallest size a row is shrunk to; the operator's own floor (`OVERLAY_FONT_MIN`). */
+const MIN_ROW_FONT = 20;
+
+/**
+ * The size a caption row is drawn at: the operator's `fontSize`, unless the row is too shallow
+ * for one line of it (with the original shown, one line of each and the gap between), and then
+ * the largest size that fits. A strip sized for one source is split between the rows when a
+ * second source or caption language speaks, and a row with no room for a line showed its label
+ * and no caption at all.
+ */
+export function rowFontSize(fontSize: number, rowHeight: number, original = false): number {
+	const perPixel = 1.34 + (original ? ORIGINAL_SCALE * 1.34 : 0);
+	// `originalHeight` rounds up, so a pixel is kept back for it.
+	const room = rowHeight - (original ? ORIGINAL_GAP + 1 : 0);
+	return Math.max(MIN_ROW_FONT, Math.min(fontSize, Math.floor(room / perPixel)));
+}
+
 /** Bottom alignment is a subtitle strip; manually resizing still permits more context. With
  *  the original shown, each row also gets one line of it. */
 export function bottomCaptionHeight(

@@ -6,9 +6,15 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (5 November 2026)
+## Status (13 November 2026)
 
-**Not yet submitted; nothing has run on a real Mac.** The decision of 4 November 2026: the Mac
+**1.13.1 is in App Review** (the maintainer, 13 November 2026; the upload and submission dates
+were not recorded). It carries the fixes of the first run on a real Mac
+([macOS notes](macos.md#first-run-1011-november-2026)). **1.14.0** (prepared, not yet tagged) is
+the next Mac build to upload once 1.13.1's review is settled: it adds DeepL as an experimental
+cloud translation engine and the Mistral and overlay fixes, none of them tried on a Mac yet. The
+English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
 unlock proposed in [#195](https://github.com/fmadore/Live-translation/issues/195) are dropped, so
 no paid-apps agreement, StoreKit code or in-app product is needed.
@@ -28,17 +34,23 @@ What is ready in the repository:
 - the *Mac App Store* workflow, which signs the app and its installer package and uploads them
   to App Store Connect;
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
-- the privacy policy's macOS section and the provider question, effective 5 November 2026.
+- the privacy policy's macOS section and the provider question (effective 5 November 2026; the policy now in force, effective 11 November 2026, adds DeepL).
 
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. As far as the repository
-records, it has not been submitted for review. What only the maintainer can do: the remaining
-App Store Connect steps, the screenshots (on a Mac), and the first test on a real Mac through
-TestFlight, which also answers the one open question:
-[system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox).
+That build was not submitted; 1.13.1 was, and is in App Review (13 November 2026). What only the
+maintainer can do: following 1.13.1's review, then uploading the 1.14.0 build from its tag as
+the next version, and a TestFlight run of the store build itself. The one open question,
+[system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox
+
+**Answered on 11 November 2026: taps work in the App Sandbox.** The sandbox spike (the store's
+entitlements, ad hoc signed) captured system audio on an M2 Mac mini on macOS 26 once *System
+Audio Recording* was allowed, downloaded a model into its container, reached Gemini and wrote
+exports in place ([macOS notes](macos.md#first-run-1011-november-2026)). One-application capture
+was tried with the direct build only. What follows is the question as it stood.
 
 System audio and one-application capture use Core Audio process taps
 (`src-tauri/src/audio/tap.rs`). Apple documents no entitlement for them and says nothing about
@@ -129,8 +141,9 @@ question touches generated content. The expected rating is 4+.
 ## The listing (English, U.S.)
 
 Every paragraph is one unwrapped line for pasting. Screenshots must show the Mac app
-(Guideline 2.3.3) and are taken on a Mac at 1440 × 900 or 2880 × 1800, as in Kalamu's
-`docs/mac-test-day.md`, Part C.
+(Guideline 2.3.3), at one of App Store Connect's Mac sizes (1280 × 800, 1440 × 900, 2560 × 1600
+or 2880 × 1800), with no alpha channel. The current set, six images at 1280 × 800 from the
+sandboxed build, is in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 
 **Name** (30 characters at most): `Live Translation & Subtitles`
 
@@ -189,7 +202,7 @@ Real speech recognition without any account or API key:
 
 Setup-free check without audio: choose the engine Built-in demo and click Start demo subtitles. It plays a prepared English or French script through the overlay, timer, level meter and export, without capturing or recognizing any audio, and says so on screen.
 
-Optional cloud engines (Google Gemini, OpenAI, Mistral) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
+Optional cloud engines (Google Gemini, OpenAI, Mistral, DeepL) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. DeepL, marked experimental in the app, needs a paid DeepL API plan; a free DeepL key (ending in :fx) is refused with an explanation and nothing is sent. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
 
 The overlay uses public AppKit only: a borderless transparent window at a high window level that joins every Space and full-screen apps and ignores mouse events while captions run.
 ```

@@ -18,3 +18,16 @@ it('waits fifteen seconds from a resume or a reconnect before calling captions m
 	// A caption since the resume counts from that caption instead.
 	expect(activity('running', 312_000, 295_000, 311_500, 300_000)).toBe('audio');
 });
+
+// First run on a real Mac: a refused System Audio Recording permission does not fail the tap,
+// it delivers zeros. The core marks that (sound playing, only silence arriving), and the row
+// says so instead of calling it a quiet room.
+it('tells a source the system keeps silent apart from a quiet room', () => {
+	expect(activity('running', 20000, 1000, 0, 0, 19500)).toBe('silenced');
+	// The mark fades like any other: three seconds without one is a quiet room again.
+	expect(activity('running', 20000, 1000, 0, 0, 16000)).toBe('listening');
+	// Real sound or captions always win: the permission was granted after all.
+	expect(activity('running', 20000, 15000, 19800, 0, 19500)).toBe('audio');
+	expect(activity('running', 20000, 1000, 0, 19800, 19500)).toBe('captions');
+	expect(activity('error', 20000, 1000, 0, 0, 19500)).toBe('error');
+});

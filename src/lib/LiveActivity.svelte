@@ -13,20 +13,23 @@
 				now,
 				$runningSince[origin] ?? now,
 				$activityTimes[origin]?.audio ?? 0,
-				$activityTimes[origin]?.caption ?? 0
+				$activityTimes[origin]?.caption ?? 0,
+				$activityTimes[origin]?.silenced ?? 0
 			)
 		}))
 	);
 	function sourceName(origin: Origin): string {
 		return $options.provider === 'ondevice' ? $t.stage.origin.demo : $t.stage.origin[origin];
 	}
-	// What a screen reader is told: only a source that has gone wrong — an error, or audio with
-	// no captions for 15 seconds. The visible labels flip on every three-second gap in speech,
+	// What a screen reader is told: only a source that has gone wrong — an error, audio with
+	// no captions for 15 seconds, or sound playing that the system keeps from being recorded. The visible labels flip on every three-second gap in speech,
 	// and a live region around them would read the panel out again each time. Empty otherwise,
 	// so a source recovering is quiet, and going wrong again is a change that is announced.
 	const alerts = $derived(
 		rows
-			.filter((row) => row.activity === 'error' || row.activity === 'stale')
+			.filter(
+				(row) => row.activity === 'error' || row.activity === 'stale' || row.activity === 'silenced'
+			)
 			.map((row) => `${sourceName(row.origin)} · ${$t.usability[row.activity]}`)
 			.join(' ')
 	);

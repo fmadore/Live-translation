@@ -97,11 +97,15 @@
 	button:hover {
 		background: var(--surface-2);
 	}
+	/* Only there for `showPicker()`, invisible and under the calendar button, so the picker opens
+	   beside it. As wide as that button rather than 1px: WebKit lays a date input's own fields
+	   out at a minimum width whatever `width` says, so a 1px one overflowed its box on a Mac;
+	   nothing showed, but the overflow check rightly flagged it. */
 	.native-picker {
 		position: absolute;
 		bottom: 0;
 		right: 0;
-		width: 1px;
+		width: var(--control-md);
 		height: 1px;
 		opacity: 0;
 		pointer-events: none;

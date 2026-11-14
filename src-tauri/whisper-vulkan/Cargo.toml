@@ -1,6 +1,6 @@
 [package]
 name = "whisper-vulkan"
-version = "1.13.0"
+version = "1.14.0"
 description = "Live Translation's Whisper on a graphics processor, through Vulkan, as a helper program"
 authors = ["Frédérick Madore"]
 edition = "2024"

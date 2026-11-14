@@ -12,6 +12,11 @@
 		},
 		"whisper-translate": {
 			"note": "Whisper's translate task writes English only, from any of its 99 spoken languages."
+		},
+		"deepl": {
+			"url": "https://developers.deepl.com/docs/voice/supported-voice-languages",
+			"verified": "2026-11-11",
+			"note": "42 of DeepL's 48 Voice translation targets. Not in the catalog yet: Irish, Maltese, Tagalog, and the Canadian French, Latin American Spanish and British English variants. Spoken languages that DeepL transcribes through a partner are not auto-detected."
 		}
 	},
 	"languages": [
@@ -43,7 +48,7 @@
 			"code": "ar",
 			"english": "Arabic",
 			"endonym": "العربية",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "hy",
@@ -73,13 +78,13 @@
 			"code": "bn",
 			"english": "Bengali",
 			"endonym": "বাংলা",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "bg",
 			"english": "Bulgarian",
 			"endonym": "български",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "my",
@@ -91,55 +96,55 @@
 			"code": "ca",
 			"english": "Catalan",
 			"endonym": "català",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "zh-Hans",
 			"english": "Chinese (Simplified)",
 			"endonym": "简体中文",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "zh-Hant",
 			"english": "Chinese (Traditional)",
 			"endonym": "繁體中文",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "hr",
 			"english": "Croatian",
 			"endonym": "hrvatski",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "cs",
 			"english": "Czech",
 			"endonym": "čeština",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "da",
 			"english": "Danish",
 			"endonym": "dansk",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "nl",
 			"english": "Dutch",
 			"endonym": "Nederlands",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "en",
 			"english": "English",
 			"endonym": "English",
-			"providers": ["gemini", "openai", "ondevice", "whisper-translate"]
+			"providers": ["gemini", "openai", "ondevice", "whisper-translate", "deepl"]
 		},
 		{
 			"code": "et",
 			"english": "Estonian",
 			"endonym": "eesti",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "fil",
@@ -151,19 +156,19 @@
 			"code": "fi",
 			"english": "Finnish",
 			"endonym": "suomi",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "fr",
 			"english": "French",
 			"endonym": "français",
-			"providers": ["gemini", "openai", "ondevice"]
+			"providers": ["gemini", "openai", "ondevice", "deepl"]
 		},
 		{
 			"code": "gl",
 			"english": "Galician",
 			"endonym": "galego",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "ka",
@@ -175,13 +180,13 @@
 			"code": "de",
 			"english": "German",
 			"endonym": "Deutsch",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "el",
 			"english": "Greek",
 			"endonym": "Ελληνικά",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "gu",
@@ -199,19 +204,19 @@
 			"code": "he",
 			"english": "Hebrew",
 			"endonym": "עברית",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "hi",
 			"english": "Hindi",
 			"endonym": "हिन्दी",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "hu",
 			"english": "Hungarian",
 			"endonym": "magyar",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "is",
@@ -223,19 +228,19 @@
 			"code": "id",
 			"english": "Indonesian",
 			"endonym": "Indonesia",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "it",
 			"english": "Italian",
 			"endonym": "italiano",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "ja",
 			"english": "Japanese",
 			"endonym": "日本語",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "jv",
@@ -271,7 +276,7 @@
 			"code": "ko",
 			"english": "Korean",
 			"endonym": "한국어",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "lo",
@@ -283,13 +288,13 @@
 			"code": "lv",
 			"english": "Latvian",
 			"endonym": "latviešu",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "lt",
 			"english": "Lithuanian",
 			"endonym": "lietuvių",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "mk",
@@ -301,7 +306,7 @@
 			"code": "ms",
 			"english": "Malay",
 			"endonym": "Melayu",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "ml",
@@ -331,7 +336,7 @@
 			"code": "no",
 			"english": "Norwegian",
 			"endonym": "norsk",
-			"providers": ["gemini"],
+			"providers": ["gemini", "deepl"],
 			"aliases": ["nb", "Bokmål"]
 		},
 		{
@@ -344,19 +349,19 @@
 			"code": "pl",
 			"english": "Polish",
 			"endonym": "polski",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "pt-BR",
 			"english": "Portuguese (Brazil)",
 			"endonym": "português (Brasil)",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "pt-PT",
 			"english": "Portuguese (Portugal)",
 			"endonym": "português europeu",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "pa",
@@ -368,13 +373,13 @@
 			"code": "ro",
 			"english": "Romanian",
 			"endonym": "română",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "ru",
 			"english": "Russian",
 			"endonym": "русский",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "sr",
@@ -398,19 +403,19 @@
 			"code": "sk",
 			"english": "Slovak",
 			"endonym": "slovenčina",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "sl",
 			"english": "Slovenian",
 			"endonym": "slovenščina",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "es",
 			"english": "Spanish",
 			"endonym": "español",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "su",
@@ -428,13 +433,13 @@
 			"code": "sv",
 			"english": "Swedish",
 			"endonym": "svenska",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "ta",
 			"english": "Tamil",
 			"endonym": "தமிழ்",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "te",
@@ -446,19 +451,19 @@
 			"code": "th",
 			"english": "Thai",
 			"endonym": "ไทย",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "tr",
 			"english": "Turkish",
 			"endonym": "Türkçe",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "uk",
 			"english": "Ukrainian",
 			"endonym": "українська",
-			"providers": ["gemini"]
+			"providers": ["gemini", "deepl"]
 		},
 		{
 			"code": "ur",
@@ -476,7 +481,7 @@
 			"code": "vi",
 			"english": "Vietnamese",
 			"endonym": "Tiếng Việt",
-			"providers": ["gemini", "openai"]
+			"providers": ["gemini", "openai", "deepl"]
 		},
 		{
 			"code": "zu",

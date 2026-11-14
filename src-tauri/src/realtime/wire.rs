@@ -38,6 +38,16 @@ pub fn parse_or_log<T: DeserializeOwned>(provider: &str, text: &str) -> Option<T
     }
 }
 
+/// Whether the text ends a sentence, closing quotes and brackets aside, and the (often
+/// non-breaking) space French sets before them. Mistral holds a line open until one ends;
+/// DeepL closes a line when its concluded translation reaches one.
+pub fn ends_sentence(text: &str) -> bool {
+    text.trim_end_matches(|c: char| {
+        c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
+    })
+    .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
+}
+
 /// What a provider's failure means for the source. Every provider's `error` event, and a close
 /// during setup, is read into one of these by `classify`, so the providers cannot drift apart
 /// on what is worth a reconnect.
@@ -80,14 +90,17 @@ const FATAL_WORDING: [&str; 9] = [
 /// UNAVAILABLE and DEADLINE_EXCEEDED, and a connection reset between its services. Seen live
 /// from Mistral on 7 October 2026 as code 3803, "gRPC connection error: <AioRpcError …
 /// StatusCode.UNAVAILABLE … Connection reset by peer …>"; a new session reaches a backend that
-/// is up. Specific on purpose: a bare "unavailable" could also describe a model the key cannot
-/// use.
-const TRANSIENT_WORDING: [&str; 5] = [
+/// is up. And on 11 November 2026, during a live stream, as code 3804, "Timeout waiting for
+/// response from streaming transcription.": its recogniser stalled, and a new session gets
+/// another. Specific on purpose: a bare "unavailable" could also describe a model the key cannot
+/// use, and a bare "timeout" a limit the request broke.
+const TRANSIENT_WORDING: [&str; 6] = [
     "statuscode.unavailable",
     "grpc_status:14",
     "statuscode.deadline_exceeded",
     "grpc connection error",
     "connection reset by peer",
+    "timeout waiting for response",
 ];
 
 /// Error names that a new connection can get past: OpenAI's and Mistral's `type`/`code` names,
@@ -380,6 +393,10 @@ mod tests {
                 Verdict::Retry,
             ),
             (
+                r#"{"code":3804,"message":"Timeout waiting for response from streaming transcription."}"#,
+                Verdict::Retry,
+            ),
+            (
                 r#"{"message":"Model voxtral-mini-transcribe is unavailable for this key","code":3001}"#,
                 Verdict::Fatal,
             ),
@@ -425,6 +442,23 @@ mod tests {
             panic!("expected a fatal control");
         };
         assert_eq!(detail, "refused");
+    }
+
+    #[test]
+    fn sentence_ends_include_closing_quotes_and_other_scripts() {
+        for text in [
+            "direct\u{a0}?",
+            "« Bonjour.\u{a0}»",
+            "(fin.)",
+            "完了。",
+            "انتهى؟",
+            "Ende!  ",
+        ] {
+            assert!(ends_sentence(text), "{text}");
+        }
+        for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
+            assert!(!ends_sentence(text), "{text}");
+        }
     }
 
     #[test]

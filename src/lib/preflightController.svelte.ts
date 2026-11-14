@@ -140,8 +140,12 @@ export class PreflightController {
 	// the level events themselves, so nothing polls while the window sits idle.
 	micSignal = $state(false);
 	systemSignal = $state(false);
+	/** The core reports sound playing into system capture with only silence arriving
+	 *  (`AudioLevel.silenced`): on a Mac, System Audio Recording refused. */
+	systemSilenced = $state(false);
 	#micSignalTimer: ReturnType<typeof setTimeout> | undefined;
 	#systemSignalTimer: ReturnType<typeof setTimeout> | undefined;
+	#systemSilencedTimer: ReturnType<typeof setTimeout> | undefined;
 
 	noteLevel = (level: AudioLevel) => {
 		if (level.source === 'microphone') {
@@ -153,7 +157,13 @@ export class PreflightController {
 			this.#micSignalTimer = setTimeout(() => (this.micSignal = false), SIGNAL_HOLD_MS);
 		} else {
 			systemLevel.set(level);
+			if (level.silenced) {
+				this.systemSilenced = true;
+				clearTimeout(this.#systemSilencedTimer);
+				this.#systemSilencedTimer = setTimeout(() => (this.systemSilenced = false), SIGNAL_HOLD_MS);
+			}
 			if (level.rms <= SIGNAL_RMS) return;
+			this.systemSilenced = false;
 			this.systemSignal = true;
 			this.systemVerified = true;
 			clearTimeout(this.#systemSignalTimer);
@@ -217,8 +227,10 @@ export class PreflightController {
 		this.systemVerified = false;
 		this.micSignal = false;
 		this.systemSignal = false;
+		this.systemSilenced = false;
 		clearTimeout(this.#micSignalTimer);
 		clearTimeout(this.#systemSignalTimer);
+		clearTimeout(this.#systemSilencedTimer);
 		if (this.audioTesting) void this.stopAudioTest();
 	};
 
@@ -316,8 +328,10 @@ export class PreflightController {
 		if (!update.active) {
 			this.micSignal = false;
 			this.systemSignal = false;
+			this.systemSilenced = false;
 			clearTimeout(this.#micSignalTimer);
 			clearTimeout(this.#systemSignalTimer);
+			clearTimeout(this.#systemSilencedTimer);
 			if (update.message) statusMessage.set(update.message);
 		}
 	};
@@ -326,6 +340,7 @@ export class PreflightController {
 		this.#disposed = true;
 		clearTimeout(this.#micSignalTimer);
 		clearTimeout(this.#systemSignalTimer);
+		clearTimeout(this.#systemSilencedTimer);
 		if (this.#desktop && this.audioTesting) void this.stopAudioTest();
 	};
 }

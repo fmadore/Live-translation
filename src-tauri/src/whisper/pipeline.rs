@@ -86,6 +86,8 @@ pub struct LocalSession {
     pub spool: Arc<Spool>,
     pub capture_cancel: CancellationToken,
     pub abort: CancellationToken,
+    /// Stop gave up on this source's capture thread: stop waiting for `input` to close.
+    pub abandoned: CancellationToken,
     pub failure: Arc<Mutex<Option<AppError>>>,
 }
 
@@ -101,6 +103,7 @@ pub async fn run(config: LocalSession) {
         spool,
         capture_cancel,
         abort,
+        abandoned,
         failure,
     } = config;
     let _ = app.emit(events::WHISPER_ENGINE, model.engine());
@@ -112,6 +115,7 @@ pub async fn run(config: LocalSession) {
         spool,
         capture_cancel,
         abort,
+        abandoned,
         failure,
     };
     drive(pipeline, move |spool, abort, emit, report| {
@@ -138,6 +142,18 @@ pub async fn run(config: LocalSession) {
     .await;
 }
 
+/// The capture feeding a local source failed: how it did, as the operator should read it.
+#[derive(Debug)]
+struct CaptureFailed(AppError);
+
+impl std::fmt::Display for CaptureFailed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for CaptureFailed {}
+
 /// A local source without its model: everything `drive` needs besides the inference itself.
 pub(super) struct Pipeline<E> {
     pub(super) events: E,
@@ -146,6 +162,7 @@ pub(super) struct Pipeline<E> {
     pub(super) spool: Arc<Spool>,
     pub(super) capture_cancel: CancellationToken,
     pub(super) abort: CancellationToken,
+    pub(super) abandoned: CancellationToken,
     pub(super) failure: Arc<Mutex<Option<AppError>>>,
 }
 
@@ -171,6 +188,7 @@ pub(super) async fn drive<E: LocalEvents>(
         spool,
         capture_cancel,
         abort,
+        abandoned,
         failure,
     } = pipeline;
     app.status(StatusUpdate::source(origin, SessionState::Running, None));
@@ -189,7 +207,23 @@ pub(super) async fn drive<E: LocalEvents>(
         let _finish = Finish(ingest_spool.clone());
         let result = (|| {
             let mut count = 0usize;
-            while let Some(frame) = input.blocking_recv() {
+            // The end of the input, or Stop giving up on the capture thread that holds it open.
+            let runtime = tokio::runtime::Handle::current();
+            let mut next = || {
+                runtime.block_on(async {
+                    tokio::select! {
+                        frame = input.recv() => frame,
+                        () = abandoned.cancelled() => {
+                            tracing::warn!(
+                                ?origin,
+                                "capture thread left behind; ending the source without it"
+                            );
+                            None
+                        }
+                    }
+                })
+            };
+            while let Some(frame) = next() {
                 ingest_spool.push(&frame)?;
                 count += 1;
                 if count.is_multiple_of(10) {
@@ -200,8 +234,8 @@ pub(super) async fn drive<E: LocalEvents>(
                 !ingest_spool.overflowed.load(Ordering::Relaxed),
                 "Audio capture outran the local disk buffer; the transcript may be incomplete"
             );
-            if let Some(error) = lock(&ingest_spool.capture_error).as_ref() {
-                anyhow::bail!("{error}");
+            if let Some(error) = lock(&ingest_spool.capture_error).clone() {
+                return Err(anyhow::Error::new(CaptureFailed(error)));
             }
             Ok(())
         })();
@@ -258,11 +292,17 @@ pub(super) async fn drive<E: LocalEvents>(
         Ok(())
     });
     if let Err(error) = result {
-        *lock(&failure) = Some(AppError::with(id::WHISPER_SESSION, &error));
+        // A capture failure is the capture's to word, as it is for a cloud source: the
+        // transcriber only drained what arrived before it.
+        let message = error.downcast_ref::<CaptureFailed>().map_or_else(
+            || AppError::with(id::WHISPER_SESSION, &error),
+            |c| c.0.clone(),
+        );
+        *lock(&failure) = Some(message.clone());
         app.status(StatusUpdate::source(
             origin,
             SessionState::Error,
-            Some(AppError::with(id::WHISPER_SESSION, &error)),
+            Some(message),
         ));
     } else {
         app.status(StatusUpdate::source(origin, SessionState::Idle, None));

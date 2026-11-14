@@ -9,7 +9,7 @@ import { providerKeyName, providerRequiresKey } from './providers';
 import type { Provider } from './types';
 
 /** localStorage key: the providers agreed to, as their key names (`Gemini`, `OpenAI`,
- *  `Mistral`). */
+ *  `Mistral`, `DeepL`). */
 export const AI_CONSENT_KEY = 'privacy.aiConsent';
 
 /** Shown in the question, as text: the operator can read or copy it without leaving the
@@ -17,7 +17,7 @@ export const AI_CONSENT_KEY = 'privacy.aiConsent';
 export const PRIVACY_POLICY_URL =
 	'https://github.com/fmadore/Live-translation/blob/main/docs/privacy.md';
 
-const PROVIDERS = new Set(['Gemini', 'OpenAI', 'Mistral']);
+const PROVIDERS = new Set(['Gemini', 'OpenAI', 'Mistral', 'DeepL']);
 
 /** What was agreed to, validated: storage outlives updates and can hold anything. */
 export function loadAiConsent(): string[] {

@@ -10,7 +10,7 @@
 # file: set `rust-version` in src-tauri/Cargo.toml to the same version in that pull request,
 # since this is the only version CI tests.
 [toolchain]
-channel = "1.99.1"
+channel = "1.100.0"
 # rustc, cargo and the standard library, without the local documentation the default profile
 # downloads on every CI run.
 profile = "minimal"

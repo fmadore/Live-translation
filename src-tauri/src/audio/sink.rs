@@ -31,7 +31,7 @@ pub struct CaptureCompletion {
 }
 
 impl CaptureCompletion {
-    pub fn finish(&mut self, error: Option<String>) {
+    pub fn finish(&mut self, error: Option<crate::errors::AppError>) {
         *lock(&self.spool.capture_error) = error;
         self.completed = true;
     }
@@ -40,9 +40,10 @@ impl CaptureCompletion {
 impl Drop for CaptureCompletion {
     fn drop(&mut self) {
         if !self.completed {
-            self.finish(Some(
-                "The audio capture worker stopped unexpectedly".to_owned(),
-            ));
+            self.finish(Some(crate::errors::AppError::with(
+                crate::errors::id::TASK_FAILED,
+                "The audio capture worker stopped unexpectedly",
+            )));
         }
         // Fields drop after this method: readers cannot see EOF until the error is visible.
     }

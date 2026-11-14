@@ -39,6 +39,13 @@ impl AppError {
             detail: Some(format!("{detail:#}")),
         }
     }
+
+    /// A failure the interface's sentence says in full, with nothing technical underneath:
+    /// the captured application quit, the captured output was unplugged, there is no
+    /// microphone. Only for those; anything a report could use goes through [`Self::with`].
+    pub fn complete(id: &'static str) -> Self {
+        Self { id, detail: None }
+    }
 }
 
 impl std::fmt::Display for AppError {
@@ -65,6 +72,10 @@ pub mod id {
     /// anything outside printable ASCII — so it was not saved. The detail says which and
     /// where, never the key.
     pub const API_KEY_FORMAT: &str = "error.apiKeyFormat";
+    /// A DeepL API Free key (ending in `:fx`): the Voice API needs a paid plan, so the key is
+    /// refused when saved and a session refused at Start, before any request is made. Raised
+    /// without a detail: the sentence is complete, and the detail would not be translated.
+    pub const DEEPL_PAID_PLAN: &str = "error.deeplPaidPlan";
     /// The bundled demonstration could not be prepared or inspected.
     pub const DEMO_UNAVAILABLE: &str = "error.demoUnavailable";
     /// A session could not be started — bad options, no key, no device.
@@ -98,8 +109,14 @@ pub mod id {
     pub const MIC_STREAM: &str = "error.micStream";
     /// Microphone capture could not start; on Windows this is usually the privacy setting.
     pub const MIC_CAPTURE: &str = "error.micCapture";
+    /// No microphone is connected, so a microphone source has nothing to open.
+    pub const MIC_NONE: &str = "error.micNone";
     /// System (loopback) capture failed.
     pub const SYSTEM_CAPTURE: &str = "error.systemCapture";
+    /// The application whose sound was being captured has quit or restarted.
+    pub const APPLICATION_CLOSED: &str = "error.applicationClosed";
+    /// The output whose sound was being captured was unplugged, disabled or removed.
+    pub const OUTPUT_DISCONNECTED: &str = "error.outputDisconnected";
     /// The provider refused the connection outright — wrong key, or no access to the model.
     pub const PROVIDER_REJECTED: &str = "error.providerRejected";
     /// The provider ended the session and said why.

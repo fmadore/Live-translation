@@ -49,6 +49,37 @@ a real meeting, API key, account or personal window.
 Whisper ran on the Base model, so its transcripts keep a few recognition slips (for example
 in the German history detail). Gemini wording is as returned, not edited.
 
+## Mac App Store (English)
+
+`mac/en/` holds the Mac App Store set, captured on 11 November 2026 on an M2 Mac mini (macOS
+26.7.3) from the **sandboxed build** of the `fix/macos-first-run` branch (the store build's
+entitlements, ad hoc signed), so no support link appears, as App Review requires. The listing is
+in English only (see [mac-app-store.md](../mac-app-store.md#the-listing-english-us)). Upload in
+filename order.
+
+**1280 × 800**, one of the four sizes App Store Connect takes for a Mac (1280 × 800, 1440 × 900,
+2560 × 1600, 2880 × 1800): the display is 1920 × 1080 at 1×, and macOS would not make the window
+taller than the space above the Dock, so 1440 × 900 could not be captured pixel for pixel. The
+window was sized to exactly 1280 × 800 and captured as it is drawn; the images are then flattened
+onto white, because App Store Connect refuses screenshots with an alpha channel and a window
+capture has transparent rounded corners.
+
+| File | Shows |
+| --- | --- |
+| `1-whisper.png` | Subtitles after a real local Whisper session on system audio: spoken language English, Base model ready, every pre-flight check green, the transcript below. |
+| `2-overlay.png` | The locked, click-through overlay over a neutral slide during that session (Fit window). A full-screen capture cropped to 16:10 (1728 × 1080) and scaled to 1280 × 800. |
+| `3-bilingual.png` | A Gemini live-translation session into English and German, with the original speech shown above the English. |
+| `4-appearance.png` | Settings › Captions: presets, size, typeface, colours, backing and the bright and dark slide previews. |
+| `5-reading.png` | Settings › Reading: Stable reading and the editable filler-word list. |
+| `6-history.png` | Settings › Transcript history: a titled session found by search, with copy and export controls and its transcript. |
+
+**Content.** The speech is a synthesized talk on community gardens, the subject of the Windows
+set, made with macOS's voices (Samantha in English for Whisper, Thomas in French for Gemini) and
+played through the speakers with `afplay`, captured as system audio. The slide is a plain
+illustration made for these images. Whisper ran on the Base model, so its transcript keeps a few
+slips ("Gardner's Eag"); Gemini's wording is as returned. Nothing shows a real meeting, API key,
+account or personal window. In `6-history.png` macOS capitalised the search word as it was typed.
+
 ## Super hero art
 
 `super-hero-art.png` is the listing's 16:9 Super hero art, uploaded under **Trailers and

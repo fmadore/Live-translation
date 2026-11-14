@@ -102,7 +102,7 @@ mod mac {
             };
             anyhow::ensure!(
                 guard.running(),
-                "selected application has closed; select it again"
+                crate::audio::CaptureLost::ApplicationClosed
             );
             Ok(guard)
         }
@@ -285,7 +285,7 @@ mod platform {
             let guard = Self::open(identity.pid)?;
             anyhow::ensure!(
                 guard.identity(identity.pid)? == *identity && guard.running(),
-                "selected application has closed or restarted; select it again"
+                crate::audio::CaptureLost::ApplicationClosed
             );
             Ok(guard)
         }

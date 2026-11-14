@@ -5,28 +5,30 @@ records what the macOS port does, why, how to get a test build, and the checklis
 on a real Mac (a rented Scaleway Mac mini). The Mac App Store's own steps are in
 [mac-app-store.md](mac-app-store.md).
 
-## Status (4 November 2026)
+## Status (11 November 2026)
 
-**Implemented; nothing has run on a real Mac yet.** CI compiles, lints and tests the Rust core
-on Apple silicon, runs the multilingual Whisper smoke test there, builds the app and starts it on
-the runner, in and out of the App Sandbox. Everything below marked *to test* needs a Mac with a
-person at it.
+**First run on a real Mac done; its bugs fixed.** CI compiles, lints and tests the Rust core on
+Apple silicon, runs the multilingual Whisper smoke test there, builds the app and starts it on
+the runner, in and out of the App Sandbox. On 10–11 November the app was built from source and
+driven on an M2 Mac mini (macOS 26.7.3, no microphone, speakers and an HDMI display), both the
+direct build and the sandboxed one, through the accessibility interface; see
+[First run](#first-run-1011-november-2026). *Tested* below means that run, not a real meeting.
 
 | Area | macOS implementation | State |
 | --- | --- | --- |
-| Microphone | cpal (Core Audio), as on Windows | to test |
-| System audio | Core Audio process tap on the chosen output (`audio/tap.rs`) | to test |
-| Application capture | a tap of the application's process and its helpers | to test |
-| Device changes | Core Audio notifications, as Windows' endpoint notifications | to test |
-| Caption overlay | screen-saver window level, every Space, beside full-screen apps; not key while click-through | to test |
-| Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | to test |
+| Microphone | cpal (Core Audio), as on Windows | error paths tested (no microphone); capture to test |
+| System audio | Core Audio process tap on the chosen output (`audio/tap.rs`) | tested, direct and sandboxed |
+| Application capture | a tap of the application's process and its helpers | tested (direct) |
+| Device changes | Core Audio notifications, as Windows' endpoint notifications | tested |
+| Caption overlay | screen-saver window level, every Space, beside full-screen apps; not key while click-through | level, transparency, move mode tested; click-through, Spaces, full screen to test |
+| Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | tested, direct and sandboxed |
 | External links | `NSWorkspace` opens the support page and the Zoom guide | to test |
-| API keys | login Keychain (keyring's Apple backend) | to test |
-| Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16 and Accelerate's BLAS | CI smoke test (Metal) |
-| Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | to test |
-| Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | to test |
-| Packaging | `.app` and `.dmg`, ad hoc in CI; signed and notarised in each release | CI |
-| Mac App Store | free; sandboxed build, signing and upload workflow; no support link | ready, not submitted |
+| API keys | login Keychain (keyring's Apple backend) | tested, direct and sandboxed |
+| Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16 and Accelerate's BLAS | tested (Metal, Base model) |
+| Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | tested |
+| Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | tested |
+| Packaging | `.app` and `.dmg`, ad hoc in CI; signed and notarised in each release | built locally; notarised build to test |
+| Mac App Store | free; sandboxed build, signing and upload workflow; no support link | sandbox spike tested, not submitted |
 
 ## Decisions
 
@@ -198,8 +200,8 @@ The speech samples ship inside the app:
       name with accents (`~/Documents/Données Frédérick/transcription.md`).
 - [ ] **Links:** the support link and the Zoom guide open in Safari.
 - [ ] **Quit:** with unsaved lines, ⌘Q asks about them; with a live session, it stops it first.
-      With *Keep running in the tray when I close this window* on (still worded for Windows), the
-      red button hides the window; the menu-bar icon and the Dock icon bring it back.
+      With *Keep running in the menu bar when I close this window* on, the red button hides the
+      window; the menu-bar icon and the Dock icon bring it back.
 - [ ] **Sleep:** with a session running, sleep the Mac (Apple menu → Sleep) and wake it over
       VNC. Note what the source does.
 - [ ] **WebKit:** make the operator window narrow and then full screen; nothing scrolls
@@ -233,12 +235,109 @@ and "real meeting passed" apart.
 | --- | --- | --- | --- | --- |
 | | | | | |
 
+## First run (10–11 November 2026)
+
+An M2 Mac mini, macOS 26.7.3, no microphone; built from `main` at `f42ae86` with
+`npm run tauri build` (ad hoc signature, not notarised), then retested with the fixes below.
+The windows were driven through the macOS accessibility interface rather than by hand, so
+everything here is "native automated test passed", not "real meeting passed".
+
+**Worked as designed:** the README's checks (921 Vitest tests, 430 Rust tests, Clippy, the
+Whisper smoke test on Metal); the bundle (hardened runtime, microphone entitlement, both usage
+descriptions, macOS 15 minimum, arm64 only, no non-system library); both windows, the overlay
+at the screen-saver level and fully transparent; the keyless demo; the Base model downloaded,
+verified and run on Metal (Rehearse); System Audio Recording asked for with the app's own text,
+and captions from `afplay` once allowed, without restarting the session; one application
+(QuickTime Player) captured while `afplay` was left out, and its quitting ending the source
+instead of widening to the output; device lists refreshed on an output appearing and going, and
+a removed output ending the source; the Save panel (accented name, Replace, no staging file left
+behind); a key saved to the login Keychain, kept across a restart with no prompt, and removed;
+⇧⌘Space, ⇧⌘P and ⇧⌘O; ⌘Q stopping a live session and asking about unsaved lines; hiding to the
+menu bar and back through the Dock; overlay move mode (arrows nudge, Enter locks, no longer
+focusable afterwards); the Mac wording in all three languages. **In the App Sandbox:** the tap
+captures system audio (the spike's question), the model downloads into the container, export
+writes in place and truncates a longer file it replaces, and the support link is absent.
+
+**Found and fixed on this branch:**
+
+- *Stop hung on "Stopping…"* when a system-audio session was stopped while the System Audio
+  Recording question was still on screen. Until it is answered, `coreaudiod` makes every I/O
+  call of the app wait (stopping or destroying an I/O proc, creating the next one), and the
+  capture thread waiting there still held the session's audio channel, which a local Whisper
+  source reads until it closes. Stop already gave up on such a thread after three seconds; now
+  the source stops waiting for its input too (`ActiveSession::abandoned`), and the tap lets go
+  of its capture state first and is taken down on a thread of its own (`audio/tap.rs`). Retested:
+  Stop takes four seconds with the question unanswered.
+- *A refused permission looked like a quiet room*: after "Don't Allow" the tap runs and delivers
+  exact zeros, with no error. While another process plays into what is tapped and only zeros
+  arrive for three seconds, the meter events are marked `silenced` and the interface names the
+  setting to open (`SilenceWatch` in `audio/loopback.rs`). Retested: the hint appeared three
+  seconds into `afplay` on a refused build and went once it stopped. There is no public API to
+  ask for the permission itself; a stream that really plays digital silence (a muted call that
+  keeps its output open) shows the same hint, which disappears with the first real sound. While
+  the question is still on screen nothing is shown: Core Audio answers nothing until then, and
+  the question is in front of the operator anyway.
+- *No microphone* was reported as a blocked privacy setting (`'!obj'` from a default input
+  device that does not exist) and the picker still offered "System default"; it now says no
+  microphone is connected, in both places.
+- *A closed application or a disconnected output* is worded in full (`error.applicationClosed`,
+  `error.outputDisconnected`) instead of an English detail, and a local Whisper source reports a
+  capture failure as the capture's, not as "Local transcription could not finish".
+- *The single-instance plugin failed in the sandbox* (its socket is in `/tmp`) and logged an
+  error at every start; it is not installed there, where Launch Services keeps one instance.
+- *RAUMMIKROFON broke as RAUMMIKROFO/N* in WebKit, whose text is a little wider than WebView2's,
+  and the hidden date input of History overflowed its box by 2px; the tray logged a warning on
+  every ⌘Q for the application menu's event.
+
+**Found while taking the App Store screenshots, and fixed:**
+
+- *The overlay vanished over full-screen applications* (Preview in full screen and its slideshow;
+  the same holds for Keynote, PowerPoint or a browser in full screen). For an application with a
+  Dock icon, macOS lets a window into another application's full-screen Space only if it is a
+  non-activating panel, whatever its level and collection behaviour; tried in a prototype, a
+  plain window with the panel's style bit stays out and a panel stays in. The overlay's class is
+  now switched to an `NSPanel` subclass that keeps tao's `focusable` ivar and focus methods
+  (`overlay.rs`), checked to have the same layout first. Retested: on the desktop, over a
+  full-screen window and over a slideshow; move mode, the arrow keys and Enter still work.
+- *The audio test said "WASAPI loopback"* on a Mac, in all three languages; `i18n/mac.ts` now says
+  "system audio".
+- *The audio check's tick went away when the test stopped.* The tap's private aggregate device is
+  invisible to other applications but not to this one, which saw it as an input that appeared and
+  vanished with each capture, as if a device had been plugged in. Every device list now leaves
+  the app's own devices out (`audio::is_own_device`).
+
+**Still open:** a history entry's duration can run past the session (one recorded "17:08" for a
+talk of under a minute that was stopped after three minutes), as if the entry stayed open after
+Stop until the next action.
+
+**Cloud provider, after the fixes:** Gemini live translation (English sample to French) through
+Rehearse, in the direct and the sandboxed build: the WebSocket connects through the system's
+TLS (Security.framework, where Windows uses SChannel) and is set up in under half a second,
+the captions arrive in French, Gemini's planned session handovers (about every nine minutes)
+reconnect without a gap, Stop drains and ends cleanly, and the sandbox's network entitlement
+covers the WebSocket. The key there was copied into the app's entry with `security
+add-generic-password`, so macOS asked for the login password at the first two reads in each
+build (one to check a key exists, one at Start); a key pasted into the app's own field asks
+nothing. While that question waits, Start only says "Starting…". Not tried: OpenAI, Mistral,
+and a cloud session on system audio rather than the bundled sample.
+
+**Not done in that run:** microphone capture (no input device), click-through, Spaces and full
+screen, sleep, the support and Zoom links, SRT/WebVTT export, and turning System Audio Recording off in System Settings after allowing it (the refusal was
+tested by answering "Don't Allow"). Also seen: the first session after a restart
+waits about 7 s on "Starting…" while Metal compiles Whisper's shaders, and the application menu
+stays in English when the interface is French or German.
+
+**Building locally:** `npm run tauri build` makes the disk image by asking Finder, through
+AppleScript, to lay out its window; from a terminal without the Automation permission that
+waits for an answer and then fails. `CI=true npm run tauri build` skips the layout, as CI does.
+
 ## Not done yet
 
-1. **What the Scaleway day finds**, fixed first; then the decisions the issue leaves to
+1. **The rest of the first-run checklist** (above); then the decisions the issue leaves to
    evidence: the oldest macOS supported (14.6 if it runs there), and Whisper's speed on Metal,
    now on by default, measured against the CPU with the setup's graphics-processor switch.
-2. **A refused System Audio Recording permission** must never pass for a working session.
+2. **A refused System Audio Recording permission** is now flagged while something plays (seen
+   after "Don't Allow"); still to check after turning it off in System Settings.
 3. **The Developer ID secrets** in this repository before the next release tag, or the release's
    `macos` job stops (on purpose) and the release stays a draft until they are added and the
    job is re-run.

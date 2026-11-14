@@ -155,6 +155,7 @@
 			on.level((l) => {
 				preflight.noteLevel(l);
 				if (l.rms > 0.02 && $isRunning) noteActivity(l.source, 'audio');
+				if (l.silenced && $isRunning) noteActivity(l.source, 'silenced');
 			}),
 			on.status((s) => {
 				applyStatus(s);

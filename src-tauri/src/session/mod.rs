@@ -56,6 +56,10 @@ struct ActiveSession {
     local: bool,
     failure: Arc<Mutex<Option<AppError>>>,
     abort: CancellationToken,
+    /// Cancelled when Stop gives up on a capture thread that did not stop in time. Such a
+    /// thread still holds its source's audio channel open, so a local transcriber waiting for
+    /// the channel to close would hold Stop forever; this tells it to finish without the end.
+    abandoned: CancellationToken,
     /// One per source, in the order `start` added them, so `set_paused` can zip the two.
     origins: Vec<Origin>,
     /// Every client holds a receiver; see `SessionManager::set_paused`.
@@ -99,6 +103,8 @@ impl SessionManager {
         } else {
             String::new()
         };
+        // A key from the environment never went through `set_api_key`'s check.
+        secrets::check_plan(provider, &api_key)?;
         let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
         // Made before the model loads, so discarding (and quitting) also ends a load that hangs.
         let abort = CancellationToken::new();
@@ -149,6 +155,7 @@ impl SessionManager {
                 local: provider.is_local_whisper(),
                 failure: Arc::new(Mutex::new(None)),
                 abort,
+                abandoned: CancellationToken::new(),
                 origins: origins.clone(),
                 pause: watch::Sender::new(false),
                 sources: Vec::new(),
@@ -236,7 +243,11 @@ impl SessionManager {
     /// clients. Shared by Stop and by a start that failed part-way.
     async fn shutdown(&self, mut session: ActiveSession) {
         session.cancel.cancel();
-        join_threads(session.capture_threads, "capture").await;
+        if !join_threads(session.capture_threads, "capture").await {
+            // macOS can do this while it waits for the operator to answer the System Audio
+            // Recording question: every Core Audio call of the app's waits with it.
+            session.abandoned.cancel();
+        }
 
         // Rehearsal playback holds the producer end of its audio channel, and the client
         // below only sees the stream end once that is dropped — so drain it here, in the
@@ -331,6 +342,7 @@ mod tests {
             local,
             failure: Arc::new(Mutex::new(None)),
             abort: CancellationToken::new(),
+            abandoned: CancellationToken::new(),
             origins: origins.to_vec(),
             pause: watch::Sender::new(false),
             client_tasks: sources.iter().cloned().map(client).collect(),

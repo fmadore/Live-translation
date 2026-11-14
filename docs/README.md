@@ -1,14 +1,17 @@
 # Documentation
 
-These guides describe **[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)**
-(27 October 2026), the version in the Store, live as reported by the maintainer on 10 November
-2026: captions in a Zoom meeting's own caption bar, fixes for flashes and layout shifts in setup
-and the transcript, and a pre-flight that says why Start waits for an application. It replaced
-**[1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0)** (26 October 2026):
-an optional Buy Me a Coffee link that unlocks nothing, and a fix for an empty band at the bottom
-of the operator window. 1.10.0 before that completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
-lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings on
-`main` before 1.13.0 is tagged and tracks their fixes on `fix/review-2026-11-10`.
+These guides describe `main`, prepared as **1.14.0** (DeepL as an experimental fourth cloud
+translation engine, Mistral reconnecting after a transcription timeout, and overlay rows that
+each show a line with both sources). The version in the Store is
+**[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November
+2026, MSIX 1.13.1.0), read from the installed package on 13 November 2026: the fixes from the
+Mac app's first run on a real Mac, on top of 1.13.0's Mac app, Whisper on the graphics
+processor, speech detection, Large v3 Turbo, names and terms for Gemini Transcribe and Whisper,
+and the question before audio first goes to a cloud provider. It replaced
+**[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October
+2026): captions in a Zoom meeting's own caption bar. 1.10.0 completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
+lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings
+fixed in 1.13.0 and what is still to check by hand.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
@@ -31,16 +34,31 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
   on a Mac ([#195](https://github.com/fmadore/Live-translation/issues/195)), and the
   [Mac App Store submission](mac-app-store.md), with its
   [decision record](decisions/2026-11-05-mac-app-store.md).
-- Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md).
+- Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md), [DeepL](deepl-voice-api.md).
 - [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.12.0 (tagged 27 October 2026, in the Store)
+## Release 1.14.0 (prepared, not yet tagged)
+
+- [Release notes](release-1.14.0.md): DeepL as an experimental fourth cloud translation engine
+  (paid DeepL API plan only), Mistral reconnecting after a transcription timeout, and overlay rows
+  that each show a line when both sources share a shallow strip.
+- [Release handoff](store-updates.md#release-1140-handoff) and
+  [what the Store submission needs](store-listing-next.md); [DeepL notes](deepl-voice-api.md).
+
+## Release 1.13.1 (tagged 11 November 2026, in the Store)
+
+- [Release notes](release-1.13.1.md): the fixes from the Mac app's first run on a real Mac.
+- [Release handoff](store-updates.md#release-1131-handoff); 1.13.1.0 is live in the Store,
+  read from the installed package on 13 November 2026.
+  [Mac App Store screenshots](store-screenshots/README.md#mac-app-store-english).
+
+## Release 1.12.0 (tagged 27 October 2026, replaced by 1.13.1)
 
 - [Release notes](release-1.12.0.md) and [release handoff](store-updates.md#release-1120-handoff).
 
-## Release 1.13.0 (tagged 10 November 2026, not yet submitted)
+## Release 1.13.0 (tagged 10 November 2026, published on GitHub, never submitted)
 
 - [Release notes](release-1.13.0.md): the Mac app, Whisper on the graphics processor,
   speech detection, Large v3 Turbo, names and terms for Gemini Transcribe and Whisper, and the

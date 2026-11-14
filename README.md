@@ -2,7 +2,7 @@
 
 Live captions over your meetings, video calls and slides. Transcribe speech locally with
 **Whisper**, or translate it — into English locally with Whisper, or into many languages with
-**Google Gemini** or **OpenAI** — in a transparent overlay on Windows or macOS.
+**Google Gemini**, **OpenAI** or **DeepL** — in a transparent overlay on Windows or macOS.
 
 <a href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Get it from Microsoft" height="48"></a>&nbsp;&nbsp;<a href="https://buymeacoffee.com/fmadore"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="48"></a>
 
@@ -15,18 +15,21 @@ Free, with every feature included. If it is useful to you, you can
 **Windows 11, native x64 and ARM64 · macOS 15+ on Apple silicon (in testing) · English, French
 and German interface · MIT license**
 
-The macOS version is new and has not yet been tried on a real Mac: see the
-[macOS notes](docs/macos.md). Disk images will be attached to GitHub releases from the next one,
-and a free Mac App Store version is being prepared ([submission notes](docs/mac-app-store.md)).
+The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
+whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
+and a free Mac App Store version, 1.13.1, is in Apple's review ([submission notes](docs/mac-app-store.md)).
 
-**[1.13.0](https://github.com/fmadore/Live-translation/releases/tag/v1.13.0)** (10 November 2026)
-is the latest release, not yet submitted to the Store: a Mac app for Apple silicon, Whisper on
-the graphics processor with speech detection and Large v3 Turbo, and the fixes of a review. See
-its [release notes](docs/release-1.13.0.md) and [Store handoff](docs/store-updates.md#release-1130-handoff).
-**[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): captions
-in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
-([release notes](docs/release-1.12.0.md)).
+**[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
+is the latest release, not yet submitted to the Store: DeepL as an experimental fourth cloud
+translation engine (paid DeepL API plan only), Mistral subtitles that reconnect after a
+transcription timeout, and an overlay that shows a line in every row when both sources share a
+shallow strip. See its [release notes](docs/release-1.14.0.md) and
+[Store handoff](docs/store-updates.md#release-1140-handoff).
+**[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November 2026)
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): the
+fixes from the Mac app's first run on a real Mac, on top of [1.13.0](docs/release-1.13.0.md) (a
+Mac app for Apple silicon, Whisper on the graphics processor with speech detection and Large v3
+Turbo) ([release notes](docs/release-1.13.1.md)).
 
 ## What it does
 
@@ -40,8 +43,9 @@ in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
 - **Offline translation into English.** Whisper also translates any of those languages into
   English, with the same models and no key. English is its only target; choose Small, since
   Tiny and Base translate poorly.
-- **Cloud translation and subtitles.** Gemini offers 78 translation targets and OpenAI 13 in
-  the app's catalog. Gemini and Mistral also offer same-language subtitles; with them, and with
+- **Cloud translation and subtitles.** Gemini offers 78 translation targets, DeepL 42 and
+  OpenAI 13 in the app's catalog; DeepL needs a paid DeepL API plan, since its Voice API is not
+  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral also offer same-language subtitles; with them, and with
   local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
   Cloud engines need your
   own compatible account, API key and internet connection; provider usage charges apply.
@@ -79,8 +83,8 @@ in a Zoom meeting's own caption bar, and fixes for flashes and layout shifts
    GitHub installers are unsigned; Store packages are signed and update through the Store.
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
-   For translation, choose **Live translation**, Gemini or OpenAI, your key and target language,
-   or **Local Whisper** to translate into English without a key.
+   For translation, choose **Live translation**, Gemini, OpenAI or DeepL, your key and target
+   language, or **Local Whisper** to translate into English without a key.
 3. Test the source, start the session, and use **Move overlay** to position captions. Lock
    the overlay to make it click-through again.
 4. **Pause** during breaks. Cloud connections close after their final turn; Whisper stops
@@ -113,8 +117,8 @@ in the app under Settings › App, except in the Mac App Store version.
 Use Windows with Node 22.13+ or 24, rustup (`rust-toolchain.toml` pins the Rust version, which
 rustup installs on first use), Visual Studio C++ Build Tools and the Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
 [native compiler setup](docs/local-whisper.md#building) before building the desktop app. On a
-Mac (Apple silicon), Xcode's command-line tools, rustup and Node are enough; see
-[macOS](docs/macos.md).
+Mac (Apple silicon), install Xcode's command-line tools, rustup, Node and CMake (Whisper's native
+build needs it; CI's runners have it already); see [macOS](docs/macos.md).
 
 ```powershell
 npm ci

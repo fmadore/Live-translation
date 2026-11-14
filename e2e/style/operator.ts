@@ -173,7 +173,7 @@ const DIALOG = ':has(> [role="dialog"])';
 // The idle window once per engine choice that changes its layout, a running session, and each
 // settings tab. Subtitles have two layouts: local Whisper (the first-run engine, with its
 // model list and spoken-language choice) and a cloud engine (a key panel and an auto-detect
-// note). Both translation engines share one layout, as do Voxtral and Gemini Transcribe.
+// note). The cloud translation engines share one layout, as do Voxtral and Gemini Transcribe.
 
 const STATES = {
 	/** First run: subtitles with local Whisper, no model downloaded yet. */

@@ -10,7 +10,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
 use crate::realtime::{
     CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, Signal, TurnAccumulator,
-    bearer_request, parse_or_log, provider_error,
+    bearer_request, ends_sentence, parse_or_log, provider_error,
 };
 use crate::types::Origin;
 
@@ -78,7 +78,7 @@ impl RealtimeProtocol for MistralClient {
         bearer_request(Self::NAME, &self.config.ws_url(), &self.config.api_key)
     }
 
-    fn setup_json(&self) -> Result<String> {
+    fn setup_json(&self) -> Result<Option<String>> {
         let update = SessionUpdate::pcm16(self.config.target_streaming_delay_ms);
         if self.config.is_realtime_2602() {
             if !self.config.context_bias.is_empty() {
@@ -87,11 +87,11 @@ impl RealtimeProtocol for MistralClient {
                     "this Mistral model takes no glossary; sending none"
                 );
             }
-            return Ok(serde_json::to_string(&update)?);
+            return Ok(Some(serde_json::to_string(&update)?));
         }
-        Ok(serde_json::to_string(
+        Ok(Some(serde_json::to_string(
             &update.with_turns_and_bias(&self.config.context_bias),
-        )?)
+        )?))
     }
 
     fn audio_json(&self, base64_pcm: String) -> Result<String> {
@@ -165,7 +165,8 @@ impl RealtimeProtocol for MistralClient {
             // object, `code` an integer it calls an internal code for debugging. The shared
             // `classify_json` reads it: HTTP's transient codes and names, and Mistral's own
             // backend failing to reach an internal service (seen live as code 3803 with a gRPC
-            // UNAVAILABLE message), reconnect; quota wording and anything unknown stay fatal.
+            // UNAVAILABLE message) or timing out on its recogniser (code 3804), reconnect; quota
+            // wording and anything unknown stay fatal.
             "error" => {
                 let Some(error) = event.error else {
                     return MessageOutcome::control(MessageControl::Fatal(
@@ -193,15 +194,6 @@ impl RealtimeProtocol for MistralClient {
     }
 }
 
-/// Whether the text ends a sentence, closing quotes and brackets aside, and the (often
-/// non-breaking) space French sets before them.
-fn ends_sentence(text: &str) -> bool {
-    text.trim_end_matches(|c: char| {
-        c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
-    })
-    .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,7 +216,7 @@ mod tests {
     }
 
     fn setup(config: MistralConfig) -> serde_json::Value {
-        serde_json::from_str(&config.into_client().setup_json().unwrap()).unwrap()
+        serde_json::from_str(&config.into_client().setup_json().unwrap().unwrap()).unwrap()
     }
 
     #[test]
@@ -295,23 +287,6 @@ mod tests {
         h.send(r#"{"type":"turn.start","time_s":21.0}"#);
         h.send(r#"{"type":"session.created"}"#);
         assert!(!open(&h), "a new session starts with no turn");
-    }
-
-    #[test]
-    fn sentence_ends_include_closing_quotes_and_other_scripts() {
-        for text in [
-            "direct\u{a0}?",
-            "« Bonjour.\u{a0}»",
-            "(fin.)",
-            "完了。",
-            "انتهى؟",
-            "Ende!  ",
-        ] {
-            assert!(ends_sentence(text), "{text}");
-        }
-        for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
-            assert!(!ends_sentence(text), "{text}");
-        }
     }
 
     #[test]
@@ -430,6 +405,11 @@ mod tests {
                     r#"UNAVAILABLE: ipv4:10.235.138.223:50052: recvmsg:Connection reset by "#,
                     r#"peer\"}\"\n>"}"#
                 ),
+                true,
+            ),
+            // As Mistral sent it on 11 November 2026, during a live stream.
+            (
+                r#"{"code":3804,"message":"Timeout waiting for response from streaming transcription."}"#,
                 true,
             ),
             (

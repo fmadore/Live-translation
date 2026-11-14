@@ -12,6 +12,7 @@ mod audio;
 // capability files in step; `build.rs` reads the same file to generate the permissions.
 pub mod command_names;
 mod commands;
+mod deepl;
 mod echo;
 mod errors;
 mod export;
@@ -128,13 +129,24 @@ pub fn run() {
 
     assert_webview_runtime();
 
-    tauri::Builder::default()
-        // First in the chain, as the plugin requires. A second launch must reach the running
-        // instance: two processes would fight over the same capture devices, and the operator
-        // would be looking at a window whose Stop button controls nothing.
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+    let builder = tauri::Builder::default();
+    // First in the chain, as the plugin requires. A second launch must reach the running
+    // instance: two processes would fight over the same capture devices, and the operator
+    // would be looking at a window whose Stop button controls nothing.
+    //
+    // Not in the App Sandbox (the Mac App Store build): on macOS the plugin listens on a socket
+    // in `/tmp`, which the sandbox refuses, so it only logged an error at every start. There,
+    // Launch Services already keeps one instance per app: opening it again from Finder, the
+    // Dock or Spotlight activates the running one, and `lifecycle::on_run_event` brings its
+    // window back. Only `open -n` or starting the executable directly makes a second.
+    let builder = if support::app_store_build() {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             show_operator_window(app);
         }))
+    };
+    builder
         .manage(SessionManager::default())
         .manage(whisper::models::ModelManager::default())
         .manage(CloseGuard::default())
