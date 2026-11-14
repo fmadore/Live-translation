@@ -31,6 +31,13 @@ updates:
       - dependency-name: typescript
         update-types:
           - version-update:semver-major
+      # knip 6.45.0 cannot resolve `"extends": "$app/tsconfig"` and reports `$app` as an
+      # unlisted dependency; 6.45.1 then fails to load the Playwright configs. Drop these once a
+      # later knip reads the SvelteKit tsconfig again.
+      - dependency-name: knip
+        versions:
+          - "6.45.0"
+          - "6.45.1"
 
   - package-ecosystem: cargo
     directory: /src-tauri
