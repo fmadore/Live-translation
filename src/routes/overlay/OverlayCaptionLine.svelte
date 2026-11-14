@@ -122,7 +122,7 @@
 				lang={language}
 				bind:this={paragraph}
 				bind:clientHeight={fullHeight}
-				style:transform="translateY(-{scrollOffset}px)"
+				style:transform="translateY({-scrollOffset}px)"
 			>
 				{flow}
 			</p>
