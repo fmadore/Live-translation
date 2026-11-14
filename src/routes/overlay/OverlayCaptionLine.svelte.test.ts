@@ -58,11 +58,11 @@ it('holds earlier rows until a full line overflows and refits whole rows after r
 	}
 	resize();
 	const paragraph = view.container.querySelector('.stable-viewport p') as HTMLElement;
-	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(-0px)'));
+	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(0px)'));
 	await view.rerender({ ...props, text: 'Next words arrive' });
 	rows = 3;
 	resize();
-	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(-0px)'));
+	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(0px)'));
 	rows = 4;
 	resize();
 	await waitFor(() => expect(paragraph.style.transform).toBe('translateY(-40px)'));
