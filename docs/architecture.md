@@ -161,10 +161,11 @@ See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes) an
 [DeepL's](deepl-voice-api.md#how-a-caption-line-closes).
 
 A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
-`MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open
-and the connection has produced no caption for three seconds (`QUIET_BEFORE_CLOSE`), the
-closing frames are still sent but not waited on, so a Pause in a quiet room takes effect at
-once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
+`MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open,
+the provider holds nothing still to come (`keeps_turn_open`: DeepL's tentative start of a
+sentence that is not on screen yet) and the connection has produced no caption for three
+seconds (`QUIET_BEFORE_CLOSE`), the closing frames are still sent but not waited on, so a Pause
+in a quiet room takes effect at once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
 runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
 drain.
 
@@ -179,7 +180,11 @@ it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, clos
 (OpenAI's or Mistral's cap) is a planned handover; anything unrecognized stays fatal, 1007 and
 1008 included, so a persistent failure reports itself instead of looping. A setup that times
 out, hits EOF or is closed with a retryable code is retried the same way, as Reconnecting, and
-the fifth such failure in a row ends the source; an accepted setup resets the count. A
+the fifth such failure in a row ends the source; an accepted setup resets the count. A provider
+that sends no setup acknowledgement (OpenAI, Mistral, DeepL) has accepted a connection once it
+is open, so one that it ends within five seconds (`UNCONFIRMED_OPEN`) without having sent a
+message counts as a failed setup too (`policy::unconfirmed_end`); a connection that stays open,
+however quiet the room, does not. A
 provider that ends its session mid-stream
 (OpenAI's `session.closed`, Mistral's `transcription.done`, DeepL's `end_of_stream`) does not
 end the source either:

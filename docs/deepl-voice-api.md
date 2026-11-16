@@ -81,9 +81,19 @@ sent.
 ### Open the socket
 
 `{streaming_url}?token=<token>`, the token percent-encoded as DeepL's Python client encodes it.
-The client uses the URL DeepL returned, never a fixed one, and in a release build refuses one
-that is not `wss`. There is no setup message (`setup_json` returns `None`): audio follows the
-handshake.
+The client uses the URL DeepL returned, never a fixed one, and refuses one that is not `wss`
+(`check_streaming_scheme`); a debug build also takes plain `ws`, for the tests' loopback servers
+and a developer's `DEEPL_API_HOST`, and no build takes any other scheme. There is no setup
+message (`setup_json` returns `None`): audio follows the handshake, each chunk's base64 encoded
+straight into its `source_media_chunk` frame (`RealtimeProtocol::audio_frame`).
+
+With no setup acknowledgement, an open socket is all the acceptance DeepL gives. One that DeepL
+closes within five seconds without having sent a message counts as a failed setup, with the
+detail `DeepL closed the connection as soon as it opened`, and the fifth in a row ends the
+source, as for every provider without an acknowledgement
+([architecture](architecture.md#provider-contracts)). Before this, such a socket counted as
+established, and a DeepL that kept closing them was retried every 16 seconds for the rest of
+the event, each retry a refused resume and a new session request.
 
 ### Resume, or start again
 
@@ -164,7 +174,10 @@ before its translation arrived). A line closes as final, on the first of:
    a sentence (`.`, `?`, `!`, `…` and their CJK, Arabic and Devanagari forms, closing quotes and
    brackets aside, `realtime::wire::ends_sentence`, shared with Mistral), the line is that
    concluded text alone. Tentative text after it is the next sentence's start, and opens the
-   next line with the following update. One concluded segment is one line when DeepL concludes
+   next line with the following target update, even one that repeats it unchanged. Until then
+   it is not on screen, so DeepL is treated as still holding words (`keeps_turn_open`): a Pause
+   or Stop drains for them however quiet the connection has been, and `end_of_source_media`
+   makes DeepL conclude them. One concluded segment is one line when DeepL concludes
    whole sentences; a run of phrase-sized segments makes one line per sentence.
 2. **The idle boundary.** No target text for 1 s closes the line (`FINALIZE_AFTER`), for a
    speaker who trails off without punctuation, and for scripts without sentence punctuation
@@ -173,13 +186,23 @@ before its translation arrived). A line closes as final, on the first of:
 3. **`end_of_stream`**, which closes whatever is open; mid-stream it also moves the source to a
    new session.
 
-A line closed on a timer may have shown tentative text that DeepL concludes later. Target
-segments ending no later than what a final line already showed are dropped, so the words are not
-printed twice. Segment times are trusted within one connection only: after a reconnect nothing
-is dropped (duplicated words are the lesser fault), and a segment without times is always kept.
+A line closed on a timer (the idle boundary, or a connection that ended) may have shown
+tentative text that DeepL concludes later. Segments ending no later than what that final line
+showed are dropped (`shown_until`), so the words are not printed twice; each drop is logged at
+debug level with its end time, how far the final line went and its length in characters, never
+its text. Only the
+runner's own closes set this: a line closed on a concluded sentence showed concluded text
+alone, which DeepL sends once, so what follows it is kept whatever its times. And the filter
+lifts at the first concluded segment that ends after the final line: DeepL has moved past it,
+so times that do not strictly increase cost at most the segments around one timer close. Segment
+times are trusted within one connection only: after a reconnect nothing is dropped (duplicated
+words are the lesser fault), and a segment without times is always kept.
 
-The monitor's source text for a line is the source DeepL concluded before the line closed. The
-source leads, so the start of the next sentence's source can appear under the line before it.
+The source transcript is matched against its own times the same way, so source words a timer
+close showed are not repeated under the next line. The monitor's source text for a line closed
+on a concluded sentence is all the source DeepL concluded before it closed: source and target
+times are not matched against each other, the source leads, so the start of the next sentence's
+source can appear under the line before it.
 
 Because tentative text is replaced, an interim line's start can change; a Zoom share therefore
 publishes DeepL's final lines only (`zoom::interims_only_grow`).
@@ -239,7 +262,14 @@ Until the live probe runs with a paid key:
 
 - the whole stream: message shapes, the cadence of tentative and concluded updates, and whether
   concluded target segments are sentence-sized, which decides how lines break;
-- whether segment times are monotonic within a connection, and across a resume;
+- whether segment times are monotonic within a connection, and across a resume (the client no
+  longer depends on it after a concluded sentence; after a timer close a segment that ends no
+  later than the shown text is dropped, and logged, until DeepL concludes past it);
+- whether target segment times are on the source audio's timeline, as the documented examples
+  suggest (the client does not assume so);
+- whether a socket DeepL drops while it holds tentative text is resumed with that text: the
+  client starts each connection afresh, so a tentative sentence start that was not yet on screen
+  is lost with the socket;
 - the target codes in [languages](#languages), `en-US` and `zh-HANS` especially;
 - the keepalive: that 100 ms of silence every 10 seconds keeps a quiet session open;
 - what a resume returns once the latest token has expired, and how long tokens live;

@@ -200,6 +200,37 @@ impl Reconnect {
     }
 }
 
+/// How long a connection to a provider that confirms no setup has to stay open, unless it says
+/// something first, before it counts as accepted.
+pub(super) const UNCONFIRMED_OPEN: Duration = Duration::from_secs(5);
+
+/// For a provider that confirms no setup (DeepL), an open socket is all the acceptance there
+/// is. One it ends within `UNCONFIRMED_OPEN` without having sent a message was refused however
+/// it closed, and counts as a failed setup: otherwise a provider that closed every socket at
+/// once was retried every 16 seconds for the rest of the event, never reaching
+/// `MAX_SETUP_FAILURES`. A connection that stays open is untouched, however quiet the room, and
+/// so is every end a retry does not follow (Pause, Stop, a refusal).
+pub(super) fn unconfirmed_end(
+    end: RunEnd,
+    open_for: Duration,
+    heard: bool,
+    provider: &str,
+) -> RunEnd {
+    if heard || open_for >= UNCONFIRMED_OPEN {
+        return end;
+    }
+    let reason = match &end {
+        RunEnd::Reconnect => format!("{provider} closed the connection as soon as it opened"),
+        RunEnd::Handover => format!("{provider} ended the session as soon as it opened"),
+        RunEnd::Failed(error) => format!("{error:#}"),
+        _ => return end,
+    };
+    RunEnd::SetupFailed {
+        reason,
+        close_code: None,
+    }
+}
+
 /// Whether a handover request is the planned move it claims to be. A provider that asks to
 /// move straight after accepting a connection is refusing it, and reconnecting at once would
 /// hammer it; that case keeps the ordinary backoff.
@@ -369,6 +400,65 @@ mod tests {
             assert_ne!(policy.after(&setup_failed(), SHORT), After::Stop);
         }
         assert_eq!(policy.after(&setup_failed(), SHORT), After::Stop);
+    }
+
+    /// A provider without a setup acknowledgement that ends a connection at once, having said
+    /// nothing, is refusing it: counted like a failed setup, so five in a row end the source.
+    #[test]
+    fn a_connection_ended_at_once_without_a_word_counts_as_a_failed_setup() {
+        let early = Duration::from_millis(300);
+        for end in [
+            RunEnd::Reconnect,
+            RunEnd::Handover,
+            RunEnd::Failed(anyhow::anyhow!(
+                "DeepL closed the connection (close code 1011)"
+            )),
+        ] {
+            let RunEnd::SetupFailed { reason, close_code } =
+                unconfirmed_end(end, early, false, "DeepL")
+            else {
+                panic!("an early silent end is a failed setup");
+            };
+            assert!(reason.starts_with("DeepL "), "{reason}");
+            assert_eq!(close_code, None);
+        }
+        let mut policy = Reconnect::new(Origin::Microphone);
+        for attempt in 1..=MAX_SETUP_FAILURES {
+            let end = unconfirmed_end(RunEnd::Reconnect, early, false, "DeepL");
+            let after = policy.after(&end, early);
+            assert_eq!(after == After::Stop, attempt == MAX_SETUP_FAILURES);
+        }
+    }
+
+    /// Only an end that comes early and silent counts: a connection that stayed open, however
+    /// quiet, or one the provider spoke on, ends as it did; so do the ends no retry follows.
+    #[test]
+    fn a_quiet_connection_that_stays_open_or_one_that_spoke_is_untouched() {
+        let reconnect = |open_for, heard| {
+            matches!(
+                unconfirmed_end(RunEnd::Reconnect, open_for, heard, "DeepL"),
+                RunEnd::Reconnect
+            )
+        };
+        assert!(reconnect(UNCONFIRMED_OPEN, false));
+        assert!(reconnect(LONG, false));
+        assert!(reconnect(Duration::ZERO, true));
+        assert!(!reconnect(
+            UNCONFIRMED_OPEN - Duration::from_millis(1),
+            false
+        ));
+        for end in [
+            RunEnd::Paused,
+            RunEnd::Stopped,
+            RunEnd::Fatal("refused".into()),
+            RunEnd::Rejected(403),
+        ] {
+            let kept = format!("{end:?}");
+            assert_eq!(
+                format!("{:?}", unconfirmed_end(end, Duration::ZERO, false, "DeepL")),
+                kept
+            );
+        }
     }
 
     #[test]

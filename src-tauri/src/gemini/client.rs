@@ -56,7 +56,7 @@ impl RealtimeProtocol for GeminiConfig {
     /// speech on every Pause and Stop. The guide documents `audioStreamEnd` for the Live API
     /// generally, not for Live Translate in particular, so a live check is still pending; if
     /// the server rejects it, the runner ends the drain quietly and keeps the turn so far.
-    fn closing_json(&self) -> Result<Vec<String>> {
+    fn closing_json(&mut self) -> Result<Vec<String>> {
         Ok(vec![AUDIO_STREAM_END.to_string()])
     }
 
