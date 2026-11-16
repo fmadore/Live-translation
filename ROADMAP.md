@@ -123,6 +123,17 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Next
 
+- **The [16 November app review](docs/app-review-2026-11-16.md)** (on the branch
+  `ccr-a1526fde-jevpxv`, not yet merged or released): its fixes (every overlay row shows a
+  line with four rows, DeepL keeps concluded text, the echo filter by session time, the
+  pre-flight's stream count), a faster CI, and the operator features that followed: the
+  new-version notice for copies installed from GitHub
+  ([#217](https://github.com/fmadore/Live-translation/issues/217)), opt-in system-wide Pause
+  and overlay keys, a spending guard for cloud engines, markers and Find in the transcript, and
+  a notice on the overlay for breaks. Nothing in it has run on Windows or a Mac yet; the
+  review lists what to check by hand and the two candidates deferred (a fallback engine
+  mid-session, saving to a folder at Stop).
+
 [#187](https://github.com/fmadore/Live-translation/issues/187) was triaged on 26 October 2026:
 captions in Zoom first, then Whisper's names-and-terms prompt and speech detection; OBS output
 and a display-only corrections list only if needed; Teams CART, the LAN audience viewer, richer
