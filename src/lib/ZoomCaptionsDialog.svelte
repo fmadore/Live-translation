@@ -116,7 +116,14 @@
 	}
 </script>
 
-<ModalPrompt title={$t.zoom.title} onDismiss={onClose} dismissLabel={$t.zoom.close}>
+<!-- Opens on the link, the one thing to fill in; while sharing it is disabled, and focus
+     falls back to the first control. -->
+<ModalPrompt
+	title={$t.zoom.title}
+	onDismiss={onClose}
+	dismissLabel={$t.zoom.close}
+	initialFocus=".link input"
+>
 	<p>{$t.zoom.intro}</p>
 	<ol class="steps">
 		<li>{$t.zoom.steps.settings}</li>

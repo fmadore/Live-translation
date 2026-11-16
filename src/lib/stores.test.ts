@@ -15,6 +15,7 @@ import {
 	clearTranscript,
 	currentCaptions,
 	flushTranscript,
+	hasInFlightLines,
 	inFlightLines,
 	markTranscriptSaved,
 	pushCaption,
@@ -116,6 +117,19 @@ describe('turns still being spoken', () => {
 		pushCaption(caption(1, 'partial', false));
 		pushCaption(caption(1, 'partial, then final'));
 		expect(get(inFlightLines)).toEqual([]);
+	});
+
+	// Review E4: Copy's enabled state follows this rather than the lines themselves, which are
+	// rebuilt with every delta.
+	it('notify whether any exist only when that answer changes, not with every delta', () => {
+		const seen: boolean[] = [];
+		const stop = hasInFlightLines.subscribe((value) => seen.push(value));
+		pushCaption(caption(1, 'one', false));
+		pushCaption(caption(1, 'one two', false));
+		pushCaption(caption(1, 'one two three', false));
+		pushCaption(caption(1, 'one two three.'));
+		stop();
+		expect(seen).toEqual([false, true, false]);
 	});
 });
 

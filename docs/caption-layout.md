@@ -42,9 +42,23 @@ When both sources have visible captions, system audio appears above the micropho
 with labels, and they share the available height. A single visible source uses the
 available height without an origin label. When the rows' share of the window is too short
 for one line at the selected font size (a strip sized for one source, which a second source
-then splits), the rows are drawn smaller, down to 20 px, so each still shows a line
-(`rowFontSize`); before 1.14.0 they showed their labels and no caption. Snap to bottom gives
-the selected size its room back.
+or caption language then splits), the overlay makes room in this order until every row holds a
+line (`fitRows` in `captionLayout.ts`): the rows close up from 18 px apart to 6 px and shrink,
+down to 20 px; the original speech, when shown, gives up its line so the translation keeps one
+at 20 px or more; and the rows go smaller than 20 px, down to 12 px, rather than show no
+caption. Both sources in two caption languages in the default 160 px strip are drawn at 20 px,
+6 px apart, without the original. Before 1.14.0 the rows showed their labels and no caption;
+in 1.14.0 four rows still did, and with the original on the original showed and the translation
+did not. The window is never resized for it: Snap to bottom gives the selected size its room
+back.
+
+The operator window is told. Under **Caption size** in the live rail, a notice gives the size
+the rows are drawn at and why — "Drawn at 20 px: the overlay is too shallow for 4 rows at this
+size." — with a line when the original is hidden for room, and points to **Move overlay** and
+**Snap to bottom**. A status says the same once, without the size, which a resize changes
+without anything worth interrupting for. The overlay sends the fit (`OverlayFit`, through
+`report_overlay_state`) only when it changes and only while captions are drawn, so the notice
+does not come and go with each pause in speech, and clears it when the session stops.
 
 ## Compact
 
@@ -68,7 +82,11 @@ the same colour so finishing a turn does not visually relocate the reading point
 This mode retains the session's caption context in memory, including during pauses; Stop
 clears it. Once 180 lines have scrolled out of view, the oldest are dropped at the start of a
 rendered line, keeping 60 hidden lines; cutting only at a line start means no line already on
-screen re-wraps. The two sources remain independent and share the window. Resizing, changing
+screen re-wraps. A single turn that streams for minutes is bounded too, as Fit window and
+Compact bound theirs: past 12,000 characters only its newest 10,000 to 12,000 are laid out,
+cut at a word, with no context before them (`stableTurnTail`). The cut moves in 2,000-character
+steps rather than with every word, and lands thousands of characters above the lines on
+screen, so those keep their wrap. The two sources remain independent and share the window. Resizing, changing
 fonts, adding a second source, or provider corrections can still reflow text. The backing is
 even across the reading area so top-aligned text is readable over light content.
 
@@ -134,7 +152,8 @@ become language codes — `FR`, `EN` — with the source name too when both sour
 screen; a name would crowd the caption at projector distance. Each row is marked up with its
 own language. The original speech, when shown, goes under the first language only: the second
 heard the same speech. Snap to bottom sizes the strip for up to four rows. `?language=bilingual`
-previews it in a browser.
+previews it in a browser, and `?language=bilingual-both` previews both sources in both
+languages: four rows.
 
 ## Fitting cost
 

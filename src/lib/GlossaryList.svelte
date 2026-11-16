@@ -90,8 +90,8 @@
 						title={m.remove(term)}
 						onclick={() => void remove(term, index)}
 						><span class="term">{term}</span><svg
-							width="10"
-							height="10"
+							width="0.625rem"
+							height="0.625rem"
 							viewBox="0 0 10 10"
 							fill="none"
 							stroke="currentColor"

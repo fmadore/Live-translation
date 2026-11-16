@@ -48,6 +48,9 @@ interface State {
 	scope?: string;
 	/** Answers the core has to give before the window loads. */
 	prepare?(core: FakeCore): void;
+	/** Measured for overflow only, without a style snapshot of its own: a layout the other
+	 *  states already style, filled with the longest content the window can hold. */
+	overflowOnly?: boolean;
 	/** From a freshly loaded window, as an operator would get there. */
 	reach(app: Operator): Promise<void>;
 }
@@ -197,6 +200,24 @@ const STATES = {
 			).toHaveAttribute('aria-pressed', 'true');
 		}
 	},
+	/** Translation of both sources into two languages: the cost row's longest action, the
+	 *  rate with both of its multipliers (review D2), in German and at 225% above all. */
+	'idle-translation-both': {
+		overflowOnly: true,
+		async reach(app) {
+			const { page, t } = app;
+			await STATES['idle-translation'].reach(app);
+			await press(page, 'button', t.source.both);
+			const second = page.getByRole('combobox', { name: t.language.second });
+			await second.focus();
+			await second.fill('fr');
+			await second.press('Enter');
+			await second.blur();
+			const cost = page.locator('.check-row', { hasText: t.preflight.cost.title });
+			await expect(cost).toContainText(t.cost.twoSources);
+			await expect(cost).toContainText(t.cost.twoLanguages);
+		}
+	},
 	/** Translating both sources, two speakers' captions arriving. */
 	running: {
 		prepare(core) {
@@ -267,7 +288,12 @@ const STATES = {
 } satisfies Record<string, State>;
 
 type StateName = keyof typeof STATES;
-export const STATE_NAMES = Object.keys(STATES) as StateName[];
+/** Every state, for the overflow spec. */
+export const OVERFLOW_STATE_NAMES = Object.keys(STATES) as StateName[];
+/** The states with a style snapshot of their own. */
+export const STATE_NAMES = OVERFLOW_STATE_NAMES.filter(
+	(state) => !(STATES[state] as State).overflowOnly
+);
 
 /** What the style snapshot of `state` covers; undefined for the whole window. */
 export const scopeOf = (state: StateName): string | undefined => (STATES[state] as State).scope;

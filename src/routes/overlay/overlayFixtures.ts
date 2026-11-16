@@ -60,10 +60,36 @@ function bilingualPreview(): PreviewContent {
 	};
 }
 
+/** Both speakers, each captioned in two languages: four rows, `?language=bilingual-both`. The
+ *  default 160 px strip has no room for four rows at the chosen size, so this is where the
+ *  rows are seen closing up and shrinking (`fitRows`). */
+function fourRowPreview(): PreviewContent {
+	const two = bilingualPreview();
+	const turn = { turnId: 1, final: false, origin: 'system' as const, startMs: 0, endMs: 0 };
+	return {
+		...two,
+		current: {
+			system: {
+				...turn,
+				text: 'Les deux intervenants sont sous-titrés dans les deux langues.',
+				sourceText: 'Both speakers are captioned in both languages.'
+			},
+			'system:1': {
+				...turn,
+				lane: 1,
+				text: 'Both speakers are captioned in both languages.',
+				sourceText: 'Both speakers are captioned in both languages.'
+			},
+			...two.current
+		}
+	};
+}
+
 /** Both origins visible (so the labels show), one finalized line and one live turn carrying a
  *  lead-in — or, when `language` names a sample, that sample alone. */
 export function previewContent(language: string | null): PreviewContent {
 	if (language === 'bilingual') return bilingualPreview();
+	if (language === 'bilingual-both') return fourRowPreview();
 	if (isTargetLanguage(language) && SAMPLES[language]) {
 		return {
 			current: { microphone: { ...ROOM, text: SAMPLES[language] } },

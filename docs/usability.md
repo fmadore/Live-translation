@@ -16,9 +16,15 @@ before the engine is ready (its key saved, its Whisper model installed, or the d
 Start also needs a chosen application to be running; Rehearse plays the bundled sample
 instead, and the built-in demo has no rehearsal.
 
-New installations open on Whisper with Base and automatic language detection. Switching
-from translation to Subtitles also selects Whisper and retains the selected audio source;
-it does not start capture or a model download. Existing saved setups are restored on launch.
+New installations open on Whisper with Base and automatic language detection. The
+pre-flight checklist's Whisper row offers the selected model's download, named with its size
+(**Download Base (57 MiB)**), and shows its progress with a Cancel button; it is the same
+download as the model step's, so either shows one started from the other. Switching mode
+returns to the engine last used in that mode (`setup.lastEngines` in webview local storage,
+checked on read); without one, Subtitles opens on Whisper, or the built-in demo on a
+processor that cannot run it, and translation on Gemini. Switching retains the selected audio
+source; it does not start capture or a model download. Existing saved setups are restored on
+launch.
 
 ## Pause
 
@@ -63,6 +69,8 @@ caption language** for an additional target supported by the same engine. The tw
 must differ. Choose no second language to return to a single output. Both captions appear
 in the overlay and transcript; exports preserve each line's language. Each target opens a
 separate provider session for each audio source, so adding a target increases cloud usage.
+The pre-flight cost row and the running rail both mark the rate **×2 sources** and
+**×2 languages** where each applies.
 
 In **Settings → Reading**, **Show the original speech under translations** adds a smaller
 source-text line when the provider supplies one. It works in Fit window and Compact, not
@@ -76,7 +84,10 @@ Settings has **Captions**, **Reading**, **Transcript history** and **App** tabs.
 The dialog and tab bar retain their dimensions when switching tabs; the content scrolls
 independently and starts at the top of each newly selected tab. Short tabs intentionally
 leave spare space. Use Left/Right arrows, Home or End within the tab bar, and Tab to
-reach its content. Changes apply immediately; close with the corner button or Escape.
+reach its content. Settings opens with focus on its selected tab, not on the corner button.
+Changes apply immediately; close with the corner button or Escape. Until a session has been
+saved, **Transcript history** shows only its opt-ins and one sentence; the search, the date and
+language filters and the session reader appear with the first saved session.
 
 See [caption layout](caption-layout.md#reading-pace-and-preview) for the adjustable reading pause,
 Steadier updates and presets. See [transcript history](transcript-history.md#titles-and-search)

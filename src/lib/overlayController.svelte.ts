@@ -16,7 +16,7 @@ import {
 	statusMessage
 } from './stores';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
-import type { OverlayConfig, OverlayStateMsg } from './types';
+import type { OverlayConfig, OverlayFit, OverlayStateMsg } from './types';
 import {
 	clampOverlayFont,
 	DEFAULT_APPEARANCE,
@@ -47,6 +47,19 @@ function beforeNextFrame(flush: () => void) {
 	};
 	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(once);
 	setTimeout(once, 100);
+}
+
+/** A fit report as the operator window keeps it: null when no rows are drawn, or when the
+ *  report is not one (the core checks the shape; this checks the numbers). */
+function readFit(fit: OverlayFit): OverlayFit | null {
+	const valid =
+		Number.isFinite(fit.fontSize) &&
+		fit.fontSize > 0 &&
+		Number.isInteger(fit.rows) &&
+		typeof fit.squeezed === 'boolean' &&
+		typeof fit.originalHidden === 'boolean' &&
+		typeof fit.room === 'boolean';
+	return valid && fit.rows > 0 ? fit : null;
 }
 
 /** One appearance and window-command owner for the rail, settings and overlay events.
@@ -156,6 +169,11 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 	// Blanking it covers a coffee break or a video clip without ending the session. The core
 	// can hide it too (Alt+F4 on the overlay), and says so through `applyState`.
 	let overlayVisible = $state(true);
+
+	// How the overlay's caption rows last fit its window, as it reported: null until it reports
+	// rows drawn, and again once the session stops. The live rail says from this when captions
+	// are drawn smaller than the size its control shows.
+	let overlayFit = $state<OverlayFit | null>(null);
 
 	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
 	// when the operator finishes placing it and when a profile places it: not on every move,
@@ -326,6 +344,7 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		// Hidden by the core, not by this window: the toggle and the tray now offer Show, so
 		// bringing the captions back is one click rather than a Hide that does nothing first.
 		if (typeof msg.visible === 'boolean') overlayVisible = msg.visible;
+		if (msg.fit !== undefined) overlayFit = readFit(msg.fit);
 		if (msg.visible === false && moveOverlay) void leaveHiddenMoveMode();
 	}
 
@@ -353,6 +372,9 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		},
 		get overlayVisible() {
 			return overlayVisible;
+		},
+		get overlayFit() {
+			return overlayFit;
 		},
 		initialize,
 		restorePlacement,

@@ -552,7 +552,8 @@ them is a cheap path that skips a step:
 2. **Hide instead?** With *Keep running in the tray* on, closing hides the window and stops
    here — the session, the overlay and the transcript all carry on. The first hide explains
    itself in the window rather than as a toast, which Focus Assist or a full-screen slideshow
-   could swallow.
+   could swallow. Escape on that explanation neither hides nor quits: the window stays open,
+   and the explanation is still owed to the first hide.
 3. **May this session end?** Asked while it is still running, so ending an event's captions is
    a decision rather than a mis-aimed click.
 4. **Stop and drain.** `stop_session` cancels capture and gives the providers a bounded window

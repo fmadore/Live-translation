@@ -198,6 +198,7 @@ export const fr: Messages = {
 		base: 'Base — équilibré',
 		small: 'Small — plus précis',
 		turbo: 'Large v3 Turbo — le plus précis',
+		names: { tiny: 'Tiny', base: 'Base', small: 'Small', turbo: 'Large v3 Turbo' },
 		turboHint:
 			'Le modèle le plus précis, et le plus lourd : il suit la parole sur un processeur graphique ou un processeur rapide. Essayez-le avant un événement.',
 		turboCannotTranslate:
@@ -206,6 +207,7 @@ export const fr: Messages = {
 		graphicsNote:
 			'Plus rapide si l’ordinateur en a un qui convient ; sinon, ou en cas d’échec, Whisper fonctionne sur le processeur.',
 		download: 'Télécharger le modèle',
+		downloadSized: (model: string, mib: number) => `Télécharger ${model} (${mib}\u00a0Mio)`,
 		remove: 'Supprimer le modèle',
 		cancel: 'Annuler le téléchargement',
 		ready: 'Modèle prêt pour la transcription hors ligne.',
@@ -530,7 +532,23 @@ export const fr: Messages = {
 		show: 'Afficher les sous-titres',
 		hide: 'Masquer les sous-titres',
 		showLabel: 'Afficher la surimpression',
-		hideLabel: 'Masquer la surimpression'
+		hideLabel: 'Masquer la surimpression',
+		fit: {
+			smaller: (size: number, rows: number) =>
+				rows === 1
+					? `Affichés à ${size} px : la surimpression est trop basse pour cette taille.`
+					: `Affichés à ${size} px : la surimpression est trop basse pour ${rows} lignes à cette taille.`,
+			smallerAnnounce: (rows: number) =>
+				rows === 1
+					? 'Les sous-titres sont affichés plus petits que choisi : la surimpression est trop basse.'
+					: `Les sous-titres sont affichés plus petits que choisi : la surimpression est trop basse pour ${rows} lignes.`,
+			noRoom: (rows: number) =>
+				rows === 1
+					? 'Pas de place pour les sous-titres : la surimpression est trop basse.'
+					: `Pas de place pour les sous-titres : la surimpression est trop basse pour ${rows} lignes.`,
+			originalHidden: 'Le discours original est masqué pour laisser la place aux traductions.',
+			action: (move: string, snap: string) => `« ${move} », puis « ${snap} », leur rend la place.`
+		}
 	},
 
 	window: {

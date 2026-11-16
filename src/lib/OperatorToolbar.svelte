@@ -58,8 +58,8 @@
 	     heavier so it survives 18 px. -->
 	<span class="brand" aria-hidden="true">
 		<svg
-			width="18"
-			height="18"
+			width="1.125rem"
+			height="1.125rem"
 			viewBox="128 128 768 768"
 			fill="none"
 			stroke-width="84"
@@ -91,8 +91,8 @@
 			onclick={onOpenZoom}
 		>
 			<svg
-				width="14"
-				height="14"
+				width="0.875rem"
+				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -131,8 +131,8 @@
 			onclick={onOpenSettings}
 		>
 			<svg
-				width="16"
-				height="16"
+				width="1rem"
+				height="1rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"

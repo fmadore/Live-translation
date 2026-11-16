@@ -149,4 +149,50 @@ describe('ApiKeyPanel', () => {
 		// The panel stays on OpenAI's key, which is still to be entered.
 		expect(getByLabelText('OpenAI key')).toHaveValue('');
 	});
+
+	it('Remove forgets the stored key and brings the key form back', async () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(true);
+		mocks.clearApiKey.mockResolvedValue(undefined);
+		const { getByRole, findByLabelText, onAvailability } = mount('openai');
+		await waitFor(() => expect(onAvailability).toHaveBeenCalledWith('openai', true));
+		await fireEvent.click(getByRole('button', { name: 'Remove' }));
+		expect(mocks.clearApiKey).toHaveBeenCalledExactlyOnceWith('openai');
+		expect(await findByLabelText('OpenAI key')).toHaveValue('');
+		expect(onAvailability).toHaveBeenLastCalledWith('openai', false);
+	});
+
+	it('Replace then Cancel keeps the stored key and reports nothing new', async () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(true);
+		const { getByRole, getByLabelText, queryByLabelText, onAvailability } = mount('gemini');
+		await waitFor(() => expect(onAvailability).toHaveBeenCalledWith('gemini', true));
+		await fireEvent.click(getByRole('button', { name: 'Replace' }));
+		await fireEvent.input(getByLabelText('Gemini key'), { target: { value: 'half-typed' } });
+		onAvailability.mockClear();
+		await fireEvent.click(getByRole('button', { name: 'Cancel' }));
+		expect(queryByLabelText('Gemini key')).toBeNull();
+		expect(getByRole('button', { name: 'Replace' })).toBeInTheDocument();
+		expect(mocks.setApiKey).not.toHaveBeenCalled();
+		expect(onAvailability).not.toHaveBeenCalled();
+		// The typed text did not survive the cancel.
+		await fireEvent.click(getByRole('button', { name: 'Replace' }));
+		expect(getByLabelText('Gemini key')).toHaveValue('');
+	});
+
+	// The core refuses a free DeepL key with an id the interface words; it reaches the page as
+	// that id, never as text, and the form stays open with what was typed.
+	it('passes a refused DeepL key on as error.deeplPaidPlan and keeps the form', async () => {
+		mocks.tauriPresent = true;
+		mocks.hasApiKey.mockResolvedValue(false);
+		const refusal = { id: 'error.deeplPaidPlan' };
+		mocks.setApiKey.mockRejectedValueOnce(refusal);
+		const { getByLabelText, getByRole, onAvailability, onError } = mount('deepl');
+		await fireEvent.input(getByLabelText('DeepL key'), { target: { value: 'abc:fx' } });
+		await fireEvent.click(getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(onError).toHaveBeenCalledExactlyOnceWith(refusal));
+		expect(onAvailability).not.toHaveBeenCalledWith('deepl', true);
+		expect(getByLabelText('DeepL key')).toHaveValue('abc:fx');
+		expect(getByRole('button', { name: 'Save' })).toBeEnabled();
+	});
 });

@@ -1,3 +1,4 @@
+import { get } from 'svelte/store';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -11,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./quit', () => mocks);
 vi.mock('./tauri', () => ({ isTauri: () => false, api: mocks }));
 import { createQuitController } from './quitController.svelte';
-import { closeToTray } from './stores';
+import { closeToTray, trayHideExplained } from './stores';
 
 beforeEach(() => {
 	vi.resetAllMocks();
@@ -78,4 +79,61 @@ it('takes no other answer while one is being carried out', async () => {
 	await saving;
 	expect(controller.closeAnswering).toBeNull();
 	expect(controller.closePrompt).toBe(false);
+});
+
+it('the tray Quit with nothing live claims the close and goes straight to the unsaved question', async () => {
+	mocks.endsLiveSession.mockReturnValue(false);
+	const stop = vi.fn();
+	const controller = createQuitController({ stop, toggleOverlayVisible: vi.fn() });
+	await controller.onTrayCommand('quit');
+	expect(mocks.acknowledgeClose).toHaveBeenCalledOnce();
+	expect(controller.sessionPrompt).toBe(false);
+	expect(mocks.prepareClose).toHaveBeenCalledExactlyOnceWith(stop);
+	expect(mocks.showOperator).toHaveBeenCalledOnce();
+	expect(controller.closePrompt).toBe(true);
+});
+
+it('choosing Quit on the tray explanation quits without marking the explanation as given', async () => {
+	closeToTray.set(true);
+	trayHideExplained.set(false);
+	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	await controller.onCloseRequested();
+	expect(controller.hidePrompt).toBe(true);
+	await controller.onHideChoice('quit');
+	expect(controller.hidePrompt).toBe(false);
+	expect(mocks.hideToTray).not.toHaveBeenCalled();
+	expect(mocks.prepareClose).toHaveBeenCalledOnce();
+	expect(get(trayHideExplained)).toBe(false);
+});
+
+it('Escape on the tray explanation neither hides nor quits, and still owes the explanation', async () => {
+	closeToTray.set(true);
+	trayHideExplained.set(false);
+	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	await controller.onCloseRequested();
+	await controller.onHideChoice('cancel');
+	expect(controller.hidePrompt).toBe(false);
+	expect(mocks.hideToTray).not.toHaveBeenCalled();
+	expect(mocks.prepareClose).not.toHaveBeenCalled();
+	expect(get(trayHideExplained)).toBe(false);
+	await controller.onHideChoice('hide');
+	expect(mocks.hideToTray).toHaveBeenCalledOnce();
+	expect(get(trayHideExplained)).toBe(true);
+});
+
+it('a second close request while the session question is up claims the close but asks nothing new', async () => {
+	mocks.endsLiveSession.mockReturnValue(true);
+	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	await controller.onCloseRequested();
+	expect(controller.sessionPrompt).toBe(true);
+	expect(controller.sessionPromptFromTray).toBe(false);
+	await controller.onTrayCommand('quit');
+	expect(mocks.acknowledgeClose).toHaveBeenCalledTimes(2);
+	expect(controller.sessionPromptFromTray).toBe(false);
+	expect(mocks.showOperator).toHaveBeenCalledOnce();
+	expect(mocks.prepareClose).not.toHaveBeenCalled();
+	// Keeping the session withdraws the question and quits nothing.
+	await controller.onSessionChoice(false);
+	expect(controller.sessionPrompt).toBe(false);
+	expect(mocks.prepareClose).not.toHaveBeenCalled();
 });

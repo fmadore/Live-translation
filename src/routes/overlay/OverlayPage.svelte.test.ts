@@ -345,3 +345,149 @@ it('keeps a caption to its hold time through pushes that do not change it', asyn
 	expect(view.container.querySelector('.captions')).toBeNull();
 	view.unmount();
 });
+
+/** A layout jsdom can do: a 1280 × 160 window whose caption probe wraps text at half an em a
+ *  character and sets lines 1.34 em apart, at the size the stage hands its rows. Enough to run
+ *  the real fitting search, which jsdom alone answers with nothing at all. */
+function fakeStrip(width = 1280, height = 160) {
+	vi.stubGlobal('innerWidth', width);
+	vi.stubGlobal('innerHeight', height);
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const size = (el: Element) => {
+		const stage = el.closest<HTMLElement>('.stage');
+		const fs = parseFloat(stage?.style.getPropertyValue('--fs') ?? '') || 16;
+		return el.closest('.original') ? fs * 0.6 : fs;
+	};
+	const regionWidth = width - 2 * 32;
+	const clientWidth = vi
+		.spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+		.mockImplementation(() => regionWidth);
+	const rect = vi
+		.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+		.mockImplementation(function (this: HTMLElement) {
+			const fs = size(this);
+			const chars = this.classList.contains('probe') ? (this.textContent ?? '').length + 2 : 0;
+			const lines = Math.ceil((chars * fs * 0.5) / regionWidth);
+			return new DOMRect(0, 0, regionWidth, lines * fs * 1.34);
+		});
+	const realStyle = window.getComputedStyle.bind(window);
+	vi.stubGlobal('getComputedStyle', (el: Element) => {
+		const style = realStyle(el);
+		if (!el.classList.contains('probe')) return style;
+		return new Proxy(style, {
+			get: (target, key) =>
+				key === 'lineHeight' ? `${size(el) * 1.34}px` : Reflect.get(target, key, target)
+		});
+	});
+	return () => {
+		clientWidth.mockRestore();
+		rect.mockRestore();
+	};
+}
+
+const TRACKS = [
+	{ origin: 'system', lane: 0 },
+	{ origin: 'system', lane: 1 },
+	{ origin: 'microphone', lane: 0 },
+	{ origin: 'microphone', lane: 1 }
+] as const;
+
+/** The caption text each row shows, without its label or the hidden probe. */
+function rowTexts(container: HTMLElement) {
+	return Array.from(container.querySelectorAll('.captions .row')).map(
+		(row) =>
+			row.querySelector('.texts > .text-region > .line:not(.probe)')?.textContent?.trim() ?? ''
+	);
+}
+
+// D1: both sources in two caption languages split the default 160 px strip four ways, 18 px a
+// row against a 26.8 px line at the 20 px floor, and every row showed its label and no caption.
+for (const { rows, original } of [
+	{ rows: 3, original: false },
+	{ rows: 4, original: false },
+	{ rows: 4, original: true }
+]) {
+	it(`shows a caption in each of ${rows} rows of the default strip${original ? ' with the original on' : ''}`, async () => {
+		const restore = fakeStrip();
+		const view = render(Page);
+		await tick();
+		handlers.config({
+			fontSize: 38,
+			captionLayout: 'fit',
+			pace: 'immediate',
+			showOriginal: original,
+			captionLanguage: 'fr',
+			secondCaptionLanguage: 'de'
+		});
+		TRACKS.slice(0, rows).forEach(({ origin, lane }, i) =>
+			handlers.caption({
+				turnId: i + 1,
+				text: `Caption ${i + 1} for this row, long enough to need a line of its own.`,
+				sourceText: 'The speech as it was spoken.',
+				origin,
+				lane,
+				final: true,
+				startMs: 0,
+				endMs: 1000
+			})
+		);
+		await vi.waitFor(() => {
+			const texts = rowTexts(view.container);
+			expect(texts).toHaveLength(rows);
+			for (const text of texts) expect(text).toMatch(/Caption \d/);
+		});
+		// The translation comes first: with no room for both, the original gives way.
+		expect(view.container.querySelector('.original')).toBeNull();
+		const fit = reported.findLast((state) => state.fit)?.fit;
+		expect(fit).toMatchObject({ rows, squeezed: true, room: true, originalHidden: original });
+		expect(fit?.fontSize).toBeGreaterThanOrEqual(20);
+		expect(fit?.fontSize).toBeLessThan(38);
+		view.unmount();
+		restore();
+	});
+}
+
+it('reports a fit that needs no notice when one row has room, and an empty one at Stop', async () => {
+	const restore = fakeStrip();
+	const view = render(Page);
+	await tick();
+	handlers.config({ fontSize: 38, captionLayout: 'fit', pace: 'immediate' });
+	handlers.caption({
+		turnId: 1,
+		text: 'One speaker.',
+		sourceText: '',
+		origin: 'system',
+		final: true,
+		startMs: 0,
+		endMs: 1000
+	});
+	await vi.waitFor(() => expect(rowTexts(view.container)).toEqual(['One speaker.']));
+	expect(reported.findLast((state) => state.fit)?.fit).toEqual({
+		fontSize: 38,
+		rows: 1,
+		squeezed: false,
+		originalHidden: false,
+		room: true
+	});
+	const before = reported.length;
+	// The same fit again is not sent again.
+	handlers.config({ fontSize: 38, captionLayout: 'fit', pace: 'immediate', scrimOpacity: 0.6 });
+	await tick();
+	expect(reported.slice(before).filter((state) => state.fit)).toEqual([]);
+	handlers.status({ state: 'idle' });
+	await tick();
+	expect(reported.at(-1)?.fit).toMatchObject({ rows: 0, squeezed: false });
+	view.unmount();
+	restore();
+});

@@ -4,10 +4,11 @@
 
 import { get } from 'svelte/store';
 import { nextFavourite } from './languages';
+import { readStored, writeStored } from './persisted';
 import { languageFavourites, options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { isLocalWhisper, providerCanTranslate } from './providers';
-import { canFlipDirection } from './types';
+import { canFlipDirection, PROVIDERS } from './types';
 import type { AudioSource, OutputMode, Provider, TargetLanguage } from './types';
 
 export interface SetupDeps {
@@ -23,6 +24,40 @@ export interface SetupDeps {
 
 /** The built-in demo's single virtual source, applied whenever it becomes the engine. */
 const DEMO_SOURCE = { source: 'microphone', micDeviceName: null } as const;
+
+/** The engine last used in each mode, so switching back to a mode returns to it. */
+export const LAST_ENGINES_KEY = 'setup.lastEngines';
+type LastEngines = Partial<Record<OutputMode, Provider>>;
+
+/** Whether `provider` serves `mode`: a stored value can hold anything, so each is checked. */
+function servesMode(provider: unknown, mode: OutputMode): provider is Provider {
+	return (
+		typeof provider === 'string' &&
+		(PROVIDERS as readonly string[]).includes(provider) &&
+		providerCanTranslate(provider as Provider) === (mode === 'translate')
+	);
+}
+
+/** The remembered engines, each kept only when it still serves its mode. */
+export function loadLastEngines(): LastEngines {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(readStored(LAST_ENGINES_KEY) ?? 'null');
+	} catch {
+		return {};
+	}
+	if (typeof parsed !== 'object' || parsed === null) return {};
+	const stored = parsed as Record<string, unknown>;
+	const engines: LastEngines = {};
+	if (servesMode(stored.translate, 'translate')) engines.translate = stored.translate;
+	if (servesMode(stored.transcribe, 'transcribe')) engines.transcribe = stored.transcribe;
+	return engines;
+}
+
+function rememberEngine(mode: OutputMode, provider: Provider) {
+	if (!servesMode(provider, mode)) return;
+	writeStored(LAST_ENGINES_KEY, JSON.stringify({ ...loadLastEngines(), [mode]: provider }));
+}
 
 export function createSetupActions({
 	locked,
@@ -71,6 +106,7 @@ export function createSetupActions({
 		if (providerCanTranslate(provider) !== (current.mode === 'translate')) return;
 		if (isLocalWhisper(provider) && whisperRefused()) return;
 		invalidateAudioTest();
+		rememberEngine(current.mode, provider);
 		options.set({
 			...current,
 			provider,
@@ -83,13 +119,20 @@ export function createSetupActions({
 		const current = get(options);
 		if (locked() || mode === current.mode) return;
 		invalidateAudioTest();
-		// Subtitles open on Whisper, or on the keyless demo where this processor cannot run it.
-		const provider =
-			mode === 'translate'
-				? 'gemini'
-				: DEFAULT_START_OPTIONS.provider === 'whisper' && whisperRefused()
-					? 'ondevice'
-					: DEFAULT_START_OPTIONS.provider;
+		// Each mode returns to the engine last used in it, so that a trip to Subtitles and back
+		// does not lose a chosen DeepL. Without one, translation opens on Gemini and subtitles
+		// on Whisper. Either way Whisper gives way to the keyless demo where this processor
+		// cannot run it; its translation has no such stand-in, so it falls back to Gemini.
+		rememberEngine(current.mode, current.provider);
+		const remembered = loadLastEngines()[mode];
+		const fallback = mode === 'translate' ? 'gemini' : DEFAULT_START_OPTIONS.provider;
+		const chosen = remembered ?? fallback;
+		const provider: Provider =
+			isLocalWhisper(chosen) && whisperRefused()
+				? mode === 'translate'
+					? 'gemini'
+					: 'ondevice'
+				: chosen;
 		options.set({
 			...current,
 			mode,

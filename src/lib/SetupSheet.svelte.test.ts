@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import SetupSheet from './SetupSheet.svelte';
-import { createSetupActions } from './setupActions';
+import { createSetupActions, LAST_ENGINES_KEY } from './setupActions';
 import { options } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
 import { setLocale } from './i18n';
@@ -50,7 +50,11 @@ function mount(whisperRefused: boolean) {
 beforeEach(() => {
 	setLocale('en');
 	options.set({ ...DEFAULT_START_OPTIONS, provider: 'ondevice' });
+	// Each test starts from the default engine of each mode, not one an earlier test chose.
+	localStorage.removeItem(LAST_ENGINES_KEY);
 });
+// Storage outlives a file in this pool: leave no engine behind for the next one.
+afterEach(() => localStorage.removeItem(LAST_ENGINES_KEY));
 
 describe('the engine step', () => {
 	it('shows Whisper as unavailable, with the reason, on a processor that cannot run it', async () => {

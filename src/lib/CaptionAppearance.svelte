@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CaptionPreview from './CaptionPreview.svelte';
+	import OverlayFitNotice from './OverlayFitNotice.svelte';
 	import Select from './ui/Select.svelte';
 	import Stepper from './ui/Stepper.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
@@ -77,6 +78,8 @@
 			increaseLabel={$t.overlayControls.larger}
 			onchange={overlay.setFont}
 		/>
+		<!-- The rail only: the size is nudged there mid-session, while the overlay is drawing. -->
+		{#if compact}<OverlayFitNotice fit={overlay.overlayFit} />{/if}
 		<label class="face-label"
 			>{$t.overlayControls.captionFace}
 			<Select

@@ -7,13 +7,8 @@
 	import { displayNames, languageName } from './languages';
 	import { locale, localeTag, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
-	import {
-		estimateSessionCost,
-		formatUsd,
-		isLocalWhisper,
-		providerDetectsLanguage
-	} from './providers';
-	import { laneCount, secondCaptionLanguageOf } from './types';
+	import { estimateSessionCost, formatUsd, providerDetectsLanguage } from './providers';
+	import { secondCaptionLanguageOf, streamCount } from './types';
 	import { overlayContext } from './operatorContext';
 	import type { SessionClock } from './sessionClock.svelte';
 
@@ -46,18 +41,16 @@
 						.map((code) => languageName(code, $locale))
 						.join(' + ')
 	);
-	// Every source streams once per caption language, and each stream is billed. Counted from
-	// the sources this run actually opens, as the meters are: a rehearsal is one System stream
-	// whatever source is saved.
-	const sources = $derived((usesMic ? 1 : 0) + (usesSystem ? 1 : 0));
-	const streams = $derived(sources * laneCount($options));
+	// Every source streams once per caption language, and each stream is billed; shared with
+	// the pre-flight checklist's cost row (`streamCount`).
+	const billing = $derived(streamCount(usesMic, usesSystem, $options));
 </script>
 
 <div class="rail-head">
 	<span class="rail-icon" aria-hidden="true">
 		<svg
-			width="14"
-			height="14"
+			width="0.875rem"
+			height="0.875rem"
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"
@@ -133,15 +126,15 @@
 			<div class="figure">
 				<span class="chip-label">{$t.cost.estimate}</span>
 				<span class="figure-value mint">
-					{formatUsd(estimateSessionCost($options.provider, clock.streamedMs, streams), $localeTag)}
+					{formatUsd(
+						estimateSessionCost($options.provider, clock.streamedMs, billing.streams),
+						$localeTag
+					)}
 				</span>
 			</div>
-			{#if sources === 2 && !isLocalWhisper($options.provider)}
-				<span class="cost-tag">{$t.cost.twoSources}</span>
-			{/if}
-			{#if second}
-				<span class="cost-tag">{$t.cost.twoLanguages}</span>
-			{/if}
+			{#each billing.tags as tag (tag)}
+				<span class="cost-tag">{$t.cost[tag]}</span>
+			{/each}
 		{/if}
 	</div>
 	<p class="cost-note">{$t.provider.costNote[$options.provider]}</p>
@@ -164,8 +157,8 @@
 			onclick={overlay.toggleOverlayVisible}
 		>
 			<svg
-				width="14"
-				height="14"
+				width="0.875rem"
+				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"

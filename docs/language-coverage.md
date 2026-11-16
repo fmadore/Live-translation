@@ -17,7 +17,10 @@ evidence, not fresh endpoint verification.
 Choosing a caption language never changes the English/French/German interface; see
 [localization](localization.md).
 
-An unsupported favourite stays visible and disabled with an explanation. Switching engines
+An unsupported favourite stays visible and disabled with an explanation. A search also finds
+languages the engine does not offer, listed after every supported match, disabled, with the
+same explanation, so typing "zul" under DeepL says why rather than "No matching languages";
+the unfiltered list holds only the engine's own languages and the pins. Switching engines
 does not change the chosen target: Start and Rehearse stay blocked until a supported language
 is selected, and the Rust core rejects unsupported targets too. Cloud subtitle auto-detection
 ignores the retained target, and Whisper uses its own spoken-language preference; switching

@@ -14,7 +14,8 @@
 	interface Props {
 		/** True when a session is still running, which is what makes this worth saying. */
 		running: boolean;
-		onChoice: (choice: 'hide' | 'quit') => void;
+		/** `cancel` is Escape: neither hide nor quit, so the window stays as it is. */
+		onChoice: (choice: 'hide' | 'quit' | 'cancel') => void;
 	}
 
 	let { running, onChoice }: Props = $props();
@@ -26,7 +27,9 @@
 	});
 </script>
 
-<ModalPrompt title={$t.prompt.trayHide.title} onDismiss={() => onChoice('quit')}>
+<!-- Escape leaves the window open. It used to quit, which ended a running session on a key
+     the operator presses to make a prompt go away; a close they did not mean undoes nothing. -->
+<ModalPrompt title={$t.prompt.trayHide.title} onDismiss={() => onChoice('cancel')}>
 	<p>
 		{$t.prompt.trayHide.bodyBefore}
 		{running ? $t.prompt.trayHide.bodyRunning : $t.prompt.trayHide.bodyIdle}

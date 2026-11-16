@@ -39,8 +39,8 @@
 	{#if status === 'ok'}
 		<span class="mark ok" aria-hidden="true">
 			<svg
-				width="12"
-				height="12"
+				width="0.75rem"
+				height="0.75rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -64,13 +64,21 @@
 			{#if description}{@render description()}{:else}{desc}{/if}
 		</span>
 	</div>
-	{#if action}{@render action()}{:else}<span></span>{/if}
+	<!-- One grid item whatever the snippet holds: the row is a three-column grid, and a second
+	     element from the snippet would become a fourth item, wrapping into the mark's column. -->
+	<div class="check-action">
+		{#if action}{@render action()}{/if}
+	</div>
 </div>
 
 <style>
 	.check-row {
 		display: grid;
-		grid-template-columns: 24px 1fr auto;
+		/* The mark's column, the mark and its dot in `rem`, as its tick is: they grow with the
+		   text beside them rather than leave a 225% glyph in a 100% circle. The action takes
+		   what it needs up to half the row, and wraps within that rather than squeeze the
+		   sentence to a word a line (German at 225%). */
+		grid-template-columns: 1.5rem 1fr fit-content(50%);
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-4) 0;
@@ -80,8 +88,8 @@
 		align-items: start;
 	}
 	.mark {
-		width: 20px;
-		height: 20px;
+		width: 1.25rem;
+		height: 1.25rem;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -99,8 +107,8 @@
 		color: var(--warn);
 	}
 	.mark.wait .dot {
-		width: 6px;
-		height: 6px;
+		width: 0.375rem;
+		height: 0.375rem;
 		border-radius: 50%;
 		background: currentColor;
 	}
@@ -130,6 +138,16 @@
 		/* At the window's minimum size and 225% text, German's "Anmeldeinformationsverwaltung"
 		   alone is wider than the column. */
 		overflow-wrap: anywhere;
+	}
+	/* Several parts wrap within the last column, at 225% text or in German, rather than
+	   pushing past the row's edge. */
+	.check-action {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-1) var(--space-2);
+		min-width: 0;
 	}
 	.check-desc.warn {
 		color: var(--warn);

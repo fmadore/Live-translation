@@ -392,6 +392,27 @@ describe('copying', () => {
 		expect(text.indexOf('a sentence still going')).toBeGreaterThan(text.indexOf('the late remark'));
 	});
 
+	it('offers Copy over an empty log while a turn is being spoken, and only while live', async () => {
+		pushCaption({
+			turnId: 9,
+			text: 'the first words',
+			sourceText: '',
+			final: false,
+			origin: 'microphone',
+			startMs: 0,
+			endMs: 1000
+		});
+		const idle = mount([]);
+		expect(idle.getByRole('button', { name: 'Copy' })).toBeDisabled();
+		idle.unmount();
+		const { getByRole } = mount([], { live: true });
+		const copy = getByRole('button', { name: 'Copy' });
+		expect(copy).toBeEnabled();
+		await fireEvent.click(copy);
+		await waitFor(() => expect(writeText).toHaveBeenCalled());
+		expect(writeText.mock.lastCall![0]).toContain('the first words');
+	});
+
 	it('reports a refused clipboard', async () => {
 		writeText.mockRejectedValue(new Error('clipboard refused'));
 		const { getByRole, onError } = mount(seed(1));

@@ -193,6 +193,8 @@ export const en = {
 		base: 'Base — balanced',
 		small: 'Small — more accurate',
 		turbo: 'Large v3 Turbo — most accurate',
+		/** The models' names alone, where the descriptions above would not fit. */
+		names: { tiny: 'Tiny', base: 'Base', small: 'Small', turbo: 'Large v3 Turbo' },
 		/** Under the model list when Turbo is chosen for subtitles. */
 		turboHint:
 			'The most accurate model, and the heaviest: it keeps up with speech on a graphics processor or a fast processor. Try it before an event.',
@@ -204,6 +206,8 @@ export const en = {
 		graphicsNote:
 			'Faster where the computer has a suitable one; otherwise, or if it fails, Whisper runs on the processor.',
 		download: 'Download model',
+		/** The pre-flight row's button on a first run: the chosen model and its size. */
+		downloadSized: (model: string, mib: number) => `Download ${model} (${mib}\u00a0MiB)`,
 		remove: 'Remove model',
 		cancel: 'Cancel download',
 		ready: 'Model ready for offline transcription.',
@@ -539,7 +543,26 @@ export const en = {
 		show: 'Show overlay',
 		hide: 'Hide overlay',
 		showLabel: 'Show the overlay',
-		hideLabel: 'Hide the overlay'
+		hideLabel: 'Hide the overlay',
+		// The overlay's report that its rows are drawn smaller than the size above, or not at
+		// all. The visible notice gives the size; the announcement does not, since a resize
+		// changes it without anything worth interrupting for.
+		fit: {
+			smaller: (size: number, rows: number) =>
+				rows === 1
+					? `Drawn at ${size} px: the overlay is too shallow for this size.`
+					: `Drawn at ${size} px: the overlay is too shallow for ${rows} rows at this size.`,
+			smallerAnnounce: (rows: number) =>
+				rows === 1
+					? 'Captions are drawn smaller than chosen: the overlay is too shallow.'
+					: `Captions are drawn smaller than chosen: the overlay is too shallow for ${rows} rows.`,
+			noRoom: (rows: number) =>
+				rows === 1
+					? 'No room for captions: the overlay is too shallow.'
+					: `No room for captions: the overlay is too shallow for ${rows} rows.`,
+			originalHidden: 'The original speech is hidden to leave room for the translations.',
+			action: (move: string, snap: string) => `${move}, then ${snap}, gives them room.`
+		}
 	},
 
 	window: {

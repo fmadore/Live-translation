@@ -65,8 +65,11 @@ class QuitController {
 		}
 	};
 
-	onHideChoice = async (choice: 'hide' | 'quit') => {
+	onHideChoice = async (choice: 'hide' | 'quit' | 'cancel') => {
 		this.hidePrompt = false;
+		// Escape: the window stays where it is, and the explanation is still owed for the
+		// first hide, so it is not marked as given either.
+		if (choice === 'cancel') return;
 		if (choice === 'quit') {
 			// They meant to leave. The explanation is deliberately *not* marked as given: the
 			// app never actually hid, so the first hide still deserves it.

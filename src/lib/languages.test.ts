@@ -99,6 +99,21 @@ it('seeds, restores, deduplicates and validates independent favourites, includin
 	]);
 });
 
+it('a search also finds languages the engine does not offer, disabled and ranked last', () => {
+	// The unfiltered list stays the engine's own languages.
+	expect(languageRows('deepl', [], '', 'en').some((r) => r.code === 'zu')).toBe(false);
+	expect(languageRows('deepl', [], 'zul', 'en')).toMatchObject([
+		{ code: 'zu', supported: false, favourite: false }
+	]);
+	// Italian, a supported substring match, leads Tamil, an unsupported exact one.
+	const rows = languageRows('openai', [], 'ta', 'en');
+	expect(rows[0]?.supported).toBe(true);
+	expect(rows.find((r) => r.code === 'ta')).toMatchObject({ supported: false, rank: 0 });
+	expect(rows.findIndex((r) => !r.supported)).toBeGreaterThan(
+		rows.findLastIndex((r) => r.supported)
+	);
+});
+
 it('keeps valid unsupported selections, restores every target, and rejects corrupt persisted values', () => {
 	for (const code of TARGET_LANGUAGES) {
 		vi.stubGlobal('localStorage', {

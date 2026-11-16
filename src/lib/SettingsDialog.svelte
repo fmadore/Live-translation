@@ -59,6 +59,7 @@
 	title={$t.settings.heading}
 	dismissLabel={$t.settings.closeLabel}
 	onDismiss={onClose}
+	initialFocus={'[role="tab"][aria-selected="true"]'}
 >
 	<p class="hint">{$t.design.applies}</p>
 	<Tabs
@@ -126,8 +127,8 @@
 								onclick={() => theme.set(choice)}
 							>
 								<svg
-									width="16"
-									height="16"
+									width="1rem"
+									height="1rem"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -158,8 +159,8 @@
 					<h2 class="kicker">{$t.window.heading}</h2>
 					<ToolButton wide disabled={browserMode} onclick={onHideWindow}>
 						<svg
-							width="14"
-							height="14"
+							width="0.875rem"
+							height="0.875rem"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"

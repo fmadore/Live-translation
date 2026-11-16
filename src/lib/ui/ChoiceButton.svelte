@@ -29,8 +29,8 @@
 	{#if selected}
 		<span class="card-check" aria-hidden="true">
 			<svg
-				width="16"
-				height="16"
+				width="1rem"
+				height="1rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -51,9 +51,10 @@
 		padding: var(--space-3) var(--space-3);
 		width: 100%;
 	}
+	/* 30px at 100%, in `rem` like the icon inside it, so the tile still holds it at 225%. */
 	.card-icon {
-		width: 30px;
-		height: 30px;
+		width: 1.875rem;
+		height: 1.875rem;
 		border-radius: var(--radius-control);
 		background: var(--surface-2);
 		color: var(--text-muted);

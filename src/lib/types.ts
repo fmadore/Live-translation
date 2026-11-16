@@ -162,6 +162,34 @@ export function laneCount(
 	return secondCaptionLanguageOf(options) ? 2 : 1;
 }
 
+/**
+ * The streams a run is billed for: every source it opens streams once per caption language.
+ * Counted from the sources the run actually opens, as the meters are, so a rehearsal is one
+ * System stream whatever source is saved. `tags` names the multipliers worth printing beside
+ * a per-stream rate: a second source only where it is billed (not the demo's one virtual
+ * source, nor local Whisper), a second language wherever it is a second stream. The pre-flight
+ * checklist and the running rail both read it, so the two cannot disagree (review D2).
+ */
+export function streamCount(
+	usesMic: boolean,
+	usesSystem: boolean,
+	options: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage' | 'secondTargetLanguage'>
+): { sources: number; streams: number; tags: ('twoSources' | 'twoLanguages')[] } {
+	const sources = (usesMic ? 1 : 0) + (usesSystem ? 1 : 0);
+	const languages = laneCount(options);
+	const billed = options.provider !== 'ondevice';
+	return {
+		sources,
+		streams: sources * languages,
+		tags: [
+			...(billed && sources === 2 && !isLocalWhisper(options.provider)
+				? (['twoSources'] as const)
+				: []),
+			...(billed && languages === 2 ? (['twoLanguages'] as const) : [])
+		]
+	};
+}
+
 // ---- Caption lanes and tracks ------------------------------------------------
 // A session captions in one language, or two: lane 0 is `targetLanguage`, lane 1
 // `secondTargetLanguage`. Each source's lanes are independent turn streams, so everything
@@ -419,6 +447,24 @@ export interface OverlayStateMsg {
 	/** How many times the overlay has left move mode by itself (Lock, Enter, Escape). Handed
 	 *  back in every push as `OverlayConfig.moveExitsSeen`. */
 	moveExits?: number;
+	/** How the caption rows fit the window, sent when it changes while captions are drawn. */
+	fit?: OverlayFit;
+}
+
+/** How the overlay's caption rows fit its window (`fitRows` in `captionLayout.ts`), so the
+ *  operator window can say when they are drawn smaller than the chosen size. Mirrors
+ *  `OverlayFit` in `src-tauri/src/overlay.rs`. */
+export interface OverlayFit {
+	/** The size the rows are drawn at, in px. */
+	fontSize: number;
+	/** How many rows are on screen; 0 once the session stops. */
+	rows: number;
+	/** Drawn smaller than the chosen size. */
+	squeezed: boolean;
+	/** The original speech is switched on but has no room under the translations. */
+	originalHidden: boolean;
+	/** False when even the smallest size has no room for a line: captions are clipped. */
+	room: boolean;
 }
 
 /** A tray menu entry the front-end has to carry out, because it needs session or transcript

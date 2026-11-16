@@ -4,7 +4,7 @@
 // the run, unless it is listed below as meant.
 
 import { expect, test } from '@playwright/test';
-import { LOCALES, MINIMUM_WINDOW, openOperator, SCALES, STATE_NAMES } from './operator';
+import { LOCALES, MINIMUM_WINDOW, openOperator, OVERFLOW_STATE_NAMES, SCALES } from './operator';
 import { overflow, type Offender } from './probe';
 
 /** Overflows that are part of the design. Each says why, and matches as narrowly as it can:
@@ -43,7 +43,7 @@ test.use({ viewport: MINIMUM_WINDOW });
 for (const locale of LOCALES) {
 	for (const scale of SCALES) {
 		test.describe(`${locale} at ${scale * 100}%`, () => {
-			for (const state of STATE_NAMES) {
+			for (const state of OVERFLOW_STATE_NAMES) {
 				test(state, async ({ page }) => {
 					await openOperator(page, { state, locale, scale });
 					const unexpected = (await overflow(page)).filter(

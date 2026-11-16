@@ -31,8 +31,17 @@
 		reader?: boolean;
 	} = $props();
 
-	// Turns not yet final. Only a running session has any: after Stop they are committed.
-	const pending = $derived(live ? $inFlightLines : []);
+	// Turns not yet final, drawn at the reader's foot. Only a running session has any: after
+	// Stop they are committed. Subscribed only while the reader shows them, since the store is
+	// rebuilt with every caption delta; Copy reads it for itself when pressed.
+	let pending = $state.raw<TranscriptLine[]>([]);
+	$effect(() => {
+		if (!live || !reader) {
+			pending = [];
+			return;
+		}
+		return inFlightLines.subscribe((lines) => (pending = lines));
+	});
 	// The reader shows what Save and Copy will write, so the original speech appears under
 	// each paragraph exactly when it would be exported.
 	// One pass over the log, shared with the toolbar's include-original option.
@@ -41,8 +50,8 @@
 </script>
 
 <section class="monitor" class:reader>
-	<TranscriptActions {transcript} {pending} {bilingual} {onError} />
-	<TranscriptLog {mode} {transcript} pending={reader ? pending : []} {reader} {showOriginal} />
+	<TranscriptActions {transcript} {live} {bilingual} {onError} />
+	<TranscriptLog {mode} {transcript} {pending} {reader} {showOriginal} />
 	<RecoveryPreference {onError} />
 </section>
 

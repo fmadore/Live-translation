@@ -93,6 +93,25 @@ it('keeps unsupported favourites visible with a reason and refuses selection', a
 	view.unmount();
 });
 
+it('a search finds a language the engine lacks, says why, and refuses it', async () => {
+	locale.set('en');
+	const onchange = vi.fn();
+	const view = render(LanguagePicker, { ...base, provider: 'deepl', onchange });
+	const input = view.getByRole('combobox');
+	input.focus();
+	await waitFor(() => expect(input).toHaveAttribute('aria-expanded', 'true'));
+	await fireEvent.input(input, { target: { value: 'zul' } });
+	const zulu = view.getByRole('option', { name: /Zulu/ });
+	expect(zulu).toHaveAttribute('aria-disabled', 'true');
+	expect(zulu).toHaveTextContent(/DeepL/);
+	expect(view.getAllByRole('status').map((s) => s.textContent)).not.toContain(
+		'No matching languages.'
+	);
+	await fireEvent.keyDown(input, { key: 'Enter' });
+	expect(onchange).not.toHaveBeenCalled();
+	view.unmount();
+});
+
 it('closes when it is disabled under the operator, and stays closed when it is enabled again', async () => {
 	const view = render(LanguagePicker, base);
 	const input = view.getByRole('combobox');

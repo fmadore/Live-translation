@@ -52,8 +52,9 @@ const pending: Partial<Record<Track, Caption>> = {};
 let nextLineId = 1;
 let transcriptTimeOffset = 0;
 
-/** A caption as the log line it becomes, on the document's timeline. */
-function toLine(c: Caption, id: number): TranscriptLine {
+/** A caption as the log line it becomes, on the document's timeline. `setup` is the current
+ *  options, read once by the caller rather than once per field. */
+function toLine(c: Caption, id: number, setup: StartOptions): TranscriptLine {
 	return {
 		id,
 		text: c.text.trim(),
@@ -61,7 +62,7 @@ function toLine(c: Caption, id: number): TranscriptLine {
 		origin: c.origin,
 		...(c.lane ? { lane: c.lane } : {}),
 		// With two caption languages, each line says which it is in; see `TranscriptLine`.
-		...(laneCount(get(options)) === 2 ? { language: laneLanguage(get(options), c.lane ?? 0) } : {}),
+		...(laneCount(setup) === 2 ? { language: laneLanguage(setup, c.lane ?? 0) } : {}),
 		// The committed caption's own interval: the turn's start, and the moment this text
 		// was the last thing the provider had to say about it.
 		startMs: c.startMs === undefined ? undefined : c.startMs + transcriptTimeOffset,
@@ -86,11 +87,16 @@ export function loggedLanguage(line: { id: number; language?: TargetLanguage }) 
 
 function commit(c: Caption) {
 	if (!c.text.trim()) return;
-	const line = toLine(c, nextLineId++);
-	const language = laneLanguage(get(options), c.lane ?? 0);
+	const setup = get(options);
+	const line = toLine(c, nextLineId++, setup);
+	const language = laneLanguage(setup, c.lane ?? 0);
 	if (language) lineLanguages.set(line.id, language);
 	transcript.update((list) => [line, ...list]);
 	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
+}
+
+function inFlight(captions: Partial<Record<Track, Caption>>): Caption[] {
+	return Object.values(captions).filter((c): c is Caption => !!c && !c.final && !!c.text.trim());
 }
 
 /**
@@ -99,11 +105,20 @@ function commit(c: Caption) {
  * for minutes before it is final, and all of that would otherwise be missing from the log.
  * The ids follow the log's, so ordering by id puts them after every finalized line; it reads
  * the log too, so a commit that takes the next id also moves these past it.
+ *
+ * Rebuilt with every caption delta while something is subscribed, so only the reader, which
+ * draws these lines, subscribes; Copy reads it once with `get()` when pressed (review E4).
  */
-export const inFlightLines = derived([currentCaptions, transcript], ([captions]) =>
-	Object.values(captions)
-		.filter((c): c is Caption => !!c && !c.final && !!c.text.trim())
-		.map((c, i) => toLine(c, nextLineId + i))
+export const inFlightLines = derived([currentCaptions, transcript], ([captions]) => {
+	const setup = get(options);
+	return inFlight(captions).map((c, i) => toLine(c, nextLineId + i, setup));
+});
+
+/** Whether any turn is still being spoken: a boolean, so it notifies only when that changes,
+ *  not with every delta. Copy's enabled state needs no more than this. */
+export const hasInFlightLines = derived(
+	currentCaptions,
+	(captions) => inFlight(captions).length > 0
 );
 
 /** A final caption with no text ends its turn with nothing to keep: the core withdraws a

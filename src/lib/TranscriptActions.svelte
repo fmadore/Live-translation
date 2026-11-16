@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { isTauri } from './tauri';
 	import { recovery, recoveryFailure } from './recovery';
 	import { historyEnabled, historyError } from './history';
@@ -7,6 +8,8 @@
 	import {
 		clearTranscript as clearTranscriptStore,
 		exportOriginal,
+		hasInFlightLines,
+		inFlightLines,
 		recoveryEnabled,
 		savedPath,
 		transcriptDirty
@@ -29,13 +32,13 @@
 	 *  each of them last did. The log itself is `TranscriptLog`. */
 	let {
 		transcript,
-		pending,
+		live,
 		bilingual,
 		onError
 	}: {
 		transcript: TranscriptLine[];
-		/** The turns still being spoken, oldest first, which Copy takes with the log. */
-		pending: TranscriptLine[];
+		/** A session is running, so Copy takes the turns still being spoken with the log. */
+		live: boolean;
 		/** The log has original speech to include (`hasOriginalSpeech`), worked out once by the
 		 *  panel, which needs it too. The option is offered only then: subtitles have none. */
 		bilingual: boolean;
@@ -92,7 +95,9 @@
 		clearTimeout(noticeTimer);
 		copyNotice = '';
 		try {
-			// Newest first, like the log: the turns still being spoken are the newest text.
+			// Newest first, like the log: the turns still being spoken are the newest text. Read
+			// here, once, rather than subscribed to: they change with every caption delta.
+			const pending = live ? get(inFlightLines) : [];
 			const lines = [...pending].reverse().concat(transcript);
 			const excerpt = copyWindow ? recentLines(lines, copyWindow * 60_000) : lines;
 			await navigator.clipboard.writeText(
@@ -165,7 +170,7 @@
 		<ToolButton
 			variant="ghost"
 			size="sm"
-			disabled={(!transcript.length && !pending.length) || copying}
+			disabled={(!transcript.length && !(live && $hasInFlightLines)) || copying}
 			aria-busy={copying}
 			onclick={copy}
 		>

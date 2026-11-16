@@ -195,6 +195,7 @@ export const de: Messages = {
 		base: 'Base — ausgewogen',
 		small: 'Small — genauer',
 		turbo: 'Large v3 Turbo — am genauesten',
+		names: { tiny: 'Tiny', base: 'Base', small: 'Small', turbo: 'Large v3 Turbo' },
 		turboHint:
 			'Das genaueste und anspruchsvollste Modell: Es hält mit der Sprache Schritt, wenn ein Grafikprozessor oder ein schneller Prozessor vorhanden ist. Testen Sie es vor einer Veranstaltung.',
 		turboCannotTranslate:
@@ -203,6 +204,7 @@ export const de: Messages = {
 		graphicsNote:
 			'Schneller, wenn der Computer einen geeigneten hat; sonst, oder wenn er versagt, läuft Whisper auf dem Prozessor.',
 		download: 'Modell herunterladen',
+		downloadSized: (model: string, mib: number) => `${model} herunterladen (${mib}\u00a0MiB)`,
 		remove: 'Modell entfernen',
 		cancel: 'Download abbrechen',
 		ready: 'Modell für die Offline-Transkription bereit.',
@@ -526,7 +528,23 @@ export const de: Messages = {
 		show: 'Untertitel einblenden',
 		hide: 'Untertitel ausblenden',
 		showLabel: 'Overlay einblenden',
-		hideLabel: 'Overlay ausblenden'
+		hideLabel: 'Overlay ausblenden',
+		fit: {
+			smaller: (size: number, rows: number) =>
+				rows === 1
+					? `In ${size} px dargestellt: Das Overlay ist für diese Größe zu niedrig.`
+					: `In ${size} px dargestellt: Das Overlay ist für ${rows} Zeilen in dieser Größe zu niedrig.`,
+			smallerAnnounce: (rows: number) =>
+				rows === 1
+					? 'Die Untertitel werden kleiner als gewählt dargestellt: Das Overlay ist zu niedrig.'
+					: `Die Untertitel werden kleiner als gewählt dargestellt: Das Overlay ist für ${rows} Zeilen zu niedrig.`,
+			noRoom: (rows: number) =>
+				rows === 1
+					? 'Kein Platz für Untertitel: Das Overlay ist zu niedrig.'
+					: `Kein Platz für Untertitel: Das Overlay ist für ${rows} Zeilen zu niedrig.`,
+			originalHidden: 'Die Originalsprache ist ausgeblendet, damit die Übersetzungen Platz haben.',
+			action: (move: string, snap: string) => `„${move}“ und dann „${snap}“ schafft ihnen Platz.`
+		}
 	},
 
 	window: {
