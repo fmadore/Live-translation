@@ -70,14 +70,14 @@ export default defineConfig({
 			thresholds: {
 				'src/lib/{appearance,captionColour,captionLayout,cleanSpeech,document,errors,glossary,historySearch,languages,reading,shortcuts,transcript}.ts':
 					{ perFile: true, lines: 95, statements: 95, functions: 95, branches: 85 },
-				// The whole of `src`, a point or so under the totals of 22 October 2026 (90.97% of
-				// lines, 90.32% of statements, 87.76% of functions, 84.21% of branches). A ratchet
+				// The whole of `src`, a point or so under the totals of 16 November 2026 (93.83% of
+				// lines, 92.80% of statements, 92.45% of functions, 85.56% of branches). A ratchet
 				// against a total that falls, not a target: raise it when the totals rise, and never
 				// write a test just to clear it.
-				lines: 90,
-				statements: 89,
-				functions: 87,
-				branches: 83
+				lines: 93,
+				statements: 92,
+				functions: 91,
+				branches: 85
 			}
 		},
 		projects: [

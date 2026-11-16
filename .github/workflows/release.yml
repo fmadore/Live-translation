@@ -500,8 +500,9 @@ jobs:
       - name: Attach the MSIX to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: >-
-          gh release upload "${{ inputs.tag || github.ref_name }}"
+          gh release upload $env:TAG
           "${{ steps.package.outputs.msix }}" --clobber
 
       # Handed to the `bundle` job, which needs both architectures on one runner.
@@ -567,8 +568,9 @@ jobs:
       - name: Attach the bundle to the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: >-
-          gh release upload "${{ inputs.tag || github.ref_name }}"
+          gh release upload $env:TAG
           "${{ steps.bundle.outputs.bundle }}" --clobber
 
       # The last step of a release: every asset is attached, so the draft can go public, with the

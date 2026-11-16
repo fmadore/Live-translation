@@ -26,6 +26,53 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Whether a pull request changes anything but prose, for the slow jobs (rust, styles, e2e):
+  # a pull request that only edits Markdown, docs/ or LICENSE skips them. Everything else runs
+  # them, and so does every push to main: release.yml's `prepare` releases a commit only once
+  # a CI run on it has concluded `success`, and a run whose jobs were skipped concludes
+  # `success` too, so a docs-only commit on main would otherwise pass that check on the
+  # strength of whatever main's last code commit did, failed or not. Main always gets the full
+  # run, and its caches stay warm. `frontend` and the cheap jobs always run (vitest reads the
+  # version files, CITATION.cff and source; no test reads docs/ or a Markdown file today: a
+  # test that starts to must take its file out of the pattern below).
+  # No branch rule requires these checks today. If one is added, a skipped job reports success
+  # to it, though a skipped matrix job reports under its unexpanded name ("rust"), not as
+  # "rust (windows-latest)".
+  # Any doubt runs everything: another event, a merge commit without two parents, a failed
+  # git command.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      # The pull request's merge commit and its first parent, the base it merges into: their
+      # difference is exactly what the pull request changes.
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+
+      - name: Decide whether only prose changed
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          code=true
+          if [ "$EVENT" = pull_request ] &&
+            git rev-parse --verify --quiet 'HEAD^2' > /dev/null &&
+            files=$(git diff --name-only 'HEAD^1' HEAD) && [ -n "$files" ]; then
+            echo "Changed files:"
+            echo "$files"
+            # Prose: Markdown anywhere, docs/ and LICENSE. Anything else is code.
+            if ! printf '%s\n' "$files" | grep -Ev '\.md$|^docs/|^LICENSE$' > /dev/null; then
+              code=false
+              echo "Only prose changed: rust, styles and e2e are skipped."
+            fi
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -88,6 +135,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=moderate
 
   rust:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     # No `needs: frontend`: waiting for the frontend checks only delayed the slow Windows lanes,
     # and nothing here uses their output.
     # The Windows lane is essential: the WASAPI loopback implementation is behind
@@ -178,6 +227,33 @@ jobs:
         run: cargo fmt --all --check
         working-directory: src-tauri
 
+      # The helper's short target folder (next step) is outside src-tauri/target, so the Rust
+      # cache above never held it, and the step rebuilt whisper.cpp with its Vulkan backend from
+      # cold on every run (10 min 09 s on a commit that only moved vite), with release.yml's
+      # `prepare` waiting on this run. This caches that folder on its own.
+      # What is reused: cargo fingerprints a registry dependency (whisper-rs-sys, whose build
+      # script runs ggml's CMake build, the slow part) by its version, features, flags,
+      # environment and compiler, never by file times (a non-path package's rerun-if-changed is
+      # not tracked), so a restored build stays fresh whatever the checkout's times.
+      # What is not: the path crate (whisper-vulkan itself) is fingerprinted by the times of its
+      # sources, which a fresh checkout makes newer, so it alone recompiles, in seconds; that is
+      # also why rust-cache drops workspace crates' artefacts rather than trusting them.
+      # The key's first hash is what whisper-rs-sys does not watch, because its build script does
+      # not rerun when they change: the GGML_* variables (.cargo/config.toml), the compiler
+      # (whisper-compiler), the Vulkan SDK version (vulkan-sdk) and the toolchain. The restore
+      # prefix keeps it, so a change there starts cold rather than from a stale ggml. The second
+      # hash, the lock file and the helper's sources, may fall back to the newest older entry.
+      # Only main saves, as for the Rust cache: the 10 GB the repository gets.
+      - name: Restore the Whisper Vulkan helper build
+        id: wv-cache
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/wv
+          key: whisper-vulkan-${{ runner.arch }}-${{ hashFiles('.cargo/config.toml', 'rust-toolchain.toml', '.github/actions/vulkan-sdk/action.yml', '.github/actions/whisper-compiler/action.yml') }}-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/whisper-vulkan/**') }}
+          restore-keys: |
+            whisper-vulkan-${{ runner.arch }}-${{ hashFiles('.cargo/config.toml', 'rust-toolchain.toml', '.github/actions/vulkan-sdk/action.yml', '.github/actions/whisper-compiler/action.yml') }}-
+
       # On Windows the helper builds in a short target folder: ggml configures its Vulkan shader
       # generator as a nested CMake project deep inside Cargo's build folder, and under
       # src-tauri/target its paths pass Windows' 260-character limit (rc.exe then cannot write
@@ -185,6 +261,7 @@ jobs:
       # PowerShell, not Git Bash: Git Bash rewrites environment values that look like paths for
       # the programs it starts, which turned CXXFLAGS=/EHsc into C:/Program Files/Git/EHsc.
       - name: clippy and tests (Whisper Vulkan helper)
+        id: wv
         if: matrix.os == 'windows-latest' || runner.os == 'Linux'
         shell: pwsh
         run: |
@@ -194,6 +271,27 @@ jobs:
           cargo test --locked -p whisper-vulkan
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         working-directory: src-tauri
+
+      # Saved after a failed lint or test too, like the Rust cache's `cache-on-failure`: the
+      # native build is what is worth keeping. Incremental data only serves the path crate,
+      # which recompiles anyway, so it is left out of the 10 GB.
+      - name: Prune the Whisper Vulkan helper build for the cache
+        if: >-
+          !cancelled() && matrix.os == 'windows-latest' && github.ref == 'refs/heads/main' &&
+          steps.wv-cache.outputs.cache-hit != 'true' &&
+          (steps.wv.outcome == 'success' || steps.wv.outcome == 'failure')
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $env:RUNNER_TEMP 'wv/debug/incremental')
+
+      - name: Save the Whisper Vulkan helper build
+        if: >-
+          !cancelled() && matrix.os == 'windows-latest' && github.ref == 'refs/heads/main' &&
+          steps.wv-cache.outputs.cache-hit != 'true' &&
+          (steps.wv.outcome == 'success' || steps.wv.outcome == 'failure')
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/wv
+          key: ${{ steps.wv-cache.outputs.cache-primary-key }}
 
       - name: clippy
         run: cargo clippy --locked --all-targets --all-features -- -D warnings
@@ -225,12 +323,21 @@ jobs:
           path: ${{ runner.temp }}/whisper-smoke-model
           key: whisper-smoke-${{ runner.os }}-${{ hashFiles('src-tauri/src/whisper/models.rs') }}
 
+      # Each smoke test names its test by full path with --exact and then insists on
+      # "1 passed": a filter that matches nothing exits 0, so a renamed or moved test would
+      # otherwise pass here without running, as the SDE step below already guards against.
       - name: Local Whisper multilingual CPU smoke test
         if: runner.os != 'Linux'
         timeout-minutes: 10
+        shell: bash
         env:
           WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
-        run: cargo test --locked --all-features local_whisper_smoke -- --ignored --nocapture
+        run: |
+          set -o pipefail
+          cargo test --locked --all-features --lib whisper::tests::local_whisper_smoke \
+            -- --exact --ignored --nocapture | tee "$RUNNER_TEMP/smoke.log"
+          grep -q 'test result: ok\. 1 passed' "$RUNNER_TEMP/smoke.log" ||
+            { echo '::error::The smoke test did not run'; exit 1; }
         working-directory: src-tauri
 
       - name: Local Whisper multilingual CPU smoke test (instrumented)
@@ -238,9 +345,13 @@ jobs:
         timeout-minutes: 10
         env:
           WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
-        run: >-
-          cargo llvm-cov test --no-report --locked --all-features local_whisper_smoke
-          -- --ignored --nocapture
+        run: |
+          set -o pipefail
+          cargo llvm-cov test --no-report --locked --all-features --lib \
+            whisper::tests::local_whisper_smoke -- --exact --ignored --nocapture |
+            tee "$RUNNER_TEMP/smoke.log"
+          grep -q 'test result: ok\. 1 passed' "$RUNNER_TEMP/smoke.log" ||
+            { echo '::error::The smoke test did not run'; exit 1; }
         working-directory: src-tauri
 
       # The whole graphics-processor path — the helper started, the model loaded and every
@@ -255,9 +366,13 @@ jobs:
           WHISPER_SMOKE_MODEL_CACHE: ${{ runner.temp }}/whisper-smoke-model
           GGML_VK_VISIBLE_DEVICES: "0"
         run: |
+          set -o pipefail
           cargo build --locked -p whisper-vulkan
           WHISPER_VULKAN_HELPER="$PWD/target/debug/whisper-vulkan" cargo llvm-cov test \
-            --no-report --locked --all-features local_whisper_vulkan_smoke -- --ignored --nocapture
+            --no-report --locked --all-features --lib whisper::tests::local_whisper_vulkan_smoke \
+            -- --exact --ignored --nocapture | tee "$RUNNER_TEMP/smoke-vulkan.log"
+          grep -q 'test result: ok\. 1 passed' "$RUNNER_TEMP/smoke-vulkan.log" ||
+            { echo '::error::The Vulkan smoke test did not run'; exit 1; }
         working-directory: src-tauri
 
       - name: Rust coverage summary
@@ -308,6 +423,8 @@ jobs:
   # production bundle in Edge: the engine WebView2 embeds, and already on the runner image, so
   # Playwright downloads no browser. Snapshots are text and never written on CI.
   styles:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
     timeout-minutes: 15
     steps:
@@ -342,6 +459,8 @@ jobs:
   # would have made the slowest: `tauri build` compiles the app with `custom-protocol`, which
   # the test builds do not, so little of that lane's work carries over anyway.
   e2e:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:

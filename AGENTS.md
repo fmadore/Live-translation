@@ -53,7 +53,10 @@ packaging. This file and the docs win where they differ, and every rule here hol
 
 ## Before every commit
 
-Run what the README lists: `npm run format:check`, `check`, `lint`, `knip`,
-`check:languages`, `npm test`, `npm run build`, `npm run test:style`, then `cargo fmt --check`,
-`cargo clippy --all-targets -- -D warnings` and `cargo test`, each with
-`--manifest-path src-tauri/Cargo.toml`.
+Run `npm run verify` and `npm run verify:rust`, as the README lists. The first runs
+`npm run format:check`, `check`, `lint`, `knip`, `check:languages`, `npm test`, `npm run build`
+and `npm run test:style`; the second runs `cargo fmt --all --check`,
+`cargo clippy --locked --all-targets --all-features -- -D warnings` and
+`cargo test --locked --all-features`, each with `--manifest-path src-tauri/Cargo.toml`, as CI
+does. A change to the Whisper Vulkan helper also runs `npm run verify:vulkan` where the Vulkan
+SDK is installed.

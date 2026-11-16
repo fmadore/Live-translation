@@ -6,6 +6,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # Five days before a new version is proposed rather than Dependabot's default three: the
+    # broken knip releases ignored below turned up days after publication. Security updates are
+    # not held back.
+    cooldown:
+      default-days: 5
     open-pull-requests-limit: 5
     groups:
       # Tauri's JavaScript half. Groups cannot span ecosystems, so its Rust half arrives as
@@ -43,6 +48,9 @@ updates:
     directory: /src-tauri
     schedule:
       interval: weekly
+    # As for npm.
+    cooldown:
+      default-days: 5
     open-pull-requests-limit: 5
     groups:
       # Tauri's Rust half (tauri, tauri-build, tauri-plugin-*); see `tauri-npm` above.

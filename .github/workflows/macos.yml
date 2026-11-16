@@ -22,8 +22,10 @@ on:
         type: boolean
         default: false
   # Any branch of this repository, so a branch can be tried on a Mac before it has a pull
-  # request. Forks build in their own repositories.
+  # request. Forks build in their own repositories. Branches only: a tag push would build the
+  # same commit again, and release.yml builds the release's Mac app itself.
   push:
+    branches: ["**"]
     paths:
       - .github/workflows/macos.yml
       - src-tauri/**

@@ -129,18 +129,17 @@ npm run tauri dev
 Before committing, run:
 
 ```powershell
-npm run format:check
-npm run check
-npm run lint
-npm run knip
-npm run check:languages
-npm test
-npm run build
-npm run test:style
-cargo fmt --manifest-path src-tauri/Cargo.toml --check
-cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-cargo test --manifest-path src-tauri/Cargo.toml
+npm run verify
+npm run verify:rust
 ```
+
+`npm run verify` runs `format:check`, `check`, `lint`, `knip`, `check:languages`, `test`,
+`build` and `test:style` in turn, stopping at the first failure. `npm run verify:rust` runs
+`cargo fmt --all --check`, `cargo clippy --locked --all-targets --all-features -- -D warnings`
+and `cargo test --locked --all-features` on `src-tauri/Cargo.toml`, with CI's flags.
+`npm run verify:vulkan` lints and tests the Whisper Vulkan helper as CI does; it needs the
+Vulkan SDK, and on Windows a short `CARGO_TARGET_DIR` such as `C:\wv` (see
+[local Whisper](docs/local-whisper.md#graphics-processor)).
 
 Build installers with `npm run tauri build`; build Store packages with
 `npm run bundle:msix:arm64` or `npm run bundle:msix:x64` in the matching compiler environment.
