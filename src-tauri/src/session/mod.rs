@@ -459,6 +459,88 @@ mod tests {
         assert_eq!(events.take().len(), 1, "Idle, once");
     }
 
+    /// A capture thread stuck in a driver call (macOS does this while the System Audio
+    /// Recording question is open) holds its source's audio channel, so a local transcriber
+    /// waiting for that channel to close would hold Stop forever. Stop gives up on the thread
+    /// after `CAPTURE_JOIN_TIMEOUT` and cancels `abandoned`, which ends the transcriber, so Stop
+    /// completes and reports Idle once.
+    #[tokio::test(flavor = "multi_thread")]
+    async fn stop_completes_past_a_wedged_capture_thread_by_abandoning_its_input() {
+        let (release_tx, release) = std::sync::mpsc::channel::<()>();
+        let mut active = session(true, &[Origin::System], ends_with_its_source);
+        // Deaf to cancellation, as a thread inside a blocked Core Audio call is.
+        active.capture_threads = vec![std::thread::spawn(move || {
+            let _ = release.recv();
+        })];
+        let abandoned = active.abandoned.clone();
+        // Ends only on `abandoned`, as the Whisper source does while its input is still open.
+        active.client_tasks = vec![AsyncJoinHandle::Tokio(tokio::spawn(
+            abandoned.clone().cancelled_owned(),
+        ))];
+        let manager = manager_with(active);
+        let events = Statuses::default();
+
+        let started = std::time::Instant::now();
+        tokio::time::timeout(Duration::from_secs(20), manager.stop(&events))
+            .await
+            .expect("Stop waited on the wedged capture thread");
+        assert!(started.elapsed() >= Duration::from_secs(3));
+        assert!(abandoned.is_cancelled());
+        let [idle] = &events.take()[..] else {
+            panic!("expected exactly one status");
+        };
+        assert_eq!(idle.state, SessionState::Idle);
+        let _ = release_tx.send(());
+    }
+
+    /// Threads that stop in time are joined and nothing is abandoned.
+    #[tokio::test]
+    async fn stop_abandons_nothing_when_the_capture_threads_stop() {
+        let mut active = session(false, &[Origin::Microphone], ends_with_its_source);
+        let source = active.sources[0].clone();
+        active.capture_threads = vec![std::thread::spawn(move || {
+            while !source.is_cancelled() {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+        })];
+        let abandoned = active.abandoned.clone();
+        let manager = manager_with(active);
+        manager.stop(&Statuses::default()).await;
+        assert!(!abandoned.is_cancelled());
+    }
+
+    /// A start that fails part-way releases what it had started through `shutdown`: every
+    /// source is cancelled, its threads joined and its clients drained, the local abort is
+    /// dropped, and nothing becomes the active session. `shutdown` reports no status at all, so
+    /// no Idle can clear the failure the start reports itself.
+    #[tokio::test]
+    async fn a_failed_start_is_shut_down_without_an_idle_or_an_active_session() {
+        let mut partial = session(true, &[Origin::Microphone], ends_with_its_source);
+        let source = partial.sources[0].clone();
+        let thread_source = source.clone();
+        let (joined_tx, joined) = std::sync::mpsc::channel::<()>();
+        partial.capture_threads = vec![std::thread::spawn(move || {
+            while !thread_source.is_cancelled() {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            let _ = joined_tx.send(());
+        })];
+        let abandoned = partial.abandoned.clone();
+        let manager = SessionManager::default();
+        *lock(&manager.local_abort) = Some(CancellationToken::new());
+
+        manager.shutdown(partial).await;
+        assert!(source.is_cancelled());
+        assert!(joined.try_recv().is_ok(), "the capture thread was joined");
+        assert!(!abandoned.is_cancelled());
+        assert!(lock(&manager.local_abort).is_none());
+        assert!(lock(&manager.active).is_none());
+        // With nothing active, a Stop behind the failed start has nothing to report either.
+        let events = Statuses::default();
+        manager.stop(&events).await;
+        assert!(events.take().is_empty());
+    }
+
     /// A Gemini start captioning in French from `source`, shared by the submodules' tests.
     pub(super) fn options(source: &str, rehearsal: Option<&str>) -> StartOptions {
         serde_json::from_value(serde_json::json!({

@@ -94,6 +94,34 @@ pub async fn write_recovery(app: AppHandle, contents: String) -> Result<String, 
     .map_err(|error| AppError::with(id::TASK_FAILED, error))?
 }
 
+/// What `read_recovery` does on its blocking thread, given the two paths: discard an
+/// interrupted replacement, then read the current spool, and the legacy one only when the
+/// current one is absent. A spool that is not UTF-8 is not the renderer's, and fails as
+/// `error.recoveryRead` naming the file, which the operator can then delete.
+fn read_spool(path: &Path, legacy: Option<&Path>) -> Result<Option<StoredRecovery>, AppError> {
+    // An interrupted replacement never supersedes the last committed snapshot.
+    atomic_file::discard_staging(path)
+        .map_err(|error| file_error(id::RECOVERY_READ, &atomic_file::staging_path(path), error))?;
+    let found = match std::fs::read_to_string(path) {
+        Ok(contents) => Some((path, contents)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => match legacy {
+            Some(legacy) => match std::fs::read_to_string(legacy) {
+                Ok(contents) => Some((legacy, contents)),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+                Err(error) => return Err(file_error(id::RECOVERY_READ, legacy, error)),
+            },
+            None => None,
+        },
+        Err(error) => return Err(file_error(id::RECOVERY_READ, path, error)),
+    };
+    // The path travels with the contents because the prompt shows it: told the wrong one,
+    // an operator pressing Delete would be told a file was removed that still exists.
+    Ok(found.map(|(path, contents)| StoredRecovery {
+        path: path.to_string_lossy().into_owned(),
+        contents,
+    }))
+}
+
 /// Read the spool left behind by a previous run. A missing file is the normal case — the
 /// app was closed cleanly — and answers `None` rather than an error.
 #[tauri::command]
@@ -106,28 +134,7 @@ pub async fn read_recovery(app: AppHandle) -> Result<Option<StoredRecovery>, App
     let legacy = legacy_recovery_path(&app);
     tauri::async_runtime::spawn_blocking(move || {
         let _io = lock(&RECOVERY_IO);
-        // An interrupted replacement never supersedes the last committed snapshot.
-        atomic_file::discard_staging(&path).map_err(|error| {
-            file_error(id::RECOVERY_READ, &atomic_file::staging_path(&path), error)
-        })?;
-        let found = match std::fs::read_to_string(&path) {
-            Ok(contents) => Some((path, contents)),
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => match legacy {
-                Some(legacy) => match std::fs::read_to_string(&legacy) {
-                    Ok(contents) => Some((legacy, contents)),
-                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-                    Err(error) => return Err(file_error(id::RECOVERY_READ, &legacy, error)),
-                },
-                None => None,
-            },
-            Err(error) => return Err(file_error(id::RECOVERY_READ, &path, error)),
-        };
-        // The path travels with the contents because the prompt shows it: told the wrong one,
-        // an operator pressing Delete would be told a file was removed that still exists.
-        Ok(found.map(|(path, contents)| StoredRecovery {
-            path: path.to_string_lossy().into_owned(),
-            contents,
-        }))
+        read_spool(&path, legacy.as_deref())
     })
     .await
     .map_err(|error| AppError::with(id::TASK_FAILED, error))?
@@ -168,5 +175,104 @@ mod tests {
             error.detail.as_deref(),
             Some(r"C:\Users\Operator\recovery\transcript.json — Access is denied. (os error 5)")
         );
+    }
+
+    /// A scratch directory of the test's own, holding a current and a legacy spool path.
+    struct Scratch {
+        dir: PathBuf,
+        current: PathBuf,
+        legacy: PathBuf,
+    }
+
+    impl Scratch {
+        fn new(name: &str) -> Self {
+            let dir =
+                std::env::temp_dir().join(format!("recovery-test-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            let current = dir.join("current").join(RECOVERY_DIR).join(RECOVERY_FILE);
+            let legacy = dir
+                .join(LEGACY_IDENTIFIER)
+                .join(RECOVERY_DIR)
+                .join(RECOVERY_FILE);
+            for path in [&current, &legacy] {
+                std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            }
+            Self {
+                dir,
+                current,
+                legacy,
+            }
+        }
+
+        fn read(&self) -> Result<Option<StoredRecovery>, AppError> {
+            read_spool(&self.current, Some(&self.legacy))
+        }
+    }
+
+    impl Drop for Scratch {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.dir);
+        }
+    }
+
+    #[test]
+    fn the_current_spool_is_preferred_over_the_legacy_one() {
+        let scratch = Scratch::new("prefer");
+        std::fs::write(&scratch.current, "current").unwrap();
+        std::fs::write(&scratch.legacy, "legacy").unwrap();
+        let found = scratch.read().unwrap().unwrap();
+        assert_eq!(found.contents, "current");
+        assert_eq!(found.path, scratch.current.to_string_lossy());
+        // The legacy file is only read, never touched.
+        assert_eq!(std::fs::read_to_string(&scratch.legacy).unwrap(), "legacy");
+    }
+
+    #[test]
+    fn the_legacy_spool_is_read_only_when_the_current_one_is_absent() {
+        let scratch = Scratch::new("legacy");
+        assert!(scratch.read().unwrap().is_none());
+        assert!(read_spool(&scratch.current, None).unwrap().is_none());
+        std::fs::write(&scratch.legacy, "from 1.1.0").unwrap();
+        let found = scratch.read().unwrap().unwrap();
+        assert_eq!(found.contents, "from 1.1.0");
+        // The prompt names the file the transcript came from, so Delete removes that one.
+        assert_eq!(found.path, scratch.legacy.to_string_lossy());
+    }
+
+    /// An interrupted replacement leaves a staging file beside the spool: it is removed before
+    /// the read and never supersedes the committed snapshot.
+    #[test]
+    fn a_staging_file_is_discarded_before_the_read() {
+        let scratch = Scratch::new("staging");
+        let staging = atomic_file::staging_path(&scratch.current);
+        std::fs::write(&scratch.current, "committed").unwrap();
+        std::fs::write(&staging, "half-writ").unwrap();
+        assert_eq!(scratch.read().unwrap().unwrap().contents, "committed");
+        assert!(!staging.exists());
+
+        // A staging file alone is no spool.
+        std::fs::remove_file(&scratch.current).unwrap();
+        std::fs::write(&staging, "half-writ").unwrap();
+        assert!(read_spool(&scratch.current, None).unwrap().is_none());
+        assert!(!staging.exists());
+    }
+
+    /// Bytes the renderer never wrote are not handed over as text: the read fails as
+    /// `error.recoveryRead` naming the file, without a panic, and the file is left for the
+    /// operator to inspect or delete.
+    #[test]
+    fn a_spool_that_is_not_utf8_fails_as_a_read_error_naming_the_file() {
+        let scratch = Scratch::new("utf8");
+        std::fs::write(&scratch.current, [0xFF, 0xFE, b'{', 0xC3]).unwrap();
+        std::fs::write(&scratch.legacy, "legacy").unwrap();
+        let error = scratch.read().unwrap_err();
+        assert_eq!(error.id, id::RECOVERY_READ);
+        let detail = error.detail.unwrap();
+        assert!(
+            detail.starts_with(&scratch.current.display().to_string()),
+            "{detail}"
+        );
+        // Not silently replaced by the legacy spool, and not deleted.
+        assert!(scratch.current.exists());
     }
 }

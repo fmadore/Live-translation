@@ -57,10 +57,27 @@ pub fn helper_path() -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
+/// One request on its way to the helper: its JSON frame, and a window's samples, which are
+/// framed as they are written.
+struct Outgoing {
+    /// Which `ask` sent it, so an acknowledgement left over from an earlier one is not taken
+    /// for this one's.
+    serial: u64,
+    request: Vec<u8>,
+    samples: Option<Vec<u8>>,
+}
+
 pub struct Worker {
     /// The helper's process; `None` for the tests' helper, which is a thread.
     child: Option<Child>,
-    stdin: Box<dyn Write + Send>,
+    /// Requests for the thread that owns the helper's input. Writing there rather than here
+    /// keeps every request's timeout and discard over the write too: a helper that is alive
+    /// but not reading would otherwise block a window's 1.8 MB in a pipe write, with the
+    /// inference lock held, before any wait began. `None` once dropped, which closes the input.
+    outgoing: Option<mpsc::Sender<Outgoing>>,
+    /// What became of each write, by serial.
+    written: Receiver<(u64, io::Result<()>)>,
+    serial: u64,
     /// What the helper answers, read on a thread of its own so every wait can time out.
     answers: Receiver<io::Result<Response>>,
     /// Its last lines on standard error, and the thread reading them.
@@ -171,9 +188,34 @@ impl Worker {
                     }
                 })
         });
+        let (outgoing, requests) = mpsc::channel::<Outgoing>();
+        let (acknowledge, written) = mpsc::channel();
+        let writer = std::thread::Builder::new()
+            .name("whisper-vulkan-in".into())
+            .spawn(move || {
+                let mut stdin = stdin;
+                // Ends when the worker drops its sender, and the helper's input closes with it.
+                for Outgoing {
+                    serial,
+                    request,
+                    samples,
+                } in requests
+                {
+                    let result = stdin.write_all(&request).and_then(|()| match &samples {
+                        Some(samples) => engine::write_frame(&mut stdin, samples),
+                        None => stdin.flush(),
+                    });
+                    let failed = result.is_err();
+                    if acknowledge.send((serial, result)).is_err() || failed {
+                        return;
+                    }
+                }
+            });
         let mut worker = Self {
             child,
-            stdin: Box::new(stdin),
+            outgoing: None,
+            written,
+            serial: 0,
             answers,
             recent,
             log: None,
@@ -183,6 +225,8 @@ impl Worker {
         };
         // Returning the error drops the worker, which ends the helper.
         worker.log = Some(log?);
+        writer?;
+        worker.outgoing = Some(outgoing);
         Ok(worker)
     }
 
@@ -242,9 +286,10 @@ impl Worker {
         }
     }
 
-    /// Send `request` (and `samples`, for a window) and wait for its answer. The helper is
-    /// stopped when the wait times out, its answer is unreadable or `abort` fires, so it can
-    /// never answer late.
+    /// Send `request` (and `samples`, for a window) and wait for its answer. The timeout and
+    /// `abort` run from the start of the write, not from its end. The helper is stopped when
+    /// the wait times out, its answer is unreadable or `abort` fires, so it can never answer
+    /// late; stopping it also ends a write it was not reading.
     fn ask(
         &mut self,
         request: &Request,
@@ -252,23 +297,40 @@ impl Worker {
         timeout: Duration,
         abort: Option<&CancellationToken>,
     ) -> Result<Response> {
-        let sent = engine::send(&mut self.stdin, request).and_then(|()| match samples {
-            Some(samples) => {
-                engine::write_frame(&mut self.stdin, &engine::samples_to_bytes(samples))
-            }
-            None => Ok(()),
+        let deadline = Instant::now() + timeout;
+        let mut framed = Vec::new();
+        engine::send(&mut framed, request)?;
+        self.serial += 1;
+        let serial = self.serial;
+        let queued = self.outgoing.as_ref().is_some_and(|outgoing| {
+            outgoing
+                .send(Outgoing {
+                    serial,
+                    request: framed,
+                    samples: samples.map(engine::samples_to_bytes),
+                })
+                .is_ok()
         });
-        if let Err(error) = sent {
+        if !queued {
             bail!(
-                "The graphics processor helper stopped ({}): {error}",
+                "The graphics processor helper stopped ({}): its input is closed",
                 self.status()
             );
         }
-        let deadline = Instant::now() + timeout;
         loop {
             if abort.is_some_and(CancellationToken::is_cancelled) {
                 self.end();
                 bail!("Discarded");
+            }
+            // A write that failed: the helper has closed its input, so no answer is coming.
+            // An acknowledgement from an earlier request is not this one's.
+            while let Ok((written, result)) = self.written.try_recv() {
+                if let (true, Err(error)) = (written == serial, result) {
+                    bail!(
+                        "The graphics processor helper stopped ({}): {error}",
+                        self.status()
+                    );
+                }
             }
             match self.answers.recv_timeout(POLL) {
                 Ok(Ok(answer)) => return Ok(answer),
@@ -340,7 +402,8 @@ impl Worker {
         }
     }
 
-    /// Stop the helper now, freeing the graphics processor and the memory it holds.
+    /// Stop the helper now, freeing the graphics processor and the memory it holds. Ending the
+    /// process also fails a write to its input that was blocked, which frees the writing thread.
     pub fn end(&mut self) {
         if let Some(child) = self.child.as_mut() {
             let _ = child.kill();
@@ -768,6 +831,106 @@ mod tests {
         assert!(error.contains("stopped answering"), "{error}");
         assert!(started.elapsed() < Duration::from_secs(5));
         assert_eq!(*asked.lock().unwrap(), 1);
+    }
+
+    /// The longest window the pipeline sends: 28 seconds at 16 kHz, 1.8 MB of samples, far
+    /// more than a pipe holds.
+    fn longest_window() -> Vec<f32> {
+        vec![0.0; 28 * 16_000]
+    }
+
+    /// A worker whose helper holds its pipes open for `held` and never reads a byte, as a
+    /// helper stuck in a driver call before its first read.
+    fn deaf(held: Duration) -> Worker {
+        let (requests, app_out) = io::pipe().unwrap();
+        let (app_in, answers) = io::pipe().unwrap();
+        let (log_in, log_out) = io::pipe().unwrap();
+        std::thread::spawn(move || {
+            let _ends = (requests, answers, log_out);
+            std::thread::sleep(held);
+        });
+        Worker::attach(None, app_out, app_in, log_in, QUICK).unwrap()
+    }
+
+    /// The decode timeout covers the write of the window, not only the wait after it: a helper
+    /// that never reads its input cannot block the inference lock, and Stop or Discard, in a
+    /// pipe write.
+    #[test]
+    fn a_helper_that_never_reads_its_input_times_out_during_the_write() {
+        let mut worker = deaf(Duration::from_secs(5));
+        let started = Instant::now();
+        let error = worker
+            .decode(
+                &Decode::default(),
+                &longest_window(),
+                &CancellationToken::new(),
+            )
+            .unwrap_err();
+        assert!(
+            format!("{error:#}").contains("stopped answering"),
+            "{error:#}"
+        );
+        assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    /// Discard ends a window whose write is blocked, as it ends one whose answer is late.
+    #[test]
+    fn discarding_ends_a_window_blocked_in_its_write() {
+        let mut worker = deaf(Duration::from_secs(5));
+        let abort = CancellationToken::new();
+        let cancel = abort.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(100));
+            cancel.cancel();
+        });
+        let slow = Timeouts {
+            decode: Duration::from_secs(30),
+            ..QUICK
+        };
+        worker.timeouts = slow;
+        let started = Instant::now();
+        let error = worker
+            .decode(&Decode::default(), &longest_window(), &abort)
+            .unwrap_err();
+        assert_eq!(error.to_string(), "Discarded");
+        assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    /// With a real process, the helper is ended on the timeout, which also fails the write
+    /// that was blocked on its input.
+    #[cfg(unix)]
+    #[test]
+    fn a_helper_process_that_never_reads_is_ended_when_the_write_times_out() {
+        let mut child = Command::new("sleep")
+            .arg("30")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let (stdin, stdout, stderr) = (
+            child.stdin.take().unwrap(),
+            child.stdout.take().unwrap(),
+            child.stderr.take().unwrap(),
+        );
+        let mut worker = Worker::attach(Some(child), stdin, stdout, stderr, QUICK).unwrap();
+        let started = Instant::now();
+        let error = worker
+            .decode(
+                &Decode::default(),
+                &longest_window(),
+                &CancellationToken::new(),
+            )
+            .unwrap_err();
+        assert!(
+            format!("{error:#}").contains("stopped answering"),
+            "{error:#}"
+        );
+        assert!(started.elapsed() < Duration::from_secs(5));
+        assert_ne!(worker.status(), "still running", "the helper was ended");
+        // The writing thread was freed with it: the next request finds the input closed.
+        let again = format!("{:#}", window(&mut worker).unwrap_err());
+        assert!(again.contains("helper stopped"), "{again}");
     }
 
     #[test]

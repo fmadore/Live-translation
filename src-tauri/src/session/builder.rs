@@ -41,11 +41,19 @@ async fn relay_audio(
         _ = source.cancelled() => None,
         chunk = input.recv() => chunk,
     } {
-        let mut open = 0;
-        for output in &outputs {
-            if !matches!(output.try_send(chunk.clone()), Err(TrySendError::Closed(_))) {
-                open += 1;
-            }
+        let Some((last, rest)) = outputs.split_last() else {
+            break;
+        };
+        let accepts = |output: &Sender<AudioChunk>, chunk| {
+            !matches!(output.try_send(chunk), Err(TrySendError::Closed(_)))
+        };
+        // The last output takes the chunk itself; only the ones before it need a copy.
+        let mut open = rest
+            .iter()
+            .filter(|output| accepts(output, chunk.clone()))
+            .count();
+        if accepts(last, chunk) {
+            open += 1;
         }
         if open == 0 {
             break;

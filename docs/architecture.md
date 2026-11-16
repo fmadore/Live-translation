@@ -418,7 +418,10 @@ does, as OpenWhispr's field logs showed. What it drops is on screen from the sys
 being wrong that way loses no words.
 
 Both sides are compared on their last 200 words, split once and kept per turn, so a turn that
-streams for minutes is still caught and costs no more to check as it grows. A turn withdrawn as
+streams for minutes is still caught and costs no more to check as it grows. The last 32 system
+turns of a lane are kept to compare with, and nothing forgets them on the clock: a microphone
+line local Whisper decodes behind a backlog can arrive long after its system line, with newer
+system lines between them, and is still judged by session time. A turn withdrawn as
 an echo stays withdrawn until its final, which is judged afresh, so a line near the threshold
 does not blink.
 
