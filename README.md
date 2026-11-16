@@ -1,10 +1,10 @@
 # Live-translation: statistics
 
-Updated 2026-11-15 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
+Updated 2026-11-16 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
 
 | Downloads, versions | Downloads, all releases | Views, last 14 days |
 | ---: | ---: | ---: |
-| 982 | 982 | 794 |
+| 1,004 | 1,004 | 755 |
 
 ## Downloads per version
 
@@ -12,13 +12,13 @@ Every file of a release counts once each time it is downloaded from GitHub. "…
 
 | Release | Published | Downloads | Last 7 days | Last 30 days |
 | --- | --- | ---: | ---: | ---: |
-| [v1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0) | 2026-11-13 | 41 | 41 | 41 |
+| [v1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0) | 2026-11-13 | 60 | 60 | 60 |
 | [v1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1) | 2026-11-11 | 68 | 68 | 68 |
 | [v1.13.0](https://github.com/fmadore/Live-translation/releases/tag/v1.13.0) | 2026-11-10 | 17 | 17 | 17 |
-| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 189 | 32 | 189 |
-| [v1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) | 2026-10-26 | 39 | 7 | 39 |
+| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 189 | 28 | 189 |
+| [v1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) | 2026-10-26 | 41 | 9 | 41 |
 | [v1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) | 2026-10-26 | 11 | 9 | 11 |
-| [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 2026-10-22 | 63 | 8 | 63 |
+| [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 2026-10-22 | 64 | 9 | 64 |
 | [v1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) | 2026-10-21 | 35 | 10 | 35 |
 | [v1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) | 2026-10-20 | 37 | 5 | 37 |
 | [v1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) | 2026-10-20 | 11 | 5 | 11 |
@@ -55,17 +55,17 @@ Every file of a release counts once each time it is downloaded from GitHub. "…
 ```mermaid
 xychart-beta
     title "Downloads per day (all releases)"
-    x-axis ["11-09", "11-10", "11-11", "11-12", "11-13", "11-14", "11-15"]
-    bar [4, 19, 191, 24, 36, 42, 27]
+    x-axis ["11-09", "11-10", "11-11", "11-12", "11-13", "11-14", "11-15", "11-16"]
+    bar [4, 19, 191, 24, 36, 42, 27, 22]
 ```
 
 ## Files of v1.14.0
 
 | File | Downloads |
 | --- | ---: |
-| Live.Translation_1.14.0_x64-setup.exe | 20 |
-| Live.Translation_1.14.0.msixbundle | 13 |
-| Live.Translation_1.14.0_aarch64.dmg | 3 |
+| Live.Translation_1.14.0_x64-setup.exe | 30 |
+| Live.Translation_1.14.0.msixbundle | 20 |
+| Live.Translation_1.14.0_aarch64.dmg | 5 |
 | Live.Translation_1.14.0_x64_en-US.msi | 3 |
 | Live.Translation_1.14.0_arm64.msix | 1 |
 | Live.Translation_1.14.0_x64.msix | 1 |
@@ -77,7 +77,7 @@ Bars are views, the line unique visitors (GitHub's daily figures, UTC; today is 
 ```mermaid
 xychart-beta
     title "Views and unique visitors"
-    x-axis ["10-25", "10-26", "10-27", "10-28", "10-29", "10-30", "10-31", "11-01", "11-02", "11-03", "11-04", "11-05", "11-06", "11-07", "11-08", "11-09", "11-10", "11-11", "11-12", "11-13"]
-    bar [54, 71, 69, 73, 92, 84, 34, 42, 92, 63, 61, 54, 63, 33, 39, 53, 87, 81, 94, 74]
-    line [27, 40, 36, 53, 60, 56, 23, 30, 64, 36, 28, 38, 42, 17, 18, 33, 48, 54, 62, 52]
+    x-axis ["10-25", "10-26", "10-27", "10-28", "10-29", "10-30", "10-31", "11-01", "11-02", "11-03", "11-04", "11-05", "11-06", "11-07", "11-08", "11-09", "11-10", "11-11", "11-12", "11-13", "11-14"]
+    bar [54, 71, 69, 73, 92, 84, 34, 42, 92, 63, 61, 54, 63, 33, 39, 53, 87, 81, 94, 74, 53]
+    line [27, 40, 36, 53, 60, 56, 23, 30, 64, 36, 28, 38, 42, 17, 18, 33, 48, 54, 62, 52, 35]
 ```
