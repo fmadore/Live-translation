@@ -89,6 +89,26 @@ export function fitRows(fontSize: number, height: number, rows: number, original
 	};
 }
 
+/**
+ * The size a notice on the overlay is set at: the largest whole size from `max` down to
+ * `LEAST_ROW_FONT` at which `fits` says the whole notice is inside the strip, or the least of
+ * them when none is (the notice is then clipped, as a row with no room is). `fits` is a layout
+ * measurement, so this asks it as few times as a binary search needs. A notice is never cut
+ * like a caption: it is short, and it is read whole or not at all.
+ */
+export function fitNoticeFont(max: number, fits: (font: number) => boolean): number {
+	const top = Math.floor(max);
+	if (fits(top)) return top;
+	let low = Math.min(LEAST_ROW_FONT, top);
+	let high = top - 1;
+	while (low < high) {
+		const mid = Math.ceil((low + high) / 2);
+		if (fits(mid)) low = mid;
+		else high = mid - 1;
+	}
+	return low;
+}
+
 /** Bottom alignment is a subtitle strip; manually resizing still permits more context. With
  *  the original shown, each row also gets one line of it. */
 export function bottomCaptionHeight(

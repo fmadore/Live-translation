@@ -397,6 +397,10 @@ export interface OverlayConfig {
 	secondCaptionLanguage?: TargetLanguage;
 	/** Show the original speech as a smaller line under each translated caption. */
 	showOriginal?: boolean;
+	/** One line the overlay shows in place of the captions, for a break (`overlayNotice.ts`):
+	 *  plain text, never markup, at most `NOTICE_MAX_CHARS` long, and checked again on
+	 *  arrival. Unconditional like `captionLanguage`: absent or empty clears it. */
+	notice?: string;
 }
 
 /** A finalized transcript line, kept for the on-screen log and disk export. */
@@ -417,6 +421,18 @@ export interface TranscriptLine {
 	 *  together; never one without the other. */
 	startMs?: number;
 	endMs?: number;
+}
+
+/** A marker the operator put in the transcript: a talk starting, a speaker's name, a section
+ *  break. Kept beside the caption lines rather than among them, so nothing that reads captions
+ *  (the timed exports, the Zoom share, the overlay) can mistake one for speech. Its id comes from
+ *  the same counter as the lines', which is what orders the two in the document. */
+export interface TranscriptMarker {
+	id: number;
+	/** When it was added, in ms on the document's timeline, as a line's `startMs` is. */
+	atMs: number;
+	/** What the operator typed, cleaned (`cleanMarkerLabel`); empty for a numbered break. */
+	label: string;
 }
 
 /** A recovery file as the Rust core hands it over: the raw JSON it read, plus where it sits
@@ -467,12 +483,44 @@ export interface OverlayFit {
 	room: boolean;
 }
 
+/** The operator's answer to *Check for new versions* (issue #217): off until it is given.
+ *  Mirrors `UpdateChecks` in `src-tauri/src/update.rs`. */
+export const UPDATE_CHECKS = ['unanswered', 'on', 'off'] as const;
+type UpdateChecks = (typeof UPDATE_CHECKS)[number];
+
+/** Where the check for a new version stands. Mirrors `UpdateStatus` in
+ *  `src-tauri/src/update.rs`. Only a copy installed from GitHub is `eligible`; for any other
+ *  the rest is the default and nothing is shown. */
+export interface UpdateStatus {
+	eligible: boolean;
+	checks: UpdateChecks;
+	/** Ask whether to check: unanswered, from the second launch on. */
+	ask: boolean;
+	/** The last check, failed ones included, in milliseconds since the epoch. */
+	lastCheckedMs: number | null;
+	/** A newer version, `X.Y.Z`, unless Not now was chosen for it. */
+	available: string | null;
+}
+
 /** A tray menu entry the front-end has to carry out, because it needs session or transcript
  *  state that only the renderer holds. *Open* is absent on purpose: showing a window needs
  *  nothing from here, so the core does it itself and the menu keeps working even if this
  *  window is wedged. Mirrors `TrayCommand` in `src-tauri/src/tray.rs`. */
-export const TRAY_COMMANDS = ['toggle-overlay', 'stop-session', 'quit'] as const;
+export const TRAY_COMMANDS = ['toggle-overlay', 'toggle-pause', 'stop-session', 'quit'] as const;
 export type TrayCommand = (typeof TRAY_COMMANDS)[number];
+
+/** The opt-in system-wide keys: Pause / resume and Show / hide overlay, never Start or Stop.
+ *  A press arrives as the `tray-command` of the same name. Mirrors `GlobalShortcut` in
+ *  `src-tauri/src/hotkeys.rs`. */
+export const GLOBAL_SHORTCUTS = ['toggle-pause', 'toggle-overlay'] as const;
+export type GlobalShortcut = (typeof GLOBAL_SHORTCUTS)[number];
+
+/** What `set_global_shortcuts` answers: the keys held now, and the ones the system refused
+ *  when last asked for, usually because another application holds them. */
+export interface GlobalShortcutStatus {
+	registered: GlobalShortcut[];
+	failed: GlobalShortcut[];
+}
 
 /** Where sharing captions with a Zoom meeting stands. `waiting`: Zoom says the meeting has not
  *  started; `refused`: the link has expired, been revoked or was copied incompletely;

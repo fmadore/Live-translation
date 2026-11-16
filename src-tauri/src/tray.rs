@@ -37,11 +37,13 @@ const MENU_ON_LEFT_CLICK: bool = cfg!(target_os = "macos");
 
 /// What the front-end is being asked to do. `Open` is absent on purpose: showing a window
 /// needs nothing from the renderer, so the core does it itself and the menu stays responsive
-/// even if the front-end is wedged.
+/// even if the front-end is wedged. `TogglePause` has no menu entry: the system-wide Pause key
+/// (`hotkeys.rs`) sends it, down the same path as the menu's requests.
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum TrayCommand {
     ToggleOverlay,
+    TogglePause,
     StopSession,
     Quit,
 }
@@ -228,7 +230,7 @@ fn on_menu_event(app: &AppHandle, id: &str) {
     }
 }
 
-fn emit(app: &AppHandle, command: TrayCommand) {
+pub(crate) fn emit(app: &AppHandle, command: TrayCommand) {
     if let Err(error) = app.emit(events::TRAY_COMMAND, command) {
         tracing::warn!("could not deliver tray command {command:?}: {error}");
     }

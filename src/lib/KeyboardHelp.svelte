@@ -19,6 +19,10 @@
 		<dd>{$t.usability.shortcutSize}</dd>
 		<dt><Kbd command="direction" /></dt>
 		<dd>{$t.usability.shortcutDirection}</dd>
+		<dt><Kbd command="addMarker" /></dt>
+		<dd>{$t.usability.shortcutMarker}</dd>
+		<dt><Kbd command="find" /></dt>
+		<dd>{$t.usability.shortcutFind}</dd>
 	</dl>
 </section>
 

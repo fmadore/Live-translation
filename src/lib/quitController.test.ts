@@ -21,7 +21,11 @@ beforeEach(() => {
 });
 
 it('acknowledges repeated close requests without repeating the shutdown', async () => {
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	await controller.onCloseRequested();
 	expect(mocks.acknowledgeClose).toHaveBeenCalledTimes(2);
@@ -31,7 +35,11 @@ it('acknowledges repeated close requests without repeating the shutdown', async 
 
 it('asks before stopping a live session, then retains unsaved text on save failure', async () => {
 	mocks.endsLiveSession.mockReturnValue(true);
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onTrayCommand('quit');
 	expect(controller.sessionPrompt).toBe(true);
 	expect(controller.sessionPromptFromTray).toBe(true);
@@ -48,7 +56,11 @@ it('asks before stopping a live session, then retains unsaved text on save failu
 
 // U11: kept as it was caught, so the prompt words it in whatever language is active.
 it('keeps a failed save as the core reported it, for the prompt to word', async () => {
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	const failure = { id: 'error.transcriptWrite', detail: 'disk full' };
 	mocks.resolveClose.mockRejectedValue(failure);
@@ -63,7 +75,11 @@ it('keeps a failed save as the core reported it, for the prompt to word', async 
 // U9: one answer at a time. A Cancel while Save is writing used to close the prompt over a quit
 // that was still going ahead, and a Discard started a second one.
 it('takes no other answer while one is being carried out', async () => {
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	let finish!: (quit: boolean) => void;
 	mocks.resolveClose.mockReturnValue(new Promise<boolean>((resolve) => (finish = resolve)));
@@ -84,7 +100,11 @@ it('takes no other answer while one is being carried out', async () => {
 it('the tray Quit with nothing live claims the close and goes straight to the unsaved question', async () => {
 	mocks.endsLiveSession.mockReturnValue(false);
 	const stop = vi.fn();
-	const controller = createQuitController({ stop, toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop,
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onTrayCommand('quit');
 	expect(mocks.acknowledgeClose).toHaveBeenCalledOnce();
 	expect(controller.sessionPrompt).toBe(false);
@@ -96,7 +116,11 @@ it('the tray Quit with nothing live claims the close and goes straight to the un
 it('choosing Quit on the tray explanation quits without marking the explanation as given', async () => {
 	closeToTray.set(true);
 	trayHideExplained.set(false);
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	expect(controller.hidePrompt).toBe(true);
 	await controller.onHideChoice('quit');
@@ -109,7 +133,11 @@ it('choosing Quit on the tray explanation quits without marking the explanation 
 it('Escape on the tray explanation neither hides nor quits, and still owes the explanation', async () => {
 	closeToTray.set(true);
 	trayHideExplained.set(false);
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	await controller.onHideChoice('cancel');
 	expect(controller.hidePrompt).toBe(false);
@@ -123,7 +151,11 @@ it('Escape on the tray explanation neither hides nor quits, and still owes the e
 
 it('a second close request while the session question is up claims the close but asks nothing new', async () => {
 	mocks.endsLiveSession.mockReturnValue(true);
-	const controller = createQuitController({ stop: vi.fn(), toggleOverlayVisible: vi.fn() });
+	const controller = createQuitController({
+		stop: vi.fn(),
+		toggleOverlayVisible: vi.fn(),
+		togglePause: vi.fn()
+	});
 	await controller.onCloseRequested();
 	expect(controller.sessionPrompt).toBe(true);
 	expect(controller.sessionPromptFromTray).toBe(false);
@@ -136,4 +168,16 @@ it('a second close request while the session question is up claims the close but
 	await controller.onSessionChoice(false);
 	expect(controller.sessionPrompt).toBe(false);
 	expect(mocks.prepareClose).not.toHaveBeenCalled();
+});
+
+it('hands the system-wide keys to the same actions as the window and the tray', async () => {
+	const actions = { stop: vi.fn(), toggleOverlayVisible: vi.fn(), togglePause: vi.fn() };
+	const controller = createQuitController(actions);
+	await controller.onTrayCommand('toggle-pause');
+	await controller.onTrayCommand('toggle-overlay');
+	expect(actions.togglePause).toHaveBeenCalledTimes(1);
+	expect(actions.toggleOverlayVisible).toHaveBeenCalledTimes(1);
+	// Neither key reaches Stop, or the quit sequence.
+	expect(actions.stop).not.toHaveBeenCalled();
+	expect(mocks.acknowledgeClose).not.toHaveBeenCalled();
 });

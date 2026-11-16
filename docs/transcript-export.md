@@ -72,6 +72,27 @@ each labelled with its source and language, which most players show as stacked b
 subtitles. The original speech, when included, is written once, under the first language. A
 transcript in one language exports exactly as before.
 
+## Markers
+
+The operator's markers (**Add marker**, see [usability](usability.md#markers-and-find-in-the-transcript))
+are part of the document: each has its text, or none for a numbered section break, and the
+time on the transcript's timeline at which it was added. They are kept beside the caption
+lines rather than among them, so nothing that reads captions — the timed exports, the overlay,
+the Zoom share — can take one for speech, and a marker ends the paragraph it falls in.
+
+- **Plain text:** a separator line between paragraphs, `--- Talk 2 starts · 0:42:10 ---`.
+- **Markdown:** a heading, `## Talk 2 starts · 0:42:10`, one level under the language's
+  heading (`###`) in a two-language transcript, where each language's section repeats it.
+- **WebVTT:** a `NOTE 0:42:10 Talk 2 starts` comment block before the first cue at or after its
+  moment. Players skip comments; cue numbers are unchanged, and a `-->` in the text is written
+  `->`, which would otherwise end the comment.
+- **SubRip:** nothing. SRT has no comments, and a marker cue would be shown as a subtitle, so
+  the file is exactly what it would be without markers.
+
+A blank marker is numbered by its place among the document's markers, in the interface
+language (**Section 2**, **Abschnitt 2**). Copy takes the markers inside its time window. The
+history view's Copy and Save write a saved session's markers the same way.
+
 ## Verification
 
 Automated tests cover cancelled saves and quit, captions arriving during a save, atomic

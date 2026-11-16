@@ -2,7 +2,7 @@
 	import WhisperActivity from '#lib/WhisperActivity.svelte';
 	import { whisperModels } from '#lib/stores.js';
 	import { whisperPendingSeconds } from '#lib/whisperProgress.js';
-	import { isLocalWhisper } from '#lib/providers.js';
+	import { estimateSessionCost, isLocalWhisper } from '#lib/providers.js';
 	import { onDestroy, onMount } from 'svelte';
 	import MeetingProfiles from '#lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '#lib/OperatorToolbar.svelte';
@@ -31,7 +31,13 @@
 	import { createDeviceFailure } from '#lib/deviceFailure.svelte.js';
 	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
 	import { createZoomCaptions } from '#lib/zoomCaptions.svelte.js';
+	import { createUpdateCheck } from '#lib/updateCheck.svelte.js';
+	import UpdateNotice from '#lib/UpdateNotice.svelte';
 	import { syncNative } from '#lib/nativeSync.svelte.js';
+	import { createSpendingGuard } from '#lib/spendingGuard.svelte.js';
+	import GuardNotice from '#lib/GuardNotice.svelte';
+	import { captionLanguageOf, streamCount } from '#lib/types.js';
+	import { noticeLocale } from '#lib/overlayNotice.js';
 	import { provideOperatorContext } from '#lib/operatorContext.js';
 	import { createLaunchController } from '#lib/launchController.svelte.js';
 	import { shortcut } from '#lib/shortcuts.js';
@@ -56,7 +62,7 @@
 	import { followTextScale } from '#lib/textScale.js';
 	import { followTheme } from '#lib/theme.js';
 	import type { SessionState } from '#lib/types.js';
-	import { formatDateTime, localeTag, locale, t } from '#lib/i18n/index.js';
+	import { de, en, formatDateTime, fr, localeTag, locale, t } from '#lib/i18n/index.js';
 
 	// Resolved at component init, not in `onMount`. `isTauri()` is a synchronous property
 	// check and this app never server-renders (`ssr = false` in +layout.ts), so the answer is
@@ -70,7 +76,11 @@
 	const overlay = createOverlayController();
 	const quit = createQuitController({
 		stop: () => session.stop(),
-		toggleOverlayVisible: () => overlay.toggleOverlayVisible()
+		toggleOverlayVisible: () => overlay.toggleOverlayVisible(),
+		// The system-wide Pause key, under the same conditions as the window's own.
+		togglePause: async () => {
+			if ($isRunning && !$sessionBusy) await session.pause(!$pauseRequested);
+		}
 	});
 	const sessionBusy = session.busy;
 	let profileBusy = $state(false);
@@ -107,6 +117,11 @@
 	const zoom = createZoomCaptions();
 	let zoomOpen = $state(false);
 
+	// The new-version notice, for copies installed from GitHub only; the core decides that and
+	// whether a request goes out (issue #217). Shows nothing in a browser preview.
+	const updates = createUpdateCheck();
+	onDestroy(() => updates.dispose());
+
 	// Start, Rehearse and the start shortcut: what blocks them, and the launch they share.
 	// Created before the meter gates below, which depend on whether a rehearsal is running.
 	// It also asks before audio first goes to a cloud provider (`launch.consentAsk`).
@@ -127,6 +142,29 @@
 	const usesMic = $derived(!rehearsalRunning && $options.source !== 'system');
 	const usesSystem = $derived(rehearsalRunning || $options.source !== 'microphone');
 
+	// The spending guard for cloud engines: pause a session nothing has been captioned in for a
+	// while, and say once when it passes an amount or a length (Settings › App, all off by
+	// default). It reads the cost the live rail shows and pauses as the Pause button does.
+	const guard = createSpendingGuard({
+		clock,
+		cost: () =>
+			estimateSessionCost(
+				$options.provider,
+				clock.streamedMs,
+				streamCount(usesMic, usesSystem, $options).streams
+			),
+		pause: () => session.pause(true)
+	});
+
+	// The suggestion the guard's notice offers to put on the overlay, in the room's language.
+	const pausedNotice = $derived(
+		{ en, fr, de }[noticeLocale(captionLanguageOf($options), $locale)].overlayNotice.presets.paused
+	);
+
+	// The shortcuts for a marker and for find ask the transcript panel, which owns both.
+	let markerRequest = $state(0);
+	let findRequest = $state(0);
+
 	onMount(() => {
 		if (browserMode) return;
 
@@ -134,6 +172,8 @@
 		void preflight.refreshLocalReadiness();
 		void preflight.refreshWhisperCpu();
 		void recoveryOffer.load();
+		// A few seconds after launch, and not while a session runs.
+		void updates.load().then(() => updates.schedule(() => $isRunning));
 		overlay.initialize();
 		// Where the overlay was last placed on these displays. It paints nothing until there are
 		// captions or move mode, so moving it now shows no jump from where it was created.
@@ -151,7 +191,11 @@
 			// This window honours it; the overlay deliberately does not — see
 			// `docs/accessibility.md`.
 			followTextScale(),
-			on.caption((c) => pushCaption(c)),
+			on.caption((c) => {
+				pushCaption(c);
+				// A notice on the overlay waits for this after a break; free while there is none.
+				overlay.noteCaption();
+			}),
 			on.level((l) => {
 				preflight.noteLevel(l);
 				if (l.rms > 0.02 && $isRunning) noteActivity(l.source, 'audio');
@@ -252,6 +296,8 @@
 		if (!command) return;
 		e.preventDefault();
 		if (command === 'direction') actions.flipDirection();
+		if (command === 'addMarker' && $isRunning) markerRequest++;
+		if (command === 'find' && reading) findRequest++;
 		if (command === 'larger') overlay.setFont($overlayFontSize + 2);
 		if (command === 'smaller') overlay.setFont($overlayFontSize - 2);
 		if (command === 'toggleOverlay' && !browserMode) void overlay.toggleOverlayVisible();
@@ -345,6 +391,15 @@
 			{/if}
 
 			{#if $isRunning}
+				<GuardNotice
+					{guard}
+					overlayNoticeShown={!!overlay.notice}
+					onResume={() => void session.pause(false)}
+					{pausedNotice}
+					onShowNotice={() => overlay.setNotice(pausedNotice)}
+				/>
+			{/if}
+			{#if $isRunning}
 				<!-- Issue #124: the turns on screen, or the whole transcript to read back and copy
 				     from while the meeting goes on. -->
 				<Tabs
@@ -383,11 +438,14 @@
 						onError={(message) => statusMessage.set(message)}
 						live={$isRunning}
 						reader={reading}
+						{markerRequest}
+						{findRequest}
 					/>
 				{/if}
 
 				{#if !$isRunning}
 					<LaunchNotes {statusText} />
+					<UpdateNotice {updates} />
 					<AppCredit />
 				{/if}
 			</div>
@@ -401,6 +459,7 @@
 		bind:tab={settingsTab}
 		onHideWindow={quit.hideWindow}
 		onClose={() => (settingsOpen = false)}
+		{updates}
 	/>
 {/if}
 

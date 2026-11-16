@@ -67,6 +67,12 @@ pub const COMMANDS: &[&str] = &[
     "send_zoom_test_caption",
     "zoom_captions_status",
     "open_zoom_guide",
+    "update_status",
+    "check_for_update",
+    "set_update_checks",
+    "skip_update_version",
+    "open_release_page",
+    "set_global_shortcuts",
 ];
 
 #[cfg(test)]
@@ -188,6 +194,32 @@ mod tests {
                 "`{command}` is the overlay's own"
             );
         }
+    }
+
+    /// The system-wide keys are registered by the core alone (`hotkeys.rs`), with fixed
+    /// combinations and only while the operator has switched them on. A window granted the
+    /// plugin's own commands could register any combination and hear it pressed in any
+    /// application, which is a keystroke logger in all but name.
+    #[test]
+    fn no_window_may_register_system_wide_keys() {
+        for capability in [OPERATOR, OVERLAY] {
+            assert!(
+                !permissions(capability)
+                    .iter()
+                    .any(|p| p.starts_with("global-shortcut:")),
+                "a window is granted the global-shortcut plugin's commands"
+            );
+        }
+        assert!(
+            granted_commands(OPERATOR)
+                .iter()
+                .any(|g| g == "set_global_shortcuts")
+        );
+        assert!(
+            !granted_commands(OVERLAY)
+                .iter()
+                .any(|g| g == "set_global_shortcuts")
+        );
     }
 
     #[test]

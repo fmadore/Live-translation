@@ -32,8 +32,11 @@
 		transcriptFilename,
 		hasOriginalSpeech,
 		hasTranscriptTiming,
+		markerTime,
+		markerTitle,
 		type TranscriptFormat
 	} from './transcript';
+	import type { TranscriptLine, TranscriptMarker } from './types';
 	const desktop = isTauri();
 	// Raw rather than deeply reactive: the list is only ever replaced, and an unchanged session
 	// has to stay the very object the cache holds for the search's own cache to find it. A deep
@@ -144,10 +147,32 @@
 				origin: $t.export.origin,
 				original: $t.export.original,
 				language: (code) => languageName(code, $locale),
-				tag: $localeTag
+				tag: $localeTag,
+				section: $t.marker.section
 			},
-			{ original: $exportOriginal }
+			{ original: $exportOriginal, markers: session.markers ?? [] }
 		);
+	}
+
+	/** The session's lines, oldest first, with its markers among them where they were added
+	 *  (lines and markers share one counter), each marker with its number. */
+	function readerItems(session: SavedSession) {
+		const markers = [...(session.markers ?? [])].sort((a, b) => a.id - b.id);
+		const items: (
+			| { kind: 'line'; line: TranscriptLine }
+			| { kind: 'marker'; marker: TranscriptMarker; number: number }
+		)[] = [];
+		let next = 0;
+		for (const line of [...session.lines].reverse()) {
+			while (next < markers.length && markers[next].id < line.id) {
+				items.push({ kind: 'marker', marker: markers[next], number: next + 1 });
+				next++;
+			}
+			items.push({ kind: 'line', line });
+		}
+		for (; next < markers.length; next++)
+			items.push({ kind: 'marker', marker: markers[next], number: next + 1 });
+		return items;
 	}
 	async function action(kind: 'copy' | 'export') {
 		if (!selected || busy) return;
@@ -338,15 +363,23 @@
 					     saved documents write it — the second language heard the same speech. The
 					     original's language is not recorded, so it is `lang=""`, its direction taken
 					     from the text. -->
-						{#each [...selected.lines].reverse() as line (line.id)}
-							{@const language = lineLanguage(selected, line)}
-							<p>
-								<strong>{$t.transcript.side[line.origin]}</strong>
-								<span lang={language ?? ''} dir={captionDirection(language)}>{line.text}</span>
-							</p>
-							{#if line.sourceText && (line.lane ?? 0) === 0}<p class="source" lang="" dir="auto">
-									{line.sourceText}
-								</p>{/if}
+						{#each readerItems(selected) as item (item.kind === 'marker' ? `m${item.marker.id}` : item.line.id)}
+							{#if item.kind === 'marker'}
+								<h3 class="marker">
+									<span class="marker-time">{markerTime(item.marker.atMs)}</span>
+									{markerTitle(item.marker, item.number, $t.marker.section)}
+								</h3>
+							{:else}
+								{@const line = item.line}
+								{@const language = lineLanguage(selected, line)}
+								<p>
+									<strong>{$t.transcript.side[line.origin]}</strong>
+									<span lang={language ?? ''} dir={captionDirection(language)}>{line.text}</span>
+								</p>
+								{#if line.sourceText && (line.lane ?? 0) === 0}<p class="source" lang="" dir="auto">
+										{line.sourceText}
+									</p>{/if}
+							{/if}
 						{/each}
 					</div>
 				{:else if selectedId}
@@ -463,6 +496,22 @@
 	}
 	.saved-text p {
 		margin: var(--space-3) 0;
+	}
+	/* An operator's marker: a talk's start, in the accent, under a rule. */
+	.saved-text .marker {
+		margin: var(--space-4) 0 var(--space-2);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--line-strong);
+		font-size: var(--type-body);
+		font-weight: 600;
+		color: var(--accent-soft);
+	}
+	.marker-time {
+		margin-inline-end: var(--space-2);
+		font-family: var(--font-mono);
+		font-weight: 500;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
 	}
 	/* Asked of the settings dialog, in `em`, for the same reason as the appearance layout. */
 	@container dialog (max-width: 40em) {

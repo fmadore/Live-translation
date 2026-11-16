@@ -101,6 +101,13 @@ export const de: Messages = {
 		shortcutSize: 'Untertitel vergrößern / verkleinern',
 		shortcutDirection: 'Vor dem Start die ersten beiden Favoriten tauschen mit F2',
 		shortcutPause: 'Untertitel pausieren / fortsetzen',
+		shortcutMarker: 'Während der Untertitelung eine Marke ins Transkript setzen',
+		shortcutFind: 'Im Transkript suchen, auf dem Reiter Transkript',
+		globalShortcuts: 'Tastenkombinationen auch nutzen, wenn andere Apps im Vordergrund sind',
+		globalShortcutsNote:
+			'Standardmäßig aus. Während einer laufenden oder pausierten Sitzung funktionieren diese beiden Tastenkombinationen auch, wenn Folien oder eine Meeting-App im Vordergrund sind. Die App erfährt nur von diesen beiden Kombinationen, von nichts anderem, das Sie tippen. Starten und Stoppen bleiben in diesem Fenster.',
+		globalRefused: (keys: string, count: number) =>
+			`${keys} ${count === 1 ? 'konnte' : 'konnten'} nicht registriert werden: Eine andere App verwendet ${count === 1 ? 'diese Kombination' : 'diese Kombinationen'} bereits. Die Tastenkombinationen in diesem Fenster funktionieren weiterhin.`,
 		listening: 'Bereit — kein aktuelles Audiosignal',
 		silenced:
 			'Es wird Ton abgespielt, aber es kommt nur Stille an – das System hindert diese App möglicherweise an der Aufnahme',
@@ -138,9 +145,13 @@ export const de: Messages = {
 
 	keys: {
 		ctrl: 'Strg',
+		control: 'Strg',
+		alt: 'Alt',
 		shift: 'Umschalt',
 		space: 'Leertaste',
 		o: 'O',
+		m: 'M',
+		f: 'F',
 		up: '↑',
 		down: '↓',
 		p: 'P',
@@ -310,6 +321,28 @@ export const de: Messages = {
 		twoLanguages: '×2 Sprachen',
 		estimate: 'Gesch. Kosten',
 		twoSources: '×2 Quellen'
+	},
+
+	guard: {
+		heading: 'Cloud-Kosten',
+		idlePause: 'Pausieren, wenn so lange nichts untertitelt wurde',
+		costWarning: 'Melden, wenn die geschätzten Kosten diesen Betrag übersteigen',
+		durationWarning: 'Melden, wenn eine Sitzung so lange läuft',
+		never: 'Nie',
+		minutes: (n: number) => `${n} Minuten`,
+		hours: (n: number) => (n === 1 ? '1 Stunde' : `${n} Stunden`),
+		note: 'Nur für Cloud-Dienste: Lokales Whisper und die eingebaute Demo kosten nichts. Pausiert wird wie mit „Pausieren“: Sitzung, Uhr und Transkript bleiben, wie sie sind. Die Hinweise beenden nie etwas.',
+		idlePaused: (minutes: number) =>
+			`Pausiert: ${minutes} Minuten lang wurde nichts untertitelt. Bis zum Fortsetzen wird nichts gesendet oder abgerechnet.`,
+		costPassed: (amount: string) =>
+			`Die geschätzten Kosten dieser Sitzung haben ${amount} überschritten. Sie läuft weiter.`,
+		durationPassed: (hours: number) =>
+			hours === 1
+				? 'Diese Sitzung läuft seit einer Stunde. Sie läuft weiter.'
+				: `Diese Sitzung läuft seit ${hours} Stunden. Sie läuft weiter.`,
+		resume: 'Fortsetzen',
+		dismiss: 'Schließen',
+		showNotice: (text: string) => `„${text}“ in der Einblendung zeigen`
 	},
 
 	applications: {
@@ -547,6 +580,24 @@ export const de: Messages = {
 		}
 	},
 
+	overlayNotice: {
+		openLabel: 'Einen Hinweis in der Einblendung zeigen…',
+		heading: 'Hinweis in der Einblendung',
+		field: 'Hinweistext',
+		suggestions: 'Vorschläge',
+		presets: {
+			paused: 'Untertitel pausiert',
+			backSoon: 'Gleich geht es weiter',
+			shortBreak: 'Kurze Pause'
+		},
+		show: 'Hinweis zeigen',
+		clear: 'Hinweis entfernen',
+		untilCaptions: 'Entfernen, sobald nach einer Pause wieder Untertitel kommen',
+		hint: 'Ersetzt die Untertitel in der Einblendung durch diese eine Zeile. Sie wird nicht ins Transkript geschrieben und nicht an Zoom gesendet und verschwindet, wenn die Sitzung endet.',
+		showing: (text: string) => `Die Einblendung zeigt „${text}“ statt der Untertitel.`,
+		cleared: 'Die Einblendung zeigt wieder Untertitel.'
+	},
+
 	window: {
 		heading: 'Fenster',
 		minimizeToTray: 'In den Infobereich minimieren',
@@ -562,6 +613,21 @@ export const de: Messages = {
 		link: 'Spendieren Sie mir einen Kaffee',
 		opensInBrowser: ' (öffnet sich im Browser)',
 		madeBy: (name: string) => `Entwickelt von ${name}`
+	},
+
+	updates: {
+		heading: 'Aktualisierungen',
+		available: (version: string) => `Version ${version} ist verfügbar`,
+		releaseNotes: 'Versionshinweise',
+		notNow: 'Nicht jetzt',
+		ask: 'Nach neuen Versionen suchen? Dazu wird GitHub einmal täglich gefragt.',
+		turnOn: 'Einschalten',
+		noThanks: 'Nein danke',
+		toggle: 'Nach neuen Versionen suchen',
+		toggleNote:
+			'Fragt GitHub einmal täglich, ob es eine neuere Version gibt, und zeigt sie hier und auf dem Startbildschirm an. Es wird nichts heruntergeladen oder installiert, und die Anfrage enthält nur Name und Version der App.',
+		lastChecked: (when: string) => `Zuletzt geprüft: ${when}`,
+		notChecked: 'Noch nicht geprüft'
 	},
 
 	zoom: {
@@ -792,6 +858,15 @@ export const de: Messages = {
 		staleAfter: 'hinzugekommen sind, liegen noch nicht auf der Festplatte.',
 		longSession: (threshold: number) =>
 			`Dies ist eine lange Sitzung, und seit sie über ${threshold} Zeilen hinausgewachsen ist, wurde nichts davon gespeichert. Es geht nichts verloren, aber speichern Sie jetzt, damit ein Absturz sie nicht mitnehmen kann.`,
+		find: {
+			open: 'Suchen',
+			field: 'Im Transkript suchen',
+			count: (current: number, total: number) =>
+				total === 0 ? 'Keine Treffer' : `${current} von ${total}`,
+			previous: 'Vorheriger Treffer',
+			next: 'Nächster Treffer',
+			close: 'Suche schließen'
+		},
 		emptyTranslate:
 			'Fertige Übersetzungen sammeln sich hier und können im gewählten Format exportiert werden.',
 		emptySubtitles:
@@ -805,6 +880,18 @@ export const de: Messages = {
 			note: 'Schreibt die fertigen Zeilen alle paar Sekunden auf diesen PC, damit ein Absturz oder ein Stromausfall die Sitzung nicht mitnimmt. Verlässt nie den Rechner, enthält weder Audio noch API-Schlüssel und wird gelöscht, sobald Sie speichern, leeren oder dies ausschalten.',
 			needsDesktop: 'Erfordert die Desktop-App – eine Browser-Vorschau hat keinen Ort dafür.'
 		}
+	},
+
+	marker: {
+		add: 'Marke setzen',
+		addLabel: 'Eine Marke ins Transkript setzen',
+		field: 'Text der Marke (optional)',
+		placeholder: 'Vortrag 2 beginnt',
+		hint: 'Leer lassen für einen nummerierten Abschnitt. Marken werden mit dem Transkript gespeichert und exportiert, aber nie in der Einblendung gezeigt.',
+		confirm: 'Setzen',
+		cancel: 'Abbrechen',
+		section: (n: number) => `Abschnitt ${n}`,
+		added: (title: string, time: string) => `Marke bei ${time} gesetzt: ${title}`
 	},
 
 	// What the saved file says. Issue #23 puts the transcript's headings in the interface

@@ -7,7 +7,8 @@ import { get } from 'svelte/store';
 import { mockTauri, type TauriMock } from './testing/tauriMock';
 import { createOverlayController } from './overlayController.svelte';
 import { OVERLAY_GEOMETRY_KEY } from './overlayGeometry';
-import { overlayPlaced } from './preferences';
+import { noticeUntilCaptions, overlayPlaced } from './preferences';
+import { applyStatus } from './sessionStatus';
 import type { Placement } from './profiles';
 import { api, on } from './tauri';
 import type { OverlayConfig } from './types';
@@ -411,4 +412,45 @@ it('applies a display change only once a restore still under way has landed', as
 		{ layout: LAPTOP, placement: corner },
 		{ layout: ROOM, placement: strip }
 	]);
+});
+
+// F6: the break notice rides the same push as everything else, as plain text the controller has
+// already checked, and goes when captions come back after a pause.
+it('pushes a notice in place of the captions, and takes it down when captions resume', async () => {
+	const frames: (() => void)[] = [];
+	const overlay = createOverlayController(api, (push) => frames.push(push));
+	const pushes = await overlayPushes();
+	const flush = async (count: number) => {
+		frames.shift()!();
+		await expect.poll(() => pushes).toHaveLength(count);
+	};
+	noticeUntilCaptions.set(true);
+	applyStatus({ state: 'running', origin: 'system' });
+	overlay.setNotice('  Back\nsoon  ');
+	expect(overlay.notice).toBe('Back soon');
+	await flush(1);
+	expect(pushes[0]).toMatchObject({ notice: 'Back soon', interactive: false });
+	// Speech carries on: the notice stays.
+	overlay.noteCaption();
+	expect(frames).toHaveLength(0);
+	// A pause, then the first caption after it: the break is over.
+	overlay.noteSessionState('paused');
+	overlay.noteSessionState('running');
+	overlay.noteCaption();
+	expect(overlay.notice).toBe('');
+	await flush(2);
+	expect(pushes[1]).toMatchObject({ notice: '' });
+	// Every other push carries it too, so a reloaded overlay gets it back.
+	overlay.setNotice('Short break');
+	overlay.setFont(40);
+	await flush(3);
+	expect(pushes[2]).toMatchObject({ notice: 'Short break', fontSize: 40 });
+	overlay.clearNotice();
+	await flush(4);
+	expect(pushes[3]).toMatchObject({ notice: '' });
+	// Nothing to clear, nothing sent.
+	overlay.clearNotice();
+	overlay.setNotice('   ');
+	expect(frames).toHaveLength(0);
+	applyStatus({ state: 'idle' });
 });

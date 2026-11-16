@@ -491,3 +491,53 @@ it('reports a fit that needs no notice when one row has room, and an empty one a
 	view.unmount();
 	restore();
 });
+
+// F6: the operator's notice for a break replaces the captions, as text, checked again here, and
+// the captions are back the moment a push clears it.
+it('shows a break notice in place of the captions, as plain text, until a push clears it', async () => {
+	vi.stubGlobal(
+		'ResizeObserver',
+		class {
+			observe() {}
+			unobserve() {}
+			disconnect() {}
+		}
+	);
+	Object.defineProperty(document, 'fonts', {
+		configurable: true,
+		value: { ready: Promise.resolve(), addEventListener() {}, removeEventListener() {} }
+	});
+	const view = render(Page);
+	await tick();
+	handlers.config({ fontSize: 38, captionLayout: 'fit' });
+	handlers.caption({
+		turnId: 1,
+		text: 'Still talking.',
+		sourceText: '',
+		origin: 'system',
+		final: false,
+		startMs: 0,
+		endMs: 1000
+	});
+	await tick();
+	expect(view.container.querySelectorAll('.captions .row .texts')).toHaveLength(1);
+	const markup = '<img src=x onerror="alert(1)"> Back\nsoon ' + 'x'.repeat(200);
+	handlers.config({ fontSize: 38, captionLayout: 'fit', notice: markup });
+	await tick();
+	const notice = view.container.querySelector('.captions.notice .line:not(.probe)');
+	expect(notice?.textContent).toMatch(/^<img src=x onerror="alert\(1\)"> Back soon x+$/);
+	expect(Array.from(notice?.textContent ?? '')).toHaveLength(80);
+	expect(view.container.querySelector('img')).toBeNull();
+	// The captions are not drawn under it, and the operator is told nothing about their fit.
+	expect(view.container.querySelector('.texts')).toBeNull();
+	// A push without it — every push carries the whole configuration — clears it.
+	handlers.config({ fontSize: 38, captionLayout: 'fit' });
+	await tick();
+	expect(view.container.querySelector('.notice')).toBeNull();
+	expect(view.container.querySelectorAll('.captions .row .texts')).toHaveLength(1);
+	// Anything but text is no notice.
+	handlers.config({ fontSize: 38, notice: { html: 'x' } as unknown as string });
+	await tick();
+	expect(view.container.querySelector('.notice')).toBeNull();
+	view.unmount();
+});

@@ -36,6 +36,8 @@ describe('the shortcut table', () => {
 		space: { code: 'Space' },
 		p: { code: 'KeyP' },
 		o: { code: 'KeyO' },
+		m: { code: 'KeyM' },
+		f: { code: 'KeyF' },
 		up: { code: 'ArrowUp' },
 		down: { code: 'ArrowDown' },
 		f2: { key: 'F2' }
@@ -60,6 +62,26 @@ describe('the shortcut table', () => {
 			}
 		}
 	);
+
+	it('gives every shortcut its own keys', () => {
+		const combos = Object.values(SHORTCUT_KEYS).map((keys) => [...keys].sort().join('+'));
+		expect(new Set(combos).size).toBe(combos.length);
+	});
+
+	it('finds with Ctrl+F alone, and marks with Ctrl+Shift+M', () => {
+		const find = new KeyboardEvent('keydown', { code: 'KeyF', ctrlKey: true });
+		expect(shortcut(find, false)).toBe('find');
+		expect(
+			shortcut(new KeyboardEvent('keydown', { code: 'KeyF', ctrlKey: true, shiftKey: true }), false)
+		).toBeNull();
+		expect(
+			shortcut(new KeyboardEvent('keydown', { code: 'KeyM', ctrlKey: true, shiftKey: true }), false)
+		).toBe('addMarker');
+		expect(ariaKeyShortcut('find')).toBe('Control+F');
+		expect(ariaKeyShortcut('addMarker', true)).toBe('Meta+Shift+M');
+		expect(keyLabel('find', catalogsFor(true).en.keys, true)).toBe('⌘F');
+		expect(keyLabel('addMarker', de.keys)).toBe('Strg+Umschalt+M');
+	});
 
 	it('announces in ARIA key names, whatever the interface language', () => {
 		expect(ariaKeyShortcut('toggleSession')).toBe('Control+Shift+Space');

@@ -54,6 +54,12 @@
     "allow-stop-zoom-captions",
     "allow-send-zoom-test-caption",
     "allow-zoom-captions-status",
-    "allow-open-zoom-guide"
+    "allow-open-zoom-guide",
+    "allow-update-status",
+    "allow-check-for-update",
+    "allow-set-update-checks",
+    "allow-skip-update-version",
+    "allow-open-release-page",
+    "allow-set-global-shortcuts"
   ]
 }

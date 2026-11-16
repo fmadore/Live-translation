@@ -235,6 +235,14 @@ The overlay uses public AppKit only: a borderless transparent window at a high w
   with each provider, the app asks, names the provider and what is sent, and gives the privacy
   policy's address, as Kalamu does; the review notes point to it.
 - **The overlay (2.4.5, 4).** Public AppKit only; it never takes focus while captions run.
+- **System-wide shortcuts (2.4.5, 5.1.1).** The opt-in Pause and Show/hide overlay keys (⌃⌥⇧P,
+  ⌃⌥⇧O; off by default, held only while a session runs) use Carbon's `RegisterEventHotKey`
+  through `tauri-plugin-global-shortcut` 2.4 and `global-hotkey` 0.8, read in their source
+  (`global-hotkey`'s `platform_impl/macos`): an application event handler and a registered hot
+  key, which needs no entitlement, no Accessibility and no Input Monitoring permission, and is
+  available in the App Sandbox. The crate's `CGEventTap`, which would need Input Monitoring, is
+  used only for media keys, which the app never registers. Not yet tried in the sandboxed
+  build: check on the first TestFlight build that the keys work and that macOS asks nothing.
 - **Screenshots (2.3.3)** must show the Mac app.
 - **Privacy manifest** (`PrivacyInfo.xcprivacy`): not checked whether App Store Connect wants one
   for this app; the upload's validation names it if so.

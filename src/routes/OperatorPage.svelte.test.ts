@@ -523,3 +523,39 @@ it('picks up a Zoom share already running, and follows what the core reports', a
 	expect(button).toHaveAccessibleName('Zoom captions: refused');
 	expect(core.callsTo('stop_zoom_captions')).toHaveLength(0);
 });
+
+// F4 and F5 from the keyboard: Ctrl+Shift+M asks for a marker while captioning, Ctrl+F opens
+// find over the transcript reader and nowhere else, and neither opens the browser's own.
+it('adds a marker and finds in the transcript from the keyboard', async () => {
+	vi.stubGlobal('CSS', { highlights: new Map() });
+	vi.stubGlobal('Highlight', class {});
+	Range.prototype.getBoundingClientRect = () => new DOMRect();
+	render(Page);
+	await chooseDemo();
+	await runDemo();
+
+	const find = new KeyboardEvent('keydown', { code: 'KeyF', ctrlKey: true, cancelable: true });
+	window.dispatchEvent(find);
+	expect(find.defaultPrevented).toBe(true);
+	// On the live view there is nothing to find in.
+	expect(screen.queryByRole('search')).toBeNull();
+
+	await fireEvent.keyDown(window, { code: 'KeyM', ctrlKey: true, shiftKey: true });
+	const label = await screen.findByRole('textbox', { name: 'Marker text (optional)' });
+	await fireEvent.input(label, { target: { value: 'Questions' } });
+	await fireEvent.keyDown(label, { key: 'Enter' });
+	await fireEvent.submit(label.closest('form')!);
+	expect(await screen.findByRole('heading', { name: 'Questions' })).toBeInTheDocument();
+
+	await fireEvent.click(screen.getByRole('tab', { name: 'Transcript' }));
+	await fireEvent.keyDown(window, { code: 'KeyF', ctrlKey: true });
+	const field = await screen.findByRole('searchbox', { name: 'Find in the transcript' });
+	await fireEvent.input(field, { target: { value: 'questions' } });
+	await waitFor(() =>
+		expect(within(screen.getByRole('search')).getByRole('status')).toHaveTextContent('1 of 1')
+	);
+	await fireEvent.keyDown(field, { key: 'Escape' });
+	expect(screen.queryByRole('search')).toBeNull();
+	await stop();
+	vi.unstubAllGlobals();
+});

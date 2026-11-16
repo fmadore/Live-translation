@@ -81,6 +81,8 @@ Turbo) ([release notes](docs/release-1.13.1.md)).
    an installer from [GitHub releases](https://github.com/fmadore/Live-translation/releases).
    Check the release version: Whisper requires 1.6.0, and its translation into English 1.7.0.
    GitHub installers are unsigned; Store packages are signed and update through the Store.
+   A copy installed from GitHub can tell you when a new version is out (see
+   [new versions](#new-versions)).
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
    For translation, choose **Live translation**, Gemini, OpenAI or DeepL, your key and target
@@ -103,6 +105,20 @@ it is not a saved recording. Models download from Hugging Face only when request
 verified before use. Cloud audio goes directly to the chosen provider. API keys stay in
 Windows Credential Manager or the macOS Keychain. The developer receives no audio, keys, transcripts or telemetry.
 See the [privacy policy](docs/privacy.md) for temporary storage, history and recovery details.
+
+## New versions
+
+The Microsoft Store and the Mac App Store update their copies themselves. A copy installed from
+GitHub (the Windows installer or MSI, or the Mac disk image) does not update itself, but it can
+tell you when a new version is out. From the second launch, the start screen asks once:
+*Check for new versions? This asks GitHub once a day.* With **Turn on**, the app asks GitHub
+for the latest release at most once a day, a few seconds after launch and never during a
+session, and shows *Version X.Y.Z is available* with **Release notes** (the release page, in
+your browser) and **Not now** (hidden until the next version). You download and install it
+yourself, as the first time. The check is off until you turn it on, and the switch is under
+**Settings › App › Updates**. The request carries only the app's name and version; see the
+[privacy policy](docs/privacy.md#new-version-check-copies-installed-from-github). Store copies
+never check.
 
 ## Support development
 

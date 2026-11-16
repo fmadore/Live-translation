@@ -33,7 +33,7 @@ export function createRecoveryOffer(port: Pick<typeof recovery, 'read' | 'clear'
 		const found = offer;
 		offer = null;
 		if (!found) return;
-		if (restore) restoreTranscript(found.snapshot.lines);
+		if (restore) restoreTranscript(found.snapshot.lines, found.snapshot.markers ?? []);
 		try {
 			await port.clear();
 		} catch (error) {

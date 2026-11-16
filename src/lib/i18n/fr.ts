@@ -102,6 +102,13 @@ export const fr: Messages = {
 		shortcutSize: 'Agrandir / réduire les sous-titres',
 		shortcutDirection: 'Permuter les deux premiers favoris avant de démarrer avec F2',
 		shortcutPause: 'Mettre en pause / reprendre les sous-titres',
+		shortcutMarker: 'Ajouter un repère à la transcription pendant le sous-titrage',
+		shortcutFind: 'Rechercher dans la transcription, dans l’onglet Transcription',
+		globalShortcuts: 'Utiliser les raccourcis lorsque d’autres applications sont au premier plan',
+		globalShortcutsNote:
+			'Désactivé par défaut. Pendant une session, même en pause, ces deux raccourcis fonctionnent aussi lorsque des diapositives ou une application de réunion sont au premier plan. L’application ne reçoit que ces deux combinaisons de touches, rien d’autre de ce que vous tapez. Démarrer et arrêter restent dans cette fenêtre.',
+		globalRefused: (keys: string, count: number) =>
+			`Impossible d’enregistrer ${keys} : une autre application ${count === 1 ? 'l’utilise' : 'les utilise'} déjà. Les raccourcis de cette fenêtre fonctionnent toujours.`,
 		listening: 'À l’écoute — aucun signal audio récent',
 		silenced:
 			'Du son est diffusé, mais seul du silence arrive — le système empêche peut-être cette application de l’enregistrer',
@@ -141,9 +148,13 @@ export const fr: Messages = {
 
 	keys: {
 		ctrl: 'Ctrl',
+		control: 'Ctrl',
+		alt: 'Alt',
 		shift: 'Maj',
 		space: 'Espace',
 		o: 'O',
+		m: 'M',
+		f: 'F',
 		up: '↑',
 		down: '↓',
 		p: 'P',
@@ -316,6 +327,28 @@ export const fr: Messages = {
 		twoSources: '×2 sources'
 	},
 
+	guard: {
+		heading: 'Dépenses dans le cloud',
+		idlePause: 'Mettre en pause quand rien n’a été sous-titré depuis',
+		costWarning: 'Me prévenir quand le coût estimé dépasse',
+		durationWarning: 'Me prévenir quand une session dure depuis',
+		never: 'Jamais',
+		minutes: (n: number) => `${n} minutes`,
+		hours: (n: number) => (n === 1 ? '1 heure' : `${n} heures`),
+		note: 'Moteurs dans le cloud uniquement : Whisper en local et la démo intégrée ne coûtent rien. La pause est la pause habituelle : la session, son chronomètre et la transcription restent tels quels. Les avertissements n’arrêtent jamais rien.',
+		idlePaused: (minutes: number) =>
+			`En pause : rien n’a été sous-titré depuis ${minutes} minutes. Rien n’est envoyé ni facturé avant la reprise.`,
+		costPassed: (amount: string) =>
+			`Le coût estimé de cette session a dépassé ${amount}. Elle continue.`,
+		durationPassed: (hours: number) =>
+			hours === 1
+				? 'Cette session dure depuis une heure. Elle continue.'
+				: `Cette session dure depuis ${hours} heures. Elle continue.`,
+		resume: 'Reprendre',
+		dismiss: 'Fermer',
+		showNotice: (text: string) => `Afficher « ${text} » sur la surimpression`
+	},
+
 	applications: {
 		recovery:
 			'La capture de l’application sélectionnée s’est arrêtée. Sélectionnez-la à nouveau après sa fermeture ou son redémarrage. Les autres sons système ne sont jamais sélectionnés automatiquement.',
@@ -461,7 +494,7 @@ export const fr: Messages = {
 		stable: 'Lecture stable',
 		cleanSpeech: 'Masquer les hésitations',
 		cleanSpeechHint:
-			'Uniquement dans la superposition. La transcription conserve le texte original.',
+			'Uniquement dans la surimpression. La transcription conserve le texte original.',
 		showOriginal: 'Afficher la parole originale sous la traduction',
 		showOriginalHint:
 			'Une ligne plus petite sous chaque sous-titre traduit, pour qui suit la langue de l’orateur. Traduction uniquement ; pas en lecture stable.',
@@ -551,6 +584,24 @@ export const fr: Messages = {
 		}
 	},
 
+	overlayNotice: {
+		openLabel: 'Afficher une annonce sur la surimpression…',
+		heading: 'Annonce sur la surimpression',
+		field: 'Texte de l’annonce',
+		suggestions: 'Suggestions',
+		presets: {
+			paused: 'Sous-titres en pause',
+			backSoon: 'Reprise dans un instant',
+			shortBreak: 'Courte pause'
+		},
+		show: 'Afficher l’annonce',
+		clear: 'Retirer l’annonce',
+		untilCaptions: 'La retirer quand les sous-titres reprennent après une pause',
+		hint: 'Remplace les sous-titres de la surimpression par cette seule ligne. Elle n’est ni écrite dans la transcription ni envoyée à Zoom, et disparaît à l’arrêt de la session.',
+		showing: (text: string) => `La surimpression affiche « ${text} » au lieu des sous-titres.`,
+		cleared: 'La surimpression affiche de nouveau les sous-titres.'
+	},
+
 	window: {
 		heading: 'Fenêtre',
 		minimizeToTray: 'Réduire dans la zone de notification',
@@ -568,6 +619,21 @@ export const fr: Messages = {
 		link: 'Offrez-moi un café',
 		opensInBrowser: ' (s’ouvre dans votre navigateur)',
 		madeBy: (name: string) => `Conçu par ${name}`
+	},
+
+	updates: {
+		heading: 'Mises à jour',
+		available: (version: string) => `La version ${version} est disponible`,
+		releaseNotes: 'Notes de version',
+		notNow: 'Pas maintenant',
+		ask: 'Rechercher les nouvelles versions ? L’application interroge GitHub une fois par jour.',
+		turnOn: 'Activer',
+		noThanks: 'Non merci',
+		toggle: 'Rechercher les nouvelles versions',
+		toggleNote:
+			'Demande à GitHub une fois par jour s’il existe une version plus récente, et l’indique ici et sur l’écran de démarrage. Rien n’est téléchargé ni installé, et la requête ne porte que le nom et la version de l’application.',
+		lastChecked: (when: string) => `Dernière vérification : ${when}`,
+		notChecked: 'Pas encore vérifié'
 	},
 
 	zoom: {
@@ -798,6 +864,15 @@ export const fr: Messages = {
 		staleAfter: 'ne sont pas encore sur le disque.',
 		longSession: (threshold: number) =>
 			`Cette session est longue et rien n’en a été enregistré depuis qu’elle a dépassé ${threshold} lignes. Rien n’est supprimé, mais enregistrez-la maintenant pour qu’un plantage ne l’emporte pas.`,
+		find: {
+			open: 'Rechercher',
+			field: 'Rechercher dans la transcription',
+			count: (current: number, total: number) =>
+				total === 0 ? 'Aucun résultat' : `${current} sur ${total}`,
+			previous: 'Résultat précédent',
+			next: 'Résultat suivant',
+			close: 'Fermer la recherche'
+		},
 		emptyTranslate:
 			'Les traductions finalisées s’accumulent ici, prêtes à être exportées dans le format de votre choix.',
 		emptySubtitles:
@@ -812,6 +887,18 @@ export const fr: Messages = {
 			needsDesktop:
 				'Nécessite l’application de bureau — un aperçu dans un navigateur n’a nulle part où l’écrire.'
 		}
+	},
+
+	marker: {
+		add: 'Ajouter un repère',
+		addLabel: 'Ajouter un repère à la transcription',
+		field: 'Texte du repère (facultatif)',
+		placeholder: 'Début de la 2e intervention',
+		hint: 'Laissez vide pour une section numérotée. Les repères sont enregistrés et exportés avec la transcription, mais jamais affichés sur la surimpression.',
+		confirm: 'Ajouter',
+		cancel: 'Annuler',
+		section: (n: number) => `Section ${n}`,
+		added: (title: string, time: string) => `Repère ajouté à ${time} : ${title}`
 	},
 
 	// What the saved file says. Issue #23 puts the transcript's headings in the interface

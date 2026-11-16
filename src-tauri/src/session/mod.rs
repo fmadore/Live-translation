@@ -80,6 +80,12 @@ fn signal_pause(pause: &watch::Sender<bool>, paused: bool) -> bool {
 }
 
 impl SessionManager {
+    /// Whether a session has been started and not yet stopped. The update check (`update.rs`)
+    /// asks, so that no request of its own goes out during an event.
+    pub fn is_active(&self) -> bool {
+        lock(&self.active).is_some()
+    }
+
     pub async fn start(&self, app: &AppHandle, options: StartOptions) -> Result<()> {
         let _lifecycle = self.lifecycle.lock().await;
         self.stop_active(app).await;

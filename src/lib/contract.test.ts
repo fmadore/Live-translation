@@ -3,15 +3,18 @@ import { describe, expect, it } from 'vitest';
 import {
 	AUDIO_SOURCES,
 	EVT,
+	GLOBAL_SHORTCUTS,
 	ORIGINS,
 	OUTPUT_MODES,
 	PROVIDERS,
 	SESSION_STATES,
 	TRAY_COMMANDS,
+	UPDATE_CHECKS,
 	WHISPER_MODELS,
 	ZOOM_STATES
 } from './types';
 import { DEMO_LANGUAGES } from './languages';
+import { GLOBAL_SHORTCUT_KEYS } from './globalShortcuts';
 
 // The interface and the core agree on command names, event names and the string values of
 // shared enums only by convention: nothing at runtime connects them, and a mismatch shows up
@@ -126,10 +129,24 @@ describe('shared enums', () => {
 		['SessionState', types, SESSION_STATES],
 		['DemoLanguage', types, DEMO_LANGUAGES],
 		['TrayCommand', rust('tray.rs'), TRAY_COMMANDS],
+		['GlobalShortcut', rust('hotkeys.rs'), GLOBAL_SHORTCUTS],
+		['UpdateChecks', rust('update.rs'), UPDATE_CHECKS],
 		// The model picker's ids, which the model commands and the start options carry.
 		['ModelId', rust('whisper/models.rs'), WHISPER_MODELS]
 	] as const)('%s has the same values on both sides', (name, source, values) => {
 		expect(sorted(values)).toEqual(sorted(serdeVariants(source, name)));
+	});
+
+	// Settings prints the system-wide keys; the core registers them. Each accelerator, in the
+	// plugin's syntax, is the printed keys in the same order.
+	it('the system-wide keys Settings prints are the ones the core registers', () => {
+		const source = rust('hotkeys.rs');
+		const PLUGIN = { control: 'Control', alt: 'Alt', shift: 'Shift', p: 'KeyP', o: 'KeyO' };
+		for (const shortcut of GLOBAL_SHORTCUTS) {
+			const variant = shortcut.replace(/(^|-)([a-z])/g, (_, _dash, c: string) => c.toUpperCase());
+			const accelerator = new RegExp(`Self::${variant} => "([^"]+)"`).exec(source)?.[1];
+			expect(accelerator).toBe(GLOBAL_SHORTCUT_KEYS[shortcut].map((k) => PLUGIN[k]).join('+'));
+		}
 	});
 
 	// Read when the test runs rather than in the table above, which is built as the file loads:

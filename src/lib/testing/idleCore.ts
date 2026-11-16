@@ -11,12 +11,23 @@ import type { Placement } from '../profiles';
 import type {
 	ApplicationList,
 	AudioDevice,
+	GlobalShortcutStatus,
 	OnDeviceReadiness,
 	StoredRecovery,
+	UpdateStatus,
 	WhisperCpuSupport,
 	WhisperModelInfo,
 	ZoomStatus
 } from '../types';
+
+/** `UpdateStatus::default()`: not a copy installed from GitHub. */
+const INELIGIBLE_UPDATES: UpdateStatus = {
+	eligible: false,
+	checks: 'unanswered',
+	ask: false,
+	lastCheckedMs: null,
+	available: null
+};
 
 /** How one command is answered. A thrown error, or a rejected promise, is the command failing. */
 export type CommandHandler = (args: Record<string, unknown>) => unknown;
@@ -41,6 +52,12 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 	}),
 	text_scale_factor: () => 1,
 	support_link_allowed: () => true,
+	// A copy that does not check for new versions, as every store build and this test machine
+	// are: the start screen and Settings show nothing of it (issue #217).
+	update_status: (): UpdateStatus => INELIGIBLE_UPDATES,
+	check_for_update: (): UpdateStatus => INELIGIBLE_UPDATES,
+	set_update_checks: (): UpdateStatus => INELIGIBLE_UPDATES,
+	skip_update_version: (): UpdateStatus => INELIGIBLE_UPDATES,
 	// One 1920×1080 display at 100%, with the overlay where `tauri.conf.json` creates it.
 	display_layout: () => '0,0 1920x1080 100%',
 	get_overlay_placement: (): Placement => ({ x: 320, y: 460, width: 1280, height: 160 }),
@@ -56,5 +73,10 @@ export const IDLE_CORE: Readonly<Record<string, CommandHandler>> = {
 		sent: 0,
 		dropped: 0
 	}),
-	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`
+	save_transcript: ({ filename }) => `C:\\Users\\Operator\\Documents\\${String(filename)}`,
+	// The system-wide keys: held while wanted, as on a machine where no other app has them.
+	set_global_shortcuts: ({ enabled, sessionActive }): GlobalShortcutStatus => ({
+		registered: enabled && sessionActive ? ['toggle-pause', 'toggle-overlay'] : [],
+		failed: []
+	})
 };

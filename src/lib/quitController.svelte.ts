@@ -9,6 +9,8 @@ import type { TrayCommand } from './types';
 interface QuitActions {
 	stop: () => Promise<void>;
 	toggleOverlayVisible: () => Promise<void>;
+	/** Pause or resume, as the window's own shortcut does: only while a session runs. */
+	togglePause: () => Promise<void>;
 }
 
 /** Prompts and tray actions share one shutdown sequence; rendering only observes it.
@@ -141,6 +143,10 @@ class QuitController {
 		switch (command) {
 			case 'toggle-overlay':
 				await this.#actions.toggleOverlayVisible();
+				return;
+			// The system-wide Pause key (the tray menu has no entry for it).
+			case 'toggle-pause':
+				await this.#actions.togglePause();
 				return;
 			case 'stop-session':
 				await this.#actions.stop();

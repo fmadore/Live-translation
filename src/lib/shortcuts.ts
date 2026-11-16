@@ -1,11 +1,18 @@
 import { isMac } from './platform';
 
 export type Shortcut =
-	'toggleSession' | 'togglePause' | 'toggleOverlay' | 'larger' | 'smaller' | 'direction';
+	| 'toggleSession'
+	| 'togglePause'
+	| 'toggleOverlay'
+	| 'larger'
+	| 'smaller'
+	| 'direction'
+	| 'addMarker'
+	| 'find';
 
 /** A key as the interface names it. The words come from the catalog (`$t.keys`), because a
  *  German keyboard says Strg and a French one says Maj. */
-export type KeyName = 'ctrl' | 'shift' | 'space' | 'p' | 'o' | 'up' | 'down' | 'f2';
+export type KeyName = 'ctrl' | 'shift' | 'space' | 'p' | 'o' | 'm' | 'f' | 'up' | 'down' | 'f2';
 
 /** Every shortcut, once: what the listener matches, what `aria-keyshortcuts` announces and
  *  what the window prints are all read from here, so the three cannot drift apart. */
@@ -15,7 +22,13 @@ export const SHORTCUT_KEYS: Record<Shortcut, readonly KeyName[]> = {
 	toggleOverlay: ['ctrl', 'shift', 'o'],
 	larger: ['ctrl', 'shift', 'up'],
 	smaller: ['ctrl', 'shift', 'down'],
-	direction: ['f2']
+	direction: ['f2'],
+	// M for marker. Ctrl+Shift+M is nothing of WebView2's or Windows', and ⇧⌘M nothing of
+	// macOS's own (⌘M alone minimizes, and is left alone).
+	addMarker: ['ctrl', 'shift', 'm'],
+	// Where every application finds text. The page acts on it only while the transcript reader
+	// is showing, and the browser's own find bar never opens in its place.
+	find: ['ctrl', 'f']
 };
 
 /** The key each name stands for, as `KeyboardEvent.code` reports it — the physical key, so a
@@ -28,6 +41,8 @@ const KEY: Record<
 	space: { code: 'Space', aria: 'Space' },
 	p: { code: 'KeyP', aria: 'P' },
 	o: { code: 'KeyO', aria: 'O' },
+	m: { code: 'KeyM', aria: 'M' },
+	f: { code: 'KeyF', aria: 'F' },
 	up: { code: 'ArrowUp', aria: 'ArrowUp' },
 	down: { code: 'ArrowDown', aria: 'ArrowDown' },
 	f2: { code: 'F2', key: 'F2', aria: 'F2' }

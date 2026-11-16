@@ -68,6 +68,12 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # against the same devices. Registered first in the builder chain, as the plugin requires.
 tauri-plugin-single-instance = "2.5.2"
 
+# The opt-in system-wide Pause and Show/hide overlay keys (`src/hotkeys.rs`): RegisterHotKey
+# on Windows, Carbon's RegisterEventHotKey on macOS. Registered from Rust only; the window
+# gets no `global-shortcut:*` permission. Desktop-only, as the plugin's documentation says.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-global-shortcut = "2.4.1"
+
 # The native Save As for transcript export (`src/export.rs`): IFileSaveDialog on Windows,
 # NSSavePanel on macOS. No default features: those are the Linux portal and Wayland backends.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
@@ -126,8 +132,9 @@ objc2-foundation = { version = "0.3.2", default-features = false, features = [
 # Direct event-driven WASAPI access for render-device loopback capture.
 wasapi = "0.27"
 # Win32 z-order/activation control for the caption overlay (`src/overlay.rs`), ShellExecute
-# for the support page (`src/support.rs`), and a job object that ends the Vulkan helper with
-# the app (`src/whisper/gpu.rs`). Already in the dependency graph via tauri/tokio, so this adds
+# for the support page (`src/support.rs`), a job object that ends the Vulkan helper with
+# the app (`src/whisper/gpu.rs`), and package identity, which tells an installer copy from an
+# MSIX for the update notice (`src/update.rs`). Already in the dependency graph via tauri/tokio, so this adds
 # no extra compilation.
 windows-sys = { version = "0.61", features = [
   "Win32_Foundation",
@@ -136,6 +143,7 @@ windows-sys = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_UI_Shell",
   "Win32_System_Com",
+  "Win32_Storage_Packaging_Appx",
   "Win32_System_Threading",
   "Win32_System_SystemInformation",
   "Wdk_System_SystemServices",

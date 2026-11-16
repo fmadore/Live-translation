@@ -144,6 +144,16 @@ at once — and subtitles have no separate original to show. Snap to bottom make
 line of it per row. Off by default. The browser preview shows it on the remote row when the
 setting is on.
 
+## A notice instead of the captions
+
+During a break the operator can show one line on the overlay in place of the captions
+([usability](usability.md#notice-on-the-overlay)). It is set like a finished caption, centred,
+at the size one caption row would have in the strip (`fitRows` with one row), and
+`fitNoticeFont` shrinks it until the whole line fits the strip's height, down to the 12 px
+floor rows have; below that it is clipped as a row would be. A notice is never cut with an
+ellipsis like a caption: it is short and read whole. While it is up the overlay reports no fit
+to the operator window, since no caption rows are drawn.
+
 ## Two caption languages
 
 With a second caption language (Step 03, translation only), each source gets a row per

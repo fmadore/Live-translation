@@ -54,9 +54,15 @@ record per line.
 1. a header — `version: 2`, the id, start time, mode, languages and title;
 2. one `{"line": …}` record per finalized line, oldest first;
 3. a progress record — `savedAt`, `durationMs`, `endedAt` — after each write;
-4. a `{"title": …}` record for each rename.
+4. a `{"title": …}` record for each rename;
+5. a `{"marker": {"id", "atMs", "label"}}` record for each marker the operator added, written
+   with the lines; `atMs` is on the session's own timeline, as the lines' timing is.
 
-The latest progress and title records win. The first write of a session, and any write after
+The latest progress and title records win. Markers were added without a new version: a
+build from before them skips a record it does not know, so it still reads the session's lines,
+and every older file reads as it did, with no markers. A damaged marker record is skipped
+rather than costing the session. The History reader shows markers as headings between the
+lines and its search finds their text. The first write of a session, and any write after
 a failure, replaces the file whole through a flushed staging file; every later write goes
 through `append_history`, which adds only the new lines and flushes them. Appending never
 creates a file, so a log never starts without its header, and a record torn by a failed write

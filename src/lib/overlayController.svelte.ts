@@ -13,8 +13,17 @@ import {
 	overlayPalette,
 	overlayPlaced,
 	overlayShowOriginal,
+	noticeUntilCaptions,
+	sessionState,
 	statusMessage
 } from './stores';
+import {
+	NO_NOTICE,
+	noticeOnCaption,
+	noticeOnState,
+	showNotice,
+	type NoticeState
+} from './overlayNotice';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayConfig, OverlayFit, OverlayStateMsg } from './types';
 import {
@@ -104,6 +113,7 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
+				notice: notice.text,
 				moveExitsSeen,
 				...extra
 			})
@@ -143,6 +153,37 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 	function setShowOriginal(show: boolean) {
 		overlayShowOriginal.set(show);
 		pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	// A notice in place of the captions, for a break (`overlayNotice.ts`). Held here and pushed
+	// with everything else, so a reloaded overlay gets it back with its first configuration.
+	let notice = $state.raw<NoticeState>(NO_NOTICE);
+
+	function setNoticeState(next: NoticeState) {
+		if (next === notice) return;
+		const changed = next.text !== notice.text;
+		notice = next;
+		if (changed) pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	/** Show `text` on the overlay instead of the captions; empty text clears it. */
+	function setNotice(text: string) {
+		setNoticeState(showNotice(text, get(sessionState)));
+	}
+
+	function clearNotice() {
+		setNoticeState(NO_NOTICE);
+	}
+
+	/** A caption arrived: after a pause, the break is over, unless the operator said otherwise.
+	 *  Nothing to do, and so nearly free, while no notice is up. */
+	function noteCaption() {
+		if (notice.text) setNoticeState(noticeOnCaption(notice, get(noticeUntilCaptions)));
+	}
+
+	/** The session moved to `state`: paused or stopped, the next caption ends the break. */
+	function noteSessionState(state: Parameters<typeof noticeOnState>[1]) {
+		if (notice.text) setNoticeState(noticeOnState(notice, state));
 	}
 
 	/** Put the overlay's whole appearance back to what it ships with.
@@ -376,6 +417,14 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		get overlayFit() {
 			return overlayFit;
 		},
+		/** The notice the overlay shows instead of captions; empty when it shows captions. */
+		get notice() {
+			return notice.text;
+		},
+		setNotice,
+		clearNotice,
+		noteCaption,
+		noteSessionState,
 		initialize,
 		restorePlacement,
 		handleDisplaysChanged,

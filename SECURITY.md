@@ -28,7 +28,10 @@ Cloud modes stream captured audio directly to the selected provider under that p
 terms. Local Whisper keeps audio on the computer, with pending speech in a delete-on-close temporary
 file. User-requested model downloads contact Hugging Face; size and SHA-256 are verified
 before installation and again before loading. Models remain cached until removed. The built-in
-demo captures no audio and uses no network. The developer receives no audio, keys or transcripts.
+demo captures no audio and uses no network. A copy installed from GitHub (not a Store build)
+can ask GitHub once a day for the latest release, only after the user turns that on; the
+request carries the app's name and version and nothing else, and the release page it offers
+is built by the core from the version number. The developer receives no audio, keys or transcripts.
 
 Save as writes text, Markdown, SRT or VTT to the folder the user selects in the native
 Windows or macOS dialog. The optional local recovery copy is off by default and stores finalized

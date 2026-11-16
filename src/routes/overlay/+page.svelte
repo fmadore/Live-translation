@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
 	import OverlayMoveChrome from './OverlayMoveChrome.svelte';
+	import OverlayNotice from './OverlayNotice.svelte';
+	import { normalizeNotice } from '#lib/overlayNotice.js';
 	import { createOverlayCaptions } from './overlayCaptions.svelte';
 	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
 	import { previewContent } from './overlayFixtures';
@@ -66,6 +68,8 @@
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
 	/** Lane 1's language, when the session captions in a second one. */
 	let secondCaptionLanguage = $state<TargetLanguage | undefined>(undefined);
+	/** The operator's notice for a break, shown instead of the captions while it is set. */
+	let notice = $state('');
 
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
 	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
@@ -109,6 +113,10 @@
 	// caption lines, and one otherwise: it is there to follow along, not to be read in full.
 	const originalRows = $derived(rowHeight >= 4.5 * rowFont ? 2 : 1);
 	const originalRegion = $derived(originalHeight(rowFont, originalRows));
+	// A notice is one row: as large as a single caption would be in this strip, and the strip's
+	// whole height to fit itself into.
+	const noticeHeight = $derived(Math.max(0, winH - topPadding - bottomPadding));
+	const noticeFont = $derived(fitRows(fontSize, noticeHeight, 1).font);
 
 	onMount(() => {
 		const measure = () => {
@@ -134,8 +142,10 @@
 
 		if (!isTauri()) {
 			// A browser preview has no core: show labelled demo content instead.
-			const preview = previewContent(new URLSearchParams(window.location.search).get('language'));
+			const params = new URLSearchParams(window.location.search);
+			const preview = previewContent(params.get('language'));
 			captions.show(preview);
+			notice = normalizeNotice(params.get('notice'));
 			if (preview.language) captionLanguage = preview.language;
 			if (preview.secondLanguage) secondCaptionLanguage = preview.secondLanguage;
 			return cleanup;
@@ -171,6 +181,9 @@
 				secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
 					? cfg.secondCaptionLanguage
 					: undefined;
+				// Checked again here, whatever the operator window did: plain text, one line,
+				// bounded. Absent clears it, as every push carries the whole of it.
+				notice = normalizeNotice(cfg.notice);
 				if (typeof cfg.interactive === 'boolean')
 					placement.setInteractive(
 						cfg.interactive,
@@ -206,7 +219,7 @@
 		void api.reportOverlayState({ fit }).catch(() => {});
 	}
 	$effect(() => {
-		if (placement.interactive || lines.length === 0 || winH <= 0) return;
+		if (placement.interactive || notice || lines.length === 0 || winH <= 0) return;
 		reportFit({
 			fontSize: rowFont,
 			rows: lines.length,
@@ -280,6 +293,19 @@
 			onSnap={snapToBottom}
 			onLock={() => void placement.lock()}
 		/>
+	{:else if notice}
+		<!-- The break notice replaces the captions until the operator clears it; captions keep
+		     arriving underneath and are there again the moment it goes. -->
+		<div class="captions notice">
+			<div class="row">
+				<OverlayNotice
+					text={notice}
+					maxFont={noticeFont}
+					height={noticeHeight}
+					fontKey={captionFace + ':' + fontsLoaded}
+				/>
+			</div>
+		</div>
 	{:else if lines.length > 0}
 		<!-- Painted only while there is something to read: with no captions the window must
 		     paint nothing at all, or it would veil the presenter's slides. -->

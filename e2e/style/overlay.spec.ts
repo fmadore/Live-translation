@@ -33,3 +33,27 @@ for (const original of [false, true]) {
 		for (const bottom of bottoms) expect(bottom).toBeLessThanOrEqual(160);
 	});
 }
+
+// A notice for a break replaces the captions with one line, and shrinks, as a row does, until it
+// is inside a shallow strip. `?notice=` stands in for the operator's push in the preview.
+for (const height of [160, 72]) {
+	test(`a break notice is whole inside a ${height} px strip`, async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height });
+		const text = 'Gleich geht es weiter – wir setzen um 14:30 Uhr mit dem zweiten Vortrag fort';
+		await page.goto(`/overlay/?language=bilingual-both&notice=${encodeURIComponent(text)}`);
+		const line = page.locator('.captions.notice .line:not(.probe)');
+		await expect(line).toHaveText(text);
+		// No caption row is drawn under it.
+		await expect(page.locator('.captions .texts')).toHaveCount(0);
+		await expect
+			.poll(() => line.evaluate((el) => el.getBoundingClientRect().bottom))
+			.toBeLessThanOrEqual(height);
+		const { top, scrollHeight, clientHeight } = await line.evaluate((el) => ({
+			top: el.getBoundingClientRect().top,
+			scrollHeight: el.parentElement!.scrollHeight,
+			clientHeight: el.parentElement!.clientHeight
+		}));
+		expect(top).toBeGreaterThanOrEqual(0);
+		expect(scrollHeight).toBeLessThanOrEqual(clientHeight);
+	});
+}

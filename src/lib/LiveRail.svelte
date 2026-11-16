@@ -1,6 +1,7 @@
 <script lang="ts">
 	import CaptionAppearance from './CaptionAppearance.svelte';
 	import OverlayMoveButton from './OverlayMoveButton.svelte';
+	import OverlayNoticeControl from './OverlayNoticeControl.svelte';
 	import ToolButton from './ui/ToolButton.svelte';
 	import LevelMeter from './LevelMeter.svelte';
 	import LiveActivity from './LiveActivity.svelte';
@@ -172,6 +173,7 @@
 			{overlay.overlayVisible ? $t.overlayControls.hide : $t.overlayControls.show}
 		</ToolButton>
 	</div>
+	<OverlayNoticeControl />
 </div>
 
 <span class="grow"></span>

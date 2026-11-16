@@ -5,8 +5,9 @@
 // Issue #25: the log used to be capped at 1,000 lines and silently truncated, and nothing
 // on screen distinguished a saved transcript from one that only existed in memory.
 
-import { ORIGINS, type Origin, type TranscriptLine } from './types';
+import { ORIGINS, type Origin, type TranscriptLine, type TranscriptMarker } from './types';
 import { isTargetLanguage } from './languages';
+import { plainLine } from './plainText';
 
 /** Id meaning "nothing has been saved yet". Line ids start at 1. */
 export const NOTHING_SAVED = 0;
@@ -25,6 +26,51 @@ export function newestLineId(newestFirst: TranscriptLine[]): number {
 	return newestFirst.length ? newestFirst[0].id : NOTHING_SAVED;
 }
 
+/** Highest id among a log's lines and its markers, which share one counter: a marker added
+ *  after the last line makes the document newer, and unsaved, as a line does. */
+export function newestDocumentId(
+	newestFirst: TranscriptLine[],
+	markers: readonly TranscriptMarker[] = []
+): number {
+	return markers.reduce((newest, marker) => Math.max(newest, marker.id), newestLineId(newestFirst));
+}
+
+// ---- Markers -----------------------------------------------------------------
+// The operator's markers (a talk starting, a speaker's name) are kept beside the lines, in
+// the recovery spool and the history log as well as in memory, and are read back as warily as
+// a line: from a file that may have been edited or cut short.
+
+/** The longest marker label, in characters: a heading, not a note. */
+export const MARKER_LABEL_MAX = 80;
+
+/** A marker label as it is kept: one line, without control characters, at most
+ *  `MARKER_LABEL_MAX` characters (code points, so a cut never splits one). */
+export function cleanMarkerLabel(value: unknown): string {
+	return plainLine(value, MARKER_LABEL_MAX);
+}
+
+/** Read one marker out of a stored document, or null if it is not one. */
+export function readMarker(value: unknown): TranscriptMarker | null {
+	if (typeof value !== 'object' || value === null) return null;
+	const marker = value as Record<string, unknown>;
+	if (
+		typeof marker.id !== 'number' ||
+		!Number.isSafeInteger(marker.id) ||
+		marker.id < 1 ||
+		typeof marker.atMs !== 'number' ||
+		!Number.isFinite(marker.atMs) ||
+		marker.atMs < 0 ||
+		typeof marker.label !== 'string'
+	)
+		return null;
+	return { id: marker.id, atMs: Math.round(marker.atMs), label: cleanMarkerLabel(marker.label) };
+}
+
+/** A marker's own fields and nothing else, for writing to disk. */
+export function markerRecord(marker: TranscriptMarker): TranscriptMarker {
+	return { id: marker.id, atMs: marker.atMs, label: marker.label };
+}
+
 /**
  * Whether the document holds finalized text that has not reached disk.
  *
@@ -33,8 +79,12 @@ export function newestLineId(newestFirst: TranscriptLine[]): number {
  * Ids are monotonic for the lifetime of the app, so a `Clear` followed by a fresh run cannot
  * make stale text look saved.
  */
-export function isDirty(newestFirst: TranscriptLine[], savedLineId: number): boolean {
-	return newestLineId(newestFirst) > savedLineId;
+export function isDirty(
+	newestFirst: TranscriptLine[],
+	savedLineId: number,
+	markers: readonly TranscriptMarker[] = []
+): boolean {
+	return newestDocumentId(newestFirst, markers) > savedLineId;
 }
 
 // ---- Recovery snapshot ------------------------------------------------------
@@ -50,13 +100,22 @@ export interface RecoverySnapshot {
 	savedAt: string;
 	/** Same order as the store: newest first. */
 	lines: TranscriptLine[];
+	/** The operator's markers, newest first. Absent when there are none, and in a spool
+	 *  written before markers existed; a build without them ignores the field. */
+	markers?: TranscriptMarker[];
 }
 
-/** Serialize the log for the recovery file. Only the caption's own fields are written. */
-export function encodeRecovery(newestFirst: TranscriptLine[], savedAt: Date): string {
+/** Serialize the log for the recovery file. Only the caption's own fields are written, and
+ *  each marker's. */
+export function encodeRecovery(
+	newestFirst: TranscriptLine[],
+	savedAt: Date,
+	markers: readonly TranscriptMarker[] = []
+): string {
 	const snapshot: RecoverySnapshot = {
 		version: RECOVERY_VERSION,
 		savedAt: savedAt.toISOString(),
+		...(markers.length ? { markers: markers.map(markerRecord) } : {}),
 		lines: newestFirst.map((line) => ({
 			id: line.id,
 			text: line.text,
@@ -153,7 +212,16 @@ export function decodeRecovery(raw: string): RecoverySnapshot | null {
 	if (!Array.isArray(snapshot.lines)) return null;
 	const lines = snapshot.lines.map(readLine).filter((line) => line !== null);
 	if (!lines.length) return null;
-	return { version: RECOVERY_VERSION, savedAt: snapshot.savedAt, lines };
+	// A damaged marker is left out rather than costing the lines around it.
+	const markers = Array.isArray(snapshot.markers)
+		? snapshot.markers.map(readMarker).filter((marker) => marker !== null)
+		: [];
+	return {
+		version: RECOVERY_VERSION,
+		savedAt: snapshot.savedAt,
+		lines,
+		...(markers.length ? { markers } : {})
+	};
 }
 
 // ---- Quit ------------------------------------------------------------------
