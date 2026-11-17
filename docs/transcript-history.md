@@ -39,7 +39,19 @@ exporting history never replaces the active transcript.
 History remains after clearing the active transcript, export, quitting, and disabling automatic
 history. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current
 session prevents further history writes for that session; the next Start creates a new one.
-Unreadable records are shown individually and remain deletable. Save failures stay visible with
+Unreadable records are shown individually and remain deletable.
+
+Several sessions can be handled at once. Each row has a checkbox, and **Select all shown** ticks
+every session the search, dates and language filter leave in the list; a count says how many
+are selected, and only selected sessions that are shown are acted on. **Delete selected**, then
+**Delete N sessions permanently**, deletes them in one `delete_histories` call. **Save selected
+to a folder…** asks for a folder and writes each one there in the chosen format through
+`export_transcripts`, under the same names a single export suggests; a name already taken in the
+folder gets ` (2)`, ` (3)`… rather than overwriting anything, since there is no dialog to confirm
+each file. Unreadable sessions, and sessions without cue timing when SRT or WebVTT is chosen,
+are skipped and counted. Both commands carry on past a file that fails and return the failures
+as `{ item, error }`, so the tab says how many of the selection did not complete and why, and a
+session that could not be deleted stays ticked to try again. Save failures stay visible with
 a retry action; pending failed sessions are retained in memory until retried or the app exits.
 
 There is no automatic expiry and no upload. Files are unencrypted local text. No audio, keys,

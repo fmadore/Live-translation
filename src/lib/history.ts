@@ -235,6 +235,32 @@ export interface HistoryListing {
 	removed: string[];
 }
 
+/** One item of a batch that failed while the others went ahead (`errors::ItemFailure`): a
+ *  session id or a file name, and why. */
+export interface ItemFailure {
+	item: string;
+	error: AppError;
+}
+
+/** What `delete_histories` did. */
+export interface BatchDeletion {
+	deleted: string[];
+	failed: ItemFailure[];
+}
+
+/** One transcript of a batch export, as `export_transcripts` takes it. */
+export interface ExportFile {
+	filename: string;
+	content: string;
+}
+
+/** What `export_transcripts` did: the folder chosen, the names written, the files that failed. */
+export interface BatchExport {
+	directory: string;
+	written: string[];
+	failed: ItemFailure[];
+}
+
 /** A listed session, decoded; `session` is null for a file that could not be. */
 export interface HistoryEntry {
 	id: string;
@@ -305,7 +331,10 @@ export function isSessionDeleted(error: unknown): boolean {
 }
 
 export function createHistoryCoordinator(
-	port: Pick<typeof api, 'writeHistory' | 'appendHistory' | 'deleteHistory' | 'renameHistory'>,
+	port: Pick<
+		typeof api,
+		'writeHistory' | 'appendHistory' | 'deleteHistory' | 'deleteHistories' | 'renameHistory'
+	>,
 	enabled: () => boolean,
 	onError: (error: unknown) => void = () => {},
 	onSaved: (failed: boolean) => void = () => {},
@@ -474,6 +503,27 @@ export function createHistoryCoordinator(
 				onSaved(failed.size > 0);
 			});
 			queue = result.catch(onError);
+			return result;
+		},
+		/** Delete several sessions at once, in line with the writes like `delete`. Resolves with
+		 *  what the core did: a session it could not delete is listed, not thrown, so the others
+		 *  still go and the caller can say how many failed. */
+		deleteMany(ids: string[]) {
+			for (const id of ids) {
+				deleted.add(id);
+				written.delete(id);
+				if (active?.id === id) cancelScheduled();
+			}
+			const result = queue.then(async () => {
+				const outcome = await port.deleteHistories(ids);
+				for (const id of outcome.deleted) failed.delete(id);
+				onSaved(failed.size > 0);
+				return outcome;
+			});
+			queue = result.then(
+				() => {},
+				(error: unknown) => onError(error)
+			);
 			return result;
 		}
 	};

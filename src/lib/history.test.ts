@@ -67,6 +67,10 @@ function setup(enabled = true) {
 		}),
 		deleteHistory: vi.fn(async (id: string) => {
 			disk.delete(id);
+		}),
+		deleteHistories: vi.fn(async (ids: string[]) => {
+			for (const id of ids) disk.delete(id);
+			return { deleted: ids, failed: [] };
 		})
 	};
 	const error = vi.fn();
@@ -138,6 +142,23 @@ describe('session history', () => {
 		await s.history.delete(id);
 		await expect(s.history.rename(saved, 'Gone')).rejects.toEqual(SESSION_DELETED);
 		expect(s.disk.size).toBe(0);
+	});
+	// Deleting the recording session among others stops its writes, as deleting it alone does.
+	it('deletes several sessions at once and never resurrects the active one', async () => {
+		const s = setup();
+		const other = '12345678-1234-1234-1234-0000000000ff';
+		s.disk.set(other, 'older session');
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		expect(s.disk.has(id)).toBe(true);
+		const outcome = await s.history.deleteMany([id, other]);
+		expect(outcome).toEqual({ deleted: [id, other], failed: [] });
+		expect(s.port.deleteHistories).toHaveBeenCalledWith([id, other]);
+		s.history.append({ ...line, id: 2 });
+		await s.history.finish();
+		expect(s.disk.size).toBe(0);
+		expect(s.error).not.toHaveBeenCalled();
 	});
 	// Review B18: renaming a session deleted a moment before showed the English text "Session
 	// deleted" and marked history as not saving. It is refused in the catalogue's words, and

@@ -29,7 +29,7 @@ import type {
 	UpdateStatus,
 	ZoomStatus
 } from './types';
-import type { HistoryListing } from './history';
+import type { BatchDeletion, BatchExport, ExportFile, HistoryListing } from './history';
 import type { Placement } from './profiles';
 import { EVT } from './types';
 
@@ -88,6 +88,8 @@ export const api = {
 	listHistory: (known: [id: string, length: number][]) =>
 		invoke<HistoryListing>('list_history', { known }),
 	deleteHistory: (id: string) => invoke<void>('delete_history', { id }),
+	/** Delete several sessions; each one that could not be deleted is listed, not thrown. */
+	deleteHistories: (ids: string[]) => invoke<BatchDeletion>('delete_histories', { ids }),
 	listMicrophones: () => invoke<AudioDevice[]>('list_microphones'),
 	listOutputs: () => invoke<AudioDevice[]>('list_outputs'),
 	listApplications: () => invoke<ApplicationList>('list_applications'),
@@ -138,6 +140,10 @@ export const api = {
 	/** Write the transcript to disk; returns the saved file path. */
 	saveTranscript: (content: string, filename: string) =>
 		invoke<string | null>('save_transcript', { content, filename }),
+	/** Ask for a folder and write every transcript into it, overwriting nothing; null when the
+	 *  dialog is cancelled. */
+	exportTranscripts: (files: ExportFile[]) =>
+		invoke<BatchExport | null>('export_transcripts', { files }),
 
 	/** Windows' accessibility text-size factor, asked for as the operator window boots.
 	 *  Later changes arrive on `on.textScale`. See `textScale.ts`. */

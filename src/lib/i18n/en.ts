@@ -504,7 +504,27 @@ export const en = {
 		cancel: 'Cancel',
 		copy: 'Copy transcript',
 		copied: 'Transcript copied.',
-		fullTranscript: 'Saved transcript'
+		fullTranscript: 'Saved transcript',
+		selectAll: 'Select all shown',
+		select: (name: string) => `Select ${name}`,
+		selected: (n: number) =>
+			n === 0 ? 'None selected' : n === 1 ? '1 session selected' : `${n} sessions selected`,
+		clearSelection: 'Clear selection',
+		deleteSelected: 'Delete selected',
+		confirmDeleteSelected: (n: number) =>
+			n === 1 ? 'Delete 1 session permanently' : `Delete ${n} sessions permanently`,
+		selectionFormat: 'Export format for the selection',
+		saveSelected: 'Save selected to a folder…',
+		deletedMany: (n: number) => (n === 1 ? '1 session deleted.' : `${n} sessions deleted.`),
+		savedMany: (n: number, folder: string) =>
+			n === 1 ? `1 transcript saved to ${folder}` : `${n} transcripts saved to ${folder}`,
+		skipped: (n: number) =>
+			n === 1
+				? '1 session skipped: unreadable, or without the timing subtitles need.'
+				: `${n} sessions skipped: unreadable, or without the timing subtitles need.`,
+		/** In front of the first failure of a batch, in place of `actionFailed`. */
+		batchFailed: (failed: number, total: number) =>
+			`${failed} of ${total} selected sessions did not complete.`
 	},
 	overlayControls: {
 		stable: 'Stable reading',

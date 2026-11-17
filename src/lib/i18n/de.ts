@@ -484,7 +484,29 @@ export const de: Messages = {
 		cancel: 'Abbrechen',
 		copy: 'Transkript kopieren',
 		copied: 'Transkript kopiert.',
-		fullTranscript: 'Gespeichertes Transkript'
+		fullTranscript: 'Gespeichertes Transkript',
+		selectAll: 'Alle angezeigten auswählen',
+		select: (name: string) => `${name} auswählen`,
+		selected: (n: number) =>
+			n === 0 ? 'Keine ausgewählt' : n === 1 ? '1 Sitzung ausgewählt' : `${n} Sitzungen ausgewählt`,
+		clearSelection: 'Auswahl aufheben',
+		deleteSelected: 'Auswahl löschen',
+		confirmDeleteSelected: (n: number) =>
+			n === 1 ? '1 Sitzung endgültig löschen' : `${n} Sitzungen endgültig löschen`,
+		selectionFormat: 'Exportformat der Auswahl',
+		saveSelected: 'Auswahl in einem Ordner speichern…',
+		deletedMany: (n: number) => (n === 1 ? '1 Sitzung gelöscht.' : `${n} Sitzungen gelöscht.`),
+		savedMany: (n: number, folder: string) =>
+			n === 1
+				? `1 Transkript in ${folder} gespeichert`
+				: `${n} Transkripte in ${folder} gespeichert`,
+		skipped: (n: number) =>
+			n === 1
+				? '1 Sitzung übersprungen: unlesbar oder ohne die Zeitangaben, die Untertitel brauchen.'
+				: `${n} Sitzungen übersprungen: unlesbar oder ohne die Zeitangaben, die Untertitel brauchen.`,
+		/** In front of the first failure of a batch, in place of `actionFailed`. */
+		batchFailed: (failed: number, total: number) =>
+			`${failed} von ${total} ausgewählten Sitzungen wurden nicht abgeschlossen.`
 	},
 	overlayControls: {
 		stable: 'Ruhiger Lesemodus',

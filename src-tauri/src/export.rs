@@ -127,6 +127,154 @@ fn write_export(path: &Path, content: &[u8]) -> io::Result<()> {
     }
 }
 
+/// One transcript of a batch export: its suggested file name and its formatted text.
+#[derive(Debug, serde::Deserialize)]
+#[cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
+pub struct ExportFile {
+    pub filename: String,
+    pub content: String,
+}
+
+/// What a batch export did: the folder, the names the files were written under, and the files
+/// it could not write.
+#[derive(Debug, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchExport {
+    pub directory: String,
+    pub written: Vec<String>,
+    pub failed: Vec<crate::errors::ItemFailure>,
+}
+
+/// A name the renderer may ask for: a bare file name, not hidden, in one of the four formats.
+/// Anything with a separator or a `..` would be a path, and is refused.
+#[cfg(any(windows, target_os = "macos", test))]
+fn plain_name(filename: &str) -> bool {
+    !filename.starts_with('.')
+        && !filename.contains(['/', '\\', ':'])
+        && Path::new(filename).file_name().and_then(|n| n.to_str()) == Some(filename)
+        && format_filter(filename).is_some()
+}
+
+/// A name in `dir` that neither an existing file nor an earlier file of this batch has:
+/// `name.ext`, then `name (2).ext`, `name (3).ext`… A batch never overwrites the operator's
+/// files, since there is no dialog to confirm it file by file. Names are compared without case,
+/// as Windows and macOS compare them.
+#[cfg(any(windows, target_os = "macos", test))]
+fn free_name(
+    dir: &Path,
+    filename: &str,
+    taken: &mut std::collections::HashSet<String>,
+) -> std::path::PathBuf {
+    let path = Path::new(filename);
+    let stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or(filename);
+    let extension = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default();
+    let mut candidate = filename.to_owned();
+    let mut n = 1;
+    while taken.contains(&candidate.to_lowercase()) || dir.join(&candidate).exists() {
+        n += 1;
+        candidate = format!("{stem} ({n}).{extension}");
+    }
+    taken.insert(candidate.to_lowercase());
+    dir.join(candidate)
+}
+
+/// Write every file into `dir`, each under a free name. A file that cannot be written is
+/// reported and the others still are. `write` is `write_export`, a parameter for the tests.
+#[cfg(any(windows, target_os = "macos", test))]
+fn write_files(
+    dir: &Path,
+    files: Vec<ExportFile>,
+    write: impl Fn(&Path, &[u8]) -> io::Result<()>,
+) -> BatchExport {
+    use crate::errors::{AppError, ItemFailure, id};
+    let mut taken = std::collections::HashSet::new();
+    let mut outcome = BatchExport {
+        directory: dir.to_string_lossy().into_owned(),
+        written: vec![],
+        failed: vec![],
+    };
+    for file in files {
+        if !plain_name(&file.filename) {
+            outcome.failed.push(ItemFailure {
+                item: file.filename,
+                error: AppError::with(id::TRANSCRIPT_WRITE, "unsupported transcript file name"),
+            });
+            continue;
+        }
+        let path = free_name(dir, &file.filename, &mut taken);
+        match write(&path, file.content.as_bytes()) {
+            Ok(()) => outcome.written.push(
+                path.file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default(),
+            ),
+            Err(e) => outcome.failed.push(ItemFailure {
+                item: file.filename,
+                error: AppError::with(id::TRANSCRIPT_WRITE, format!("{} — {e}", path.display())),
+            }),
+        }
+    }
+    outcome
+}
+
+/// Ask for a folder, then write every transcript into it. `None` when the operator cancels.
+#[cfg(any(windows, target_os = "macos"))]
+pub fn save_many(
+    app: tauri::AppHandle,
+    window: tauri::WebviewWindow,
+    files: Vec<ExportFile>,
+) -> Result<Option<BatchExport>, crate::errors::AppError> {
+    use crate::errors::{AppError, id};
+    use tauri::Manager;
+    // A dedicated thread, as for one file: see `save`.
+    std::thread::spawn(move || {
+        let preference = app
+            .path()
+            .app_local_data_dir()
+            .ok()
+            .map(|p| p.join("export-directory.json"));
+        let remembered = preference.as_deref().and_then(remembered_directory);
+        let mut dialog = rfd::FileDialog::new().set_parent(&window);
+        if let Some(dir) = remembered.or_else(|| app.path().document_dir().ok()) {
+            dialog = dialog.set_directory(dir);
+        }
+        let Some(dir) = dialog.pick_folder() else {
+            return Ok(None);
+        };
+        let outcome = write_files(&dir, files, write_export);
+        // Remembered once something was written there, like a single save.
+        if let (Some(pref), false) = (preference, outcome.written.is_empty()) {
+            if let Some(parent) = pref.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            if let Ok(bytes) = serde_json::to_vec(&dir) {
+                let _ = atomic_write(&pref, &bytes);
+            }
+        }
+        Ok(Some(outcome))
+    })
+    .join()
+    .map_err(|_| AppError::with(id::TASK_FAILED, "folder dialog thread panicked"))?
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn save_many(
+    _: tauri::AppHandle,
+    _: tauri::WebviewWindow,
+    _: Vec<ExportFile>,
+) -> Result<Option<BatchExport>, crate::errors::AppError> {
+    Err(crate::errors::AppError::with(
+        crate::errors::id::TRANSCRIPT_WRITE,
+        "native transcript export requires Windows or macOS",
+    ))
+}
+
 #[cfg(not(any(windows, target_os = "macos")))]
 pub fn save(
     _: tauri::AppHandle,
@@ -199,6 +347,63 @@ mod tests {
         }
         assert_eq!(std::fs::read_to_string(&path).unwrap(), "one");
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_batch_export_takes_bare_names_only() {
+        assert!(plain_name("transcript-20261117-101500.srt"));
+        assert!(plain_name("Réunion (2).md"));
+        for refused in [
+            "../escape.txt",
+            "sub/file.txt",
+            "sub\\file.txt",
+            "C:file.txt",
+            ".hidden.txt",
+            "captions.json",
+            "",
+        ] {
+            assert!(!plain_name(refused), "{refused}");
+        }
+    }
+
+    /// Never overwrites a file already there, nor an earlier file of the same batch, and one
+    /// file that fails does not stop the others.
+    #[test]
+    fn a_batch_export_keeps_existing_files_and_reports_each_failure() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "theirs").unwrap();
+        let file = |filename: &str, content: &str| ExportFile {
+            filename: filename.into(),
+            content: content.into(),
+        };
+        let files = vec![
+            file("a.txt", "one"),
+            file("A.txt", "two"),
+            file("../b.txt", "refused"),
+            file("fail.srt", "locked"),
+            file("c.md", "three"),
+        ];
+        let outcome = write_files(dir.path(), files, |path, content| {
+            if path.ends_with("fail.srt") {
+                Err(io::Error::other("locked"))
+            } else {
+                atomic_write(path, content)
+            }
+        });
+        assert_eq!(outcome.written, ["a (2).txt", "A (3).txt", "c.md"]);
+        assert_eq!(
+            outcome
+                .failed
+                .iter()
+                .map(|f| f.item.as_str())
+                .collect::<Vec<_>>(),
+            ["../b.txt", "fail.srt"]
+        );
+        let read = |name: &str| std::fs::read_to_string(dir.path().join(name)).unwrap();
+        assert_eq!(read("a.txt"), "theirs");
+        assert_eq!(read("a (2).txt"), "one");
+        assert_eq!(read("A (3).txt"), "two");
+        assert_eq!(read("c.md"), "three");
     }
 
     #[test]
