@@ -158,7 +158,7 @@ fn plain_name(filename: &str) -> bool {
 /// A name in `dir` that neither an existing file nor an earlier file of this batch has:
 /// `name.ext`, then `name (2).ext`, `name (3).ext`… A batch never overwrites the operator's
 /// files, since there is no dialog to confirm it file by file. Names are compared without case,
-/// as Windows and macOS compare them.
+/// as Windows and macOS compare them; `taken` starts as the folder's own names, lowercased.
 #[cfg(any(windows, target_os = "macos", test))]
 fn free_name(
     dir: &Path,
@@ -193,7 +193,16 @@ fn write_files(
     write: impl Fn(&Path, &[u8]) -> io::Result<()>,
 ) -> BatchExport {
     use crate::errors::{AppError, ItemFailure, id};
-    let mut taken = std::collections::HashSet::new();
+    // What the folder already holds, without case, so a name differing only in case from an
+    // existing file is never used: the same on every file system, case-sensitive or not.
+    let mut taken: std::collections::HashSet<String> = std::fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .map(|entry| entry.file_name().to_string_lossy().to_lowercase())
+                .collect()
+        })
+        .unwrap_or_default();
     let mut outcome = BatchExport {
         directory: dir.to_string_lossy().into_owned(),
         written: vec![],
