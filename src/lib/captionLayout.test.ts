@@ -9,7 +9,12 @@ import {
 	bottomCaptionHeight,
 	originalHeight,
 	rowFontSize,
-	tail
+	fitRows,
+	LEAST_ROW_FONT,
+	stableTurnTail,
+	TIGHT_ROW_GAP,
+	tail,
+	type RowFit
 } from './captionLayout';
 
 describe('row font size', () => {
@@ -27,8 +32,82 @@ describe('row font size', () => {
 		expect(withOriginal * 1.34 + originalHeight(withOriginal, 1) + 4).toBeLessThanOrEqual(90);
 	});
 
-	it('never goes below the smallest overlay size', () => {
-		expect(rowFontSize(52, 5)).toBe(20);
+	it('reports the size that fits, however small, and leaves the floors to fitRows', () => {
+		expect(rowFontSize(52, 5)).toBe(3);
+		expect(rowFontSize(52, 0)).toBe(0);
+	});
+});
+
+describe('fitting rows into the window', () => {
+	/** One line at the drawn size, and the original under it when it is kept, in each row. */
+	function holdsALine(fit: RowFit) {
+		const line = fit.font * 1.34 + (fit.original ? originalHeight(fit.font, 1) + 4 : 0);
+		return line <= fit.rowHeight;
+	}
+	// The default strip: 160 px, less 16 px above and below in Fit window.
+	const strip = 160 - 32;
+
+	it('keeps the chosen size and the full gap when the rows have room', () => {
+		expect(fitRows(38, strip, 1)).toEqual({
+			font: 38,
+			gap: 18,
+			rowHeight: strip,
+			original: false,
+			room: true
+		});
+		expect(fitRows(38, 400, 2, true)).toMatchObject({ font: 38, gap: 18, original: true });
+	});
+
+	// Both sources in two caption languages used to get 18.5 px rows and a 20 px floor whose
+	// line is 26.8 px: four labels and no caption.
+	it('gives three and four rows in the default strip a line each, at 20 px or more', () => {
+		for (const rows of [3, 4]) {
+			const fit = fitRows(38, strip, rows);
+			expect(fit.font).toBeGreaterThanOrEqual(20);
+			expect(fit.font).toBeLessThan(38);
+			expect(fit.gap).toBe(TIGHT_ROW_GAP);
+			expect(fit.room).toBe(true);
+			expect(holdsALine(fit)).toBe(true);
+			expect(fit.rowHeight * rows + fit.gap * (rows - 1)).toBeLessThanOrEqual(strip);
+		}
+	});
+
+	// With the original on, it showed and the translation did not. The translation comes first.
+	it('drops the original before the translation goes below 20 px', () => {
+		const four = fitRows(38, strip, 4, true);
+		expect(four).toMatchObject({ original: false, room: true });
+		expect(four.font).toBeGreaterThanOrEqual(20);
+		expect(holdsALine(four)).toBe(true);
+		// Two rows keep it, closed up and smaller.
+		const two = fitRows(38, strip, 2, true);
+		expect(two).toMatchObject({ original: true, gap: TIGHT_ROW_GAP, room: true });
+		expect(two.font).toBeGreaterThanOrEqual(20);
+		expect(holdsALine(two)).toBe(true);
+	});
+
+	it('goes below 20 px, down to the hard floor, rather than show no caption', () => {
+		const fit = fitRows(38, 90, 4);
+		expect(fit.font).toBeLessThan(20);
+		expect(fit.font).toBeGreaterThanOrEqual(LEAST_ROW_FONT);
+		expect(fit.room).toBe(true);
+		expect(holdsALine(fit)).toBe(true);
+	});
+
+	it('says when even the hard floor has no room', () => {
+		const fit = fitRows(38, 40, 4);
+		expect(fit).toMatchObject({ font: LEAST_ROW_FONT, room: false, original: false });
+	});
+
+	it('leaves the full-size strip Snap to bottom makes at the chosen size', () => {
+		for (const rows of [1, 2, 3, 4])
+			for (const original of [false, true]) {
+				const height = bottomCaptionHeight(38, rows, 'fit', original) - 32;
+				expect(fitRows(38, height, rows, original)).toMatchObject({
+					font: 38,
+					gap: 18,
+					original
+				});
+			}
 	});
 });
 
@@ -154,5 +233,27 @@ describe('stable reading trim point', () => {
 		const uneven = (offset: number) => starts.findLastIndex((start) => offset >= start);
 		expect(firstOffsetOnLine(80, uneven, 2)).toBe(31);
 		expect(firstOffsetOnLine(80, uneven, 3)).toBe(32);
+	});
+});
+
+describe('Stable reading’s bound on a long turn', () => {
+	it('leaves a turn that fits whole', () => {
+		const turn = 'word '.repeat(2000).trim();
+		expect(stableTurnTail(turn)).toBe(turn);
+	});
+
+	it('keeps the newest part of a long turn from a word start, and moves the cut in steps', () => {
+		const words = Array.from({ length: 4000 }, (_, i) => `w${i}`);
+		const turn = words.join(' ');
+		expect(turn.length).toBeGreaterThan(CAPTION_TAIL_CHARS);
+		const kept = stableTurnTail(turn);
+		expect(kept.length).toBeLessThanOrEqual(CAPTION_TAIL_CHARS);
+		expect(kept.length).toBeGreaterThan(CAPTION_TAIL_CHARS - 2_100);
+		expect(turn.endsWith(kept)).toBe(true);
+		// From a word start, with nothing in front of it.
+		expect(words).toContain(kept.split(' ')[0]);
+		// A few more words leave the cut where it was: lines already laid out keep their wrap.
+		const longer = `${turn} w4000 w4001 w4002`;
+		expect(stableTurnTail(longer)).toBe(`${kept} w4000 w4001 w4002`);
 	});
 });

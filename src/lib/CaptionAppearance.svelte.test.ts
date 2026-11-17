@@ -177,3 +177,57 @@ it('steps the backing strength in whole percent and stops at its ceiling', async
 	overlay.resetOverlayAppearance();
 	view.unmount();
 });
+
+// D1: the overlay draws its rows smaller than the chosen size when its window is too shallow
+// for them. The rail says so beside the size, which otherwise kept reading 38 px.
+it('says beside the size in the rail when the overlay draws captions smaller, and why', async () => {
+	const overlay = createOverlayController(api, pushAtOnce);
+	overlayFontSize.set(38);
+	const context = operatorContextMap({ overlay });
+	const rail = render(CaptionAppearance, { props: { heading: 'Rail', compact: true }, context });
+	const settings = render(CaptionAppearance, { props: { heading: 'Settings' }, context });
+	const status = rail.container.querySelector('p[role="status"]')!;
+	expect(status.textContent).toBe('');
+	overlay.applyState({
+		fit: { fontSize: 20, rows: 4, squeezed: true, originalHidden: true, room: true }
+	});
+	await waitFor(() =>
+		expect(status.textContent).toBe(
+			'Captions are drawn smaller than chosen: the overlay is too shallow for 4 rows. The original speech is hidden to leave room for the translations.'
+		)
+	);
+	expect(
+		rail.container.querySelector('.fit-notice')?.textContent?.replace(/\s+/g, ' ').trim()
+	).toBe(
+		'Drawn at 20 px: the overlay is too shallow for 4 rows at this size. The original speech is hidden to leave room for the translations. Move overlay, then Snap to bottom, gives them room.'
+	);
+	// The settings panel lays the look out before a session; the rail is where it is drawn.
+	expect(settings.container.querySelector('.fit-notice')).toBeNull();
+	overlay.applyState({
+		fit: { fontSize: 12, rows: 4, squeezed: true, originalHidden: false, room: false }
+	});
+	await waitFor(() =>
+		expect(status.textContent).toBe('No room for captions: the overlay is too shallow for 4 rows.')
+	);
+	// A fit at the chosen size needs no notice, and nor does a session that has stopped.
+	overlay.applyState({
+		fit: { fontSize: 38, rows: 2, squeezed: false, originalHidden: false, room: true }
+	});
+	await waitFor(() => expect(status.textContent).toBe(''));
+	expect(rail.container.querySelector('.fit-notice')).toBeNull();
+	overlay.applyState({
+		fit: { fontSize: 20, rows: 1, squeezed: true, originalHidden: false, room: true }
+	});
+	await waitFor(() =>
+		expect(status.textContent).toBe(
+			'Captions are drawn smaller than chosen: the overlay is too shallow.'
+		)
+	);
+	overlay.applyState({
+		fit: { fontSize: 38, rows: 0, squeezed: false, originalHidden: false, room: true }
+	});
+	await waitFor(() => expect(status.textContent).toBe(''));
+	expect(overlay.overlayFit).toBeNull();
+	rail.unmount();
+	settings.unmount();
+});

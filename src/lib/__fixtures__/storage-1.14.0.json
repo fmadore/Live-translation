@@ -1,0 +1,87 @@
+{
+	"release": "1.14.0",
+	"note": "Every localStorage key 1.14.0 reads, each with a valid value that is not its default. A string is stored as it is; anything else is stored as its JSON. One fixture per release; never edit an old one (see storedState.test.ts).",
+	"storage": {
+		"session.options": {
+			"source": "both",
+			"mode": "translate",
+			"targetLanguage": "de",
+			"provider": "openai",
+			"whisperModel": "small",
+			"whisperGpu": false,
+			"spokenLanguage": "fr",
+			"micDeviceName": "Shure MV7",
+			"micDeviceId": "{0.0.1.00000000}.{7d1c3a52-0b1e-4c4f-9a7e-2f5b8e6d4c31}",
+			"systemDeviceId": "{0.0.0.00000000}.{a3f09e14-5c62-4d2b-8f1a-6e7c9b0d2e45}",
+			"secondTargetLanguage": "fr",
+			"glossary": ["UNESCO", "Stellenbosch", "Ouagadougou"],
+			"dropMicEcho": true,
+			"systemCapture": { "kind": "application", "process": null }
+		},
+		"overlay.fontSize": "52",
+		"overlay.captionWidth": "44",
+		"overlay.captionLayout": "stable",
+		"overlay.captionFace": "georgia",
+		"overlay.captionColour": "#ffd84d",
+		"overlay.scrimColour": "#18263c",
+		"overlay.scrimOpacity": "0.5",
+		"overlay.placed": "true",
+		"overlay.cleanSpeech": "true",
+		"overlay.fillerWords": ["um", "euh", "mm-hmm", "äh"],
+		"overlay.holdSeconds": "9",
+		"overlay.pace": "steady",
+		"overlay.showOriginal": "true",
+		"overlay.geometry": [
+			{
+				"layout": "2560x1440@0,0;1920x1080@2560,0",
+				"placement": { "x": 2600, "y": 700, "width": 1800, "height": 320 }
+			},
+			{
+				"layout": "1920x1200@0,0",
+				"placement": { "x": 160, "y": 880, "width": 1600, "height": 280 }
+			}
+		],
+		"recovery.enabled": "true",
+		"transcript.includeOriginal": "true",
+		"transcript.exportFormat": "srt",
+		"transcript.historyEnabled": "true",
+		"stage.view": "transcript",
+		"window.closeToTray": "true",
+		"window.trayHideExplained": "true",
+		"language.favourites": ["de", "fr", "es"],
+		"appearance.theme": "light",
+		"privacy.aiConsent": ["OpenAI", "DeepL"],
+		"ui.locale": "fr",
+		"meeting.profiles": [
+			{
+				"id": "f3b2c1d0-6a5e-4f3d-9c8b-7a6f5e4d3c2b",
+				"name": "STIAS workshop",
+				"options": {
+					"source": "system",
+					"mode": "translate",
+					"targetLanguage": "fr",
+					"provider": "whisper-translate",
+					"whisperModel": "small",
+					"whisperGpu": false,
+					"spokenLanguage": "de",
+					"micDeviceName": null,
+					"micDeviceId": null,
+					"systemDeviceId": "{0.0.0.00000000}.{a3f09e14-5c62-4d2b-8f1a-6e7c9b0d2e45}",
+					"secondTargetLanguage": null,
+					"glossary": ["Wolof"]
+				},
+				"appearance": {
+					"fontSize": 60,
+					"width": 36,
+					"layout": "compact",
+					"face": "verdana",
+					"palette": { "text": "#ffffff", "scrim": "#172b24", "scrimOpacity": 0.9 },
+					"cleanSpeech": true,
+					"hold": 12,
+					"pace": "steady"
+				},
+				"placement": { "x": -1280, "y": 600, "width": 1200, "height": 240 }
+			}
+		]
+	}
+}

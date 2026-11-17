@@ -6,8 +6,8 @@
 <span class="ui-select">
 	<select bind:value {...props}>{@render children?.()}</select>
 	<svg
-		width="12"
-		height="12"
+		width="0.75rem"
+		height="0.75rem"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"

@@ -5,6 +5,7 @@
 import {
 	appendCaptionHistory,
 	CAPTION_TAIL_CHARS,
+	stableTurnTail,
 	tail,
 	type CaptionLayout
 } from '#lib/captionLayout.js';
@@ -130,36 +131,40 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 		() => pace
 	);
 
-	// The context before each origin's current turn, derived apart from `lines` so it is cleaned
-	// when a turn joins it rather than on every caption. Stable reading's history is stored
-	// already cleaned — see `joinHistory` — and is shown as it is.
-	const contextLeads = $derived(
-		Object.fromEntries(
-			TRACK_ORDER.map((track) => {
-				const context = history[track] ?? '';
-				return [track, layout === 'fit' ? clean(context) : context];
-			})
-		) as Record<Track, string>
-	);
-
-	const lines = $derived<CaptionLine[]>(
-		TRACK_ORDER.flatMap((track) => {
+	/** One track's row, derived on its own: a caption for one track lays out that track's row
+	 *  again and leaves the others as they were, rather than cleaning and cutting every track's
+	 *  text on every delta. */
+	function trackLine(track: Track) {
+		const lane = trackLane(track);
+		// The context before the current turn, derived apart from the row so it is cleaned when a
+		// turn joins it rather than on every caption. Stable reading's history is stored already
+		// cleaned — see `joinHistory` — and is shown as it is.
+		const context = $derived(
+			layout === 'fit' ? clean(history[track] ?? '') : (history[track] ?? '')
+		);
+		const line = $derived.by<CaptionLine | undefined>(() => {
 			const caption = current[track];
-			if (!caption) return [];
-			const lane = trackLane(track);
+			if (!caption) return undefined;
+			// Every layout lays out a bounded turn. Stable reading cuts a long one in steps, far
+			// above the lines on screen, and then has no room for the context before it.
+			const stableText = layout === 'stable' ? stableTurnTail(caption.text) : '';
 			const text =
-				layout !== 'compact'
-					? layout === 'stable'
-						? caption.text
-						: caption.text.slice(-CAPTION_TAIL_CHARS)
-					: tail(caption.text, maxChars);
+				layout === 'stable'
+					? stableText
+					: layout === 'fit'
+						? caption.text.slice(-CAPTION_TAIL_CHARS)
+						: tail(caption.text, maxChars);
 			const room = maxChars - text.length;
 			const lead =
-				layout !== 'compact'
-					? contextLeads[track]
-					: room >= MIN_LEAD_CHARS
-						? tail(previous[track] ?? '', room)
-						: '';
+				layout === 'stable'
+					? stableText.length < caption.text.length
+						? ''
+						: context
+					: layout === 'fit'
+						? context
+						: room >= MIN_LEAD_CHARS
+							? tail(previous[track] ?? '', room)
+							: '';
 			// Stable reading is one flowing paragraph of context; a second, separately
 			// scrolling language under it would be two things to read at once. A second caption
 			// language heard the same speech, so the original goes under the first only. It
@@ -169,19 +174,21 @@ export function createOverlayCaptions(initial: ReadingSettings) {
 				showOriginal && layout !== 'stable' && lane === 0
 					? tail(caption.sourceText, layout === 'compact' ? maxChars : CAPTION_TAIL_CHARS)
 					: '';
-			return [
-				{
-					track,
-					origin: trackOrigin(track),
-					lane,
-					lead: layout === 'compact' ? clean(lead) : lead,
-					text: clean(text, caption.final),
-					interim: !caption.final,
-					original: clean(source, caption.final)
-				}
-			];
-		})
-	);
+			return {
+				track,
+				origin: trackOrigin(track),
+				lane,
+				lead: layout === 'compact' ? clean(lead) : lead,
+				text: clean(text, caption.final),
+				interim: !caption.final,
+				original: clean(source, caption.final)
+			};
+		});
+		return () => line;
+	}
+	const trackLines = TRACK_ORDER.map(trackLine);
+
+	const lines = $derived<CaptionLine[]>(trackLines.flatMap((line) => line() ?? []));
 
 	function clearAll() {
 		current = {};

@@ -1,11 +1,25 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { t } from './i18n';
 	import { captionDirection } from './languages';
 	import { loggedLanguage, options } from './stores';
-	import { groupTranscript } from './transcript';
-	import { laneLanguage, type Origin, type OutputMode, type TranscriptLine } from './types';
+	import { groupTranscript, markerTime, markerTitle, withMarkers } from './transcript';
+	import {
+		createFindIndex,
+		keepCurrent,
+		stepMatch,
+		type FindMatch,
+		type FindTarget
+	} from './transcriptFind';
+	import {
+		laneLanguage,
+		type Origin,
+		type OutputMode,
+		type TranscriptLine,
+		type TranscriptMarker
+	} from './types';
 	import ToolButton from './ui/ToolButton.svelte';
+	import TranscriptFind from './TranscriptFind.svelte';
 
 	/** The transcript as it will be saved — chronological, grouped into readable paragraphs,
 	 *  newest at the bottom — and the turns still being spoken under it in the reader. It
@@ -15,10 +29,19 @@
 		transcript,
 		pending,
 		reader,
-		showOriginal
+		showOriginal,
+		markers = [],
+		findOpen = $bindable(false),
+		findRequest = 0
 	}: {
 		mode: OutputMode;
 		transcript: TranscriptLine[];
+		/** The operator's markers, drawn between the paragraphs where they were added. */
+		markers?: readonly TranscriptMarker[];
+		/** The find bar is open over the log (reader only). */
+		findOpen?: boolean;
+		/** Changes each time the window asks for find (Ctrl+F), to focus its field again. */
+		findRequest?: number;
 		/** The turns still being spoken, oldest first: shown only in the reader. */
 		pending: TranscriptLine[];
 		/** The stage's transcript reader (issue #124): the log fills the stage. */
@@ -31,7 +54,9 @@
 	// (`export.origin`). Both follow the interface language.
 	const sideLabel = $derived<Record<Origin, string>>($t.transcript.side);
 
-	const paragraphs = $derived(groupTranscript(transcript));
+	const paragraphs = $derived(groupTranscript(transcript, markers));
+	// The paragraphs with the markers between them, in the order they were added.
+	const items = $derived(withMarkers(paragraphs, markers));
 
 	let logEl = $state<HTMLDivElement | null>(null);
 	let following = $state(true);
@@ -60,9 +85,156 @@
 	$effect(() => {
 		// Follow incoming text only while the operator is already at the bottom, and not
 		// while they are selecting there. A change of view resizes the log, so it pins again.
-		void [paragraphs, pending, reader];
-		if (!paragraphs.length && !pending.length) following = true;
-		if (logEl && untrack(() => following) && !selecting()) logEl.scrollTop = logEl.scrollHeight;
+		// Never while find is open: the view stays on the match being read, and only says
+		// whether it is still at the bottom.
+		void [items, pending, reader];
+		if (!items.length && !pending.length) following = true;
+		if (findOpen) untrack(noteScroll);
+		else if (logEl && untrack(() => following) && !selecting())
+			logEl.scrollTop = logEl.scrollHeight;
+	});
+
+	// ---- Find (reader only) --------------------------------------------------------------
+	// Searched after a short pause in typing, and again when the log gains a line or a marker;
+	// never per caption delta, since the turns still being spoken are not searched.
+	const FIND_DEBOUNCE_MS = 150;
+	/** The most matches painted at once. All are counted and can be stepped to; past this,
+	 *  only the current one is highlighted, so a one-letter query in a day-long log stays
+	 *  cheap. */
+	const MAX_HIGHLIGHTS = 1000;
+	const findIndex = createFindIndex();
+	let query = $state('');
+	let searched = $state('');
+	let current = $state(-1);
+	let matches = $state.raw<FindMatch[]>([]);
+	let searchedOnce = $state(false);
+
+	$effect(() => {
+		const next = query;
+		if (!findOpen) return;
+		const timer = setTimeout(() => (searched = next), FIND_DEBOUNCE_MS);
+		return () => clearTimeout(timer);
+	});
+
+	const sectionLabel = $derived($t.marker.section);
+	const targets = $derived.by<FindTarget[]>(() => {
+		if (!findOpen) return [];
+		return items.flatMap((item): FindTarget[] => {
+			if (item.kind === 'marker')
+				return [
+					{
+						key: `m${item.marker.id}`,
+						text: markerTitle(item.marker, item.number, sectionLabel)
+					}
+				];
+			const p = item.paragraph;
+			const original = showOriginal && p.lane === 0 && p.sourceText;
+			return [
+				{ key: `p${p.id}`, text: p.text },
+				...(original ? [{ key: `o${p.id}`, text: p.sourceText }] : [])
+			];
+		});
+	});
+
+	$effect(() => {
+		const list = targets;
+		const q = searched;
+		if (!findOpen) return;
+		untrack(() => {
+			const previous = matches[current];
+			const order = new Map(list.map((target, i) => [target.key, i]));
+			const next = findIndex.search(list, q);
+			current = keepCurrent(previous, next, (key) => order.get(key) ?? -1);
+			matches = next;
+			searchedOnce = q.trim() !== '';
+		});
+	});
+
+	function step(direction: 1 | -1) {
+		current = stepMatch(current, matches.length, direction);
+		scrolledTo = '';
+	}
+
+	/** Close find: no highlights, following as before, and focus back where it came from. */
+	function closeFind(returnTo: HTMLElement | null) {
+		findOpen = false;
+		query = '';
+		searched = '';
+		matches = [];
+		current = -1;
+		searchedOnce = false;
+		clearHighlights();
+		noteScroll();
+		if (returnTo?.isConnected) returnTo.focus();
+		else logEl?.focus({ preventScroll: true });
+	}
+
+	const highlights = () =>
+		typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight === 'function'
+			? CSS.highlights
+			: null;
+
+	function clearHighlights() {
+		highlights()?.delete('transcript-find');
+		highlights()?.delete('transcript-find-current');
+	}
+	$effect(() => clearHighlights);
+
+	/** Where each piece of searchable text is drawn: the text node inside its element. */
+	function textNodes(): Map<string, Text> {
+		const nodes = new Map<string, Text>();
+		for (const element of logEl?.querySelectorAll<HTMLElement>('[data-find]') ?? []) {
+			const node = Array.from(element.childNodes).find(
+				(child): child is Text => child.nodeType === Node.TEXT_NODE
+			);
+			if (node && element.dataset.find) nodes.set(element.dataset.find, node);
+		}
+		return nodes;
+	}
+
+	function rangeOf(nodes: Map<string, Text>, match: FindMatch): Range | null {
+		const node = nodes.get(match.key);
+		if (!node || match.end > node.length) return null;
+		const range = document.createRange();
+		range.setStart(node, match.start);
+		range.setEnd(node, match.end);
+		return range;
+	}
+
+	// The match last scrolled to, so a new line does not pull the view back to it after the
+	// operator has scrolled away; stepping or a new query scrolls again.
+	let scrolledTo = '';
+
+	$effect(() => {
+		const list = matches;
+		const at = current;
+		void items;
+		if (!findOpen) return;
+		void tick().then(() => {
+			if (!findOpen || !logEl) return;
+			const nodes = textNodes();
+			const registry = highlights();
+			const currentRange = at >= 0 ? rangeOf(nodes, list[at]) : null;
+			if (registry) {
+				const all = list
+					.slice(0, MAX_HIGHLIGHTS)
+					.map((match) => rangeOf(nodes, match))
+					.filter((range): range is Range => range !== null);
+				registry.set('transcript-find', new Highlight(...all));
+				if (currentRange) registry.set('transcript-find-current', new Highlight(currentRange));
+				else registry.delete('transcript-find-current');
+			}
+			const match = list[at];
+			const key = match ? `${match.key}:${match.start}` : '';
+			if (currentRange && key !== scrolledTo) {
+				scrolledTo = key;
+				const box = currentRange.getBoundingClientRect();
+				const frame = logEl.getBoundingClientRect();
+				if (box.top < frame.top || box.bottom > frame.bottom)
+					logEl.scrollTop += box.top - frame.top - (frame.height - box.height) / 2;
+				noteScroll();
+			}
+		});
 	});
 
 	/** Ctrl+A in the log selects the log, not the whole window around it. */
@@ -82,17 +254,39 @@
      one. Unknown — a subtitle engine detecting the language, a recovered line — is `lang=""`
      with the direction taken from the text. The original speech is in the spoken language,
      which this window does not know. -->
-{#snippet caption(text: string, language: string | undefined, interim: boolean, original: string)}
-	<span class="text" lang={language ?? ''} dir={captionDirection(language)}
+{#snippet caption(
+	text: string,
+	language: string | undefined,
+	interim: boolean,
+	original: string,
+	findKey: string | undefined
+)}
+	<span
+		class="text"
+		lang={language ?? ''}
+		dir={captionDirection(language)}
+		data-find={findKey ? `p${findKey}` : undefined}
 		>{text}{#if interim}<span class="caret" aria-hidden="true"></span>{/if}{#if original}<span
 				class="original"
 				lang=""
-				dir="auto">{original}</span
+				dir="auto"
+				data-find={findKey ? `o${findKey}` : undefined}>{original}</span
 			>{/if}</span
 	>
 {/snippet}
 
-{#if paragraphs.length || pending.length}
+{#if reader && findOpen}
+	<TranscriptFind
+		bind:query
+		total={searchedOnce ? matches.length : null}
+		{current}
+		focusRequest={findRequest}
+		onStep={step}
+		onClose={closeFind}
+	/>
+{/if}
+
+{#if items.length || pending.length}
 	<!-- Jump to latest floats over the log's foot rather than taking a row under it, so
 	     scrolling up never pushes the rest of the panel down. -->
 	<div class="log-frame" class:reader>
@@ -109,20 +303,33 @@
 			bind:this={logEl}
 		>
 			<ul class="log">
-				{#each paragraphs as paragraph (paragraph.id)}
-					<li class="origin-{paragraph.origin}">
-						<span class="side"
-							>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
-									>{paragraph.language}</span
-								>{/if}</span
-						>
-						{@render caption(
-							paragraph.text,
-							loggedLanguage(paragraph),
-							false,
-							showOriginal && paragraph.lane === 0 ? paragraph.sourceText : ''
-						)}
-					</li>
+				{#each items as item (item.kind === 'marker' ? `m${item.marker.id}` : item.paragraph.id)}
+					{#if item.kind === 'marker'}
+						<!-- A marker is a heading inside the log, so a screen reader can move from one
+						     talk to the next by heading. -->
+						<li class="marker">
+							<span class="marker-time">{markerTime(item.marker.atMs)}</span>
+							<h3 class="marker-title" data-find="m{item.marker.id}">
+								{markerTitle(item.marker, item.number, sectionLabel)}
+							</h3>
+						</li>
+					{:else}
+						{@const paragraph = item.paragraph}
+						<li class="origin-{paragraph.origin}">
+							<span class="side"
+								>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
+										>{paragraph.language}</span
+									>{/if}</span
+							>
+							{@render caption(
+								paragraph.text,
+								loggedLanguage(paragraph),
+								false,
+								showOriginal && paragraph.lane === 0 ? paragraph.sourceText : '',
+								String(paragraph.id)
+							)}
+						</li>
+					{/if}
 				{/each}
 				<!-- Keyed by track: a turn keeps its row while it streams, whatever id it has. -->
 				{#each pending as line (`${line.origin}-${line.lane ?? 0}`)}
@@ -136,7 +343,8 @@
 							line.text,
 							line.language ?? laneLanguage($options, line.lane ?? 0),
 							true,
-							showOriginal && (line.lane ?? 0) === 0 ? line.sourceText : ''
+							showOriginal && (line.lane ?? 0) === 0 ? line.sourceText : '',
+							undefined
 						)}
 					</li>
 				{/each}
@@ -264,6 +472,52 @@
 		font-size: var(--type-small);
 		color: var(--text-muted);
 	}
+	/* A marker divides the log: a rule above, its time where a speaker's label would be, and
+	   its title in the accent, so a talk's start is found by eye in a long log. */
+	.log li.marker {
+		align-items: baseline;
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--line-strong);
+	}
+	.marker-time {
+		padding-top: 2px;
+		font-family: var(--font-mono);
+		font-size: var(--type-caption);
+		font-weight: 500;
+		line-height: var(--leading-body);
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
+	}
+	.marker-title {
+		margin: 0;
+		font-size: var(--type-body);
+		font-weight: 600;
+		line-height: var(--leading-body);
+		color: var(--accent-soft);
+		overflow-wrap: anywhere;
+	}
+
+	/* Find: every match marked, the current one stronger. Drawn by the CSS Custom Highlight
+	   API, which leaves the text, its selection and what Copy takes exactly as they were. */
+	:global(::highlight(transcript-find)) {
+		background-color: var(--warn-border);
+		color: var(--text-body);
+	}
+	:global(::highlight(transcript-find-current)) {
+		background-color: var(--warn);
+		color: var(--surface-0);
+	}
+	@media (forced-colors: active) {
+		:global(::highlight(transcript-find)) {
+			background-color: Mark;
+			color: MarkText;
+		}
+		:global(::highlight(transcript-find-current)) {
+			background-color: Highlight;
+			color: HighlightText;
+		}
+	}
+
 	.caret {
 		display: inline-block;
 		width: 3px;

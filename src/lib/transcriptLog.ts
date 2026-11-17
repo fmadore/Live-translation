@@ -2,12 +2,19 @@
 // those turns are committed to, its history record, and whether the log has reached disk.
 
 import { derived, get, writable } from 'svelte/store';
-import { isDirty, newestLineId, NOTHING_SAVED } from './document';
+import { cleanMarkerLabel, isDirty, newestDocumentId, NOTHING_SAVED } from './document';
 import { sessionHistory } from './history';
 import { options } from './preferences';
 import { noteActivity } from './sourceActivity';
 import { laneCount, laneLanguage, trackOf } from './types';
-import type { Caption, StartOptions, TargetLanguage, Track, TranscriptLine } from './types';
+import type {
+	Caption,
+	StartOptions,
+	TargetLanguage,
+	Track,
+	TranscriptLine,
+	TranscriptMarker
+} from './types';
 
 // ---- Captions & transcript --------------------------------------------------
 
@@ -25,6 +32,11 @@ export const currentCaptions = writable<Partial<Record<Track, Caption>>>({});
 // anything behind their back.
 export const transcript = writable<TranscriptLine[]>([]);
 
+/** The operator's markers in the log (a talk starting, a speaker's name), newest first. Apart
+ *  from the lines, so nothing that reads captions can take one for speech; their ids come from
+ *  the lines' counter, which puts each where it was added. */
+export const markers = writable<TranscriptMarker[]>([]);
+
 // ---- Saved / unsaved document state -----------------------------------------
 
 /** Highest line id written to disk, so a second save with nothing new stays saved. */
@@ -34,13 +46,19 @@ const savedLineId = writable<number>(NOTHING_SAVED);
 export const savedPath = writable<string>('');
 
 /** True while the log holds finalized text that has not reached disk. */
-export const transcriptDirty = derived([transcript, savedLineId], ([lines, saved]) =>
-	isDirty(lines, saved)
+export const transcriptDirty = derived(
+	[transcript, markers, savedLineId],
+	([lines, marks, saved]) => isDirty(lines, saved, marks)
 );
 
-/** Record a successful write: everything logged up to now is on disk at `path`. */
-export function markTranscriptSaved(lines: TranscriptLine[], path: string) {
-	savedLineId.set(newestLineId(lines));
+/** Record a successful write: everything logged up to now — the lines, and the markers that
+ *  were written with them — is on disk at `path`. */
+export function markTranscriptSaved(
+	lines: TranscriptLine[],
+	path: string,
+	marks: readonly TranscriptMarker[] = get(markers)
+) {
+	savedLineId.set(newestDocumentId(lines, marks));
 	savedPath.set(path);
 }
 
@@ -52,8 +70,9 @@ const pending: Partial<Record<Track, Caption>> = {};
 let nextLineId = 1;
 let transcriptTimeOffset = 0;
 
-/** A caption as the log line it becomes, on the document's timeline. */
-function toLine(c: Caption, id: number): TranscriptLine {
+/** A caption as the log line it becomes, on the document's timeline. `setup` is the current
+ *  options, read once by the caller rather than once per field. */
+function toLine(c: Caption, id: number, setup: StartOptions): TranscriptLine {
 	return {
 		id,
 		text: c.text.trim(),
@@ -61,7 +80,7 @@ function toLine(c: Caption, id: number): TranscriptLine {
 		origin: c.origin,
 		...(c.lane ? { lane: c.lane } : {}),
 		// With two caption languages, each line says which it is in; see `TranscriptLine`.
-		...(laneCount(get(options)) === 2 ? { language: laneLanguage(get(options), c.lane ?? 0) } : {}),
+		...(laneCount(setup) === 2 ? { language: laneLanguage(setup, c.lane ?? 0) } : {}),
 		// The committed caption's own interval: the turn's start, and the moment this text
 		// was the last thing the provider had to say about it.
 		startMs: c.startMs === undefined ? undefined : c.startMs + transcriptTimeOffset,
@@ -86,11 +105,16 @@ export function loggedLanguage(line: { id: number; language?: TargetLanguage }) 
 
 function commit(c: Caption) {
 	if (!c.text.trim()) return;
-	const line = toLine(c, nextLineId++);
-	const language = laneLanguage(get(options), c.lane ?? 0);
+	const setup = get(options);
+	const line = toLine(c, nextLineId++, setup);
+	const language = laneLanguage(setup, c.lane ?? 0);
 	if (language) lineLanguages.set(line.id, language);
 	transcript.update((list) => [line, ...list]);
 	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
+}
+
+function inFlight(captions: Partial<Record<Track, Caption>>): Caption[] {
+	return Object.values(captions).filter((c): c is Caption => !!c && !c.final && !!c.text.trim());
 }
 
 /**
@@ -99,11 +123,20 @@ function commit(c: Caption) {
  * for minutes before it is final, and all of that would otherwise be missing from the log.
  * The ids follow the log's, so ordering by id puts them after every finalized line; it reads
  * the log too, so a commit that takes the next id also moves these past it.
+ *
+ * Rebuilt with every caption delta while something is subscribed, so only the reader, which
+ * draws these lines, subscribes; Copy reads it once with `get()` when pressed (review E4).
  */
-export const inFlightLines = derived([currentCaptions, transcript], ([captions]) =>
-	Object.values(captions)
-		.filter((c): c is Caption => !!c && !c.final && !!c.text.trim())
-		.map((c, i) => toLine(c, nextLineId + i))
+export const inFlightLines = derived([currentCaptions, transcript, markers], ([captions]) => {
+	const setup = get(options);
+	return inFlight(captions).map((c, i) => toLine(c, nextLineId + i, setup));
+});
+
+/** Whether any turn is still being spoken: a boolean, so it notifies only when that changes,
+ *  not with every delta. Copy's enabled state needs no more than this. */
+export const hasInFlightLines = derived(
+	currentCaptions,
+	(captions) => inFlight(captions).length > 0
 );
 
 /** A final caption with no text ends its turn with nothing to keep: the core withdraws a
@@ -140,6 +173,21 @@ export function pushCaption(c: Caption) {
 	}
 }
 
+/** Put a marker in the log now, `elapsedMs` into the current run: on the document's timeline,
+ *  as a caption's interval is, and on the run's own in its history record. The label is
+ *  cleaned (`cleanMarkerLabel`); an empty one is a numbered section break. */
+export function addMarker(label: string, elapsedMs: number): TranscriptMarker {
+	const at = Math.max(0, Math.round(elapsedMs));
+	const marker = {
+		id: nextLineId++,
+		atMs: at + transcriptTimeOffset,
+		label: cleanMarkerLabel(label)
+	};
+	markers.update((list) => [marker, ...list]);
+	sessionHistory.mark({ ...marker, atMs: at });
+	return marker;
+}
+
 /** Commit all in-flight lines (call when the session ends) so they aren't lost. */
 export function flushTranscript() {
 	for (const track of Object.keys(pending) as Track[]) {
@@ -162,7 +210,10 @@ export function beginTranscriptRun(sessionOptions: StartOptions) {
 	void endTranscriptSession();
 	sessionHistory.begin(sessionOptions);
 	// Retried/new sessions append to one document without resetting its cue timeline.
-	transcriptTimeOffset = get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0);
+	transcriptTimeOffset = Math.max(
+		get(transcript).reduce((end, line) => Math.max(end, line.endMs ?? 0), 0),
+		get(markers).reduce((end, marker) => Math.max(end, marker.atMs), 0)
+	);
 }
 
 /** Clear both finalized and in-flight transcript state, and the saved marker with them —
@@ -172,6 +223,7 @@ export function clearTranscript() {
 	transcriptTimeOffset = 0;
 	lineLanguages.clear();
 	transcript.set([]);
+	markers.set([]);
 	currentCaptions.set({});
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');
@@ -181,10 +233,11 @@ export function clearTranscript() {
 /** Replace the log with a recovered snapshot. The restored lines are unsaved by definition —
  *  the file they came from is a crash spool, not the operator's transcript — and ids continue
  *  above the snapshot so a later run cannot collide with them. */
-export function restoreTranscript(lines: TranscriptLine[]) {
+export function restoreTranscript(lines: TranscriptLine[], restored: TranscriptMarker[] = []) {
 	lineLanguages.clear();
 	transcript.set(lines);
+	markers.set(restored);
 	savedLineId.set(NOTHING_SAVED);
 	savedPath.set('');
-	nextLineId = Math.max(nextLineId, newestLineId(lines) + 1);
+	nextLineId = Math.max(nextLineId, newestDocumentId(lines, restored) + 1);
 }

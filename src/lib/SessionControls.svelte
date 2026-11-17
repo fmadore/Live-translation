@@ -73,8 +73,12 @@
 				if (!busy) onStop();
 			}}
 		>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-				><rect x="6" y="6" width="12" height="12" rx="2" /></svg
+			<svg
+				width="0.875rem"
+				height="0.875rem"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg
 			>
 			{busy ? $t.rail.stopping : $t.rail.stop}
 			<span class="shortcut" aria-hidden="true">{keys}</span>
@@ -92,11 +96,20 @@
 			onclick={onPause}
 		>
 			{#if paused}
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-					><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+				<svg
+					width="0.875rem"
+					height="0.875rem"
+					viewBox="0 0 24 24"
+					fill="currentColor"
+					aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 				>
 			{:else}
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+				<svg
+					width="0.875rem"
+					height="0.875rem"
+					viewBox="0 0 24 24"
+					fill="currentColor"
+					aria-hidden="true"
 					><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect
 						x="14"
 						y="5"
@@ -123,8 +136,12 @@
 				if (!busy) onStart();
 			}}
 		>
-			<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
-				><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+			<svg
+				width="0.875rem"
+				height="0.875rem"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 			>
 			{busy
 				? $t.preflight.start.starting
@@ -148,8 +165,8 @@
 			}}
 		>
 			<svg
-				width="14"
-				height="14"
+				width="0.875rem"
+				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"

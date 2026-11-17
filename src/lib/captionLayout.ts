@@ -14,21 +14,99 @@ export function originalHeight(fontSize: number, lines: number): number {
 	return lines * Math.ceil(ORIGINAL_SCALE * fontSize * 1.34);
 }
 
-/** The smallest size a row is shrunk to; the operator's own floor (`OVERLAY_FONT_MIN`). */
+/** The space between caption rows, and the tighter space they close up to when the window is
+ *  too shallow to give every row a line at the chosen size. */
+const ROW_GAP = 18;
+export const TIGHT_ROW_GAP = 6;
+/** The operator's own floor (`OVERLAY_FONT_MIN`): rows are shrunk to it, closing up and
+ *  dropping the original speech before they go any smaller. */
 const MIN_ROW_FONT = 20;
+/** The hard floor, below the operator's: a row too shallow for a line at 20 px still shows
+ *  its caption, smaller, rather than its label alone. Text beats no text. */
+export const LEAST_ROW_FONT = 12;
 
 /**
- * The size a caption row is drawn at: the operator's `fontSize`, unless the row is too shallow
- * for one line of it (with the original shown, one line of each and the gap between), and then
- * the largest size that fits. A strip sized for one source is split between the rows when a
- * second source or caption language speaks, and a row with no room for a line showed its label
- * and no caption at all.
+ * The largest size, up to the operator's `fontSize`, at which a row `rowHeight` deep holds one
+ * line (with the original shown, one line of each and the gap between). It can come out
+ * below any floor, or zero: `fitRows` decides what to do then.
  */
 export function rowFontSize(fontSize: number, rowHeight: number, original = false): number {
 	const perPixel = 1.34 + (original ? ORIGINAL_SCALE * 1.34 : 0);
 	// `originalHeight` rounds up, so a pixel is kept back for it.
 	const room = rowHeight - (original ? ORIGINAL_GAP + 1 : 0);
-	return Math.max(MIN_ROW_FONT, Math.min(fontSize, Math.floor(room / perPixel)));
+	return Math.max(0, Math.min(fontSize, Math.floor(room / perPixel)));
+}
+
+/** How the caption rows share the window; see `fitRows`. */
+export interface RowFit {
+	/** The size the rows are drawn at. */
+	font: number;
+	/** The space between rows, in px. */
+	gap: number;
+	/** Each row's share of the height, in px. */
+	rowHeight: number;
+	/** Whether the original speech keeps its line under the translation. */
+	original: boolean;
+	/** False when even `LEAST_ROW_FONT` has no room for a line: the rows are clipped. */
+	room: boolean;
+}
+
+/**
+ * How `rows` caption rows share `height` px at the operator's `fontSize`, with the original
+ * speech under them when `original`. A strip sized for one source is split when a second
+ * source or caption language speaks, and with two of each a 160 px strip gives each row 18 px:
+ * a row with no room for a line showed its label and no caption at all. So, in order, until
+ * every row holds a line:
+ *
+ * 1. the chosen size, rows `ROW_GAP` apart;
+ * 2. the rows close up to `TIGHT_ROW_GAP` and shrink, down to 20 px;
+ * 3. the original speech gives up its line, so the translation keeps one at 20 px or more;
+ * 4. smaller than 20 px, down to `LEAST_ROW_FONT`.
+ *
+ * The window is never resized for it: where it sits and how tall it is are the operator's,
+ * and Snap to bottom gives the chosen size its room back.
+ */
+export function fitRows(fontSize: number, height: number, rows: number, original = false): RowFit {
+	const count = Math.max(1, rows);
+	const attempt = (gap: number, withOriginal: boolean) => {
+		const rowHeight = Math.max(0, (height - (count - 1) * gap) / count);
+		const font = rowFontSize(fontSize, rowHeight, withOriginal);
+		return { font, gap, rowHeight, original: withOriginal, room: true };
+	};
+	const roomy = attempt(ROW_GAP, original);
+	if (roomy.font >= fontSize) return roomy;
+	const floor = Math.min(fontSize, MIN_ROW_FONT);
+	if (original) {
+		const closed = attempt(TIGHT_ROW_GAP, true);
+		if (closed.font >= floor) return closed;
+	}
+	const plain = attempt(TIGHT_ROW_GAP, false);
+	if (plain.font >= floor) return plain;
+	return {
+		...plain,
+		font: Math.max(LEAST_ROW_FONT, plain.font),
+		room: plain.font >= LEAST_ROW_FONT
+	};
+}
+
+/**
+ * The size a notice on the overlay is set at: the largest whole size from `max` down to
+ * `LEAST_ROW_FONT` at which `fits` says the whole notice is inside the strip, or the least of
+ * them when none is (the notice is then clipped, as a row with no room is). `fits` is a layout
+ * measurement, so this asks it as few times as a binary search needs. A notice is never cut
+ * like a caption: it is short, and it is read whole or not at all.
+ */
+export function fitNoticeFont(max: number, fits: (font: number) => boolean): number {
+	const top = Math.floor(max);
+	if (fits(top)) return top;
+	let low = Math.min(LEAST_ROW_FONT, top);
+	let high = top - 1;
+	while (low < high) {
+		const mid = Math.ceil((low + high) / 2);
+		if (fits(mid)) low = mid;
+		else high = mid - 1;
+	}
+	return low;
 }
 
 /** Bottom alignment is a subtitle strip; manually resizing still permits more context. With
@@ -42,7 +120,7 @@ export function bottomCaptionHeight(
 	// Up to four rows: two sources, each in two caption languages.
 	const rows = Math.max(1, Math.min(4, origins));
 	const originalRow = original ? originalHeight(fontSize, 1) + ORIGINAL_GAP : 0;
-	const textHeight = (2 * fontSize * 1.34 + originalRow) * rows + 18 * (rows - 1);
+	const textHeight = (2 * fontSize * 1.34 + originalRow) * rows + ROW_GAP * (rows - 1);
 	return Math.max(160, Math.ceil(layout === 'compact' ? textHeight / 0.85 : textHeight + 32));
 }
 
@@ -64,6 +142,27 @@ export const CAPTION_TAIL_CHARS = 12_000;
 /** Bounded reading context, separate from the full session transcript. */
 export function appendCaptionHistory(history: string, text: string): string {
 	return `${history} ${text}`.replace(/\s+/g, ' ').trim().slice(-CAPTION_TAIL_CHARS);
+}
+
+/** How far Stable reading's cut into a long turn moves at a time; see `stableTurnTail`. */
+const STABLE_TURN_STEP = 2_000;
+
+/**
+ * The part of a turn Stable reading lays out: all of it up to `CAPTION_TAIL_CHARS`, and past
+ * that its newest `CAPTION_TAIL_CHARS - STABLE_TURN_STEP` to `CAPTION_TAIL_CHARS` characters,
+ * from a word start. The trim at rendered line starts only ever takes context, so a turn that
+ * streams for minutes was laid out whole on every update. The cut moves in steps rather than
+ * with every word, and lands thousands of characters above anything on screen, so the lines
+ * being read keep their wrap. Nothing is cut from a turn that fits; the caller drops the
+ * context in front of one that was cut.
+ */
+export function stableTurnTail(text: string): string {
+	const over = text.length - CAPTION_TAIL_CHARS;
+	if (over <= 0) return text;
+	let cut = Math.ceil(over / STABLE_TURN_STEP) * STABLE_TURN_STEP;
+	const space = text.slice(cut, cut + 64).search(/\s/);
+	if (space !== -1) cut += space + 1;
+	return text.slice(cut);
 }
 
 /** Keep the last `limit` characters, cutting on a word boundary, behind an ellipsis when

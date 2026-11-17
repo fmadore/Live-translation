@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { get } from 'svelte/store';
 	import { isTauri } from './tauri';
 	import { recovery, recoveryFailure } from './recovery';
 	import { historyEnabled, historyError } from './history';
@@ -7,6 +8,8 @@
 	import {
 		clearTranscript as clearTranscriptStore,
 		exportOriginal,
+		hasInFlightLines,
+		inFlightLines,
 		recoveryEnabled,
 		savedPath,
 		transcriptDirty
@@ -18,24 +21,42 @@
 		formatTranscript,
 		hasTranscriptTiming,
 		recentLines,
+		recentMarkers,
 		type TranscriptFormat
 	} from './transcript';
-	import type { TranscriptLine } from './types';
+	import type { TranscriptLine, TranscriptMarker } from './types';
+	import { ariaKeyShortcut } from './shortcuts';
 	import ToolButton from './ui/ToolButton.svelte';
 	import Preference from './ui/Preference.svelte';
 	import ExportFormatSelect from './ExportFormatSelect.svelte';
+	import AddMarker from './AddMarker.svelte';
 
 	/** The transcript's toolbar and the notes under it: its state, Copy, Save, Clear, and what
 	 *  each of them last did. The log itself is `TranscriptLog`. */
 	let {
 		transcript,
-		pending,
+		markers = [],
+		live,
 		bilingual,
-		onError
+		onError,
+		reader = false,
+		findOpen = false,
+		onFind,
+		markerRequest = 0
 	}: {
 		transcript: TranscriptLine[];
-		/** The turns still being spoken, oldest first, which Copy takes with the log. */
-		pending: TranscriptLine[];
+		/** The operator's markers, which Copy takes with the lines they fall among. */
+		markers?: readonly TranscriptMarker[];
+		/** A session is running, so Copy takes the turns still being spoken with the log, and
+		 *  markers can be added. */
+		live: boolean;
+		/** The stage's transcript reader is showing, which is where Find works. */
+		reader?: boolean;
+		findOpen?: boolean;
+		/** Open the find bar over the log. */
+		onFind?: () => void;
+		/** Changes each time the window asks for a marker (the shortcut). */
+		markerRequest?: number;
 		/** The log has original speech to include (`hasOriginalSpeech`), worked out once by the
 		 *  panel, which needs it too. The option is offered only then: subtitles have none. */
 		bilingual: boolean;
@@ -92,12 +113,15 @@
 		clearTimeout(noticeTimer);
 		copyNotice = '';
 		try {
-			// Newest first, like the log: the turns still being spoken are the newest text.
+			// Newest first, like the log: the turns still being spoken are the newest text. Read
+			// here, once, rather than subscribed to: they change with every caption delta.
+			const pending = live ? get(inFlightLines) : [];
 			const lines = [...pending].reverse().concat(transcript);
 			const excerpt = copyWindow ? recentLines(lines, copyWindow * 60_000) : lines;
 			await navigator.clipboard.writeText(
 				formatTranscript(excerpt, 'text', new Date(), exportLabels(), {
-					original: $exportOriginal
+					original: $exportOriginal,
+					markers: copyWindow ? recentMarkers(lines, markers, copyWindow * 60_000) : markers
 				})
 			);
 			copyNotice = $t.transcript.copied(copyWindow);
@@ -150,6 +174,18 @@
 			>{$t.transcript.historyFailing}</span
 		>{/if}
 	<div class="spacer"></div>
+	{#if live}<AddMarker request={markerRequest} count={markers.length} />{/if}
+	{#if reader && onFind}
+		<ToolButton
+			variant="ghost"
+			size="sm"
+			aria-expanded={findOpen}
+			aria-keyshortcuts={ariaKeyShortcut('find')}
+			onclick={onFind}
+		>
+			{$t.transcript.find.open}
+		</ToolButton>
+	{/if}
 	<div class="copy">
 		<!-- Shows the window Copy will actually use: the whole log when it has no timing. -->
 		<select
@@ -165,7 +201,7 @@
 		<ToolButton
 			variant="ghost"
 			size="sm"
-			disabled={(!transcript.length && !pending.length) || copying}
+			disabled={(!transcript.length && !(live && $hasInFlightLines)) || copying}
 			aria-busy={copying}
 			onclick={copy}
 		>

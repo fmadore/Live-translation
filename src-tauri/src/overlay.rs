@@ -60,6 +60,28 @@ pub struct OverlayState {
     /// refused like any other unknown field.
     #[serde(skip_deserializing, skip_serializing_if = "Option::is_none")]
     pub visible: Option<bool>,
+    /// How the caption rows fit the overlay window, sent when it changes while captions are
+    /// drawn, so the operator window can say when they are drawn smaller than chosen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fit: Option<OverlayFit>,
+}
+
+/// How the overlay's caption rows fit its window (`fitRows` in `src/lib/captionLayout.ts`).
+/// Mirrors `OverlayFit` in `src/lib/types.ts`. Numbers and flags only: nothing the overlay can
+/// put here reaches the operator window as text.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct OverlayFit {
+    /// The size the rows are drawn at, in px.
+    pub font_size: f64,
+    /// How many rows are on screen; 0 once the session stops.
+    pub rows: u8,
+    /// Drawn smaller than the chosen size.
+    pub squeezed: bool,
+    /// The original speech is switched on but has no room under the translations.
+    pub original_hidden: bool,
+    /// False when even the smallest size has no room for a line.
+    pub room: bool,
 }
 
 impl OverlayState {
@@ -378,6 +400,35 @@ mod tests {
             serde_json::to_string(&font_only).unwrap(),
             r#"{"fontSize":40.0}"#
         );
+    }
+
+    /// The fit crosses whole, in the interface's shape, and nothing else rides along in it.
+    #[test]
+    fn the_caption_fit_crosses_in_the_interface_shape() {
+        let state: OverlayState = serde_json::from_str(
+            r#"{"fit":{"fontSize":20,"rows":4,"squeezed":true,"originalHidden":true,"room":true}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            state.fit,
+            Some(OverlayFit {
+                font_size: 20.0,
+                rows: 4,
+                squeezed: true,
+                original_hidden: true,
+                room: true,
+            })
+        );
+        for payload in [
+            r#"{"fit":{"fontSize":20,"rows":4,"squeezed":true,"originalHidden":false}}"#,
+            r#"{"fit":{"fontSize":20,"rows":4,"squeezed":true,"originalHidden":false,"room":true,"text":"x"}}"#,
+            r#"{"fit":{"fontSize":20,"rows":-1,"squeezed":true,"originalHidden":false,"room":true}}"#,
+        ] {
+            assert!(
+                serde_json::from_str::<OverlayState>(payload).is_err(),
+                "{payload}"
+            );
+        }
     }
 
     /// B3: after Alt+F4 the operator window hears that the overlay is hidden, and nothing else.

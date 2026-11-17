@@ -121,6 +121,10 @@ fn text_shown_by_an_idle_close_is_not_repeated_when_concluded() {
     h.send(&target(&[("Muchas", 800)], &[(" gracias", 1400)]));
     assert!(h.proto.keeps_turn_open(&h.acc), "tentative text is pending");
     h.finalize_idle();
+    assert!(
+        !h.proto.keeps_turn_open(&h.acc),
+        "what was pending went out with the final"
+    );
 
     let outcome = h.send(&target(&[(" gracias", 1400)], &[]));
     assert_eq!(outcome.caption, CaptionUpdate::None);
@@ -145,10 +149,221 @@ fn segments_without_times_are_never_dropped() {
     assert_eq!(h.captions.last(), Some(&Emitted::final_(1, "dos.", "")));
 }
 
+/// A source update, with each segment as `(text, end_time)`.
+fn timed_source(concluded: &[(&str, u32)], tentative: &[(&str, u32)]) -> String {
+    let segments = |list: &[(&str, u32)]| -> Vec<serde_json::Value> {
+        list.iter()
+            .map(|(text, end)| serde_json::json!({"language": "en", "text": text, "start_time": 0, "end_time": end}))
+            .collect()
+    };
+    serde_json::json!({"source_transcript_update": {
+        "concluded": segments(concluded),
+        "tentative": segments(tentative),
+    }})
+    .to_string()
+}
+
+/// What the client logs while `f` runs, as the app's log would hold it.
+#[derive(Clone, Default)]
+struct Log(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
+
+impl std::io::Write for Log {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.0.lock().unwrap().extend_from_slice(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+impl Log {
+    fn subscriber(&self) -> impl tracing::Subscriber + Send + Sync + use<> {
+        // tracing caches for the whole process whether a callsite is enabled. While a single
+        // subscriber is registered it asks only the current thread's, so a callsite another
+        // test's thread reached first would be cached as disabled here. A second, idle one,
+        // kept for the life of the process, makes it ask each thread's subscriber per event.
+        static IDLE: std::sync::OnceLock<tracing::Dispatch> = std::sync::OnceLock::new();
+        IDLE.get_or_init(|| tracing::Dispatch::new(tracing::subscriber::NoSubscriber::default()));
+        let log = self.clone();
+        tracing_subscriber::fmt()
+            .with_max_level(tracing::Level::DEBUG)
+            .with_ansi(false)
+            .with_writer(move || log.clone())
+            .finish()
+    }
+
+    fn text(&self) -> String {
+        String::from_utf8_lossy(&self.0.lock().unwrap()).into_owned()
+    }
+}
+
+/// A turn closed on a concluded sentence showed concluded text alone, which DeepL sends once:
+/// what follows is kept even when its times do not increase, as DeepL does not promise they do.
+#[test]
+fn text_after_a_concluded_sentence_is_kept_whatever_its_times() {
+    let mut h = harness();
+    h.send(&target(&[("Buenos días.", 1200)], &[]));
+    h.send(&target(&[(" Hoy", 1200)], &[]));
+    h.send(&target(&[(" empezamos.", 1100)], &[]));
+    assert_eq!(
+        h.captions,
+        [
+            Emitted::final_(0, "Buenos días.", ""),
+            Emitted::interim(1, "Hoy", ""),
+            Emitted::final_(1, "Hoy empezamos.", ""),
+        ]
+    );
+}
+
+/// After the idle boundary closed a turn, a segment ending at or before what it showed is
+/// dropped, concluded or tentative; each drop is logged with its times and length, never its
+/// text.
+#[test]
+fn a_segment_an_idle_close_already_showed_is_dropped_and_logged_without_its_text() {
+    let log = Log::default();
+    let mut h = harness();
+    tracing::subscriber::with_default(log.subscriber(), || {
+        h.send(&target(&[("Muchas", 800)], &[(" gracias", 1400)]));
+        h.finalize_idle();
+        let outcome = h.send(&target(&[(" gracias", 1400)], &[(" señora", 900)]));
+        assert_eq!(outcome.caption, CaptionUpdate::None);
+    });
+    assert_eq!(h.captions.len(), 2);
+    assert!(
+        !h.proto.keeps_turn_open(&h.acc),
+        "the dropped tentative is not held"
+    );
+    let log = log.text();
+    assert_eq!(
+        log.matches("already shown in a final caption").count(),
+        2,
+        "{log}"
+    );
+    assert!(
+        log.contains("end_ms=1400") && log.contains("shown_until_ms=1400"),
+        "{log}"
+    );
+    assert!(log.contains("chars=8"), "{log}");
+    assert!(
+        !log.contains("gracias") && !log.contains("señora"),
+        "caption text reached the log: {log}"
+    );
+}
+
+/// The filter lifts at the first concluded segment past what the final showed: DeepL has moved
+/// on, and a later segment with an earlier time is kept rather than lost.
+#[test]
+fn the_filter_lifts_once_deepl_concludes_past_the_idle_close() {
+    let mut h = harness();
+    h.send(&target(&[("Muchas", 800)], &[(" gracias", 1400)]));
+    h.finalize_idle();
+    h.send(&target(&[(" gracias", 1400), (" a", 1600)], &[]));
+    h.send(&target(&[(" todos", 1500)], &[]));
+    assert_eq!(
+        h.captions,
+        [
+            Emitted::interim(0, "Muchas gracias", ""),
+            Emitted::final_(0, "Muchas gracias", ""),
+            Emitted::interim(1, "a", ""),
+            Emitted::interim(1, "a todos", ""),
+        ]
+    );
+}
+
+/// The tentative start that a concluded sentence leaves behind is not on screen: an update that
+/// repeats it unchanged shows it, and DeepL holds it, so a Pause or Stop drains for it.
+#[test]
+fn the_tail_of_a_closed_sentence_shows_on_the_next_update_even_unchanged() {
+    let mut h = harness();
+    h.send(&target(
+        &[("Buenos días a todos.", 1200)],
+        &[(" Hoy", 1500)],
+    ));
+    assert!(h.acc.is_empty());
+    assert!(h.proto.keeps_turn_open(&h.acc), "the tail is still to come");
+    h.send(&target(&[], &[(" Hoy", 1500)]));
+    h.send(&target(&[], &[(" Hoy", 1500)]));
+    assert_eq!(
+        h.captions,
+        [
+            Emitted::final_(0, "Buenos días a todos.", ""),
+            Emitted::interim(1, "Hoy", ""),
+        ]
+    );
+}
+
+/// The source is matched against its own times as the target is: source words an idle close
+/// showed as tentative are not repeated under the next line when DeepL concludes them.
+#[test]
+fn source_text_an_idle_close_showed_is_not_repeated() {
+    let mut h = harness();
+    h.send(&timed_source(&[("Thank", 700)], &[(" you", 1400)]));
+    h.send(&target(&[("Muchas", 800)], &[(" gracias", 1400)]));
+    h.finalize_idle();
+    let outcome = h.send(&timed_source(&[(" you", 1400)], &[]));
+    assert_eq!(outcome.caption, CaptionUpdate::None);
+    h.send(&timed_source(&[(" And", 1900)], &[]));
+    assert_eq!(
+        h.captions,
+        [
+            Emitted::interim(0, "", "Thank you"),
+            Emitted::interim(0, "Muchas gracias", "Thank you"),
+            Emitted::final_(0, "Muchas gracias", "Thank you"),
+            Emitted::interim(1, "", "And"),
+        ]
+    );
+}
+
+/// What stays a limitation: a line closed on a concluded sentence takes all the source DeepL
+/// has concluded so far, which can run into the next sentence; the source's tentative text
+/// goes to the next line. Source and target times are not matched against each other.
+#[test]
+fn a_closed_sentence_takes_the_source_concluded_so_far() {
+    let mut h = harness();
+    h.send(&source(&["Good morning everyone.", " Today"], &[" we"]));
+    h.send(&target(&[("Buenos días a todos.", 1200)], &[]));
+    h.send(&target(&[], &[(" Hoy", 1500)]));
+    assert_eq!(
+        &h.captions[1..],
+        [
+            Emitted::final_(0, "Buenos días a todos.", "Good morning everyone. Today"),
+            Emitted::interim(1, "Hoy", "we"),
+        ]
+    );
+}
+
+/// The session token never goes over plain `ws`, except where a debug build allows it for
+/// loopback servers; no other scheme opens a socket.
+#[test]
+fn a_streaming_url_that_is_not_wss_is_refused() {
+    let url = |url: &str| Url::parse(url).unwrap();
+    assert!(
+        check_streaming_scheme(&url("wss://api.deepl.com/v3/voice/realtime/connect"), false)
+            .is_ok()
+    );
+    for refused in [
+        "ws://api.deepl.com/v3/voice/realtime/connect",
+        "https://api.deepl.com/v3/voice/realtime/connect",
+        "http://127.0.0.1:9000/connect",
+    ] {
+        let error = check_streaming_scheme(&url(refused), false).unwrap_err();
+        assert!(error.to_string().contains("not wss"), "{refused}: {error}");
+    }
+    assert!(check_streaming_scheme(&url("ws://127.0.0.1:9000/connect"), true).is_ok());
+    assert!(check_streaming_scheme(&url("http://127.0.0.1:9000/connect"), true).is_err());
+    assert_eq!(
+        ALLOW_PLAIN_WS,
+        cfg!(debug_assertions),
+        "release builds refuse ws"
+    );
+}
+
 #[test]
 fn the_end_of_the_stream_closes_the_open_turn_and_the_session() {
     let mut h = harness();
-    h.proto.resumable.store(true, Ordering::Relaxed);
+    h.proto.resumable = true;
     h.send(&target(&[("Hasta", 600)], &[(" luego", 900)]));
     let outcome = h.send(r#"{"end_of_stream":{}}"#);
     assert!(matches!(outcome.control, MessageControl::Closed));
@@ -156,7 +371,7 @@ fn the_end_of_the_stream_closes_the_open_turn_and_the_session() {
         h.captions.last(),
         Some(&Emitted::final_(0, "Hasta luego", ""))
     );
-    assert!(!h.proto.resumable.load(Ordering::Relaxed));
+    assert!(!h.proto.resumable);
 
     let outcome = h.send(r#"{"end_of_stream":{}}"#);
     assert_eq!(outcome.caption, CaptionUpdate::None);
@@ -184,7 +399,7 @@ fn transient_errors_reconnect_and_the_rest_stop_the_source() {
         (456, "Quota exceeded", false),
         (403, "Forbidden", false),
     ] {
-        h.proto.resumable.store(true, Ordering::Relaxed);
+        h.proto.resumable = true;
         let frame = serde_json::json!({"error": {
             "request_type": "source_media_chunk",
             "error_code": code,
@@ -193,7 +408,7 @@ fn transient_errors_reconnect_and_the_rest_stop_the_source() {
         }})
         .to_string();
         let control = h.send(&frame).control;
-        assert!(!h.proto.resumable.load(Ordering::Relaxed), "{code}");
+        assert!(!h.proto.resumable, "{code}");
         if reconnects {
             assert!(matches!(control, MessageControl::Reconnect), "{code}");
         } else {
@@ -228,7 +443,7 @@ fn the_handshake_carries_only_the_session_token() {
 
 #[test]
 fn audio_goes_out_as_source_media_chunks_and_silence_keeps_a_quiet_session() {
-    let client = config("https://api.deepl.com").into_client();
+    let mut client = config("https://api.deepl.com").into_client();
     assert_eq!(
         client.audio_json("AAA=".into()).unwrap(),
         r#"{"source_media_chunk":{"data":"AAA="}}"#
@@ -238,15 +453,17 @@ fn audio_goes_out_as_source_media_chunks_and_silence_keeps_a_quiet_session() {
     assert_eq!(keepalive.silence.pcm_le.len(), 3_200);
     assert!(keepalive.silence.pcm_le.iter().all(|&byte| byte == 0));
 
-    client.resumable.store(true, Ordering::Relaxed);
+    assert_eq!(
+        client.audio_frame(&[0, 0, 0]).unwrap(),
+        r#"{"source_media_chunk":{"data":"AAAA"}}"#
+    );
+
+    client.resumable = true;
     assert_eq!(
         client.closing_json().unwrap(),
         [r#"{"end_of_source_media":{}}"#]
     );
-    assert!(
-        !client.resumable.load(Ordering::Relaxed),
-        "ending the input ends the session"
-    );
+    assert!(!client.resumable, "ending the input ends the session");
 }
 
 // --- Whole sessions against loopback servers -------------------------------------------------
@@ -281,10 +498,22 @@ fn status(state: SessionState) -> Event {
     Event::Status(state, None)
 }
 
+/// A socket DeepL closed as soon as it opened, before sending anything: with no setup
+/// acknowledgement to wait for, that counts as a failed setup, and says so.
+fn closed_at_once() -> Event {
+    Event::Status(
+        SessionState::Reconnecting,
+        Some((
+            id::PROVIDER_RECONNECTING,
+            "DeepL closed the connection as soon as it opened".into(),
+        )),
+    )
+}
+
 struct Client {
     events: mpsc::UnboundedReceiver<Event>,
     audio: mpsc::Sender<AudioChunk>,
-    _pause: tokio::sync::watch::Sender<bool>,
+    pause: tokio::sync::watch::Sender<bool>,
     cancel: CancellationToken,
     task: tokio::task::JoinHandle<()>,
 }
@@ -307,18 +536,21 @@ impl Client {
         Self {
             events,
             audio,
-            _pause: pause,
+            pause,
             cancel,
             task,
         }
     }
 
     async fn expect(&mut self, expected: Event) {
-        let event = timeout(GUARD, self.events.recv())
+        assert_eq!(self.next().await, expected);
+    }
+
+    async fn next(&mut self) -> Event {
+        timeout(GUARD, self.events.recv())
             .await
-            .unwrap_or_else(|_| panic!("still waiting for {expected:?}"))
-            .unwrap_or_else(|| panic!("the runner ended before {expected:?}"));
-        assert_eq!(event, expected);
+            .expect("still waiting for an event")
+            .expect("the runner ended")
     }
 
     async fn finished(mut self) {
@@ -356,6 +588,23 @@ impl Rest {
 
     /// Answer the next request with `status` and a JSON `body`.
     async fn answer(&self, status: &str, body: &str) -> Request {
+        let (mut stream, request) = self.receive().await;
+        let response = format!(
+            "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
+             X-Trace-ID: trace-test\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        stream.write_all(response.as_bytes()).await.unwrap();
+        let _ = stream.shutdown().await;
+        request
+    }
+
+    /// Read the next request and close the connection without answering it.
+    async fn hang_up(&self) -> Request {
+        self.receive().await.1
+    }
+
+    async fn receive(&self) -> (TcpStream, Request) {
         let (mut stream, _) = timeout(GUARD, self.listener.accept())
             .await
             .expect("no session request came")
@@ -382,18 +631,12 @@ impl Rest {
         }
         let head = String::from_utf8_lossy(&read[..head_len - 4]).to_string();
         let (line, headers) = head.split_once("\r\n").unwrap_or((&head, ""));
-        let response = format!(
-            "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\
-             X-Trace-ID: trace-test\r\nConnection: close\r\n\r\n{body}",
-            body.len()
-        );
-        stream.write_all(response.as_bytes()).await.unwrap();
-        let _ = stream.shutdown().await;
-        Request {
+        let request = Request {
             line: line.to_string(),
             headers: headers.to_lowercase(),
             body: String::from_utf8_lossy(&read[head_len..]).to_string(),
-        }
+        };
+        (stream, request)
     }
 }
 
@@ -580,6 +823,7 @@ async fn an_ended_session_is_replaced_and_a_refusal_stops_the_source() {
 
     peer.0.close(None).await.unwrap();
     drop(peer);
+    client.expect(closed_at_once()).await;
     client.expect(status(SessionState::Reconnecting)).await;
     let request = rest
         .answer("400 Bad Request", r#"{"message":"Token outdated"}"#)
@@ -663,6 +907,79 @@ async fn a_rate_limited_session_request_is_retried() {
     assert_eq!(request.line, "POST /v3/voice/realtime HTTP/1.1");
     let (_, peer) = stream.accept().await;
     client.expect(status(SessionState::Running)).await;
+    client.cancel.cancel();
+    drop(peer);
+    client.finished().await;
+}
+
+/// A resume whose request fails says why in the Reconnecting detail. The resume's URL carries
+/// the session token, and neither that detail nor the log may.
+#[tokio::test]
+async fn a_failed_resume_never_shows_or_logs_the_token() {
+    const TOKEN: &str = "resume-secret-token";
+    let log = Log::default();
+    let _log = tracing::subscriber::set_default(log.subscriber());
+    let rest = Rest::bind().await;
+    let stream = Stream::bind().await;
+    let mut client = Client::start(&rest.base);
+    client.expect(status(SessionState::Connecting)).await;
+    rest.answer("200 OK", &stream.ticket(TOKEN)).await;
+    let (_, mut peer) = stream.accept().await;
+    client.expect(status(SessionState::Running)).await;
+
+    peer.0.close(None).await.unwrap();
+    drop(peer);
+    client.expect(closed_at_once()).await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    let request = rest.hang_up().await;
+    assert_eq!(
+        request.line,
+        format!("GET /v3/voice/realtime?token={TOKEN} HTTP/1.1")
+    );
+    let Event::Status(SessionState::Reconnecting, Some((error, detail))) = client.next().await
+    else {
+        panic!("expected a Reconnecting with a reason");
+    };
+    assert_eq!(error, id::PROVIDER_RECONNECTING);
+    assert!(
+        detail.starts_with("DeepL session reconnect failed"),
+        "{detail}"
+    );
+    assert!(!detail.contains(TOKEN), "{detail}");
+
+    client.cancel.cancel();
+    client.finished().await;
+    let log = log.text();
+    assert!(log.contains("session reconnect failed"), "{log}");
+    assert!(!log.contains(TOKEN), "{log}");
+}
+
+/// Every Pause ends DeepL's session with `end_of_source_media`, so the Resume requests a new
+/// one rather than resuming the old.
+#[tokio::test]
+async fn resume_after_a_pause_requests_a_new_session() {
+    let rest = Rest::bind().await;
+    let stream = Stream::bind().await;
+    let mut client = Client::start(&rest.base);
+    client.expect(status(SessionState::Connecting)).await;
+    rest.answer("200 OK", &stream.ticket("before")).await;
+    let (_, mut peer) = stream.accept().await;
+    client.expect(status(SessionState::Running)).await;
+
+    client.pause.send_replace(true);
+    assert_eq!(peer.recv().await, r#"{"end_of_source_media":{}}"#);
+    peer.send(r#"{"end_of_stream":{}}"#).await;
+    assert_eq!(peer.recv().await, "<close>");
+    client.expect(status(SessionState::Paused)).await;
+
+    client.pause.send_replace(false);
+    client.expect(status(SessionState::Connecting)).await;
+    let request = rest.answer("200 OK", &stream.ticket("after")).await;
+    assert_eq!(request.line, "POST /v3/voice/realtime HTTP/1.1");
+    let (uri, peer) = stream.accept().await;
+    assert_eq!(uri, "/v3/voice/realtime/connect?token=after");
+    client.expect(status(SessionState::Running)).await;
+
     client.cancel.cancel();
     drop(peer);
     client.finished().await;

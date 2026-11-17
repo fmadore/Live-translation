@@ -6,7 +6,7 @@ import { get } from 'svelte/store';
 
 import { locale, t } from './i18n';
 import { languageName } from './languages';
-import { exportOriginal, markTranscriptSaved, transcript } from './stores';
+import { exportOriginal, markers, markTranscriptSaved, transcript } from './stores';
 import { api } from './tauri';
 import { recovery } from './recovery';
 import {
@@ -24,7 +24,8 @@ export function exportLabels(): TranscriptLabels {
 		origin: messages.export.origin,
 		original: messages.export.original,
 		language: (code) => languageName(code, get(locale)),
-		tag: messages.locale.tag
+		tag: messages.locale.tag,
+		section: messages.marker.section
 	};
 }
 
@@ -41,13 +42,17 @@ export async function saveTranscriptDocument(
 	now = new Date()
 ): Promise<string> {
 	const lines = get(transcript);
+	const marks = get(markers);
 	if (!lines.length) return '';
 	const path = await api.saveTranscript(
-		formatTranscript(lines, format, now, exportLabels(), { original: get(exportOriginal) }),
+		formatTranscript(lines, format, now, exportLabels(), {
+			original: get(exportOriginal),
+			markers: marks
+		}),
 		transcriptFilename(now, format)
 	);
 	if (!path) return '';
-	markTranscriptSaved(lines, path);
+	markTranscriptSaved(lines, path, marks);
 	try {
 		if (get(transcript) === lines) await recovery.clear();
 	} catch {

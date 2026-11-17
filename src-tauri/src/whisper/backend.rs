@@ -65,7 +65,7 @@ enum Backend {
         device: &'static str,
     },
     /// The Vulkan helper, on the graphics processor it chose.
-    Helper(gpu::Worker),
+    Helper(Box<gpu::Worker>),
 }
 
 /// Where a session asks for its model to run.
@@ -142,7 +142,7 @@ pub(super) fn load_lease(
         "Model loading was cancelled"
     );
     let backend = match helper {
-        Some(worker) => Backend::Helper(worker),
+        Some(worker) => Backend::Helper(Box::new(worker)),
         None => in_process(&lease, placement.metal)?,
     };
     let model = LoadedModel {
@@ -242,22 +242,31 @@ impl LoadedModel {
     ) -> Result<Option<Decoded>> {
         let mut backend = lock(&self.inference);
         if let Backend::Helper(worker) = &mut *backend {
-            match worker.decode(decode, samples, abort) {
-                Ok((segments, language)) => return Ok(Some(Decoded { segments, language })),
-                Err(_) if abort.is_cancelled() => return Ok(None),
-                Err(error) => {
+            match judge(worker.decode(decode, samples, abort), abort) {
+                HelperVerdict::Decoded((segments, language)) => {
+                    return Ok(Some(Decoded { segments, language }));
+                }
+                HelperVerdict::Discarded => return Ok(None),
+                HelperVerdict::FallBack(error) => {
                     tracing::warn!(
                         "Whisper's graphics processor failed; carrying on on the processor: {error:#}"
                     );
-                    *lock(&self.gpu_failure) = Some(failure_text(&error));
-                    // End the helper first: it holds its own copy of the model, and the
-                    // graphics processor's memory, while the processor loads another.
-                    worker.end();
-                    *backend = in_process(&self.lease, false)?;
-                    self.engine_changed.store(true, Ordering::Relaxed);
+                    move_to_processor(
+                        &mut *backend,
+                        &error,
+                        &self.gpu_failure,
+                        &self.engine_changed,
+                        |backend| {
+                            if let Backend::Helper(worker) = backend {
+                                worker.end();
+                            }
+                        },
+                        || in_process(&self.lease, false),
+                    )?;
                 }
             }
         }
+        // After a move, the same window, decoded on the processor.
         let Backend::InProcess { context, .. } = &*backend else {
             anyhow::bail!("Whisper has no model to decode with");
         };
@@ -285,7 +294,152 @@ impl LoadedModel {
     }
 }
 
+/// What the helper's attempt at a window means for the session.
+#[derive(Debug)]
+enum HelperVerdict<T> {
+    /// Decoded: the session stays on the graphics processor.
+    Decoded(T),
+    /// The operator discarded the remaining audio meanwhile: no caption, and no move, since
+    /// the helper failed only because it was told to stop.
+    Discarded,
+    /// The helper failed: the session moves to the processor and decodes this window there.
+    FallBack(anyhow::Error),
+}
+
+fn judge<T>(attempt: Result<T>, abort: &CancellationToken) -> HelperVerdict<T> {
+    match attempt {
+        Ok(decoded) => HelperVerdict::Decoded(decoded),
+        Err(_) if abort.is_cancelled() => HelperVerdict::Discarded,
+        Err(error) => HelperVerdict::FallBack(error),
+    }
+}
+
+/// Replace a failed helper in `backend` with the model on the processor, in this order: the
+/// failure is recorded (so the operator learns why even if the processor cannot load either),
+/// the helper is ended (it holds its own copy of the model, and the graphics processor's
+/// memory, while the processor loads another), the processor model is loaded into its place,
+/// and only then are the sources told the engine changed. Generic over the backend, so the
+/// order is tested without a model.
+fn move_to_processor<B>(
+    backend: &mut B,
+    error: &anyhow::Error,
+    gpu_failure: &Mutex<Option<String>>,
+    engine_changed: &AtomicBool,
+    end_helper: impl FnOnce(&mut B),
+    load: impl FnOnce() -> Result<B>,
+) -> Result<()> {
+    *lock(gpu_failure) = Some(failure_text(error));
+    end_helper(backend);
+    *backend = load()?;
+    engine_changed.store(true, Ordering::Relaxed);
+    Ok(())
+}
+
 unsafe extern "C" fn abort_requested(data: *mut std::ffi::c_void) -> bool {
     // SAFETY: installed only above, with a live CancellationToken for the full() duration.
     unsafe { &*data.cast::<CancellationToken>() }.is_cancelled()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use super::*;
+
+    /// A backend as the move sees it, without a model.
+    #[derive(Debug, PartialEq)]
+    enum Fake {
+        Helper { ended: bool },
+        Processor,
+    }
+
+    #[test]
+    fn a_window_the_helper_decodes_stays_on_it_and_a_discard_moves_nothing() {
+        let abort = CancellationToken::new();
+        assert!(matches!(
+            judge(Ok::<_, anyhow::Error>(7), &abort),
+            HelperVerdict::Decoded(7)
+        ));
+        assert!(matches!(
+            judge::<()>(Err(anyhow::anyhow!("stopped answering")), &abort),
+            HelperVerdict::FallBack(_)
+        ));
+        abort.cancel();
+        // A helper ended by Discard has not failed: no move, no failure shown.
+        assert!(matches!(
+            judge::<()>(Err(anyhow::anyhow!("Discarded")), &abort),
+            HelperVerdict::Discarded
+        ));
+    }
+
+    /// The mid-session move: the failure is recorded, the helper ended before the processor
+    /// loads its own copy of the model, the backend replaced, and the engine change flagged
+    /// for the sources to report.
+    #[test]
+    fn a_failed_helper_is_ended_then_replaced_by_the_processor() {
+        let gpu_failure = Mutex::new(None);
+        let engine_changed = AtomicBool::new(false);
+        let steps = RefCell::new(Vec::new());
+        let mut backend = Fake::Helper { ended: false };
+        let error = anyhow::anyhow!("The graphics processor helper stopped answering")
+            .context("ggml_vulkan: error ErrorDeviceLost");
+        move_to_processor(
+            &mut backend,
+            &error,
+            &gpu_failure,
+            &engine_changed,
+            |backend| {
+                assert!(
+                    lock(&gpu_failure).is_some(),
+                    "recorded before anything else"
+                );
+                assert_eq!(*backend, Fake::Helper { ended: false });
+                *backend = Fake::Helper { ended: true };
+                steps.borrow_mut().push("end helper");
+            },
+            || {
+                assert!(!engine_changed.load(Ordering::Relaxed));
+                steps.borrow_mut().push("load processor");
+                Ok(Fake::Processor)
+            },
+        )
+        .unwrap();
+        assert_eq!(*steps.borrow(), ["end helper", "load processor"]);
+        assert_eq!(backend, Fake::Processor);
+        assert!(engine_changed.load(Ordering::Relaxed));
+        assert_eq!(
+            lock(&gpu_failure).as_deref(),
+            Some(
+                "ggml_vulkan: error ErrorDeviceLost: The graphics processor helper stopped answering"
+            )
+        );
+    }
+
+    /// When the processor cannot load the model either, the session's error is that load's,
+    /// the helper's failure is still recorded, and no engine change is announced.
+    #[test]
+    fn a_processor_that_cannot_load_leaves_the_failure_recorded_and_no_change_announced() {
+        let gpu_failure = Mutex::new(None);
+        let engine_changed = AtomicBool::new(false);
+        let mut backend = Fake::Helper { ended: false };
+        let error = move_to_processor(
+            &mut backend,
+            &anyhow::anyhow!("helper died"),
+            &gpu_failure,
+            &engine_changed,
+            |backend| *backend = Fake::Helper { ended: true },
+            || Err(anyhow::anyhow!("Could not load Whisper model")),
+        )
+        .unwrap_err();
+        assert_eq!(error.to_string(), "Could not load Whisper model");
+        assert_eq!(backend, Fake::Helper { ended: true });
+        assert!(!engine_changed.load(Ordering::Relaxed));
+        assert_eq!(lock(&gpu_failure).as_deref(), Some("helper died"));
+    }
+
+    #[test]
+    fn a_long_failure_is_cut_to_its_first_characters() {
+        let error = anyhow::anyhow!("é".repeat(MAX_FAILURE_CHARS * 2));
+        assert_eq!(failure_text(&error).chars().count(), MAX_FAILURE_CHARS);
+    }
 }

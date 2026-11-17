@@ -65,8 +65,8 @@
 >
 	{#if icon}
 		<svg
-			width="14"
-			height="14"
+			width="0.875rem"
+			height="0.875rem"
 			viewBox="0 0 24 24"
 			fill="none"
 			stroke="currentColor"

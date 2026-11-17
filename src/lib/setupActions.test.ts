@@ -1,6 +1,6 @@
 import { get } from 'svelte/store';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSetupActions } from './setupActions';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createSetupActions, LAST_ENGINES_KEY, loadLastEngines } from './setupActions';
 import { languageFavourites, options } from './stores';
 import type { StartOptions } from './types';
 
@@ -152,5 +152,70 @@ describe('setup actions', () => {
 		expect(get(options).targetLanguage).toBe('en');
 		actions.flipDirection();
 		expect(get(options).targetLanguage).toBe('fr');
+	});
+});
+
+describe('the engine remembered per mode', () => {
+	let stored: Map<string, string>;
+	beforeEach(() => {
+		stored = new Map();
+		Object.defineProperty(globalThis, 'localStorage', {
+			configurable: true,
+			value: {
+				getItem: (key: string) => stored.get(key) ?? null,
+				setItem: (key: string, value: string) => void stored.set(key, value)
+			}
+		});
+	});
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'localStorage');
+	});
+
+	it('returns to DeepL after a trip to subtitles, and to the chosen subtitle engine after one back', () => {
+		const { actions } = setup();
+		actions.setProvider('deepl');
+		actions.setMode('transcribe');
+		expect(get(options).provider).toBe('whisper');
+		actions.setProvider('mistral');
+		actions.setMode('translate');
+		expect(get(options).provider).toBe('deepl');
+		actions.setMode('transcribe');
+		expect(get(options).provider).toBe('mistral');
+		expect(JSON.parse(stored.get(LAST_ENGINES_KEY) ?? '{}')).toEqual({
+			translate: 'deepl',
+			transcribe: 'mistral'
+		});
+	});
+
+	it('remembers an engine a profile load chose, at the moment the mode is left', () => {
+		options.set({ ...base, provider: 'openai' });
+		const { actions } = setup();
+		actions.setMode('transcribe');
+		actions.setMode('translate');
+		expect(get(options).provider).toBe('openai');
+	});
+
+	it('drops stored engines that are unknown or serve the other mode', () => {
+		stored.set(LAST_ENGINES_KEY, JSON.stringify({ translate: 'mistral', transcribe: 'nonsense' }));
+		expect(loadLastEngines()).toEqual({});
+		stored.set(LAST_ENGINES_KEY, '{not json');
+		expect(loadLastEngines()).toEqual({});
+		stored.set(LAST_ENGINES_KEY, JSON.stringify({ translate: 'deepl', transcribe: 'gemini' }));
+		expect(loadLastEngines()).toEqual({ translate: 'deepl' });
+		// The invalid stored value falls back to the defaults.
+		const { actions } = setup();
+		actions.setMode('transcribe');
+		expect(get(options).provider).toBe('whisper');
+	});
+
+	it('gives way to the demo when the remembered Whisper cannot run on this processor', () => {
+		stored.set(LAST_ENGINES_KEY, JSON.stringify({ transcribe: 'whisper' }));
+		setup(false, true).actions.setMode('transcribe');
+		expect(get(options)).toMatchObject({ provider: 'ondevice', source: 'microphone' });
+
+		options.set({ ...base, mode: 'transcribe', provider: 'mistral' });
+		stored.set(LAST_ENGINES_KEY, JSON.stringify({ translate: 'whisper-translate' }));
+		setup(false, true).actions.setMode('translate');
+		expect(get(options).provider).toBe('gemini');
 	});
 });

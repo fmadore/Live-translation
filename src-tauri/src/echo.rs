@@ -48,9 +48,11 @@ use crate::whisper::reconcile::unspaced;
 /// be the same speech: the engines stamp a caption when they emit it, and two of them on two
 /// copies of one voice do not emit together.
 const SLACK_MS: u64 = 4_000;
-/// How long a system caption is kept to compare with, after its last update.
-const RETAIN: Duration = Duration::from_secs(20);
-/// At most this many system turns per caption language are kept.
+/// At most this many system turns per caption language are kept to compare with, the oldest
+/// forgotten first. Nothing else forgets them: whether two captions are the same speech is a
+/// matter of session time (`SLACK_MS`), and a microphone line local Whisper decodes behind a
+/// backlog can arrive long after, on the clock, the system line it repeats, with newer system
+/// lines between them. Thirty-two of Whisper's segments are minutes of speech.
 const MAX_HEARD: usize = 32;
 /// Only the end of a long turn is compared, on both sides: continuous speech can stream for
 /// minutes in one turn, and the more text there is to compare with, the likelier a chance
@@ -201,11 +203,13 @@ impl Words {
         if !rest.is_empty() {
             self.tail.push(rest);
         }
-        self.pairs = self
-            .tail
-            .windows(2)
-            .map(|pair| pair_key(&pair[0], &pair[1]))
-            .collect();
+        // Refilled rather than rebuilt, so its table is allocated once per turn.
+        self.pairs.clear();
+        self.pairs.extend(
+            self.tail
+                .windows(2)
+                .map(|pair| pair_key(&pair[0], &pair[1])),
+        );
         // Copy only what changed: the text up to the old split compared equal above.
         self.text.truncate(unchanged);
         self.text.push_str(&text[unchanged..]);
@@ -255,7 +259,6 @@ struct Heard {
     source: Words,
     start_ms: u64,
     end_ms: u64,
-    seen: Instant,
 }
 
 /// The microphone turn being spoken.
@@ -426,7 +429,7 @@ impl Guard {
             self.captioned.note(caption.start_ms, caption.end_ms);
         }
         let lane = &mut self.lanes[index];
-        remember(&mut lane.heard, caption, now);
+        remember(&mut lane.heard, caption);
         for line in lane.held.iter_mut().filter(|line| !line.echo) {
             let said = &line.caption;
             if repeats(
@@ -613,9 +616,9 @@ fn release(line: Held, out: &mut Vec<OwnedCaption>) {
     }
 }
 
-/// Keep a system caption's latest words to compare with, and forget what is too old.
-fn remember(heard: &mut Vec<Heard>, caption: &Caption<'_>, now: Instant) {
-    heard.retain(|turn| now.saturating_duration_since(turn.seen) < RETAIN);
+/// Keep a system caption's latest words to compare with, forgetting the oldest turn beyond
+/// `MAX_HEARD`.
+fn remember(heard: &mut Vec<Heard>, caption: &Caption<'_>) {
     if let Some(turn) = heard
         .iter_mut()
         .find(|turn| turn.turn_id == caption.turn_id)
@@ -623,7 +626,6 @@ fn remember(heard: &mut Vec<Heard>, caption: &Caption<'_>, now: Instant) {
         turn.text.read(caption.text);
         turn.source.read(caption.source_text);
         turn.end_ms = caption.end_ms;
-        turn.seen = now;
         return;
     }
     if caption.text.trim().is_empty() {
@@ -638,7 +640,6 @@ fn remember(heard: &mut Vec<Heard>, caption: &Caption<'_>, now: Instant) {
         source: Words::default(),
         start_ms: caption.start_ms,
         end_ms: caption.end_ms,
-        seen: now,
     };
     turn.text.read(caption.text);
     turn.source.read(caption.source_text);
@@ -666,12 +667,8 @@ fn repeats(
     if near.is_empty() {
         return false;
     }
-    let texts: Vec<&Words> = near.iter().map(|turn| &turn.text).collect();
-    if similar(text, &texts, finished) {
-        return true;
-    }
-    let sources: Vec<&Words> = near.iter().map(|turn| &turn.source).collect();
-    similar(source, &sources, finished)
+    similar(text, &near, |turn| &turn.text, finished)
+        || similar(source, &near, |turn| &turn.source, finished)
 }
 
 /// Whether `said` is, nearly enough, part of `heard`, the system turns' tails read one after
@@ -681,23 +678,23 @@ fn repeats(
 /// engines hearing one voice through different microphones do not write every word alike. A
 /// line of one or two words (finished lines only: a turn is that short as it starts) must
 /// appear in `heard` exactly as it is.
-fn similar(said: &Words, heard: &[&Words], finished: bool) -> bool {
-    let heard: Vec<&Words> = heard
-        .iter()
-        .copied()
-        .filter(|turn| !turn.tail.is_empty())
-        .collect();
+/// `side` picks which of the system turns' texts `said` is compared with.
+fn similar(said: &Words, near: &[&Heard], side: fn(&Heard) -> &Words, finished: bool) -> bool {
+    let heard = || {
+        near.iter()
+            .map(|turn| side(turn))
+            .filter(|words| !words.tail.is_empty())
+    };
     // The pairs that span two turns, as if their tails were one text.
-    let bridges: Vec<u64> = heard
-        .windows(2)
-        .filter_map(|two| Some(pair_key(two[0].tail.last()?, two[1].tail.first()?)))
+    let bridges: Vec<u64> = heard()
+        .zip(heard().skip(1))
+        .filter_map(|(first, second)| Some(pair_key(first.tail.last()?, second.tail.first()?)))
         .collect();
-    let has =
-        |key: u64| bridges.contains(&key) || heard.iter().any(|turn| turn.pairs.contains(&key));
+    let has = |key: u64| bridges.contains(&key) || heard().any(|turn| turn.pairs.contains(&key));
     let words = &said.tail;
     match words.len() {
         0 => false,
-        1 => finished && heard.iter().any(|turn| turn.tail.contains(&words[0])),
+        1 => finished && heard().any(|turn| turn.tail.contains(&words[0])),
         2 => finished && has(pair_key(&words[0], &words[1])),
         _ => {
             let total = words.len() - 1;
@@ -1149,13 +1146,44 @@ mod tests {
         let now = Instant::now();
         let mut guard = guard(now);
         guard.caption(&system(1, SPEECH, true, 0), now);
-        let later = now + RETAIN;
-        // Any system caption prunes; this one says something else.
-        guard.caption(&system(2, "Next question", true, 1_000), later);
-        let outcome = guard.caption(&mic(1, ROOM_HEARD, true, 500), later);
+        // The oldest turn goes once `MAX_HEARD` newer ones are kept; these say something else.
+        for turn in 0..MAX_HEARD {
+            let text = format!("Next question number {turn}");
+            guard.caption(&system(2 + turn as u64, &text, true, 1_000), now);
+        }
+        let outcome = guard.caption(&mic(1, ROOM_HEARD, true, 500), now);
         // The system was just captioned, so the line is held rather than dropped.
         assert!(!outcome.pass);
         assert_eq!(shape(&outcome.before), [(1, ROOM_HEARD, false)]);
+    }
+
+    /// Local Whisper behind a backlog: the system's window is captioned, then its next window,
+    /// more than 20 seconds later on the clock, before the microphone's window covering the
+    /// same speech is decoded at all. The microphone line is still the system line of the same
+    /// moment in session time, and is dropped. It used to pass: system turns were forgotten 20
+    /// seconds after they arrived, on the clock, whenever another system caption came in.
+    #[test]
+    fn a_microphone_echo_decoded_long_after_its_system_line_is_still_dropped() {
+        let now = Instant::now();
+        let mut guard = Guard::default();
+        guard.begin(true, HOLD_LOCAL, now);
+        loud(&mut guard, now, 40);
+        assert!(guard.caption(&system(1, SPEECH, true, 10_000), now).pass);
+        let next_window = now + Duration::from_secs(25);
+        assert!(
+            guard
+                .caption(
+                    &system(2, "Questions can be sent by email", true, 30_000),
+                    next_window
+                )
+                .pass
+        );
+        let decoded = now + Duration::from_secs(28);
+        assert_eq!(
+            guard.caption(&mic(1, ROOM_HEARD, true, 10_300), decoded),
+            Outcome::default(),
+            "dropped, never shown"
+        );
     }
 
     #[test]

@@ -15,46 +15,47 @@ const SERVICE: &str = "io.github.fmadore.live-translation";
 /// Credential Manager under a name that misstates who put it there.
 const LEGACY_SERVICE: &str = "org.stias.live-translation";
 
-/// Credential-store account name (one entry per provider). `None` for backends that need
-/// no credential.
-fn account(provider: Provider) -> Option<&'static str> {
-    match provider {
+/// Where one provider's key lives and what to call it. One table, so the keychain account,
+/// the environment fallback and the name in messages cannot disagree about which providers
+/// need a key.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Credential {
+    /// Credential-store account name (one entry per provider).
+    account: &'static str,
+    /// Environment-variable fallback name.
+    env_var: &'static str,
+    /// The provider as messages name it.
+    label: &'static str,
+}
+
+/// The provider's credential, or `None` for a backend that needs none.
+fn credential(provider: Provider) -> Option<Credential> {
+    let (account, env_var, label) = match provider {
         // Both Gemini backends read the same credential on purpose: one key from AI Studio
         // covers translation and subtitles, so switching mode never asks for it again.
-        Provider::Gemini | Provider::GeminiTranscribe => Some("gemini-api-key"),
-        Provider::OpenAi => Some("openai-api-key"),
-        Provider::Mistral => Some("mistral-api-key"),
-        Provider::DeepL => Some("deepl-api-key"),
-        Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => None,
-    }
+        Provider::Gemini | Provider::GeminiTranscribe => {
+            ("gemini-api-key", "GEMINI_API_KEY", "Gemini")
+        }
+        Provider::OpenAi => ("openai-api-key", "OPENAI_API_KEY", "OpenAI"),
+        Provider::Mistral => ("mistral-api-key", "MISTRAL_API_KEY", "Mistral"),
+        Provider::DeepL => ("deepl-api-key", "DEEPL_API_KEY", "DeepL"),
+        Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => return None,
+    };
+    Some(Credential {
+        account,
+        env_var,
+        label,
+    })
 }
 
-/// Environment-variable fallback name.
-fn env_var(provider: Provider) -> Option<&'static str> {
-    match provider {
-        Provider::Gemini | Provider::GeminiTranscribe => Some("GEMINI_API_KEY"),
-        Provider::OpenAi => Some("OPENAI_API_KEY"),
-        Provider::Mistral => Some("MISTRAL_API_KEY"),
-        Provider::DeepL => Some("DEEPL_API_KEY"),
-        Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => None,
-    }
-}
-
-fn label(provider: Provider) -> &'static str {
-    match provider {
-        Provider::Gemini | Provider::GeminiTranscribe => "Gemini",
-        Provider::OpenAi => "OpenAI",
-        Provider::Mistral => "Mistral",
-        Provider::DeepL => "DeepL",
-        Provider::OnDevice => "Built-in demo",
-        Provider::Whisper | Provider::WhisperTranslate => "Whisper",
-    }
+/// The refusal for a provider that has no credential to store or resolve.
+fn needs_no_key(provider: Provider) -> anyhow::Error {
+    anyhow::anyhow!("{provider:?} needs no API key")
 }
 
 fn entry_in(service: &str, provider: Provider) -> Result<keyring::Entry> {
-    let account =
-        account(provider).with_context(|| format!("{} needs no API key", label(provider)))?;
-    keyring::Entry::new(service, account).context("failed to open OS keychain entry")
+    let credential = credential(provider).ok_or_else(|| needs_no_key(provider))?;
+    keyring::Entry::new(service, credential.account).context("failed to open OS keychain entry")
 }
 
 fn entry(provider: Provider) -> Result<keyring::Entry> {
@@ -179,8 +180,8 @@ pub fn clear_api_key(provider: Provider) -> Result<()> {
 
 /// Resolve the provider's key for use: keychain first, then the environment/.env fallback.
 pub fn resolve_api_key(provider: Provider) -> Result<String> {
-    let Some(env_var) = env_var(provider) else {
-        anyhow::bail!("{} needs no API key", label(provider));
+    let Some(Credential { env_var, label, .. }) = credential(provider) else {
+        return Err(needs_no_key(provider));
     };
     if let Ok(pw) = entry(provider).and_then(|e| e.get_password().map_err(Into::into))
         && !pw.trim().is_empty()
@@ -195,11 +196,7 @@ pub fn resolve_api_key(provider: Provider) -> Result<String> {
     {
         return Ok(env_key);
     }
-    anyhow::bail!(
-        "No {} API key found. Save one in the operator window or set {}.",
-        label(provider),
-        env_var
-    )
+    anyhow::bail!("No {label} API key found. Save one in the operator window or set {env_var}.")
 }
 
 /// True once this provider is ready to start a session. Backends that need no credential
@@ -465,6 +462,55 @@ mod tests {
             assert!(set_api_key(provider, "anything").is_err(), "{provider:?}");
             assert!(resolve_api_key(provider).is_err(), "{provider:?}");
         }
+    }
+
+    /// One table decides which providers need a key: those that do have an account, an
+    /// environment variable and a name, and agree with `Provider::requires_api_key`; those
+    /// that do not have none of the three.
+    #[test]
+    fn every_keyed_provider_has_a_whole_credential_and_no_other_has_one() {
+        for provider in [
+            Provider::Gemini,
+            Provider::GeminiTranscribe,
+            Provider::OpenAi,
+            Provider::Mistral,
+            Provider::DeepL,
+            Provider::OnDevice,
+            Provider::Whisper,
+            Provider::WhisperTranslate,
+        ] {
+            // A new variant fails to compile here until it is listed above.
+            match provider {
+                Provider::Gemini
+                | Provider::GeminiTranscribe
+                | Provider::OpenAi
+                | Provider::Mistral
+                | Provider::DeepL
+                | Provider::OnDevice
+                | Provider::Whisper
+                | Provider::WhisperTranslate => {}
+            }
+            match credential(provider) {
+                Some(Credential {
+                    account,
+                    env_var,
+                    label,
+                }) => {
+                    assert!(provider.requires_api_key(), "{provider:?}");
+                    assert!(!account.is_empty(), "{provider:?}");
+                    assert!(env_var.ends_with("_API_KEY"), "{provider:?}");
+                    assert!(!label.is_empty(), "{provider:?}");
+                }
+                None => {
+                    assert!(!provider.requires_api_key(), "{provider:?}");
+                    assert!(entry(provider).is_err(), "{provider:?}");
+                }
+            }
+        }
+        assert_eq!(
+            credential(Provider::Gemini),
+            credential(Provider::GeminiTranscribe)
+        );
     }
 
     /// Refused before Credential Manager is opened, and surrounding whitespace is still only

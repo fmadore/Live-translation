@@ -9,6 +9,8 @@ import type { TrayCommand } from './types';
 interface QuitActions {
 	stop: () => Promise<void>;
 	toggleOverlayVisible: () => Promise<void>;
+	/** Pause or resume, as the window's own shortcut does: only while a session runs. */
+	togglePause: () => Promise<void>;
 }
 
 /** Prompts and tray actions share one shutdown sequence; rendering only observes it.
@@ -65,8 +67,11 @@ class QuitController {
 		}
 	};
 
-	onHideChoice = async (choice: 'hide' | 'quit') => {
+	onHideChoice = async (choice: 'hide' | 'quit' | 'cancel') => {
 		this.hidePrompt = false;
+		// Escape: the window stays where it is, and the explanation is still owed for the
+		// first hide, so it is not marked as given either.
+		if (choice === 'cancel') return;
 		if (choice === 'quit') {
 			// They meant to leave. The explanation is deliberately *not* marked as given: the
 			// app never actually hid, so the first hide still deserves it.
@@ -138,6 +143,10 @@ class QuitController {
 		switch (command) {
 			case 'toggle-overlay':
 				await this.#actions.toggleOverlayVisible();
+				return;
+			// The system-wide Pause key (the tray menu has no entry for it).
+			case 'toggle-pause':
+				await this.#actions.togglePause();
 				return;
 			case 'stop-session':
 				await this.#actions.stop();

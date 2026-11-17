@@ -25,7 +25,7 @@ use tokio_tungstenite::tungstenite::{self, Message};
 use tokio_tungstenite::{WebSocketStream, accept_async};
 use tokio_util::sync::CancellationToken;
 
-use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION};
+use super::policy::{INITIAL_BACKOFF, MAX_SETUP_FAILURES, STABLE_CONNECTION, UNCONFIRMED_OPEN};
 use super::socket::{CLOSE_DRAIN_TIMEOUT, INBOUND_TIMEOUT, QUIET_BEFORE_CLOSE, SETUP_TIMEOUT};
 use super::turn_timer::MAX_HOLD;
 use super::*;
@@ -98,6 +98,9 @@ struct Fake {
     prepare: Prepare,
     /// Send silence (a chunk tagged 0) after this long without audio.
     keepalive: Option<Duration>,
+    /// Waits for `ready` before streaming. Without it the socket is accepted once open, as
+    /// DeepL's is; the setup frame still goes out, so the server can tell connections apart.
+    setup_ack: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -116,6 +119,7 @@ impl Fake {
             broken_setup: false,
             prepare: Prepare::Ready,
             keepalive: None,
+            setup_ack: true,
         }
     }
 }
@@ -163,10 +167,10 @@ impl RealtimeProtocol for Fake {
     }
 
     fn wait_for_setup_complete(&self) -> bool {
-        true
+        self.setup_ack
     }
 
-    fn closing_json(&self) -> anyhow::Result<Vec<String>> {
+    fn closing_json(&mut self) -> anyhow::Result<Vec<String>> {
         Ok(vec!["end".into()])
     }
 
@@ -1339,5 +1343,96 @@ async fn a_quiet_source_sends_silence_to_a_provider_that_needs_it() {
     client.cancel.cancel();
     assert_eq!(peer.recv().await, Frame::Text("end".into()));
     drop(peer);
+    client.finished().await;
+}
+
+/// A provider that confirms no setup and closes every socket as soon as it opens, saying
+/// nothing, is refusing it: each such connection counts as a failed setup, and the fifth in a
+/// row ends the source instead of reconnecting every 16 seconds for the rest of the event.
+#[tokio::test(start_paused = true)]
+async fn a_socket_closed_at_once_without_a_word_counts_towards_the_setup_cap() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        setup_ack: false,
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    for attempt in 1..=MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        // Open is all the acceptance such a provider gives.
+        client.expect(status(SessionState::Running)).await;
+        peer.0.close(None).await.unwrap();
+        if attempt < MAX_SETUP_FAILURES {
+            client
+                .expect(Event::Status(
+                    SessionState::Reconnecting,
+                    Some(id::PROVIDER_RECONNECTING),
+                ))
+                .await;
+            client.expect(status(SessionState::Reconnecting)).await;
+        } else {
+            client
+                .expect(Event::Status(
+                    SessionState::Error,
+                    Some(id::PROVIDER_STOPPED),
+                ))
+                .await;
+        }
+    }
+    client.finished().await;
+}
+
+/// Only a connection that ends early and silent counts. One that stays open in a quiet room,
+/// or that the provider spoke on before closing, reconnects as ever, however often.
+#[tokio::test(start_paused = true)]
+async fn a_quiet_socket_that_stays_open_or_one_that_spoke_is_not_a_failed_setup() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start_with(Fake {
+        setup_ack: false,
+        ..Fake::new(&server.url)
+    });
+    client.expect(status(SessionState::Connecting)).await;
+    for attempt in 0..=MAX_SETUP_FAILURES {
+        let mut peer = server.accept().await;
+        client.expect(status(SessionState::Running)).await;
+        if attempt % 2 == 0 {
+            assert!(peer.listen_for(UNCONFIRMED_OPEN).await.is_empty());
+            peer.0.close(None).await.unwrap();
+        } else {
+            peer.send("text:hola").await;
+            peer.0.close(None).await.unwrap();
+            client.expect(interim("hola")).await;
+            client.expect(final_("hola")).await;
+        }
+        client.expect(status(SessionState::Reconnecting)).await;
+    }
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// The tentative start of a sentence that a provider holds but has not shown (DeepL's, after a
+/// concluded sentence) is speech still to come: a Pause drains for it, although the
+/// accumulator is empty and nothing has been captioned for a while.
+#[tokio::test(start_paused = true)]
+async fn pause_drains_while_the_provider_holds_words_still_to_come() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("hold").await;
+    peer.listen_for(QUIET_BEFORE_CLOSE).await;
+
+    client.pause.send_replace(true);
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    sleep(Duration::from_secs(1)).await;
+    peer.send("text:the rest").await;
+    peer.send("final").await;
+    client.expect(interim("the rest")).await;
+    client.expect(final_("the rest")).await;
+    assert_eq!(peer.recv().await, Frame::Close);
+    client.expect(status(SessionState::Paused)).await;
+
+    client.cancel.cancel();
     client.finished().await;
 }

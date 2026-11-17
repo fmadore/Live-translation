@@ -42,6 +42,8 @@ export const macEn: MacMessages = {
 	// As a Mac writes a key combination: symbols, Shift before Command, nothing between them.
 	keys: {
 		ctrl: '⌘',
+		control: '⌃',
+		alt: '⌥',
 		shift: '⇧'
 	},
 	applications: {
@@ -140,6 +142,8 @@ export const macFr: MacMessages = {
 	},
 	keys: {
 		ctrl: '⌘',
+		control: '⌃',
+		alt: '⌥',
 		shift: '⇧'
 	},
 	applications: {
@@ -241,6 +245,8 @@ export const macDe: MacMessages = {
 	},
 	keys: {
 		ctrl: '⌘',
+		control: '⌃',
+		alt: '⌥',
 		shift: '⇧'
 	},
 	applications: {

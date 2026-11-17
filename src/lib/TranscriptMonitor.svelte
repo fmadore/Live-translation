@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { exportOriginal, inFlightLines } from './stores';
+	import { untrack } from 'svelte';
+	import { exportOriginal, inFlightLines, markers } from './stores';
 	import { hasOriginalSpeech } from './transcript';
 	import type { AppError } from './errors';
 	import type { OutputMode, TranscriptLine } from './types';
@@ -18,7 +19,9 @@
 		transcript,
 		onError,
 		live = false,
-		reader = false
+		reader = false,
+		markerRequest = 0,
+		findRequest = 0
 	}: {
 		mode: OutputMode;
 		transcript: TranscriptLine[];
@@ -29,10 +32,41 @@
 		 *  rows under the live turns, shows the turns still being spoken at its foot, and the
 		 *  original speech under each paragraph when it is set to be exported. */
 		reader?: boolean;
+		/** Changes each time the window asks for a marker (its shortcut). */
+		markerRequest?: number;
+		/** Changes each time the window asks for find (its shortcut, in the reader). */
+		findRequest?: number;
 	} = $props();
 
-	// Turns not yet final. Only a running session has any: after Stop they are committed.
-	const pending = $derived(live ? $inFlightLines : []);
+	// Find works in the reader; leaving it closes the bar. Asking again while it is open puts
+	// focus back in its field.
+	let findOpen = $state(false);
+	let findFocus = $state(0);
+	function openFind() {
+		findOpen = true;
+		findFocus++;
+	}
+	$effect(() => {
+		if (!reader) findOpen = false;
+	});
+	let seenFind = untrack(() => findRequest);
+	$effect(() => {
+		if (findRequest === seenFind) return;
+		seenFind = findRequest;
+		if (untrack(() => reader)) openFind();
+	});
+
+	// Turns not yet final, drawn at the reader's foot. Only a running session has any: after
+	// Stop they are committed. Subscribed only while the reader shows them, since the store is
+	// rebuilt with every caption delta; Copy reads it for itself when pressed.
+	let pending = $state.raw<TranscriptLine[]>([]);
+	$effect(() => {
+		if (!live || !reader) {
+			pending = [];
+			return;
+		}
+		return inFlightLines.subscribe((lines) => (pending = lines));
+	});
 	// The reader shows what Save and Copy will write, so the original speech appears under
 	// each paragraph exactly when it would be exported.
 	// One pass over the log, shared with the toolbar's include-original option.
@@ -41,8 +75,27 @@
 </script>
 
 <section class="monitor" class:reader>
-	<TranscriptActions {transcript} {pending} {bilingual} {onError} />
-	<TranscriptLog {mode} {transcript} pending={reader ? pending : []} {reader} {showOriginal} />
+	<TranscriptActions
+		{transcript}
+		markers={$markers}
+		{live}
+		{bilingual}
+		{onError}
+		{reader}
+		{findOpen}
+		onFind={openFind}
+		{markerRequest}
+	/>
+	<TranscriptLog
+		{mode}
+		{transcript}
+		{pending}
+		{reader}
+		{showOriginal}
+		markers={$markers}
+		bind:findOpen
+		findRequest={findFocus}
+	/>
 	<RecoveryPreference {onError} />
 </section>
 

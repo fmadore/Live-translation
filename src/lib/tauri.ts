@@ -22,9 +22,11 @@ import type {
 	StatusUpdate,
 	StoredRecovery,
 	SystemCapture,
+	GlobalShortcutStatus,
 	TrayCommand,
 	Lane,
 	Origin,
+	UpdateStatus,
 	ZoomStatus
 } from './types';
 import type { HistoryListing } from './history';
@@ -166,6 +168,11 @@ export const api = {
 	 *  knows to hold the window open for a hide rather than let it be destroyed. */
 	setCloseToTray: (enabled: boolean) => invoke<void>('set_close_to_tray', { enabled }),
 
+	/** Hold the system-wide Pause and Show/hide overlay keys while both are true, release them
+	 *  otherwise. Answers which keys are held and which the system refused. */
+	setGlobalShortcuts: (enabled: boolean, sessionActive: boolean) =>
+		invoke<GlobalShortcutStatus>('set_global_shortcuts', { enabled, sessionActive }),
+
 	/** Put the window away without ending anything — session, overlay and transcript all
 	 *  carry on, and the tray is how they come back. */
 	hideToTray: () => invoke<void>('hide_to_tray'),
@@ -195,6 +202,19 @@ export const api = {
 	zoomCaptionsStatus: () => invoke<ZoomStatus>('zoom_captions_status'),
 	/** Open the setup guide (`ZOOM_GUIDE_URL`) in the default browser. */
 	openZoomGuide: () => invoke<void>('open_zoom_guide'),
+
+	// The new-version notice for copies installed from GitHub (`update.rs`, issue #217). The
+	// core decides whether a request goes out; none of these can make one on a store build.
+	/** Where the check stands. The first call of a launch counts the launch. */
+	updateStatus: () => invoke<UpdateStatus>('update_status'),
+	/** Ask GitHub for the latest release, if the core finds it is time; otherwise the status. */
+	checkForUpdate: () => invoke<UpdateStatus>('check_for_update'),
+	/** *Check for new versions*, on or off: an answer to the question either way. */
+	setUpdateChecks: (on: boolean) => invoke<UpdateStatus>('set_update_checks', { on }),
+	/** Not now: hide the version on offer until a newer one. */
+	skipUpdateVersion: () => invoke<UpdateStatus>('skip_update_version'),
+	/** Open the release page of the version on offer; the core builds its address. */
+	openReleasePage: () => invoke<void>('open_release_page'),
 
 	/** Push session and overlay state onto the tray menu, so it cannot describe a state the
 	 *  app has already left. */

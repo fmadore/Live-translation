@@ -32,8 +32,11 @@
 		transcriptFilename,
 		hasOriginalSpeech,
 		hasTranscriptTiming,
+		markerTime,
+		markerTitle,
 		type TranscriptFormat
 	} from './transcript';
+	import type { TranscriptLine, TranscriptMarker } from './types';
 	const desktop = isTauri();
 	// Raw rather than deeply reactive: the list is only ever replaced, and an unchanged session
 	// has to stay the very object the cache holds for the search's own cache to find it. A deep
@@ -144,10 +147,32 @@
 				origin: $t.export.origin,
 				original: $t.export.original,
 				language: (code) => languageName(code, $locale),
-				tag: $localeTag
+				tag: $localeTag,
+				section: $t.marker.section
 			},
-			{ original: $exportOriginal }
+			{ original: $exportOriginal, markers: session.markers ?? [] }
 		);
+	}
+
+	/** The session's lines, oldest first, with its markers among them where they were added
+	 *  (lines and markers share one counter), each marker with its number. */
+	function readerItems(session: SavedSession) {
+		const markers = [...(session.markers ?? [])].sort((a, b) => a.id - b.id);
+		const items: (
+			| { kind: 'line'; line: TranscriptLine }
+			| { kind: 'marker'; marker: TranscriptMarker; number: number }
+		)[] = [];
+		let next = 0;
+		for (const line of [...session.lines].reverse()) {
+			while (next < markers.length && markers[next].id < line.id) {
+				items.push({ kind: 'marker', marker: markers[next], number: next + 1 });
+				next++;
+			}
+			items.push({ kind: 'line', line });
+		}
+		for (; next < markers.length; next++)
+			items.push({ kind: 'marker', marker: markers[next], number: next + 1 });
+		return items;
 	}
 	async function action(kind: 'copy' | 'export') {
 		if (!selected || busy) return;
@@ -217,149 +242,165 @@
 			>{$t.history.retry}</ToolButton
 		>
 	{/if}
-	<ToolButton disabled={!desktop || busy} onclick={refresh}>{$t.history.refresh}</ToolButton>
-	{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{/if}
-	<div class="filters">
-		<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
-		<DateField label={$t.usability.from} bind:value={from} />
-		<DateField label={$t.usability.to} bind:value={to} />
-		<Field label={$t.usability.language}
-			><Select bind:value={language}
-				><option value="">{$t.usability.allLanguages}</option
-				>{#each TARGET_LANGUAGES as code (code)}<option value={code}
-						>{languageName(code, $locale)}</option
-					>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
-			></Field
+	<!-- Until there is a session to find, the search, the dates, the language filter and the
+	     reader would be controls over nothing: the opt-ins and one sentence say all there is.
+	     Refresh stays while a listing has failed, as the way to try again. The dialog keeps its
+	     size whichever way this goes (`stableHeight`). -->
+	{#if sessions.length || error}
+		<ToolButton disabled={!desktop || busy} onclick={refresh}>{$t.history.refresh}</ToolButton>
+	{/if}
+	{#if !sessions.length}<p class="hint">{$t.history.empty}</p>{:else}
+		<div class="filters">
+			<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
+			<DateField label={$t.usability.from} bind:value={from} />
+			<DateField label={$t.usability.to} bind:value={to} />
+			<Field label={$t.usability.language}
+				><Select bind:value={language}
+					><option value="">{$t.usability.allLanguages}</option
+					>{#each TARGET_LANGUAGES as code (code)}<option value={code}
+							>{languageName(code, $locale)}</option
+						>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
+				></Field
+			>
+		</div>
+		<ToolButton
+			disabled={!query && !from && !to && !language}
+			onclick={() => {
+				query = '';
+				from = '';
+				to = '';
+				language = '';
+			}}>{$t.design.clearFilters}</ToolButton
 		>
-	</div>
-	<ToolButton
-		disabled={!query && !from && !to && !language}
-		onclick={() => {
-			query = '';
-			from = '';
-			to = '';
-			language = '';
-		}}>{$t.design.clearFilters}</ToolButton
-	>
-	{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
-	<div class="history-browser">
-		<ul class="sessions">
-			{#each filtered as entry (entry.id)}
-				<li>
-					<ToolButton
-						class="session"
-						disabled={busy}
-						aria-pressed={selectedId === entry.id}
-						onclick={() => {
-							selectedId = entry.id;
-							title = entry.session?.title ?? '';
-							confirmDelete = '';
-							notice = '';
-							// Its headline says "this session", so it goes with the selection.
-							actionError = '';
+		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
+		<div class="history-browser">
+			<ul class="sessions">
+				{#each filtered as entry (entry.id)}
+					<li>
+						<ToolButton
+							class="session"
+							disabled={busy}
+							aria-pressed={selectedId === entry.id}
+							onclick={() => {
+								selectedId = entry.id;
+								title = entry.session?.title ?? '';
+								confirmDelete = '';
+								notice = '';
+								// Its headline says "this session", so it goes with the selection.
+								actionError = '';
+							}}
+						>
+							{#if entry.session}
+								<strong
+									>{entry.session.title ||
+										formatDateTime(entry.session.startedAt, $localeTag)}</strong
+								>
+								{#if entry.session.title}<span
+										>{formatDateTime(entry.session.startedAt, $localeTag)}</span
+									>{/if}
+								<span
+									>{formatElapsed(entry.session.durationMs)} · {entry.session.sourceLanguage ===
+									'auto'
+										? $t.history.auto
+										: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
+										entry.session
+									)}</span
+								>
+								{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
+							{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
+						</ToolButton>
+					</li>
+				{/each}
+			</ul>
+			<div class="detail">
+				{#if selected}
+					<form
+						onsubmit={(e) => {
+							e.preventDefault();
+							void rename();
 						}}
 					>
-						{#if entry.session}
-							<strong
-								>{entry.session.title ||
-									formatDateTime(entry.session.startedAt, $localeTag)}</strong
-							>
-							{#if entry.session.title}<span
-									>{formatDateTime(entry.session.startedAt, $localeTag)}</span
-								>{/if}
-							<span
-								>{formatElapsed(entry.session.durationMs)} · {entry.session.sourceLanguage ===
-								'auto'
-									? $t.history.auto
-									: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
-									entry.session
-								)}</span
-							>
-							{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
-						{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
-					</ToolButton>
-				</li>
-			{/each}
-		</ul>
-		<div class="detail">
-			{#if selected}
-				<form
-					onsubmit={(e) => {
-						e.preventDefault();
-						void rename();
-					}}
-				>
-					<Field label={$t.usability.title}
-						><input maxlength="120" bind:value={title} disabled={busy} /></Field
-					>
-					<p class="hint">{$t.usability.titleHint}</p>
-					<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
-						>{$t.usability.saveTitle}</ToolButton
-					>
-				</form>
-				<div class="actions">
-					<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton>
-					<ExportFormatSelect disabled={busy} />
-					<ToolButton
-						disabled={busy || (isTimedFormat($format) && !timed)}
-						onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
-					>
+						<Field label={$t.usability.title}
+							><input maxlength="120" bind:value={title} disabled={busy} /></Field
+						>
+						<p class="hint">{$t.usability.titleHint}</p>
+						<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
+							>{$t.usability.saveTitle}</ToolButton
+						>
+					</form>
+					<div class="actions">
+						<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton
+						>
+						<ExportFormatSelect disabled={busy} />
+						<ToolButton
+							disabled={busy || (isTimedFormat($format) && !timed)}
+							onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
+						>
+						<ConfirmButton
+							confirming={confirmDelete === selectedId}
+							label={$t.history.delete}
+							confirmLabel={$t.history.confirmDelete}
+							cancelLabel={$t.history.cancel}
+							disabled={busy}
+							onask={() => (confirmDelete = selectedId)}
+							onconfirm={() => void remove(selectedId)}
+							oncancel={() => (confirmDelete = '')}
+						/>
+					</div>
+					{#if hasOriginalSpeech(selected.lines)}<Preference
+							label={$t.transcript.includeOriginal}
+							checked={$exportOriginal}
+							disabled={busy}
+							onchange={(value) => exportOriginal.set(value)}
+						/>{/if}
+					{#if isTimedFormat($format) && !timed}<p class="hint">
+							{$t.transcript.noTiming}
+						</p>{/if}
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
+					<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
+						<!-- Each line in the language it was captioned in, as the live log does (review U12),
+					     and the original speech once: under the first language's line only, as the
+					     saved documents write it — the second language heard the same speech. The
+					     original's language is not recorded, so it is `lang=""`, its direction taken
+					     from the text. -->
+						{#each readerItems(selected) as item (item.kind === 'marker' ? `m${item.marker.id}` : item.line.id)}
+							{#if item.kind === 'marker'}
+								<h3 class="marker">
+									<span class="marker-time">{markerTime(item.marker.atMs)}</span>
+									{markerTitle(item.marker, item.number, $t.marker.section)}
+								</h3>
+							{:else}
+								{@const line = item.line}
+								{@const language = lineLanguage(selected, line)}
+								<p>
+									<strong>{$t.transcript.side[line.origin]}</strong>
+									<span lang={language ?? ''} dir={captionDirection(language)}>{line.text}</span>
+								</p>
+								{#if line.sourceText && (line.lane ?? 0) === 0}<p class="source" lang="" dir="auto">
+										{line.sourceText}
+									</p>{/if}
+							{/if}
+						{/each}
+					</div>
+				{:else if selectedId}
+					<p class="hint">{$t.history.unreadable}</p>
 					<ConfirmButton
+						class="danger"
 						confirming={confirmDelete === selectedId}
 						label={$t.history.delete}
 						confirmLabel={$t.history.confirmDelete}
 						cancelLabel={$t.history.cancel}
 						disabled={busy}
+						cancelDisabled={false}
 						onask={() => (confirmDelete = selectedId)}
 						onconfirm={() => void remove(selectedId)}
 						oncancel={() => (confirmDelete = '')}
 					/>
-				</div>
-				{#if hasOriginalSpeech(selected.lines)}<Preference
-						label={$t.transcript.includeOriginal}
-						checked={$exportOriginal}
-						disabled={busy}
-						onchange={(value) => exportOriginal.set(value)}
-					/>{/if}
-				{#if isTimedFormat($format) && !timed}<p class="hint">
-						{$t.transcript.noTiming}
-					</p>{/if}
-				<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
-				<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">
-					<!-- Each line in the language it was captioned in, as the live log does (review U12),
-					     and the original speech once: under the first language's line only, as the
-					     saved documents write it — the second language heard the same speech. The
-					     original's language is not recorded, so it is `lang=""`, its direction taken
-					     from the text. -->
-					{#each [...selected.lines].reverse() as line (line.id)}
-						{@const language = lineLanguage(selected, line)}
-						<p>
-							<strong>{$t.transcript.side[line.origin]}</strong>
-							<span lang={language ?? ''} dir={captionDirection(language)}>{line.text}</span>
-						</p>
-						{#if line.sourceText && (line.lane ?? 0) === 0}<p class="source" lang="" dir="auto">
-								{line.sourceText}
-							</p>{/if}
-					{/each}
-				</div>
-			{:else if selectedId}
-				<p class="hint">{$t.history.unreadable}</p>
-				<ConfirmButton
-					class="danger"
-					confirming={confirmDelete === selectedId}
-					label={$t.history.delete}
-					confirmLabel={$t.history.confirmDelete}
-					cancelLabel={$t.history.cancel}
-					disabled={busy}
-					cancelDisabled={false}
-					onask={() => (confirmDelete = selectedId)}
-					onconfirm={() => void remove(selectedId)}
-					oncancel={() => (confirmDelete = '')}
-				/>
-			{:else}<p class="hint">{$t.design.selectSession}</p>
-			{/if}
+				{:else}<p class="hint">{$t.design.selectSession}</p>
+				{/if}
+			</div>
 		</div>
-	</div>
+	{/if}
 	{#if error}<p role="alert">{$t.history.failed} {describeStatus(error, $t, $locale)}</p>{/if}
 	{#if actionError}<p role="alert">
 			{$t.history.actionFailed}
@@ -455,6 +496,22 @@
 	}
 	.saved-text p {
 		margin: var(--space-3) 0;
+	}
+	/* An operator's marker: a talk's start, in the accent, under a rule. */
+	.saved-text .marker {
+		margin: var(--space-4) 0 var(--space-2);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--line-strong);
+		font-size: var(--type-body);
+		font-weight: 600;
+		color: var(--accent-soft);
+	}
+	.marker-time {
+		margin-inline-end: var(--space-2);
+		font-family: var(--font-mono);
+		font-weight: 500;
+		color: var(--text-muted);
+		font-variant-numeric: tabular-nums;
 	}
 	/* Asked of the settings dialog, in `em`, for the same reason as the appearance layout. */
 	@container dialog (max-width: 40em) {

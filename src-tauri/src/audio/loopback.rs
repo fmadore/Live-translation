@@ -20,6 +20,15 @@ use tokio_util::sync::CancellationToken;
 
 use crate::types::AudioLevel;
 
+/// Whether the Windows loopback decoder reads samples of this layout: 32-bit float, or 16- or
+/// 32-bit integer. A pure function of the stream's format, so the open refuses any other
+/// once, and the decoder's silent fallback for one is never reached in practice. Defined
+/// everywhere so its table is tested on every runner, not only on Windows.
+#[cfg(any(windows, test))]
+fn decodes_samples(float: bool, bits: u16) -> bool {
+    matches!((float, bits), (true, 32) | (false, 16 | 32))
+}
+
 #[cfg(not(any(windows, target_os = "macos")))]
 pub fn run_system_loopback(
     _device_id: Option<String>,
@@ -424,6 +433,13 @@ mod windows_impl {
             "starting WASAPI loopback capture"
         );
 
+        // Refused here, once, as a system-capture failure: decoded, it would only ever be
+        // silence while the source reported Running.
+        anyhow::ensure!(
+            super::decodes_samples(matches!(sample_type, SampleType::Float), bits),
+            "unsupported loopback sample format: {sample_type:?}/{bits}-bit"
+        );
+
         // Loopback = render endpoint opened for capture.
         let mode = StreamMode::EventsShared {
             autoconvert: true,
@@ -576,7 +592,8 @@ mod windows_impl {
     }
 
     /// Decode raw interleaved endpoint bytes into f32 samples in [-1, 1].
-    /// `make_contiguous` rotates the deque in place instead of copying it out.
+    /// `make_contiguous` rotates the deque in place instead of copying it out. Reads the
+    /// layouts `decodes_samples` accepts; `start` refuses any other.
     fn decode_interleaved(bytes: &mut VecDeque<u8>, ty: SampleType, bits: u16, out: &mut Vec<f32>) {
         let buf: &[u8] = bytes.make_contiguous();
         match (ty, bits) {
@@ -597,12 +614,12 @@ mod windows_impl {
                 }
             }
             (_, b) => {
-                // Unexpected format: emit silence of the right length rather than panic.
+                // Unreachable after `start`'s check: silence of the right length rather than a
+                // panic, and no log line, as this would run a hundred times a second.
                 let bytes_per = (b / 8).max(1) as usize;
                 for _ in 0..(buf.len() / bytes_per) {
                     out.push(0.0);
                 }
-                tracing::warn!("unsupported loopback sample format: {ty:?}/{b}-bit");
             }
         }
     }
@@ -669,6 +686,11 @@ mod windows_impl {
                 // A zero bit depth counts as one byte per sample rather than dividing by zero.
                 (SampleType::Int, 0, 3, 3),
             ] {
+                // `start` refuses every one of these before a packet is read.
+                assert!(!super::super::decodes_samples(
+                    matches!(ty, SampleType::Float),
+                    bits
+                ));
                 assert_eq!(
                     decode(&vec![0x7f; len], ty, bits),
                     vec![0.0; samples],
@@ -708,6 +730,28 @@ mod windows_impl {
             assert_eq!(seen.note(at(10_000)), Some(4));
             assert_eq!(seen.note(at(10_001)), None);
             assert_eq!(seen.note(at(25_000)), Some(1));
+        }
+    }
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::decodes_samples;
+
+    #[test]
+    fn only_the_three_layouts_the_decoder_reads_are_accepted() {
+        assert!(decodes_samples(true, 32));
+        assert!(decodes_samples(false, 16));
+        assert!(decodes_samples(false, 32));
+        for (float, bits) in [
+            (true, 16),
+            (true, 24),
+            (true, 64),
+            (false, 8),
+            (false, 24),
+            (false, 0),
+        ] {
+            assert!(!decodes_samples(float, bits), "float {float}, {bits}-bit");
         }
     }
 }

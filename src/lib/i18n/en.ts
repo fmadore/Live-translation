@@ -95,6 +95,14 @@ export const en = {
 		shortcutSize: 'Increase / decrease caption size',
 		shortcutDirection: 'Swap the first two favourites before starting with F2',
 		shortcutPause: 'Pause / resume captions',
+		shortcutMarker: 'Add a marker to the transcript while captioning',
+		shortcutFind: 'Find in the transcript, on the Transcript tab',
+		globalShortcuts: 'Use shortcuts while other apps are in front',
+		globalShortcutsNote:
+			'Off by default. While a session is running or paused, these two keys also work when slides or a meeting app are in front. The app learns of these two key combinations only, nothing else you type. Start and stop stay in this window.',
+		// `keys` is one combination, or a list already joined with “or”.
+		globalRefused: (keys: string, count: number) =>
+			`Could not register ${keys}: another app already uses ${count === 1 ? 'it' : 'them'}. The shortcuts in this window still work.`,
 		listening: 'Listening — no recent audio signal',
 		/** Something is playing into what is captured, yet only digital silence arrives:
 		 *  `AudioLevel.silenced`. On a Mac, a refused System Audio Recording permission. */
@@ -136,9 +144,14 @@ export const en = {
 	// a key combination.
 	keys: {
 		ctrl: 'Ctrl',
+		// The system-wide keys' Control and Alt: Control on a Mac too, where `ctrl` is Command.
+		control: 'Ctrl',
+		alt: 'Alt',
 		shift: 'Shift',
 		space: 'Space',
 		o: 'O',
+		m: 'M',
+		f: 'F',
 		up: '↑',
 		down: '↓',
 		p: 'P',
@@ -193,6 +206,8 @@ export const en = {
 		base: 'Base — balanced',
 		small: 'Small — more accurate',
 		turbo: 'Large v3 Turbo — most accurate',
+		/** The models' names alone, where the descriptions above would not fit. */
+		names: { tiny: 'Tiny', base: 'Base', small: 'Small', turbo: 'Large v3 Turbo' },
 		/** Under the model list when Turbo is chosen for subtitles. */
 		turboHint:
 			'The most accurate model, and the heaviest: it keeps up with speech on a graphics processor or a fast processor. Try it before an event.',
@@ -204,6 +219,8 @@ export const en = {
 		graphicsNote:
 			'Faster where the computer has a suitable one; otherwise, or if it fails, Whisper runs on the processor.',
 		download: 'Download model',
+		/** The pre-flight row's button on a first run: the chosen model and its size. */
+		downloadSized: (model: string, mib: number) => `Download ${model} (${mib}\u00a0MiB)`,
 		remove: 'Remove model',
 		cancel: 'Cancel download',
 		ready: 'Model ready for offline transcription.',
@@ -320,6 +337,31 @@ export const en = {
 		twoLanguages: '×2 languages',
 		estimate: 'Est. cost',
 		twoSources: '×2 sources'
+	},
+
+	/** The spending guard for cloud engines (`spendingGuard.ts`): its choices in Settings › App
+	 *  and the notices it puts above the stage. */
+	guard: {
+		heading: 'Cloud spending',
+		idlePause: 'Pause when nothing has been captioned for',
+		costWarning: 'Tell me when the estimated cost passes',
+		durationWarning: 'Tell me when a session has run for',
+		never: 'Never',
+		minutes: (n: number) => `${n} minutes`,
+		hours: (n: number) => (n === 1 ? '1 hour' : `${n} hours`),
+		note: 'Cloud engines only: local Whisper and the built-in demo cost nothing. The pause is the ordinary Pause, so the session, its clock and the transcript stay as they are. The warnings never stop anything.',
+		idlePaused: (minutes: number) =>
+			`Paused: nothing was captioned for ${minutes} minutes. Nothing is sent or billed until you resume.`,
+		costPassed: (amount: string) =>
+			`The estimated cost of this session has passed ${amount}. It is still running.`,
+		durationPassed: (hours: number) =>
+			hours === 1
+				? 'This session has been running for an hour. It is still running.'
+				: `This session has been running for ${hours} hours. It is still running.`,
+		resume: 'Resume',
+		dismiss: 'Dismiss',
+		/** Puts the paused suggestion on the overlay, from the idle-pause notice. */
+		showNotice: (text: string) => `Show “${text}” on the overlay`
 	},
 
 	applications: {
@@ -539,7 +581,47 @@ export const en = {
 		show: 'Show overlay',
 		hide: 'Hide overlay',
 		showLabel: 'Show the overlay',
-		hideLabel: 'Hide the overlay'
+		hideLabel: 'Hide the overlay',
+		// The overlay's report that its rows are drawn smaller than the size above, or not at
+		// all. The visible notice gives the size; the announcement does not, since a resize
+		// changes it without anything worth interrupting for.
+		fit: {
+			smaller: (size: number, rows: number) =>
+				rows === 1
+					? `Drawn at ${size} px: the overlay is too shallow for this size.`
+					: `Drawn at ${size} px: the overlay is too shallow for ${rows} rows at this size.`,
+			smallerAnnounce: (rows: number) =>
+				rows === 1
+					? 'Captions are drawn smaller than chosen: the overlay is too shallow.'
+					: `Captions are drawn smaller than chosen: the overlay is too shallow for ${rows} rows.`,
+			noRoom: (rows: number) =>
+				rows === 1
+					? 'No room for captions: the overlay is too shallow.'
+					: `No room for captions: the overlay is too shallow for ${rows} rows.`,
+			originalHidden: 'The original speech is hidden to leave room for the translations.',
+			action: (move: string, snap: string) => `${move}, then ${snap}, gives them room.`
+		}
+	},
+
+	/** A notice on the overlay in place of the captions, for a break (`overlayNotice.ts`). */
+	overlayNotice: {
+		openLabel: 'Show a notice on the overlay…',
+		heading: 'Notice on the overlay',
+		field: 'Notice text',
+		suggestions: 'Suggestions',
+		/** What a preset says on the overlay. */
+		presets: {
+			paused: 'Captions paused',
+			backSoon: 'Back soon',
+			shortBreak: 'Short break'
+		},
+		show: 'Show notice',
+		clear: 'Clear notice',
+		untilCaptions: 'Remove it when captions resume after a pause',
+		hint: 'Replaces the captions on the overlay with this one line. It is not written to the transcript or sent to Zoom, and it goes when the session stops.',
+		/** Under the overlay controls, and said by the status region, while one is showing. */
+		showing: (text: string) => `The overlay shows “${text}” instead of captions.`,
+		cleared: 'The overlay shows captions again.'
 	},
 
 	window: {
@@ -559,6 +641,29 @@ export const en = {
 		opensInBrowser: ' (opens in your browser)',
 		/** The idle stage's credit line, in front of the support link. */
 		madeBy: (name: string) => `Made by ${name}`
+	},
+
+	/** The new-version notice for copies installed from GitHub (issue #217): one line on the
+	 *  start screen and a section of Settings › App. Never a dialog, a badge or a reminder. */
+	updates: {
+		heading: 'Updates',
+		/** The notice, with the version as `X.Y.Z`. */
+		available: (version: string) => `Version ${version} is available`,
+		/** Opens the release page in the browser; `support.opensInBrowser` follows for a screen
+		 *  reader. */
+		releaseNotes: 'Release notes',
+		/** Hides the notice until a newer version is released. */
+		notNow: 'Not now',
+		/** The one-line question, from the second launch on, until it is answered. */
+		ask: 'Check for new versions? This asks GitHub once a day.',
+		turnOn: 'Turn on',
+		noThanks: 'No thanks',
+		/** The switch in Settings › App. */
+		toggle: 'Check for new versions',
+		toggleNote:
+			'Asks GitHub once a day whether a newer release exists, and says so here and on the start screen. Nothing is downloaded or installed, and the request carries only the app’s name and version.',
+		lastChecked: (when: string) => `Last checked: ${when}`,
+		notChecked: 'Not checked yet'
 	},
 
 	/** Captions in Zoom: the toolbar's Zoom button and the dialog it opens. Zoom's own menu
@@ -793,6 +898,17 @@ export const en = {
 		staleAfter: 'are not on disk yet.',
 		longSession: (threshold: number) =>
 			`This is a long session and none of it has been saved since it grew past ${threshold} lines. Nothing is being dropped, but save it now so a crash cannot take it.`,
+		/** Find in the transcript reader. */
+		find: {
+			open: 'Find',
+			field: 'Find in the transcript',
+			/** The match count beside the field, and what the status region says. */
+			count: (current: number, total: number) =>
+				total === 0 ? 'No matches' : `${current} of ${total}`,
+			previous: 'Previous match',
+			next: 'Next match',
+			close: 'Close find'
+		},
 		emptyTranslate: 'Finalized translations collect here, ready to export in your chosen format.',
 		emptySubtitles: 'Finalized subtitles collect here, ready to export in your chosen format.',
 		side: {
@@ -804,6 +920,21 @@ export const en = {
 			note: 'Writes the finalized lines to this PC every few seconds so a crash or a power cut cannot take the session. Never leaves the machine, holds no audio and no API key, and is deleted as soon as you save, clear, or switch this off.',
 			needsDesktop: 'Needs the desktop app — a browser preview has nowhere to write it.'
 		}
+	},
+
+	/** The operator's markers in the transcript: a talk starting, a speaker's name. */
+	marker: {
+		add: 'Add marker',
+		addLabel: 'Add a marker to the transcript',
+		field: 'Marker text (optional)',
+		placeholder: 'Talk 2 starts',
+		hint: 'Leave it blank for a numbered section break. Markers are saved and exported with the transcript, but never shown on the overlay.',
+		confirm: 'Add',
+		cancel: 'Cancel',
+		/** A marker left blank, by its number in the document; also what the saved file says. */
+		section: (n: number) => `Section ${n}`,
+		/** Said by the status region once a marker is in. */
+		added: (title: string, time: string) => `Marker added at ${time}: ${title}`
 	},
 
 	// What the saved file says. Issue #23 puts the transcript's headings in the interface

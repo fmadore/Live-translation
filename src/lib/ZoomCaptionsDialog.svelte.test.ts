@@ -74,6 +74,11 @@ describe('starting to share', () => {
 		expect(onClose).toHaveBeenCalledOnce();
 	});
 
+	it('opens with focus on the caption link rather than the corner Close', () => {
+		const { link } = mount();
+		expect(link).toHaveFocus();
+	});
+
 	it('sends the link, the caption language and the sources chosen', async () => {
 		const { getByRole, link, start } = mount();
 		// Pasted from the meeting chat, with the line break that came along.

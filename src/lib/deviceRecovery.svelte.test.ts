@@ -47,7 +47,12 @@ vi.mock('./overlayController.svelte', () => ({
 		pushOverlayConfig() {},
 		applyState() {},
 		overlayVisible: true,
-		moveOverlay: false
+		moveOverlay: false,
+		notice: '',
+		setNotice() {},
+		clearNotice() {},
+		noteCaption() {},
+		noteSessionState() {}
 	})
 }));
 import Page from '../routes/+page.svelte';

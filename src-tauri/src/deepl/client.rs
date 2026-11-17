@@ -17,16 +17,21 @@
 //! and counts as activity for the idle boundary; source updates are interims that do not. A
 //! turn closes as final:
 //! - when DeepL concludes target text that ends a sentence: the caption is the concluded text
-//!   alone, and any tentative text, the next sentence's start, opens the next turn;
+//!   alone, and any tentative text, the next sentence's start, opens the next turn: shown by
+//!   the next target update even if that repeats it, and drained for on a Pause or Stop;
 //! - otherwise at the idle boundary (`FINALIZE_AFTER` without target text), held while DeepL
 //!   still has tentative text pending, up to the runner's `MAX_HOLD`;
 //! - at `end_of_stream`.
 //!
-//! A turn closed on a timer may have shown tentative text that DeepL concludes later. Target
-//! segments that end no later than what a final caption already showed are dropped, so it is
-//! not printed twice (`shown_until`). Segment times are trusted within one connection only.
+//! A turn closed on a timer may have shown tentative text that DeepL concludes later. Segments
+//! that end no later than what that final caption showed are dropped, so it is not printed
+//! twice (`shown_until`), and each drop is logged with its times and length. Only the runner's
+//! own closes need this: a turn closed on a concluded sentence showed concluded text alone,
+//! which DeepL sends once. The filter lifts at the first concluded segment that ends later, so
+//! times that are not strictly increasing cost at most the segments around one timer close.
+//! Segment times are trusted within one connection only, and the source transcript is matched
+//! against its own times the same way.
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -36,7 +41,7 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{
     END_OF_SOURCE_MEDIA, Segment, ServerMessage, SessionRequest, StreamError, TranscriptUpdate,
-    deepl_target_code, source_media_chunk,
+    deepl_target_code, source_media_chunk, source_media_frame,
 };
 use super::session::{self, Refusal};
 use crate::audio::AudioChunk;
@@ -54,6 +59,10 @@ const FINALIZE_AFTER: Duration = Duration::from_millis(1_000);
 const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
 /// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
 const SILENCE_BYTES: usize = 3_200;
+/// Whether a streaming URL may be plain `ws`. The token is a credential for the session, so a
+/// release build refuses it; a debug build allows it for the loopback servers of the tests and
+/// for whatever a developer's `DEEPL_API_HOST` hands out.
+const ALLOW_PLAIN_WS: bool = cfg!(debug_assertions);
 
 #[derive(Clone)]
 pub struct DeepLConfig {
@@ -72,7 +81,7 @@ impl DeepLConfig {
             http: None,
             streaming_url: None,
             token: None,
-            resumable: AtomicBool::new(false),
+            resumable: false,
             turn: Turn::default(),
         }
     }
@@ -88,9 +97,8 @@ pub struct DeepLClient {
     /// The latest token DeepL issued: it opens the next socket, and afterwards is the one that
     /// may resume that socket's session.
     token: Option<String>,
-    /// Whether the session behind `token` can still be resumed. Atomic only because
-    /// `closing_json`, which ends the session, takes `&self`.
-    resumable: AtomicBool,
+    /// Whether the session behind `token` can still be resumed.
+    resumable: bool,
     turn: Turn,
 }
 
@@ -100,15 +108,129 @@ struct Turn {
     /// The accumulator's turn this state belongs to. When the runner has moved on without us
     /// (the idle boundary, or a connection that ended), the turn we held went out as final.
     id: Option<u64>,
+    target: Transcript,
+    source: Transcript,
+}
+
+/// One transcript's part of the open turn: the text DeepL has concluded since the turn began,
+/// then its current tentative text.
+#[derive(Default)]
+struct Transcript {
     concluded: String,
     tentative: String,
-    /// The latest end time of the concluded and the tentative target segments, in ms.
+    /// The latest end time of the concluded and the tentative segments, in ms.
     concluded_end: f64,
     tentative_end: f64,
-    source_concluded: String,
-    source_tentative: String,
-    /// Target segments ending no later than this have already been shown in a final caption.
+    /// Segments ending no later than this were shown in a final caption the runner closed.
     shown_until: Option<f64>,
+    /// Where the next tentative text is assembled, kept to reuse its allocation.
+    scratch: String,
+}
+
+/// What an update did to a transcript.
+struct Change {
+    /// It concluded new text.
+    concluded: bool,
+    /// Its text is not what it was.
+    changed: bool,
+}
+
+impl Transcript {
+    /// The runner closed the turn and showed all of this: remember how far, and start afresh.
+    fn shown(&mut self) {
+        let shown = self.concluded_end.max(self.tentative_end);
+        if shown > 0.0 {
+            self.shown_until = Some(shown);
+        }
+        self.concluded.clear();
+        self.tentative.clear();
+        self.concluded_end = 0.0;
+        self.tentative_end = 0.0;
+    }
+
+    /// Whether a segment says something no final caption has shown yet. A segment without times
+    /// is always kept: duplicated text is the lesser fault than lost text. So is everything once
+    /// a concluded segment has ended past the final caption: DeepL has moved on from it.
+    fn keep(
+        &mut self,
+        segment: &Segment,
+        concluded: bool,
+        transcript: &str,
+        origin: Origin,
+    ) -> bool {
+        let Some(shown) = self.shown_until else {
+            return true;
+        };
+        if segment.end_time <= 0.0 {
+            return true;
+        }
+        if segment.end_time > shown {
+            if concluded {
+                self.shown_until = None;
+            }
+            return true;
+        }
+        // Times and length only: caption text does not go to the log.
+        tracing::debug!(
+            ?origin,
+            transcript,
+            concluded,
+            end_ms = segment.end_time,
+            shown_until_ms = shown,
+            chars = segment.text.chars().count(),
+            "DeepL segment already shown in a final caption; dropped"
+        );
+        false
+    }
+
+    fn apply(&mut self, update: &TranscriptUpdate, transcript: &str, origin: Origin) -> Change {
+        let before = self.concluded.len();
+        for segment in &update.concluded {
+            if self.keep(segment, true, transcript, origin) {
+                self.concluded.push_str(&segment.text);
+                self.concluded_end = self.concluded_end.max(segment.end_time);
+            }
+        }
+        let mut tentative = std::mem::take(&mut self.scratch);
+        tentative.clear();
+        let mut tentative_end = 0.0_f64;
+        for segment in &update.tentative {
+            if self.keep(segment, false, transcript, origin) {
+                tentative.push_str(&segment.text);
+                tentative_end = tentative_end.max(segment.end_time);
+            }
+        }
+        let concluded = self.concluded.len() > before;
+        let changed = concluded || tentative != self.tentative;
+        self.scratch = std::mem::replace(&mut self.tentative, tentative);
+        self.tentative_end = tentative_end;
+        Change { concluded, changed }
+    }
+
+    /// Whether there is nothing to show.
+    fn is_blank(&self) -> bool {
+        self.concluded.trim().is_empty() && self.tentative.trim().is_empty()
+    }
+
+    /// The concluded text, then the tentative, without leading space, into `out`'s buffer.
+    fn render_into(&self, out: &mut String) {
+        out.clear();
+        let concluded = self.concluded.trim_start();
+        out.push_str(concluded);
+        out.push_str(if concluded.is_empty() {
+            self.tentative.trim_start()
+        } else {
+            &self.tentative
+        });
+    }
+
+    /// The concluded text alone into `out`, for a closed sentence; the tentative text stays.
+    fn take_concluded_into(&mut self, out: &mut String) {
+        out.clear();
+        out.push_str(self.concluded.trim());
+        self.concluded.clear();
+        self.concluded_end = 0.0;
+    }
 }
 
 impl Turn {
@@ -119,86 +241,60 @@ impl Turn {
             return;
         }
         if self.id.is_some() {
-            let shown = self.concluded_end.max(self.tentative_end);
-            if shown > 0.0 {
-                self.shown_until = Some(shown);
-            }
-            self.concluded.clear();
-            self.tentative.clear();
-            self.concluded_end = 0.0;
-            self.tentative_end = 0.0;
-            self.source_concluded.clear();
-            self.source_tentative.clear();
+            self.target.shown();
+            self.source.shown();
         }
         self.id = Some(acc.id);
     }
 
-    /// Whether a target segment says something no final caption has shown yet. A segment
-    /// without times is always kept: duplicated text is the lesser fault than lost text.
-    fn is_new(&self, segment: &Segment) -> bool {
-        segment.end_time <= 0.0
-            || self
-                .shown_until
-                .is_none_or(|shown| segment.end_time > shown)
-    }
-
     fn render(&self, acc: &mut TurnAccumulator) {
-        acc.text = format!("{}{}", self.concluded, self.tentative)
-            .trim_start()
-            .to_string();
-        acc.source = format!("{}{}", self.source_concluded, self.source_tentative)
-            .trim_start()
-            .to_string();
+        self.target.render_into(&mut acc.text);
+        self.source.render_into(&mut acc.source);
     }
 
-    fn target(&mut self, update: &TranscriptUpdate, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let mut concluded = String::new();
-        let mut concluded_end = self.concluded_end;
-        for segment in update.concluded.iter().filter(|s| self.is_new(s)) {
-            concluded.push_str(&segment.text);
-            concluded_end = concluded_end.max(segment.end_time);
-        }
-        self.concluded_end = concluded_end;
-        let new_segments: Vec<&Segment> =
-            update.tentative.iter().filter(|s| self.is_new(s)).collect();
-        let tentative: String = new_segments.iter().map(|s| s.text.as_str()).collect();
-        self.tentative_end = new_segments.iter().map(|s| s.end_time).fold(0.0, f64::max);
-        let changed = !concluded.is_empty() || tentative != self.tentative;
-        self.concluded.push_str(&concluded);
-        self.tentative = tentative;
-
-        if !concluded.is_empty() && ends_sentence(&self.concluded) {
-            // The sentence alone; the tentative text after it is the next turn's.
-            acc.text = std::mem::take(&mut self.concluded).trim().to_string();
-            acc.source = std::mem::take(&mut self.source_concluded)
-                .trim()
-                .to_string();
-            if self.concluded_end > 0.0 {
-                self.shown_until = Some(self.concluded_end);
-            }
-            self.concluded_end = 0.0;
+    fn target(
+        &mut self,
+        update: &TranscriptUpdate,
+        acc: &mut TurnAccumulator,
+        origin: Origin,
+    ) -> MessageOutcome {
+        let change = self.target.apply(update, "target", origin);
+        if change.concluded && ends_sentence(&self.target.concluded) {
+            // The sentence alone; the tentative text after it is the next turn's. Concluded
+            // segments arrive once, so nothing of this line can come again: no `shown_until`.
+            self.target.take_concluded_into(&mut acc.text);
+            self.source.take_concluded_into(&mut acc.source);
             self.id = Some(acc.id + 1);
             return MessageOutcome::activity(CaptionUpdate::Final);
         }
-        if !changed {
+        // The tentative start a closed sentence left behind is not on screen yet: an update
+        // that repeats it still shows it.
+        let unshown = acc.text.is_empty() && !self.target.is_blank();
+        if !change.changed && !unshown {
             return MessageOutcome::default();
         }
         self.render(acc);
         MessageOutcome::activity(CaptionUpdate::Interim)
     }
 
-    fn source(&mut self, update: &TranscriptUpdate, acc: &mut TurnAccumulator) -> MessageOutcome {
-        let concluded: String = update.concluded.iter().map(|s| s.text.as_str()).collect();
-        let tentative: String = update.tentative.iter().map(|s| s.text.as_str()).collect();
-        if concluded.is_empty() && tentative == self.source_tentative {
+    fn source(
+        &mut self,
+        update: &TranscriptUpdate,
+        acc: &mut TurnAccumulator,
+        origin: Origin,
+    ) -> MessageOutcome {
+        if !self.source.apply(update, "source", origin).changed {
             return MessageOutcome::default();
         }
-        self.source_concluded.push_str(&concluded);
-        self.source_tentative = tentative;
         self.render(acc);
         // Not activity: the source leads the translation, and would close a turn before its
         // translation arrived.
         MessageOutcome::caption(CaptionUpdate::Interim)
+    }
+
+    /// DeepL holds tentative target text in this turn that it may still revise or conclude.
+    fn pending(&self, acc: &TurnAccumulator) -> bool {
+        self.id == Some(acc.id) && !self.target.tentative.trim().is_empty()
     }
 }
 
@@ -217,15 +313,15 @@ impl DeepLClient {
     fn accept(&mut self, ticket: super::protocol::Ticket) {
         self.streaming_url = Some(ticket.streaming_url);
         self.token = Some(ticket.token);
-        self.resumable.store(true, Ordering::Relaxed);
+        self.resumable = true;
     }
 
     /// The session is over: the next socket needs a new one.
-    fn session_over(&self) {
-        self.resumable.store(false, Ordering::Relaxed);
+    fn session_over(&mut self) {
+        self.resumable = false;
     }
 
-    fn stream_error(&self, error: &StreamError) -> MessageOutcome {
+    fn stream_error(&mut self, error: &StreamError) -> MessageOutcome {
         self.session_over();
         let message = error.error_message.as_deref().unwrap_or_default();
         let verdict = classify(error.error_code, &[], message);
@@ -263,7 +359,7 @@ impl RealtimeProtocol for DeepLClient {
         let http = self.http()?;
         let api_base = self.config.api_base.clone();
 
-        if self.resumable.load(Ordering::Relaxed)
+        if self.resumable
             && let Some(token) = self.token.clone()
         {
             match session::reconnect(&http, &api_base, &auth, &token).await {
@@ -292,12 +388,7 @@ impl RealtimeProtocol for DeepLClient {
         };
         let mut url =
             Url::parse(streaming_url).context("DeepL answered with an invalid streaming URL")?;
-        // The token is a credential for the session: never over plain WebSocket, except to the
-        // loopback servers of the tests and of a debug build's `DEEPL_API_HOST`.
-        anyhow::ensure!(
-            cfg!(debug_assertions) || url.scheme() == "wss",
-            "DeepL answered with a streaming URL that is not wss"
-        );
+        check_streaming_scheme(&url, ALLOW_PLAIN_WS)?;
         url.query_pairs_mut().append_pair("token", token);
         url.as_str()
             .into_client_request()
@@ -312,6 +403,10 @@ impl RealtimeProtocol for DeepLClient {
         Ok(source_media_chunk(&base64_pcm))
     }
 
+    fn audio_frame(&self, pcm_le: &[u8]) -> Result<String> {
+        Ok(source_media_frame(pcm_le))
+    }
+
     fn keepalive(&self) -> Option<Keepalive> {
         Some(Keepalive {
             after: KEEPALIVE_AFTER,
@@ -322,7 +417,7 @@ impl RealtimeProtocol for DeepLClient {
     }
 
     /// Ends the session: DeepL concludes what is tentative, then sends `end_of_stream`.
-    fn closing_json(&self) -> Result<Vec<String>> {
+    fn closing_json(&mut self) -> Result<Vec<String>> {
         self.session_over();
         Ok(vec![END_OF_SOURCE_MEDIA.to_string()])
     }
@@ -337,10 +432,10 @@ impl RealtimeProtocol for DeepLClient {
             return self.stream_error(error);
         }
         if let Some(update) = &message.target_transcript_update {
-            return self.turn.target(update, acc);
+            return self.turn.target(update, acc, self.config.origin);
         }
         if let Some(update) = &message.source_transcript_update {
-            return self.turn.source(update, acc);
+            return self.turn.source(update, acc, self.config.origin);
         }
         // The last message: the drain's end after `end_of_source_media`. Mid-stream the runner
         // moves the source to a new session.
@@ -366,9 +461,20 @@ impl RealtimeProtocol for DeepLClient {
         Some(FINALIZE_AFTER)
     }
 
-    /// DeepL still has words it may revise: closing now would show them before it settles them.
-    fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
-        !self.turn.tentative.is_empty()
+    /// DeepL still has words it may revise: closing now would show them before it settles them,
+    /// and a Pause or Stop drains for them, as `end_of_source_media` makes DeepL conclude them.
+    fn keeps_turn_open(&self, acc: &TurnAccumulator) -> bool {
+        self.turn.pending(acc)
+    }
+}
+
+/// The token is a credential for the session: it goes over `wss`, or over plain `ws` only where
+/// `allow_plain` says so (`ALLOW_PLAIN_WS`). No other scheme opens a socket.
+fn check_streaming_scheme(url: &Url, allow_plain: bool) -> Result<()> {
+    match url.scheme() {
+        "wss" => Ok(()),
+        "ws" if allow_plain => Ok(()),
+        scheme => anyhow::bail!("DeepL answered with a streaming URL that is not wss ({scheme})"),
     }
 }
 

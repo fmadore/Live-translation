@@ -49,11 +49,11 @@ describe('TrayHidePrompt', () => {
 		expect(mount().getByRole('button', { name: 'Got it — hide to the tray' })).toHaveFocus();
 	});
 
-	// Escape means "I did not mean to hide", which is the quit path — never a silent hide
-	// that skips the one explanation.
-	it('treats Escape as quitting rather than hiding', async () => {
+	// Escape means "not now": never a quit that ends a running session, and never a silent
+	// hide that skips the one explanation.
+	it('treats Escape as cancelling, neither hiding nor quitting', async () => {
 		const { onChoice } = mount();
 		await fireEvent.keyDown(window, { key: 'Escape' });
-		expect(onChoice).toHaveBeenCalledWith('quit');
+		expect(onChoice).toHaveBeenCalledExactlyOnceWith('cancel');
 	});
 });

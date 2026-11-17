@@ -64,7 +64,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
         true
     }
 
-    fn closing_json(&self) -> Result<Vec<String>> {
+    fn closing_json(&mut self) -> Result<Vec<String>> {
         Ok(vec![AUDIO_STREAM_END.to_string()])
     }
 

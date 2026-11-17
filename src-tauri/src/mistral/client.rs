@@ -98,7 +98,7 @@ impl RealtimeProtocol for MistralClient {
         Ok(serde_json::to_string(&InputAudioAppend::pcm16(base64_pcm))?)
     }
 
-    fn closing_json(&self) -> Result<Vec<String>> {
+    fn closing_json(&mut self) -> Result<Vec<String>> {
         Ok(vec![
             r#"{"type":"input_audio.flush"}"#.to_string(),
             r#"{"type":"input_audio.end"}"#.to_string(),

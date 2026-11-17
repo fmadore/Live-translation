@@ -7,22 +7,22 @@ body › div { display: contents }
 body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #0e1013 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 27px; padding: 18px 54px; background-color: #111419 }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 54px; height: 54px; border: 1px solid #262b33; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
-header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
+header.toolbar › span.brand › svg { display: block; width: 40.5px; height: 40.5px }
 header.toolbar › h1.sr-only "Live Translation & Subtitles" { font-size: 72px; font-weight: 700; white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 header.toolbar › div.session-controls { display: contents }
 header.toolbar › div.session-controls › button.ui-tool.danger.lg.stop "Stop captions" { font-size: 31.5px; font-weight: 600; line-height: 1; text-align: center; color: #ff8f8f; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 54px; border: 1px solid rgba(255, 92, 92, 0.4); border-radius: 4px; background-color: rgba(255, 92, 92, 0.08) }
-header.toolbar … button.ui-tool.danger.lg.stop "Stop captions" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.danger.lg.stop "Stop captions" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.session-controls › button.ui-tool.ghost.lg "Pause" { font-size: 31.5px; font-weight: 600; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 54px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-header.toolbar … button.ui-tool.ghost.lg "Pause" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.ghost.lg "Pause" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.end { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 27px; min-width: 0px; margin: 0px 0px 0px auto }
 header.toolbar › div.end › button.ui-tool.ghost.sm "Zoom captions" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-header.toolbar … button.ui-tool.ghost.sm "Zoom captions" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.ghost.sm "Zoom captions" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.end › div.pill.live { display: flex; align-items: center; flex: 0 0 auto; gap: 18px; padding: 9px 18px; border: 1px solid rgba(90, 209, 160, 0.4); border-radius: 999px; background-color: rgba(90, 209, 160, 0.08) }
 header.toolbar › div.end › div.pill.live › span.pill-dot { display: block; width: 7px; height: 7px; border-radius: 50%; background-color: #5ad1a0; box-shadow: #5ad1a0 0px 0px 8px 0px }
 header.toolbar › div.end › div.pill.live › span.pill-label { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #7fdcb6; display: block }
 header.toolbar › div.end › div.pill.live › span.pill-time { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; color: #7fdcb6; display: block }
 header.toolbar › div.end › button.ui-tool.icon "Open settings" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 18px; width: 72px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid rgba(0, 0, 0, 0); border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-header.toolbar … button.ui-tool.icon "Open settings" › svg { display: block; width: 16px; height: 16px }
+header.toolbar … button.ui-tool.icon "Open settings" › svg { display: block; width: 36px; height: 36px }
 body › div › div.app › div.rule.live { position: relative; overflow: hidden; background-color: rgba(90, 209, 160, 0.14) }
 body › div › div.app › div.rule.live › span.sweep { display: block; position: absolute; background-image: linear-gradient(90deg, rgba(0, 0, 0, 0), #5ad1a0, rgba(0, 0, 0, 0)) }
 body › div › div.app › p.sr-only[role=status]:nth(1) { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
@@ -31,7 +31,7 @@ body › div › div.app › div.body { display: grid; grid-template-columns: mi
 aside.rail { display: flex; flex-direction: column; gap: 36px; padding: 54px; border-bottom: 1px solid #1f242b; background-color: #111419 }
 aside.rail › div.rail-head { display: flex; align-items: center; flex: 0 0 auto; gap: 18px; max-width: 855px }
 aside.rail › div.rail-head › span.rail-icon { color: #8b93a1; display: flex }
-aside.rail › div.rail-head › span.rail-icon › svg { display: block; width: 14px; height: 14px }
+aside.rail › div.rail-head › span.rail-icon › svg { display: block; width: 31.5px; height: 31.5px }
 aside.rail › div.rail-head › h2.kicker "Session locked" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 aside.rail › div.chips { display: grid; flex: 0 0 auto; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 855px }
 aside.rail › div.chips › div.chip:nth(1) { display: flex; flex-direction: column; gap: 9px; min-width: 0px; padding: 18px 27px; border: 1px solid #1f242b; border-radius: 4px; background-color: #111419 }
@@ -87,10 +87,11 @@ aside.rail … div.ui-stepper[role=group] "Caption size" › span { display: blo
 aside.rail … div.ui-stepper[role=group] "Caption size" › button.ui-tool.sm "Smaller captions" { font-size: 29.25px; font-weight: 500; line-height: 1; text-align: center; display: flex; align-items: center; justify-content: center; gap: 18px; width: 72px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail … div.ui-stepper[role=group] "Caption size" › output { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; text-align: center; white-space: collapse nowrap; font-variant-numeric: tabular-nums; display: block; min-width: 64.8px }
 aside.rail … div.ui-stepper[role=group] "Caption size" › button.ui-tool.sm "Larger captions" { font-size: 29.25px; font-weight: 500; line-height: 1; text-align: center; display: flex; align-items: center; justify-content: center; gap: 18px; width: 72px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › select "Caption typeface" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › label.face-label › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › div.palette-options { display: grid; gap: 27px }
 aside.rail … div[role=group] "Caption colour" › span.swatch-label { font-size: 27px; line-height: 1.2; color: #c3c9d2 }
 aside.rail … div[role=group] "Caption colour" › div.swatches { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin: 18px 0px 0px }
@@ -123,11 +124,14 @@ aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div
 aside.rail › div.rail-section:nth(2) › div.appearance-layout.compact › div.appearance-controls › button.ui-tool.ghost.sm "Reset the overlay to how it loo…" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0); opacity: 0.5 }
 aside.rail › div.rail-section:nth(2) › div.overlay-actions { display: flex; gap: 18px }
 aside.rail › div.rail-section:nth(2) › div.overlay-actions › button.ui-tool "Move overlay" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; flex: 1 1 0%; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
-aside.rail … button.ui-tool "Move overlay" › svg { display: block; width: 14px; height: 14px }
+aside.rail … button.ui-tool "Move overlay" › svg { display: block; width: 31.5px; height: 31.5px }
 aside.rail › div.rail-section:nth(2) › div.overlay-actions › button.ui-tool "Hide the overlay" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; flex: 1 1 0%; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
-aside.rail … button.ui-tool "Hide the overlay" › svg { display: block; width: 14px; height: 14px }
+aside.rail … button.ui-tool "Hide the overlay" › svg { display: block; width: 31.5px; height: 31.5px }
+aside.rail › div.rail-section:nth(2) › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
+aside.rail › div.rail-section:nth(2) › button.ui-tool.wide "Show a notice on the overlay…" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail › span.grow { display: block; flex: 1 1 0%; max-width: 855px }
 main.stage { display: flex; flex-direction: column; padding: 72px }
+main.stage › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 main.stage › div.tabs[role=tablist] "Stage view" { display: flex; flex-wrap: wrap; gap: 9px; border-bottom: 1px solid #262b33 }
 main.stage … div.tabs[role=tablist] "Stage view" › button[role=tab] "Live" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #f2f4f7; display: block; position: relative; padding: 27px 36px; border: none; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
 main.stage … div.tabs[role=tablist] "Stage view" › button[role=tab] "Live"::after { content: ""; display: block; position: absolute; border: none; border-radius: 999px; background-color: #5ad1a0; background-image: none; box-shadow: none; opacity: 1 }
@@ -160,6 +164,8 @@ div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head �
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › span.count { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; line-height: 1; font-variant-numeric: tabular-nums; color: #8b93a1; display: block }
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › span.state.unsaved { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #ffd39a; display: block; padding: 9px 18px; border-radius: 4px; background-color: rgba(255, 180, 84, 0.14) }
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › div.spacer { flex: 1 1 0% }
+div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › button.ui-tool.ghost.sm "Add marker" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
+div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › p.sr-only[role=status] { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › div.copy { display: flex; position: relative; align-items: center; gap: 18px }
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › div.copy › select "What to copy" { font-size: 27px; white-space: preserve nowrap; display: block; max-width: 100%; padding: 9px; border: 1px solid #262b33; border-radius: 4px; background-color: #0e1013 }
 div.stage-panel.running[role=tabpanel] "Live" › section.monitor › div.head › div.copy › button.ui-tool.ghost.sm "Copy" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }

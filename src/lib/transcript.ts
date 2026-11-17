@@ -1,4 +1,4 @@
-import type { Lane, Origin, TargetLanguage, TranscriptLine } from './types';
+import type { Lane, Origin, TargetLanguage, TranscriptLine, TranscriptMarker } from './types';
 
 export type TranscriptFormat = 'markdown' | 'text' | 'vtt' | 'srt';
 
@@ -29,6 +29,62 @@ export function recentLines(lines: TranscriptLine[], windowMs: number): Transcri
 	return lines.filter((line) => line.endMs === undefined || line.endMs >= from);
 }
 
+/** The markers inside the same window as `recentLines`: those added at or after the start of
+ *  the last `windowMs` of the lines' timeline. All of them when the lines have no timing. */
+export function recentMarkers(
+	lines: TranscriptLine[],
+	markers: readonly TranscriptMarker[],
+	windowMs: number
+): TranscriptMarker[] {
+	const latest = lines.reduce((end, line) => Math.max(end, line.endMs ?? -Infinity), -Infinity);
+	if (latest === -Infinity) return [...markers];
+	return markers.filter((marker) => marker.atMs >= latest - windowMs);
+}
+
+/** A marker's moment as a reader of the document reads it: `0:42:10`, from the start. */
+export function markerTime(ms: number): string {
+	const total = Math.max(0, Math.floor(ms / 1000));
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${Math.floor(total / 3600)}:${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}`;
+}
+
+/** What a marker says: the operator's text, or a numbered section for a blank one. `number`
+ *  is its place among the document's markers, from 1. */
+export function markerTitle(
+	marker: TranscriptMarker,
+	number: number,
+	section: (n: number) => string = (n) => `Section ${n}`
+): string {
+	return marker.label || section(number);
+}
+
+/** The paragraphs with the markers between them, in document order (by id: lines and markers
+ *  share one counter), each marker with its number. `groupTranscript` given the same markers
+ *  has already broken every paragraph a marker falls inside. */
+export type TranscriptItem =
+	| { kind: 'paragraph'; paragraph: TranscriptParagraph }
+	| { kind: 'marker'; marker: TranscriptMarker; number: number };
+
+export function withMarkers(
+	paragraphs: TranscriptParagraph[],
+	markers: readonly TranscriptMarker[]
+): TranscriptItem[] {
+	if (!markers.length) return paragraphs.map((paragraph) => ({ kind: 'paragraph', paragraph }));
+	const ordered = [...markers].sort((a, b) => a.id - b.id);
+	const items: TranscriptItem[] = [];
+	let next = 0;
+	for (const paragraph of paragraphs) {
+		while (next < ordered.length && ordered[next].id < paragraph.id) {
+			items.push({ kind: 'marker', marker: ordered[next], number: next + 1 });
+			next++;
+		}
+		items.push({ kind: 'paragraph', paragraph });
+	}
+	for (; next < ordered.length; next++)
+		items.push({ kind: 'marker', marker: ordered[next], number: next + 1 });
+	return items;
+}
+
 function cueTime(ms: number, separator: string): string {
 	const hours = Math.floor(ms / 3600000);
 	const minutes = Math.floor(ms / 60000) % 60;
@@ -51,7 +107,8 @@ function timedTranscript(
 	lines: TranscriptLine[],
 	format: 'vtt' | 'srt',
 	labels: TranscriptLabels,
-	original: boolean
+	original: boolean,
+	markers: readonly TranscriptMarker[]
 ): string {
 	if (!lines.length) return format === 'vtt' ? 'WEBVTT\n\n' : '';
 	if (!hasTranscriptTiming(lines)) throw new Error('Transcript has no valid cue timing');
@@ -74,9 +131,32 @@ function timedTranscript(
 			// subtitles are usually set. Both players and editors take `<i>` in either format.
 			const source = oneLine(originalOf(line, original));
 			const second = source ? `\n<i>${source}</i>` : '';
-			return `${i + 1}\n${cueTime(start, separator)} --> ${cueTime(end, separator)}\n${payload}${second}\n`;
+			return {
+				at: start,
+				text: `${i + 1}\n${cueTime(start, separator)} --> ${cueTime(end, separator)}\n${payload}${second}\n`
+			};
 		});
-	return (format === 'vtt' ? 'WEBVTT\n\n' : '') + cues.join('\n');
+	// SRT has no comments, and a marker is not speech: it gets no cue there. WebVTT's NOTE
+	// block is a comment players skip, so a marker is kept as one, before the first cue at or
+	// after its moment. Never `-->` inside one, which would end the comment.
+	const notes =
+		format === 'vtt'
+			? [...markers]
+					.sort((a, b) => a.id - b.id)
+					.map((marker, i) => ({
+						at: marker.atMs,
+						text: `NOTE ${markerTime(marker.atMs)} ${markerTitle(marker, i + 1, labels.section).replace(/-->/g, '->')}\n`
+					}))
+					.sort((a, b) => a.at - b.at)
+			: [];
+	const blocks: string[] = [];
+	let next = 0;
+	for (const cue of cues) {
+		while (next < notes.length && notes[next].at <= cue.at) blocks.push(notes[next++].text);
+		blocks.push(cue.text);
+	}
+	while (next < notes.length) blocks.push(notes[next++].text);
+	return (format === 'vtt' ? 'WEBVTT\n\n' : '') + blocks.join('\n');
 }
 
 /** Consecutive lines from one source, bounded by pauses and a readable paragraph length. */
@@ -105,6 +185,8 @@ export interface TranscriptLabels {
 	language?: (code: TargetLanguage) => string;
 	/** BCP 47 tag for the header's timestamp. */
 	tag: string;
+	/** What a marker left blank is called, by its number: "Section 2". English when absent. */
+	section?: (n: number) => string;
 }
 
 /** English, for tests and for any caller with nothing better to pass. */
@@ -112,12 +194,16 @@ export const DEFAULT_LABELS: TranscriptLabels = {
 	title: 'Live captions transcript',
 	origin: { microphone: 'Microphone', system: 'System' },
 	original: 'Original',
-	tag: 'en-GB'
+	tag: 'en-GB',
+	section: (n) => `Section ${n}`
 };
 
 export interface TranscriptOptions {
 	/** Write the original speech under each translation. Lines without any are unchanged. */
 	original?: boolean;
+	/** The operator's markers: a heading in text and Markdown, a NOTE in WebVTT, nothing in
+	 *  SRT. */
+	markers?: readonly TranscriptMarker[];
 }
 
 /** Whether any line carries original speech, which is what makes a bilingual export
@@ -152,7 +238,10 @@ function originalOf(line: { sourceText: string; lane?: Lane }, original: boolean
  * break one another's paragraphs every few seconds — and the paragraphs are then put back in
  * the order they began.
  */
-export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagraph[] {
+export function groupTranscript(
+	newestFirst: TranscriptLine[],
+	markers: readonly TranscriptMarker[] = []
+): TranscriptParagraph[] {
 	const streams = new Map<Lane, TranscriptLine[]>();
 	for (const line of [...newestFirst].reverse()) {
 		const lane = line.lane ?? 0;
@@ -160,22 +249,40 @@ export function groupTranscript(newestFirst: TranscriptLine[]): TranscriptParagr
 		if (stream) stream.push(line);
 		else streams.set(lane, [line]);
 	}
-	const paragraphs = [...streams.entries()].flatMap(([lane, lines]) => groupStream(lines, lane));
+	// A marker ends the paragraph it falls in, in every stream: what follows it is the next talk.
+	const breaks = markers.map((marker) => marker.id).sort((a, b) => a - b);
+	const paragraphs = [...streams.entries()].flatMap(([lane, lines]) =>
+		groupStream(lines, lane, breaks)
+	);
 	return streams.size > 1 ? paragraphs.sort((a, b) => a.id - b.id) : paragraphs;
 }
 
-function groupStream(chronological: TranscriptLine[], lane: Lane): TranscriptParagraph[] {
+function groupStream(
+	chronological: TranscriptLine[],
+	lane: Lane,
+	breaks: readonly number[]
+): TranscriptParagraph[] {
 	const paragraphs: TranscriptParagraph[] = [];
 	let previousEnd: number | undefined;
+	let previousId = -Infinity;
+	let nextBreak = 0;
 	for (const line of chronological) {
 		const text = line.text.trim();
 		if (!text) continue;
 		const sourceText = line.sourceText.trim();
 		const last = paragraphs[paragraphs.length - 1];
+		// Lines come in id order, so the breaks are passed through once.
+		let marked = false;
+		while (nextBreak < breaks.length && breaks[nextBreak] < line.id) {
+			if (breaks[nextBreak] > previousId) marked = true;
+			nextBreak++;
+		}
+		previousId = line.id;
 		const pause =
-			line.startMs !== undefined &&
-			previousEnd !== undefined &&
-			(line.startMs - previousEnd >= 5000 || line.startMs < previousEnd);
+			marked ||
+			(line.startMs !== undefined &&
+				previousEnd !== undefined &&
+				(line.startMs - previousEnd >= 5000 || line.startMs < previousEnd));
 		// Keep complete caption lines together. Long individual turns remain intact;
 		// this bounds aggregation, never truncates the operator's text.
 		if (
@@ -220,22 +327,30 @@ export function formatTranscript(
 	format: TranscriptFormat,
 	createdAt = new Date(),
 	labels: TranscriptLabels = DEFAULT_LABELS,
-	{ original = false }: TranscriptOptions = {}
+	{ original = false, markers = [] }: TranscriptOptions = {}
 ): string {
 	if (format === 'srt' || format === 'vtt')
-		return timedTranscript(newestFirst, format, labels, original);
-	const parts = sections(groupTranscript(newestFirst));
+		return timedTranscript(newestFirst, format, labels, original, markers);
+	const parts = sections(groupTranscript(newestFirst, markers));
+	// A document of markers alone still writes them.
+	if (!parts.length && markers.length) parts.push({ language: undefined, paragraphs: [] });
 	const languageName = (language: TargetLanguage) =>
 		labels.language?.(language) ?? language.toUpperCase();
 	// Within a section the language is its heading, so paragraphs name only their source.
 	const label = (p: TranscriptParagraph) => labels.origin[p.origin];
+	// Every section shows every marker, so a document in two languages has each talk's start in
+	// both; the numbers are the document's, so a blank marker has the same one in both.
+	const title = (marker: TranscriptMarker, number: number) =>
+		`${markerTitle(marker, number, labels.section)} · ${markerTime(marker.atMs)}`;
 
 	if (format === 'text') {
 		return parts
 			.map(({ language, paragraphs }) => {
 				const heading = language ? `${languageName(language).toUpperCase()}\n\n` : '';
-				const body = paragraphs
-					.map((p) => {
+				const body = withMarkers(paragraphs, markers)
+					.map((item) => {
+						if (item.kind === 'marker') return `--- ${title(item.marker, item.number)} ---\n`;
+						const p = item.paragraph;
 						const source = originalOf(p, original);
 						return `${label(p)}\n${p.text}\n` + (source ? `${labels.original}: ${source}\n` : '');
 					})
@@ -250,10 +365,14 @@ export function formatTranscript(
 	const body = parts
 		.map(({ language, paragraphs }) => {
 			const heading = language ? `\n## ${languageName(language)}\n` : '';
+			// One level under the language's heading, when there is one.
+			const level = language ? '###' : '##';
 			return (
 				heading +
-				paragraphs
-					.map((p) => {
+				withMarkers(paragraphs, markers)
+					.map((item) => {
+						if (item.kind === 'marker') return `\n${level} ${title(item.marker, item.number)}\n`;
+						const p = item.paragraph;
 						const source = originalOf(p, original);
 						return (
 							`\n**${label(p)}**\n\n${p.text}\n` +

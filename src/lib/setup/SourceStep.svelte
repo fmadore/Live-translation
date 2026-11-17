@@ -58,8 +58,8 @@
 			onclick={() => actions.setSource('microphone')}
 		>
 			<svg
-				width="18"
-				height="18"
+				width="1.125rem"
+				height="1.125rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -79,8 +79,8 @@
 			onclick={() => actions.setSource('system')}
 		>
 			<svg
-				width="18"
-				height="18"
+				width="1.125rem"
+				height="1.125rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -99,8 +99,8 @@
 			onclick={() => actions.setSource('both')}
 		>
 			<svg
-				width="18"
-				height="18"
+				width="1.125rem"
+				height="1.125rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"

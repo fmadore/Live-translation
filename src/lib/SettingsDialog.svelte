@@ -13,6 +13,10 @@
 	import ReadingPreferences from './ReadingPreferences.svelte';
 	import TranscriptHistory from './TranscriptHistory.svelte';
 	import KeyboardHelp from './KeyboardHelp.svelte';
+	import GlobalShortcutsSetting from './GlobalShortcutsSetting.svelte';
+	import SpendingGuardSettings from './SpendingGuardSettings.svelte';
+	import UpdateSettings from './UpdateSettings.svelte';
+	import type { UpdateCheck } from './updateCheck.svelte';
 	import SupportLink from './SupportLink.svelte';
 	import { supportShown } from './support';
 	import { LOCALE_NAMES, LOCALES, locale, setLocale, t } from './i18n';
@@ -25,13 +29,16 @@
 		browserMode,
 		tab = $bindable('captions'),
 		onHideWindow,
-		onClose
+		onClose,
+		updates
 	}: {
 		browserMode: boolean;
 		/** Bound, so reopening the panel returns to the tab it was closed on. */
 		tab?: SettingsTab;
 		onHideWindow: () => void;
 		onClose: () => void;
+		/** The new-version check (issue #217); its section shows only on a copy that checks. */
+		updates?: UpdateCheck;
 	} = $props();
 
 	const tabs = $derived<readonly { id: SettingsTab; label: string }[]>([
@@ -59,6 +66,7 @@
 	title={$t.settings.heading}
 	dismissLabel={$t.settings.closeLabel}
 	onDismiss={onClose}
+	initialFocus={'[role="tab"][aria-selected="true"]'}
 >
 	<p class="hint">{$t.design.applies}</p>
 	<Tabs
@@ -126,8 +134,8 @@
 								onclick={() => theme.set(choice)}
 							>
 								<svg
-									width="16"
-									height="16"
+									width="1rem"
+									height="1rem"
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -158,8 +166,8 @@
 					<h2 class="kicker">{$t.window.heading}</h2>
 					<ToolButton wide disabled={browserMode} onclick={onHideWindow}>
 						<svg
-							width="14"
-							height="14"
+							width="0.875rem"
+							height="0.875rem"
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
@@ -181,7 +189,11 @@
 						onchange={(value) => closeToTray.set(value)}
 					/>
 				</div>
+				<div class="divider"></div>
+				<SpendingGuardSettings />
+				{#if updates}<UpdateSettings {updates} />{/if}
 				<KeyboardHelp />
+				<GlobalShortcutsSetting {browserMode} />
 
 				<!-- Issue #180: last, and only here and on the idle stage, so it is there for anyone
 				     who looks and in the way of nobody. Works in a browser preview too; not in the

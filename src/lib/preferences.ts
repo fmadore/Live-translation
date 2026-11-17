@@ -29,6 +29,7 @@ import { LANGUAGE_FAVOURITES_KEY, loadLanguageFavourites } from './languages';
 import { persisted, persistedFlag, persistedWith, readStored, writeStored } from './persisted';
 import { HOLD_KEY, loadHoldSeconds, loadPace, PACE_KEY, type CaptionPace } from './reading';
 import { loadStartOptions, SESSION_OPTIONS_KEY } from './startOptions';
+import { NOTICE_UNTIL_CAPTIONS_KEY } from './overlayNotice';
 import type { StartOptions } from './types';
 
 // ---- Session setup -------------------------------------------------------------
@@ -110,6 +111,13 @@ export const exportOriginal = persistedFlag('transcript.includeOriginal');
 /** Show the original speech as a smaller line under each translated caption. */
 export const overlayShowOriginal = persistedFlag(SHOW_ORIGINAL_KEY);
 
+/** Whether a notice on the overlay goes by itself at the first caption after a pause. On by
+ *  default, so it is stored only as the string `'false'` once switched off. */
+export const noticeUntilCaptions = persisted(
+	NOTICE_UNTIL_CAPTIONS_KEY,
+	() => readStored(NOTICE_UNTIL_CAPTIONS_KEY) !== 'false'
+);
+
 // ---- Running stage -------------------------------------------------------------
 // What the stage shows while a session runs: the turns on screen, or the whole transcript
 // as a reader (issue #124). Persisted, so an operator who reads along keeps the reader from
@@ -132,6 +140,11 @@ export const closeToTray = persistedFlag('window.closeToTray');
 /** Whether the operator has already been told that closing no longer quits. Persisted so it
  *  is said the first time and never again. */
 export const trayHideExplained = persistedFlag('window.trayHideExplained');
+
+/** *Use shortcuts while other apps are in front*: off by default. The core holds the two
+ *  system-wide keys only while this is on and a session is running or paused
+ *  (`src-tauri/src/hotkeys.rs`). */
+export const globalShortcuts = persistedFlag('shortcuts.global');
 
 // ---- Languages ------------------------------------------------------------------
 

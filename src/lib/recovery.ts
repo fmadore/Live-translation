@@ -1,8 +1,8 @@
-import { encodeRecovery, newestLineId } from './document';
+import { encodeRecovery, newestDocumentId } from './document';
 import { asStatus, type AppError } from './errors';
 import { writable } from 'svelte/store';
 import { api } from './tauri';
-import type { StoredRecovery, TranscriptLine } from './types';
+import type { StoredRecovery, TranscriptLine, TranscriptMarker } from './types';
 
 interface RecoveryPort {
 	writeRecovery(contents: string): Promise<string>;
@@ -25,12 +25,16 @@ export function createRecoveryCoordinator(port: RecoveryPort) {
 	}
 
 	return {
-		write(lines: TranscriptLine[], now = new Date()): Promise<void> {
+		write(
+			lines: TranscriptLine[],
+			now = new Date(),
+			markers: readonly TranscriptMarker[] = []
+		): Promise<void> {
 			const revision = generation;
-			const newest = newestLineId(lines);
+			const newest = newestDocumentId(lines, markers);
 			return enqueue(async () => {
 				if (revision !== generation || !lines.length || newest === spooledId) return;
-				await port.writeRecovery(encodeRecovery(lines, now));
+				await port.writeRecovery(encodeRecovery(lines, now, markers));
 				if (revision === generation) spooledId = newest;
 			});
 		},
@@ -79,7 +83,8 @@ export const recoveryFailure = writable<string | AppError>('');
 export function startRecoverySpool(
 	readUnsaved: () => TranscriptLine[] | null,
 	onError: (error: unknown) => void,
-	coordinator = recovery
+	coordinator = recovery,
+	readMarkers: () => readonly TranscriptMarker[] = () => []
 ) {
 	let writing = false;
 	let stopped = false;
@@ -99,7 +104,7 @@ export function startRecoverySpool(
 		}
 		writing = true;
 		void coordinator
-			.write(lines)
+			.write(lines, new Date(), readMarkers())
 			.then(() => {
 				if (!stopped && failures) recovered();
 			})

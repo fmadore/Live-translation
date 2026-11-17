@@ -6,7 +6,6 @@ use std::collections::VecDeque;
 use std::time::Duration;
 
 use anyhow::Context;
-use base64::Engine;
 use futures_util::{SinkExt, StreamExt, stream::SplitSink, stream::SplitStream};
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::Receiver;
@@ -16,7 +15,7 @@ use tokio_tungstenite::tungstenite::{Bytes, Message};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async_with_config};
 use tokio_util::sync::CancellationToken;
 
-use super::policy::RunEnd;
+use super::policy::{RunEnd, unconfirmed_end};
 use super::turn_timer::TurnTimer;
 use super::wire::{Close, Verdict};
 use super::{
@@ -68,6 +67,10 @@ struct Connection {
     read: SplitStream<Socket>,
     /// When the peer last sent anything at all, pongs included.
     last_inbound: Instant,
+    /// Whether the peer has sent a message of its own (a text or binary frame, not a pong or
+    /// a close) since setup: for a provider without a setup acknowledgement, the sign that it
+    /// took the connection.
+    heard: bool,
 }
 
 impl Connection {
@@ -126,7 +129,9 @@ impl Backlog {
 }
 
 /// How one connection ended, and whether the provider had accepted its setup first: the
-/// policy's cap on setup failures counts only those in a row.
+/// policy's cap on setup failures counts only those in a row. For a provider that confirms no
+/// setup, a connection it ended at once without a word is counted as a failed setup
+/// (`policy::unconfirmed_end`).
 pub(super) struct Ended {
     pub end: RunEnd,
     pub established: bool,
@@ -138,7 +143,7 @@ pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
     acc: &mut TurnAccumulator,
     catch_up: bool,
 ) -> Ended {
-    let conn = match open(&mut io, proto, acc, catch_up).await {
+    let mut conn = match open(&mut io, proto, acc, catch_up).await {
         Ok(conn) => conn,
         Err(end) => {
             return Ended {
@@ -147,9 +152,18 @@ pub(super) async fn connect_and_run<P: RealtimeProtocol, E: Events>(
             };
         }
     };
+    let opened = Instant::now();
+    let end = stream(io, proto, acc, &mut conn, catch_up).await;
+    if proto.wait_for_setup_complete() {
+        return Ended {
+            end,
+            established: true,
+        };
+    }
+    let end = unconfirmed_end(end, opened.elapsed(), conn.heard, P::NAME);
     Ended {
-        end: stream(io, proto, acc, conn, catch_up).await,
-        established: true,
+        established: !matches!(end, RunEnd::SetupFailed { .. }),
+        end,
     }
 }
 
@@ -158,7 +172,7 @@ async fn stream<P: RealtimeProtocol, E: Events>(
     io: SocketIo<'_, E>,
     proto: &mut P,
     acc: &mut TurnAccumulator,
-    mut conn: Connection,
+    conn: &mut Connection,
     catch_up: bool,
 ) -> RunEnd {
     // Paused while this connection was being set up. Nothing has been streamed on it, so there
@@ -186,7 +200,7 @@ async fn stream<P: RealtimeProtocol, E: Events>(
     }
     let backlog = std::mem::take(io.backlog);
     for chunk in backlog.chunks {
-        if let Err(end) = conn.send_audio(audio_json(proto, &chunk)).await {
+        if let Err(end) = conn.send_audio(proto.audio_frame(&chunk.pcm_le)).await {
             return end;
         }
     }
@@ -239,6 +253,7 @@ async fn open<P: RealtimeProtocol, E: Events>(
         write,
         read,
         last_inbound: Instant::now(),
+        heard: false,
     };
     if let Some(setup) = setup {
         conn.send(Message::Text(setup.into()), "failed to send setup")
@@ -402,7 +417,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
     io: SocketIo<'_, E>,
     proto: &mut P,
     acc: &mut TurnAccumulator,
-    mut conn: Connection,
+    conn: &mut Connection,
     mut catch_up: bool,
 ) -> RunEnd {
     let SocketIo {
@@ -437,7 +452,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
     loop {
         tokio::select! {
             _ = cancel.cancelled() => {
-                graceful_close(events, proto, &mut conn, acc, last_caption).await;
+                graceful_close(events, proto, conn, acc, last_caption).await;
                 return RunEnd::Stopped;
             }
 
@@ -445,7 +460,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
             // drop one that goes quiet, and Gemini's session cap keeps counting.
             Ok(()) = pause.changed() => {
                 if *pause.borrow_and_update() {
-                    graceful_close(events, proto, &mut conn, acc, last_caption).await;
+                    graceful_close(events, proto, conn, acc, last_caption).await;
                     return RunEnd::Paused;
                 }
             }
@@ -454,13 +469,13 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 match maybe_chunk {
                     Some(chunk) => {
                         let chunk = next_chunk(chunk, audio_rx, &mut catch_up);
-                        if let Err(end) = conn.send_audio(audio_json(proto, &chunk)).await {
+                        if let Err(end) = conn.send_audio(proto.audio_frame(&chunk.pcm_le)).await {
                             return end;
                         }
                         last_audio = Instant::now();
                     }
                     None => {
-                        graceful_close(events, proto, &mut conn, acc, last_caption).await;
+                        graceful_close(events, proto, conn, acc, last_caption).await;
                         return RunEnd::Stopped;
                     }
                 }
@@ -480,7 +495,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 match &message {
                     Message::Ping(_) | Message::Pong(_) => continue,
                     Message::Close(frame) => return stream_closed::<P>(frame.as_ref()),
-                    _ => {}
+                    _ => conn.heard = true,
                 }
                 let outcome = handle_socket_message(events, proto, message, acc);
                 if outcome.caption != CaptionUpdate::None {
@@ -513,7 +528,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                             cancel,
                         };
                         tracing::info!(?origin, ?limit, "{} draining before the handover", P::NAME);
-                        drain(events, proto, &mut conn, acc, last_caption, limit, Some(queue))
+                        drain(events, proto, conn, acc, last_caption, limit, Some(queue))
                             .await;
                         // A Stop during the drain ended it: the source is over, not moving.
                         if cancel.is_cancelled() {
@@ -557,7 +572,8 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 let Some(keepalive) = &keepalive else { continue };
                 let deadline = last_audio + keepalive.after;
                 if deadline <= Instant::now() {
-                    if let Err(end) = conn.send_audio(audio_json(proto, &keepalive.silence)).await {
+                    let frame = proto.audio_frame(&keepalive.silence.pcm_le);
+                    if let Err(end) = conn.send_audio(frame).await {
                         return end;
                     }
                     last_audio = Instant::now();
@@ -573,10 +589,6 @@ async fn pump<P: RealtimeProtocol, E: Events>(
             }
         }
     }
-}
-
-fn audio_json<P: RealtimeProtocol>(proto: &P, chunk: &AudioChunk) -> anyhow::Result<String> {
-    proto.audio_json(base64::engine::general_purpose::STANDARD.encode(&chunk.pcm_le))
 }
 
 /// The chunk to send next, given the one just received. Normally a backlog that filled the
@@ -666,8 +678,8 @@ async fn graceful_close<P: RealtimeProtocol, E: Events>(
 
 /// Flush what the provider still holds, then close. Ends on the provider's own signal that it
 /// has finished (`drain_complete`, or `Closed`), on its close or error, or after `limit` —
-/// or does not wait at all when the turn is empty and nothing has been captioned for
-/// `QUIET_BEFORE_CLOSE`. Whatever happens here is reported as the Pause, Stop or handover that
+/// or does not wait at all when the turn is empty, the provider holds nothing still to come
+/// (`keeps_turn_open`), and nothing has been captioned for `QUIET_BEFORE_CLOSE`. Whatever happens here is reported as the Pause, Stop or handover that
 /// started it: a provider that rejects a closing frame must not turn a clean stop into an
 /// error, and the accumulated turn is finalized by the runner either way. A handover passes a
 /// `queue`, so the speech that goes on meanwhile waits for the next socket rather than being
@@ -681,7 +693,11 @@ async fn drain<P: RealtimeProtocol, E: Events>(
     limit: Duration,
     mut queue: Option<Queue<'_>>,
 ) {
-    let quiet = acc.is_empty() && last_caption.elapsed() >= QUIET_BEFORE_CLOSE;
+    // DeepL can hold the tentative start of a sentence that is not on screen yet: the
+    // accumulator is empty, and only the drain brings those words back.
+    let quiet = acc.is_empty()
+        && !proto.keeps_turn_open(acc)
+        && last_caption.elapsed() >= QUIET_BEFORE_CLOSE;
     let frames = match proto.closing_json() {
         Ok(frames) => frames,
         Err(error) => {
@@ -723,8 +739,10 @@ async fn drain<P: RealtimeProtocol, E: Events>(
             }
             message = conn.read.next() => {
                 let Some(Ok(message)) = message else { break; };
-                if matches!(message, Message::Ping(_) | Message::Pong(_)) {
-                    continue;
+                match message {
+                    Message::Ping(_) | Message::Pong(_) => continue,
+                    Message::Text(_) | Message::Binary(_) => conn.heard = true,
+                    _ => {}
                 }
                 let outcome = handle_socket_message(events, proto, message, acc);
                 if proto.drain_complete(&outcome) {
@@ -751,7 +769,146 @@ async fn drain<P: RealtimeProtocol, E: Events>(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Mutex;
+
+    use tokio::sync::{mpsc, watch};
+    use tokio_tungstenite::accept_async;
+
     use super::*;
+    use crate::timing::SessionClock;
+    use crate::types::{Caption, Origin};
+
+    /// The states a connection reported.
+    #[derive(Default)]
+    struct States(Mutex<Vec<SessionState>>);
+
+    impl super::super::Events for States {
+        fn caption(&self, _caption: Caption<'_>) {}
+
+        fn status(&self, update: StatusUpdate) {
+            self.0.lock().unwrap().push(update.state);
+        }
+    }
+
+    /// A provider like DeepL: no setup acknowledgement, so `open` returns as the socket opens
+    /// and `stream` is where a Pause is first looked at. Its frame for a chunk tagged 0xff
+    /// cannot be built.
+    struct NoAck;
+
+    impl RealtimeProtocol for NoAck {
+        const NAME: &'static str = "NoAck";
+
+        fn origin(&self) -> Origin {
+            Origin::Microphone
+        }
+
+        fn connect_request(
+            &self,
+        ) -> anyhow::Result<tokio_tungstenite::tungstenite::handshake::client::Request> {
+            anyhow::bail!("these tests open their own sockets")
+        }
+
+        fn setup_json(&self) -> anyhow::Result<Option<String>> {
+            Ok(None)
+        }
+
+        fn audio_json(&self, base64_pcm: String) -> anyhow::Result<String> {
+            anyhow::ensure!(base64_pcm != "/w==", "the frame could not be built");
+            Ok(base64_pcm)
+        }
+
+        fn handle_message(&mut self, _text: &str, _acc: &mut TurnAccumulator) -> MessageOutcome {
+            MessageOutcome::default()
+        }
+    }
+
+    /// An open connection, and the server's end of it.
+    async fn connected() -> (Connection, WebSocketStream<TcpStream>) {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let url = format!("ws://{}", listener.local_addr().unwrap());
+        let (client, server) = tokio::join!(connect_async_with_config(url, None, true), async {
+            let (stream, _) = listener.accept().await.unwrap();
+            accept_async(stream).await.unwrap()
+        });
+        let (write, read) = client.unwrap().0.split();
+        let conn = Connection {
+            write,
+            read,
+            last_inbound: Instant::now(),
+            heard: false,
+        };
+        (conn, server)
+    }
+
+    /// `stream` on `conn` with `backlog` to replay, paused or not; how it ended and what it
+    /// reported.
+    async fn stream_with(
+        conn: &mut Connection,
+        backlog: &mut Backlog,
+        paused: bool,
+    ) -> (RunEnd, Vec<SessionState>) {
+        let events = States::default();
+        let (_audio, mut audio_rx) = mpsc::channel(5);
+        let cancel = CancellationToken::new();
+        let (_pause_tx, mut pause) = watch::channel(paused);
+        let io = SocketIo {
+            events: &events,
+            audio_rx: &mut audio_rx,
+            cancel: &cancel,
+            pause: &mut pause,
+            backlog,
+        };
+        let mut acc = TurnAccumulator::new(SessionClock::start(), 0);
+        let end = stream(io, &mut NoAck, &mut acc, conn, false).await;
+        (end, events.0.into_inner().unwrap())
+    }
+
+    /// A Pause that lands once the socket is open but before streaming starts: for a provider
+    /// without a setup acknowledgement there is no setup wait to catch it, so `stream` closes
+    /// the socket, reports nothing, and sends none of the handover's backlog.
+    #[tokio::test]
+    async fn a_pause_as_the_socket_opens_closes_it_before_running() {
+        let (mut conn, mut server) = connected().await;
+        let mut backlog = Backlog::default();
+        backlog.push(chunk(1));
+        let (end, states) = stream_with(&mut conn, &mut backlog, true).await;
+        assert!(matches!(end, RunEnd::Paused), "{end:?}");
+        assert!(states.is_empty(), "reported {states:?}");
+        assert!(matches!(server.next().await, Some(Ok(Message::Close(_)))));
+    }
+
+    /// A frame that cannot be sent in the middle of a handover's replay ends the connection
+    /// there: the chunks before it went out, none after it, and nothing is pumped.
+    #[tokio::test]
+    async fn a_failure_in_the_middle_of_the_backlog_replay_ends_the_connection() {
+        let (mut conn, mut server) = connected().await;
+        let mut backlog = Backlog::default();
+        for tag in [1, 0xff, 3] {
+            backlog.push(chunk(tag));
+        }
+        let (end, states) = stream_with(&mut conn, &mut backlog, false).await;
+        let RunEnd::Failed(error) = end else {
+            panic!("expected a failure, got {end:?}");
+        };
+        assert_eq!(error.to_string(), "the frame could not be built");
+        assert_eq!(states, [SessionState::Running]);
+        assert!(backlog.chunks.is_empty(), "the replay took the backlog");
+        drop(conn);
+        assert_eq!(server.next().await.unwrap().unwrap(), Message::text("AQ=="));
+        assert!(!matches!(server.next().await, Some(Ok(Message::Text(_)))));
+
+        // The same for a write the socket refuses.
+        let (mut conn, _server) = connected().await;
+        conn.write.close().await.unwrap();
+        let mut backlog = Backlog::default();
+        backlog.push(chunk(1));
+        backlog.push(chunk(2));
+        let (end, _) = stream_with(&mut conn, &mut backlog, false).await;
+        let RunEnd::Failed(error) = end else {
+            panic!("expected a failure, got {end:?}");
+        };
+        assert_eq!(error.to_string(), "failed to send audio chunk");
+    }
 
     fn chunk(tag: u8) -> AudioChunk {
         AudioChunk { pcm_le: vec![tag] }

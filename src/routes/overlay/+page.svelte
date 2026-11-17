@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import OverlayCaptionLine from './OverlayCaptionLine.svelte';
 	import OverlayMoveChrome from './OverlayMoveChrome.svelte';
+	import OverlayNotice from './OverlayNotice.svelte';
+	import { normalizeNotice } from '#lib/overlayNotice.js';
 	import { createOverlayCaptions } from './overlayCaptions.svelte';
 	import { createOverlayPlacement, overlayKeyCommand } from './overlayPlacement.svelte';
 	import { previewContent } from './overlayFixtures';
@@ -15,10 +17,10 @@
 	import { loadFillerWords, normalizeFillerWords } from '#lib/cleanSpeech.js';
 	import {
 		bottomCaptionHeight,
+		fitRows,
 		ORIGINAL_GAP,
 		ORIGINAL_SCALE,
-		originalHeight,
-		rowFontSize
+		originalHeight
 	} from '#lib/captionLayout.js';
 	import { readFlag } from '#lib/persisted.js';
 	import { captionCssVars } from '#lib/captionColour.js';
@@ -27,7 +29,7 @@
 	import { isTargetLanguage } from '#lib/languages.js';
 	import { api, on, isTauri } from '#lib/tauri.js';
 	import { listenAll } from '#lib/coreEvents.js';
-	import type { Lane, Origin, TargetLanguage } from '#lib/types.js';
+	import type { Lane, OverlayFit, Origin, TargetLanguage } from '#lib/types.js';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
 	// operator), then the operator pushes live updates via the overlay-config event.
@@ -66,6 +68,8 @@
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
 	/** Lane 1's language, when the session captions in a second one. */
 	let secondCaptionLanguage = $state<TargetLanguage | undefined>(undefined);
+	/** The operator's notice for a break, shown instead of the captions while it is set. */
+	let notice = $state('');
 
 	// Words, not emoji or colour: at projector distance a two-letter cue is unreadable.
 	const originLabel = $derived<Record<Origin, string>>($t.overlay.origin);
@@ -96,22 +100,23 @@
 	);
 	const topPadding = $derived(layout !== 'compact' ? 16 : winH * 0.09);
 	const bottomPadding = $derived(layout !== 'compact' ? 16 : winH * 0.06);
-	const rowHeight = $derived(
-		Math.max(
-			0,
-			(winH - topPadding - bottomPadding - Math.max(0, lines.length - 1) * 18) /
-				Math.max(1, lines.length)
-		)
-	);
 	const showsOriginal = $derived(lines.some((line) => line.original));
-	// The size the rows are drawn at: the operator's, shrunk only when the window is too shallow
-	// to give every row a line of it. The window keeps its size; Snap to bottom gives the
-	// operator's size its room back.
-	const rowFont = $derived(rowFontSize(fontSize, rowHeight, showsOriginal));
+	// How the rows share the window: at the operator's size when they can, and otherwise closed
+	// up, then without the original, then smaller — down to a hard floor, so every row shows its
+	// caption. The window keeps its size; Snap to bottom gives the operator's size its room back.
+	const rowFit = $derived(
+		fitRows(fontSize, winH - topPadding - bottomPadding, lines.length, showsOriginal)
+	);
+	const rowHeight = $derived(rowFit.rowHeight);
+	const rowFont = $derived(rowFit.font);
 	// The original takes two of its smaller lines when the row has room for them beside two
 	// caption lines, and one otherwise: it is there to follow along, not to be read in full.
 	const originalRows = $derived(rowHeight >= 4.5 * rowFont ? 2 : 1);
 	const originalRegion = $derived(originalHeight(rowFont, originalRows));
+	// A notice is one row: as large as a single caption would be in this strip, and the strip's
+	// whole height to fit itself into.
+	const noticeHeight = $derived(Math.max(0, winH - topPadding - bottomPadding));
+	const noticeFont = $derived(fitRows(fontSize, noticeHeight, 1).font);
 
 	onMount(() => {
 		const measure = () => {
@@ -137,8 +142,10 @@
 
 		if (!isTauri()) {
 			// A browser preview has no core: show labelled demo content instead.
-			const preview = previewContent(new URLSearchParams(window.location.search).get('language'));
+			const params = new URLSearchParams(window.location.search);
+			const preview = previewContent(params.get('language'));
 			captions.show(preview);
+			notice = normalizeNotice(params.get('notice'));
 			if (preview.language) captionLanguage = preview.language;
 			if (preview.secondLanguage) secondCaptionLanguage = preview.secondLanguage;
 			return cleanup;
@@ -146,7 +153,11 @@
 
 		const events = listenAll([
 			on.caption((c) => captions.push(c)),
-			on.status((status) => captions.status(status)),
+			on.status((status) => {
+				captions.status(status);
+				if (status.state === 'idle' && !status.origin)
+					reportFit({ fontSize, rows: 0, squeezed: false, originalHidden: false, room: true });
+			}),
 			on.overlayConfig((cfg) => {
 				const previous = appearance;
 				appearance = fromOverlayConfig(cfg, appearance);
@@ -170,6 +181,9 @@
 				secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
 					? cfg.secondCaptionLanguage
 					: undefined;
+				// Checked again here, whatever the operator window did: plain text, one line,
+				// bounded. Absent clears it, as every push carries the whole of it.
+				notice = normalizeNotice(cfg.notice);
 				if (typeof cfg.interactive === 'boolean')
 					placement.setInteractive(
 						cfg.interactive,
@@ -191,6 +205,28 @@
 			cleanup();
 			events.stop();
 		};
+	});
+
+	// What the operator window is told about the fit, so its size control does not say 38 px
+	// while the rows are drawn at 20. Only while captions are drawn — between turns there are
+	// none, and a notice that came and went with every pause would chatter — and once more,
+	// empty, when the session stops. Sent only when it changes.
+	let reportedFit = '';
+	function reportFit(fit: OverlayFit) {
+		const key = JSON.stringify(fit);
+		if (key === reportedFit || !isTauri()) return;
+		reportedFit = key;
+		void api.reportOverlayState({ fit }).catch(() => {});
+	}
+	$effect(() => {
+		if (placement.interactive || notice || lines.length === 0 || winH <= 0) return;
+		reportFit({
+			fontSize: rowFont,
+			rows: lines.length,
+			squeezed: rowFont < fontSize,
+			originalHidden: showsOriginal && !rowFit.original,
+			room: rowFit.room
+		});
 	});
 
 	// Reachable while move mode has the window focused (it's click-through otherwise).
@@ -244,7 +280,7 @@
 	class:interactive={placement.interactive}
 	class:stable={layout === 'stable'}
 	class:fit={layout !== 'compact'}
-	style="--side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {rowFont}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
+	style="--row-gap: {rowFit.gap}px; --side-pad: {sidePadding}px; --top-pad: {topPadding}px; --bottom-pad: {bottomPadding}px; --fs: {rowFont}px; --original-scale: {ORIGINAL_SCALE}; --measure: {captions.width}ch; --caption-face: {captionFaceStack(
 		captionFace
 	)}; {paletteVars}"
 >
@@ -257,6 +293,19 @@
 			onSnap={snapToBottom}
 			onLock={() => void placement.lock()}
 		/>
+	{:else if notice}
+		<!-- The break notice replaces the captions until the operator clears it; captions keep
+		     arriving underneath and are there again the moment it goes. -->
+		<div class="captions notice">
+			<div class="row">
+				<OverlayNotice
+					text={notice}
+					maxFont={noticeFont}
+					height={noticeHeight}
+					fontKey={captionFace + ':' + fontsLoaded}
+				/>
+			</div>
+		</div>
 	{:else if lines.length > 0}
 		<!-- Painted only while there is something to read: with no captions the window must
 		     paint nothing at all, or it would veil the presenter's slides. -->
@@ -273,11 +322,13 @@
 							lead={line.lead}
 							text={line.text}
 							interim={line.interim}
-							height={line.original ? rowHeight - originalRegion - ORIGINAL_GAP : rowHeight}
+							height={line.original && rowFit.original
+								? rowHeight - originalRegion - ORIGINAL_GAP
+								: rowHeight}
 							fontKey={rowFont + ':' + captionFace + ':' + fontsLoaded}
 							language={rowLanguage(line.lane) ?? ''}
 						/>
-						{#if line.original}
+						{#if line.original && rowFit.original}
 							<!-- The speaker's language is whatever they spoke, which nobody has
 							     named: no `lang`, and the direction is left to the text. -->
 							<div class="original" style:margin-top="{ORIGINAL_GAP}px">
@@ -334,7 +385,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 18px;
+		gap: var(--row-gap);
 		padding: var(--top-pad) var(--side-pad) var(--bottom-pad);
 		max-height: 100%;
 		overflow: hidden;

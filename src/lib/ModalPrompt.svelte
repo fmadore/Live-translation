@@ -32,6 +32,10 @@
 		wide?: boolean;
 		/** Keep tabbed panels stationary while their body scrolls independently. */
 		stableHeight?: boolean;
+		/** A selector for what takes focus on opening, for a panel whose first control is the
+		 *  corner × rather than the thing it opened for. Ignored when it matches nothing that
+		 *  can take focus. The decision prompts leave it out and focus their own safe answer. */
+		initialFocus?: string;
 		children: Snippet;
 	}
 
@@ -41,6 +45,7 @@
 		dismissLabel,
 		wide = false,
 		stableHeight = false,
+		initialFocus,
 		children
 	}: Props = $props();
 
@@ -54,7 +59,11 @@
 	onMount(() => {
 		openDialogs.push(token);
 		const opener = document.activeElement as HTMLElement | null;
-		prompt?.querySelector<HTMLElement>('button, input, select')?.focus();
+		const chosen = initialFocus ? prompt?.querySelector<HTMLElement>(initialFocus) : null;
+		(chosen && !chosen.matches(':disabled')
+			? chosen
+			: prompt?.querySelector<HTMLElement>('button, input, select')
+		)?.focus();
 		return () => {
 			openDialogs.splice(openDialogs.indexOf(token), 1);
 			opener?.focus?.();
@@ -118,8 +127,8 @@
 			{#if onDismiss && dismissLabel}
 				<ToolButton class="icon dismiss" aria-label={dismissLabel} onclick={onDismiss}>
 					<svg
-						width="14"
-						height="14"
+						width="0.875rem"
+						height="0.875rem"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"

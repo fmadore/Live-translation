@@ -6,7 +6,7 @@ div.prompt.wide.stableHeight[role=dialog] "Settings" { display: flex; flex-direc
 div.prompt.wide.stableHeight[role=dialog] "Settings" › div.header { display: flex; align-items: flex-start; flex: 0 0 auto; gap: 27px }
 div.prompt.wide.stableHeight[role=dialog] "Settings" › div.header › h2 "Settings" { font-size: 38.25px; font-weight: 600; line-height: 1.2; text-wrap-style: balance; color: #f2f4f7; flex: 1 1 0%; margin: 0px }
 div.prompt.wide.stableHeight[role=dialog] "Settings" › div.header › button.ui-tool.icon.dismiss "Close settings" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 18px; width: 72px; min-width: 0px; max-width: 100%; padding: 0px; margin: -4px -6px 0px 0px; border: 1px solid rgba(0, 0, 0, 0); border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-div.prompt.wide.stableHeight[role=dialog] "Settings" … button.ui-tool.icon.dismiss "Close settings" › svg { display: block; width: 14px; height: 14px }
+div.prompt.wide.stableHeight[role=dialog] "Settings" … button.ui-tool.icon.dismiss "Close settings" › svg { display: block; width: 31.5px; height: 31.5px }
 div.prompt.wide.stableHeight[role=dialog] "Settings" › p.hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 div.prompt.wide.stableHeight[role=dialog] "Settings" › div.tabs[role=tablist] "Settings" { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 9px; border-bottom: 1px solid #262b33 }
 div.prompt.wide.stableHeight[role=dialog] "Settings" … div.tabs[role=tablist] "Settings" › button[role=tab] "Captions" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #8b93a1; display: block; position: relative; padding: 27px 36px; border: none; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
@@ -34,24 +34,43 @@ div.settings[role=tabpanel] "App" › div.rail-section:nth(2) { display: flex; f
 div.settings[role=tabpanel] "App" › div.rail-section:nth(2) › h2.kicker "Theme" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(2) › div.theme-cards[role=group] "Theme" { display: grid; grid-template-columns: repeat(3, minmax(0px, 1fr)); gap: 18px }
 div.settings[role=tabpanel] "App" … div.theme-cards[role=group] "Theme" › button.theme-card.ui-card "System" { font-size: 29.25px; font-weight: 600; line-height: 1; text-align: left; display: flex; align-items: center; gap: 18px; padding: 27px; border: 1px solid rgba(90, 209, 160, 0.4); border-radius: 4px; background-color: rgba(90, 209, 160, 0.08) }
-div.settings[role=tabpanel] "App" … button.theme-card.ui-card "System" › svg { color: #7fdcb6; display: block; flex: 0 0 auto; width: 16px; height: 16px }
+div.settings[role=tabpanel] "App" … button.theme-card.ui-card "System" › svg { color: #7fdcb6; display: block; flex: 0 0 auto; width: 36px; height: 36px }
 div.settings[role=tabpanel] "App" … button.theme-card.ui-card "System" › span { display: block }
 div.settings[role=tabpanel] "App" … div.theme-cards[role=group] "Theme" › button.theme-card.ui-card "Light" { font-size: 29.25px; font-weight: 500; line-height: 1; text-align: left; color: #c3c9d2; display: flex; align-items: center; gap: 18px; padding: 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Light" › svg { color: #8b93a1; display: block; flex: 0 0 auto; width: 16px; height: 16px }
+div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Light" › svg { color: #8b93a1; display: block; flex: 0 0 auto; width: 36px; height: 36px }
 div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Light" › span { display: block }
 div.settings[role=tabpanel] "App" … div.theme-cards[role=group] "Theme" › button.theme-card.ui-card "Dark" { font-size: 29.25px; font-weight: 500; line-height: 1; text-align: left; color: #c3c9d2; display: flex; align-items: center; gap: 18px; padding: 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Dark" › svg { color: #8b93a1; display: block; flex: 0 0 auto; width: 16px; height: 16px }
+div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Dark" › svg { color: #8b93a1; display: block; flex: 0 0 auto; width: 36px; height: 36px }
 div.settings[role=tabpanel] "App" … button.theme-card.ui-card "Dark" › span { display: block }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(2) › p.hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; margin: 0px }
 div.settings[role=tabpanel] "App" › div.divider:nth(3) { flex: 0 0 auto; height: 1px; background-color: #1f242b }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › h2.kicker "Window" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › button.ui-tool.wide "Minimize to tray" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
-div.settings[role=tabpanel] "App" … button.ui-tool.wide "Minimize to tray" › svg { display: block; width: 14px; height: 14px }
+div.settings[role=tabpanel] "App" … button.ui-tool.wide "Minimize to tray" › svg { display: block; width: 31.5px; height: 31.5px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › label.ui-pref { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #c3c9d2; display: grid; align-items: start; grid-template-columns: auto 1fr; gap: 18px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › label.ui-pref › input[type=checkbox] "Keep running in the tray when I…" { color: #ffffff; display: block; margin: 7.2px 3px 3px 4px }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › label.ui-pref › span { display: block }
 div.settings[role=tabpanel] "App" › div.rail-section:nth(3) › label.ui-pref › span › small { color: #8b93a1; display: block; margin: 9px 0px 0px }
+div.settings[role=tabpanel] "App" › div.divider:nth(4) { flex: 0 0 auto; height: 1px; background-color: #1f242b }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › h2.kicker "Cloud spending" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; margin: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(1) { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(1) › span { display: block }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(1) › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(1) › span.ui-select › select "Pause when nothing has been cap…" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(1) › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(2) { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(2) › span { display: block }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(2) › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(2) › span.ui-select › select "Tell me when the estimated cost…" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(2) › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(3) { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(3) › span { display: block }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(3) › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(3) › span.ui-select › select "Tell me when a session has run …" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › label.ui-field:nth(3) › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › p.hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; margin: 0px }
 div.settings[role=tabpanel] "App" › section.keys { font-size: 27px; color: #c3c9d2; flex: 0 0 auto; margin: 36px 0px }
 div.settings[role=tabpanel] "App" › section.keys › h3 "Keyboard shortcuts" { font-weight: 600; margin: 0px }
 div.settings[role=tabpanel] "App" › section.keys › p { font-size: 29.25px; line-height: 1.5; text-wrap-style: pretty; margin: 0px }
@@ -72,11 +91,30 @@ div.settings[role=tabpanel] "App" › section.keys › dl › dd:nth(4) { line-h
 div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(5) { font-weight: 600; line-height: 2 }
 div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(5) › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; padding: 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 div.settings[role=tabpanel] "App" › section.keys › dl › dd:nth(5) { line-height: 1.5; color: #8b93a1; margin: 9px 0px 27px }
-div.settings[role=tabpanel] "App" › div.divider:nth(4) { flex: 0 0 auto; height: 1px; background-color: #1f242b }
-div.settings[role=tabpanel] "App" › div.rail-section:nth(4) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px }
-div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › h2.kicker "Support development" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
-div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › p.hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; margin: 0px }
-div.settings[role=tabpanel] "App" › div.rail-section:nth(4) › a.support.ui-tool "Buy me a coffee (opens in your …" { font-size: 27px; font-weight: 500; line-height: 1; color: #c3c9d2; display: flex; align-items: center; justify-content: center; align-self: flex-start; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(6) { font-weight: 600; line-height: 2 }
+div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(6) › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; padding: 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+div.settings[role=tabpanel] "App" › section.keys › dl › dd:nth(6) { line-height: 1.5; color: #8b93a1; margin: 9px 0px 27px }
+div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(7) { font-weight: 600; line-height: 2 }
+div.settings[role=tabpanel] "App" › section.keys › dl › dt:nth(7) › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; padding: 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+div.settings[role=tabpanel] "App" › section.keys › dl › dd:nth(7) { line-height: 1.5; color: #8b93a1; margin: 9px 0px 27px }
+div.settings[role=tabpanel] "App" › section.global { font-size: 27px; color: #c3c9d2; display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; margin: 0px 0px 36px }
+div.settings[role=tabpanel] "App" › section.global › label.ui-pref { line-height: 1.5; text-wrap-style: pretty; display: grid; align-items: start; grid-template-columns: auto 1fr; gap: 18px }
+div.settings[role=tabpanel] "App" › section.global › label.ui-pref › input[type=checkbox] "Use shortcuts while other apps …" { color: #ffffff; display: block; margin: 7.2px 3px 3px 4px }
+div.settings[role=tabpanel] "App" › section.global › label.ui-pref › span { display: block }
+div.settings[role=tabpanel] "App" › section.global › label.ui-pref › span › small { color: #8b93a1; display: block; margin: 9px 0px 0px }
+div.settings[role=tabpanel] "App" › section.global › dl { display: grid; align-items: baseline; grid-template-columns: minmax(0px, 1fr) minmax(0px, 1fr); gap: 27px; margin: 0px }
+div.settings[role=tabpanel] "App" › section.global › dl › dt:nth(1) { font-weight: 600; line-height: 1.5 }
+div.settings[role=tabpanel] "App" › section.global › dl › dt:nth(1) › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; padding: 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+div.settings[role=tabpanel] "App" › section.global › dl › dd:nth(1) { line-height: 1.5; color: #8b93a1; margin: 0px }
+div.settings[role=tabpanel] "App" › section.global › dl › dt:nth(2) { font-weight: 600; line-height: 1.5 }
+div.settings[role=tabpanel] "App" › section.global › dl › dt:nth(2) › kbd.ui-kbd { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; padding: 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
+div.settings[role=tabpanel] "App" › section.global › dl › dd:nth(2) { line-height: 1.5; color: #8b93a1; margin: 0px }
+div.settings[role=tabpanel] "App" › section.global › p.refused[role=status] { line-height: 1.5; text-wrap-style: pretty; color: #ffd39a; margin: 0px }
+div.settings[role=tabpanel] "App" › div.divider:nth(5) { flex: 0 0 auto; height: 1px; background-color: #1f242b }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(5) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(5) › h2.kicker "Support development" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(5) › p.hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; margin: 0px }
+div.settings[role=tabpanel] "App" › div.rail-section:nth(5) › a.support.ui-tool "Buy me a coffee (opens in your …" { font-size: 27px; font-weight: 500; line-height: 1; color: #c3c9d2; display: flex; align-items: center; justify-content: center; align-self: flex-start; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 div.settings[role=tabpanel] "App" … a.support.ui-tool "Buy me a coffee (opens in your …" › span.cup { color: #0d0c22; display: grid; align-items: center; flex: 0 0 auto; width: 45px; height: 45px; border-radius: 50%; background-color: #ffdd00 }
 div.settings[role=tabpanel] "App" … a.support.ui-tool "Buy me a coffee (opens in your …" › span.cup › svg { display: block; width: 27px; height: 27px }
 div.settings[role=tabpanel] "App" … a.support.ui-tool "Buy me a coffee (opens in your …" › span.sr-only { white-space: collapse nowrap; display: block; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }

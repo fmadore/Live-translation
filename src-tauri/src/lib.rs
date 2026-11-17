@@ -19,6 +19,7 @@ mod export;
 mod gemini;
 mod glossary;
 mod history;
+mod hotkeys;
 mod lifecycle;
 mod mistral;
 mod ondevice;
@@ -35,6 +36,7 @@ mod textscale;
 mod timing;
 mod tray;
 mod types;
+mod update;
 mod whisper;
 mod zoom;
 
@@ -153,6 +155,11 @@ pub fn run() {
         .manage(TrayMenu::default())
         .manage(zoom::ZoomCaptions::default())
         .manage(echo::EchoGuard::default())
+        .manage(update::Updates::default())
+        .manage(hotkeys::Hotkeys::default())
+        // Registers nothing by itself: the opt-in system-wide keys are asked for by
+        // `hotkeys::set_global_shortcuts`, and no window is granted the plugin's own commands.
+        .plugin(hotkeys::plugin())
         .invoke_handler(tauri::generate_handler![
             commands::list_microphones,
             commands::list_outputs,
@@ -207,6 +214,12 @@ pub fn run() {
             zoom::send_zoom_test_caption,
             zoom::zoom_captions_status,
             zoom::open_zoom_guide,
+            update::update_status,
+            update::check_for_update,
+            update::set_update_checks,
+            update::skip_update_version,
+            update::open_release_page,
+            hotkeys::set_global_shortcuts,
         ])
         .on_window_event(|window, event| {
             match event {
@@ -302,7 +315,12 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building the Live Translation app")
-        .run(|app, event| lifecycle::on_run_event(app, &event));
+        .run(|app, event| {
+            if let tauri::RunEvent::Exit = event {
+                hotkeys::release(app);
+            }
+            lifecycle::on_run_event(app, &event);
+        });
 }
 
 #[cfg(test)]

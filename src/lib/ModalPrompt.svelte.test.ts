@@ -53,3 +53,46 @@ describe('ModalPrompt stacking', () => {
 		expect(onSettingsDismiss).toHaveBeenCalledOnce();
 	});
 });
+
+describe('ModalPrompt initial focus', () => {
+	const body = createRawSnippet(() => ({
+		render: () =>
+			'<div><button>First</button><input aria-label="Wanted" class="wanted" /><input aria-label="Off" class="off" disabled /></div>'
+	}));
+
+	it('focuses the first control by default, which is the corner Close when there is one', () => {
+		const view = render(ModalPrompt, {
+			props: { title: 'Panel', onDismiss: vi.fn(), dismissLabel: 'Close', children: body }
+		});
+		expect(view.getByRole('button', { name: 'Close' })).toHaveFocus();
+	});
+
+	it('focuses what initialFocus names instead', () => {
+		const view = render(ModalPrompt, {
+			props: {
+				title: 'Panel',
+				onDismiss: vi.fn(),
+				dismissLabel: 'Close',
+				initialFocus: '.wanted',
+				children: body
+			}
+		});
+		expect(view.getByLabelText('Wanted')).toHaveFocus();
+	});
+
+	it('falls back to the first control when initialFocus names a disabled or missing one', () => {
+		for (const initialFocus of ['.off', '.absent']) {
+			const view = render(ModalPrompt, {
+				props: {
+					title: 'Panel',
+					onDismiss: vi.fn(),
+					dismissLabel: 'Close',
+					initialFocus,
+					children: body
+				}
+			});
+			expect(view.getByRole('button', { name: 'Close' })).toHaveFocus();
+			view.unmount();
+		}
+	});
+});

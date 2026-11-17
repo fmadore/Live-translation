@@ -153,8 +153,8 @@
 			<!-- The knobs are filled with the button's own fill (`.ui-tool`'s --surface-2), so they
 			     read as rings sitting on the rails rather than as solid dots. -->
 			<svg
-				width="14"
-				height="14"
+				width="0.875rem"
+				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -205,8 +205,8 @@
 								confirming = false;
 							}}
 							><svg
-								width="14"
-								height="14"
+								width="0.875rem"
+								height="0.875rem"
 								viewBox="0 0 24 24"
 								fill="currentColor"
 								aria-hidden="true"

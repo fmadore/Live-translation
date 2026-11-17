@@ -13,10 +13,19 @@ import {
 	overlayPalette,
 	overlayPlaced,
 	overlayShowOriginal,
+	noticeUntilCaptions,
+	sessionState,
 	statusMessage
 } from './stores';
+import {
+	NO_NOTICE,
+	noticeOnCaption,
+	noticeOnState,
+	showNotice,
+	type NoticeState
+} from './overlayNotice';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
-import type { OverlayConfig, OverlayStateMsg } from './types';
+import type { OverlayConfig, OverlayFit, OverlayStateMsg } from './types';
 import {
 	clampOverlayFont,
 	DEFAULT_APPEARANCE,
@@ -47,6 +56,19 @@ function beforeNextFrame(flush: () => void) {
 	};
 	if (typeof requestAnimationFrame === 'function') requestAnimationFrame(once);
 	setTimeout(once, 100);
+}
+
+/** A fit report as the operator window keeps it: null when no rows are drawn, or when the
+ *  report is not one (the core checks the shape; this checks the numbers). */
+function readFit(fit: OverlayFit): OverlayFit | null {
+	const valid =
+		Number.isFinite(fit.fontSize) &&
+		fit.fontSize > 0 &&
+		Number.isInteger(fit.rows) &&
+		typeof fit.squeezed === 'boolean' &&
+		typeof fit.originalHidden === 'boolean' &&
+		typeof fit.room === 'boolean';
+	return valid && fit.rows > 0 ? fit : null;
 }
 
 /** One appearance and window-command owner for the rail, settings and overlay events.
@@ -91,6 +113,7 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
+				notice: notice.text,
 				moveExitsSeen,
 				...extra
 			})
@@ -132,6 +155,37 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		pushOverlayConfig({ interactive: moveOverlay });
 	}
 
+	// A notice in place of the captions, for a break (`overlayNotice.ts`). Held here and pushed
+	// with everything else, so a reloaded overlay gets it back with its first configuration.
+	let notice = $state.raw<NoticeState>(NO_NOTICE);
+
+	function setNoticeState(next: NoticeState) {
+		if (next === notice) return;
+		const changed = next.text !== notice.text;
+		notice = next;
+		if (changed) pushOverlayConfig({ interactive: moveOverlay });
+	}
+
+	/** Show `text` on the overlay instead of the captions; empty text clears it. */
+	function setNotice(text: string) {
+		setNoticeState(showNotice(text, get(sessionState)));
+	}
+
+	function clearNotice() {
+		setNoticeState(NO_NOTICE);
+	}
+
+	/** A caption arrived: after a pause, the break is over, unless the operator said otherwise.
+	 *  Nothing to do, and so nearly free, while no notice is up. */
+	function noteCaption() {
+		if (notice.text) setNoticeState(noticeOnCaption(notice, get(noticeUntilCaptions)));
+	}
+
+	/** The session moved to `state`: paused or stopped, the next caption ends the break. */
+	function noteSessionState(state: Parameters<typeof noticeOnState>[1]) {
+		if (notice.text) setNoticeState(noticeOnState(notice, state));
+	}
+
 	/** Put the overlay's whole appearance back to what it ships with.
 	 *
 	 *  Everything in this section, not just the colours: a palette that has gone wrong has
@@ -156,6 +210,11 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 	// Blanking it covers a coffee break or a video clip without ending the session. The core
 	// can hide it too (Alt+F4 on the overlay), and says so through `applyState`.
 	let overlayVisible = $state(true);
+
+	// How the overlay's caption rows last fit its window, as it reported: null until it reports
+	// rows drawn, and again once the session stops. The live rail says from this when captions
+	// are drawn smaller than the size its control shows.
+	let overlayFit = $state<OverlayFit | null>(null);
 
 	// Where the overlay was last placed, kept per display layout (`overlayGeometry.ts`). Saved
 	// when the operator finishes placing it and when a profile places it: not on every move,
@@ -326,6 +385,7 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		// Hidden by the core, not by this window: the toggle and the tray now offer Show, so
 		// bringing the captions back is one click rather than a Hide that does nothing first.
 		if (typeof msg.visible === 'boolean') overlayVisible = msg.visible;
+		if (msg.fit !== undefined) overlayFit = readFit(msg.fit);
 		if (msg.visible === false && moveOverlay) void leaveHiddenMoveMode();
 	}
 
@@ -354,6 +414,17 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 		get overlayVisible() {
 			return overlayVisible;
 		},
+		get overlayFit() {
+			return overlayFit;
+		},
+		/** The notice the overlay shows instead of captions; empty when it shows captions. */
+		get notice() {
+			return notice.text;
+		},
+		setNotice,
+		clearNotice,
+		noteCaption,
+		noteSessionState,
 		initialize,
 		restorePlacement,
 		handleDisplaysChanged,

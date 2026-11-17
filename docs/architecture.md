@@ -103,7 +103,13 @@ The transcript is an explicit document with a saved state, not a scrolling side 
   remembered in `stage.view`) replaces the live turns with the whole log at the stage's full
   height, with the turns still being spoken (`inFlightLines`) at its foot. **Copy** puts the
   last 5, 10 or 30 minutes, or everything, on the clipboard as plain text, in-flight turns
-  included.
+  included. **Find** searches the reader with `historySearch.ts`'s folding, placed back onto the
+  text (`transcriptFind.ts`), and highlights through the CSS Custom Highlight API.
+- **Markers.** The operator's markers (`TranscriptMarker`) are a list beside the lines, not
+  lines, so nothing that reads captions can take one for speech; their ids come from the lines'
+  counter, which orders the two, and a marker makes the document unsaved as a line does. They
+  are written into exports (`transcript.ts`), the recovery spool and the history log as records
+  of their own, which older builds skip.
 
 ## Provider contracts
 
@@ -161,10 +167,11 @@ See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes) an
 [DeepL's](deepl-voice-api.md#how-a-caption-line-closes).
 
 A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, or
-`MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open
-and the connection has produced no caption for three seconds (`QUIET_BEFORE_CLOSE`), the
-closing frames are still sent but not waited on, so a Pause in a quiet room takes effect at
-once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
+`MessageControl::Closed`), on its close or error, or after four seconds. When no turn is open,
+the provider holds nothing still to come (`keeps_turn_open`: DeepL's tentative start of a
+sentence that is not on screen yet) and the connection has produced no caption for three
+seconds (`QUIET_BEFORE_CLOSE`), the closing frames are still sent but not waited on, so a Pause
+in a quiet room takes effect at once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
 runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
 drain.
 
@@ -179,7 +186,11 @@ it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, clos
 (OpenAI's or Mistral's cap) is a planned handover; anything unrecognized stays fatal, 1007 and
 1008 included, so a persistent failure reports itself instead of looping. A setup that times
 out, hits EOF or is closed with a retryable code is retried the same way, as Reconnecting, and
-the fifth such failure in a row ends the source; an accepted setup resets the count. A
+the fifth such failure in a row ends the source; an accepted setup resets the count. A provider
+that sends no setup acknowledgement (OpenAI, Mistral, DeepL) has accepted a connection once it
+is open, so one that it ends within five seconds (`UNCONFIRMED_OPEN`) without having sent a
+message counts as a failed setup too (`policy::unconfirmed_end`); a connection that stays open,
+however quiet the room, does not. A
 provider that ends its session mid-stream
 (OpenAI's `session.closed`, Mistral's `transcription.done`, DeepL's `end_of_stream`) does not
 end the source either:
@@ -262,7 +273,8 @@ installed Whisper model on a supported processor, or the bundled demo),
 `setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
 failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer),
 `zoomCaptions.svelte.ts` (the share with Zoom: its status, and the caption link, held in
-memory only) and `nativeSync.svelte.ts` (effects that mirror state to the core and the
+memory only), `updateCheck.svelte.ts` (the new-version notice and its question), `spendingGuard.svelte.ts`
+(the cloud spending guard, on the session clock's own tick) and `nativeSync.svelte.ts` (effects that mirror state to the core and the
 overlay). These
 controllers expose reactive getters and explicit actions; they do not subscribe globally
 when imported. Page teardown disposes the preflight timers and capture test.
@@ -418,7 +430,10 @@ does, as OpenWhispr's field logs showed. What it drops is on screen from the sys
 being wrong that way loses no words.
 
 Both sides are compared on their last 200 words, split once and kept per turn, so a turn that
-streams for minutes is still caught and costs no more to check as it grows. A turn withdrawn as
+streams for minutes is still caught and costs no more to check as it grows. The last 32 system
+turns of a lane are kept to compare with, and nothing forgets them on the clock: a microphone
+line local Whisper decodes behind a backlog can arrive long after its system line, with newer
+system lines between them, and is still judged by session time. A turn withdrawn as
 an echo stays withdrawn until its final, which is judged afresh, so a line near the threshold
 does not blink.
 
@@ -461,6 +476,58 @@ Sharing is independent of the caption session: it is started and stopped by its 
 outlives Stop and Start, and costs nothing while off. The caption URL is a credential: the
 renderer holds it in memory only, the core never logs it (reqwest errors are logged
 `without_url`), and validation errors name the rule that failed, not the URL.
+
+## New versions, for copies installed from GitHub
+
+The Microsoft Store and the Mac App Store update their copies; the Windows installer, the MSI
+and the Mac disk image do not. `update.rs` tells those copies, and only those, that a newer
+release exists (issue #217). Tell, don't install: it shows the version and a link to its
+release page, and downloads nothing; there is no updater plugin and no signed update feed.
+
+- **Which copies.** `update::installed_from_github`, one function behind the per-feature `cfg`
+  pattern: on Windows a process without package identity (`GetCurrentPackageFullName` answers
+  `APPMODEL_ERROR_NO_PACKAGE`; any other answer counts as identity), so every MSIX, the Store's
+  and the sideloaded test packages, is left out; on macOS any build but the sandboxed Mac App
+  Store one (`support::app_store_build`); elsewhere never. The Mac App Store forbids another
+  update channel (App Review Guideline 2.4.5(vii)); the Microsoft Store does not, but its build
+  already updates, and a notice there would send people to an installer that puts a second copy
+  beside it. A copy that is not eligible gets `UpdateStatus::default()` from every command and
+  its state file is never read or written.
+- **Off until answered.** The issue left the default open; the middle way was chosen: the switch
+  (*Check for new versions*, Settings › App) starts unanswered, which means off. From the second
+  launch (counted by the core, once per process, so a reloaded window is not a launch) the start
+  screen shows one line, *Check for new versions? This asks GitHub once a day.*, with **Turn on**
+  and **No thanks**, until it is answered. Nothing is requested before **Turn on**.
+- **When.** The operator window asks `check_for_update` five seconds after it loads and, while
+  a session runs, again every minute until it has ended. The core decides: it refuses without a
+  request unless the copy is eligible, the switch is on, `SessionManager::is_active` is false and
+  a day has passed since the last attempt (failed ones count, so a failure is retried the next
+  day; a last check in the future, after the clock was set back, does not hold it off). One
+  check runs at a time.
+- **What it asks.** One unauthenticated `GET https://api.github.com/repos/fmadore/Live-translation/releases/latest`
+  from Rust with the core's `reqwest` (native TLS, the system proxy), 15 seconds at most, no
+  redirect, a body of at most 1 MiB, and a User-Agent of the app's name and version alone. The
+  webview's CSP keeps `connect-src 'self'`. That endpoint leaves out drafts and prereleases; a
+  tag that still reads as one (`v1.15.0-rc.1`, or `prerelease: true`) is ignored, and anything
+  that is not exactly `vMAJOR.MINOR.PATCH` is malformed. Versions are compared field by field,
+  by a dozen lines rather than a crate. Every failure is logged at info and shown nowhere.
+- **The trust boundary for the release page.** `open_release_page` takes no argument, as
+  `open_support_page` takes none: the core builds
+  `https://github.com/fmadore/Live-translation/releases/tag/v<X.Y.Z>` from the three numbers it
+  parsed and hands that to the shell. The answer's own `html_url` is never read, and the renderer
+  cannot name a page. The state file keeps versions as text and parses them again on every read,
+  so a damaged or edited file cannot put anything else into a status or a URL.
+- **State.** `update-check.json` in the app's local data folder, replaced whole through
+  `atomic_file`: the answer (`unanswered`, `on`, `off`), the launches counted until it is given,
+  the last attempt's time, the newest version seen and the one hidden with **Not now**. Kept by
+  the core rather than in webview storage, so the core alone decides whether a request goes
+  out. The notice shows the newest version seen while it is newer than the running one and than
+  the skipped one, so installing the update, or a newer release, clears or replaces it.
+
+The interface (`updateCheck.svelte.ts`, `UpdateNotice.svelte`, `UpdateSettings.svelte`) shows
+the notice and the question on the start screen only while no session runs, under a live region
+mounted a render before its sentence, and the switch, the notice and the last check's time in
+Settings › App. In a browser preview, and on a store build, it shows nothing.
 
 ## Responsive caption overlay
 
@@ -544,7 +611,8 @@ them is a cheap path that skips a step:
 2. **Hide instead?** With *Keep running in the tray* on, closing hides the window and stops
    here — the session, the overlay and the transcript all carry on. The first hide explains
    itself in the window rather than as a toast, which Focus Assist or a full-screen slideshow
-   could swallow.
+   could swallow. Escape on that explanation neither hides nor quits: the window stays open,
+   and the explanation is still owed to the first hide.
 3. **May this session end?** Asked while it is still running, so ending an event's captions is
    a decision rather than a mis-aimed click.
 4. **Stop and drain.** `stop_session` cancels capture and gives the providers a bounded window
@@ -587,6 +655,33 @@ carry out.
 focuses the running window instead of starting a second process to fight over the same capture
 devices.
 
+### System-wide keys
+
+The opt-in Pause and Show/hide overlay keys
+([usability](usability.md#system-wide-pause-and-overlay-keys)) live in `hotkeys.rs`, on
+`tauri-plugin-global-shortcut` (`RegisterHotKey` on Windows, Carbon's `RegisterEventHotKey` on
+macOS; neither is a keyboard hook or an event tap, and the app is told of these combinations
+only). The switch is a renderer preference, mirrored like *Keep running in the tray*:
+`nativeSync` pushes it with whether a session is running or paused through
+`set_global_shortcuts`, on mount and on every change, and the core holds the keys only while
+both are true. The command answers which keys are held and which the system refused; Settings
+names a refused one. It is synchronous, so registration happens on the main thread, where macOS
+requires it.
+
+A press does what a tray entry does: the core emits `tray-command` (`toggle-pause` or
+`toggle-overlay`) and the operator window carries it out with the function its own shortcut
+and button call, so a pause still goes through `pause_session` and the session's lifecycle
+lock, and the button labels and the tray menu follow the state that function changes. In the
+core, only a press (not a release) of a key it holds acts, and presses of the same combination
+less than 400 ms apart count as one, so a held key or a system that repeats acts once. There is
+deliberately no Start or Stop key.
+
+Registration is Rust-only. The plugin's JavaScript package is not installed and no window is
+granted a `global-shortcut:` permission (pinned in `command_names.rs`): a window that could
+register any combination would hear it pressed in every application. The decisions (which
+keys, when they are held, what a refusal reports, the quiet period) are pure functions tested
+against a fake registrar, so the tests reach no display server.
+
 ## Security and privacy
 
 Provider authentication happens in Rust. Each optional key has its own Windows Credential
@@ -597,7 +692,9 @@ deletes its temporary audio file on close; its pinned model downloads are integr
 available only to the operator window. The built-in demo opens no audio device, uses no
 network and needs no credential. Caption text reaches Zoom only while the operator shares it
 with a meeting. The developer operates no backend, relay, telemetry, analytics or
-crash-reporting service. See [`SECURITY.md`](../SECURITY.md) and the
+crash-reporting service. The one request the app makes of its own accord is the new-version
+check of a copy installed from GitHub, once the operator has turned it on
+([above](#new-versions-for-copies-installed-from-github)). See [`SECURITY.md`](../SECURITY.md) and the
 [privacy policy](privacy.md) for what is stored and what leaves the machine.
 
 ## The two windows are not equally trusted
@@ -632,7 +729,8 @@ Two things make the split real rather than documentary:
 The tests in `src/command_names.rs` hold the three pieces together: they fail if a command is
 registered without a permission (which would be rejected at runtime the first time an operator
 used it), if a capability grants something that no longer exists, or if the overlay's
-permissions, core ones included, differ in any way from the list pinned there.
+permissions, core ones included, differ in any way from the list pinned there, or if either
+window is granted the global-shortcut plugin's commands.
 `overlayPlacement.svelte.test.ts` checks that what the overlay sends in move mode is all in its
 capability.
 

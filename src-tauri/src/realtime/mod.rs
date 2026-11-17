@@ -267,6 +267,14 @@ pub trait RealtimeProtocol {
     fn setup_json(&self) -> anyhow::Result<Option<String>>;
     fn audio_json(&self, base64_pcm: String) -> anyhow::Result<String>;
 
+    /// One audio frame from the chunk's PCM, which is what the runner sends. By default its
+    /// base64 goes to `audio_json`; a provider whose frame is a fixed text around the base64
+    /// (DeepL) encodes it straight into the frame instead, saving a copy of every chunk.
+    fn audio_frame(&self, pcm_le: &[u8]) -> anyhow::Result<String> {
+        use base64::Engine;
+        self.audio_json(base64::engine::general_purpose::STANDARD.encode(pcm_le))
+    }
+
     /// For a provider that ends a session whose input stops — DeepL, after 30 seconds without
     /// data: silence to send whenever the source has sent no audio for a while. A microphone
     /// delivers chunks continuously, silence included, but system audio can deliver none while
@@ -282,8 +290,9 @@ pub trait RealtimeProtocol {
         false
     }
 
-    /// Provider frames used to flush pending audio before the socket is closed.
-    fn closing_json(&self) -> anyhow::Result<Vec<String>> {
+    /// Provider frames used to flush pending audio before the socket is closed. Mutable, for a
+    /// provider whose session these frames end (DeepL, which then requests a new one).
+    fn closing_json(&mut self) -> anyhow::Result<Vec<String>> {
         Ok(Vec::new())
     }
 
@@ -304,7 +313,9 @@ pub trait RealtimeProtocol {
 
     /// Whether the idle boundary should leave the turn open for now, because the provider
     /// says the speaker is in the middle of a sentence. Asked each time the boundary passes,
-    /// and no longer once the text has been still for `MAX_HOLD`.
+    /// and no longer once the text has been still for `MAX_HOLD`. Also asked by a Pause or
+    /// Stop: while it holds, there is speech still to come, and the close drains for it even
+    /// when the accumulator is empty and the connection has been quiet.
     fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
         false
     }

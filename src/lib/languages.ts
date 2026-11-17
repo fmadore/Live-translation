@@ -97,7 +97,9 @@ function normalizeLanguageSearch(text: string): string {
 	return text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase().trim();
 }
 
-/** Prefixes outrank substrings; ties retain favourites' pin order, then localized names. */
+/** Prefixes outrank substrings; ties retain favourites' pin order, then localized names.
+ *  The unfiltered list holds what the engine offers, plus the pins; a search also finds the
+ *  languages it does not offer, last, so "zul" under DeepL says why rather than "no match". */
 export function languageRows(
 	provider: Provider,
 	favourites: readonly TargetLanguage[],
@@ -106,7 +108,10 @@ export function languageRows(
 ) {
 	const needle = normalizeLanguageSearch(query);
 	return catalog.languages
-		.filter((l) => l.providers.includes(provider) || favourites.includes(l.code as TargetLanguage))
+		.filter(
+			(l) =>
+				!!needle || l.providers.includes(provider) || favourites.includes(l.code as TargetLanguage)
+		)
 		.map((l) => {
 			const code = l.code as TargetLanguage;
 			const name = languageName(code, locale);
@@ -131,6 +136,7 @@ export function languageRows(
 		})
 		.filter((l) => l.rank < 3)
 		.sort((a, b) => {
+			if (needle && a.supported !== b.supported) return a.supported ? -1 : 1;
 			if (needle && a.rank !== b.rank) return a.rank - b.rank;
 			if (a.favourite !== b.favourite) return a.favourite ? -1 : 1;
 			return a.favourite

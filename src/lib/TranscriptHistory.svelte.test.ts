@@ -498,3 +498,38 @@ it('words a rename refused because the session was just deleted (review B18)', a
 	rename.mockRestore();
 	view.unmount();
 });
+
+it('shows only the opt-ins and one sentence until there is a saved session', async () => {
+	vi.mocked(api.listHistory).mockResolvedValue(listing());
+	const view = render(TranscriptHistory);
+	await waitFor(() => expect(api.listHistory).toHaveBeenCalled());
+	expect(view.getByText('No saved sessions yet.')).toBeTruthy();
+	expect(view.queryByRole('button', { name: 'Refresh' })).toBeNull();
+	expect(view.queryByRole('searchbox')).toBeNull();
+	expect(view.queryByLabelText('Language')).toBeNull();
+	expect(view.queryByText('Choose a session to read or export it.')).toBeNull();
+	// The opt-in and the notice's live region are there from the start.
+	expect(view.getAllByRole('checkbox').length).toBeGreaterThan(0);
+	expect(view.getByRole('status')).toBeTruthy();
+
+	// A listing that fails keeps Refresh, as the way to try again.
+	vi.mocked(api.listHistory).mockRejectedValue(new Error('Access denied'));
+	vi.useFakeTimers();
+	try {
+		historyRevision.update((n) => n + 1);
+		await tick();
+		await vi.advanceTimersByTimeAsync(5000);
+	} finally {
+		vi.useRealTimers();
+	}
+	await waitFor(() => expect(view.getByRole('alert')).toBeTruthy());
+	const refresh = view.getByRole('button', { name: 'Refresh' });
+
+	vi.mocked(api.listHistory).mockResolvedValue(
+		listing({ id: saved.id, contents: JSON.stringify(saved) })
+	);
+	await fireEvent.click(refresh);
+	await waitFor(() => expect(view.getByRole('searchbox')).toBeTruthy());
+	expect(view.queryByText('No saved sessions yet.')).toBeNull();
+	view.unmount();
+});

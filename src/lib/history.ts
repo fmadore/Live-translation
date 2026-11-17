@@ -1,6 +1,6 @@
 import { isTargetLanguage, type TargetLanguage } from './languages';
 import { get, writable } from 'svelte/store';
-import { readLine } from './document';
+import { markerRecord, readLine, readMarker } from './document';
 import { asStatus, isAppError, type AppError } from './errors';
 import { persistedFlag } from './persisted';
 import { api } from './tauri';
@@ -8,7 +8,8 @@ import {
 	OUTPUT_MODES,
 	secondCaptionLanguageOf,
 	type StartOptions,
-	type TranscriptLine
+	type TranscriptLine,
+	type TranscriptMarker
 } from './types';
 
 export const HISTORY_ENABLED_KEY = 'transcript.historyEnabled';
@@ -34,6 +35,9 @@ export interface SavedSession {
 	/** The second caption language, when the session had one; its lines carry `lane: 1`. */
 	secondTargetLanguage?: TargetLanguage | null;
 	lines: TranscriptLine[];
+	/** The operator's markers, newest first, as `{ marker }` records in the log. Absent when
+	 *  there are none, and in every file written before markers existed. */
+	markers?: TranscriptMarker[];
 }
 
 const SESSION_ID = /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i;
@@ -83,6 +87,14 @@ const lineRecords = (newestFirst: TranscriptLine[]) =>
 		.map((line) => record({ line }))
 		.join('');
 
+// A marker is a record of its own, which a build from before markers skips as it skips any
+// record it does not know: the format keeps its version, and old files read as they did.
+const markerRecords = (newestFirst: readonly TranscriptMarker[] = []) =>
+	newestFirst
+		.toReversed()
+		.map((marker) => record({ marker: markerRecord(marker) }))
+		.join('');
+
 const progressRecord = (s: SavedSession) =>
 	record({ savedAt: s.savedAt, durationMs: s.durationMs, endedAt: s.endedAt });
 
@@ -98,12 +110,18 @@ export function encodeSessionLog(s: SavedSession): string {
 		targetLanguage: s.targetLanguage,
 		...(s.secondTargetLanguage ? { secondTargetLanguage: s.secondTargetLanguage } : {})
 	};
-	return record(header) + lineRecords(s.lines) + progressRecord(s);
+	return record(header) + lineRecords(s.lines) + markerRecords(s.markers) + progressRecord(s);
 }
 
-/** What to add to a log that already holds the session's oldest `written` lines. */
-export function encodeSessionAppend(s: SavedSession, written: number): string {
-	return lineRecords(s.lines.slice(0, s.lines.length - written)) + progressRecord(s);
+/** What to add to a log that already holds the session's oldest `written` lines and its
+ *  oldest `writtenMarkers` markers. */
+export function encodeSessionAppend(s: SavedSession, written: number, writtenMarkers = 0): string {
+	const markers = s.markers ?? [];
+	return (
+		lineRecords(s.lines.slice(0, s.lines.length - written)) +
+		markerRecords(markers.slice(0, markers.length - writtenMarkers)) +
+		progressRecord(s)
+	);
 }
 
 function decodeSessionLog(raw: string, id: string): SavedSession | null {
@@ -134,11 +152,16 @@ function decodeSessionLog(raw: string, id: string): SavedSession | null {
 		lines: []
 	} as unknown as SavedSession;
 	const oldestFirst: TranscriptLine[] = [];
+	const markers: TranscriptMarker[] = [];
 	for (const r of rest) {
 		if ('line' in r) {
 			const line = readLine(r.line);
 			if (!line) return null;
 			oldestFirst.push(line);
+		} else if ('marker' in r) {
+			// A damaged marker is left out; the lines are what the file is for.
+			const marker = readMarker(r.marker);
+			if (marker) markers.unshift(marker);
 		} else if ('title' in r) {
 			session.title = cleanTitle(r.title);
 		} else if ('savedAt' in r) {
@@ -150,6 +173,7 @@ function decodeSessionLog(raw: string, id: string): SavedSession | null {
 		}
 	}
 	session.lines = oldestFirst.reverse();
+	if (markers.length) session.markers = markers;
 	return checked(session, id);
 }
 
@@ -297,19 +321,27 @@ export function createHistoryCoordinator(
 	const deleted = new Set<string>();
 	const failed = new Map<string, SavedSession>();
 	const titles = new Map<string, string>();
-	/** How many of each session's lines its file is known to hold. */
-	const written = new Map<string, number>();
+	/** How many of each session's lines and markers its file is known to hold. */
+	const written = new Map<string, { lines: number; markers: number }>();
 	async function write(snapshot: SavedSession) {
 		if (deleted.has(snapshot.id)) return;
 		const onDisk = written.get(snapshot.id);
+		const markers = snapshot.markers?.length ?? 0;
 		try {
-			if (onDisk === undefined || onDisk > snapshot.lines.length) {
+			if (
+				onDisk === undefined ||
+				onDisk.lines > snapshot.lines.length ||
+				onDisk.markers > markers
+			) {
 				const title = titles.get(snapshot.id) ?? snapshot.title;
 				await port.writeHistory(snapshot.id, encodeSessionLog({ ...snapshot, title }));
 			} else {
-				await port.appendHistory(snapshot.id, encodeSessionAppend(snapshot, onDisk));
+				await port.appendHistory(
+					snapshot.id,
+					encodeSessionAppend(snapshot, onDisk.lines, onDisk.markers)
+				);
 			}
-			written.set(snapshot.id, snapshot.lines.length);
+			written.set(snapshot.id, { lines: snapshot.lines.length, markers });
 			failed.delete(snapshot.id);
 			onSaved(failed.size > 0);
 		} catch (error) {
@@ -376,6 +408,12 @@ export function createHistoryCoordinator(
 			active.lines = [line, ...active.lines];
 			active.savedAt = now.toISOString();
 			active.durationMs = Math.max(0, now.getTime() - Date.parse(active.startedAt));
+			scheduleAppends();
+		},
+		/** An operator's marker, on the session's own timeline. Written with the next lines. */
+		mark(marker: TranscriptMarker) {
+			if (!active || !enabled() || deleted.has(active.id)) return;
+			active.markers = [marker, ...(active.markers ?? [])];
 			scheduleAppends();
 		},
 		finish(now = new Date()) {

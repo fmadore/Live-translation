@@ -64,6 +64,28 @@ Planned with #220 and done in the 1.14.0 copy:
 - **Keywords.** Not changed: all seven slots are taken. "DeepL" would be named descriptively, as
   the other providers are, if a slot is freed later.
 
+## Next, after 1.14.0: for operators
+
+User-visible, for What's new when they ship:
+
+- **Spending guard for cloud engines** (Settings › App, all off by default): pause a session
+  nothing has been captioned in for 5–30 minutes, through the ordinary Pause, and say once when
+  the estimated cost or the session's length passes a chosen value. Never stops a session.
+- **Markers in the transcript**: Add marker (Ctrl+Shift+M) puts a talk's start, a speaker's
+  name or a numbered section break into the transcript, its exports and history. Not shown on
+  the overlay.
+- **Find in the live transcript** (Ctrl+F on the Transcript tab), with highlighted matches and
+  the History search's matching.
+- **A notice on the overlay for breaks** ("Back soon"), in place of the captions until cleared
+  or until captions resume after a pause.
+- **System-wide Pause and Show/hide overlay keys** (Settings › App, off by default):
+  Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O work with slides or a meeting app in front, only while
+  a session runs. No Start or Stop key. `RegisterHotKey` needs no MSIX capability; the privacy
+  policy (effective 16 November 2026) says the app is told of these two combinations only.
+
+No capability, permission or declaration changes. The privacy policy's recovery-copy, history
+and preferences sections say that markers and the new choices are kept.
+
 ## What 1.13.1 adds
 
 From the [release notes](release-1.13.1.md): mostly the Mac app's fixes from its first run on a

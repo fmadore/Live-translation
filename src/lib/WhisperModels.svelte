@@ -1,10 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from './i18n';
-	import { options, whisperModels, statusMessage } from './stores';
-	import { api } from './tauri';
+	import { options, whisperModels } from './stores';
 	import { whisperEngine as engine } from './whisperProgress';
-	import { asStatus } from './errors';
+	import {
+		cancelWhisperDownload as cancel,
+		downloadWhisperModel,
+		removeWhisperModel,
+		watchWhisperModels,
+		whisperDownloading as downloadingStore,
+		whisperModelBusy
+	} from './whisperDownload';
 	import { WHISPER_MODELS, whisperModelTranslates, type WhisperModelId } from './types';
 	import Field from './ui/Field.svelte';
 	import Preference from './ui/Preference.svelte';
@@ -12,12 +18,12 @@
 	import ToolButton from './ui/ToolButton.svelte';
 
 	let { locked, browserMode }: { locked: boolean; browserMode: boolean } = $props();
-	let busy = $state(false);
-	let refreshing = false;
-	let disposed = false;
+	// The download itself is `whisperDownload.ts`'s, shared with the pre-flight checklist's
+	// Whisper row, so one started from either shows here.
+	const busy = $derived($whisperModelBusy);
 	const selected = $derived($options.whisperModel ?? 'base');
 	const model = $derived($whisperModels.find((m) => m.id === selected));
-	const downloading = $derived($whisperModels.some((m) => m.downloading));
+	const downloading = $derived($downloadingStore);
 	const percent = $derived(model ? Math.floor((model.downloadedBytes / model.bytes) * 100) : 0);
 	const translating = $derived($options.provider === 'whisper-translate');
 	// Turbo only transcribes, so translation does not offer it; a Turbo chosen for subtitles
@@ -26,60 +32,16 @@
 		WHISPER_MODELS.filter((id) => !translating || whisperModelTranslates(id) || id === selected)
 	);
 
-	async function refresh() {
-		if (browserMode || disposed || refreshing) return;
-		refreshing = true;
-		try {
-			const models = await api.whisperModels();
-			if (!disposed) whisperModels.set(models);
-		} catch (error) {
-			if (!disposed) statusMessage.set(asStatus(error));
-		} finally {
-			refreshing = false;
-		}
+	function download() {
+		if (locked || browserMode) return;
+		void downloadWhisperModel(selected);
 	}
-	async function download() {
-		if (locked || busy || downloading || browserMode) return;
-		busy = true;
-		statusMessage.set('');
-		try {
-			await api.downloadWhisperModel(selected);
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		} finally {
-			busy = false;
-			await refresh();
-		}
+	function remove() {
+		if (locked || browserMode) return;
+		void removeWhisperModel(selected);
 	}
-	async function remove() {
-		if (locked || busy || downloading || browserMode) return;
-		busy = true;
-		try {
-			await api.removeWhisperModel(selected);
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		} finally {
-			busy = false;
-			await refresh();
-		}
-	}
-	async function cancel() {
-		try {
-			await api.cancelWhisperDownload();
-		} catch (error) {
-			statusMessage.set(asStatus(error));
-		}
-	}
-	onMount(() => {
-		void refresh();
-		const timer = setInterval(() => {
-			if (busy || downloading) void refresh();
-		}, 500);
-		return () => {
-			disposed = true;
-			clearInterval(timer);
-		};
-	});
+	// No native calls in a browser preview.
+	onMount(() => (browserMode ? undefined : watchWhisperModels()));
 </script>
 
 <div class="models">

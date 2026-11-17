@@ -12,6 +12,8 @@ and the question before audio first goes to a cloud provider. It replaced
 2026): captions in a Zoom meeting's own caption bar. 1.10.0 completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
 lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings
 fixed in 1.13.0 and what is still to check by hand.
+The [16 November app review](app-review-2026-11-16.md) tracks the fixes and the operator
+features written after 1.14.0, not yet released, and what is still to check by hand.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app

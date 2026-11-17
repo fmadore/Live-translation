@@ -218,9 +218,11 @@ starts, and again if the graphics processor fails mid-session. The log names the
   them. Snapdragon PCs therefore stay on the processor.
 - **When it fails.** A helper that cannot start (no Vulkan loader), finds no usable device or
   cannot load the model leaves the session on the processor from the start. One that fails or
-  stops answering later (out of graphics memory, a driver fault; a minute without an answer)
-  is stopped, and the session carries on on the processor from that window, which it decodes
-  again there. Its crash never takes the app with it. Discarding the backlog stops it at once.
+  stops answering later (out of graphics memory, a driver fault; a minute without an answer,
+  counted from the start of the window's write, so a helper that stops reading its input is
+  caught too) is stopped, and the session carries on on the processor from that window, which
+  it decodes again there. Its crash never takes the app with it. Discarding the backlog stops
+  it at once, even mid-write.
 - **Why it failed.** The app sees only an exit code when the helper dies, so it keeps the last
   40 lines the helper wrote to standard error and picks the one that says why
   (`gpu.rs::cause`, after OpenWhispr's reading of the same libraries' output): an exception

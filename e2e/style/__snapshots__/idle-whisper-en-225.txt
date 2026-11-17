@@ -7,21 +7,21 @@ body › div { display: contents }
 body › div › div.app { display: grid; grid-template-rows: auto 2px minmax(0px, 1fr); height: 820px; background-color: #0e1013 }
 header.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 27px; padding: 18px 54px; background-color: #111419 }
 header.toolbar › span.brand { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 54px; height: 54px; border: 1px solid #262b33; border-radius: 21.875%; background-image: linear-gradient(#191d23, #0e1013) }
-header.toolbar › span.brand › svg { display: block; width: 18px; height: 18px }
+header.toolbar › span.brand › svg { display: block; width: 40.5px; height: 40.5px }
 header.toolbar › h1.sr-only "Live Translation & Subtitles" { font-size: 72px; font-weight: 700; white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 header.toolbar › div.session-controls { display: contents }
 header.toolbar › div.session-controls › button.ui-tool.primary.lg.start "Start subtitles" { font-size: 31.5px; font-weight: 600; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 54px; border: 1px solid #262b33; border-radius: 4px; background-color: #0e1013 }
-header.toolbar … button.ui-tool.primary.lg.start "Start subtitles" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.primary.lg.start "Start subtitles" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.session-controls › button.ui-tool.ghost.lg "Rehearse" { font-size: 31.5px; font-weight: 600; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 54px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0); opacity: 0.5 }
-header.toolbar … button.ui-tool.ghost.lg "Rehearse" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.ghost.lg "Rehearse" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.end { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 27px; min-width: 0px; margin: 0px 0px 0px auto }
 header.toolbar › div.end › button.ui-tool.ghost.sm "Zoom captions" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-header.toolbar … button.ui-tool.ghost.sm "Zoom captions" › svg { display: block; width: 14px; height: 14px }
+header.toolbar … button.ui-tool.ghost.sm "Zoom captions" › svg { display: block; width: 31.5px; height: 31.5px }
 header.toolbar › div.end › div.pill.neutral { display: flex; align-items: center; flex: 0 0 auto; gap: 18px; padding: 9px 18px; border: 1px solid #262b33; border-radius: 999px; background-color: #191d23 }
 header.toolbar › div.end › div.pill.neutral › span.pill-dot { display: block; width: 7px; height: 7px; border-radius: 50%; background-color: #6b7382 }
 header.toolbar › div.end › div.pill.neutral › span.pill-label { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; display: block }
 header.toolbar › div.end › button.ui-tool.icon "Open settings" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #8b93a1; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 18px; width: 72px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid rgba(0, 0, 0, 0); border-radius: 4px; background-color: rgba(0, 0, 0, 0) }
-header.toolbar … button.ui-tool.icon "Open settings" › svg { display: block; width: 16px; height: 16px }
+header.toolbar … button.ui-tool.icon "Open settings" › svg { display: block; width: 36px; height: 36px }
 body › div › div.app › div.rule { background-color: #1f242b }
 body › div › div.app › p.sr-only[role=status]:nth(1) { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 body › div › div.app › p.sr-only[role=status]:nth(2) { white-space: collapse nowrap; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
@@ -33,28 +33,28 @@ aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-f
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span { display: block; grid-column: 1 / -1 }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › select "Meeting profiles" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail … section.profiles "Meeting profiles" › div.picker › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
 aside.rail … section.profiles "Meeting profiles" › div.picker › button.ui-tool "Manage profiles" { font-weight: 500; line-height: 1; text-align: center; display: grid; align-items: center; justify-content: center; gap: 18px; width: 81px; min-width: 0px; max-width: 100%; padding: 0px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
-aside.rail … button.ui-tool "Manage profiles" › svg { display: block; width: 14px; height: 14px }
+aside.rail … button.ui-tool "Manage profiles" › svg { display: block; width: 31.5px; height: 31.5px }
 aside.rail … section.profiles "Meeting profiles" › p.live-slot[role=status] { line-height: 1.5; white-space: collapse nowrap; overflow-wrap: anywhere; color: #8b93a1; position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px }
 aside.rail › section.rail-section:nth(1) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; max-width: 855px }
 aside.rail › section.rail-section:nth(1) › div.step-head { display: flex; align-items: center; gap: 18px }
 aside.rail › section.rail-section:nth(1) › div.step-head › span.step-no { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; color: #5ad1a0; display: block }
 aside.rail › section.rail-section:nth(1) › div.step-head › h2.kicker "What to show" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 aside.rail › section.rail-section:nth(1) › button.card.ui-card "Live translation Speech is dete…" { text-align: left; display: flex; align-items: flex-start; gap: 27px; width: 100%; padding: 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-icon { color: #8b93a1; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 4px; background-color: #191d23 }
-aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-icon › svg { display: block; width: 18px; height: 18px }
+aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-icon { color: #8b93a1; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 67.5px; height: 67.5px; border-radius: 4px; background-color: #191d23 }
+aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-icon › svg { display: block; width: 40.5px; height: 40.5px }
 aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-body › span.card-title { font-size: 31.5px; font-weight: 600; line-height: 1.2; color: #c3c9d2; display: block }
 aside.rail … button.card.ui-card "Live translation Speech is dete…" › span.card-body › span.card-desc { font-size: 27px; line-height: 1.4; text-wrap-style: pretty; color: #8b93a1; display: block }
 aside.rail › section.rail-section:nth(1) › button.card.ui-card "Subtitles Transcribe speech loc…" { text-align: left; display: flex; align-items: flex-start; gap: 27px; width: 100%; padding: 27px; border: 1px solid rgba(90, 209, 160, 0.4); border-radius: 4px; background-color: rgba(90, 209, 160, 0.08) }
-aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-icon { color: #7fdcb6; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 30px; height: 30px; border-radius: 4px; background-color: rgba(90, 209, 160, 0.14) }
-aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-icon › svg { display: block; width: 18px; height: 18px }
+aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-icon { color: #7fdcb6; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 67.5px; height: 67.5px; border-radius: 4px; background-color: rgba(90, 209, 160, 0.14) }
+aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-icon › svg { display: block; width: 40.5px; height: 40.5px }
 aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-body › span.card-title { font-size: 31.5px; font-weight: 600; line-height: 1.2; display: block }
 aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-body › span.card-desc { font-size: 27px; line-height: 1.4; text-wrap-style: pretty; color: #8b93a1; display: block }
 aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-check { color: #5ad1a0; display: flex; flex: 0 0 auto; margin: 0px 0px 0px auto }
-aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-check › svg { display: block; width: 16px; height: 16px }
+aside.rail … button.card.ui-card "Subtitles Transcribe speech loc…" › span.card-check › svg { display: block; width: 36px; height: 36px }
 aside.rail › div.divider:nth(1) { flex: 0 0 auto; max-width: 855px; height: 1px; background-color: #1f242b }
 aside.rail › section.rail-section:nth(2) { display: flex; flex-direction: column; flex: 0 0 auto; gap: 18px; max-width: 855px }
 aside.rail › section.rail-section:nth(2) › div.step-head { display: flex; align-items: center; gap: 18px }
@@ -62,20 +62,20 @@ aside.rail › section.rail-section:nth(2) › div.step-head › span.step-no { 
 aside.rail › section.rail-section:nth(2) › div.step-head › h2.kicker "Where the audio comes from" { font-size: 24.75px; font-weight: 600; line-height: 1; letter-spacing: 2.97px; text-transform: uppercase; color: #8b93a1; flex: 0 0 auto; margin: 0px }
 aside.rail › section.rail-section:nth(2) › div.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px }
 aside.rail › section.rail-section:nth(2) › div.tiles › button.tile.ui-card "Room mic" { font-size: 27px; font-weight: 600; line-height: 1; text-align: left; color: #7fdcb6; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 27px 9px 18px; border: 1px solid rgba(90, 209, 160, 0.4); border-radius: 4px; background-color: rgba(90, 209, 160, 0.08) }
-aside.rail … button.tile.ui-card "Room mic" › svg { display: block; width: 18px; height: 18px }
+aside.rail … button.tile.ui-card "Room mic" › svg { display: block; width: 40.5px; height: 40.5px }
 aside.rail … button.tile.ui-card "Room mic" › span { display: block }
 aside.rail › section.rail-section:nth(2) › div.tiles › button.tile.ui-card "System audio" { font-size: 27px; font-weight: 500; line-height: 1; text-align: left; color: #8b93a1; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 27px 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … button.tile.ui-card "System audio" › svg { display: block; width: 18px; height: 18px }
+aside.rail … button.tile.ui-card "System audio" › svg { display: block; width: 40.5px; height: 40.5px }
 aside.rail … button.tile.ui-card "System audio" › span { display: block }
 aside.rail › section.rail-section:nth(2) › div.tiles › button.tile.ui-card "Both" { font-size: 27px; font-weight: 500; line-height: 1; text-align: left; color: #8b93a1; display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 27px 9px 18px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail … button.tile.ui-card "Both" › svg { display: block; width: 18px; height: 18px }
+aside.rail … button.tile.ui-card "Both" › svg { display: block; width: 40.5px; height: 40.5px }
 aside.rail … button.tile.ui-card "Both" › span { display: block }
 aside.rail › section.rail-section:nth(2) › p.hint { font-size: 27px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › section.rail-section:nth(2) › label.ui-field { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px; min-width: 0px }
 aside.rail › section.rail-section:nth(2) › label.ui-field › span { display: block }
 aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › select "Microphone device" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail › section.rail-section:nth(2) › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
 aside.rail › section.rail-section:nth(2) › button.ui-tool "Refresh devices" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #c3c9d2; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #191d23 }
 aside.rail › section.rail-section:nth(2) › div.meters { display: flex; flex-direction: column; gap: 18px; margin: 18px 0px 0px }
 aside.rail › section.rail-section:nth(2) › div.meters › div.meter { display: grid; align-items: center; grid-template-columns: 261px 1fr; gap: 18px }
@@ -92,7 +92,7 @@ aside.rail › section.rail-section:nth(3) › label.ui-field { font-size: 27px;
 aside.rail › section.rail-section:nth(3) › label.ui-field › span { display: block }
 aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › select "Spoken language" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail › section.rail-section:nth(3) › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
 aside.rail › section.rail-section:nth(3) › p.hint { font-size: 27px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › section.rail-section:nth(3) › div.glossary[role=group] "Names and terms" { font-size: 27px; color: #c3c9d2; display: grid; gap: 18px; min-width: 0px; margin: 18px 0px 0px }
 aside.rail … div.glossary[role=group] "Names and terms" › span.heading { font-weight: 600; display: block }
@@ -145,7 +145,7 @@ aside.rail › section.rail-section:nth(4) › div.models › label.ui-field { f
 aside.rail › section.rail-section:nth(4) › div.models › label.ui-field › span { display: block }
 aside.rail › section.rail-section:nth(4) › div.models › label.ui-field › span.ui-select { display: flex; position: relative; width: 100%; min-width: 0px }
 aside.rail › section.rail-section:nth(4) › div.models › label.ui-field › span.ui-select › select "Whisper model" { white-space: preserve nowrap; display: block; width: 100%; min-width: 0px; padding: 18px 72px 18px 27px; border: 1px solid #262b33; border-radius: 4px; background-color: #111419 }
-aside.rail › section.rail-section:nth(4) › div.models › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 12px; height: 12px; transform: translate(0px, -50%) }
+aside.rail › section.rail-section:nth(4) › div.models › label.ui-field › span.ui-select › svg { color: #8b93a1; display: block; position: absolute; width: 27px; height: 27px; transform: translate(0px, -50%) }
 aside.rail › section.rail-section:nth(4) › div.models › p.hint { font-size: 27px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › section.rail-section:nth(4) › div.models › p.hint[role=status] { font-size: 27px; line-height: 1.5; color: #8b93a1; margin: 0px }
 aside.rail › section.rail-section:nth(4) › div.models › div.actions { display: flex; gap: 18px }
@@ -161,33 +161,38 @@ main.stage › div.stage-panel › span.kicker { font-size: 24.75px; font-weight
 main.stage › div.stage-panel › h2.ready "Ready when you are" { font-size: 60.75px; font-weight: 600; line-height: 1.2; letter-spacing: -1.215px; flex: 0 0 auto; margin: 36px 0px 0px }
 main.stage › div.stage-panel › p.intro { font-size: 29.25px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; flex: 0 0 auto; max-width: 804.492px; margin: 18px 0px 0px }
 main.stage › div.stage-panel › div.checklist { flex: 0 0 auto; margin: 54px 0px 0px; border-top: 1px solid #1f242b }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) { display: grid; align-items: center; grid-template-columns: 54px 1fr fit-content(50%); gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span.mark.wait › span.dot { display: block; width: 13.5px; height: 13.5px; border-radius: 50%; background-color: #ffb454 }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body › span.check-title { font-size: 31.5px; font-weight: 500; line-height: 1.2; display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body › span.check-desc { font-size: 27px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › span { display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-body › span.check-desc.warn { font-size: 27px; line-height: 1.4; overflow-wrap: anywhere; color: #ffb454; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px 18px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-action › div.whisper-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 18px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(1) › div.check-action › div.whisper-action › button.ui-tool.warn.sm "Download model" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) { display: grid; align-items: center; grid-template-columns: 54px 1fr fit-content(50%); gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › span.mark.wait › span.dot { display: block; width: 13.5px; height: 13.5px; border-radius: 50%; background-color: #ffb454 }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body › span.check-title { font-size: 31.5px; font-weight: 500; line-height: 1.2; display: block }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-body › span.check-desc { font-size: 27px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › button.ui-tool.warn.sm "Test audio" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait › span.dot { display: block; width: 6px; height: 6px; border-radius: 50%; background-color: #ffb454 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px 18px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(2) › div.check-action › button.ui-tool.warn.sm "Test audio" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) { display: grid; align-items: center; grid-template-columns: 54px 1fr fit-content(50%); gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait { color: #ffb454; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background-color: rgba(255, 180, 84, 0.14) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › span.mark.wait › span.dot { display: block; width: 13.5px; height: 13.5px; border-radius: 50%; background-color: #ffb454 }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body › span.check-title { font-size: 31.5px; font-weight: 500; line-height: 1.2; display: block }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-body › span.check-desc.warn { font-size: 27px; line-height: 1.4; overflow-wrap: anywhere; color: #ffb454; display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › button.ui-tool.warn.sm "Move overlay" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) { display: grid; align-items: center; grid-template-columns: 24px 1fr auto; gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.mark.neutral { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; color: #8b93a1; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: #191d23 }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px 18px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(3) › div.check-action › button.ui-tool.warn.sm "Move overlay" { font-size: 27px; font-weight: 500; line-height: 1; text-align: center; color: #ffd39a; display: flex; align-items: center; justify-content: center; gap: 18px; min-width: 0px; max-width: 100%; padding: 9px 27px; border: 1px solid rgba(255, 180, 84, 0.4); border-radius: 4px; background-color: rgba(255, 180, 84, 0.08) }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) { display: grid; align-items: center; grid-template-columns: 54px 1fr fit-content(50%); gap: 27px; padding: 36px 0px; border-bottom: 1px solid #1f242b }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.mark.neutral { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 24.75px; font-weight: 500; line-height: 1; color: #8b93a1; display: flex; align-items: center; justify-content: center; width: 45px; height: 45px; border-radius: 50%; background-color: #191d23 }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body { display: flex; flex-direction: column; gap: 9px; min-width: 0px }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body › span.check-title { font-size: 31.5px; font-weight: 500; line-height: 1.2; display: block }
 main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-body › span.check-desc { font-size: 27px; line-height: 1.4; overflow-wrap: anywhere; color: #8b93a1; display: block }
-main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 29.25px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 9px 18px; min-width: 0px }
+main.stage › div.stage-panel › div.checklist › div.check-row:nth(4) › div.check-action › span.check-rate { font-family: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 29.25px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; color: #c3c9d2; display: block }
 main.stage › div.stage-panel › div.launch { display: flex; flex-direction: column; align-items: flex-start; flex: 0 0 auto; gap: 27px; margin: 72px 0px 0px }
 main.stage › div.stage-panel › div.launch › span.rehearse-hint { font-size: 27px; line-height: 1.5; text-wrap-style: pretty; color: #8b93a1; display: block; max-width: 1113.91px }
 main.stage › div.stage-panel › div.launch › span.rehearse-hint › strong.lead { font-weight: 600; color: #c3c9d2 }

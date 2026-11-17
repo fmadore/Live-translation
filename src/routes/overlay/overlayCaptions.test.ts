@@ -121,6 +121,24 @@ describe('overlay captions', () => {
 		c.dispose();
 	});
 
+	// E2: Fit and Compact lay out a bounded turn; Stable reading handed layout the whole of one
+	// that streamed for minutes, on every delta.
+	it('bounds a long Stable turn, dropping the context it no longer leaves room for', () => {
+		const c = createOverlayCaptions({ ...fit, layout: 'stable' });
+		c.push(caption('system', 1, 'Earlier turn.'));
+		const words = Array.from({ length: 4000 }, (_, i) => `w${i}`).join(' ');
+		c.push(caption('system', 2, 'Short.', false));
+		expect(c.lines[0]).toMatchObject({ lead: ' Earlier turn.', text: 'Short.' });
+		c.push(caption('system', 2, words, false));
+		const [line] = c.lines;
+		expect(line.text.length).toBeLessThanOrEqual(CAPTION_TAIL_CHARS);
+		expect(words.endsWith(line.text)).toBe(true);
+		expect(line.lead).toBe('');
+		// What is on screen is the end of the turn, and that is all still there.
+		expect(line.text.endsWith('w3998 w3999')).toBe(true);
+		c.dispose();
+	});
+
 	it('cleans Stable context once as turns join it, so a later toggle only affects new turns', () => {
 		const c = createOverlayCaptions({ ...fit, layout: 'stable', hideFillers: true });
 		c.push(caption('system', 1, 'Um, first.'));

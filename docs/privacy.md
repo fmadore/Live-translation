@@ -1,11 +1,11 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 11 November 2026 (adds DeepL as a fourth optional cloud provider, for
-translation)
+**Effective date:** 16 November 2026 (adds the optional check for new versions, made only by
+copies installed from GitHub, and only once the user turns it on, the optional system-wide
+shortcuts, and the markers an operator adds, which are kept with the transcript)
 
-Previous version: 5 November 2026 (added the macOS app, distributed as a disk image and through
-the Mac App Store, and the question asked before audio first goes to each cloud provider, on
-both systems)
+Previous version: 11 November 2026 (added DeepL as a fourth optional cloud provider, for
+translation)
 
 ## What this app is
 
@@ -75,7 +75,9 @@ connection.
 Caption text is held in memory while the app runs, and the whole session is kept: the transcript
 is never shortened or discarded behind the user's back. A transcript is written to disk only when
 the user explicitly chooses to save it, or through the optional recovery copy or session history described below.
-The app does not automatically upload saved transcripts.
+The app does not automatically upload saved transcripts. Markers the user adds to the
+transcript (a talk's start, a speaker's name) are part of it, kept and written in the same
+places; a notice the user shows on the overlay during a break is held in memory only.
 
 The overlay keeps a bounded amount of reading context in memory so that a larger window can
 show more captions. Stable reading drops the oldest hidden lines as its buffer fills. Text removed from the overlay by resizing or its idle timeout remains
@@ -99,8 +101,8 @@ single file in its own local application-data folder on the same PC:
 
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\recovery\transcript.json`
 
-- It contains finalized caption text only — no audio, no API key, no provider identity, and no
-  device name.
+- It contains finalized caption text and any markers the user added to the transcript (their
+  text and time) only — no audio, no API key, no provider identity, and no device name.
 - It is never uploaded, transmitted, or shared. The developer operates no service that could
   receive it.
 - There is one file and no history: each write replaces the previous one.
@@ -120,7 +122,8 @@ saves finalized raw caption lines from that point onward, in one file per sessio
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`
 
 Each session contains its optional user-entered title, start time, duration through the last save, output mode, known
-language information, and raw translated/source text with cue timing. Automatically detected
+language information, raw translated/source text with cue timing, and any markers the user
+added to the transcript (their text and time in the session). Automatically detected
 source languages are marked as such; the app does not guess which language was spoken.
 No audio, credentials, application identity or device name is included.
 
@@ -155,6 +158,41 @@ Zoom receives ordinary network request information, such as the user's IP addres
 caption. What Zoom does with the captions, including whether it keeps them in a meeting's
 transcript or recording, is governed by Zoom's terms and the meeting host's settings.
 
+## New-version check (copies installed from GitHub)
+
+The Microsoft Store and the Mac App Store update their copies of the app themselves, and those
+copies never make this check or show anything about it. Neither do the MSIX test packages
+attached to GitHub releases. A copy installed from GitHub, with the Windows installer or MSI
+or the Mac disk image, can instead tell the user when a newer version has been released.
+
+- **Off until the user turns it on.** From the second launch, such a copy shows one line on its
+  start screen, *Check for new versions? This asks GitHub once a day.*, with **Turn on** and
+  **No thanks**. Nothing is requested before the user answers **Turn on**, or turns on *Check
+  for new versions* under Settings › App › Updates, where the same switch turns it off again.
+- **What is sent.** One ordinary HTTPS request, without an account or a key, to GitHub's API
+  (`api.github.com`), asking for the latest published release of this app's repository. Its
+  User-Agent header names the app and its version (for example `LiveTranslation/1.14.0`). No
+  identifier of the user, the device or the installation is sent, nor any audio, caption,
+  transcript, setting or key. GitHub receives ordinary network request information, such as the
+  user's IP address, as any website does. When a proxy server is set in the system's settings,
+  the request goes through it.
+- **When.** At most once a day, a few seconds after the app starts, and never while a session
+  runs. A failed check (offline, refused, or GitHub's rate limit) is not reported and is tried
+  again the next day.
+- **What is shown.** When a newer version exists, *Version X.Y.Z is available* on the start
+  screen and under Settings › App, with **Release notes**, which opens that version's release
+  page on GitHub in the default browser, and **Not now**, which hides it until a newer version.
+  The app downloads and installs nothing.
+- **What is kept.** The answer, the number of launches until it is given, the time of the last
+  check, the newest version seen and a version hidden with **Not now** are kept on the device in
+  one small file, `update-check.json`, in the app's local application-data folder
+  (`%LOCALAPPDATA%\io.github.fmadore.live-translation\` on Windows,
+  `~/Library/Application Support/io.github.fmadore.live-translation/` on a Mac). It is never
+  uploaded.
+
+The developer receives nothing from this request: it goes to GitHub, not to a service of the
+developer's.
+
 ## API keys
 
 No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are
@@ -170,11 +208,14 @@ provider, Whisper model and spoken language, audio source, language, overlay pos
 for up to eight display arrangements (each recorded as its displays' positions, resolutions and
 scaling, so the overlay reopens where it was placed on them), caption size,
 layout (Fit window, Compact or Stable reading),
-compact line width, caption persistence and update pace, filler-word cleanup and its word list, whether transcript history or the optional recovery
-copy is enabled, whether a running session shows the Live or the Transcript view, the names and
+compact line width, caption persistence and update pace, filler-word cleanup and its word list,
+the spending-guard choices for cloud engines, whether a notice on the overlay clears itself when
+captions resume (the notice's text is not stored), whether transcript history or the optional recovery
+copy is enabled, on a copy installed from GitHub the new-version check's state described
+[above](#new-version-check-copies-installed-from-github), whether a running session shows the Live or the Transcript view, the names and
 terms entered for Mistral subtitles, whether closing the window leaves the app running in
-the notification area (the menu bar on macOS), and which cloud providers the user has agreed to
-send audio to.
+the notification area (the menu bar on macOS), whether the system-wide shortcuts are switched
+on, and which cloud providers the user has agreed to send audio to.
 The app also remembers the folder of the last successful transcript export, the chosen export
 format, and whether system capture uses an output or an application. The selected process identity is not
 persisted; choose the application again after relaunch. A Zoom caption link is never stored.
@@ -196,6 +237,20 @@ window quits it unless the user turns on *Keep running in the tray when I close 
 (*in the menu bar* on macOS). With that on, the first time the window
 is hidden the app says so explicitly, and quitting from the notification-area icon stops any
 active capture before it exits.
+
+## Optional system-wide shortcuts
+
+Settings › App › *Use shortcuts while other apps are in front* is off by default. With it on,
+and only while a session is running or paused, the app asks the system to tell it when one of
+two fixed key combinations is pressed: Ctrl+Alt+Shift+P (pause or resume) and Ctrl+Alt+Shift+O
+(show or hide the overlay), ⌃⌥⇧P and ⌃⌥⇧O on a Mac. It does this with the system's own hot-key
+registration (`RegisterHotKey` on Windows, `RegisterEventHotKey` on macOS), not a keyboard hook,
+an event tap or any other means of watching the keyboard. The app is told only that one of those
+two combinations was pressed (and, on Windows, when the key is let go); it never sees any other
+keystroke, what is typed, or which application is in front. Nothing about a key press is
+recorded or leaves the device. The combinations are released when the session stops, when the
+switch is turned off and when the app quits. macOS asks for no Accessibility or Input
+Monitoring permission for this, and none is requested.
 
 ## Support link
 
@@ -224,7 +279,10 @@ handling of downloads and purchases is governed by Apple's privacy policy.
 
 The developer operates no server, relay, account system, telemetry, advertising, analytics, or
 crash-reporting service for this app. The developer receives no audio, captions, transcripts,
-API keys, device identifiers, or usage data from the application.
+API keys, device identifiers, or usage data from the application. The only requests the app
+makes on its own, rather than to a provider, a Zoom meeting or Hugging Face at the user's
+choice, are the new-version checks of a copy installed from GitHub, once the user has turned
+them on; they go to GitHub.
 
 ## Third-party processing
 
@@ -259,6 +317,8 @@ Captions shared with a Zoom meeting are covered by the
 [Zoom Privacy Statement](https://www.zoom.com/en/trust/privacy/privacy-statement/) and the
 meeting host's account settings.
 Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
+The new-version check of a copy installed from GitHub is covered by the
+[GitHub General Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
 ## Children
 

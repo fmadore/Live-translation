@@ -2,12 +2,15 @@
 // pushes state out and none reads anything back, so each one is a plain mirror of a store.
 
 import { fromStore, get } from 'svelte/store';
+import { untrack } from 'svelte';
 import { shouldGuardClose } from './document';
 import { locale, t } from './i18n';
-import { spoolFailure, startRecoverySpool } from './recovery';
+import { recovery, spoolFailure, startRecoverySpool } from './recovery';
 import {
 	closeToTray,
+	globalShortcuts,
 	isRunning,
+	markers,
 	options,
 	recoveryEnabled,
 	sessionState,
@@ -17,6 +20,7 @@ import {
 } from './stores';
 import { api, on } from './tauri';
 import { listenAll } from './coreEvents';
+import { globalShortcutStatus } from './globalShortcuts';
 import { captionLanguageOf, secondCaptionLanguageOf } from './types';
 import type { OverlayController } from './overlayController.svelte';
 import type { SessionClock } from './sessionClock.svelte';
@@ -36,6 +40,7 @@ export function syncNative({
 	const running = fromStore(isRunning);
 	const dirty = fromStore(transcriptDirty);
 	const trayOnClose = fromStore(closeToTray);
+	const systemWideKeys = fromStore(globalShortcuts);
 	const state = fromStore(sessionState);
 	const spooling = fromStore(recoveryEnabled);
 	const messages = fromStore(t);
@@ -52,6 +57,20 @@ export function syncNative({
 	// so the core tracks it separately.
 	$effect(() => {
 		void api.setCloseToTray(trayOnClose.current).catch(() => {});
+	});
+
+	// The system-wide keys are held only while the switch is on and a session is running or
+	// paused, so an idle app holds none. The answer says which the system refused; after Stop
+	// the last one is kept, so Settings can still name a refused key, until the switch is off.
+	$effect(() => {
+		const enabled = systemWideKeys.current;
+		const active = running.current;
+		void api
+			.setGlobalShortcuts(enabled, active)
+			.then((status) => {
+				if (active || !enabled) globalShortcutStatus.set(status);
+			})
+			.catch(() => {});
 	});
 
 	// The tray menu must never describe a state the app has left: pushed on every change, and
@@ -79,7 +98,9 @@ export function syncNative({
 		if (!spooling.current) return;
 		return startRecoverySpool(
 			() => (get(transcriptDirty) ? get(transcript) : null),
-			(error) => statusMessage.set(spoolFailure(error))
+			(error) => statusMessage.set(spoolFailure(error)),
+			recovery,
+			() => get(markers)
 		);
 	});
 
@@ -96,6 +117,16 @@ export function syncNative({
 			captionLanguage,
 			secondCaptionLanguage
 		});
+	});
+
+	// A notice on the overlay waits for the break to end (`overlayNotice.ts`): the session's
+	// state arms it, and Stop takes it down, so a notice never outlives its session.
+	$effect(() => {
+		const current = state.current;
+		untrack(() => overlay.noteSessionState(current));
+	});
+	$effect(() => {
+		if (!running.current) untrack(() => overlay.clearNotice());
 	});
 
 	// …and once more whenever the overlay says it is ready (U5). A push only reaches listeners

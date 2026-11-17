@@ -2,6 +2,8 @@
 //! the target-language codes it takes. Shapes follow DeepL's OpenAPI and AsyncAPI documents as
 //! read on 11 November 2026; see `docs/deepl-voice-api.md`.
 
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use serde::{Deserialize, Serialize};
 
 use crate::types::TargetLanguage;
@@ -60,6 +62,20 @@ pub fn rest_error_message(body: &str) -> String {
 /// One audio frame: base64 of 16 kHz mono PCM16. Base64's alphabet needs no JSON escaping.
 pub fn source_media_chunk(base64_pcm: &str) -> String {
     format!(r#"{{"source_media_chunk":{{"data":"{base64_pcm}"}}}}"#)
+}
+
+const CHUNK_HEAD: &str = r#"{"source_media_chunk":{"data":""#;
+const CHUNK_TAIL: &str = r#""}}"#;
+
+/// The same frame, built from the PCM in one allocation: the base64 is encoded straight into
+/// it, rather than into a string of its own that is then copied.
+pub fn source_media_frame(pcm_le: &[u8]) -> String {
+    let encoded = base64::encoded_len(pcm_le.len(), true).unwrap_or_default();
+    let mut frame = String::with_capacity(CHUNK_HEAD.len() + encoded + CHUNK_TAIL.len());
+    frame.push_str(CHUNK_HEAD);
+    STANDARD.encode_string(pcm_le, &mut frame);
+    frame.push_str(CHUNK_TAIL);
+    frame
 }
 
 /// No more audio: DeepL concludes every tentative segment, then ends the stream.
@@ -245,6 +261,15 @@ mod tests {
             source_media_chunk("AAA="),
             r#"{"source_media_chunk":{"data":"AAA="}}"#
         );
+        for pcm in [&[][..], &[1, 0], &[0xff, 0x7f, 0x00, 0x80, 0x12]] {
+            let frame = source_media_frame(pcm);
+            assert_eq!(frame, source_media_chunk(&STANDARD.encode(pcm)));
+            assert_eq!(
+                frame.len(),
+                frame.capacity(),
+                "sized exactly, never regrown"
+            );
+        }
         let value: serde_json::Value = serde_json::from_str(END_OF_SOURCE_MEDIA).unwrap();
         assert_eq!(value, serde_json::json!({"end_of_source_media": {}}));
     }

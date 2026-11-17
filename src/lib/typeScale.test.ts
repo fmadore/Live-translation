@@ -140,6 +140,8 @@ describe('the leading', () => {
 	const CAPTION: Record<string, string[]> = {
 		'routes/overlay/OverlayCaptionLine.svelte': ['1.34'],
 		'routes/overlay/OverlayMoveChrome.svelte': ['1.34'],
+		// The break notice is set as a caption is, and fitted with the same measure.
+		'routes/overlay/OverlayNotice.svelte': ['1.34'],
 		'lib/CaptionPreview.svelte': ['1.34'],
 		// The operator's mirror of the caption, at display size.
 		'lib/LiveTurns.svelte': ['1.3'],
