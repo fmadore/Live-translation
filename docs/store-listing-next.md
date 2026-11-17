@@ -37,6 +37,11 @@ From the [release notes](release-1.15.0.md) and the
 - **System-wide Pause and Show/hide overlay keys** (Settings › App, off by default):
   Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O work with slides or a meeting app in front, only while
   a session runs. No Start or Stop key. `RegisterHotKey` needs no MSIX capability.
+- **Several saved sessions at once** in Transcript history
+  ([#231](https://github.com/fmadore/Live-translation/pull/231)): select sessions (or every one
+  the search shows), then save them all to a folder or delete them after one confirmation.
+  Files go only to the folder the user picks; nothing new is sent or kept, so the privacy
+  policy is unchanged.
 - **The review's fixes**: four overlay rows that each show a line, with a notice when captions
   are drawn smaller than chosen; DeepL keeping concluded text; the echo filter by session time;
   the pre-flight counting both sources, with a Download button on a first run; and smaller ones
