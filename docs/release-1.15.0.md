@@ -61,6 +61,10 @@ is under Settings › App › Updates
   languages".
 - Escape on the first "hide to tray" explanation no longer quits the app.
 - A cloud provider that closes each connection as it opens is no longer retried for ever.
+- **Mistral:** a source with nothing to hear for 30 seconds, such as system audio while nobody
+  speaks, no longer ends ("No new audio received for 30s"): the app sends a little silence to
+  keep the session open. When Mistral's recogniser fails during a session, the app now reconnects
+  instead of stopping that source.
 - Settings and the Zoom captions dialog open with focus on their first control, not on Close;
   icons follow the text size; the empty History tab leads with what it is for.
 - Windows: an unsupported system-audio format is refused when capture opens, instead of

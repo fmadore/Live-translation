@@ -92,15 +92,22 @@ const FATAL_WORDING: [&str; 9] = [
 /// StatusCode.UNAVAILABLE … Connection reset by peer …>"; a new session reaches a backend that
 /// is up. And on 11 November 2026, during a live stream, as code 3804, "Timeout waiting for
 /// response from streaming transcription.": its recogniser stalled, and a new session gets
-/// another. Specific on purpose: a bare "unavailable" could also describe a model the key cannot
-/// use, and a bare "timeout" a limit the request broke.
-const TRANSIENT_WORDING: [&str; 6] = [
+/// another. On 17 November 2026, in a meeting, as code 3800, "gRPC streaming transcription error:
+/// <AioRpcError … StatusCode.UNKNOWN … EngineDeadError …>": the recogniser behind the session
+/// died, and a new session gets a live one; and as code 3401, "No new audio received for 30s: the
+/// client was idle.", which the keepalive should prevent and a new session undoes. Specific on
+/// purpose: a bare "unavailable" could also describe a model the key cannot use, and a bare
+/// "timeout" a limit the request broke.
+const TRANSIENT_WORDING: [&str; 9] = [
     "statuscode.unavailable",
     "grpc_status:14",
     "statuscode.deadline_exceeded",
     "grpc connection error",
     "connection reset by peer",
     "timeout waiting for response",
+    "grpc streaming transcription error",
+    "enginedeaderror",
+    "no new audio received",
 ];
 
 /// Error names that a new connection can get past: OpenAI's and Mistral's `type`/`code` names,
