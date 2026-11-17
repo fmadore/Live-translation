@@ -9,12 +9,103 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.15.0 handoff
+
+**Prepared; not yet tagged or submitted** (tag planned for 17 November 2026). The Store serves
+**1.14.0.0**, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
+maintainer's ARM64 PC on 17 November 2026 (Version 1.14.0.0, SignatureKind Store); the
+submission and certification dates were not recorded ([1.14.0's handoff](#release-1140-handoff)).
+Target app version: **1.15.0**, MSIX **1.15.0.0**, in `Live.Translation_1.15.0.msixbundle`, with
+`Live.Translation_1.15.0_aarch64.dmg` for the Mac. What's new and the certification notes' first
+paragraph cover the changes since 1.14.0; the descriptions' fifth and sixth paragraphs and three
+feature lines add the operator tools ([store-listing.md](store-listing.md),
+[what changed](store-listing-next.md#what-1150-adds)).
+
+Since `v1.14.0`:
+
+- [#227](https://github.com/fmadore/Live-translation/pull/227): the
+  [16 November app review](app-review-2026-11-16.md) and what followed it. Operator features: a
+  spending guard for cloud engines (idle pause, cost and duration warnings, all off by
+  default), Add marker (Ctrl+Shift+M), Find in the live transcript (Ctrl+F), a notice on the
+  overlay for breaks, and opt-in system-wide Pause and Show/hide overlay keys
+  (Ctrl+Alt+Shift+P/O, `src-tauri/src/hotkeys.rs`, through `tauri-plugin-global-shortcut`);
+  a new-version notice for copies without package identity
+  ([#217](https://github.com/fmadore/Live-translation/issues/217), `src-tauri/src/update.rs`).
+  Fixes B1–B12 and U1–U5 of the review: four overlay rows that each show a line, with a notice
+  when captions are drawn smaller; DeepL keeping concluded text, showing the next sentence's
+  start and draining at Pause and Stop; the echo filter by session time; the pre-flight's stream
+  count and first-run Download button; a capped retry for a provider that closes each
+  connection as it opens; a loopback format refused at open; the Vulkan helper's write timeout.
+  CI: the Windows Vulkan helper cached, guarded smoke tests, pins for the CSP, the MSIX
+  identity and 1.14.0's stored settings.
+- Dependencies: vite (#226), jsdom 31.0.1 (#215), typescript-eslint 8.72.2 and `rust-version`
+  1.100 (#225), the Rust toolchain 1.100.0, and prettier 3.10.1 in the release PR (superseding
+  Dependabot's 3.10.0 in #228).
+
+**Changed under the surface:** six new commands, five for the update check (`update_status`,
+`check_for_update`, `set_update_checks`, `skip_update_version`, `open_release_page`) and
+`set_global_shortcuts`, each in `lib.rs`, `command_names.rs` and the operator capability
+(`src-tauri/capabilities/operator.json`); the overlay gains none, and no window is granted the
+global-shortcut plugin's own commands (a test in `command_names.rs` says so). Markers, Find,
+the overlay notice and the spending guard need no new command. The CSP keeps
+`connect-src 'self'`: the update check is made by the core, to `api.github.com` only, with a
+User-Agent of the app's name and version. One new Rust dependency, `tauri-plugin-global-shortcut`
+(with `global-hotkey`). The MSIX template, `bundle.config.json` and the package's capabilities
+are unchanged, now pinned by `src/lib/msixIdentity.test.ts`. The
+[privacy policy](privacy.md) changed in #227 (effective 16 November 2026).
+
+### Preparation
+
+- [x] #227 merged (17 November 2026), with every CI lane green on Linux, Windows x64, Windows
+  ARM64 and macOS.
+- [ ] The release PR merged, with the version bump in the seven files of
+  [the route](#the-route), `CITATION.cff` (1.15.0, 17 November 2026), `docs/release-1.15.0.md`
+  and prettier 3.10.1; its CI passes, the macOS lane included.
+- [ ] **Windows hardware:** nothing in #227 had run on Windows when it was merged. Before the
+  tag, on a Local Test or sideloaded build: the system-wide keys over full-screen PowerPoint and
+  the refusal line when another app holds a combination; four overlay rows on a projector and
+  the "drawn smaller" notice; Find, with Ctrl+F keeping WebView2's own find bar shut and the
+  highlight in contrast themes; a marker in the transcript, an export and the history; the
+  overlay notice, with reduced motion on; the spending guard's idle pause and one warning; Both
+  sources with local Whisper under a backlog (the echo filter); Narrator on the guard notice,
+  the find count, marker headings and the update line.
+- [ ] **Update notice** (#217's acceptance criteria): the NSIS or MSI copy asks from the second
+  launch and shows the notice once turned on; the Store MSIX and a sideloaded MSIX show nothing
+  and send nothing, read with a proxy.
+- [ ] The French and German sentences new in 1.15.0 (What's new, the descriptions' new
+  sentences, three feature lines, the certification notes) reviewed by the maintainer; the
+  German listing still awaits a native speaker's review.
+- [x] Partner Center limits: What's new EN 1,118, FR 1,427, DE 1,306 of 1,500 characters; feature
+  lines 4, 12 and 14 at most 154 of 200; the descriptions at most 6,965 of 10,000; the
+  certification notes' first paragraph is 1,646 characters, with no limit recorded.
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.15.0` (annotated: "Live Translation & Subtitles v1.15.0") on the merge of the
+  release PR and push it; the workflow publishes the release with `docs/release-1.15.0.md` once
+  the bundle and the disk image are attached.
+- [ ] Verify the bundle at **1.15.0.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled (`spctl -a -t open --context context:primary-signature -v`, `xcrun stapler validate`).
+- [ ] The open checks of the [1.14.0](#release-1140-handoff), [1.13.1](#release-1131-handoff) and
+  [1.13.0](#release-1130-handoff) handoffs (maintainer test on Windows, WACK, sideload and
+  accessibility checks, the Store screenshots decision) apply to 1.15.0.
+- [ ] The published privacy page reads "16 November 2026".
+- [ ] Submit `Live.Translation_1.15.0.msixbundle` in Partner Center with the 1.15.0 copy
+  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
+- [ ] **Mac:** once 1.13.1's App Review is settled (still in review on 17 November 2026), the
+  [Mac App Store steps](mac-app-store.md#each-version) with the 1.15.0 build from its tag, as the
+  next version (1.14.0 was not uploaded); on TestFlight, the system-wide keys work in the
+  sandbox and macOS asks for no permission.
+
 ## Release 1.14.0 handoff
 
-**Prepared; not yet tagged or submitted** (tag planned for 13 November 2026). The Store serves
-**1.13.1.0**, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
-maintainer's ARM64 PC on 13 November 2026 (Version 1.13.1.0, SignatureKind Store); the
-submission and certification dates were not recorded ([1.13.1's handoff](#release-1131-handoff)).
+**Tagged and published on GitHub on 13 November 2026; live in the Store** as 1.14.0.0, read with
+`Get-AppxPackage` on the maintainer's ARM64 PC on 17 November 2026 (SignatureKind Store). The
+submission and certification dates and the rollout were not recorded; the checks below that
+stay unticked were not recorded as done and stay open against the Store build. 1.15.0 follows it
+([handoff](#release-1150-handoff)). It replaced **1.13.1.0**, read in the Store on 13 November
+2026 ([1.13.1's handoff](#release-1131-handoff)).
 Target app version: **1.14.0**, MSIX **1.14.0.0**, in `Live.Translation_1.14.0.msixbundle`, with
 `Live.Translation_1.14.0_aarch64.dmg` for the Mac. What's new and the certification notes' first
 paragraph cover the changes since 1.13.1; the descriptions, the fourth feature line and the
@@ -54,7 +145,7 @@ recipient).
 ### Preparation
 
 - [x] #220 merged; `1d9a5b6` on `main`.
-- [ ] #221 merged, then the release PR, which carries the version bump in the seven files of
+- [x] #221 merged, then the release PR (#222), which carries the version bump in the seven files of
   [the route](#the-route) and `CITATION.cff` (1.14.0, 13 November 2026) and
   `docs/release-1.14.0.md`.
 - [ ] The release PR's CI passes, the macOS lane included (nothing in it is platform-specific,
@@ -74,8 +165,8 @@ recipient).
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.14.0` (annotated: "Live Translation & Subtitles v1.14.0") on the merge of the release
-  PR and push it; the workflow publishes the release with `docs/release-1.14.0.md` once the bundle
+- [x] Tag `v1.14.0` (annotated: "Live Translation & Subtitles v1.14.0") on the merge of the release
+  PR (`6a92c6e`) and push it, done 13 November 2026; the workflow publishes the release with `docs/release-1.14.0.md` once the bundle
   and the disk image are attached.
 - [ ] Verify the bundle at **1.14.0.0** with the [1.8.0 checks](#release-180-handoff), plus
   `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
@@ -84,10 +175,11 @@ recipient).
   handoffs (maintainer test on Windows, WACK, sideload and accessibility checks, the Store
   screenshots decision) apply to 1.14.0.
 - [ ] The published privacy page reads "11 November 2026" and names DeepL.
-- [ ] Submit `Live.Translation_1.14.0.msixbundle` in Partner Center with the 1.14.0 copy
-  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
-- [ ] **Mac:** the [Mac App Store steps](mac-app-store.md#each-version) with the 1.14.0 build from
-  its tag, as the version after 1.13.1, which is in App Review (13 November 2026).
+- [x] Submit `Live.Translation_1.14.0.msixbundle` in Partner Center with the 1.14.0 copy
+  ([walkthrough](partner-center-walkthrough.md)): live as 1.14.0.0 by 17 November 2026; the
+  rollout chosen was not recorded.
+- [ ] **Mac:** not uploaded. 1.13.1 was still in App Review on 17 November 2026, so the next Mac
+  build is 1.15.0 ([its handoff](#release-1150-handoff)).
 
 ## Release 1.13.1 handoff
 

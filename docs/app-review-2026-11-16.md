@@ -1,7 +1,9 @@
 # App review — 16 November 2026
 
 Scope: a review of `main` at `442bc02` (1.14.0 prepared), followed by the work it led to, on
-the branch `ccr-a1526fde-jevpxv`. Items the [10 November](app-review-2026-11-10.md),
+the branch `ccr-a1526fde-jevpxv`, merged in
+[#227](https://github.com/fmadore/Live-translation/pull/227) on 17 November 2026 and prepared
+as [1.15.0](release-1.15.0.md). Items the [10 November](app-review-2026-11-10.md),
 [22 October](app-review-2026-10-22.md) and [6 October](app-review-2026-10-06.md) reviews fixed
 or declined are not repeated. This file is also the tracker: each item carries its status.
 

@@ -17,19 +17,19 @@ and German interface · MIT license**
 
 The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
 whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
-and a free Mac App Store version, 1.13.1, is in Apple's review ([submission notes](docs/mac-app-store.md)).
+and a free Mac App Store version, 1.13.1, is still in Apple's review ([submission notes](docs/mac-app-store.md)).
 
+**1.15.0** is prepared, not yet tagged or submitted: for the person running the captions, a
+spending guard for cloud engines, markers and Find in the transcript, a notice on the overlay for
+breaks and opt-in system-wide Pause and overlay keys; a new-version notice for copies installed
+from GitHub; and the fixes of the [16 November review](docs/app-review-2026-11-16.md). See its
+[release notes](docs/release-1.15.0.md) and
+[Store handoff](docs/store-updates.md#release-1150-handoff).
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
-is the latest release, not yet submitted to the Store: DeepL as an experimental fourth cloud
-translation engine (paid DeepL API plan only), Mistral subtitles that reconnect after a
-transcription timeout, and an overlay that shows a line in every row when both sources share a
-shallow strip. See its [release notes](docs/release-1.14.0.md) and
-[Store handoff](docs/store-updates.md#release-1140-handoff).
-**[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): the
-fixes from the Mac app's first run on a real Mac, on top of [1.13.0](docs/release-1.13.0.md) (a
-Mac app for Apple silicon, Whisper on the graphics processor with speech detection and Large v3
-Turbo) ([release notes](docs/release-1.13.1.md)).
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): DeepL as
+an experimental fourth cloud translation engine (paid DeepL API plan only), Mistral subtitles
+that reconnect after a transcription timeout, and an overlay that shows a line in every row when
+both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
 
 ## What it does
 

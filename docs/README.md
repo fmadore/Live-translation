@@ -1,19 +1,21 @@
 # Documentation
 
-These guides describe `main`, prepared as **1.14.0** (DeepL as an experimental fourth cloud
-translation engine, Mistral reconnecting after a transcription timeout, and overlay rows that
-each show a line with both sources). The version in the Store is
+These guides describe `main`, prepared as **1.15.0**: a spending guard for cloud engines,
+markers and Find in the transcript, a notice on the overlay for breaks, opt-in system-wide Pause
+and overlay keys, a new-version notice for copies installed from GitHub, and the fixes of the
+[16 November app review](app-review-2026-11-16.md), which also lists what is still to check by
+hand. The version in the Store is
+**[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November
+2026, MSIX 1.14.0.0), read from the installed package on 17 November 2026: DeepL as an
+experimental fourth cloud translation engine, Mistral reconnecting after a transcription
+timeout, and overlay rows that each show a line with both sources. It replaced
 **[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November
-2026, MSIX 1.13.1.0), read from the installed package on 13 November 2026: the fixes from the
-Mac app's first run on a real Mac, on top of 1.13.0's Mac app, Whisper on the graphics
-processor, speech detection, Large v3 Turbo, names and terms for Gemini Transcribe and Whisper,
-and the question before audio first goes to a cloud provider. It replaced
-**[1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0)** (27 October
-2026): captions in a Zoom meeting's own caption bar. 1.10.0 completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
+2026): the fixes from the Mac app's first run on a real Mac, on top of 1.13.0's Mac app, Whisper
+on the graphics processor, speech detection, Large v3 Turbo, names and terms for Gemini
+Transcribe and Whisper, and the question before audio first goes to a cloud provider. 1.10.0
+completed the fixes of the [22 October app review](app-review-2026-10-22.md), which also
 lists what is left. The [10 November app review](app-review-2026-11-10.md) lists the findings
 fixed in 1.13.0 and what is still to check by hand.
-The [16 November app review](app-review-2026-11-16.md) tracks the fixes and the operator
-features written after 1.14.0, not yet released, and what is still to check by hand.
 The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 and the feature candidates still open; the [22 September app review](app-review-2026-09-22.md), [archived reviews](archive/) and older release handoffs are historical records.
 
 ## Using the app
@@ -41,19 +43,28 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.14.0 (prepared, not yet tagged)
+## Release 1.15.0 (prepared, not yet tagged)
+
+- [Release notes](release-1.15.0.md): a spending guard for cloud engines, markers and Find in
+  the transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys,
+  a new-version notice for copies installed from GitHub, and the fixes of the
+  [16 November app review](app-review-2026-11-16.md).
+- [Release handoff](store-updates.md#release-1150-handoff) and
+  [what the Store submission needs](store-listing-next.md).
+
+## Release 1.14.0 (tagged 13 November 2026, in the Store)
 
 - [Release notes](release-1.14.0.md): DeepL as an experimental fourth cloud translation engine
   (paid DeepL API plan only), Mistral reconnecting after a transcription timeout, and overlay rows
   that each show a line when both sources share a shallow strip.
-- [Release handoff](store-updates.md#release-1140-handoff) and
-  [what the Store submission needs](store-listing-next.md); [DeepL notes](deepl-voice-api.md).
+- [Release handoff](store-updates.md#release-1140-handoff); 1.14.0.0 is live in the Store, read
+  from the installed package on 17 November 2026. [DeepL notes](deepl-voice-api.md).
 
-## Release 1.13.1 (tagged 11 November 2026, in the Store)
+## Release 1.13.1 (tagged 11 November 2026, replaced by 1.14.0; in Mac App Review)
 
 - [Release notes](release-1.13.1.md): the fixes from the Mac app's first run on a real Mac.
-- [Release handoff](store-updates.md#release-1131-handoff); 1.13.1.0 is live in the Store,
-  read from the installed package on 13 November 2026.
+- [Release handoff](store-updates.md#release-1131-handoff); 1.13.1.0 was live in the Store from
+  at least 13 November 2026 until 1.14.0.0 replaced it. 1.13.1 is the Mac build in App Review.
   [Mac App Store screenshots](store-screenshots/README.md#mac-app-store-english).
 
 ## Release 1.12.0 (tagged 27 October 2026, replaced by 1.13.1)

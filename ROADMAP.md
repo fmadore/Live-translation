@@ -5,20 +5,36 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.13.1 in the Store, 1.14.0 prepared
+## Current status — 1.14.0 in the Store, 1.15.0 prepared
 
-1.14.0 is prepared, not yet tagged (planned for 13 November 2026;
-[release notes](docs/release-1.14.0.md), [handoff](docs/store-updates.md#release-1140-handoff)):
-DeepL as an experimental fourth cloud translation engine, for paid DeepL API plans only
+1.15.0 is prepared, not yet tagged (planned for 17 November 2026;
+[release notes](docs/release-1.15.0.md), [handoff](docs/store-updates.md#release-1150-handoff)),
+with the work of the [16 November app review](docs/app-review-2026-11-16.md)
+([#227](https://github.com/fmadore/Live-translation/pull/227)): for the person running the
+captions, a spending guard for cloud engines, markers and Find in the transcript, a notice on the
+overlay for breaks and opt-in system-wide Pause and overlay keys; a new-version notice for copies
+installed from GitHub ([#217](https://github.com/fmadore/Live-translation/issues/217)); and the
+review's fixes (four overlay rows that each show a line, DeepL keeping concluded text, the echo
+filter by session time, the pre-flight's stream count). None of it had run on Windows hardware or
+a Mac when it was merged; the review lists what to check by hand.
+
+The Store serves [**1.14.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)
+(13 November 2026, MSIX 1.14.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
+17 November 2026 (SignatureKind Store); the submission and certification dates were not
+recorded ([handoff](docs/store-updates.md#release-1140-handoff),
+[release notes](docs/release-1.14.0.md)): DeepL as an experimental fourth cloud translation
+engine, for paid DeepL API plans only
 ([#220](https://github.com/fmadore/Live-translation/pull/220)); Mistral subtitles that reconnect
 after a transcription timeout (code 3804); and overlay rows that each show a line when both
 sources share a strip sized for one ([#221](https://github.com/fmadore/Live-translation/pull/221)).
+On the Mac, 1.13.1 is still in App Review (17 November 2026); 1.14.0 was not uploaded, and 1.15.0
+is the next Mac build.
 
-The Store serves [**1.13.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)
-(11 November 2026, MSIX 1.13.1.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
-13 November 2026 (SignatureKind Store); the submission and certification dates were not
-recorded ([handoff](docs/store-updates.md#release-1131-handoff),
-[release notes](docs/release-1.13.1.md)). It carries the fixes from the Mac app's first run on a
+Before it, the Store served
+[**1.13.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)
+(11 November 2026, MSIX 1.13.1.0), read with `Get-AppxPackage` on 13 November 2026
+([handoff](docs/store-updates.md#release-1131-handoff),
+[release notes](docs/release-1.13.1.md)). It carried the fixes from the Mac app's first run on a
 real Mac on top of 1.13.0, which was tagged on 10 November 2026 and published on GitHub only
 ([release notes](docs/release-1.13.0.md),
 [handoff](docs/store-updates.md#release-1130-handoff)): the Mac
@@ -64,7 +80,8 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.14.0 handoff](docs/store-updates.md#release-1140-handoff) carries the open checks, with
+[1.15.0 handoff](docs/store-updates.md#release-1150-handoff) carries the open checks, with
+[1.14.0's](docs/store-updates.md#release-1140-handoff),
 [1.13.1's](docs/store-updates.md#release-1131-handoff) and
 [1.13.0's](docs/store-updates.md#release-1130-handoff).
 
@@ -123,16 +140,10 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Next
 
-- **The [16 November app review](docs/app-review-2026-11-16.md)** (on the branch
-  `ccr-a1526fde-jevpxv`, not yet merged or released): its fixes (every overlay row shows a
-  line with four rows, DeepL keeps concluded text, the echo filter by session time, the
-  pre-flight's stream count), a faster CI, and the operator features that followed: the
-  new-version notice for copies installed from GitHub
-  ([#217](https://github.com/fmadore/Live-translation/issues/217)), opt-in system-wide Pause
-  and overlay keys, a spending guard for cloud engines, markers and Find in the transcript, and
-  a notice on the overlay for breaks. Nothing in it has run on Windows or a Mac yet; the
-  review lists what to check by hand and the two candidates deferred (a fallback engine
-  mid-session, saving to a folder at Stop).
+- **Deferred from the [16 November app review](docs/app-review-2026-11-16.md):** a one-click
+  fallback engine when a source ends on a key or quota error (it restarts a source inside a
+  running session), and saving the transcript to a chosen folder at Stop (the Mac App Store
+  sandbox needs a security-scoped bookmark for a folder kept across launches).
 
 [#187](https://github.com/fmadore/Live-translation/issues/187) was triaged on 26 October 2026:
 captions in Zoom first, then Whisper's names-and-terms prompt and speech detection; OBS output
@@ -151,7 +162,7 @@ glossaries, live corrections and offline text translation are not planned.
   on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
   uploaded a build to App Store Connect on 5 November 2026, which was not submitted; 1.13.1 was,
-  and is in App Review (13 November 2026). First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
+  and is still in App Review (17 November 2026); 1.15.0 is the next build to upload. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
   10–11 November 2026, whose fixes shipped in 1.13.1
   ([macOS notes](docs/macos.md#first-run-1011-november-2026)). The paid trial proposed in the issue was dropped: the Mac version is
   free.
@@ -235,13 +246,20 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.14.0** (prepared, not yet tagged; planned for 13 November 2026): DeepL as an experimental
+- **1.15.0** (prepared, not yet tagged; planned for 17 November 2026): a spending guard for
+  cloud engines, markers and Find in the transcript, a notice on the overlay for breaks, opt-in
+  system-wide Pause and overlay keys, a new-version notice for copies installed from GitHub
+  ([#217](https://github.com/fmadore/Live-translation/issues/217)), and the fixes of the
+  [16 November app review](docs/app-review-2026-11-16.md)
+  ([#227](https://github.com/fmadore/Live-translation/pull/227)).
+  [Release body](docs/release-1.15.0.md).
+- **1.14.0** (13 November 2026; live in the Store, read 17 November 2026): DeepL as an experimental
   fourth cloud translation engine, paid DeepL API plans only
   ([#220](https://github.com/fmadore/Live-translation/pull/220)); Mistral reconnects after a
   transcription timeout (code 3804); every overlay row shows a line when both sources share a
   shallow strip ([#221](https://github.com/fmadore/Live-translation/pull/221)).
   [Release body](docs/release-1.14.0.md).
-- **1.13.1** (11 November 2026; live in the Store, read 13 November 2026): the fixes from the Mac app's
+- **1.13.1** (11 November 2026; live in the Store, read 13 November 2026, replaced by 1.14.0; in Mac App Review): the fixes from the Mac app's
   first run on a real Mac: the overlay over full-screen apps, Stop while System Audio Recording
   is unanswered, a refused permission flagged, plainer capture messages on both systems, and
   the Mac App Store screenshots

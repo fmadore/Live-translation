@@ -1,6 +1,6 @@
 {
 	"name": "live-translation",
-	"version": "1.14.0",
+	"version": "1.15.0",
 	"description": "Offline Whisper captions and cloud translation in a transparent overlay for Windows and macOS, for meetings, calls and presentations",
 	"license": "MIT",
 	"author": "Frédérick Madore (https://orcid.org/0000-0003-0959-2092)",
@@ -55,7 +55,7 @@
 		"eslint-plugin-svelte": "^3.24.1",
 		"jsdom": "^31.0.1",
 		"knip": "^6.44.2",
-		"prettier": "^3.9.10",
+		"prettier": "^3.10.1",
 		"prettier-plugin-svelte": "^4.1.1",
 		"svelte": "^5.57.3",
 		"svelte-check": "^4.7.8",

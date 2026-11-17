@@ -6,13 +6,17 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (13 November 2026)
+## Status (17 November 2026)
 
-**1.13.1 is in App Review** (the maintainer, 13 November 2026; the upload and submission dates
-were not recorded). It carries the fixes of the first run on a real Mac
-([macOS notes](macos.md#first-run-1011-november-2026)). **1.14.0** (prepared, not yet tagged) is
-the next Mac build to upload once 1.13.1's review is settled: it adds DeepL as an experimental
-cloud translation engine and the Mistral and overlay fixes, none of them tried on a Mac yet. The
+**1.13.1 is still in App Review** (the maintainer, 17 November 2026; it was first reported in
+review on 13 November, and the upload and submission dates were not recorded). It carries the
+fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026)).
+1.14.0 (tagged 13 November, in the Microsoft Store) was not uploaded. **1.15.0** (prepared, not
+yet tagged) is the next Mac build to upload once 1.13.1's review is settled: it adds 1.14.0's
+DeepL engine and fixes, the operator features of the
+[16 November review](app-review-2026-11-16.md) (spending guard, markers, Find, the overlay
+notice, the [system-wide keys](#what-app-review-may-question)) and its fixes, none of them tried
+on a Mac yet. The store build never checks for new versions; only the disk image can. The
 English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
@@ -34,14 +38,15 @@ What is ready in the repository:
 - the *Mac App Store* workflow, which signs the app and its installer package and uploads them
   to App Store Connect;
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
-- the privacy policy's macOS section and the provider question (effective 5 November 2026; the policy now in force, effective 11 November 2026, adds DeepL).
+- the privacy policy's macOS section and the provider question (effective 5 November 2026; the policy now in force, effective 16 November 2026, adds DeepL, the system-wide keys, markers and the disk image's check for new versions).
 
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
-from `main` the same day and passed: the build is in App Store Connect. As far as the repository
-That build was not submitted; 1.13.1 was, and is in App Review (13 November 2026). What only the
-maintainer can do: following 1.13.1's review, then uploading the 1.14.0 build from its tag as
-the next version, and a TestFlight run of the store build itself. The one open question,
+from `main` the same day and passed: the build is in App Store Connect. That build was not
+submitted; 1.13.1 was, and is still in App Review (17 November 2026). What only the maintainer
+can do: following 1.13.1's review, then uploading the 1.15.0 build from its tag as the next
+version, and a TestFlight run of the store build itself, which is also where the system-wide
+keys are first tried in the sandbox. The one open question,
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox
