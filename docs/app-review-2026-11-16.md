@@ -16,8 +16,15 @@ checked together.
 style suite ran in Edge for Linux, where 28 computed snapshots differ from the Windows
 baselines on an untouched tree too; no other test fails, and the same 28 fail after the work.
 
-**Not checked:** nothing ran on Windows or on a Mac. `#[cfg(windows)]` and macOS code is not
-compiled on Linux: CI's lanes do that. No provider was called.
+**Checked by CI** on [#227](https://github.com/fmadore/Live-translation/pull/227) (17 November
+2026): every lane green on Linux, Windows x64, Windows ARM64 and macOS, which compiles the
+Windows and macOS code Linux cannot; the style suite in Edge on Windows (156 tests) and the
+native end-to-end tests. Getting there took four fixes: the shell named on two release steps
+(the workflow lint), three light-theme snapshot lines that carried a Linux value, the Vulkan
+helper boxed in the backend enum (a size lint only Windows reports), and the smoke step back in
+PowerShell (Git Bash rewrote `CXXFLAGS=/EHsc` into a path).
+
+**Not checked:** nothing ran on Windows hardware or on a Mac. No provider was called.
 
 **Status values:** *Done*, *Deferred* (with the reason), *Maintainer*.
 
@@ -122,10 +129,7 @@ cold on every run (C1).
 
 **Still to check by hand**
 
-- **CI on this branch:** the Windows and macOS lanes compile `update.rs`'s package-identity
-  check, the loopback format check, `export.rs`'s helpers and the global-shortcut plugin; the
-  style snapshots, merged by hand from Linux runs, pass in Edge on Windows; the Vulkan cache's
-  first save and second-run restore.
+- **CI on main, after the merge:** the Vulkan cache's first save and the restore on the next run.
 - **Overlay:** four rows on a projector; the "drawn smaller" notice in the rail; the break
   notice with reduced motion on.
 - **DeepL, with a paid key:** the debug log's dropped segments, which answer whether segment
