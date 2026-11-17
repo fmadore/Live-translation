@@ -1,21 +1,63 @@
-# Next Store submission — 1.14.0
+# Next Store submission — 1.15.0
 
-**1.14.0 prepared, not yet tagged** (planned for 13 November 2026). The Store serves
-**1.13.1.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
-PC on 13 November 2026 (SignatureKind Store); the submission and certification dates were not
-recorded. The next submission is **1.14.0.0**, replacing it: one unsigned bundle with native x64
+**1.15.0 prepared, not yet tagged** (planned for 17 November 2026). The Store serves
+**1.14.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
+PC on 17 November 2026 (SignatureKind Store); the submission and certification dates were not
+recorded. The next submission is **1.15.0.0**, replacing it: one unsigned bundle with native x64
 and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.14.0/Live.Translation_1.14.0.msixbundle`
+`https://github.com/fmadore/Live-translation/releases/download/v1.15.0/Live.Translation_1.15.0.msixbundle`
 once the tag is built.
 
-What's new and the certification notes' first paragraph cover the changes since 1.13.1. What
-1.13.1 and 1.12.0 brought to the listing is already in Partner Center and stays.
+What's new and the certification notes' first paragraph cover the changes since 1.14.0. What
+1.14.0, 1.13.1 and 1.12.0 brought to the listing is already in Partner Center and stays.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
 controls. New installations open on Whisper / Base / automatic detection, and existing saved
 setups are preserved. Model download and capture remain explicit user actions. The Store
-listing is for Windows: 1.13 and 1.14 also ship a Mac app, which the listing does not mention.
+listing is for Windows: 1.13 and later also ship a Mac app, which the listing does not mention.
+
+## What 1.15.0 adds
+
+From the [release notes](release-1.15.0.md) and the
+[16 November app review](app-review-2026-11-16.md)
+([#227](https://github.com/fmadore/Live-translation/pull/227)), user-visible:
+
+- **Spending guard for cloud engines** (Settings › App › Cloud spending, all off by default):
+  pause a session nothing has been captioned in for 5–30 minutes, through the ordinary Pause,
+  and say once when the estimated cost or the session's length passes a chosen value. Never
+  stops a session.
+- **Markers in the transcript**: Add marker (Ctrl+Shift+M) puts a talk's start, a speaker's
+  name or a numbered section break into the transcript, its exports and history. Not shown on
+  the overlay.
+- **Find in the live transcript** (Ctrl+F on the Transcript tab), with highlighted matches and
+  the History search's matching.
+- **A notice on the overlay for breaks** ("Back soon"), in place of the captions until cleared
+  or until captions resume after a pause.
+- **System-wide Pause and Show/hide overlay keys** (Settings › App, off by default):
+  Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O work with slides or a meeting app in front, only while
+  a session runs. No Start or Stop key. `RegisterHotKey` needs no MSIX capability.
+- **The review's fixes**: four overlay rows that each show a line, with a notice when captions
+  are drawn smaller than chosen; DeepL keeping concluded text; the echo filter by session time;
+  the pre-flight counting both sources, with a Download button on a first run; and smaller ones
+  listed in the release notes.
+
+Not for the Store listing: the **new-version notice** ([#217](https://github.com/fmadore/Live-translation/issues/217))
+is for copies installed from GitHub only. Every MSIX has package identity, and the core never
+checks from a copy that has one (`src-tauri/src/update.rs`), so a Store copy never shows the
+question and never contacts GitHub. The certification notes say so in one sentence, because the
+privacy policy describes the check.
+
+[store-listing.md](store-listing.md) replaces What's new in each language and the certification
+notes' first paragraph, adds the operator tools to the descriptions' fifth and sixth paragraphs,
+and changes three feature lines in place (the fourth, twelfth and fourteenth), so the list stays
+at twenty. No capability or product declaration changes: the MSIX capabilities are still
+`runFullTrust` and `microphone`, pinned by `src/lib/msixIdentity.test.ts`, and
+`AppxManifest.xml.template` and `bundle.config.json` are unchanged since `v1.14.0`. The privacy
+policy's effective date is **16 November 2026**: it adds the check for new versions (GitHub
+copies only), the system-wide keys (the app is told of these two combinations only) and the
+markers kept with the transcript. 1.14.0 was in the Store before that change was published,
+which is harmless: the policy describes features the Store copy either lacks or does not yet have.
 
 ## What 1.14.0 adds
 
@@ -42,7 +84,7 @@ changes: the MSIX capabilities are still `runFullTrust` and `microphone`, and
 
 ### DeepL in the listing
 
-Planned with #220 and done in the 1.14.0 copy:
+Planned with #220, done in the 1.14.0 copy and in the Store since 1.14.0:
 
 - **Descriptions.** The opening paragraph names DeepL with Gemini and OpenAI, under the user's
   own DeepL API key, and says DeepL needs a **paid DeepL API plan**: Voice is not on DeepL's free
@@ -63,28 +105,6 @@ Planned with #220 and done in the 1.14.0 copy:
   of a free key without one.
 - **Keywords.** Not changed: all seven slots are taken. "DeepL" would be named descriptively, as
   the other providers are, if a slot is freed later.
-
-## Next, after 1.14.0: for operators
-
-User-visible, for What's new when they ship:
-
-- **Spending guard for cloud engines** (Settings › App, all off by default): pause a session
-  nothing has been captioned in for 5–30 minutes, through the ordinary Pause, and say once when
-  the estimated cost or the session's length passes a chosen value. Never stops a session.
-- **Markers in the transcript**: Add marker (Ctrl+Shift+M) puts a talk's start, a speaker's
-  name or a numbered section break into the transcript, its exports and history. Not shown on
-  the overlay.
-- **Find in the live transcript** (Ctrl+F on the Transcript tab), with highlighted matches and
-  the History search's matching.
-- **A notice on the overlay for breaks** ("Back soon"), in place of the captions until cleared
-  or until captions resume after a pause.
-- **System-wide Pause and Show/hide overlay keys** (Settings › App, off by default):
-  Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O work with slides or a meeting app in front, only while
-  a session runs. No Start or Stop key. `RegisterHotKey` needs no MSIX capability; the privacy
-  policy (effective 16 November 2026) says the app is told of these two combinations only.
-
-No capability, permission or declaration changes. The privacy policy's recovery-copy, history
-and preferences sections say that markers and the new choices are kept.
 
 ## What 1.13.1 adds
 
@@ -168,29 +188,33 @@ capabilities are unchanged (`runFullTrust` and `microphone`); `AppxManifest.xml.
 
 ## The copy
 
-[store-listing.md](store-listing.md) is the 1.14.0 copy, with every block in English, French and
-German: What's new, the descriptions' DeepL sentences, the fourth feature line and the
-certification notes. The French and German sentences new in 1.14.0 need the maintainer's review.
+[store-listing.md](store-listing.md) is the 1.15.0 copy, with every block in English, French and
+German: What's new, the descriptions' new sentences, three feature lines and the certification
+notes. The French and German sentences new in 1.15.0 need the maintainer's review.
 
 - [EN/FR/DE descriptions, What's new and certification notes](store-listing.md)
-- [Release notes](release-1.14.0.md)
-- [Build evidence and acceptance checklist](store-updates.md#release-1140-handoff)
-- [DeepL Voice API notes](deepl-voice-api.md)
+- [Release notes](release-1.15.0.md)
+- [Build evidence and acceptance checklist](store-updates.md#release-1150-handoff)
+- [16 November app review](app-review-2026-11-16.md), with what is still to check by hand
 - [Captions in Zoom guide](zoom-captions.md), which the app's dialog opens
 - [Screenshot plan](store-screenshots/README.md)
 - [Partner Center walkthrough](partner-center-walkthrough.md)
 
 Before submission, complete:
 
-- a live DeepL session with a key from a paid DeepL API plan, or the maintainer's decision to
-  submit with DeepL untested and labelled experimental, as the app and the copy already say;
-- the overlay with both sources in a 160 px strip, on the installed package;
+- a test of the 1.15.0 package on Windows hardware: nothing in the 16 November work had run on
+  Windows when it was merged, so at least the system-wide keys over full-screen PowerPoint, the
+  overlay with four rows, Find (Ctrl+F keeping WebView2's find bar shut), a marker, the overlay
+  notice and the spending guard's idle pause;
+- that the installed Store-identity package shows no new-version question and sends nothing to
+  GitHub;
 - the final-package checks, including `whisper-vulkan.exe` and the bundled model in both
   packages, and the checks still open from earlier releases
-  ([1.13.1's](store-updates.md#release-1131-handoff) and
+  ([1.14.0's](store-updates.md#release-1140-handoff),
+  [1.13.1's](store-updates.md#release-1131-handoff) and
   [1.13.0's](store-updates.md#release-1130-handoff));
 - the screenshot decision;
-- the German and French copy review of the 1.14.0 sentences;
+- the German and French copy review of the 1.15.0 sentences;
 - Windows App Certification Kit on the final packages.
 
 Use the normal Store identity: the side-by-side Local Test installation is for feedback, not the

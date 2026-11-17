@@ -1,9 +1,15 @@
 # Microsoft Store submission
 
-**Current Store release: 1.13.1 / MSIX 1.13.1.0**, read from the installed package with
-`Get-AppxPackage` on the maintainer's ARM64 PC on 13 November 2026 (SignatureKind Store); the
+**Current Store release: 1.14.0 / MSIX 1.14.0.0**, read from the installed package with
+`Get-AppxPackage` on the maintainer's ARM64 PC on 17 November 2026 (SignatureKind Store); the
 submission and certification dates were not recorded
-([its handoff](store-updates.md#release-1131-handoff)). It replaced 1.12.0 (1.13.0, tagged on
+([its handoff](store-updates.md#release-1140-handoff)). It replaced 1.13.1 and added DeepL as an
+experimental fourth cloud translation engine, which needs a paid DeepL API plan and refuses a
+free key; Mistral subtitles that reconnect after a transcription timeout; and overlay rows that
+each show a line with both sources.
+
+**1.13.1 / MSIX 1.13.1.0**, read from the installed package on 13 November 2026 and replaced by
+1.14.0 ([its handoff](store-updates.md#release-1131-handoff)), replaced 1.12.0 (1.13.0, tagged on
 10 November, was published on GitHub only). Since 1.12.0 it runs Whisper on a suitable graphics
 processor through `whisper-vulkan.exe`, a second executable in the package, bundles a
 speech-detection model, adds Large v3 Turbo, sends names and terms to Gemini subtitles too, and
@@ -22,14 +28,16 @@ in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.14.0 / MSIX 1.14.0.0**, prepared, not yet tagged (planned for
-13 November 2026), replacing 1.13.1. It adds DeepL as an experimental fourth cloud translation
-engine, which needs a paid DeepL API plan and refuses a free key; Mistral subtitles reconnect
-after a transcription timeout; and with both sources each overlay row shows a line in a strip
-sized for one. Its What's new and the certification notes' first paragraph cover the changes
-since 1.13.1; the descriptions, one feature line and the certification notes' *Optional cloud
-features* paragraph add DeepL ([what it needs](store-listing-next.md)). See the
-[1.14.0 handoff](store-updates.md#release-1140-handoff), [listing copy](store-listing.md) and
+**Next submission: 1.15.0 / MSIX 1.15.0.0**, prepared, not yet tagged (planned for
+17 November 2026), replacing 1.14.0. It adds tools for the operator (a spending guard for cloud
+engines, markers and Find in the transcript, a notice on the overlay for breaks, and opt-in
+system-wide Pause and overlay keys through `RegisterHotKey`, which needs no capability) and the
+fixes of the [16 November app review](app-review-2026-11-16.md). Its new-version notice is for
+copies installed from GitHub only: every MSIX has package identity, and the core never checks
+from a copy that has one (`src-tauri/src/update.rs`). Its What's new and the certification notes'
+first paragraph cover the changes since 1.14.0; two feature lines and one description paragraph
+add the operator tools ([what it needs](store-listing-next.md)). See the
+[1.15.0 handoff](store-updates.md#release-1150-handoff), [listing copy](store-listing.md) and
 [Partner Center walkthrough](partner-center-walkthrough.md).
 
 ## Product and certification approach
@@ -81,8 +89,8 @@ before submission; a passing local check does not imply certification.
 
 ## Acceptance checklist
 
-- [ ] Manifests and lockfiles agree on 1.14.0; both MSIX manifests and the combined bundle
-  report 1.14.0.0 and the assigned identity, and both packages carry the wave-to-words icon
+- [ ] Manifests and lockfiles agree on 1.15.0; both MSIX manifests and the combined bundle
+  report 1.15.0.0 and the assigned identity, and both packages carry the wave-to-words icon
   assets introduced in 1.6.1.
 - [ ] The taskbar, Start and Alt+Tab show the installed app's icon without a plate, with the
   taskbar in the dark and the light theme; each package carries `resources.pri` and the
@@ -108,6 +116,13 @@ before submission; a passing local check does not imply certification.
   sentence; with a key from a paid DeepL API plan, a DeepL translation session captions real
   speech (or the submission goes ahead with DeepL untested and labelled experimental, by the
   maintainer's decision). With both sources in a 160 px overlay strip, each row shows a line.
+- [ ] From 1.15.0: the Store package shows no new-version question or notice and sends nothing
+  to GitHub (read with a proxy). The system-wide keys, once turned on, pause and show or hide
+  the overlay over full-screen PowerPoint, only while a session runs, and the refusal line
+  appears when another app holds a combination. The spending guard pauses an idle cloud session
+  and warns once; Add marker and Find work on the Transcript tab, with Ctrl+F keeping
+  WebView2's own find bar shut; the overlay notice replaces the captions and clears. With both
+  sources and two caption languages in the default strip, all four rows show a line.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
 - [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.
