@@ -1,10 +1,10 @@
 # Live-translation: statistics
 
-Updated 2026-11-16 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
+Updated 2026-11-17 by the daily *Repository statistics* workflow (`.github/workflows/stats.yml` on the default branch). The figures are kept in [`data/`](data/) as CSV files, one row per day, for a spreadsheet or a dashboard.
 
 | Downloads, versions | Downloads, all releases | Views, last 14 days |
 | ---: | ---: | ---: |
-| 1,004 | 1,004 | 755 |
+| 1,030 | 1,030 | 692 |
 
 ## Downloads per version
 
@@ -12,19 +12,19 @@ Every file of a release counts once each time it is downloaded from GitHub. "…
 
 | Release | Published | Downloads | Last 7 days | Last 30 days |
 | --- | --- | ---: | ---: | ---: |
-| [v1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0) | 2026-11-13 | 60 | 60 | 60 |
+| [v1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0) | 2026-11-13 | 85 | 85 | 85 |
 | [v1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1) | 2026-11-11 | 68 | 68 | 68 |
 | [v1.13.0](https://github.com/fmadore/Live-translation/releases/tag/v1.13.0) | 2026-11-10 | 17 | 17 | 17 |
-| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 189 | 28 | 189 |
+| [v1.12.0](https://github.com/fmadore/Live-translation/releases/tag/v1.12.0) | 2026-10-27 | 189 | 15 | 189 |
 | [v1.11.0](https://github.com/fmadore/Live-translation/releases/tag/v1.11.0) | 2026-10-26 | 41 | 9 | 41 |
 | [v1.10.0](https://github.com/fmadore/Live-translation/releases/tag/v1.10.0) | 2026-10-26 | 11 | 9 | 11 |
-| [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 2026-10-22 | 64 | 9 | 64 |
-| [v1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) | 2026-10-21 | 35 | 10 | 35 |
+| [v1.9.0](https://github.com/fmadore/Live-translation/releases/tag/v1.9.0) | 2026-10-22 | 65 | 9 | 65 |
+| [v1.8.0](https://github.com/fmadore/Live-translation/releases/tag/v1.8.0) | 2026-10-21 | 35 | 7 | 35 |
 | [v1.7.1](https://github.com/fmadore/Live-translation/releases/tag/v1.7.1) | 2026-10-20 | 37 | 5 | 37 |
 | [v1.7.0](https://github.com/fmadore/Live-translation/releases/tag/v1.7.0) | 2026-10-20 | 11 | 5 | 11 |
 | [v1.6.1](https://github.com/fmadore/Live-translation/releases/tag/v1.6.1) | 2026-10-06 | 234 | 7 | … |
-| [v1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) | 2026-10-04 | 19 | 6 | … |
-| [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) | 2026-09-23 | 23 | 6 | … |
+| [v1.6.0](https://github.com/fmadore/Live-translation/releases/tag/v1.6.0) | 2026-10-04 | 19 | 5 | … |
+| [v1.5.1](https://github.com/fmadore/Live-translation/releases/tag/v1.5.1) | 2026-09-23 | 23 | 5 | … |
 | [v1.5.0](https://github.com/fmadore/Live-translation/releases/tag/v1.5.0) | 2026-09-22 | 11 | 5 | … |
 | [v1.4.2](https://github.com/fmadore/Live-translation/releases/tag/v1.4.2) | 2026-09-21 | 11 | 5 | … |
 | [v1.4.1](https://github.com/fmadore/Live-translation/releases/tag/v1.4.1) | 2026-09-20 | 12 | 5 | … |
@@ -55,17 +55,17 @@ Every file of a release counts once each time it is downloaded from GitHub. "…
 ```mermaid
 xychart-beta
     title "Downloads per day (all releases)"
-    x-axis ["11-09", "11-10", "11-11", "11-12", "11-13", "11-14", "11-15", "11-16"]
-    bar [4, 19, 191, 24, 36, 42, 27, 22]
+    x-axis ["11-09", "11-10", "11-11", "11-12", "11-13", "11-14", "11-15", "11-16", "11-17"]
+    bar [4, 19, 191, 24, 36, 42, 27, 22, 26]
 ```
 
 ## Files of v1.14.0
 
 | File | Downloads |
 | --- | ---: |
-| Live.Translation_1.14.0_x64-setup.exe | 30 |
-| Live.Translation_1.14.0.msixbundle | 20 |
-| Live.Translation_1.14.0_aarch64.dmg | 5 |
+| Live.Translation_1.14.0_x64-setup.exe | 43 |
+| Live.Translation_1.14.0.msixbundle | 30 |
+| Live.Translation_1.14.0_aarch64.dmg | 7 |
 | Live.Translation_1.14.0_x64_en-US.msi | 3 |
 | Live.Translation_1.14.0_arm64.msix | 1 |
 | Live.Translation_1.14.0_x64.msix | 1 |
