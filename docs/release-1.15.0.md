@@ -30,6 +30,13 @@ new version is out. It also carries the fixes of the
   meeting app are in front, only while a session is running or paused. The app learns of these
   two key combinations and nothing else you type. There is no Start or Stop key: those stay in
   the app's window. If another app already holds a combination, the setting says so.
+- **Several saved sessions at once** (Settings › Transcript history). Tick sessions in the
+  list, or **Select all shown** to take every session the search and filters leave, then
+  **Save selected to a folder…** in the chosen format or **Delete selected**, which asks once
+  and says how many. Saving never overwrites a file already in the folder, skips sessions that
+  cannot be saved in that format and counts them, and a session that fails is named in the
+  count while the others go ahead
+  ([#231](https://github.com/fmadore/Live-translation/pull/231)).
 
 ## New versions, for copies installed from GitHub
 

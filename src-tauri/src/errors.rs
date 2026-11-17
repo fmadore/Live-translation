@@ -48,6 +48,16 @@ impl AppError {
     }
 }
 
+/// One item of a batch that failed while the others went ahead: which one (a session id, a
+/// file name) and why. A batch command returns these beside what it did, rather than failing
+/// whole, so the interface can say how many did not complete.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ItemFailure {
+    pub item: String,
+    pub error: AppError,
+}
+
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self.detail {

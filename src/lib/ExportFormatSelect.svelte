@@ -8,9 +8,13 @@
 	 *  in the same words wherever a transcript is saved. */
 	let {
 		disabled = false,
-		compact = false
+		compact = false,
+		label = ''
 	}: {
 		disabled?: boolean;
+		/** Its accessible name where another format select can be on screen beside it (the
+		 *  History tab's selection); otherwise the format's own. */
+		label?: string;
 		/** The transcript toolbar's small select, beside its other small controls, rather than
 		 *  the form field the history view lays out with its buttons. */
 		compact?: boolean;
@@ -36,7 +40,7 @@
 		{@render formats()}
 	</select>
 {:else}
-	<Select aria-label={$t.transcript.format} bind:value={$exportFormat} {disabled}>
+	<Select aria-label={label || $t.transcript.format} bind:value={$exportFormat} {disabled}>
 		{@render formats()}
 	</Select>
 {/if}

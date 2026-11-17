@@ -335,6 +335,19 @@ pub async fn save_transcript(
     .map_err(|error| AppError::with(id::TASK_FAILED, error))?
 }
 
+/// Ask for a folder, then write several transcripts into it under names that overwrite
+/// nothing. `None` when the dialog is cancelled; files that could not be written are listed.
+#[tauri::command]
+pub async fn export_transcripts(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    files: Vec<crate::export::ExportFile>,
+) -> Result<Option<crate::export::BatchExport>, AppError> {
+    tauri::async_runtime::spawn_blocking(move || crate::export::save_many(app, window, files))
+        .await
+        .map_err(|error| AppError::with(id::TASK_FAILED, error))?
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

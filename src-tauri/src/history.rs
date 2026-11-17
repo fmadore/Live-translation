@@ -6,7 +6,7 @@
 //! session no longer rewrites everything it has already saved every few seconds. Files from
 //! before the log format are a single JSON object, and are still read and renamed.
 use crate::atomic_file;
-use crate::errors::{AppError, id};
+use crate::errors::{AppError, ItemFailure, id};
 use crate::sync::lock;
 use serde::Serialize;
 use std::{
@@ -297,9 +297,70 @@ pub async fn delete_history(app: AppHandle, id: String) -> Result<(), AppError> 
     .map_err(task_failed)?
 }
 
+/// What a batch deletion did: the sessions it deleted and the ones it could not.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchDeletion {
+    pub deleted: Vec<String>,
+    pub failed: Vec<ItemFailure>,
+}
+
+/// Delete each session in turn. One that cannot be deleted (a malformed id, a file locked by a
+/// virus scan) is reported and the rest still go; an already missing file counts as deleted,
+/// as it does for one session.
+fn delete_sessions(dir: &Path, ids: &[String]) -> BatchDeletion {
+    let mut outcome = BatchDeletion {
+        deleted: vec![],
+        failed: vec![],
+    };
+    for session in ids {
+        let removed = session_path(dir, session)
+            .and_then(|path| atomic_file::remove(&path).map_err(|e| file_error(&path, e)));
+        match removed {
+            Ok(()) => outcome.deleted.push(session.clone()),
+            Err(error) => outcome.failed.push(ItemFailure {
+                item: session.clone(),
+                error,
+            }),
+        }
+    }
+    outcome
+}
+
+/// Delete several sessions at once, under one lock, reporting each one that failed.
+#[tauri::command]
+pub async fn delete_histories(app: AppHandle, ids: Vec<String>) -> Result<BatchDeletion, AppError> {
+    let dir = directory(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let _lock = lock(&HISTORY_IO);
+        delete_sessions(&dir, &ids)
+    })
+    .await
+    .map_err(task_failed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_batch_deletion_reports_each_failure_and_deletes_the_rest() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = session_path(dir.path(), FIRST).unwrap();
+        std::fs::write(&first, "{\"version\":2}\n").unwrap();
+        // SECOND has no file: already gone counts as deleted.
+        let ids = [FIRST.to_owned(), "../escape".to_owned(), SECOND.to_owned()];
+        let outcome = delete_sessions(dir.path(), &ids);
+        assert_eq!(outcome.deleted, [FIRST, SECOND]);
+        assert_eq!(
+            outcome.failed,
+            [ItemFailure {
+                item: "../escape".into(),
+                error: storage_error("invalid session id")
+            }]
+        );
+        assert!(!first.exists());
+    }
 
     #[test]
     fn rename_preserves_latest_disk_contents_and_does_not_recreate_missing_sessions() {

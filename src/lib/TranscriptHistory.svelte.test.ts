@@ -1,5 +1,5 @@
 import { matchesSession } from './historySearch';
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { get } from 'svelte/store';
 import { tick } from 'svelte';
@@ -23,7 +23,8 @@ vi.mock('./tauri', () => ({
 		listHistory: vi.fn(),
 		deleteHistory: vi.fn(),
 		writeHistory: vi.fn(),
-		saveTranscript: vi.fn()
+		saveTranscript: vi.fn(),
+		exportTranscripts: vi.fn()
 	}
 }));
 const saved: SavedSession = {
@@ -532,4 +533,142 @@ it('shows only the opt-ins and one sentence until there is a saved session', asy
 	await waitFor(() => expect(view.getByRole('searchbox')).toBeTruthy());
 	expect(view.queryByText('No saved sessions yet.')).toBeNull();
 	view.unmount();
+});
+
+// Several sessions at once (multi-select): a search narrows what select-all ticks, deletion
+// asks once and counts, and saving writes every ticked session through one batch command.
+describe('several sessions at once', () => {
+	const keynote: SavedSession = { ...saved, title: 'Keynote' };
+	const other: SavedSession = {
+		...saved,
+		id: '12345678-1234-1234-1234-123456789abd',
+		title: 'Board meeting',
+		startedAt: '2026-09-20T10:00:00Z',
+		lines: [{ ...saved.lines[0], text: 'Quarterly figures.' }]
+	};
+	const untimed: SavedSession = {
+		...saved,
+		id: '12345678-1234-1234-1234-123456789abe',
+		title: 'Recovered',
+		lines: [{ id: 1, text: 'No timing here.', sourceText: '', origin: 'system' }]
+	};
+	beforeEach(() => {
+		vi.mocked(api.listHistory).mockResolvedValue(
+			listing(
+				{ id: keynote.id, contents: JSON.stringify(keynote) },
+				{ id: other.id, contents: JSON.stringify(other) },
+				{ id: untimed.id, contents: JSON.stringify(untimed) }
+			)
+		);
+	});
+	const selectAll = (view: {
+		getByRole: (role: 'checkbox', options: { name: string }) => HTMLElement;
+	}) => view.getByRole('checkbox', { name: 'Select all shown' });
+
+	it('selects what the search shows, and counts it', async () => {
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		expect(view.getByText('None selected')).toBeTruthy();
+		await fireEvent.input(view.getByLabelText('Search titles and transcript text'), {
+			target: { value: 'board' }
+		});
+		await fireEvent.click(selectAll(view));
+		expect(view.getByText('1 session selected')).toBeTruthy();
+		expect(view.getByRole('checkbox', { name: 'Select Board meeting' })).toBeChecked();
+		await fireEvent.click(view.getByText('Clear filters'));
+		// The other two are shown again but were never ticked: select-all is part-way.
+		expect(selectAll(view)).not.toBeChecked();
+		expect((selectAll(view) as HTMLInputElement).indeterminate).toBe(true);
+		await fireEvent.click(selectAll(view));
+		expect(view.getByText('3 sessions selected')).toBeTruthy();
+		await fireEvent.click(selectAll(view));
+		expect(view.getByText('None selected')).toBeTruthy();
+		view.unmount();
+	});
+
+	it('deletes the selection only after one confirmation that counts it', async () => {
+		const deletion = vi
+			.spyOn(sessionHistory, 'deleteMany')
+			.mockResolvedValue({ deleted: [saved.id, other.id], failed: [] });
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Board meeting' }));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Keynote' }));
+		expect(view.getByText('2 sessions selected')).toBeTruthy();
+		await fireEvent.click(view.getByText('Delete selected'));
+		expect(deletion).not.toHaveBeenCalled();
+		vi.mocked(api.listHistory).mockResolvedValue({
+			sessions: [{ id: untimed.id, length: JSON.stringify(untimed).length }],
+			removed: [saved.id, other.id]
+		});
+		await fireEvent.click(view.getByText('Delete 2 sessions permanently'));
+		await waitFor(() => expect(view.getByText('2 sessions deleted.')).toBeTruthy());
+		expect(deletion).toHaveBeenCalledWith(expect.arrayContaining([saved.id, other.id]));
+		expect(view.container.querySelectorAll('.session')).toHaveLength(1);
+		expect(view.getByText('None selected')).toBeTruthy();
+		deletion.mockRestore();
+		view.unmount();
+	});
+
+	it('reports the sessions a batch deletion could not delete', async () => {
+		const deletion = vi.spyOn(sessionHistory, 'deleteMany').mockResolvedValue({
+			deleted: [saved.id],
+			failed: [
+				{
+					item: other.id,
+					error: { id: 'error.historyStorage', detail: 'Access is denied.' }
+				}
+			]
+		});
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Keynote' }));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Board meeting' }));
+		await fireEvent.click(view.getByText('Delete selected'));
+		await fireEvent.click(view.getByText('Delete 2 sessions permanently'));
+		const alert = await view.findByText(/1 of 2 selected sessions did not complete/);
+		expect(alert.textContent).toContain('Access is denied.');
+		// The one that failed stays ticked, so it can be tried again.
+		expect(view.getByRole('checkbox', { name: 'Select Board meeting' })).toBeChecked();
+		deletion.mockRestore();
+		view.unmount();
+	});
+
+	it('saves every selected session in the chosen format and skips untimed ones for subtitles', async () => {
+		vi.mocked(api.exportTranscripts).mockResolvedValue({
+			directory: 'C:\Exports',
+			written: ['a.srt', 'b.srt'],
+			failed: []
+		});
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		await fireEvent.click(selectAll(view));
+		await fireEvent.change(
+			view.getByRole('combobox', { name: 'Export format for the selection' }),
+			{ target: { value: 'srt' } }
+		);
+		await fireEvent.click(view.getByText('Save selected to a folder…'));
+		await waitFor(() =>
+			expect(
+				view.getByText('2 transcripts saved to C:\Exports 1 session skipped', { exact: false })
+			).toBeTruthy()
+		);
+		const files = vi.mocked(api.exportTranscripts).mock.calls[0][0];
+		expect(files).toHaveLength(2);
+		expect(files.every((file) => file.filename.endsWith('.srt'))).toBe(true);
+		expect(files.map((file) => file.content).join(' ')).toContain('Quarterly figures.');
+		view.unmount();
+	});
+
+	it('does nothing when the folder dialog is cancelled', async () => {
+		vi.mocked(api.exportTranscripts).mockResolvedValue(null);
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Board meeting' }));
+		await fireEvent.click(view.getByText('Save selected to a folder…'));
+		await waitFor(() => expect(api.exportTranscripts).toHaveBeenCalledTimes(1));
+		expect(view.container.querySelector('.notice')?.textContent).toBe('');
+		expect(view.queryByRole('alert')).toBeNull();
+		view.unmount();
+	});
 });

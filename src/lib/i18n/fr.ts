@@ -488,7 +488,35 @@ export const fr: Messages = {
 		cancel: 'Annuler',
 		copy: 'Copier la transcription',
 		copied: 'Transcription copiée.',
-		fullTranscript: 'Transcription enregistrée'
+		fullTranscript: 'Transcription enregistrée',
+		selectAll: 'Sélectionner toutes les sessions affichées',
+		select: (name: string) => `Sélectionner ${name}`,
+		selected: (n: number) =>
+			n === 0
+				? 'Aucune session sélectionnée'
+				: n === 1
+					? '1 session sélectionnée'
+					: `${n} sessions sélectionnées`,
+		clearSelection: 'Tout désélectionner',
+		deleteSelected: 'Supprimer la sélection',
+		confirmDeleteSelected: (n: number) =>
+			n === 1 ? 'Supprimer définitivement 1 session' : `Supprimer définitivement ${n} sessions`,
+		selectionFormat: 'Format d’export de la sélection',
+		saveSelected: 'Enregistrer la sélection dans un dossier…',
+		deletedMany: (n: number) => (n === 1 ? '1 session supprimée.' : `${n} sessions supprimées.`),
+		savedMany: (n: number, folder: string) =>
+			n === 1
+				? `1 transcription enregistrée dans ${folder}`
+				: `${n} transcriptions enregistrées dans ${folder}`,
+		skipped: (n: number) =>
+			n === 1
+				? '1 session ignorée : illisible, ou sans le minutage qu’exigent les sous-titres.'
+				: `${n} sessions ignorées : illisibles, ou sans le minutage qu’exigent les sous-titres.`,
+		/** In front of the first failure of a batch, in place of `actionFailed`. */
+		batchFailed: (failed: number, total: number) =>
+			failed === 1
+				? `1 des ${total} sessions sélectionnées n’a pas abouti.`
+				: `${failed} des ${total} sessions sélectionnées n’ont pas abouti.`
 	},
 	overlayControls: {
 		stable: 'Lecture stable',

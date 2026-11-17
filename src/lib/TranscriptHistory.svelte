@@ -9,6 +9,7 @@
 	import ExportFormatSelect from './ExportFormatSelect.svelte';
 	import { captionLanguagesOf, matchesSession } from './historySearch';
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { api, isTauri } from './tauri';
 	import { asStatus, type AppError } from './errors';
 	import { describeStatus, type WordedMessage } from './sessionStatus';
@@ -20,6 +21,7 @@
 		historyError,
 		historyRevision,
 		sessionHistory,
+		type ExportFile,
 		type HistoryEntry,
 		type SavedSession
 	} from './history';
@@ -74,6 +76,104 @@
 				: !query && !from && !to && !language
 		)
 	);
+	// The sessions ticked for a batch action, apart from the one open in the reader. Only the
+	// ticked sessions the filters show are acted on and counted, so a search narrows what
+	// select-all takes and nothing hidden is ever deleted with the rest.
+	const checked = new SvelteSet<string>();
+	const chosen = $derived(filtered.filter((entry) => checked.has(entry.id)));
+	const allShown = $derived(filtered.length > 0 && chosen.length === filtered.length);
+	let confirmBatch = $state(false);
+	// A batch's failures have their own headline, which counts them; `actionError`'s says
+	// "this session".
+	let batchError = $state.raw<{ failed: number; total: number; error: Caught } | null>(null);
+	function toggleAll() {
+		// Read once: `allShown` follows the set, so it would change after the first row.
+		const untick = allShown;
+		for (const entry of filtered) {
+			if (untick) checked.delete(entry.id);
+			else checked.add(entry.id);
+		}
+		confirmBatch = false;
+	}
+	function toggle(id: string, on: boolean) {
+		if (on) checked.add(id);
+		else checked.delete(id);
+		confirmBatch = false;
+	}
+	/** The name a row's checkbox reads out: the session's title or start, as its button shows. */
+	function entryName(entry: HistoryEntry) {
+		if (!entry.session) return `${$t.history.unreadable} ${entry.id}`;
+		return entry.session.title || formatDateTime(entry.session.startedAt, $localeTag);
+	}
+	function startBatch() {
+		busy = true;
+		actionError = '';
+		batchError = null;
+		notice = '';
+	}
+	async function removeChosen() {
+		const ids = chosen.map((entry) => entry.id);
+		if (!ids.length || busy) return;
+		startBatch();
+		try {
+			const outcome = await sessionHistory.deleteMany(ids);
+			for (const id of outcome.deleted) checked.delete(id);
+			if (outcome.deleted.includes(selectedId)) selectedId = '';
+			const done = outcome.deleted.length;
+			if (done) notice = (m) => m.history.deletedMany(done);
+			if (outcome.failed.length)
+				batchError = {
+					failed: outcome.failed.length,
+					total: ids.length,
+					error: outcome.failed[0].error
+				};
+			await refresh();
+		} catch (e) {
+			batchError = { failed: ids.length, total: ids.length, error: caught(e) };
+		} finally {
+			confirmBatch = false;
+			busy = false;
+		}
+	}
+	async function exportChosen() {
+		if (!chosen.length || busy) return;
+		const wanted = $format;
+		const files: ExportFile[] = [];
+		let skipped = 0;
+		for (const entry of chosen) {
+			const session = entry.session;
+			// Subtitles need each line's timing, as the single export's button says.
+			if (!session || (isTimedFormat(wanted) && !hasTranscriptTiming(session.lines))) {
+				skipped++;
+				continue;
+			}
+			files.push({
+				filename: transcriptFilename(new Date(session.startedAt), wanted),
+				content: content(session, wanted)
+			});
+		}
+		const total = chosen.length;
+		startBatch();
+		try {
+			const outcome = files.length ? await api.exportTranscripts(files) : null;
+			if (files.length && !outcome) return; // The folder dialog was cancelled.
+			const written = outcome?.written.length ?? 0;
+			const folder = outcome?.directory ?? '';
+			notice = (m) =>
+				[
+					written ? m.history.savedMany(written, folder) : '',
+					skipped ? m.history.skipped(skipped) : ''
+				]
+					.filter(Boolean)
+					.join(' ');
+			if (outcome?.failed.length)
+				batchError = { failed: outcome.failed.length, total, error: outcome.failed[0].error };
+		} catch (e) {
+			batchError = { failed: files.length, total, error: caught(e) };
+		} finally {
+			busy = false;
+		}
+	}
 	async function rename() {
 		if (!selected || busy) return;
 		busy = true;
@@ -273,10 +373,56 @@
 			}}>{$t.design.clearFilters}</ToolButton
 		>
 		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
+		<!-- Several sessions at once: tick them in the list, or every one the filters show, then
+		     save them all to one folder or delete them all after one confirmation that counts
+		     them. The reader beside the list keeps acting on the one session it shows. -->
+		<div class="batch">
+			<label class="select-all"
+				><input
+					type="checkbox"
+					checked={allShown}
+					indeterminate={chosen.length > 0 && !allShown}
+					disabled={busy || !filtered.length}
+					onchange={toggleAll}
+				/>{$t.history.selectAll}</label
+			>
+			<span class="count" aria-live="polite">{$t.history.selected(chosen.length)}</span>
+			{#if chosen.length}
+				<ToolButton
+					disabled={busy}
+					onclick={() => {
+						checked.clear();
+						confirmBatch = false;
+					}}>{$t.history.clearSelection}</ToolButton
+				>
+				<ExportFormatSelect disabled={busy} label={$t.history.selectionFormat} />
+				<ToolButton disabled={busy} onclick={() => void exportChosen()}
+					>{$t.history.saveSelected}</ToolButton
+				>
+				<ConfirmButton
+					variant="danger"
+					confirming={confirmBatch}
+					label={$t.history.deleteSelected}
+					confirmLabel={$t.history.confirmDeleteSelected(chosen.length)}
+					cancelLabel={$t.history.cancel}
+					disabled={busy}
+					onask={() => (confirmBatch = true)}
+					onconfirm={() => void removeChosen()}
+					oncancel={() => (confirmBatch = false)}
+				/>
+			{/if}
+		</div>
 		<div class="history-browser">
 			<ul class="sessions">
 				{#each filtered as entry (entry.id)}
 					<li>
+						<input
+							type="checkbox"
+							aria-label={$t.history.select(entryName(entry))}
+							checked={checked.has(entry.id)}
+							disabled={busy}
+							onchange={(e) => toggle(entry.id, e.currentTarget.checked)}
+						/>
 						<ToolButton
 							class="session"
 							disabled={busy}
@@ -406,6 +552,10 @@
 			{$t.history.actionFailed}
 			{describeStatus(actionError, $t, $locale)}
 		</p>{/if}
+	{#if batchError}<p role="alert">
+			{$t.history.batchFailed(batchError.failed, batchError.total)}
+			{describeStatus(batchError.error, $t, $locale)}
+		</p>{/if}
 	<p class="notice" role="status">{notice ? notice($t, $locale) : ''}</p>
 </section>
 
@@ -443,13 +593,54 @@
 		overflow: auto;
 	}
 	li {
+		display: flex;
+		gap: var(--space-2);
+		align-items: flex-start;
 		margin-bottom: var(--space-2);
+	}
+	/* The row's checkbox, on the line of the session's name inside the button beside it. */
+	li > input,
+	.select-all input {
+		accent-color: var(--accent);
+		flex: none;
+	}
+	li > input {
+		margin-top: var(--space-3);
+	}
+	/* Beside the buttons rather than on a row of its own. */
+	.batch :global(.ui-select) {
+		flex: 0 1 12rem;
+		width: auto;
+		min-width: 9rem;
+	}
+	.batch {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--space-2) var(--space-3);
+		align-items: center;
+	}
+	.select-all {
+		display: inline-flex;
+		gap: var(--space-2);
+		align-items: center;
+		cursor: pointer;
+		color: var(--text-secondary);
+		font-size: var(--type-small);
+	}
+	.select-all:has(input:disabled) {
+		cursor: default;
+	}
+	.count {
+		color: var(--text-muted);
+		font-size: var(--type-small);
+		font-variant-numeric: tabular-nums;
 	}
 	.sessions :global(.session) {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-1);
-		width: 100%;
+		flex: 1;
+		min-width: 0;
 		text-align: left;
 		overflow-wrap: anywhere;
 		line-height: var(--leading-body);
