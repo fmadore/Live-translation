@@ -65,7 +65,7 @@ enum Backend {
         device: &'static str,
     },
     /// The Vulkan helper, on the graphics processor it chose.
-    Helper(gpu::Worker),
+    Helper(Box<gpu::Worker>),
 }
 
 /// Where a session asks for its model to run.
@@ -142,7 +142,7 @@ pub(super) fn load_lease(
         "Model loading was cancelled"
     );
     let backend = match helper {
-        Some(worker) => Backend::Helper(worker),
+        Some(worker) => Backend::Helper(Box::new(worker)),
         None => in_process(&lease, placement.metal)?,
     };
     let model = LoadedModel {
