@@ -501,6 +501,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag || github.ref_name }}
+        shell: pwsh
         run: >-
           gh release upload $env:TAG
           "${{ steps.package.outputs.msix }}" --clobber
@@ -569,6 +570,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag || github.ref_name }}
+        shell: pwsh
         run: >-
           gh release upload $env:TAG
           "${{ steps.bundle.outputs.bundle }}" --clobber
