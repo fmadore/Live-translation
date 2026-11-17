@@ -141,7 +141,8 @@ token; its failures become the runner's usual ends (`PrepareError`), so a refuse
 quota or a rate limit report and retry as a refused handshake would. Its socket takes no setup
 message (`setup_json` returns `None`), and because DeepL ends a session after 30 seconds
 without audio, while system audio can deliver no chunks at all when nothing plays, the runner sends
-the silence its `keepalive` asks for after 10 quiet seconds. A DeepL Free key (`:fx`) is refused
+the silence its `keepalive` asks for after 10 quiet seconds (Mistral, which ends an idle session
+the same way with its code 3401, asks for the same). A DeepL Free key (`:fx`) is refused
 when saved and again at Start (`error.deeplPaidPlan`): the Voice API is not on the free host.
 See [`deepl-voice-api.md`](deepl-voice-api.md).
 

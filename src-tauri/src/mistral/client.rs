@@ -8,9 +8,10 @@ use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
+use crate::audio::AudioChunk;
 use crate::realtime::{
-    CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, Signal, TurnAccumulator,
-    bearer_request, ends_sentence, parse_or_log, provider_error,
+    CaptionUpdate, Keepalive, MessageControl, MessageOutcome, RealtimeProtocol, Signal,
+    TurnAccumulator, bearer_request, ends_sentence, parse_or_log, provider_error,
 };
 use crate::types::Origin;
 
@@ -19,6 +20,11 @@ pub const DEFAULT_MISTRAL_HOST: &str = "api.mistral.ai";
 /// A small context window keeps subtitles responsive while improving recognition quality.
 pub const DEFAULT_TARGET_STREAMING_DELAY_MS: u32 = 480;
 const FINALIZE_AFTER: Duration = Duration::from_millis(900);
+/// Mistral ends a session after 30 seconds without audio (code 3401, seen live on 17 November
+/// 2026 on the system source of a quiet meeting). Silence goes out well before that.
+const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
+/// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
+const SILENCE_BYTES: usize = 3_200;
 #[derive(Clone)]
 pub struct MistralConfig {
     pub api_key: String,
@@ -98,6 +104,15 @@ impl RealtimeProtocol for MistralClient {
         Ok(serde_json::to_string(&InputAudioAppend::pcm16(base64_pcm))?)
     }
 
+    fn keepalive(&self) -> Option<Keepalive> {
+        Some(Keepalive {
+            after: KEEPALIVE_AFTER,
+            silence: AudioChunk {
+                pcm_le: vec![0; SILENCE_BYTES],
+            },
+        })
+    }
+
     fn closing_json(&mut self) -> Result<Vec<String>> {
         Ok(vec![
             r#"{"type":"input_audio.flush"}"#.to_string(),
@@ -165,8 +180,9 @@ impl RealtimeProtocol for MistralClient {
             // object, `code` an integer it calls an internal code for debugging. The shared
             // `classify_json` reads it: HTTP's transient codes and names, and Mistral's own
             // backend failing to reach an internal service (seen live as code 3803 with a gRPC
-            // UNAVAILABLE message) or timing out on its recogniser (code 3804), reconnect; quota
-            // wording and anything unknown stay fatal.
+            // UNAVAILABLE message), timing out on its recogniser (code 3804) or losing it (code
+            // 3800, a dead engine), and a session it ended for want of audio (code 3401),
+            // reconnect; quota wording and anything unknown stay fatal.
             "error" => {
                 let Some(error) = event.error else {
                     return MessageOutcome::control(MessageControl::Fatal(
@@ -326,6 +342,16 @@ mod tests {
         assert_eq!(error.to_string(), "failed to build Mistral request");
     }
 
+    /// System audio delivers nothing while nothing plays, and Mistral ends a session after 30
+    /// seconds of that.
+    #[test]
+    fn a_quiet_source_is_kept_open_with_silence() {
+        let keepalive = config("").into_client().keepalive().unwrap();
+        assert!(keepalive.after < Duration::from_secs(30));
+        assert_eq!(keepalive.silence.pcm_le.len(), 3_200);
+        assert!(keepalive.silence.pcm_le.iter().all(|&byte| byte == 0));
+    }
+
     #[test]
     fn deltas_are_interim_activity() {
         let mut h = harness();
@@ -410,6 +436,24 @@ mod tests {
             // As Mistral sent it on 11 November 2026, during a live stream.
             (
                 r#"{"code":3804,"message":"Timeout waiting for response from streaming transcription."}"#,
+                true,
+            ),
+            // Both as Mistral sent them on 17 November 2026, with both sources in a meeting.
+            (
+                r#"{"code":3401,"message":"No new audio received for 30s: the client was idle."}"#,
+                true,
+            ),
+            (
+                concat!(
+                    r#"{"code":3800,"message":"gRPC streaming transcription error: <AioRpcError "#,
+                    r#"of RPC that terminated with:\n\tstatus = StatusCode.UNKNOWN\n\tdetails = "#,
+                    r#"\"Unexpected <class 'vllm.v1.engine.exceptions.EngineDeadError'>: EngineCore "#,
+                    r#"encountered an issue. See stack trace (above) for the root cause.\"\n\t"#,
+                    r#"debug_error_string = \"UNKNOWN:Error received from peer "#,
+                    r#"ipv4:10.235.232.9:50052 {grpc_message:\"Unexpected <class "#,
+                    r#"\\'vllm.v1.engine.exceptions.EngineDeadError\\'>: EngineCore encountered an "#,
+                    r#"issue. See stack trace (above) for the root cause.\", grpc_status:2}\"\n>"}"#
+                ),
                 true,
             ),
             (
