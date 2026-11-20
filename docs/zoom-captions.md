@@ -78,9 +78,9 @@ Only finished text is sent, so attendees never see a hypothesis that is later re
   change what they have sent, so a completed sentence is shared as soon as the next one begins,
   without waiting for the end of a long turn. A run of 160 characters with no sentence end is
   shared up to its last whole word.
-- **Gemini Transcribe Live** revises its hypothesis until it finalizes the line, so only final
-  lines are shared.
-- **Local Whisper** and the **built-in demo** produce final lines only.
+- **Gemini Transcribe Live** revises its hypothesis until it finalizes the line, and **DeepL**
+  replaces its tentative text with each update, so only their final lines are shared.
+- **Local Whisper** produces final lines only.
 
 Each Zoom caption is at most 120 characters, cut between sentences where possible and otherwise
 between words. Newlines become spaces.

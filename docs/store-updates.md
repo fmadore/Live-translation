@@ -11,7 +11,8 @@ packages are built.
 
 ## Release 1.15.0 handoff
 
-**Prepared; not yet tagged or submitted** (tag planned for 17 November 2026). The Store serves
+**Tagged and published on GitHub on 17 November 2026** (`v1.15.0` at `cd0289b`); **Store
+submission pending**, and no 1.15.0 Mac build uploaded. The Store serves
 **1.14.0.0**, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
 maintainer's ARM64 PC on 17 November 2026 (Version 1.14.0.0, SignatureKind Store); the
 submission and certification dates were not recorded ([1.14.0's handoff](#release-1140-handoff)).
@@ -41,13 +42,26 @@ Since `v1.14.0`:
 - Dependencies: vite (#226), jsdom 31.0.1 (#215), typescript-eslint 8.72.2 and `rust-version`
   1.100 (#225), the Rust toolchain 1.100.0, and prettier 3.10.1 in the release PR (superseding
   Dependabot's 3.10.0 in #228).
+- [#229](https://github.com/fmadore/Live-translation/pull/229): the release PR (version bump,
+  Store copy and docs).
+- [#230](https://github.com/fmadore/Live-translation/pull/230): Mistral keeps a quiet source
+  open with 100 ms of silence after 10 seconds without audio (Mistral ends a session after
+  30 idle seconds, code 3401), and reconnects when its recogniser dies (code 3800,
+  `EngineDeadError`) or a 3401 still arrives
+  ([Mistral notes](mistral-realtime-api.md#errors-and-the-end-of-a-session)).
+- [#231](https://github.com/fmadore/Live-translation/pull/231): History selects several saved
+  sessions to delete or save to a folder at once, with one counted confirmation; a batch export
+  never overwrites a file and reports each item that failed.
 
-**Changed under the surface:** six new commands, five for the update check (`update_status`,
-`check_for_update`, `set_update_checks`, `skip_update_version`, `open_release_page`) and
-`set_global_shortcuts`, each in `lib.rs`, `command_names.rs` and the operator capability
+**Changed under the surface:** eight new commands, five for the update check (`update_status`,
+`check_for_update`, `set_update_checks`, `skip_update_version`, `open_release_page`),
+`set_global_shortcuts`, and `delete_histories` and `export_transcripts` for History's
+selection (#231), each in `lib.rs`, `command_names.rs` and the operator capability
 (`src-tauri/capabilities/operator.json`); the overlay gains none, and no window is granted the
 global-shortcut plugin's own commands (a test in `command_names.rs` says so). Markers, Find,
-the overlay notice and the spending guard need no new command. The CSP keeps
+the overlay notice and the spending guard need no new command. No new error id: the two batch
+commands report each failed item as `{ item, error }` (`ItemFailure` in `errors.rs`), a batch
+export's failures with `error.transcriptWrite`. The CSP keeps
 `connect-src 'self'`: the update check is made by the core, to `api.github.com` only, with a
 User-Agent of the app's name and version. One new Rust dependency, `tauri-plugin-global-shortcut`
 (with `global-hotkey`). The MSIX template, `bundle.config.json` and the package's capabilities
@@ -75,15 +89,17 @@ are unchanged, now pinned by `src/lib/msixIdentity.test.ts`. The
 - [ ] The French and German sentences new in 1.15.0 (What's new, the descriptions' new
   sentences, three feature lines, the certification notes) reviewed by the maintainer; the
   German listing still awaits a native speaker's review.
-- [x] Partner Center limits: What's new EN 1,118, FR 1,427, DE 1,306 of 1,500 characters; feature
+- [x] Partner Center limits: What's new EN 1,237, FR 1,494, DE 1,451 of 1,500 characters (recounted 20 November 2026,
+  with #231's sentence); feature
   lines 4, 12 and 14 at most 154 of 200; the descriptions at most 6,965 of 10,000; the
   certification notes' first paragraph is 1,646 characters, with no limit recorded.
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.15.0` (annotated: "Live Translation & Subtitles v1.15.0") on the merge of the
-  release PR and push it; the workflow publishes the release with `docs/release-1.15.0.md` once
-  the bundle and the disk image are attached.
+- [x] Tag `v1.15.0` (annotated: "Live Translation & Subtitles v1.15.0") pushed on 17 November
+  2026 at `cd0289b`, the merge of #231, which followed the release PR (#229) and #230; the
+  workflow published the release with `docs/release-1.15.0.md`, the bundle and the disk image
+  attached.
 - [ ] Verify the bundle at **1.15.0.0** with the [1.8.0 checks](#release-180-handoff), plus
   `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
   and stapled (`spctl -a -t open --context context:primary-signature -v`, `xcrun stapler validate`).
@@ -500,7 +516,7 @@ over unchanged.
    tagged commit**: the workflow publishes it from there, and refuses a plain tag without it.
 2. **Tag and push after manual testing**: `git tag vX.Y.Z` then `git push origin vX.Y.Z`,
    with the tested version; never reuse a published tag. The
-   [`Release installers`](../.github/workflows/release.yml) workflow first checks that the tag
+   [`Release installers`](https://github.com/fmadore/Live-translation/blob/main/.github/workflows/release.yml) workflow first checks that the tag
    is `v` followed by the version in all four manifests, then that CI passed on the tagged
    commit, waiting up to an hour for a run still going, before anything is built. It then
    creates the GitHub release as a **draft** and attaches the NSIS and MSI installers, both
@@ -515,7 +531,7 @@ over unchanged.
    (`vX.Y.Z-rc.1`) builds the same assets into a draft prerelease, which is never published
    automatically.
 4. **Sideload-test before submitting.** Install the bare per-architecture `.msix` with
-   [`scripts/install-local-msix.ps1`](../scripts/install-local-msix.ps1), *not* the bundle —
+   [`scripts/install-local-msix.ps1`](https://github.com/fmadore/Live-translation/blob/main/scripts/install-local-msix.ps1), *not* the bundle —
    signing a bundle does not sign the packages inside it. Walk the manual release checklist in
    [`accessibility.md`](accessibility.md#release-checklist-manual-on-windows) against this
    install, because package identity changes how Windows treats the window.

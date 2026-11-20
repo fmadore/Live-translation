@@ -19,10 +19,12 @@ The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini
 whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
 and a free Mac App Store version, 1.13.1, is still in Apple's review ([submission notes](docs/mac-app-store.md)).
 
-**1.15.0** is prepared, not yet tagged or submitted: for the person running the captions, a
-spending guard for cloud engines, markers and Find in the transcript, a notice on the overlay for
-breaks and opt-in system-wide Pause and overlay keys; a new-version notice for copies installed
-from GitHub; and the fixes of the [16 November review](docs/app-review-2026-11-16.md). See its
+**[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** was tagged and
+published on GitHub on 17 November 2026; its Store submission is still to be made. For the
+person running the captions: a spending guard for cloud engines, markers and Find in the
+transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys, and
+several saved sessions deleted or saved at once in History; a new-version notice for copies
+installed from GitHub; and the fixes of the [16 November review](docs/app-review-2026-11-16.md). See its
 [release notes](docs/release-1.15.0.md) and
 [Store handoff](docs/store-updates.md#release-1150-handoff).
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)

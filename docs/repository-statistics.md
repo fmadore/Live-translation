@@ -2,7 +2,7 @@
 
 GitHub shows a release's downloads only as a running total, and the visits to a repository
 (Insights → Traffic) only for the last 14 days. The daily
-[Repository statistics](../.github/workflows/stats.yml) workflow writes both down, so their
+[Repository statistics](https://github.com/fmadore/Live-translation/blob/main/.github/workflows/stats.yml) workflow writes both down, so their
 history is kept from the first run onwards. Nothing older can be recovered.
 
 ## Where to read them

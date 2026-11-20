@@ -28,8 +28,8 @@ in the certification notes
 ([walkthrough](partner-center-walkthrough.md#product-declarations-the-support-link)); that
 declaration stays ticked.
 
-**Next submission: 1.15.0 / MSIX 1.15.0.0**, prepared, not yet tagged (planned for
-17 November 2026), replacing 1.14.0. It adds tools for the operator (a spending guard for cloud
+**Next submission: 1.15.0 / MSIX 1.15.0.0**, tagged and published on GitHub on 17 November
+2026 and not yet submitted, replacing 1.14.0. It adds tools for the operator (a spending guard for cloud
 engines, markers and Find in the transcript, a notice on the overlay for breaks, and opt-in
 system-wide Pause and overlay keys through `RegisterHotKey`, which needs no capability) and the
 fixes of the [16 November app review](app-review-2026-11-16.md). Its new-version notice is for

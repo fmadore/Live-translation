@@ -7,11 +7,47 @@ description: >-
 runs:
   using: composite
   steps:
+    # MSVC's standard library refuses a Clang older than the one its Visual Studio ships
+    # (STL1000). A runner image can update Visual Studio before its standalone LLVM: the x64
+    # image of 16 November 2026 had MSVC 14.52, which wants Clang 22, beside LLVM 20.1.8. So
+    # the newer of the two clang-cl wins: the standalone LLVM, or the one inside Visual Studio,
+    # which always matches its own library. Its folder goes first on PATH and serves bindgen.
     - name: Configure native Whisper compiler
       shell: pwsh
       run: |
+        function Get-ClangMajor([string]$dir) {
+          $exe = Join-Path $dir 'clang-cl.exe'
+          if (-not (Test-Path $exe)) { return 0 }
+          $first = & $exe --version | Select-Object -First 1
+          if ($first -match 'version (\d+)') { return [int]$Matches[1] }
+          return 0
+        }
+
+        $standalone = 'C:\Program Files\LLVM\bin'
+        $bundled = $null
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+        if (Test-Path $vswhere) {
+          $vs = & $vswhere -latest -products * -property installationPath | Select-Object -First 1
+          $arch = if ($env:RUNNER_ARCH -eq 'ARM64') { 'ARM64' } else { 'x64' }
+          if ($vs) { $bundled = Join-Path $vs "VC\Tools\Llvm\$arch\bin" }
+        }
+
+        $standaloneMajor = Get-ClangMajor $standalone
+        $bundledMajor = if ($bundled) { Get-ClangMajor $bundled } else { 0 }
+        $bin = if ($bundledMajor -gt $standaloneMajor) { $bundled } else { $standalone }
+        if ([Math]::Max($standaloneMajor, $bundledMajor) -eq 0) { throw 'No clang-cl was found.' }
+        Write-Host "clang-cl: standalone LLVM $standaloneMajor, Visual Studio $bundledMajor; using $bin"
+
+        $bin >> $env:GITHUB_PATH
         "CC=clang-cl" >> $env:GITHUB_ENV
         "CXX=clang-cl" >> $env:GITHUB_ENV
         "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
         "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
-        "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $env:GITHUB_ENV
+        "LIBCLANG_PATH=$bin" >> $env:GITHUB_ENV
+
+        # CMake reads no variable of this name: it is here for Swatinem/rust-cache, which runs
+        # after this action and puts every CMAKE* variable in its key. A cached target folder
+        # holds whisper.cpp's CMake cache; configured again with another compiler, CMake wipes
+        # that cache, forgets the options whisper-rs-sys passed and fails on its tests folder.
+        $version = & (Join-Path $bin 'clang-cl.exe') --version | Select-Object -First 1
+        "CMAKE_WHISPER_COMPILER=$bin; $version" >> $env:GITHUB_ENV

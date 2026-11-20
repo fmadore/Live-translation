@@ -5,18 +5,21 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.14.0 in the Store, 1.15.0 prepared
+## Current status — 1.14.0 in the Store, 1.15.0 tagged
 
-1.15.0 is prepared, not yet tagged (planned for 17 November 2026;
-[release notes](docs/release-1.15.0.md), [handoff](docs/store-updates.md#release-1150-handoff)),
-with the work of the [16 November app review](docs/app-review-2026-11-16.md)
+[**1.15.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0) was tagged and
+published on GitHub on 17 November 2026; its Store submission is pending and no 1.15 Mac build
+has been uploaded ([release notes](docs/release-1.15.0.md),
+[handoff](docs/store-updates.md#release-1150-handoff)). It ships the work of the [16 November app review](docs/app-review-2026-11-16.md)
 ([#227](https://github.com/fmadore/Live-translation/pull/227)): for the person running the
 captions, a spending guard for cloud engines, markers and Find in the transcript, a notice on the
 overlay for breaks and opt-in system-wide Pause and overlay keys; a new-version notice for copies
-installed from GitHub ([#217](https://github.com/fmadore/Live-translation/issues/217)); and the
+installed from GitHub ([#217](https://github.com/fmadore/Live-translation/issues/217)); Mistral keeping a quiet source open
+([#230](https://github.com/fmadore/Live-translation/pull/230)); several saved sessions deleted or saved at once ([#231](https://github.com/fmadore/Live-translation/pull/231)); and the
 review's fixes (four overlay rows that each show a line, DeepL keeping concluded text, the echo
 filter by session time, the pre-flight's stream count). None of it had run on Windows hardware or
-a Mac when it was merged; the review lists what to check by hand.
+a Mac when it was merged; the review lists what to check by hand. The
+[20 November audit](#the-20-november-audit) found defects in this code, filed as issues.
 
 The Store serves [**1.14.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)
 (13 November 2026, MSIX 1.14.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
@@ -117,7 +120,7 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 - **Audio** ([#27](https://github.com/fmadore/Live-translation/issues/27),
   [#28](https://github.com/fmadore/Live-translation/issues/28)): the application isolation
   matrix and the [hardware matrix](docs/audio-device-testing.md) — Teams/Zoom, browser child
-  processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.26
+  processes, device changes, sleep/wake and mixed-DPI displays. System capture on wasapi 0.27
   has been tested on ARM64 hardware but not on x64, and a 24-bit microphone has not been
   tried.
 - **Export and responsive captions** ([#26](https://github.com/fmadore/Live-translation/issues/26),
@@ -140,9 +143,40 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Next
 
+### The 20 November audit
+
+A whole-repository audit of v1.15.0 (`cd0289b`) was checked finding by finding against the code
+on 20 November 2026. No structural change is needed; what it found is filed in the milestone
+[1.16 — Audit fixes](https://github.com/fmadore/Live-translation/milestone/4), each issue with
+its files, the fix and its acceptance criteria. Suggested order:
+
+1. **Before the next Mac upload and Store submission:** [#232](https://github.com/fmadore/Live-translation/issues/232) (the System Audio Recording
+   hint returning after a pause in a call; to try on the Mac), [#235](https://github.com/fmadore/Live-translation/issues/235) (a failed History delete
+   blocks the session; the batch confirmation survives a filter change) and [#242](https://github.com/fmadore/Live-translation/issues/242) (interface
+   and German and French strings).
+2. **Captions and sessions:** [#233](https://github.com/fmadore/Live-translation/issues/233) (echo filter and source-only interims), [#234](https://github.com/fmadore/Live-translation/issues/234) (DeepL
+   and Mistral turn closing), [#243](https://github.com/fmadore/Live-translation/issues/243) (one punctuation table for turn ends and Zoom), [#237](https://github.com/fmadore/Live-translation/issues/237)
+   (Whisper overlap and loops in Chinese and Japanese), [#238](https://github.com/fmadore/Live-translation/issues/238) (microphone unplugged
+   mid-session; Test audio and driver panics).
+3. **Overlay and setup:** [#236](https://github.com/fmadore/Live-translation/issues/236) (clamp `undo_overlay_move`; a strip left off an unplugged
+   display), [#241](https://github.com/fmadore/Live-translation/issues/241) (reduced motion and the overlay's fit), [#240](https://github.com/fmadore/Live-translation/issues/240) (stale Whisper model
+   list), [#239](https://github.com/fmadore/Live-translation/issues/239) (Vulkan helper crash report).
+4. **Tests, release workflow and cleanups:** [#244](https://github.com/fmadore/Live-translation/issues/244), [#245](https://github.com/fmadore/Live-translation/issues/245) (check all six artefacts before
+   publishing) and [#246](https://github.com/fmadore/Live-translation/issues/246).
+
+Where the audit was wrong or overstated, the issue says so: the Vulkan helper is killed on
+purpose and stays so ([#239](https://github.com/fmadore/Live-translation/issues/239)); the placement check is generous by design ([#236](https://github.com/fmadore/Live-translation/issues/236)); the
+allocation, cache and memory savings are unmeasured ([#243](https://github.com/fmadore/Live-translation/issues/243), [#245](https://github.com/fmadore/Live-translation/issues/245), [#246](https://github.com/fmadore/Live-translation/issues/246)).
+
+Features and research it raised, outside the milestone: [#248](https://github.com/fmadore/Live-translation/issues/248) (fallback engine), [#247](https://github.com/fmadore/Live-translation/issues/247)
+(one DeepL session for two caption languages), [#249](https://github.com/fmadore/Live-translation/issues/249) (provider settings), [#250](https://github.com/fmadore/Live-translation/issues/250) (Soniox),
+[#251](https://github.com/fmadore/Live-translation/issues/251) (OpenAI subtitles) and [#252](https://github.com/fmadore/Live-translation/issues/252) (a public home page on GitHub Pages).
+
+### Earlier
+
 - **Deferred from the [16 November app review](docs/app-review-2026-11-16.md):** a one-click
   fallback engine when a source ends on a key or quota error (it restarts a source inside a
-  running session), and saving the transcript to a chosen folder at Stop (the Mac App Store
+  running session; [#248](https://github.com/fmadore/Live-translation/issues/248)), and saving the transcript to a chosen folder at Stop (the Mac App Store
   sandbox needs a security-scoped bookmark for a folder kept across launches).
 
 [#187](https://github.com/fmadore/Live-translation/issues/187) was triaged on 26 October 2026:
@@ -178,7 +212,7 @@ glossaries, live corrections and offline text translation are not planned.
   Still to settle: the rate (about $1.85 an hour from third-party sources, not
   from DeepL's own page), the target codes `en-US`, `zh-Hans` and `nb`, and the real latency and
   line breaks on French speech. Later: one DeepL session can carry up to five caption languages,
-  so sharing it between the session's two caption languages would halve the cost.
+  so sharing it between the session's two caption languages would halve the cost ([#247](https://github.com/fmadore/Live-translation/issues/247)).
 
 - **The [10 November app review](docs/app-review-2026-11-10.md):** its fixes, the release
   workflow's checks among them, shipped in 1.13.0
@@ -209,13 +243,15 @@ glossaries, live corrections and offline text translation are not planned.
 ## Unscheduled and research
 
 - [#32 — Windows AI speech-recognition prototype](https://github.com/fmadore/Live-translation/issues/32)
-  stays unmilestoned and is blocked on evidence: it crashed natively on the target ARM64
-  Surface during the 1.0.x certification attempts, must survive a clean ARM64 and a clean x64
-  machine before it is considered, and cannot enter a Store build while the API is experimental.
+  was closed as not planned on 20 November 2026: local Whisper fills the role on every PC, the
+  API is still experimental and so barred from Store builds, and it crashed natively on the
+  target ARM64 Surface during the 1.0.x certification attempts. To reopen if Microsoft ships it
+  in a stable, Store-eligible channel.
 - [#12 — automatic FR ⇄ EN direction](https://github.com/fmadore/Live-translation/issues/12)
   needs a measured provider-switching design before it becomes a release commitment. Two
   caption languages already serve the bilingual room: both directions run side by side, at
-  twice the cost, with no switching to get wrong.
+  twice the cost, with no switching to get wrong. Leads for one stream: Soniox's two-way mode
+  ([#250](https://github.com/fmadore/Live-translation/issues/250)) and one DeepL session for both languages ([#247](https://github.com/fmadore/Live-translation/issues/247)).
 - Multi-monitor overlay presets: named placements to switch between in a running session, such
   as "bottom of the projector" and "top of the laptop". The overlay already reopens where it was
   last placed on each display arrangement, clamped to a connected display, and a meeting
@@ -228,7 +264,7 @@ glossaries, live corrections and offline text translation are not planned.
   ([6 October review](docs/app-review-2026-10-06.md#5-dependencies-and-provider-drift)).
 - The other feature candidates of the
   [6 October review](docs/app-review-2026-10-06.md#6-feature-candidates), beyond #12 (its F3):
-  an OBS mode (F4), only if livestreaming needs it; small provider adoptions (F6); and an opt-in
+  an OBS mode (F4), only if livestreaming needs it; small provider adoptions (F6; [#249](https://github.com/fmadore/Live-translation/issues/249)); and an opt-in
   transcript polish after the session (F7). Per-origin labels (F5) already show on the overlay
   whenever both sources are on screen; captions on attendees' phones over the LAN (F4) and local
   text translation (F8) were set aside in the
@@ -239,17 +275,28 @@ glossaries, live corrections and offline text translation are not planned.
   offline, which Whisper's ten-second windows cannot. Lessons from their Windows packaging:
   rename the bundled ONNX Runtime and rewrite its importers, because Windows 11 ships an older
   `onnxruntime.dll` in System32 that some loader configurations pick first; and use sherpa's
-  `-no-tts` archives, whose TTS builds link espeak-ng (GPL-3.0). Research only.
+  `-no-tts` archives, whose TTS builds link espeak-ng (GPL-3.0). whisper.cpp 1.9.0 added
+  Parakeet support upstream, which would avoid a second inference runtime, but whisper-rs 0.16
+  still vendors 1.8.3 and has no binding for it (checked 20 November 2026). Research only.
+- More engines ([#250](https://github.com/fmadore/Live-translation/issues/250), [#251](https://github.com/fmadore/Live-translation/issues/251)): Soniox returns transcript and translation on one stream
+  at a fraction of the current rates, one target language per session; OpenAI's
+  `gpt-live-transcribe` ($0.017 a minute, with keyword hints and several language hints) would
+  give OpenAI-only users subtitles that take the names-and-terms list. Both need their
+  documentation read, privacy terms and a billable trial before a decision.
+- A public home page ([#252](https://github.com/fmadore/Live-translation/issues/252)): GitHub Pages already serves `docs/`, whose home is the
+  developers' index; a small page with the Store screenshots and the user guides would give the
+  Stores a support URL.
 - A billable provider smoke workflow: an explicitly manual run of live credentials against a
   golden audio fixture. It is intentionally not automatic because it costs money and CI secrets
   are not available to forked pull requests.
 
 ## Shipped
 
-- **1.15.0** (prepared, not yet tagged; planned for 17 November 2026): a spending guard for
+- **1.15.0** (17 November 2026; published on GitHub, Store submission pending): a spending guard for
   cloud engines, markers and Find in the transcript, a notice on the overlay for breaks, opt-in
   system-wide Pause and overlay keys, a new-version notice for copies installed from GitHub
-  ([#217](https://github.com/fmadore/Live-translation/issues/217)), and the fixes of the
+  ([#217](https://github.com/fmadore/Live-translation/issues/217)), Mistral keeping a quiet source open
+  ([#230](https://github.com/fmadore/Live-translation/pull/230)), History multi-select ([#231](https://github.com/fmadore/Live-translation/pull/231)), and the fixes of the
   [16 November app review](docs/app-review-2026-11-16.md)
   ([#227](https://github.com/fmadore/Live-translation/pull/227)).
   [Release body](docs/release-1.15.0.md).

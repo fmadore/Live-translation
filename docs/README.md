@@ -1,8 +1,11 @@
 # Documentation
 
-These guides describe `main`, prepared as **1.15.0**: a spending guard for cloud engines,
-markers and Find in the transcript, a notice on the overlay for breaks, opt-in system-wide Pause
-and overlay keys, a new-version notice for copies installed from GitHub, and the fixes of the
+These guides describe `main`, released as
+**[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** (tagged and
+published on GitHub on 17 November 2026; the Store submission is still to be made): a spending
+guard for cloud engines, markers and Find in the transcript, a notice on the overlay for breaks,
+opt-in system-wide Pause and overlay keys, several History sessions deleted or saved at once, a
+new-version notice for copies installed from GitHub, and the fixes of the
 [16 November app review](app-review-2026-11-16.md), which also lists what is still to check by
 hand. The version in the Store is
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November
@@ -39,11 +42,13 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
   [Mac App Store submission](mac-app-store.md), with its
   [decision record](decisions/2026-11-05-mac-app-store.md).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md), [DeepL](deepl-voice-api.md).
-- [Security policy](../SECURITY.md), [roadmap](../ROADMAP.md) and [release history](release-notes.md).
+- [Security policy](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md),
+  [roadmap](https://github.com/fmadore/Live-translation/blob/main/ROADMAP.md) and
+  [release history](release-notes.md).
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.15.0 (prepared, not yet tagged)
+## Release 1.15.0 (tagged 17 November 2026, Store submission pending)
 
 - [Release notes](release-1.15.0.md): a spending guard for cloud engines, markers and Find in
   the transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys,

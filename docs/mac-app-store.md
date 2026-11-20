@@ -11,8 +11,8 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 **1.13.1 is still in App Review** (the maintainer, 17 November 2026; it was first reported in
 review on 13 November, and the upload and submission dates were not recorded). It carries the
 fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026)).
-1.14.0 (tagged 13 November, in the Microsoft Store) was not uploaded. **1.15.0** (prepared, not
-yet tagged) is the next Mac build to upload once 1.13.1's review is settled: it adds 1.14.0's
+1.14.0 (tagged 13 November, in the Microsoft Store) was not uploaded. **1.15.0** (tagged 17
+November 2026, not uploaded) is the next Mac build to upload once 1.13.1's review is settled: it adds 1.14.0's
 DeepL engine and fixes, the operator features of the
 [16 November review](app-review-2026-11-16.md) (spending guard, markers, Find, the overlay
 notice, the [system-wide keys](#what-app-review-may-question)) and its fixes, none of them tried

@@ -13,7 +13,7 @@ rather than opening a public issue. Expect an acknowledgement within a week.
 
 ## How this app handles credentials
 
-- Provider API keys (Gemini, OpenAI, Mistral) are stored in the OS credential store —
+- Provider API keys (Gemini, OpenAI, DeepL, Mistral) are stored in the OS credential store —
   Windows Credential Manager or the macOS Keychain — and are read only by the Rust core. They are never written to
   frontend storage, application settings, transcript files or logs.
 - The webview runs under a restrictive CSP (`connect-src 'self'`); all provider WebSocket

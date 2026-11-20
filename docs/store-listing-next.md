@@ -1,6 +1,7 @@
 # Next Store submission — 1.15.0
 
-**1.15.0 prepared, not yet tagged** (planned for 17 November 2026). The Store serves
+**1.15.0 tagged and published on GitHub on 17 November 2026; Store submission pending.** The
+Store serves
 **1.14.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
 PC on 17 November 2026 (SignatureKind Store); the submission and certification dates were not
 recorded. The next submission is **1.15.0.0**, replacing it: one unsigned bundle with native x64

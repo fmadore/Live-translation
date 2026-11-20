@@ -228,9 +228,13 @@ fails with a publisher mismatch.
    $password = Read-Host -AsSecureString "Password for the dev PFX"
    Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
      -FilePath .\live-translation-dev.pfx -Password $password
+   Export-Certificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" `
+     -FilePath .\live-translation-dev.cer
    ```
 
-   `*.pfx` is git-ignored, so a checkout is a safe place to keep it while you work.
+   The `.cer` holds the public certificate only; `scripts/install-local-msix.ps1` needs both
+   files at the repository root. `*.pfx` and `*.cer` are git-ignored, so a checkout is a safe
+   place to keep them while you work.
 
 3. Trust it, in an **elevated** PowerShell:
 

@@ -1,7 +1,7 @@
 # Partner Center submission walkthrough — 1.15.0
 
-Target: **Live Translation & Subtitles 1.15.0**, Product ID `9PFB8LR3RR9X`. **Prepared, not yet
-tagged** (planned for 17 November 2026).
+Target: **Live Translation & Subtitles 1.15.0**, Product ID `9PFB8LR3RR9X`. **Tagged and published on
+GitHub on 17 November 2026; not yet submitted.**
 The Store serves 1.14.0 (MSIX 1.14.0.0), read from the installed package with `Get-AppxPackage`
 on 17 November 2026; 1.15.0.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
@@ -157,7 +157,7 @@ that listing if it is not already present. For each language, paste:
    markers) lines in place; the list stays at twenty, and the twentieth, on Captions in Zoom,
    stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.15.0 block, under 1,500 characters (EN 1,118, FR 1,427, DE 1,306). It
+4. **What's new**: the 1.15.0 block, under 1,500 characters (EN 1,237, FR 1,494, DE 1,451). It
    covers the changes since 1.14.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters.
    Unchanged since 1.13.1.
