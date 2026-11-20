@@ -44,3 +44,10 @@ runs:
         "CXXFLAGS=/EHsc" >> $env:GITHUB_ENV
         "CMAKE_GENERATOR=Ninja" >> $env:GITHUB_ENV
         "LIBCLANG_PATH=$bin" >> $env:GITHUB_ENV
+
+        # CMake reads no variable of this name: it is here for Swatinem/rust-cache, which runs
+        # after this action and puts every CMAKE* variable in its key. A cached target folder
+        # holds whisper.cpp's CMake cache; configured again with another compiler, CMake wipes
+        # that cache, forgets the options whisper-rs-sys passed and fails on its tests folder.
+        $version = & (Join-Path $bin 'clang-cl.exe') --version | Select-Object -First 1
+        "CMAKE_WHISPER_COMPILER=$bin; $version" >> $env:GITHUB_ENV
