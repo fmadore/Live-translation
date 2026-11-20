@@ -1,7 +1,7 @@
 # Partner Center listing text — 1.15.0
 
-Written for **1.15.0 / MSIX 1.15.0.0**, prepared and not yet tagged (planned for 17 November
-2026). The Store serves 1.14.0 (MSIX 1.14.0.0), read from the installed package on
+Written for **1.15.0 / MSIX 1.15.0.0**, tagged and published on GitHub on 17 November 2026,
+with the Store submission still pending. The Store serves 1.14.0 (MSIX 1.14.0.0), read from the installed package on
 17 November 2026 ([handoff](store-updates.md#release-1150-handoff)). What's new covers the
 changes since 1.14.0; everything earlier releases brought to the listing (DeepL, the
 offline-subtitles paragraph, the Zoom sentences, the trademark line, the twentieth feature line,
@@ -72,7 +72,8 @@ Zoom is a trademark of Zoom Communications, Inc. Live Translation & Subtitles is
 ```text
 For the person running the captions: an optional spending guard for cloud engines (Settings › App) can pause a session when nothing has been captioned for a while, and tells you once when the estimated cost or the session's length passes a limit you choose. Add marker (Ctrl+Shift+M) puts a talk's start, a speaker's name or a section break into the transcript and its exports, and Ctrl+F finds words in the live transcript. During a break, a notice such as “Back soon” can replace the captions on the overlay. Optional system-wide keys, Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O, pause captions and show or hide the overlay while your slides or meeting app are in front. In Transcript history, you can now select several saved sessions and save them all to a folder or delete them at once.
 
-Fixes: with both sources and two caption languages, every overlay row now shows a line, and the app says when captions are drawn smaller than chosen. DeepL (experimental) no longer drops finished sentences. With both sources and Whisper, the room microphone no longer captions the call a second time when Whisper falls behind. The pre-flight counts both sources in the cost estimate, and on a new install it downloads the Whisper model in one click.```
+Fixes: with both sources and two caption languages, every overlay row now shows a line, and the app says when captions are drawn smaller than chosen. DeepL (experimental) no longer drops finished sentences. With both sources and Whisper, the room microphone no longer captions the call a second time when Whisper falls behind. The pre-flight counts both sources in the cost estimate, and on a new install it downloads the Whisper model in one click.
+```
 
 ### Features — one feature per line
 
@@ -148,7 +149,8 @@ Zoom est une marque de Zoom Communications, Inc. Live Translation & Subtitles n'
 ```text
 Pour la personne qui gère les sous-titres : un garde-fou de dépenses facultatif pour les moteurs cloud (Paramètres › Application) peut mettre la session en pause quand rien n'a été sous-titré depuis un moment, et vous prévient une fois quand le coût estimé ou la durée de la session dépasse la limite choisie. Ajouter un repère (Ctrl+Maj+M) inscrit le début d'une intervention, le nom d'un intervenant ou un saut de section dans la transcription et ses exports, et Ctrl+F recherche dans la transcription en direct. Pendant une pause, une annonce comme « Reprise dans un instant » peut remplacer les sous-titres. Des raccourcis système facultatifs, Ctrl+Alt+Maj+P et Ctrl+Alt+Maj+O, mettent les sous-titres en pause et affichent ou masquent la surimpression quand vos diapositives ou votre application de réunion sont au premier plan. Dans l'historique, plusieurs sessions peuvent être enregistrées dans un dossier ou supprimées d'un coup.
 
-Corrections : avec les deux sources et deux langues de sous-titres, chaque rangée de la surimpression montre désormais une ligne, et l'application signale quand les sous-titres sont plus petits que la taille choisie. DeepL (expérimental) ne perd plus de phrases terminées. Avec les deux sources et Whisper, le microphone de salle ne sous-titre plus l'appel une seconde fois quand Whisper prend du retard. La vérification avant démarrage compte les deux sources dans le coût estimé et télécharge le modèle Whisper en un clic sur une nouvelle installation.```
+Corrections : avec les deux sources et deux langues de sous-titres, chaque rangée de la surimpression montre désormais une ligne, et l'application signale quand les sous-titres sont plus petits que la taille choisie. DeepL (expérimental) ne perd plus de phrases terminées. Avec les deux sources et Whisper, le microphone de salle ne sous-titre plus l'appel une seconde fois quand Whisper prend du retard. La vérification avant démarrage compte les deux sources dans le coût estimé et télécharge le modèle Whisper en un clic sur une nouvelle installation.
+```
 
 ### Fonctionnalités — une fonctionnalité par ligne
 
@@ -224,7 +226,8 @@ Zoom ist eine Marke von Zoom Communications, Inc. Live Translation & Subtitles i
 ```text
 Für alle, die die Untertitel betreuen: Eine optionale Kostenbremse für Cloud-Engines (Einstellungen › App) pausiert die Sitzung, wenn eine Weile nichts untertitelt wurde, und meldet einmal, wenn die geschätzten Kosten oder die Sitzungsdauer ein gewähltes Limit übersteigen. Marke setzen (Strg+Umschalt+M) trägt den Beginn eines Vortrags, den Namen einer sprechenden Person oder einen Abschnittswechsel in das Transkript und seine Exporte ein, und Strg+F durchsucht das laufende Transkript. In einer Pause kann ein Hinweis wie „Gleich geht es weiter“ die Untertitel im Overlay ersetzen. Optionale systemweite Tastenkombinationen, Strg+Alt+Umschalt+P und Strg+Alt+Umschalt+O, pausieren die Untertitel und blenden das Overlay ein oder aus, während Folien oder eine Meeting-App im Vordergrund sind. Im Transkriptverlauf lassen sich jetzt mehrere gespeicherte Sitzungen auswählen und gemeinsam in einem Ordner speichern oder auf einmal löschen.
 
-Korrekturen: Mit beiden Quellen und zwei Untertitelsprachen zeigt jeder Bereich des Overlays jetzt eine Zeile, und die App meldet, wenn Untertitel kleiner als gewählt dargestellt werden. DeepL (experimentell) verliert keine abgeschlossenen Sätze mehr. Mit beiden Quellen und Whisper untertitelt das Raummikrofon den Anruf nicht mehr ein zweites Mal, wenn Whisper in Verzug gerät. Die Startprüfung zählt beide Quellen in der Kostenschätzung und lädt bei einer Neuinstallation das Whisper-Modell mit einem Klick.```
+Korrekturen: Mit beiden Quellen und zwei Untertitelsprachen zeigt jeder Bereich des Overlays jetzt eine Zeile, und die App meldet, wenn Untertitel kleiner als gewählt dargestellt werden. DeepL (experimentell) verliert keine abgeschlossenen Sätze mehr. Mit beiden Quellen und Whisper untertitelt das Raummikrofon den Anruf nicht mehr ein zweites Mal, wenn Whisper in Verzug gerät. Die Startprüfung zählt beide Quellen in der Kostenschätzung und lädt bei einer Neuinstallation das Whisper-Modell mit einem Klick.
+```
 
 ### Funktionen — eine Funktion pro Zeile
 

@@ -4,7 +4,7 @@ Device handling arrived in 1.2.1/1.2.2. The hardware matrix below remains **pend
 1.12.0 packages; automated tests and browser previews do not replace it. Repeat key cases with
 local Whisper as well as a cloud engine, including Pause and Stop with pending audio.
 
-1.7.0 makes three of these cases more pressing. System capture runs on wasapi 0.26, and its
+1.7.0 makes three of these cases more pressing. System capture runs on wasapi 0.27, and its
 loopback runner was split into named steps with a shared COM guard; the maintainer tested system
 audio on ARM64 on 20 October 2026, and x64 is still to do. Microphones that deliver 24-bit
 samples, previously refused, now go through one generic stream builder. And Stop gives up on a

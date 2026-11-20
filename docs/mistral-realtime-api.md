@@ -167,14 +167,33 @@ is published, so the classification is deliberately narrow: codes in HTTP's tran
 `rate_limited`, `timeout` or `session_expired` inside an object `message`, reconnect with
 backoff; a 429 whose message mentions a quota, billing, payment or credit does not. A failure
 inside Mistral's own backend also reconnects, recognised by its wording rather than its code: a
-gRPC `UNAVAILABLE` or `DEADLINE_EXCEEDED`, `grpc_status:14`, "gRPC connection error" or
-"connection reset by peer" (a bare "unavailable", which could describe a model the key cannot
-use, does not count). Everything else — including any code not listed — stops the source with
-Mistral's message, as every error did before 1.7.0.
+gRPC `UNAVAILABLE` or `DEADLINE_EXCEEDED`, `grpc_status:14`, "gRPC connection error",
+"connection reset by peer", "timeout waiting for response", "gRPC streaming transcription
+error", `EngineDeadError` or "no new audio received" (a bare "unavailable", which could describe
+a model the key cannot use, or a bare "timeout", which could be a limit the request broke, does
+not count). Everything else — including any code not listed — stops the source with Mistral's
+message, as every error did before 1.7.0.
 
-One real payload has been seen so far, on 7 October 2026 in 1.6.0, mid-session: code 3803 with
-a gRPC `UNAVAILABLE` from an internal Mistral service. It ended the source then; since
-[#122](https://github.com/fmadore/Live-translation/pull/122) it reconnects, and a test pins it.
+Four mid-session payloads have been seen live, each pinned by a test with its exact text:
+
+- **3803**, on 7 October 2026 in 1.6.0: a gRPC `UNAVAILABLE` ("Connection reset by peer") from
+  an internal Mistral service. It ended the source then; since
+  [#122](https://github.com/fmadore/Live-translation/pull/122) it reconnects.
+- **3804**, on 11 November 2026 during a live stream: "Timeout waiting for response from
+  streaming transcription." The recogniser stalled; since 1.14.0 the source reconnects and the
+  new session gets another.
+- **3401**, on 17 November 2026 on the system source of a quiet meeting: "No new audio received
+  for 30s: the client was idle." System audio delivers no chunks while nothing plays, and
+  Mistral ends a session after 30 seconds of that. Since
+  [#230](https://github.com/fmadore/Live-translation/pull/230) the client asks the runner for a
+  keepalive, as DeepL does: after 10 seconds without audio it sends 100 ms of silence (16 kHz
+  mono PCM16), so the session should not go idle. A 3401 that still arrives reconnects.
+- **3800**, on 17 November 2026 in the same meeting: "gRPC streaming transcription error" with
+  an `EngineDeadError`, the recogniser behind the session having died. Since #230 it reconnects,
+  like 3803 and 3804, and the new session gets a live recogniser.
+
+The classifier matches the wording, not the code, so another code carrying the same wording
+reconnects too.
 
 Realtime 3 documents its session errors, all with code 3051: a setting changed after audio
 started, a delay outside the accepted values, an invalid `language`, `diarize` together with

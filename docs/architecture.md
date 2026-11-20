@@ -695,7 +695,7 @@ network and needs no credential. Caption text reaches Zoom only while the operat
 with a meeting. The developer operates no backend, relay, telemetry, analytics or
 crash-reporting service. The one request the app makes of its own accord is the new-version
 check of a copy installed from GitHub, once the operator has turned it on
-([above](#new-versions-for-copies-installed-from-github)). See [`SECURITY.md`](../SECURITY.md) and the
+([above](#new-versions-for-copies-installed-from-github)). See [`SECURITY.md`](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md) and the
 [privacy policy](privacy.md) for what is stored and what leaves the machine.
 
 ## The two windows are not equally trusted
