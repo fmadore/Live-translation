@@ -41,7 +41,7 @@
 	},
 	"devDependencies": {
 		"@choochmeque/tauri-windows-bundle": "^0.2.0",
-		"@playwright/test": "^1.65.0",
+		"@playwright/test": "^1.65.1",
 		"@sveltejs/adapter-static": "^4.0.1",
 		"@sveltejs/kit": "^3.2.0",
 		"@sveltejs/load-config": "^0.2.2",
@@ -51,7 +51,7 @@
 		"@testing-library/svelte": "^5.4.2",
 		"@types/node": "^22.20.5",
 		"@vitest/coverage-v8": "^5.1.0",
-		"eslint": "^10.14.0",
+		"eslint": "^10.15.0",
 		"eslint-plugin-svelte": "^3.24.1",
 		"jsdom": "^31.0.1",
 		"knip": "^6.44.2",
