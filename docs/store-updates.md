@@ -106,7 +106,19 @@ are unchanged, now pinned by `src/lib/msixIdentity.test.ts`. The
 - [ ] The open checks of the [1.14.0](#release-1140-handoff), [1.13.1](#release-1131-handoff) and
   [1.13.0](#release-1130-handoff) handoffs (maintainer test on Windows, WACK, sideload and
   accessibility checks, the Store screenshots decision) apply to 1.15.0.
-- [ ] The published privacy page reads "16 November 2026".
+- [ ] The published privacy page reads "23 November 2026" (#246 corrected the names-and-terms
+  wording after the 16 November version #227 published).
+- [ ] **Public home page** ([#252](https://github.com/fmadore/Live-translation/issues/252)):
+  once `docs/index.html` is on `main`, open <https://fmadore.github.io/Live-translation/> and
+  follow every link on it on the published site (`src/lib/docsLinks.test.ts` only checks that the
+  files exist). Then the maintainer switches the URLs: the repository homepage
+  (`gh repo edit fmadore/Live-translation --homepage https://fmadore.github.io/Live-translation/`);
+  in Partner Center, *Website* (and *Support*, if it should be the page rather than GitHub Issues,
+  which the page's Support link leads to) in the
+  [walkthrough's table](partner-center-walkthrough.md); in App Store Connect, the *Marketing URL*
+  (and the *Support URL* on the same terms) of the [Mac listing](mac-app-store.md). Update those
+  two documents with what was chosen, then close #252. The page carries no Buy Me a Coffee link,
+  so it can be linked from the Mac listing (App Review 3.1.1).
 - [ ] Submit `Live.Translation_1.15.0.msixbundle` in Partner Center with the 1.15.0 copy
   ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
 - [ ] **Mac:** once 1.13.1's App Review is settled (still in review on 17 November 2026), the

@@ -1,9 +1,10 @@
 // The transcript export format, as one remembered preference.
 //
-// It used to be each transcript view's own state. The operator page mounts the transcript
-// monitor in two places, one while a session runs and one after it, so Start and Stop each
-// put Markdown back; and the quit prompt's Save always wrote Markdown whatever had been
-// chosen. One persisted store is read by the monitor, the history view and the quit path.
+// It used to be each transcript view's own state. The operator page then mounted the
+// transcript monitor in two places, one while a session ran and one after it, so Start and
+// Stop each put Markdown back; and the quit prompt's Save always wrote Markdown whatever had
+// been chosen. One persisted store is read by the monitor (now mounted once, by the operator
+// page), the history view and the quit path.
 
 import { persisted, readStored } from './persisted';
 import { hasTranscriptTiming, type TranscriptFormat } from './transcript';

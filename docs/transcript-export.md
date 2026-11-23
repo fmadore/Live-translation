@@ -1,34 +1,36 @@
 # Transcript export — issue #26
 
 Included in **1.2.3**. The user confirmed native Save As on the ARM64 test MSIX on
-8 September 2026; the acceptance matrix below remains partially unverified.
+8 September 2026; some of the acceptance checks below are still unverified.
 
 Choose a format in the transcript toolbar and press **Save as…** (**Enregistrer sous…**). The
 choice is remembered through Start, Stop and restarts, and the history view shares it.
 Windows opens its native Save As dialog, owned by the operator window; select any writable
-folder and filename. Windows supplies overwrite confirmation and the default file extension.
+folder and filename. Windows asks before overwriting a file and adds the default file
+extension.
 The app remembers the folder after a successful save, including across restarts; a missing
 folder falls back to Documents. No filesystem capability is granted to the overlay.
 
 Cancelling leaves the transcript, saved marker and recovery copy unchanged. Cancelling
 Save As from the quit prompt keeps the application open. The quit prompt's Save writes the
 format chosen in the toolbar; when that is WebVTT or SubRip and the transcript has no timing
-(an older recovered one), it writes Markdown instead, so the save cannot fail on the way out. A successful export writes a
-snapshot of finalized captions; captions arriving while the dialog is open remain unsaved
-and eligible for recovery. Writes use a flushed temporary file in the chosen directory,
-followed by replacement, so a failed write does not truncate an existing export.
+(an older recovered one), it writes Markdown instead, so the save cannot fail on the way out.
+A successful export writes a snapshot of finalized captions; captions arriving while the dialog
+is open stay unsaved and eligible for recovery. The app writes a flushed temporary file in the
+chosen folder and then replaces the target with it, so a failed write does not truncate an
+existing export.
 
-Markdown and plain text retain paragraph grouping and localized source labels. WebVTT uses
-voice tags, and SRT prefixes each cue with its localized source name. Both retain all
+Markdown and plain text retain paragraph grouping and localised source labels. WebVTT uses
+voice tags, and SRT prefixes each cue with its localised source name. Both retain all
 finalized text, order cues by start time, permit simultaneous microphone/system cues,
-and support durations over 24 hours. One-frame turns receive a minimum 1 ms interval.
+and support durations over 24 hours. One-frame turns get a minimum 1 ms interval.
 
 Timing comes from the core's monotonic session clock, not wall-clock timestamps or an audio
 recording. Cloud provider latency is included; these are caption timings, not forced alignment
 with speech. Whisper maps segment offsets to capture timestamps, so pending processing time
 does not move cues later; wait for Stop to finish its backlog before saving the complete
 transcript (a confirmed discard leaves an incomplete-transcript notice). Reconnects share the
-session clock. Separate sessions retained in one transcript are concatenated after its last
+session clock. Separate sessions kept in one transcript are concatenated after its last
 cue; idle time between sessions is omitted. Older recovery files without timing remain
 exportable as Markdown/text, with timed export disabled and an explanation rather than guessed
 timestamps or silently omitted text.
@@ -37,7 +39,7 @@ timestamps or silently omitted text.
 
 While a session runs, the stage has two tabs: **Live** (the turns on screen, with the
 transcript under them) and **Transcript**, which gives the whole log the stage's height and
-width. The choice is remembered. The reader shows each turn still being spoken at its foot,
+width. The choice is remembered. The reader shows each turn still being spoken at the bottom,
 and the original speech under each paragraph when **Include original speech** is on, so what
 is on screen is what Save and Copy write. New text does not move the log while the operator
 is scrolled up or has text selected in it; **Jump to latest** returns to the bottom, and
@@ -60,7 +62,7 @@ returned: Gemini Smart transcription may already have removed fillers and false 
 
 Translation keeps what was said before it was translated. When a transcript holds any such
 original speech, **Include original speech** appears beside the format selector (and in the
-history view); the quit prompt's save follows the same choice. Text puts `Original: …` under
+history view); the quit prompt's save follows the same choice. Plain text puts `Original: …` under
 each paragraph, Markdown a `> *Original:* …` quote, and WebVTT and SubRip set the original as
 each cue's italic second line (`<i>…</i>`). Subtitles have no separate original, so the option
 is not offered for them. It is off by default.
@@ -96,18 +98,19 @@ history view's Copy and Save write a saved session's markers the same way.
 ## Verification
 
 Automated tests cover cancelled saves and quit, captions arriving during a save, atomic
-replacement and failed replacement cleanup, format selection, untimed recovery, source
+replacement and failed replacement clean-up, format selection, untimed recovery, source
 overlap, partial replacement, session restart, escaping, and long-duration timestamps. A
 page-level test runs the built-in demo through Start and Stop twice and checks that the
 chosen format survives both and is what the quit prompt saves.
 
-Native acceptance checks remain manual, separately in development, NSIS and Store MSIX:
+Native acceptance checks are still manual, run separately in development, NSIS and Store MSIX
+builds:
 
 - Save each format to a chosen folder, including a path with accents and spaces.
 - Reopen Save As and restart the app; verify that the last successful folder is selected.
 - Choose an existing filename; decline replacement, then accept it on a second attempt.
 - Cancel from both the toolbar and the quit prompt; verify no write and no app exit.
-- Try an unwritable destination; verify the prior file and unsaved status survive.
+- Try an unwritable destination; verify that the previous file and the unsaved status survive.
 - Open exported SRT/VTT in a subtitle player and check both-source captions.
 
 Issue #26 was closed at the user’s request for release 1.2.3; that closure does not certify

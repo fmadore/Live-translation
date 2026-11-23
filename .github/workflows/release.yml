@@ -17,9 +17,9 @@ name: Release installers
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2. `prepare` checks the tag against
 # the version files, waits for CI to pass on the tagged commit and creates the release as a
-# draft; `build` attaches the installers, `msix` the x64 and ARM64 packages and `bundle` the
-# Store bundle. Only then, and only with the installers attached, does `bundle` publish the
-# release, with docs/release-<version>.md from the tagged commit as its body. Until that last
+# draft; `build` attaches the installers, `macos` the disk image, `msix` the x64 and ARM64
+# packages and `bundle` the Store bundle. Only then, and only with all six attached, does
+# `bundle` publish the release, with docs/release-<version>.md from the tagged commit as its body. Until that last
 # step nothing is public, so a failed job leaves a draft to re-run rather than a spent version.
 # A hyphenated tag (v1.0.0-rc1, v0.5.4-arm64-check) is a pre-release or a build validation: it
 # gets the same assets in a draft prerelease, which stays unpublished until a human promotes it.
@@ -260,15 +260,10 @@ jobs:
       - name: Configure native Whisper compiler
         uses: ./.github/actions/whisper-compiler
 
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: src-tauri
-          prefix-key: whisper-cpu-x64-v2
-          # Restore only. A cache saved by a tag run is scoped to that tag, so no other run can
-          # restore it: the tag caches had filled 5.6 GB of the repository's 10 GB and pushed
-          # CI's caches from main out. Release builds start cold either way.
-          save-if: false
+      # No Rust cache: the Windows release builds start cold. A tag run cannot save one for the
+      # next (a cache saved by a tag is scoped to that tag; the tag caches once filled 5.6 GB of
+      # the repository's 10 GB and pushed main's out), and nothing on main saves a release-profile
+      # Windows build to restore. The restore-only step that stood here never hit.
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -322,12 +317,14 @@ jobs:
       - name: Install Rust (rust-toolchain.toml)
         run: rustup toolchain install
 
+      # Restore only, from main: macos.yml's build on main makes the same release-profile build
+      # and saves it under this shared key (a tag run's own cache would be scoped to the tag).
       - name: Cache Rust build
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           prefix-key: whisper-cpu-${{ runner.arch }}-v2
-          # Restore only, as for the Windows build.
+          shared-key: mac-release
           save-if: false
 
       - name: Setup Node
@@ -405,7 +402,7 @@ jobs:
   #
   # Runs beside `build`, which it takes nothing from, and uploads to the same release, which is
   # still a draft for a new tag. `gh release upload` finds a draft by its tag as well as a
-  # published release. Each architecture has its own Rust cache.
+  # published release.
   msix:
     name: MSIX package (${{ matrix.arch }})
     needs: prepare
@@ -436,15 +433,7 @@ jobs:
       - name: Configure native Whisper compiler
         uses: ./.github/actions/whisper-compiler
 
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: src-tauri
-          # Keep the native Windows package lanes separate. Bump with `.cargo/config.toml`:
-          # whisper-rs-sys does not rebuild ggml when its GGML_* variables change.
-          prefix-key: whisper-cpu-${{ matrix.arch }}-v2
-          # Restore only, as in `build`.
-          save-if: false
+      # No Rust cache, as in `build`.
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -595,15 +584,28 @@ jobs:
 
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
 
-          # `msix` no longer waits for `build`; this job does. The installers are still checked
-          # here, so a release is never published without them.
+          # This job waits for every other, but each asset is still checked on the release itself,
+          # by its exact name, so a release never goes public without one of the six (an upload
+          # that failed silently, or a job's output renamed). Each name is listed with the job
+          # that attaches it.
           $assets = @(gh release view $env:TAG --json assets --jq '.assets[].name')
           if ($LASTEXITCODE -ne 0) { throw "Could not list the assets of $env:TAG." }
-          $missing = @("Live.Translation_${version}_x64-setup.exe", "Live.Translation_${version}_x64_en-US.msi") |
-            Where-Object { $_ -notin $assets }
-          if ($missing) {
-            throw "The release lacks the installers the build job attaches: $($missing -join ', '). Re-run this job once that job has passed."
+          $expected = [ordered]@{
+            "Live.Translation_${version}_x64-setup.exe" = 'build'
+            "Live.Translation_${version}_x64_en-US.msi" = 'build'
+            "Live.Translation_${version}_aarch64.dmg"   = 'macos'
+            "Live.Translation_${version}_x64.msix"      = 'msix (x64)'
+            "Live.Translation_${version}_arm64.msix"    = 'msix (arm64)'
+            "Live.Translation_${version}.msixbundle"    = 'bundle'
           }
+          $missing = @($expected.Keys | Where-Object { $_ -notin $assets })
+          if ($missing.Count -gt 0) {
+            foreach ($name in $missing) {
+              Write-Output "::error::$env:TAG lacks $name, which the $($expected[$name]) job attaches."
+            }
+            throw "Not publishing ${env:TAG}: $($missing.Count) of $($expected.Count) assets missing ($($missing -join ', ')). Re-run the job that attaches each, then this one."
+          }
+          Write-Output "All $($expected.Count) assets are attached: $($expected.Keys -join ', ')."
 
           gh release edit $env:TAG --draft=false --latest `
             --title "Live Translation & Subtitles $version" `

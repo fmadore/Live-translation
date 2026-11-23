@@ -30,6 +30,12 @@ function tomlTables(source: string): { header: string; values: Map<string, strin
 
 const VERSION = manifest('package.json').version;
 
+/** A workspace package's entry in `src-tauri/Cargo.lock`. */
+const lockedVersion = (name: string) =>
+	tomlTables(read('src-tauri/Cargo.lock'))
+		.find((t) => t.header === '[[package]]' && t.values.get('name') === name)
+		?.values.get('version');
+
 const SOURCES: [file: string, where: string, version: () => string | undefined][] = [
 	['package-lock.json', 'version', () => manifest('package-lock.json').version],
 	[
@@ -45,15 +51,9 @@ const SOURCES: [file: string, where: string, version: () => string | undefined][
 				.find((t) => t.header === '[package]')
 				?.values.get('version')
 	],
-	[
-		'src-tauri/Cargo.lock',
-		'the live-translation package',
-		() =>
-			tomlTables(read('src-tauri/Cargo.lock'))
-				.find((t) => t.header === '[[package]]' && t.values.get('name') === 'live-translation')
-				?.values.get('version')
-	],
-	// The Vulkan helper is a crate of its own and carries the app's version.
+	['src-tauri/Cargo.lock', 'the live-translation package', () => lockedVersion('live-translation')],
+	// The Vulkan helper is a crate of its own and carries the app's version, in its manifest and
+	// in its entry of the workspace's lock file.
 	[
 		'src-tauri/whisper-vulkan/Cargo.toml',
 		'[package] version',
@@ -62,6 +62,7 @@ const SOURCES: [file: string, where: string, version: () => string | undefined][
 				.find((t) => t.header === '[package]')
 				?.values.get('version')
 	],
+	['src-tauri/Cargo.lock', 'the whisper-vulkan package', () => lockedVersion('whisper-vulkan')],
 	['src-tauri/tauri.conf.json', 'version', () => manifest('src-tauri/tauri.conf.json').version],
 	// A top-level key only: an entry under `references:` is indented, and has its own version.
 	[

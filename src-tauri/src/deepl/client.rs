@@ -18,7 +18,8 @@
 //! turn closes as final:
 //! - when DeepL concludes target text that ends a sentence: the caption is the concluded text
 //!   alone, and any tentative text, the next sentence's start, opens the next turn: shown by
-//!   the next target update even if that repeats it, and drained for on a Pause or Stop;
+//!   the next target update even if that repeats it, drained for on a Pause or Stop, and
+//!   closed as it is when the runner closes the turn itself (`before_finalize`);
 //! - otherwise at the idle boundary (`FINALIZE_AFTER` without target text), held while DeepL
 //!   still has tentative text pending, up to the runner's `MAX_HOLD`;
 //! - at `end_of_stream`.
@@ -44,10 +45,9 @@ use super::protocol::{
     deepl_target_code, source_media_chunk, source_media_frame,
 };
 use super::session::{self, Refusal};
-use crate::audio::AudioChunk;
 use crate::realtime::{
     CaptionUpdate, Keepalive, MessageControl, MessageOutcome, PrepareError, RealtimeProtocol,
-    TurnAccumulator, Verdict, classify, ends_sentence, parse_or_log,
+    TurnAccumulator, Verdict, classify, ends_sentence, idle_keepalive, parse_or_log,
 };
 use crate::types::{Origin, TargetLanguage};
 
@@ -55,10 +55,6 @@ pub const DEFAULT_DEEPL_HOST: &str = "api.deepl.com";
 /// No new target text for this long closes the turn, unless DeepL still holds tentative text.
 /// Most turns close earlier, on a concluded sentence.
 const FINALIZE_AFTER: Duration = Duration::from_millis(1_000);
-/// DeepL ends a session after 30 seconds without audio. Silence goes out well before that.
-const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
-/// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
-const SILENCE_BYTES: usize = 3_200;
 /// Whether a streaming URL may be plain `ws`. The token is a credential for the session, so a
 /// release build refuses it; a debug build allows it for the loopback servers of the tests and
 /// for whatever a developer's `DEEPL_API_HOST` hands out.
@@ -407,13 +403,9 @@ impl RealtimeProtocol for DeepLClient {
         Ok(source_media_frame(pcm_le))
     }
 
+    /// DeepL ends a session after 30 seconds without audio. Silence goes out well before that.
     fn keepalive(&self) -> Option<Keepalive> {
-        Some(Keepalive {
-            after: KEEPALIVE_AFTER,
-            silence: AudioChunk {
-                pcm_le: vec![0; SILENCE_BYTES],
-            },
-        })
+        Some(idle_keepalive())
     }
 
     /// Ends the session: DeepL concludes what is tentative, then sends `end_of_stream`.
@@ -465,6 +457,17 @@ impl RealtimeProtocol for DeepLClient {
     /// and a Pause or Stop drains for them, as `end_of_source_media` makes DeepL conclude them.
     fn keeps_turn_open(&self, acc: &TurnAccumulator) -> bool {
         self.turn.pending(acc)
+    }
+
+    /// The tentative start a concluded sentence left behind is not in the accumulator yet
+    /// (`Turn::target`). When the runner closes the turn on its own (DeepL sent nothing more
+    /// before the hold ran out, or the connection or source ended), it goes out with the rest of
+    /// the turn rather than the runner closing an empty one. Otherwise the accumulator already
+    /// holds the turn as rendered, and rendering it again changes nothing.
+    fn before_finalize(&mut self, acc: &mut TurnAccumulator) {
+        if self.turn.id == Some(acc.id) && !self.turn.target.is_blank() {
+            self.turn.render(acc);
+        }
     }
 }
 

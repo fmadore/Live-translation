@@ -101,6 +101,9 @@ struct Fake {
     /// Waits for `ready` before streaming. Without it the socket is accepted once open, as
     /// DeepL's is; the setup frame still goes out, so the server can tell connections apart.
     setup_ack: bool,
+    /// Text of the turn not in the accumulator yet (`unshown:…`), which `before_finalize` adds,
+    /// as DeepL does with the tentative start a concluded sentence left behind.
+    unshown: String,
 }
 
 #[derive(Clone, Copy)]
@@ -120,6 +123,7 @@ impl Fake {
             prepare: Prepare::Ready,
             keepalive: None,
             setup_ack: true,
+            unshown: String::new(),
         }
     }
 }
@@ -203,6 +207,9 @@ impl RealtimeProtocol for Fake {
                 } else if let Some(text) = text.strip_prefix("more:") {
                     acc.text.push_str(text);
                     MessageOutcome::activity(CaptionUpdate::Interim)
+                } else if let Some(text) = text.strip_prefix("unshown:") {
+                    self.unshown = text.into();
+                    MessageOutcome::default()
                 } else if let Some(ms) = text.strip_prefix("turnend:") {
                     end_of_turn(Duration::from_millis(ms.parse().unwrap()))
                 } else if let Some(ms) = text.strip_prefix("goaway:") {
@@ -222,6 +229,12 @@ impl RealtimeProtocol for Fake {
 
     fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
         self.hold
+    }
+
+    fn before_finalize(&mut self, acc: &mut TurnAccumulator) {
+        if !self.unshown.is_empty() {
+            acc.text = std::mem::take(&mut self.unshown);
+        }
     }
 }
 
@@ -1192,6 +1205,30 @@ async fn a_held_turn_stays_open_until_released_or_too_long_still() {
     client.cancel.cancel();
     assert_eq!(peer.recv().await, Frame::Text("end".into()));
     assert_eq!(peer.recv().await, Frame::Close);
+    client.finished().await;
+}
+
+/// What the provider holds of the turn but has not shown goes out with it whenever the runner
+/// closes the turn itself: at the idle boundary, and when the connection ends.
+#[tokio::test(start_paused = true)]
+async fn the_runner_closes_a_turn_with_what_the_provider_holds_unshown() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    peer.send("more:Buenos").await;
+    let spoke = client.expect(interim("Buenos")).await;
+    peer.send("unshown:Buenos días").await;
+    let after = client.expect(final_("Buenos días")).await - spoke;
+    assert!(
+        after >= FINALIZE_AFTER && after < FINALIZE_AFTER + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    peer.send("unshown:Hoy").await;
+    peer.send("retry").await;
+    client.expect(final_("Hoy")).await;
+    client.expect(status(SessionState::Reconnecting)).await;
+    client.cancel.cancel();
     client.finished().await;
 }
 

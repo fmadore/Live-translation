@@ -156,13 +156,21 @@ export async function killTree(pid: number): Promise<void> {
  */
 export async function stopStrayInstances(profile: string, exe: string): Promise<void> {
 	// The query below costs a second on an idle machine and much more on a busy one, so first
-	// the cheap question: is any process running this exe's image at all? With no match,
-	// tasklist prints a localised note instead of a row.
-	const image = path.basename(exe);
-	const { stdout } = await run('tasklist', ['/FI', `IMAGENAME eq ${image}`, '/FO', 'CSV', '/NH'], {
-		windowsHide: true
-	});
-	if (!stdout.toLowerCase().includes(`"${image.toLowerCase()}"`)) return;
+	// the cheap question: is any process running this exe's image, or WebView2's, at all? Both,
+	// since the WebView2 that still holds the profile after its host died is the case this is
+	// for. WebView2 runs for much else on Windows, so the query mostly runs, and it still takes
+	// only a WebView2 whose command line names the e2e profile. With no match, tasklist prints
+	// a localised note instead of a row.
+	const running = async (image: string) => {
+		const { stdout } = await run(
+			'tasklist',
+			['/FI', `IMAGENAME eq ${image}`, '/FO', 'CSV', '/NH'],
+			{ windowsHide: true }
+		);
+		return stdout.toLowerCase().includes(`"${image.toLowerCase()}"`);
+	};
+	const found = await Promise.all([path.basename(exe), 'msedgewebview2.exe'].map(running));
+	if (!found.includes(true)) return;
 
 	const output = await powershell(FIND_INSTANCES, { E2E_PROFILE: profile + path.sep });
 	const instances = JSON.parse(output.trim() || '[]') as Instance[];

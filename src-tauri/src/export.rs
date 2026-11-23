@@ -50,6 +50,40 @@ fn remembered_directory(preference: &Path) -> Option<std::path::PathBuf> {
         .filter(|dir| dir.is_dir())
 }
 
+/// The preference file in the app's data folder, if it has one.
+#[cfg(any(windows, target_os = "macos"))]
+fn directory_preference(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
+    use tauri::Manager;
+    app.path()
+        .app_local_data_dir()
+        .ok()
+        .map(|p| p.join("export-directory.json"))
+}
+
+/// Where a Save or folder dialog opens: the remembered folder while it exists, else Documents.
+#[cfg(any(windows, target_os = "macos"))]
+fn initial_directory(
+    app: &tauri::AppHandle,
+    preference: Option<&Path>,
+) -> Option<std::path::PathBuf> {
+    use tauri::Manager;
+    preference
+        .and_then(remembered_directory)
+        .or_else(|| app.path().document_dir().ok())
+}
+
+/// Remember `dir` for the next dialog, written whole or not at all. A failure is ignored: a
+/// preference must not undo the export that has just succeeded.
+#[cfg(any(windows, target_os = "macos", test))]
+fn remember_directory(preference: &Path, dir: &Path) {
+    if let Some(parent) = preference.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(bytes) = serde_json::to_vec(dir) {
+        let _ = atomic_write(preference, &bytes);
+    }
+}
+
 #[cfg(any(windows, target_os = "macos"))]
 pub fn save(
     app: tauri::AppHandle,
@@ -58,7 +92,6 @@ pub fn save(
     filename: String,
 ) -> Result<Option<String>, crate::errors::AppError> {
     use crate::errors::{AppError, id};
-    use tauri::Manager;
     // A dedicated thread keeps the dialog's STA isolated from audio workers' COM state. On
     // macOS rfd runs the panel on the main thread and waits for it here.
     std::thread::spawn(move || {
@@ -68,17 +101,12 @@ pub fn save(
                 "unsupported transcript format",
             ));
         };
-        let preference = app
-            .path()
-            .app_local_data_dir()
-            .ok()
-            .map(|p| p.join("export-directory.json"));
-        let remembered = preference.as_deref().and_then(remembered_directory);
+        let preference = directory_preference(&app);
         let mut dialog = rfd::FileDialog::new()
             .set_parent(&window)
             .set_file_name(&filename)
             .add_filter(label, &[extension]);
-        if let Some(dir) = remembered.or_else(|| app.path().document_dir().ok()) {
+        if let Some(dir) = initial_directory(&app, preference.as_deref()) {
             dialog = dialog.set_directory(dir);
         }
         // Windows' IFileSaveDialog and macOS's NSSavePanel supply the normal overwrite
@@ -89,14 +117,9 @@ pub fn save(
         write_export(&path, content.as_bytes()).map_err(|e| {
             AppError::with(id::TRANSCRIPT_WRITE, format!("{} — {e}", path.display()))
         })?;
-        // Remember only successful saves. A preference failure must not undo a completed export.
+        // Remember only successful saves.
         if let (Some(pref), Some(parent)) = (preference, path.parent()) {
-            if let Some(dir) = pref.parent() {
-                let _ = std::fs::create_dir_all(dir);
-            }
-            if let Ok(bytes) = serde_json::to_vec(parent) {
-                let _ = atomic_write(&pref, &bytes);
-            }
+            remember_directory(&pref, parent);
         }
         Ok(Some(path.to_string_lossy().into_owned()))
     })
@@ -240,17 +263,11 @@ pub fn save_many(
     files: Vec<ExportFile>,
 ) -> Result<Option<BatchExport>, crate::errors::AppError> {
     use crate::errors::{AppError, id};
-    use tauri::Manager;
     // A dedicated thread, as for one file: see `save`.
     std::thread::spawn(move || {
-        let preference = app
-            .path()
-            .app_local_data_dir()
-            .ok()
-            .map(|p| p.join("export-directory.json"));
-        let remembered = preference.as_deref().and_then(remembered_directory);
+        let preference = directory_preference(&app);
         let mut dialog = rfd::FileDialog::new().set_parent(&window);
-        if let Some(dir) = remembered.or_else(|| app.path().document_dir().ok()) {
+        if let Some(dir) = initial_directory(&app, preference.as_deref()) {
             dialog = dialog.set_directory(dir);
         }
         let Some(dir) = dialog.pick_folder() else {
@@ -259,12 +276,7 @@ pub fn save_many(
         let outcome = write_files(&dir, files, write_export);
         // Remembered once something was written there, like a single save.
         if let (Some(pref), false) = (preference, outcome.written.is_empty()) {
-            if let Some(parent) = pref.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            if let Ok(bytes) = serde_json::to_vec(&dir) {
-                let _ = atomic_write(&pref, &bytes);
-            }
+            remember_directory(&pref, &dir);
         }
         Ok(Some(outcome))
     })
@@ -429,5 +441,31 @@ mod tests {
         std::fs::write(&preference, b"not json").unwrap();
         assert_eq!(remembered_directory(&preference), None);
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn a_remembered_folder_is_read_back_and_replaces_the_last_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let (first, second) = (dir.path().join("first"), dir.path().join("second"));
+        std::fs::create_dir_all(&first).unwrap();
+        std::fs::create_dir_all(&second).unwrap();
+        // The data folder may not exist yet on a first export.
+        let preference = dir.path().join("data").join("export-directory.json");
+        remember_directory(&preference, &first);
+        assert_eq!(remembered_directory(&preference), Some(first));
+        remember_directory(&preference, &second);
+        assert_eq!(remembered_directory(&preference), Some(second));
+        // Replaced in place: no staging file is left beside it.
+        let names: Vec<_> = std::fs::read_dir(preference.parent().unwrap())
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect();
+        assert_eq!(names, ["export-directory.json"]);
+        // A folder that cannot hold the file leaves no preference and no error.
+        let blocked = dir.path().join("blocked");
+        std::fs::write(&blocked, b"a file, not a folder").unwrap();
+        let unwritable = blocked.join("export-directory.json");
+        remember_directory(&unwritable, dir.path());
+        assert_eq!(remembered_directory(&unwritable), None);
     }
 }

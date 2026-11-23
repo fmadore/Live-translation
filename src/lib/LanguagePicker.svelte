@@ -255,7 +255,7 @@
 					</div>
 				{/each}
 			</div>
-			<p class="live-slot" role="status">
+			<p class="no-matches live-slot" role="status">
 				{#if rows.length === 0}{$t.language.noMatches}{/if}
 			</p>
 		</div>
@@ -323,6 +323,15 @@
 		font-size: var(--type-small);
 		color: var(--text-muted);
 		border-top: 1px solid var(--line-strong);
+	}
+	/* Across both columns, drawn like a group heading. Only while it has something to say: empty,
+	   it is the hidden live slot of `app.css`. */
+	.no-matches:not(:empty) {
+		grid-column: 1 / -1;
+		margin: 0;
+		padding: var(--space-2);
+		font-size: var(--type-small);
+		color: var(--text-muted);
 	}
 	.option,
 	.pin-row {

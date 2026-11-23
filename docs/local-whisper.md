@@ -25,15 +25,16 @@ engine: the demo cannot translate, so it is no stand-in.
 2. Select a spoken language, or leave **Detect automatically** selected. Choosing the known
    language helps with short utterances and avoids repeated language guessing.
 3. Download a model. The download needs an internet connection; transcription is then offline.
-4. Start captioning. Captions feed the existing overlay, history, recovery and export workflows.
-5. Stop when the meeting ends, then let **Finishing the transcript** complete before exporting
-   the complete transcript. The pending duration reports unprocessed audio, not a prediction
-   of processing time. Discarding pending audio requires confirmation and leaves an explicit
-   incomplete-transcript notice.
+4. Start captioning. Captions feed the overlay, history, recovery copy and export, as with any
+   other engine.
+5. Stop when the meeting ends, then let **Finishing the transcript** run to the end before
+   exporting, so the transcript is complete. The pending duration is the audio still to process,
+   not an estimate of how long processing will take. Discarding pending audio asks for
+   confirmation and leaves a notice that the transcript is incomplete.
 
 Closing the app while audio is still waiting is different from Stop: the close prompt says how
 many seconds remain, closing gives the backlog a few seconds, and whatever is left is then
-discarded so the app can actually quit. Stop first and let it finish if the transcript has to
+discarded so the app can quit. Stop first and let it finish if the transcript has to
 be complete.
 
 | Model | Download | Intended choice |
@@ -43,9 +44,9 @@ be complete.
 | Small Q5_1 | 182 MiB | More capacity, with higher CPU and memory demand |
 | Large v3 Turbo Q5_0 | 547 MiB | The most accurate; transcription only; best with a [graphics processor](#graphics-processor) |
 
-All four are multilingual models, not the English-only `.en` variants. The selector exposes
-the 99 language tokens they share, which is not a claim of equal accuracy across languages.
-The separate Cantonese token introduced with large-v3 is not advertised.
+All four are multilingual models, not the English-only `.en` variants. The selector offers
+the 99 language tokens they share; listing a language does not mean it is recognised as well
+as the others. The separate Cantonese token introduced with large-v3 is not offered.
 
 **Large v3 Turbo** is large-v3 with its decoder cut from 32 layers to 4: close to large-v3's
 accuracy at a fraction of its decoding cost, and the same model Kalamu offers. Its encoder is
@@ -65,22 +66,22 @@ variables; automatic proxy scripts (PAC/WPAD) are not read. The file is written 
 `<model>.part` in the models folder and renamed into place only after its size and SHA-256
 match; a failed or cancelled download deletes it, and starting a download first deletes any
 partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
-bytes are verified again before passing them to the native loader. Files in use cannot be
+bytes are verified again before they are passed to the native loader. Files in use cannot be
 deleted or replaced.
 
 ## Names and terms
 
 The setup's **Names and terms** list (step 03, shared with Voxtral and Gemini Transcribe) is
 Whisper's decoder prompt: the terms, joined with commas, stand in for text said before every
-window, which steers its spelling of names and jargon. Translating, it helps Whisper recognise
-the names it carries into English.
+window, which steers its spelling of names and jargon. When translating, it helps Whisper
+recognise the names it carries into English.
 
 - **Size:** whisper.cpp gives a prompt at most 223 tokens (half the 448-token text context,
   less its opening token), a few dozen names. It would keep the *end* of a longer prompt, so
-  the app tokenizes the list once per source at Start and keeps the terms from the top that
+  the app tokenises the list once per source at Start and keeps as many terms from the top as
   fit (`whisper/prompt.rs`). The setup sheet says so under the list.
 - **Each window:** the tokens go in with `set_tokens`, not `set_initial_prompt`, which would
-  tokenize again and leak a C string for every window. `no_context` still drops the text of
+  tokenise again and leak a C string for every window. `no_context` still drops the text of
   earlier windows; whisper.cpp clears that history before adding the prompt, and drops the
   prompt itself on its high-temperature fallbacks.
 - **Echoes:** over noise it cannot make out, Whisper may write the prompt back. A segment made
@@ -103,7 +104,7 @@ Whisper's models have a second task besides transcription: translating what is s
 their 99 languages, into English. The app offers it as **Local Whisper** under **Live
 translation** ("Offline · into English only"), the one translation engine that needs no account,
 API key or internet connection once a model is downloaded. It is a separate provider,
-`whisper-translate`, for the reason the two Gemini engines are: it serves the other mode. It runs
+`whisper-translate`, for the same reason as the two Gemini engines: it serves the other mode. It runs
 exactly the pipeline described here — the same models and download, processor check, buffering,
 segmentation, pause, Stop drain, pending-audio discard and close prompt — and differs only in
 the task whisper.cpp is given (`translate`).
@@ -122,7 +123,7 @@ the task whisper.cpp is given (`translate`).
    and Base often mistranslate, and the setup sheet says so. Small needs the processor speed
    discussed under [processor requirements](#processor-requirements) to keep up.
 
-The task returns English and no transcription of what was said, so captions carry no source
+The task returns only English, with no transcription of what was said, so captions carry no source
 text. The overlay and the operator's stage show the English alone, with no original-speech line
 even when that option is on, and a saved transcript has no original to include, so the
 bilingual export option is not offered. **Rehearse** plays the French recording, as it does for
@@ -157,7 +158,7 @@ first words to 0.2 s after its last, and its captions keep their real times.
 - **Not whisper.cpp's own switch.** whisper.cpp applies its `vad` parameter only in
   `whisper_full`, while whisper-rs calls `whisper_full_with_state`, where it does nothing. The
   app runs whisper-rs's standalone `WhisperVadContext` instead, one per session, on the
-  processor whatever decodes the windows.
+  processor, whatever decodes the windows.
 - **Never at the cost of words.** If detection fails on a window, the whole window is decoded.
   The conservative silence gate in the segmenter still runs first and still drives window
   endings.
@@ -172,7 +173,7 @@ ported from Kalamu):
 
 - a word said six or more times running, or a group of up to eight words four or more times,
   is kept once ("merci merci merci merci merci merci" becomes "merci"); words repeated a few
-  times, as people do ("non, non, non"), are left;
+  times, as people do ("non, non, non"), are kept;
 - credits such as *Sous-titres réalisés par la communauté d'Amara.org* or *Subtitles by…* are
   dropped;
 - the same line a third time in a row is dropped: people repeat themselves, but rarely three
@@ -205,7 +206,7 @@ starts, and again if the graphics processor fails mid-session. The log names the
   runtime library, which Metal's version checks need.
 - **Windows: Vulkan, in a helper program.** whisper.cpp's Vulkan backend calls the Vulkan loader
   (`vulkan-1.dll`, installed by graphics drivers) directly: an app linking it would not start on
-  a PC without one, and initialises Vulkan even to run on the processor. So Vulkan lives in
+  a PC without one, and would initialise Vulkan even to run on the processor. So Vulkan lives in
   `whisper-vulkan.exe` (`src-tauri/whisper-vulkan/`), installed beside the app. A session
   starts it, sends it the model to load and each window to decode over standard input and
   output, and stops it when it ends. The decoding parameters and the messages are one file,
@@ -220,7 +221,7 @@ starts, and again if the graphics processor fails mid-session. The log names the
   cannot load the model leaves the session on the processor from the start. One that fails or
   stops answering later (out of graphics memory, a driver fault; a minute without an answer,
   counted from the start of the window's write, so a helper that stops reading its input is
-  caught too) is stopped, and the session carries on on the processor from that window, which
+  caught too) is stopped, and the session continues on the processor from that window, which
   it decodes again there. Its crash never takes the app with it. Discarding the backlog stops
   it at once, even mid-write.
 - **Why it failed.** The app sees only an exit code when the helper dies, so it keeps the last
@@ -233,8 +234,8 @@ starts, and again if the graphics processor fails mid-session. The log names the
   "failed to load model". A helper that could not start at all is named by its Windows status:
   `STATUS_DLL_NOT_FOUND` is a PC without the Vulkan loader. At most 300 characters reach the
   interface, untranslated, under its own sentence.
-- **It ends with the app.** The helper ends when its input closes, so also when the app exits
-  however it exits; but not while a driver call it is in has hung. On Windows it is therefore
+- **It ends with the app.** The helper ends when its input closes, so also whenever the app exits,
+  however it exits, but not while it is stuck in a hung driver call. On Windows it is therefore
   put in a job object that ends it when the app's handle to the job closes, which Windows does
   at exit, so a hung helper cannot be left holding the graphics processor.
 - **Integrity.** The helper reads the model through Rust's filesystem API and checks its size
@@ -247,7 +248,7 @@ starts, and again if the graphics processor fails mid-session. The log names the
 Capture produces about 100 ms of 16 kHz mono PCM16 per frame. A bounded queue gives the disk
 writer 30 seconds of scheduling slack. The inference worker reads an anonymous local temporary
 file rather than the cloud clients’ low-latency queues, so delayed recognition does not
-trigger their stale-audio discard. Buffering is bounded to 2 GiB per source (roughly 18 hours
+trigger their stale-audio discard. Buffering is limited to 2 GiB per source (roughly 18 hours
 of audio without the reader catching up and resetting the file); disk-full, I/O failure and
 writer overflow stop the source and report that its transcript may be incomplete. Memory does
 not grow with the audio backlog.
@@ -255,7 +256,7 @@ not grow with the audio backlog.
 Recognition uses windows of up to roughly 10 seconds, one second of overlap and conservative
 silence endpointing. It produces finalized captions, not speculative word-by-word interim
 captions. A final short window is padded for inference and its timestamps are clamped to the
-actual audio duration. Pauses retain elapsed meeting timing, and each window's time is taken
+actual audio duration. Pauses keep the meeting's elapsed time, and each window's time is taken
 from the capture timestamp of the audio it starts in rather than counted in samples, so a
 capture clock running slightly fast or slow cannot drift caption times over a long meeting.
 
@@ -271,8 +272,8 @@ the app additionally drops a segment only when the window's no-speech probabilit
 **and** the segment's mean token log-probability is below −1 (whisper.cpp's own thresholds,
 applied per segment), which removes the "Thank you." Whisper invents over room noise without
 dropping confident speech. Text that is not valid UTF-8 loses only the broken character.
-Accuracy at window boundaries, background noise and code-switching still need real meeting
-acceptance tests. Whisper can misrecognize speech or hallucinate text.
+Accuracy at window boundaries, with background noise and with code-switching still needs
+testing in real meetings. Whisper can misrecognise speech or hallucinate text.
 
 With **Detect automatically**, every window of 3 seconds or more detects its own language, so a
 French/English room is followed as speakers alternate. A shorter window — a quick reply, a
@@ -281,8 +282,8 @@ that produced captions, because a second or two of audio is where detection is l
 and most likely to turn a phrase into the other language. A chosen spoken language is always
 used as chosen.
 
-Pause stops new audio entering transcription or its temporary file, while the existing backlog
-continues processing. When no new audio has arrived for a second — after Pause, or when system
+Pause stops new audio from reaching transcription or its temporary file; the backlog already
+there is still processed. When no new audio has arrived for a second — after Pause, or when system
 audio goes quiet because nothing is playing — the audio already held is transcribed straight
 away instead of waiting for more. Normal Stop drains input and the final partial window
 without the cloud pipeline’s five-second limit. An explicit discard token interrupts
@@ -327,7 +328,7 @@ npm run tauri build -- --config src-tauri/tauri.vulkan.conf.json
 
 The script builds in `\wv` at the root of the drive (the runner's temporary folder on CI;
 `WHISPER_VULKAN_TARGET_DIR` chooses another): under `src-tauri\target`, the folders ggml makes for
-its Vulkan shader generator pass Windows' 260-character path limit and the build fails.
+its Vulkan shader generator exceed Windows' 260-character path limit and the build fails.
 
 To try it from a development build, copy `src-tauri/binaries/whisper-vulkan-<target>.exe` beside
 the app's executable as `whisper-vulkan.exe`. On Linux, `cargo build -p whisper-vulkan` needs
@@ -361,7 +362,7 @@ The whisper-rs-sys build script does not watch these variables. After changing t
 `cargo clean -p whisper-rs-sys` and bump the Rust cache `prefix-key` in the workflows, or the
 old native libraries are reused.
 
-Whisper.cpp and the OpenAI model weights use the MIT license; whisper-rs uses the Unlicense.
+Whisper.cpp and the OpenAI model weights use the MIT licence; whisper-rs uses the Unlicense.
 Their notices are included under `resources/licenses` and bundled with the app.
 
 ## Validation
@@ -405,9 +406,8 @@ language reuse; thread counts; and the translate task reaching whisper.cpp. Vali
 cover translation's English-only target and its lack of a second language. UI tests cover
 persisted multilingual settings, model/progress controls, the unsupported-processor engine
 card, the close prompt's pending audio, and translation's engine card, English-only note and
-captions without original speech. For
-PR #99 (4 October 2026) the smoke test passed on ARM64, including non-ASCII model paths, and
-all seven PR CI jobs passed on
+captions without original speech. For PR #99 (4 October 2026) the smoke test passed on ARM64,
+including non-ASCII model paths, and all seven PR CI jobs passed on
 [run 37196818518](https://github.com/fmadore/Live-translation/actions/runs/37196818518).
 
 Before release, test packaged x64 and ARM64 applications on real devices: download/cancel/remove,
@@ -415,7 +415,6 @@ relaunch offline, microphone and Teams/application loopback, Both sources, pause
 backlogs, Stop/discard, quitting with a backlog, exports, non-Latin speech and clean
 uninstall; a model download behind a proxy configured in Windows Settings; and an x64 PC
 without AVX2, where Whisper must be listed as unavailable and the demo selected. CI audio
-fixtures do not
-establish microphone permissions, actual conference-call capture quality or battery
-performance. Package acceptance is tracked in the
+fixtures do not establish microphone permissions, actual conference-call capture quality or
+battery performance. Package acceptance is tracked in the
 [release handoff](store-updates.md#release-1120-handoff).

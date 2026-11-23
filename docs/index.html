@@ -1,0 +1,1496 @@
+<!doctype html>
+<!--
+	The public home page on GitHub Pages (issue #252), served from `main` /docs at
+	https://fmadore.github.io/Live-translation/. One self-contained file with no build step: its
+	styles are below, and it loads only the fonts in assets/fonts, the images under this folder and
+	Microsoft's Store badge. The developers' index stays at docs/README.md, linked in the footer.
+
+	Wording follows docs/store-listing.md, rates follow src/lib/providers.ts with their sources and
+	dates, and privacy statements follow docs/privacy.md: change those first, then this page.
+	Store rules: the Mac App Store build shows no Buy Me a Coffee link (App Review 3.1.1), and the
+	Stores may link here, so this page carries no tip or payment button. Support is GitHub Issues.
+
+	Other languages: copy this file to fr/index.html or de/index.html, set `lang`, translate the
+	text from that language's section of store-listing.md, prefix every relative path with ../,
+	use that language's screenshot set (store-screenshots/fr, store-screenshots/de) and add the
+	language links to the header of every version. src/lib/docsLinks.test.ts checks that every
+	relative link and image here resolves to a file.
+-->
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<title>Live Translation &amp; Subtitles: live captions for Windows and Mac</title>
+		<meta
+			name="description"
+			content="Free live captions over meetings, calls and slides. Transcribe offline with Whisper in 99 languages or translate into English, or use your own cloud API key for other languages."
+		/>
+		<meta property="og:type" content="website" />
+		<meta property="og:title" content="Live Translation &amp; Subtitles" />
+		<meta
+			property="og:description"
+			content="Free live captions over meetings, calls and slides, offline with Whisper or translated with your own Gemini, OpenAI or DeepL key."
+		/>
+		<meta
+			property="og:image"
+			content="https://fmadore.github.io/Live-translation/assets/hero.jpg"
+		/>
+		<meta property="og:url" content="https://fmadore.github.io/Live-translation/" />
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Crect width='1024' height='1024' rx='224' fill='%23191d23'/%3E%3Cg fill='none' stroke-width='72' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='%235ad1a0' d='M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496'/%3E%3Cpath stroke='%23e9ebef' d='M500 680 L840 680'/%3E%3C/g%3E%3C/svg%3E"
+		/>
+		<style>
+			/* Archivo and IBM Plex Mono, the app's own faces (src/app.css), Latin subset, under the
+			   SIL Open Font License (assets/fonts/*-OFL.txt). Served from here: no font service. */
+			@font-face {
+				font-family: 'Archivo';
+				font-style: normal;
+				font-display: swap;
+				font-weight: 400;
+				src: url('assets/fonts/archivo-latin-400-normal.woff2') format('woff2');
+			}
+			@font-face {
+				font-family: 'Archivo';
+				font-style: normal;
+				font-display: swap;
+				font-weight: 600;
+				src: url('assets/fonts/archivo-latin-600-normal.woff2') format('woff2');
+			}
+			@font-face {
+				font-family: 'Archivo';
+				font-style: normal;
+				font-display: swap;
+				font-weight: 700;
+				src: url('assets/fonts/archivo-latin-700-normal.woff2') format('woff2');
+			}
+			@font-face {
+				font-family: 'IBM Plex Mono';
+				font-style: normal;
+				font-display: swap;
+				font-weight: 400;
+				src: url('assets/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
+			}
+
+			/* The palette of src/app.css: its light theme here, its dark theme (the app's default)
+			   when the system asks for dark. The brand band at the top stays dark in both, as the
+			   app icon does, so the hero art sits on its own ground. */
+			:root {
+				color-scheme: light;
+				--surface-0: #f3f4f6;
+				--surface-1: #ffffff;
+				--surface-2: #e8ebef;
+				--line: #e1e4e9;
+				--line-strong: #cdd2da;
+				--accent: #0b7550;
+				--accent-soft: #0a6646;
+				--accent-wash: rgba(16, 158, 104, 0.08);
+				--accent-chip: rgba(16, 158, 104, 0.14);
+				--accent-border: rgba(11, 117, 80, 0.75);
+				--room: #2f6fe0;
+				--warn: #995200;
+				--warn-wash: rgba(224, 138, 0, 0.08);
+				--warn-border: rgba(224, 138, 0, 0.4);
+				--text-bright: #0d1015;
+				--text-body: #1a1e25;
+				--text-secondary: #394150;
+				--text-muted: #555e6c;
+				--shadow: 0 24px 64px -16px rgba(16, 22, 32, 0.28);
+				--focus: #0a6646;
+
+				/* The brand band: the app icon's colours, the same in both themes. */
+				--brand-tile: #191d23;
+				--brand-ground: #0e1013;
+				--brand-wave: #5ad1a0;
+				--brand-wave-soft: #7fdcb6;
+				--brand-line: #e9ebef;
+				--brand-text: #c3c9d2;
+
+				--font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+				--font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+				--radius-control: 4px;
+				--radius-card: 8px;
+				--tracking-caps: 0.12em;
+				--gutter: 16px;
+				--max: 1160px;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root {
+					color-scheme: dark;
+					--surface-0: #0e1013;
+					--surface-1: #111419;
+					--surface-2: #191d23;
+					--line: #1f242b;
+					--line-strong: #262b33;
+					--accent: #5ad1a0;
+					--accent-soft: #7fdcb6;
+					--accent-wash: rgba(90, 209, 160, 0.08);
+					--accent-chip: rgba(90, 209, 160, 0.14);
+					--accent-border: rgba(90, 209, 160, 0.4);
+					--room: #4f8cff;
+					--warn: #ffb454;
+					--warn-wash: rgba(255, 180, 84, 0.08);
+					--warn-border: rgba(255, 180, 84, 0.4);
+					--text-bright: #f2f4f7;
+					--text-body: #e9ebef;
+					--text-secondary: #c3c9d2;
+					--text-muted: #8b93a1;
+					--shadow: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+					--focus: #7fdcb6;
+				}
+			}
+			@media (min-width: 720px) {
+				:root {
+					--gutter: 32px;
+				}
+			}
+
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+			}
+			html {
+				scroll-behavior: smooth;
+				-webkit-text-size-adjust: 100%;
+			}
+			@media (prefers-reduced-motion: reduce) {
+				html {
+					scroll-behavior: auto;
+				}
+			}
+			body {
+				margin: 0;
+				background: var(--surface-0);
+				color: var(--text-body);
+				font-family: var(--font-sans);
+				font-size: 1.0625rem;
+				line-height: 1.55;
+			}
+			img {
+				max-width: 100%;
+				height: auto;
+				display: block;
+			}
+			a {
+				color: var(--accent);
+				text-underline-offset: 0.18em;
+			}
+			a:hover {
+				color: var(--accent-soft);
+			}
+			:focus-visible {
+				outline: 2px solid var(--focus);
+				outline-offset: 2px;
+			}
+			code,
+			.mono {
+				font-family: var(--font-mono);
+				font-size: 0.86em;
+			}
+			h1,
+			h2,
+			h3 {
+				color: var(--text-bright);
+				line-height: 1.2;
+				margin: 0;
+			}
+			h2 {
+				font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
+				font-weight: 700;
+				letter-spacing: -0.01em;
+			}
+			h3 {
+				font-size: 1.125rem;
+				font-weight: 600;
+			}
+			p {
+				margin: 0;
+			}
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				margin: -1px;
+				padding: 0;
+				overflow: hidden;
+				clip-path: inset(50%);
+				white-space: nowrap;
+				border: 0;
+			}
+			.skip {
+				position: absolute;
+				left: var(--gutter);
+				top: -100px;
+				z-index: 10;
+				padding: 8px 12px;
+				background: var(--brand-wave);
+				color: #05271b;
+				border-radius: var(--radius-control);
+				font-weight: 600;
+			}
+			.skip:focus {
+				top: 12px;
+			}
+			.skip:hover {
+				color: #05271b;
+			}
+			.wrap {
+				max-width: var(--max);
+				margin: 0 auto;
+				padding: 0 var(--gutter);
+			}
+			.kicker {
+				font-size: 0.75rem;
+				font-weight: 600;
+				letter-spacing: var(--tracking-caps);
+				text-transform: uppercase;
+				color: var(--accent);
+				margin-bottom: 12px;
+			}
+			section {
+				padding: 72px 0;
+			}
+			section + section {
+				border-top: 1px solid var(--line);
+			}
+			.lede {
+				color: var(--text-secondary);
+				max-width: 46rem;
+				margin-top: 14px;
+			}
+
+			/* Brand band: header and hero. */
+			.brand {
+				background:
+					radial-gradient(60% 70% at 70% 30%, rgba(90, 209, 160, 0.12), rgba(90, 209, 160, 0) 70%),
+					linear-gradient(var(--brand-tile), var(--brand-ground));
+				color: var(--brand-text);
+				color-scheme: dark;
+				--focus: var(--brand-wave-soft);
+			}
+			.brand a {
+				color: var(--brand-wave);
+			}
+			.top {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				padding-top: 18px;
+				padding-bottom: 18px;
+			}
+			.logo {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				color: var(--brand-line);
+				font-weight: 600;
+				text-decoration: none;
+			}
+			.brand .logo {
+				color: var(--brand-line);
+			}
+			.logo svg {
+				width: 32px;
+				height: 32px;
+				flex: none;
+			}
+			.top nav ul {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 4px 20px;
+				list-style: none;
+				margin: 0;
+				padding: 0;
+				font-size: 0.9375rem;
+			}
+			.brand .top nav a {
+				color: var(--brand-text);
+				text-decoration: none;
+			}
+			.brand .top nav a:hover {
+				color: var(--brand-line);
+				text-decoration: underline;
+			}
+			@media (max-width: 719px) {
+				.top nav {
+					display: none;
+				}
+			}
+			.hero {
+				display: grid;
+				gap: 32px;
+				align-items: center;
+				padding-top: 32px;
+				padding-bottom: 64px;
+			}
+			@media (min-width: 960px) {
+				.hero {
+					grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+					padding-top: 48px;
+					padding-bottom: 88px;
+				}
+			}
+			.hero h1 {
+				color: var(--brand-line);
+				font-size: clamp(2.1rem, 1.4rem + 3vw, 3.4rem);
+				font-weight: 700;
+				letter-spacing: -0.02em;
+				line-height: 1.08;
+			}
+			.hero h1 em {
+				font-style: normal;
+				color: var(--brand-wave);
+			}
+			.hero .intro {
+				margin-top: 20px;
+				font-size: 1.125rem;
+				max-width: 34rem;
+			}
+			/* The art's own dark ground fades into the band, so no edge of the picture shows. */
+			.hero-art {
+				margin: 0;
+				-webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+				mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+			}
+			.get {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 16px;
+				margin-top: 32px;
+			}
+			.get .badge {
+				display: block;
+				line-height: 0;
+				border-radius: 8px;
+			}
+			.get .badge img {
+				height: 56px;
+				width: auto;
+			}
+			.mac-button {
+				display: inline-flex;
+				flex-direction: column;
+				justify-content: center;
+				min-height: 56px;
+				padding: 8px 18px;
+				border: 1px solid rgba(90, 209, 160, 0.4);
+				border-radius: 8px;
+				background: rgba(90, 209, 160, 0.08);
+				text-decoration: none;
+				line-height: 1.25;
+			}
+			.brand .mac-button {
+				color: var(--brand-line);
+			}
+			.mac-button:hover {
+				background: rgba(90, 209, 160, 0.14);
+			}
+			.mac-button strong {
+				font-weight: 600;
+			}
+			.mac-button span {
+				font-size: 0.8125rem;
+				color: var(--brand-text);
+			}
+			.facts {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				list-style: none;
+				margin: 24px 0 0;
+				padding: 0;
+				font-size: 0.875rem;
+			}
+			.facts li {
+				padding: 4px 10px;
+				border: 1px solid #262b33;
+				border-radius: 999px;
+				background: rgba(14, 16, 19, 0.5);
+			}
+
+			/* Feature cards. */
+			.cards {
+				display: grid;
+				gap: 16px;
+				margin-top: 40px;
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+			}
+			.card {
+				background: var(--surface-1);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-card);
+				padding: 22px;
+			}
+			.card h3 {
+				margin-bottom: 8px;
+			}
+			.card p {
+				color: var(--text-secondary);
+				font-size: 0.9688rem;
+			}
+			.card .mark {
+				display: block;
+				width: 28px;
+				height: 3px;
+				border-radius: 2px;
+				background: var(--accent);
+				margin-bottom: 16px;
+			}
+
+			/* Tour. The operating-system switch works without script: two radio buttons, and :has()
+			   shows the matching set. Without :has(), the Windows set shows. */
+			.switch {
+				display: inline-flex;
+				gap: 0;
+				margin: 28px 0 0;
+				padding: 3px;
+				border: 1px solid var(--line-strong);
+				border-radius: 999px;
+				background: var(--surface-1);
+			}
+			.switch legend {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip-path: inset(50%);
+			}
+			.switch input {
+				position: absolute;
+				opacity: 0;
+				pointer-events: none;
+			}
+			.switch label {
+				padding: 6px 16px;
+				border-radius: 999px;
+				cursor: pointer;
+				font-size: 0.9375rem;
+				font-weight: 600;
+				color: var(--text-secondary);
+			}
+			.switch input:checked + label {
+				background: var(--accent-chip);
+				color: var(--text-bright);
+				box-shadow: inset 0 0 0 1px var(--accent-border);
+			}
+			.switch input:focus-visible + label {
+				outline: 2px solid var(--focus);
+				outline-offset: 2px;
+			}
+			.steps {
+				display: grid;
+				gap: 40px 32px;
+				margin: 32px 0 0;
+				padding: 0;
+				list-style: none;
+				counter-reset: step;
+			}
+			@media (min-width: 860px) {
+				.steps {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			.steps li {
+				counter-increment: step;
+			}
+			.steps a.shot {
+				display: block;
+				border-radius: var(--radius-card);
+				overflow: hidden;
+				border: 1px solid var(--line-strong);
+				box-shadow: var(--shadow);
+				background: var(--surface-2);
+			}
+			.steps h3 {
+				display: flex;
+				align-items: baseline;
+				gap: 10px;
+				margin-top: 18px;
+			}
+			.steps h3::before {
+				content: counter(step);
+				font-family: var(--font-mono);
+				font-size: 0.875rem;
+				font-weight: 400;
+				color: var(--accent);
+			}
+			.steps p {
+				margin-top: 6px;
+				color: var(--text-secondary);
+			}
+			.steps a.shot-mac {
+				display: none;
+			}
+			.tour:has(#os-mac:checked) .steps a.shot-win {
+				display: none;
+			}
+			.tour:has(#os-mac:checked) .steps a.shot-mac {
+				display: block;
+			}
+			.tour .small {
+				margin-top: 32px;
+				font-size: 0.875rem;
+				color: var(--text-muted);
+			}
+
+			/* Engine comparison. A table on wide screens; each row becomes a card on a phone. */
+			.engines {
+				width: 100%;
+				margin-top: 36px;
+				border-collapse: separate;
+				border-spacing: 0;
+				background: var(--surface-1);
+				border: 1px solid var(--line);
+				border-radius: var(--radius-card);
+				font-size: 0.9375rem;
+			}
+			.engines caption {
+				text-align: left;
+				caption-side: bottom;
+				padding-top: 12px;
+				font-size: 0.875rem;
+				color: var(--text-muted);
+			}
+			.engines th,
+			.engines td {
+				text-align: left;
+				vertical-align: top;
+				padding: 16px;
+				border-bottom: 1px solid var(--line);
+			}
+			.engines tr:last-child > * {
+				border-bottom: 0;
+			}
+			.engines thead th {
+				font-size: 0.75rem;
+				font-weight: 600;
+				letter-spacing: var(--tracking-caps);
+				text-transform: uppercase;
+				color: var(--text-muted);
+				background: var(--surface-2);
+			}
+			.engines thead th:first-child {
+				border-top-left-radius: var(--radius-card);
+			}
+			.engines thead th:last-child {
+				border-top-right-radius: var(--radius-card);
+			}
+			.engines tbody th {
+				color: var(--text-bright);
+				font-weight: 600;
+				min-width: 9rem;
+			}
+			.engines tbody th small {
+				display: block;
+				margin-top: 4px;
+				font-weight: 400;
+				color: var(--text-muted);
+				font-size: 0.8125rem;
+			}
+			.engines td {
+				color: var(--text-secondary);
+			}
+			.engines .rate {
+				white-space: nowrap;
+				color: var(--text-bright);
+				font-weight: 600;
+			}
+			.engines .model {
+				display: block;
+				color: var(--text-muted);
+				word-break: break-word;
+			}
+			.engines td p + p {
+				margin-top: 8px;
+			}
+			.tag {
+				display: inline-block;
+				margin-top: 6px;
+				padding: 1px 8px;
+				border-radius: 999px;
+				font-size: 0.75rem;
+				font-weight: 600;
+				letter-spacing: 0.02em;
+			}
+			.tag-free {
+				background: var(--accent-chip);
+				color: var(--accent-soft);
+			}
+			.tag-exp {
+				background: var(--warn-wash);
+				color: var(--warn);
+				box-shadow: inset 0 0 0 1px var(--warn-border);
+			}
+			.row-local th,
+			.row-local td {
+				background: var(--accent-wash);
+			}
+			@media (max-width: 859px) {
+				.engines,
+				.engines tbody,
+				.engines tr,
+				.engines th,
+				.engines td {
+					display: block;
+				}
+				.engines {
+					display: flex;
+					flex-direction: column;
+					background: none;
+					border: 0;
+				}
+				.engines thead {
+					position: absolute;
+					width: 1px;
+					height: 1px;
+					overflow: hidden;
+					clip-path: inset(50%);
+				}
+				.engines caption {
+					display: block;
+					order: 1;
+					padding-top: 0;
+				}
+				.engines tr {
+					background: var(--surface-1);
+					border: 1px solid var(--line);
+					border-radius: var(--radius-card);
+					margin-bottom: 16px;
+					overflow: hidden;
+				}
+				.engines tr:last-child > * {
+					border-bottom: 1px solid var(--line);
+				}
+				.engines tr > *:last-child {
+					border-bottom: 0;
+				}
+				.engines td::before {
+					content: attr(data-label);
+					display: block;
+					margin-bottom: 4px;
+					font-size: 0.75rem;
+					font-weight: 600;
+					letter-spacing: var(--tracking-caps);
+					text-transform: uppercase;
+					color: var(--text-muted);
+				}
+			}
+			.sources {
+				margin-top: 28px;
+				padding: 20px 22px;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-card);
+				background: var(--surface-1);
+				font-size: 0.9375rem;
+				color: var(--text-secondary);
+			}
+			.sources h3 {
+				font-size: 1rem;
+				margin-bottom: 8px;
+			}
+			.sources ul {
+				margin: 8px 0 0;
+				padding-left: 1.2em;
+			}
+			.sources li + li {
+				margin-top: 4px;
+			}
+
+			/* Privacy and guides. */
+			.split {
+				display: grid;
+				gap: 32px;
+			}
+			@media (min-width: 860px) {
+				.split {
+					grid-template-columns: 1fr 1fr;
+					gap: 48px;
+				}
+			}
+			.points {
+				margin: 24px 0 0;
+				padding: 0;
+				list-style: none;
+				display: grid;
+				gap: 14px;
+			}
+			.points li {
+				position: relative;
+				padding-left: 28px;
+				color: var(--text-secondary);
+			}
+			.points li::before {
+				content: '';
+				position: absolute;
+				left: 4px;
+				top: 0.55em;
+				width: 10px;
+				height: 10px;
+				border-radius: 50%;
+				background: var(--accent-chip);
+				box-shadow: inset 0 0 0 2px var(--accent);
+			}
+			.points strong {
+				color: var(--text-bright);
+				font-weight: 600;
+			}
+			.guides {
+				margin: 24px 0 0;
+				padding: 0;
+				list-style: none;
+				display: grid;
+				gap: 10px;
+				grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+			}
+			.guides a {
+				display: block;
+				height: 100%;
+				padding: 14px 16px;
+				border: 1px solid var(--line);
+				border-radius: var(--radius-card);
+				background: var(--surface-1);
+				text-decoration: none;
+			}
+			.guides a:hover {
+				border-color: var(--accent-border);
+				background: var(--accent-wash);
+			}
+			.guides strong {
+				display: block;
+				color: var(--text-bright);
+				font-weight: 600;
+			}
+			.guides span {
+				display: block;
+				margin-top: 2px;
+				font-size: 0.875rem;
+				color: var(--text-secondary);
+			}
+			.requirements {
+				display: grid;
+				gap: 16px;
+				margin-top: 32px;
+			}
+			@media (min-width: 720px) {
+				.requirements {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			.requirements ul {
+				margin: 10px 0 0;
+				padding-left: 1.2em;
+				color: var(--text-secondary);
+				font-size: 0.9688rem;
+			}
+			.requirements li + li {
+				margin-top: 4px;
+			}
+			.cta {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12px;
+				margin-top: 18px;
+			}
+			.button {
+				display: inline-flex;
+				align-items: center;
+				min-height: 44px;
+				padding: 8px 18px;
+				border-radius: var(--radius-control);
+				border: 1px solid var(--line-strong);
+				background: var(--surface-1);
+				color: var(--text-bright);
+				font-weight: 600;
+				text-decoration: none;
+			}
+			.button:hover {
+				border-color: var(--accent-border);
+				color: var(--text-bright);
+				background: var(--accent-wash);
+			}
+
+			footer {
+				border-top: 1px solid var(--line);
+				padding: 40px 0 56px;
+				font-size: 0.875rem;
+				color: var(--text-muted);
+			}
+			footer ul {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px 24px;
+				list-style: none;
+				margin: 0 0 20px;
+				padding: 0;
+			}
+			footer p + p {
+				margin-top: 6px;
+			}
+		</style>
+	</head>
+	<body>
+		<a class="skip" href="#main">Skip to content</a>
+		<div class="brand">
+			<header class="wrap top">
+				<a class="logo" href="./" aria-label="Live Translation &amp; Subtitles, home">
+					<svg viewBox="0 0 1024 1024" aria-hidden="true">
+						<rect width="1024" height="1024" rx="224" fill="#111419" />
+						<g fill="none" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+							<path
+								stroke="#5ad1a0"
+								d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
+							/>
+							<path stroke="#e9ebef" d="M500 680 L840 680" />
+						</g>
+					</svg>
+					<span>Live Translation &amp; Subtitles</span>
+				</a>
+				<nav aria-label="Sections">
+					<ul>
+						<li><a href="#features">Features</a></li>
+						<li><a href="#tour">Tour</a></li>
+						<li><a href="#engines">Engines and costs</a></li>
+						<li><a href="#privacy">Privacy</a></li>
+						<li><a href="#guides">Guides</a></li>
+						<li><a href="#download">Download</a></li>
+					</ul>
+				</nav>
+			</header>
+
+			<div class="wrap hero">
+				<div>
+					<h1>Live captions over any <em>meeting, lecture, video call</em> or slide deck.</h1>
+					<p class="intro">
+						Transcribe speech on your own computer with Whisper: download a model once, and captions
+						run offline with no account or subscription. When your audience needs another language,
+						add cloud translation with your own Google Gemini, OpenAI or DeepL API key.
+					</p>
+					<div class="get">
+						<a
+							class="badge"
+							href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&amp;mode=direct"
+						>
+							<img
+								src="https://get.microsoft.com/images/en-us%20dark.svg"
+								alt="Get it from Microsoft"
+								width="160"
+								height="56"
+							/>
+						</a>
+						<a
+							class="mac-button"
+							href="https://github.com/fmadore/Live-translation/releases/latest"
+						>
+							<strong>Download for Mac</strong>
+							<span>Disk image on GitHub · Apple silicon, macOS 15+</span>
+						</a>
+					</div>
+					<ul class="facts" aria-label="At a glance">
+						<li>Free, every feature included</li>
+						<li>Windows 11, x64 and ARM64</li>
+						<li>macOS on Apple silicon (new)</li>
+						<li>English, French and German interface</li>
+					</ul>
+				</div>
+				<figure class="hero-art">
+					<img
+						src="assets/hero.jpg"
+						width="1600"
+						height="900"
+						alt="A glowing speech waveform that splits into five coloured lines of captions."
+						fetchpriority="high"
+					/>
+				</figure>
+			</div>
+		</div>
+
+		<main id="main">
+			<section id="features" aria-labelledby="features-title">
+				<div class="wrap">
+					<p class="kicker">What it does</p>
+					<h2 id="features-title">Captions where people look, in the language they read</h2>
+					<p class="lede">
+						Put live captions over any meeting, lecture, video call or slide deck, offline on your
+						own computer or translated for a multilingual audience.
+					</p>
+					<div class="cards">
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Offline subtitles</h3>
+							<p>
+								Pick a Whisper model and one of 99 spoken languages, or let the app detect the
+								language. Once a model is installed, recognition runs on your computer with no
+								account, API key or internet connection, on its graphics processor when it has a
+								suitable one.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Translation for your audience</h3>
+							<p>
+								Whisper translates into English offline. For other languages, translate with Gemini
+								into 78 languages, with DeepL into 42 or with OpenAI into 13, using your own API
+								key. Show two languages at once, or the original speech beneath the translation.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>On top of everything</h3>
+							<p>
+								Captions appear in a transparent overlay that stays on top of your slides, call or
+								any other app, and lets clicks pass through to the window beneath. It reopens where
+								you last placed it, remembered for each display setup.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Your choice of audio</h3>
+							<p>
+								Listen to a room microphone, the audio playing on your computer, a single app, or
+								the microphone and system audio together.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Tuned for the room</h3>
+							<p>
+								Typeface, size, colours, backing and reading pace; Fit window, Compact or Stable
+								reading, with right-to-left scripts. Save meeting profiles, and pause during breaks
+								with a notice such as “Back soon” on the overlay.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>A transcript you keep</h3>
+							<p>
+								Find words and add markers during a session. Copy the last 5, 10 or 30 minutes, and
+								export text, Markdown, SRT or WebVTT. Optional local history saves sessions to
+								search and reopen later.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Captions in Zoom</h3>
+							<p>
+								Share one caption language with a Zoom meeting's own caption bar, using the caption
+								link the host copies in Zoom. Attendees turn the captions on in Zoom and install
+								nothing.
+							</p>
+						</article>
+						<article class="card">
+							<span class="mark" aria-hidden="true"></span>
+							<h3>Game voice chat</h3>
+							<p>
+								Follow voice chat in another language. The overlay is a separate window, not
+								something injected into the game, so run the game in windowed or borderless mode.
+							</p>
+						</article>
+					</div>
+				</div>
+			</section>
+
+			<section id="tour" class="tour" aria-labelledby="tour-title">
+				<div class="wrap">
+					<p class="kicker">Tour</p>
+					<h2 id="tour-title">From setup to saved transcript in six screens</h2>
+					<fieldset class="switch">
+						<legend>Show screenshots from</legend>
+						<input type="radio" name="os" id="os-win" checked />
+						<label for="os-win">Windows</label>
+						<input type="radio" name="os" id="os-mac" />
+						<label for="os-mac">macOS</label>
+					</fieldset>
+					<ol class="steps">
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/1-whisper.png">
+								<img
+									src="store-screenshots/en/1-whisper.png"
+									width="1920"
+									height="1080"
+									loading="lazy"
+									alt="The setup on Windows after a Whisper session: system audio, spoken language and the Base model ready, every check green, the transcript below."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/1-whisper.png">
+								<img
+									src="store-screenshots/mac/en/1-whisper.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="The setup on a Mac after a Whisper session: system audio, spoken language English and the Base model ready, every check green, the transcript below."
+								/>
+							</a>
+							<h3>Set up offline captions</h3>
+							<p>
+								Offline captions with Whisper: choose a model, spoken language and audio source.
+							</p>
+						</li>
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/2-overlay.png">
+								<img
+									src="store-screenshots/en/2-overlay.png"
+									width="2194"
+									height="1234"
+									loading="lazy"
+									alt="Captions in the click-through overlay, locked low over a slide during a live session."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/2-overlay.png">
+								<img
+									src="store-screenshots/mac/en/2-overlay.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="Captions in the click-through overlay over a slide on a Mac."
+								/>
+							</a>
+							<h3>Keep captions in view</h3>
+							<p>
+								Keep captions visible over your slides or video call in a transparent, click-through
+								overlay.
+							</p>
+						</li>
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/3-bilingual.png">
+								<img
+									src="store-screenshots/en/3-bilingual.png"
+									width="1920"
+									height="1080"
+									loading="lazy"
+									alt="A Gemini translation session into English and German, with the original French speech above the English."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/3-bilingual.png">
+								<img
+									src="store-screenshots/mac/en/3-bilingual.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="A Gemini translation session on a Mac into English and German, with the original speech above the English."
+								/>
+							</a>
+							<h3>Two languages at once</h3>
+							<p>
+								Show two translation languages and include the original speech when the engine
+								supplies it.
+							</p>
+						</li>
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/4-appearance.png">
+								<img
+									src="store-screenshots/en/4-appearance.png"
+									width="1920"
+									height="1080"
+									loading="lazy"
+									alt="Caption settings: presets, size, typeface, colours and contrast, previewed on a bright and a dark slide."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/4-appearance.png">
+								<img
+									src="store-screenshots/mac/en/4-appearance.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="Caption settings on a Mac: presets, size, typeface, colours and backing, previewed on a bright and a dark slide."
+								/>
+							</a>
+							<h3>Make them readable</h3>
+							<p>
+								Choose caption size, typeface and colours, with presets previewed on a bright and a
+								dark slide.
+							</p>
+						</li>
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/5-reading.png">
+								<img
+									src="store-screenshots/en/5-reading.png"
+									width="1920"
+									height="1080"
+									loading="lazy"
+									alt="Reading settings: Stable reading and the editable filler-word list."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/5-reading.png">
+								<img
+									src="store-screenshots/mac/en/5-reading.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="Reading settings on a Mac: Stable reading and the editable filler-word list."
+								/>
+							</a>
+							<h3>Set the reading pace</h3>
+							<p>
+								Stable reading holds captions still, and your own filler-word list hides “um” and
+								“uh”.
+							</p>
+						</li>
+						<li>
+							<a class="shot shot-win" href="store-screenshots/en/6-history.png">
+								<img
+									src="store-screenshots/en/6-history.png"
+									width="1920"
+									height="1080"
+									loading="lazy"
+									alt="Transcript history: a titled session found by search, with copy and export controls and its transcript."
+								/>
+							</a>
+							<a class="shot shot-mac" href="store-screenshots/mac/en/6-history.png">
+								<img
+									src="store-screenshots/mac/en/6-history.png"
+									width="1280"
+									height="800"
+									loading="lazy"
+									alt="Transcript history on a Mac: a titled session found by search, with copy and export controls and its transcript."
+								/>
+							</a>
+							<h3>Keep the transcript</h3>
+							<p>Find a saved session, read its transcript and export text or timed subtitles.</p>
+						</li>
+					</ol>
+					<p class="small">
+						The Windows screenshots show version 1.7.1, from before the Live and Transcript tabs;
+						the Mac ones were taken in November 2026. The speech is a synthesized talk, and nothing
+						shows a real meeting or API key.
+					</p>
+				</div>
+			</section>
+
+			<section id="engines" aria-labelledby="engines-title">
+				<div class="wrap">
+					<p class="kicker">Engines and costs</p>
+					<h2 id="engines-title">Offline, or with your own cloud key</h2>
+					<p class="lede">
+						Whisper runs on your computer for free. The cloud engines need your own account and API
+						key with the provider, which bills you directly: the app supplies no cloud account or
+						credits and sells none.
+					</p>
+					<table class="engines">
+						<caption>
+							Indicative cost for one hour of one audio source, in US dollars, as each provider
+							published it on the date given under the table. Capturing the microphone and system
+							audio together, or showing a second caption language, opens another session and adds
+							to the cost.
+						</caption>
+						<thead>
+							<tr>
+								<th scope="col">Engine</th>
+								<th scope="col">What it does and in which languages</th>
+								<th scope="col">Indicative cost per hour</th>
+								<th scope="col">Where the audio goes</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr class="row-local">
+								<th scope="row">
+									Whisper
+									<small>Offline, on your computer</small>
+									<span class="tag tag-free">No key</span>
+								</th>
+								<td data-label="What it does">
+									<p>
+										Subtitles in the spoken language: 99 languages, or automatic detection.
+										Translation into English only, from any of them.
+									</p>
+									<p>
+										Download Tiny, Base, Small or Large v3 Turbo once (about 31, 57, 182 or 547
+										MiB).
+									</p>
+								</td>
+								<td data-label="Cost per hour"><span class="rate">Free</span></td>
+								<td data-label="Where the audio goes">
+									Stays on your computer. Speech waiting to be processed sits in a temporary file
+									that is deleted automatically. Only the model download goes online, to Hugging
+									Face.
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									Google Gemini
+									<small><a href="https://aistudio.google.com/apikey">Get a key</a></small>
+								</th>
+								<td data-label="What it does">
+									<p>
+										Translation into 78 languages
+										<span class="model mono">gemini-3.5-live-translate-preview</span>
+									</p>
+									<p>
+										Subtitles in the spoken language, detected by the model
+										<span class="model mono">gemini-3.5-transcribe-live</span>
+									</p>
+								</td>
+								<td data-label="Cost per hour">
+									<p><span class="rate">$1.25–2.21</span> translation</p>
+									<p><span class="rate">$0.30–0.54</span> subtitles</p>
+								</td>
+								<td data-label="Where the audio goes">
+									Streamed directly to Google, under your own key and Google's terms.
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									OpenAI
+									<small><a href="https://platform.openai.com/api-keys">Get a key</a></small>
+								</th>
+								<td data-label="What it does">
+									<p>
+										Translation into 13 languages
+										<span class="model mono">gpt-realtime-translate</span>
+									</p>
+								</td>
+								<td data-label="Cost per hour"><span class="rate">$3.06</span></td>
+								<td data-label="Where the audio goes">
+									Streamed directly to OpenAI, under your own key and OpenAI's terms.
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									DeepL
+									<small><a href="https://www.deepl.com/your-account/keys">Get a key</a></small>
+									<span class="tag tag-exp">Experimental</span>
+								</th>
+								<td data-label="What it does">
+									<p>
+										Translation into 42 languages; the spoken language is detected. Needs a paid
+										DeepL API plan: free DeepL API keys are refused.
+									</p>
+								</td>
+								<td data-label="Cost per hour"><span class="rate">≈ $1.85</span></td>
+								<td data-label="Where the audio goes">
+									Streamed directly to DeepL SE (Cologne, Germany), under your own DeepL account and
+									terms.
+								</td>
+							</tr>
+							<tr>
+								<th scope="row">
+									Mistral
+									<small><a href="https://console.mistral.ai/api-keys">Get a key</a></small>
+								</th>
+								<td data-label="What it does">
+									<p>
+										Subtitles in the spoken language, detected by the model; Mistral counts 45
+										languages and dialects
+										<span class="model mono">voxtral-mini-transcribe-realtime-3-0</span>
+									</p>
+								</td>
+								<td data-label="Cost per hour"><span class="rate">$0.48</span></td>
+								<td data-label="Where the audio goes">
+									Streamed directly to Mistral, under your own key and Mistral's terms.
+								</td>
+							</tr>
+						</tbody>
+					</table>
+
+					<div class="sources">
+						<h3>Where the rates come from</h3>
+						<p>
+							Providers change their prices: check theirs before a long session. The app shows a
+							running cost estimate, and an optional spending guard can warn you when it passes a
+							limit you set.
+						</p>
+						<ul>
+							<li>
+								Gemini and OpenAI: the
+								<a href="https://ai.google.dev/gemini-api/docs/pricing">Gemini API pricing</a> and
+								<a href="https://developers.openai.com/api/docs/pricing">OpenAI API pricing</a>
+								pages, last checked 27 August 2026. Gemini is a range because its output is billed
+								only while it translates; OpenAI's figure includes the transcript of the original
+								speech, billed on top of the translation.
+							</li>
+							<li>
+								Mistral: the
+								<a href="https://docs.mistral.ai/models/voxtral-mini-transcribe-realtime-3-0"
+									>Voxtral Mini Transcribe Realtime 3 model card</a
+								>, $0.008 per minute, checked 21 October 2026. Mistral lists the model as a public
+								preview.
+							</li>
+							<li>
+								DeepL: not on DeepL's public pricing page, which sells speech hours inside its API
+								plans. The figure is the overage price per hour of speech to text that third parties
+								report, checked 11 November 2026.
+							</li>
+						</ul>
+					</div>
+				</div>
+			</section>
+
+			<section id="privacy" aria-labelledby="privacy-title">
+				<div class="wrap split">
+					<div>
+						<p class="kicker">Privacy</p>
+						<h2 id="privacy-title">Your audio goes where you send it, and nowhere else</h2>
+						<p class="lede">
+							The developer operates no server, account system or telemetry for this app, and
+							receives no audio, captions, transcripts, API keys or usage data from it.
+						</p>
+						<div class="cta">
+							<a class="button" href="privacy.html">Read the privacy policy</a>
+						</div>
+					</div>
+					<ul class="points">
+						<li>
+							<strong>With Whisper, audio stays on your computer.</strong> Once a model is
+							installed, captions need no network connection.
+						</li>
+						<li>
+							<strong>With a cloud engine, audio goes straight to the provider you chose.</strong>
+							The first time you start a session with each provider, the app asks before sending it
+							any audio.
+						</li>
+						<li>
+							<strong>API keys stay in Windows Credential Manager or the macOS Keychain,</strong>
+							and are sent only to their provider.
+						</li>
+						<li>
+							<strong>Transcripts are yours.</strong> They are written to disk only when you save
+							them, or when you turn on history or crash recovery, which stay off until you enable
+							them.
+						</li>
+						<li>
+							<strong>Sharing captions with Zoom</strong> starts only when you choose it, and sends
+							caption text, never audio, directly to Zoom.
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<section id="guides" aria-labelledby="guides-title">
+				<div class="wrap">
+					<p class="kicker">Guides</p>
+					<h2 id="guides-title">How it works, in detail</h2>
+					<ul class="guides">
+						<li>
+							<a href="local-whisper.html">
+								<strong>Offline captions with Whisper</strong>
+								<span>Models, languages, translation into English, the graphics processor.</span>
+							</a>
+						</li>
+						<li>
+							<a href="application-capture.html">
+								<strong>Capturing one application</strong>
+								<span>Caption a single app's audio instead of the whole system.</span>
+							</a>
+						</li>
+						<li>
+							<a href="zoom-captions.html">
+								<strong>Captions in Zoom</strong>
+								<span>Share one caption language with a meeting's caption bar.</span>
+							</a>
+						</li>
+						<li>
+							<a href="usability.html">
+								<strong>Meeting controls and profiles</strong>
+								<span>Pause, two caption languages, profiles and shortcuts.</span>
+							</a>
+						</li>
+						<li>
+							<a href="caption-layout.html">
+								<strong>Caption layout</strong>
+								<span>Overlay placement, reading modes and filler-word lists.</span>
+							</a>
+						</li>
+						<li>
+							<a href="language-coverage.html">
+								<strong>Caption languages</strong>
+								<span>Which languages each engine offers.</span>
+							</a>
+						</li>
+						<li>
+							<a href="transcript-export.html">
+								<strong>Transcript export</strong>
+								<span>Text, Markdown, SRT and WebVTT.</span>
+							</a>
+						</li>
+						<li>
+							<a href="transcript-history.html">
+								<strong>Transcript history</strong>
+								<span>Saving, searching and reopening past sessions.</span>
+							</a>
+						</li>
+						<li>
+							<a href="accessibility.html">
+								<strong>Accessibility</strong>
+								<span>Keyboard, Narrator, text size and contrast themes.</span>
+							</a>
+						</li>
+					</ul>
+				</div>
+			</section>
+
+			<section id="download" aria-labelledby="download-title">
+				<div class="wrap">
+					<p class="kicker">Download</p>
+					<h2 id="download-title">Get the app</h2>
+					<div class="requirements">
+						<div class="card">
+							<h3>Windows</h3>
+							<ul>
+								<li>Windows 11, with native x64 and ARM64 packages.</li>
+								<li>The Microsoft Edge WebView2 Runtime.</li>
+								<li>
+									On x64, Whisper needs a processor with AVX2; the cloud engines work without it.
+								</li>
+							</ul>
+							<div class="cta">
+								<a
+									class="button"
+									href="https://apps.microsoft.com/detail/9PFB8LR3RR9X?referrer=appbadge&amp;mode=direct"
+									>Microsoft Store</a
+								>
+								<a class="button" href="https://github.com/fmadore/Live-translation/releases/latest"
+									>Installers on GitHub</a
+								>
+							</div>
+						</div>
+						<div class="card">
+							<h3>macOS</h3>
+							<ul>
+								<li>A Mac with Apple silicon and macOS 15 or later.</li>
+								<li>
+									macOS asks for access to the microphone and to System Audio Recording the first
+									time you use them; no screen content is recorded.
+								</li>
+								<li>The Mac version is new: a signed and notarised disk image on GitHub.</li>
+							</ul>
+							<div class="cta">
+								<a class="button" href="https://github.com/fmadore/Live-translation/releases/latest"
+									>Disk image on GitHub</a
+								>
+							</div>
+						</div>
+					</div>
+					<p class="lede">
+						Questions, problems or ideas? Open an issue on
+						<a href="https://github.com/fmadore/Live-translation/issues">GitHub Issues</a>. What
+						changed in each version is in the
+						<a href="https://github.com/fmadore/Live-translation/releases">release notes</a>.
+					</p>
+				</div>
+			</section>
+		</main>
+
+		<footer>
+			<div class="wrap">
+				<ul>
+					<li><a href="privacy.html">Privacy policy</a></li>
+					<li><a href="https://github.com/fmadore/Live-translation/issues">Support</a></li>
+					<li><a href="https://github.com/fmadore/Live-translation">Source code</a></li>
+					<li>
+						<a href="https://github.com/fmadore/Live-translation/blob/main/docs/README.md"
+							>Developer documentation</a
+						>
+					</li>
+				</ul>
+				<p>Live Translation &amp; Subtitles is free and open source, under the MIT license.</p>
+				<p>
+					Zoom is a trademark of Zoom Communications, Inc. Live Translation &amp; Subtitles is not
+					affiliated with or endorsed by Zoom.
+				</p>
+			</div>
+		</footer>
+	</body>
+</html>

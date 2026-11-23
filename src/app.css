@@ -357,14 +357,17 @@ input[type='checkbox']:focus-visible {
 }
 
 /* Safety net for reduced motion: the two windows already disable their own sweep, breathe,
-   blink and meter transitions, and this catches anything added later that forgets to. */
+   blink and meter transitions, and this catches anything added later that forgets to.
+   Transitions get no time at all, not a token 0.01 ms: any duration still starts one, for every
+   property, and the overlay, which measures its captions as soon as their size changes, would
+   read the size they had (#241). Nothing waits for a `transitionend`. */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
 	*::after {
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
+		transition-duration: 0s !important;
 		scroll-behavior: auto !important;
 	}
 }

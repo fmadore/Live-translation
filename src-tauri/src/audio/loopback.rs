@@ -155,9 +155,13 @@ mod macos_impl {
     /// zeros, which on their own look exactly like a quiet room. So while another process is
     /// playing into what is tapped and not one non-zero sample has arrived for
     /// [`SILENCED_AFTER`], each check sends a level marked `silenced`, which the interface
-    /// shows as the permission to look at. Real sound clears it at once.
+    /// shows as the permission to look at. Real sound clears it at once, and for the rest of
+    /// the capture: one non-zero sample shows the permission was granted, so a later stretch of
+    /// zeros (a pause in a call whose app keeps its output running) is silence, not a refusal.
     pub(super) struct SilenceWatch {
         level_tx: Sender<AudioLevel>,
+        /// Whether the tap has delivered a non-zero sample since this capture started.
+        ever_heard: bool,
         /// Since when something has been playing with nothing heard; `None` otherwise.
         quiet_since: Option<Instant>,
         warned: bool,
@@ -169,16 +173,18 @@ mod macos_impl {
         pub(super) fn new(level_tx: Sender<AudioLevel>) -> Self {
             Self {
                 level_tx,
+                ever_heard: false,
                 quiet_since: None,
                 warned: false,
                 last: None,
             }
         }
 
-        /// One check: whether the tap heard anything since the last one, and (only asked when
-        /// it did not) whether anything is playing.
+        /// One check: whether the tap heard anything since the last one, and (only asked while
+        /// it has never heard anything) whether anything is playing.
         pub(super) fn check(&mut self, heard: bool, playing: impl FnOnce() -> bool, now: Instant) {
-            let playing = !heard && playing();
+            self.ever_heard |= heard;
+            let playing = !self.ever_heard && playing();
             let state = (heard, playing);
             if self.last != Some(state) {
                 tracing::debug!(heard, playing, "system capture signal");
@@ -246,18 +252,37 @@ mod macos_impl {
             assert!(rx.try_recv().is_err());
         }
 
+        /// #232: a call app that keeps its output running while everyone is quiet used to bring
+        /// the permission hint back mid-meeting, although sound had already come through.
         #[test]
-        fn sound_arriving_starts_the_wait_again() {
+        fn silence_after_real_sound_is_never_reported() {
             let (mut watch, mut rx) = watch();
             let start = Instant::now();
             watch.check(false, || true, start);
             watch.check(false, || true, start + Duration::from_secs(2));
             watch.check(true, || true, start + Duration::from_secs(3));
+            for second in 4..120 {
+                watch.check(false, || true, start + Duration::from_secs(second));
+            }
+            assert!(rx.try_recv().is_err());
+        }
+
+        /// Until something is heard, the hint still comes, the wait starting again whenever
+        /// nothing plays for a moment.
+        #[test]
+        fn a_capture_that_never_heard_anything_is_still_reported_after_a_pause() {
+            let (mut watch, mut rx) = watch();
+            let start = Instant::now();
+            watch.check(false, || true, start);
+            watch.check(false, || false, start + Duration::from_secs(2));
             watch.check(false, || true, start + Duration::from_secs(4));
             watch.check(false, || true, start + Duration::from_secs(6));
-            assert!(rx.try_recv().is_err());
+            assert!(
+                rx.try_recv().is_err(),
+                "the wait starts again after a pause"
+            );
             watch.check(false, || true, start + Duration::from_secs(7));
-            assert!(rx.try_recv().is_ok());
+            assert!(rx.try_recv().expect("a silenced level").silenced);
         }
     }
 }

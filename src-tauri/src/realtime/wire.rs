@@ -1,6 +1,8 @@
 //! What the providers' protocols share on the wire, so each provider module only spells out
 //! what is its own.
 
+use std::time::Duration;
+
 use anyhow::{Context, Result};
 use serde::de::DeserializeOwned;
 use tokio_tungstenite::tungstenite::client::IntoClientRequest;
@@ -8,7 +10,26 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 use tokio_tungstenite::tungstenite::http::{HeaderValue, header::AUTHORIZATION};
 use tokio_tungstenite::tungstenite::protocol::CloseFrame;
 
-use super::{MessageControl, MessageOutcome, RealtimeProtocol};
+use super::{Keepalive, MessageControl, MessageOutcome, RealtimeProtocol};
+use crate::audio::AudioChunk;
+
+/// How long a source may send no audio before `idle_keepalive` sends silence: well within the
+/// 30 seconds after which DeepL and Mistral end a session.
+const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
+/// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
+const SILENCE_BYTES: usize = 3_200;
+
+/// The keepalive of a provider that ends a session after 30 seconds without audio, as DeepL
+/// and Mistral both do: 100 ms of silence whenever the source has sent none for
+/// `KEEPALIVE_AFTER`.
+pub fn idle_keepalive() -> Keepalive {
+    Keepalive {
+        after: KEEPALIVE_AFTER,
+        silence: AudioChunk {
+            pcm_le: vec![0; SILENCE_BYTES],
+        },
+    }
+}
 
 /// A WebSocket handshake authenticated with an `Authorization: Bearer` header, as OpenAI and
 /// Mistral both require. `provider` names it in the errors, which the operator reads as the
@@ -38,14 +59,21 @@ pub fn parse_or_log<T: DeserializeOwned>(provider: &str, text: &str) -> Option<T
     }
 }
 
+/// The marks that end a sentence: Latin, Chinese and Japanese (full width), Arabic and
+/// Devanagari. One table for every caller, so where the realtime engines close a turn
+/// (`ends_sentence`) and where Zoom captions are cut (`zoom::publish`) cannot disagree.
+pub const SENTENCE_ENDERS: [char; 9] = ['.', '?', '!', '…', '。', '？', '！', '؟', '।'];
+
+/// Closing quotes and brackets, which belong to the sentence they close: `He said "Stop."`
+/// and `「始めましょう。」` end where their last mark does.
+pub const CLOSING_MARKS: [char; 11] = ['"', '\'', '”', '’', '»', ')', ']', '」', '』', '）', '】'];
+
 /// Whether the text ends a sentence, closing quotes and brackets aside, and the (often
 /// non-breaking) space French sets before them. Mistral holds a line open until one ends;
 /// DeepL closes a line when its concluded translation reaches one.
 pub fn ends_sentence(text: &str) -> bool {
-    text.trim_end_matches(|c: char| {
-        c.is_whitespace() || matches!(c, '"' | '\'' | '”' | '’' | '»' | ')' | ']')
-    })
-    .ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
+    text.trim_end_matches(|c: char| c.is_whitespace() || CLOSING_MARKS.contains(&c))
+        .ends_with(SENTENCE_ENDERS)
 }
 
 /// What a provider's failure means for the source. Every provider's `error` event, and a close
@@ -458,12 +486,16 @@ mod tests {
             "« Bonjour.\u{a0}»",
             "(fin.)",
             "完了。",
+            // A quoted sentence used to leave the turn open.
+            "「始めましょう。」",
+            "（以上です。）",
             "انتهى؟",
+            "आज की बैठक समाप्त हुई।",
             "Ende!  ",
         ] {
             assert!(ends_sentence(text), "{text}");
         }
-        for text in ["Utilisez cet", "à l'", "Dr", "", "and,"] {
+        for text in ["Utilisez cet", "à l'", "Dr", "", "and,", "「始めましょう」"] {
             assert!(!ends_sentence(text), "{text}");
         }
     }

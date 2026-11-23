@@ -10,7 +10,7 @@ on a real Mac (a rented Scaleway Mac mini). The Mac App Store's own steps are in
 **First run on a real Mac done; its bugs fixed.** CI compiles, lints and tests the Rust core on
 Apple silicon, runs the multilingual Whisper smoke test there, builds the app and starts it on
 the runner, in and out of the App Sandbox. On 10–11 November the app was built from source and
-driven on an M2 Mac mini (macOS 26.7.3, no microphone, speakers and an HDMI display), both the
+driven on an M2 Mac mini (macOS 26.7.3, speakers and an HDMI display, no microphone), both the
 direct build and the sandboxed one, through the accessibility interface; see
 [First run](#first-run-1011-november-2026). *Tested* below means that run, not a real meeting.
 
@@ -24,7 +24,7 @@ direct build and the sandboxed one, through the accessibility interface; see
 | Transcript export | native Save panel (`NSSavePanel`, through rfd); atomic write | tested, direct and sandboxed |
 | External links | `NSWorkspace` opens the support page and the Zoom guide | to test |
 | API keys | login Keychain (keyring's Apple backend) | tested, direct and sandboxed |
-| Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16 and Accelerate's BLAS | tested (Metal, Base model) |
+| Local Whisper | Metal on the graphics processor (switch in the setup), CPU fallback with ARMv8.2 dot-product and FP16, and Accelerate's BLAS | tested (Metal, Base model) |
 | Quit and Dock | ⌘Q runs the tray's Quit (stop, finalize, ask); Dock icon reopens the window | tested |
 | Interface | macOS's words in EN/FR/DE (`i18n/mac.ts`); ⌘ shortcuts written ⇧⌘P | tested |
 | Packaging | `.app` and `.dmg`, ad hoc in CI; signed and notarised in each release | built locally; notarised build to test |
@@ -38,7 +38,7 @@ direct build and the sandboxed one, through the accessibility interface; see
   `src-tauri/tauri.macos.conf.json` sets it, which also sets the deployment target the native
   Whisper build compiles for.
 - **System audio through a Core Audio tap, not ScreenCaptureKit.** The issue proposed
-  prototyping ScreenCaptureKit first and taps if that made audio-only capture awkward. A tap is
+  prototyping ScreenCaptureKit first, and taps if that made audio-only capture awkward. A tap is
   audio only by design, needs no screen-recording permission, and its process list gives
   application capture directly. `src-tauri/src/audio/tap.rs` creates a private process tap and
   a private aggregate device holding only that tap, reads it from Core Audio's I/O callback, and
@@ -131,7 +131,7 @@ repository secrets work here (Settings → Secrets and variables → Actions):
 `APPLE_SIGNING_IDENTITY` (`Developer ID Application: Frédérick Madore (3HMSG8WB7K)`),
 `APPLE_ID`, `APPLE_PASSWORD` (an app-specific password) and `APPLE_TEAM_ID`. The test-build workflow
 reads them only when run by hand with *sign* ticked, never on a push, and both it and the
-release stop if one is missing rather than sign ad hoc silently. A signed build keeps its microphone and System Audio
+release stop if one is missing rather than silently sign ad hoc. A signed build keeps its microphone and System Audio
 Recording permissions and its Keychain access across rebuilds; an ad-hoc build may be asked
 again after each one.
 
@@ -161,7 +161,7 @@ The speech samples ship inside the app:
       operator window, and the transparent caption overlay with no frame or shadow.
 - [ ] **Keyless demonstration:** the engine *Built-in demo* plays captions with no key, no
       network and no audio captured.
-- [ ] **Whisper offline:** download the Tiny or Base model; start a session with *system audio*
+- [ ] **Whisper offline:** download the Tiny or Base model; start a session with *System audio*
       as the source and the Mac mini's speakers as the output; `afplay rehearsal-en.wav`.
       macOS asks for *System Audio Recording*, naming Live Translation with the description
       text. Allow: captions appear in the overlay and the transcript; the level meter moves.
@@ -273,9 +273,11 @@ writes in place and truncates a longer file it replaces, and the support link is
   arrive for three seconds, the meter events are marked `silenced` and the interface names the
   setting to open (`SilenceWatch` in `audio/loopback.rs`). Retested: the hint appeared three
   seconds into `afplay` on a refused build and went once it stopped. There is no public API to
-  ask for the permission itself; a stream that really plays digital silence (a muted call that
-  keeps its output open) shows the same hint, which disappears with the first real sound. While
-  the question is still on screen nothing is shown: Core Audio answers nothing until then, and
+  ask for the permission itself; a stream that really plays digital silence (a call joined
+  while everyone is muted, with its output open) shows the same hint until the first real
+  sound. That sound proves the permission was granted, so the hint then stays away for the
+  rest of the capture, through any later pause in the call (#232; not yet tried in a real call
+  on a Mac). While the question is still on screen nothing is shown: Core Audio answers nothing until then, and
   the question is in front of the operator anyway.
 - *No microphone* was reported as a blocked privacy setting (`'!obj'` from a default input
   device that does not exist) and the picker still offered "System default"; it now says no

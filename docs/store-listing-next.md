@@ -67,9 +67,11 @@ and changes three feature lines in place (the fourth, twelfth and fourteenth), s
 at twenty. No capability or product declaration changes: the MSIX capabilities are still
 `runFullTrust` and `microphone`, pinned by `src/lib/msixIdentity.test.ts`, and
 `AppxManifest.xml.template` and `bundle.config.json` are unchanged since `v1.14.0`. The privacy
-policy's effective date is **16 November 2026**: it adds the check for new versions (GitHub
-copies only), the system-wide keys (the app is told of these two combinations only) and the
-markers kept with the transcript. 1.14.0 was in the Store before that change was published,
+policy's effective date is **23 November 2026**. The 16 November version added the check for
+new versions (GitHub copies only), the system-wide keys (the app is told of these two
+combinations only) and the markers kept with the transcript; the 23 November one only corrects
+where the names and terms are used (Gemini Transcribe and local Whisper as well as Mistral),
+with nothing new sent, so the listing needs no matching line. 1.14.0 was in the Store before that change was published,
 which is harmless: the policy describes features the Store copy either lacks or does not yet have.
 
 ## What 1.14.0 adds

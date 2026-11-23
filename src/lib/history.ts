@@ -405,6 +405,15 @@ export function createHistoryCoordinator(
 		if (wait <= 0) writeAppends();
 		else timer = setTimeout(writeAppends, wait);
 	}
+	/** Take back the deletion of sessions the core did not delete: they stay listed, so they
+	 *  stay renameable, and the recording one is written again, whole, with what its lines
+	 *  gained meanwhile. */
+	function undelete(ids: Iterable<string>) {
+		for (const id of ids) {
+			if (!deleted.delete(id)) continue;
+			if (active?.id === id) persist();
+		}
+	}
 	/** Cancel a scheduled append write, reporting whether one was waiting. */
 	function cancelScheduled() {
 		if (timer === undefined) return false;
@@ -498,7 +507,12 @@ export function createHistoryCoordinator(
 			written.delete(id);
 			if (active?.id === id) cancelScheduled();
 			const result = queue.then(async () => {
-				await port.deleteHistory(id);
+				try {
+					await port.deleteHistory(id);
+				} catch (error) {
+					undelete([id]);
+					throw error;
+				}
 				failed.delete(id);
 				onSaved(failed.size > 0);
 			});
@@ -515,7 +529,14 @@ export function createHistoryCoordinator(
 				if (active?.id === id) cancelScheduled();
 			}
 			const result = queue.then(async () => {
-				const outcome = await port.deleteHistories(ids);
+				let outcome: BatchDeletion;
+				try {
+					outcome = await port.deleteHistories(ids);
+				} catch (error) {
+					undelete(ids);
+					throw error;
+				}
+				undelete(outcome.failed.map((failure) => failure.item));
 				for (const id of outcome.deleted) failed.delete(id);
 				onSaved(failed.size > 0);
 				return outcome;

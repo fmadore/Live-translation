@@ -36,8 +36,8 @@ Demo scripts and rehearsal recordings remain restricted to English/French.
 
 `src/lib/languages.json` is the source of truth: English fallback names, endonyms, provider
 memberships, source URLs and verification dates. Run `npm run generate:languages` after
-editing it to regenerate the TypeScript union and the Rust enum/support checks; a test runs the
-equivalent of `npm run check:languages` to reject drift. Norwegian uses `no`, with `nb` as a
+editing it to regenerate the TypeScript union and the Rust enum/support checks;
+`npm run check:languages`, run by `npm run verify` and by CI, rejects drift. Norwegian uses `no`, with `nb` as a
 search alias rather than a second option. Portuguese region and Chinese script tags stay
 distinct.
 

@@ -326,6 +326,7 @@ impl Worker {
             // An acknowledgement from an earlier request is not this one's.
             while let Ok((written, result)) = self.written.try_recv() {
                 if let (true, Err(error)) = (written == serial, result) {
+                    self.settle();
                     bail!(
                         "The graphics processor helper stopped ({}): {error}",
                         self.status()
@@ -346,9 +347,24 @@ impl Worker {
                     bail!("The graphics processor helper stopped answering");
                 }
                 Err(RecvTimeoutError::Disconnected) => {
+                    self.settle();
                     bail!("The graphics processor helper stopped ({})", self.status())
                 }
             }
+        }
+    }
+
+    /// Give a helper whose pipes have closed up to [`LAST_WORDS`] to end, so that its exit code
+    /// and the last lines of its standard error can say why. On Windows a dying process closes
+    /// its pipes a little before its handle is signalled, and until then it reads as running.
+    /// Only waits: a helper that is still running after that is ended by whoever drops it.
+    fn settle(&mut self) {
+        let Some(child) = self.child.as_mut() else {
+            return;
+        };
+        let deadline = Instant::now() + LAST_WORDS;
+        while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
         }
     }
 
@@ -931,6 +947,57 @@ mod tests {
         // The writing thread was freed with it: the next request finds the input closed.
         let again = format!("{:#}", window(&mut worker).unwrap_err());
         assert!(again.contains("helper stopped"), "{again}");
+    }
+
+    /// A helper whose answers stop before it has ended, as a dying process's pipes close on
+    /// Windows a little before its handle is signalled: the failure waits for it to end, and
+    /// says both how it ended and the last thing it wrote on standard error.
+    #[cfg(any(windows, unix))]
+    #[test]
+    fn a_helper_that_dies_is_reported_with_its_exit_code_and_last_words() {
+        // It ends just after the request reaches it (Windows) or a moment after its last line
+        // (elsewhere): either way after its answers have stopped.
+        #[cfg(windows)]
+        let mut command = {
+            use std::os::windows::process::CommandExt;
+            let mut command = Command::new("cmd");
+            command.arg("/C").raw_arg(
+                "echo whisper-vulkan: no device memory left 1>&2 & set /p request= & exit 42",
+            );
+            command
+        };
+        #[cfg(unix)]
+        let mut command = {
+            let mut command = Command::new("sh");
+            command.args([
+                "-c",
+                "echo 'whisper-vulkan: no device memory left' >&2; sleep 0.1; exit 42",
+            ]);
+            command
+        };
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let (stdin, stderr) = (child.stdin.take().unwrap(), child.stderr.take().unwrap());
+        // Its answers come through a pipe the test holds, closed while the helper still runs.
+        let (answers, closed) = io::pipe().unwrap();
+        let mut worker = Worker::attach(Some(child), stdin, answers, stderr, QUICK).unwrap();
+        let said = Instant::now() + Duration::from_secs(10);
+        while lock(&worker.recent).is_empty() && Instant::now() < said {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        drop(closed);
+        let error = format!(
+            "{:#}",
+            worker
+                .load(&load_request(), &CancellationToken::new())
+                .unwrap_err()
+        );
+        assert!(error.contains("no device memory left"), "{error}");
+        assert!(error.contains("exit") && error.contains(": 42"), "{error}");
     }
 
     #[test]

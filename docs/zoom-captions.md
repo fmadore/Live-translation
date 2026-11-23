@@ -10,7 +10,7 @@ The app can send its captions to Zoom's own caption bar, so attendees turn them 
 any other captions and nobody installs anything. It uses Zoom's third-party caption interface,
 documented in [Zoom's support article](https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060368).
 
-Sharing sends **caption text only**. Which audio is captured, and which engine captions it, is
+Sharing sends **caption text only**. Which audio is captured, and which engine captions it, are
 set up as before: the microphone for the room, system or application audio for the remote
 participants, local Whisper or a cloud engine. Sharing never opens another provider session,
 so it adds no provider cost.
@@ -37,7 +37,7 @@ this page.
    meeting: copy a new one for the next.
 3. **In the app**, choose **Zoom captions** in the toolbar, paste the link into **Caption link (API
    token)**, choose the caption language (with two caption languages) and the sources (with the
-   microphone and system audio both captured), and **Start sharing**. Starting asks Zoom for the
+   microphone and system audio both captured), then click **Start sharing**. Starting asks Zoom for the
    meeting's last caption number, which checks the link without showing anything to attendees.
 4. **Send test caption** shows one line to everyone in the meeting, to confirm it arrives.
 5. **Attendees** turn captions on with **Show Captions** (or **CC**) in their own meeting
@@ -50,7 +50,7 @@ sharing on: the meeting sees nothing of them, and the status keeps Zoom's last a
 until a real session sends again.
 
 To caption Zoom only, untick **Show captions on this screen too** in the dialog. It hides the
-overlay, exactly as the overlay's own Hide button, the tray menu and Ctrl+Shift+O do, and the
+overlay, exactly like the overlay's own Hide button, the tray menu and Ctrl+Shift+O do, and the
 overlay stays hidden until it is shown again by any of them; sharing is unaffected.
 
 ### What the status means
@@ -67,10 +67,9 @@ Captions that could not be delivered in time are counted as skipped.
 ## What is sent, and when
 
 The link is a credential for the meeting's captions. The app keeps it in memory until it quits,
-so stopping and starting again needs no new paste. It is never written to the saved setup, a
+so it need not be pasted again after a Stop and Start. It is never written to the saved setup, a
 meeting profile, history, the recovery copy or a log, and the field is masked because the
-operator's screen may be projected. Errors name what was wrong
-with a link, never the link.
+operator's screen may be projected. Errors name what was wrong with a link, never the link.
 
 Only finished text is sent, so attendees never see a hypothesis that is later revised:
 
@@ -95,7 +94,7 @@ language posted to a meeting at once rather than letting each attendee choose on
   A retry keeps its number. After a caption is given up, the app asks Zoom for the last number
   it accepted before sending the next one.
 - Each request times out after 3 seconds. Failures Zoom lists as worth retrying (400, 403, 405,
-  408, 500, 502, 503, 504, plus 429 and network errors) are retried with randomized exponential
+  408, 500, 502, 503, 504, plus 429 and network errors) are retried with randomised exponential
   backoff for about 5 seconds; anything else is given up at once.
 - At most 64 captions wait to be sent, and a caption still waiting after 15 seconds is skipped:
   after an outage the meeting sees current captions, not a replay of the backlog.
@@ -120,7 +119,7 @@ account, and captions arrived in Zoom's caption bar. That test is the release ga
 The finer checks below are still to be recorded one by one, with the Zoom client version, the
 account type and the date; they no longer hold the release.
 
-- [x] Host setup as described above on a basic (free) account (27 October 2026).
+- [x] Host setup as described above on a Basic (free) account (27 October 2026).
 - [ ] Host setup on a licensed account.
 - [ ] The start check against a meeting that has not started, one that has, and an expired link.
 - [ ] Attendees on Windows, macOS, a phone and the web client see the captions, with accents

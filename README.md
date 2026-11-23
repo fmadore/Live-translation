@@ -16,15 +16,17 @@ Free, with every feature included. If it is useful to you, you can
 and German interface · MIT license**
 
 The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
-whose results and open points are in the [macOS notes](docs/macos.md). Each GitHub release attaches a notarised disk image,
-and a free Mac App Store version, 1.13.1, is still in Apple's review ([submission notes](docs/mac-app-store.md)).
+and the [macOS notes](docs/macos.md) give the results and the open points. Each GitHub release
+attaches a notarised disk image. A free Mac App Store version, 1.13.1, is still in Apple's review
+([submission notes](docs/mac-app-store.md)).
 
 **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** was tagged and
 published on GitHub on 17 November 2026; its Store submission is still to be made. For the
-person running the captions: a spending guard for cloud engines, markers and Find in the
+person running the captions, it adds a spending guard for cloud engines, markers and Find in the
 transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys, and
-several saved sessions deleted or saved at once in History; a new-version notice for copies
-installed from GitHub; and the fixes of the [16 November review](docs/app-review-2026-11-16.md). See its
+deleting or saving several saved sessions at once in History. Copies installed from GitHub get a
+new-version notice, and the release has the fixes of the
+[16 November review](docs/app-review-2026-11-16.md). See its
 [release notes](docs/release-1.15.0.md) and
 [Store handoff](docs/store-updates.md#release-1150-handoff).
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
@@ -43,18 +45,19 @@ both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
   and accuracy depend on the computer, model and language; on x64, Whisper needs a processor
   with AVX2.
 - **Offline translation into English.** Whisper also translates any of those languages into
-  English, with the same models and no key. English is its only target; choose Small, since
+  English, with the Tiny, Base and Small models and no key (Large v3 Turbo cannot translate).
+  English is its only target; choose Small, since
   Tiny and Base translate poorly.
-- **Cloud translation and subtitles.** Gemini offers 78 translation targets, DeepL 42 and
-  OpenAI 13 in the app's catalog; DeepL needs a paid DeepL API plan, since its Voice API is not
-  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral also offer same-language subtitles; with them, and with
-  local Whisper, a list of names and terms helps spell speakers, institutions and jargon.
-  Cloud engines need your
-  own compatible account, API key and internet connection; provider usage charges apply.
+- **Cloud translation and subtitles.** Gemini offers 78 translation targets in the app's
+  catalog, DeepL 42 and OpenAI 13. DeepL needs a paid DeepL API plan, since its Voice API is not
+  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral
+  also offer same-language subtitles. With them and with local Whisper, a list of names and
+  terms helps spell speakers' names, institutions and jargon. Cloud engines need your own
+  compatible account, API key and internet connection; provider usage charges apply.
 - **Your choice of audio.** Capture a microphone, the computer's system audio, one application
   (its process tree on Windows, the app and its helpers on macOS), or microphone and system
-  audio together, optionally leaving out the room mic's copy of a call played through the
-  room's loudspeakers, so it is captioned once. Test levels before starting.
+  audio together. With both, you can leave out the room mic's copy of a call played through the
+  room's loudspeakers, so the call is captioned once. Test levels before starting.
 - **Captions where people look.** Place a transparent, always-on-top, click-through overlay
   over slides or calls; it reopens where you last placed it on each display setup. Adjust
   fonts, colour, contrast, size and reading pace; choose Fit window, Compact or Stable reading.
@@ -65,7 +68,7 @@ both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
   speech beneath translations in Fit window or Compact when the provider supplies it. A second
   translation language opens another cloud session per source and increases provider usage.
 - **Meeting controls.** Pause and resume without splitting the transcript, reuse named meeting
-  profiles, and search or pin caption languages. Customize the overlay's filler-word filter
+  profiles, and search or pin caption languages. Customise the overlay's filler-word filter
   while keeping the raw transcript intact.
 - **A transcript you can keep.** Read the whole transcript in its own tab during a session, and
   copy the last 5, 10 or 30 minutes as plain text. Export text, Markdown, SRT or WebVTT.
@@ -87,13 +90,13 @@ both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
    [new versions](#new-versions)).
 2. For local captions, choose **Subtitles → Whisper**, select your audio source and spoken
    language, then **Download model**. Base balances speed and quality; try Tiny on slower PCs.
-   For translation, choose **Live translation**, Gemini, OpenAI or DeepL, your key and target
-   language, or **Local Whisper** to translate into English without a key.
+   For translation, choose **Live translation**, then Gemini, OpenAI or DeepL with your key and
+   a target language, or **Local Whisper** to translate into English without a key.
 3. Test the source, start the session, and use **Move overlay** to position captions. Lock
    the overlay to make it click-through again.
 4. **Pause** during breaks. Cloud connections close after their final turn; Whisper stops
    accepting new audio while processing any pending speech. **Hide overlay** only hides captions.
-5. **Stop**, let Whisper finish any pending audio, then **Save as…**. Enable history in
+5. **Stop captions**, let Whisper finish any pending audio, then **Save as…**. Enable history in
    **Settings → Transcript history** if you want sessions saved automatically on this PC.
 
 A fresh installation opens on **Whisper** with Base and automatic language detection;
@@ -105,7 +108,8 @@ any setup.
 Whisper audio stays on the computer. Pending audio uses an automatically deleted temporary file;
 it is not a saved recording. Models download from Hugging Face only when requested and are
 verified before use. Cloud audio goes directly to the chosen provider. API keys stay in
-Windows Credential Manager or the macOS Keychain. The developer receives no audio, keys, transcripts or telemetry.
+Windows Credential Manager or the macOS Keychain. The developer receives no audio, keys,
+transcripts or telemetry.
 See the [privacy policy](docs/privacy.md) for temporary storage, history and recovery details.
 
 ## New versions
@@ -117,7 +121,7 @@ tell you when a new version is out. From the second launch, the start screen ask
 for the latest release at most once a day, a few seconds after launch and never during a
 session, and shows *Version X.Y.Z is available* with **Release notes** (the release page, in
 your browser) and **Not now** (hidden until the next version). You download and install it
-yourself, as the first time. The check is off until you turn it on, and the switch is under
+yourself, as you did the first time. The check is off until you turn it on, and the switch is under
 **Settings › App › Updates**. The request carries only the app's name and version; see the
 [privacy policy](docs/privacy.md#new-version-check-copies-installed-from-github). Store copies
 never check.
@@ -133,7 +137,8 @@ in the app under Settings › App, except in the Mac App Store version.
 ## Build and contribute
 
 Use Windows with Node 22.13+ or 24, rustup (`rust-toolchain.toml` pins the Rust version, which
-rustup installs on first use), Visual Studio C++ Build Tools and the Windows SDK. Whisper also needs LLVM/Clang with libclang, CMake and Ninja. Follow the
+rustup installs on first use), Visual Studio C++ Build Tools and the Windows SDK. Whisper also
+needs LLVM/Clang with libclang, CMake and Ninja. Follow the
 [native compiler setup](docs/local-whisper.md#building) before building the desktop app. On a
 Mac (Apple silicon), install Xcode's command-line tools, rustup, Node and CMake (Whisper's native
 build needs it; CI's runners have it already); see [macOS](docs/macos.md).
@@ -164,8 +169,8 @@ Build installers with `npm run tauri build`; build Store packages with
 See [MSIX packaging](docs/packaging-msix.md), [architecture](docs/architecture.md),
 [security](SECURITY.md) and the [roadmap](ROADMAP.md). `npm run test:style` checks the
 operator window's styles and overflow in Edge; `npm run test:e2e` builds a separate debug copy
-of the app and drives it end to end, and needs the Rust toolchain. Both test the last
-`npm run build`. CI checks the frontend, Rust on Linux, Windows x64/ARM64 and macOS, both
+of the app and drives it end to end, and needs the Rust toolchain. Both test the output of the
+last `npm run build`. CI checks the frontend, Rust on Linux, Windows x64/ARM64 and macOS, both
 Playwright suites, dependencies and workflows, and reports test coverage
 (`npm run test:coverage` locally); every push builds a Mac test app. Tagged releases build
 installers, a combined Store bundle and a notarised Mac disk image; Partner Center and App Store

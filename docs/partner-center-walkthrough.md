@@ -18,7 +18,7 @@ What's new it changes three things in Partner Center: the descriptions' fifth an
 paragraphs gain the operator tools; three feature lines (the fourth, twelfth and fourteenth)
 change in place; and the certification notes' first paragraph describes the system-wide keys and
 says the update check is absent from Store packages. The published **privacy policy**,
-effective 16 November 2026, already covers the keys, markers and the GitHub-only check.
+effective 23 November 2026, already covers the keys, markers and the GitHub-only check.
 Everything earlier releases brought stays: DeepL in the descriptions and *Optional cloud
 features*, the helper and the bundled model in the certification notes' last paragraph, the
 certification notes' **paragraph on Zoom** and each description's **trademark line** (see
@@ -37,7 +37,7 @@ changes since 1.14.0; the certification notes already name 1.15.0.0.
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`, and
    that each package holds `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin`.
-2. Test signed per-architecture MSIX packages on x64 and ARM64. Use
+2. Test signed per-architecture MSIX packages on x64 and ARM64. Use the
    [packaging instructions](packaging-msix.md); the side-by-side Whisper Test app is separate
    evidence and must not be uploaded as the Store package.
 3. Complete the [acceptance checklist](microsoft-store.md#acceptance-checklist), including
@@ -58,7 +58,7 @@ changes since 1.14.0; the certification notes already name 1.15.0.0.
    window and Zoom's artwork out of them. The 21 October 2026 set, from the 1.7.1 MSIX,
    predates the Live and Transcript tabs.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "16 November 2026", has the check for new versions (copies installed from GitHub
+   reads "23 November 2026", has the check for new versions (copies installed from GitHub
    only), the system-wide keys and markers, names DeepL as a recipient with a link to DeepL's
    privacy policy, and still has the *Optional captions in Zoom* section, the *macOS* section, and the Zoom line
    and the question asked before audio first goes to a provider under *Third-party processing*.
@@ -76,7 +76,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 | Privacy | `https://fmadore.github.io/Live-translation/privacy` |
 | Website | `https://github.com/fmadore/Live-translation` |
 | Support | `https://github.com/fmadore/Live-translation/issues` |
-| Purchases outside Microsoft commerce | **Ticked since 1.11.0; leave it ticked** (Product declarations, below): the Buy Me a Coffee link; provider dependencies and charges disclosed in listing. Captions in Zoom involve no payment |
+| Purchases outside Microsoft commerce | **Ticked since 1.11.0; leave it ticked** (Product declarations, below): the Buy Me a Coffee link; provider dependencies and charges disclosed in the listing. Captions in Zoom involves no payment |
 | Accessibility certification | Do not claim certification without a completed audit |
 | Generative AI | Yes: optional Gemini/OpenAI/DeepL translation and local Whisper translation into English generate text |
 | Personal-information transmission | Cloud modes send selected audio directly to third parties, after the app asks once for each provider, and Mistral and Gemini subtitles also receive any names and terms entered; local Whisper sends nothing. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
@@ -107,10 +107,10 @@ or in-app purchase for this release.
 
 ### Captions in Zoom: privacy, notes and trademark
 
-Captions in Zoom needs no product declaration, but three checks in this submission:
+Captions in Zoom needs no product declaration, but it does need three checks in this submission:
 
 1. **Privacy policy URL** (Store Policy 10.5): the URL above is unchanged; check that the page
-   it serves shows the 16 November 2026 date and the *Optional captions in Zoom* section (step 5
+   it serves shows the 23 November 2026 date and the *Optional captions in Zoom* section (step 5
    of [Before Partner Center](#before-partner-center)).
 2. **Notes for certification**: the second paragraph of the
    [notes](store-listing.md#notes-for-certification) says what the feature sends and where, that
@@ -196,7 +196,7 @@ required cloud test credentials privately before submission; no personal keys be
 metadata or screenshots.
 
 A clean install opens on Whisper, Base and automatic language detection. Verify that the model
-download works, requires a click, and that Start stays unavailable until a model is ready. The
+download works and requires a click, and that Start stays unavailable until a model is ready. The
 setup-free fallback is Built-in demo, selected explicitly from the engine list, or selected for
 the reviewer on an x64 processor without AVX2, where Whisper is listed as unavailable. An existing
 installation keeps its saved engine and audio choices.
