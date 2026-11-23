@@ -59,7 +59,7 @@ when they hold one of the offered values):
 
 The guard watches the cloud engines only: local Whisper and the built-in demo cost nothing.
 It does no work per caption — the transcript already records when each source last captioned
-— and looks every 15 seconds on the session clock that already ticks while a session is open.
+— and checks every 15 seconds on the session clock that already ticks while a session is open.
 The tray's status line is unchanged.
 
 ### Notice on the overlay
@@ -67,36 +67,36 @@ The tray's status line is unchanged.
 **Show a notice on the overlay…**, under the overlay controls of the running rail, replaces
 the captions on the overlay with one centred line for a break: a suggestion (**Captions
 paused**, **Back soon**, **Short break**) shows at once, in the caption language when the app
-has a catalog for it (English, French or German) and in the interface language otherwise; any
+has a catalogue for it (English, French or German) and in the interface language otherwise. Any
 other line of up to 80 characters is typed and shown with **Show notice**. **Clear notice**
 brings the captions back. With **Remove it when captions resume after a pause** (on by
 default, `overlay.noticeUntilCaptions`), the first caption after a pause — or after a notice
-put up while paused — takes it down by itself; a notice shown while people are still talking,
+put up while paused — takes it down by itself. A notice shown while people are still talking,
 over a video clip say, stays until cleared. Stopping the session clears it.
 
 The notice travels in the operator window's configuration push to the overlay
 (`OverlayConfig.notice`), the channel the appearance already uses, so the overlay has no new
-permission. Both windows reduce it to one line of plain text of at most 80 characters, and the
+permission. Both windows reduce it to one line of plain text of at most 80 characters. The
 overlay draws it as text, never markup, at the size a single caption row would have in the
-strip and smaller when the strip is shallow or the line long, down to the 12 px floor rows
-have. It is never written to the transcript or sent to Zoom, and its text is not stored.
+strip, and smaller when the strip is shallow or the line long, down to the 12 px floor that
+rows have. It is never written to the transcript or sent to Zoom, and its text is not stored.
 
 ## Meeting profiles
 
 Use the profile picker above step 01, then **Manage profiles**. Choose **Save current setup…**,
 enter a name and save. Each profile row offers **Load profile** and a management menu for
 **Rename** or confirmed deletion. Each save creates a named snapshot.
-Profiles persist locally across restart, using `meeting.profiles` in webview local storage.
+Profiles persist locally across restarts, using `meeting.profiles` in webview local storage.
 
 A profile includes output mode, provider, caption language, audio source and device identifiers,
 caption appearance, reading pace, hold time, cleanup toggle and the current overlay rectangle.
 It excludes API keys, rehearsal mode, transcripts and application process identities. Loading
-does not start capture or change the opt-in history/recovery preferences.
+does not start capture or change the opt-in history and recovery preferences.
 
 Loading is disabled during capture, an audio test or another setup operation. The app enumerates
 devices before applying the profile. Missing endpoints fall back to the Windows default with a
 notice; application capture remains unselected until the operator explicitly selects a process.
-The preflight must be checked again. A saved overlay rectangle is constrained to an available
+The pre-flight must be checked again. A saved overlay rectangle is constrained to an available
 display's work area; a disconnected projector falls back to the primary display. Check placement
 after display or scaling changes. Only the operator window may invoke the placement commands.
 A loaded profile's rectangle also becomes the overlay's remembered placement for the current
@@ -127,7 +127,7 @@ Settings has **Captions**, **Reading**, **Transcript history** and **App** tabs.
 holds the [spending guard](#spending-guard-for-cloud-engines).
 The dialog and tab bar retain their dimensions when switching tabs; the content scrolls
 independently and starts at the top of each newly selected tab. Short tabs intentionally
-leave spare space. Use Left/Right arrows, Home or End within the tab bar, and Tab to
+leave spare space. Use the Left and Right arrows, Home or End within the tab bar, and Tab to
 reach its content. Settings opens with focus on its selected tab, not on the corner button.
 Changes apply immediately; close with the corner button or Escape. Until a session has been
 saved, **Transcript history** shows only its opt-ins and one sentence; the search, the date and
@@ -135,14 +135,14 @@ language filters and the session reader appear with the first saved session.
 
 See [caption layout](caption-layout.md#reading-pace-and-preview) for the adjustable reading pause,
 Steadier updates and presets. See [transcript history](transcript-history.md#titles-and-search)
-for session titles, full-text search and inclusive date/language filters.
+for session titles, full-text search and inclusive date and language filters.
 
 ## Input status
 
 The running rail describes each active source independently. Connection, reconnection and error
 states take precedence. A recent caption is shown as **Receiving captions**; otherwise a recent
 level above the existing RMS signal threshold is **Receiving audio**. When audio is arriving
-but captions have not arrived for 15 seconds, the app suggests checking the provider/connection.
+but captions have not arrived for 15 seconds, the app suggests checking the provider or the connection.
 Quiet inputs say **Listening — no recent audio signal**. These are observations, not speech
 detection or a diagnosis of provider failure. The built-in demo uses simulated input events.
 A screen reader hears a source only when it stops with an error or goes 15 seconds without
@@ -167,7 +167,7 @@ them have an opt-in system-wide twin ([below](#system-wide-pause-and-overlay-key
 
 Shortcut help lives in **Settings → App**. A shortcut hint sits beside Start. Existing overlay
 move-mode keys are unchanged. On a Mac each Ctrl is ⌘ (⇧⌘M, ⌘F). Ctrl+F is taken from the
-web view: the browser's own find bar never opens in the app's place, and outside the
+webview: the browser's own find bar never opens in the app's place, and outside the
 Transcript tab the key does nothing.
 
 ### System-wide Pause and overlay keys
@@ -193,7 +193,7 @@ system-wide keys:
   overlay toggle and the tray menu all follow. Holding the keys acts once: Windows is asked for
   no auto-repeat, and presses less than 400 ms apart count as one.
 - **Why these keys.** The window's own P and O, with Alt (Option) added, and Control rather
-  than Command on a Mac. Ctrl+Shift+P is a private browser window and ⇧⌘P is taken in many Mac
+  than Command on a Mac. Ctrl+Shift+P opens a private browser window and ⇧⌘P is taken in many Mac
   apps; PowerPoint, Keynote, Zoom, Teams and the browsers leave Ctrl+Alt+Shift and ⌃⌥⇧ alone.
   Ctrl+Alt is AltGr on some keyboard layouts: where AltGr+Shift+P or O types a character (the
   Polish layout's Ó, for one), it cannot be typed while a session runs with the switch on.
@@ -208,7 +208,7 @@ system-wide keys:
 **Add marker**, in the transcript's toolbar while a session runs (or Ctrl+Shift+M), opens a
 one-line field under the toolbar: type a talk's start or a speaker's name (up to 80
 characters) and press Enter, or leave it blank for a numbered section break (**Section 2**).
-Escape puts the field away; either way focus goes back where it was. The marker is placed at
+Escape puts the field away; either way focus goes back to where it was. The marker is placed at
 the session's time, between the paragraphs on either side of it; it is drawn as a heading in
 the log, so a screen reader can move from one talk to the next, and a status says it was added.
 Markers make the transcript unsaved, are written into every export (see
