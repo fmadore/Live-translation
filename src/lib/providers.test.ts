@@ -12,8 +12,11 @@ import {
 	providerRequiresKey,
 	providerTakesGlossary,
 	providerTakesSpokenLanguage,
-	rateText
+	rateText,
+	spokenLanguageFor,
+	spokenLanguagesOf
 } from './providers';
+import whisperLanguages from './whisperLanguages.json';
 import { en } from './i18n/en';
 import { PROVIDERS } from './types';
 
@@ -56,9 +59,12 @@ describe('the two OpenAI backends', () => {
 		expect(providerTakesGlossary('openai-transcribe')).toBe(true);
 		expect(providerTakesSpokenLanguage('openai-transcribe')).toBe(true);
 		expect(providerDetectsLanguage('openai-transcribe')).toBe(true);
-		for (const provider of ['mistral', 'gemini-transcribe', 'openai', 'deepl'] as const)
+		for (const provider of ['mistral', 'openai', 'deepl'] as const)
 			expect(providerTakesSpokenLanguage(provider), provider).toBe(false);
 		expect(providerTakesSpokenLanguage('whisper')).toBe(true);
+		expect(providerTakesSpokenLanguage('gemini-transcribe')).toBe(true);
+		expect(spokenLanguageFor('openai-transcribe', 'yo')).toBe('yo');
+		expect(spokenLanguageFor('gemini-transcribe', 'yo')).toBeNull();
 	});
 
 	it('bills $0.017 a minute per open stream', () => {
@@ -114,6 +120,30 @@ describe('providerDetectsLanguage', () => {
 });
 
 // The names-and-terms list goes to every engine with a field or a prompt for it.
+// Issue #249. The Rust side pins the same 71 codes against Google's table
+// (`spoken_languages_map_onto_googles_table`).
+describe('the spoken languages an engine can be told', () => {
+	it('are all of Whisper’s for Whisper, part of them for Gemini Transcribe, none elsewhere', () => {
+		expect(spokenLanguagesOf('whisper')).toHaveLength(99);
+		expect(spokenLanguagesOf('whisper-translate')).toHaveLength(99);
+		const gemini = spokenLanguagesOf('gemini-transcribe');
+		expect(gemini).toHaveLength(71);
+		const whisper = whisperLanguages.map((l) => l.code);
+		expect(gemini?.every((code) => whisper.includes(code))).toBe(true);
+		for (const provider of ['mistral', 'gemini', 'openai', 'deepl', 'ondevice'] as const)
+			expect(spokenLanguagesOf(provider)).toBeNull();
+	});
+
+	it('send the setup’s choice only where the engine knows it', () => {
+		expect(spokenLanguageFor('whisper', 'yo')).toBe('yo');
+		expect(spokenLanguageFor('gemini-transcribe', 'fr')).toBe('fr');
+		expect(spokenLanguageFor('gemini-transcribe', 'yo')).toBeNull();
+		expect(spokenLanguageFor('gemini-transcribe', null)).toBeNull();
+		expect(spokenLanguageFor('mistral', 'fr')).toBeNull();
+		expect(spokenLanguageFor('whisper', 'fake')).toBeNull();
+	});
+});
+
 describe('providerTakesGlossary', () => {
 	it('is true for the speech engines and false for the translation models and the demo', () => {
 		for (const provider of [

@@ -13,7 +13,8 @@
 		isLocalWhisper,
 		providerDetectsLanguage,
 		providerTakesGlossary,
-		providerTakesSpokenLanguage
+		spokenLanguageFor,
+		spokenLanguagesOf
 	} from '../providers';
 	import type { TargetLanguage } from '../types';
 	import type { SetupActions } from '../setupActions';
@@ -41,9 +42,12 @@
 	// This step asks which language to render into, which demo script to play, or nothing when
 	// the backend detects the spoken language itself; then the names and terms for the engines
 	// that take them.
+	// Whisper's list, or the part of it the engine can be told about (Gemini Transcribe).
 	const spokenChoices = $derived.by(() => {
 		const names = displayNames($locale, 'none');
+		const offered = spokenLanguagesOf($options.provider) ?? [];
 		return whisperLanguages
+			.filter((l) => offered.includes(l.code))
 			.map((l) => ({ code: l.code, name: names?.of(l.code) || l.name }))
 			.sort((a, b) => a.name.localeCompare(b.name, $locale));
 	});
@@ -64,7 +68,7 @@
 	{#snippet spokenLanguage(hint: string)}
 		<Field label={$t.whisper.language}>
 			<Select
-				value={$options.spokenLanguage ?? ''}
+				value={spokenLanguageFor($options.provider, $options.spokenLanguage) ?? ''}
 				disabled={locked}
 				onchange={(e) =>
 					($options = { ...$options, spokenLanguage: e.currentTarget.value || null })}
@@ -77,10 +81,12 @@
 		</Field>
 		<p class="hint">{hint}</p>
 	{/snippet}
-	{#if $options.mode === 'transcribe' && providerTakesSpokenLanguage($options.provider)}
-		{@render spokenLanguage(
-			$options.provider === 'whisper' ? $t.whisper.languageHint : $t.provider.openaiLanguageHint
-		)}
+	{#if $options.provider === 'whisper'}
+		{@render spokenLanguage($t.whisper.languageHint)}
+	{:else if $options.provider === 'gemini-transcribe'}
+		{@render spokenLanguage($t.rail.geminiLanguageHint)}
+	{:else if $options.provider === 'openai-transcribe'}
+		{@render spokenLanguage($t.provider.openaiLanguageHint)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
 	{:else if $options.mode === 'translate'}

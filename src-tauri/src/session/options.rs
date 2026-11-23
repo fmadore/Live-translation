@@ -16,9 +16,12 @@ fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
 pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     validate_provider(options.mode, options.provider)?;
     // Both Whisper tasks take the spoken language (translating, it is the one Whisper
-    // translates from), and OpenAI's transcription takes it as a hint, from the same list.
+    // translates from); Gemini Transcribe and OpenAI's transcription take it as a hint.
     if options.provider.takes_spoken_language() {
         whisper::validate_language(options.spoken_language.as_deref())?;
+    }
+    if options.provider == Provider::GeminiTranscribe {
+        crate::gemini::transcribe::validate_spoken_language(options.spoken_language.as_deref())?;
     }
     anyhow::ensure!(
         options.provider != Provider::WhisperTranslate || options.whisper_model.translates(),
@@ -204,6 +207,20 @@ mod tests {
         assert!(validate_start(&options).is_err());
         options.spoken_language = None;
         assert!(validate_start(&options).is_ok());
+    }
+
+    #[test]
+    fn gemini_transcribe_refuses_a_spoken_language_it_cannot_be_told() {
+        let mut options = local("gemini-transcribe", "transcribe", "en");
+        assert!(validate_start(&options).is_ok());
+        options.spoken_language = None;
+        assert!(validate_start(&options).is_ok());
+        // Whisper hears Yoruba; Google's table has no row for it.
+        options.spoken_language = Some("yo".into());
+        let error = validate_start(&options).unwrap_err().to_string();
+        assert!(error.contains("yo"), "{error}");
+        // The engines that detect the language themselves never read it.
+        assert!(validate_start(&local("mistral", "transcribe", "en")).is_ok());
     }
 
     #[test]

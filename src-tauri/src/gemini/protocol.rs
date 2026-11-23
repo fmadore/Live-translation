@@ -108,7 +108,9 @@ pub struct TranscribeGenerationConfig {
 #[serde(rename_all = "camelCase")]
 pub struct AudioTranscriptionConfig {
     /// Empty enables automatic language identification across utterances, including
-    /// code-switching — which is what a bilingual room needs.
+    /// code-switching — which is what a bilingual room needs. Otherwise the codes of the one
+    /// language the operator chose (`super::transcribe::language_codes`), which bias
+    /// recognition toward it.
     pub language_codes: Vec<String>,
     /// `VERBATIM` or `SMART`.
     pub mode: &'static str,
@@ -124,7 +126,11 @@ pub struct AudioTranscriptionConfig {
 pub const MODE_SMART: &str = "SMART";
 
 impl TranscribeSetupMessage {
-    pub fn live_transcribe(model: &str, custom_vocabulary: &[String]) -> Self {
+    pub fn live_transcribe(
+        model: &str,
+        language_codes: &[&str],
+        custom_vocabulary: &[String],
+    ) -> Self {
         Self {
             setup: TranscribeSetup {
                 model: format!("models/{model}"),
@@ -134,7 +140,7 @@ impl TranscribeSetupMessage {
                     response_modalities: vec!["TEXT".to_string()],
                 },
                 input_audio_transcription: AudioTranscriptionConfig {
-                    language_codes: Vec::new(),
+                    language_codes: language_codes.iter().map(|&code| code.to_owned()).collect(),
                     mode: MODE_SMART,
                     custom_vocabulary: custom_vocabulary.to_vec(),
                 },
@@ -232,6 +238,7 @@ mod tests {
         let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
             "gemini-3.5-transcribe-live",
             &[],
+            &[],
         ))
         .unwrap();
         let setup = &value["setup"];
@@ -269,12 +276,34 @@ mod tests {
         let terms = ["IWAC".to_string(), "Université Joseph Ki-Zerbo".to_string()];
         let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
             "gemini-3.5-transcribe-live",
+            &[],
             &terms,
         ))
         .unwrap();
         assert_eq!(
             value["setup"]["inputAudioTranscription"]["customVocabulary"],
             serde_json::json!(["IWAC", "Université Joseph Ki-Zerbo"])
+        );
+    }
+
+    #[test]
+    fn a_chosen_spoken_language_goes_in_the_input_sidecar_as_language_codes() {
+        let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
+            "gemini-3.5-transcribe-live",
+            &["pt-BR", "pt-PT"],
+            &[],
+        ))
+        .unwrap();
+        let sidecar = &value["setup"]["inputAudioTranscription"];
+        assert_eq!(
+            sidecar["languageCodes"],
+            serde_json::json!(["pt-BR", "pt-PT"])
+        );
+        assert_eq!(sidecar["mode"], "SMART");
+        assert!(
+            value["setup"]["generationConfig"]
+                .get("languageCodes")
+                .is_none()
         );
     }
 

@@ -46,6 +46,20 @@ describe('loadStartOptions with the Gemini subtitle backend', () => {
 		expect(loaded.provider).toBe('gemini-transcribe');
 		expect(loaded.mode).toBe('transcribe');
 		expect(loaded.source).toBe('system');
+		expect(loaded.spokenLanguage).toBeNull();
+	});
+
+	// Issue #249: it takes the spoken language too, so its choice comes back with it.
+	it('restores its spoken language, from Whisper’s list only', () => {
+		const stored = {
+			mode: 'transcribe',
+			targetLanguage: 'en',
+			provider: 'gemini-transcribe'
+		};
+		storing({ ...stored, spokenLanguage: 'fr' });
+		expect(loadStartOptions().spokenLanguage).toBe('fr');
+		storing({ ...stored, spokenLanguage: 'fr\0suffix' });
+		expect(loadStartOptions().spokenLanguage).toBeNull();
 	});
 
 	// The rail offers no such pair, so repairing one field would only guess which of the two

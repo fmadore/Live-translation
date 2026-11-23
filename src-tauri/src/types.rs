@@ -177,9 +177,13 @@ impl Provider {
     }
 
     /// Whether the engine takes the spoken language the operator chooses (`spoken_language`):
-    /// Whisper, which needs it to translate, and OpenAI's transcription, as a language hint.
+    /// Whisper, which needs it to translate, and Gemini Transcribe and OpenAI's transcription,
+    /// as a language hint.
     pub fn takes_spoken_language(self) -> bool {
-        self == Provider::OpenAiTranscribe || self.is_local_whisper()
+        matches!(
+            self,
+            Provider::OpenAiTranscribe | Provider::GeminiTranscribe
+        ) || self.is_local_whisper()
     }
 }
 
@@ -243,11 +247,8 @@ mod provider_tests {
         assert!(!provider.can_translate());
         assert!(provider.takes_spoken_language());
         assert!(Provider::Whisper.takes_spoken_language());
-        for provider in [
-            Provider::Mistral,
-            Provider::GeminiTranscribe,
-            Provider::OpenAi,
-        ] {
+        assert!(Provider::GeminiTranscribe.takes_spoken_language());
+        for provider in [Provider::Mistral, Provider::OpenAi] {
             assert!(!provider.takes_spoken_language(), "{provider:?}");
         }
     }

@@ -478,6 +478,9 @@ export const en = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} auto-detects the spoken language and writes same-language subtitles. No translation target is needed.`,
+		/** Step 03 with Gemini Transcribe, under its spoken-language picker. */
+		geminiLanguageHint:
+			'Gemini writes subtitles in the language being spoken. Choose it when you know it, to steady short sentences. Automatic detection follows a speaker who changes language.',
 		flipHint: 'Swap the first two favourites before starting with',
 		demoLanguageHint:
 			'Choose the bundled demonstration language. This mode demonstrates the overlay and export; it does not listen to the room.',

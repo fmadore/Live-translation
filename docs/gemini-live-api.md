@@ -128,6 +128,8 @@ message and transcription fields differ.
   **83 distinct BCP-47 codes and 77 distinct languages** once locale variants collapse
   (`en-US`/`en-GB`/`en-IN`, `bn-BD`/`bn-IN`, …). User-facing copy therefore says "over 70
   languages", not "100+".
+- A chosen spoken language goes in `languageCodes` instead; see
+  [the spoken-language hint](#the-spoken-language-hint).
 - `mode: "SMART"` removes fillers and false starts, resolves spoken self-corrections, and
   applies punctuation and casing; an audience reading an overlay needs that more than every
   "um". `VERBATIM` (Google's default) is the alternative, not an extra setting. SMART rules out
@@ -144,6 +146,50 @@ message and transcription fields differ.
   client puts it, not how much it helps. Live Translate documents no such field ("no support
   for tools or instructions"), so translated captions take no list.
 
+### The spoken-language hint
+
+When a start request carries a spoken language (`StartOptions.spokenLanguage`, issue #249), the
+core sends it as `languageCodes`, to steady recognition of short sentences; with none it sends
+`[]` and the model detects the language. The
+[guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) (read 23 November 2026)
+asks for BCP-47 codes "to bias recognition toward specific languages" and lists them by locale
+(`fr-FR`, `cmn-Hans-CN`), while the app's spoken-language list (`src/lib/whisperLanguages.json`)
+names languages as Whisper does (`fr`, `zh`). `gemini::transcribe::language_codes` maps one onto
+the other:
+
+- Only codes from Google's table are sent. A language the table lists under several locales
+  gets all of them: `en` → `en-US`, `en-GB`, `en-IN`; `es` → `es-419`, `es-US` (the guide's
+  example `es-ES` is not in its table); `pt` → `pt-BR`, `pt-PT`; `bn` and `pa` likewise.
+- Whisper's `jw` is Javanese, `jv-ID`; Tagalog (`tl`) is sent as Filipino, `fil-PH`; Norwegian
+  (`no`) is Bokmål, `nb-NO`, and Nynorsk has no row; Arabic has one row, Egyptian `ar-EG`.
+- 71 of Whisper's 99 languages map. A start with one of the other 28 (Tamil, Urdu, Yoruba,
+  Welsh, …) is refused rather than quietly left to automatic detection. Six table rows have no
+  Whisper language: Aromanian, Cantonese, Cebuano, Kabuverdianu, Kyrgyz and Oriya.
+- `spoken_languages_map_onto_googles_table` pins the table and the mapping, and checks that the
+  interface's list (`src/lib/geminiTranscribeLanguages.json`) holds the same 71.
+
+Step 03 of the setup shows Whisper's spoken-language picker for Gemini Transcribe too, with
+automatic detection first and only those 71 languages. Both engines share one choice: a language
+Whisper knows and Gemini does not stays saved for Whisper, the Gemini picker shows automatic
+detection, and that is what the run sends (`spokenLanguageFor` in `providers.ts`, used by the
+picker, the running rail and `sessionController.ts`).
+
+**Live check, 23 November 2026** (`transcribe::live_probe`):
+
+- `every_spoken_language_hint_is_accepted` set up a session, without audio, for each of the 71
+  code lists: every one was accepted. So were `fr`, `es-ES` and `xx-XX`, which the client never
+  sends: **the server does not check the codes at setup**, so acceptance proves the field's
+  place, not the codes' validity.
+- `the_french_recording_under_a_right_and_a_wrong_hint` streamed the French rehearsal recording
+  under `fr-FR`, then under the English codes. Both came back as the same French text, word for
+  word; the English hint neither translated it nor garbled it. On twenty seconds of clear speech
+  the hint is a bias, not a constraint. What a wrong hint does to a short sentence, where it
+  should matter most, was not tried. Both runs returned the whole recording as one finalized
+  segment.
+
+**Live check pending:** a real session with the hint, including a short sentence under a wrong
+one, before it is advertised.
+
 ### Streaming and events
 
 The audio frame is the one live translate uses — 16 kHz mono PCM16 LE, base64 in
@@ -151,12 +197,53 @@ The audio frame is the one live translate uses — 16 kHz mono PCM16 LE, base64 
 
 - `serverContent.interimInputTranscription.text` is a speculative partial hypothesis, revised
   as the speaker talks.
-- `serverContent.inputTranscription.text` is the finalized, authoritative transcript for one
-  speech segment, emitted when the speaker pauses.
+- `serverContent.inputTranscription.text` is the finalized, authoritative transcript, emitted
+  when the speaker pauses. **In SMART mode it is the whole session's text so far, not the
+  segment** (see [SMART finals are cumulative](#smart-finals-are-cumulative)).
 
-**Both describe the same segment, so each replaces the caption buffer rather than extending
-it.** Live translate appends `inputTranscription` deltas; doing so here would repeat every
-revised hypothesis on screen. One finalized segment becomes one transcript line.
+**An interim replaces the caption buffer rather than extending it.** Live translate appends
+`inputTranscription` deltas; doing so here would repeat every revised hypothesis on screen. A
+final becomes one transcript line holding what it adds to the previous final.
+
+### SMART finals are cumulative
+
+The [guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) says that in SMART
+mode `input_transcription` "returns the cumulative, cleaned, and formatted transcript for the
+session so far", and that SMART turns on voice editing: the server keeps the text and applies
+spoken instructions ("delete that", "make it more professional") to all of it. Through 1.15.0
+the client took each final for its own segment, so every caption after the first repeated the
+session before it.
+
+`live_probe::smart_finals_across_three_passages` showed it on 23 November 2026: the French
+recording, six seconds of silence, the English one, silence, the French one again. Four finals
+came back, each starting with the whole of the one before: the French passage; the French
+passage and the first two English sentences; the same plus the last English sentence; and,
+after the French passage was spoken again, the third final unchanged, the repetition cleaned
+away. The client now remembers the last final of the connection and captions only what the
+next one adds (`added_text`); when SMART has rewritten earlier text, it resumes at the first
+word that changed, since captions already shown cannot change. A final that adds nothing is
+an empty caption, which retracts the turn's interim text. The remembered text is cleared on
+each `setupComplete`, because a new connection is a new session.
+`smart_tests::a_smart_final_captions_only_what_it_adds` replays the recording.
+
+What the same run showed about SMART, for the choice of mode:
+
+- **A repeated passage disappears.** The third passage was shown as interim text and then
+  dropped from the final. A speaker who repeats a sentence loses the repetition.
+- **Spoken edits apply.** A speaker saying "delete that" edits the text rather than being
+  captioned; the client then shows nothing new.
+- **Finals came late, and later as the session went on.** The first final arrived about
+  15 seconds after the French passage ended, against about 2.5 seconds in VERBATIM mode on the
+  same stream; the last about 30 seconds after the audio ended, against about 8. Even the
+  `voiceActivity` frames were held back with them.
+
+`verbatim_finals_across_three_passages` ran the same stream in VERBATIM mode: one final per
+segment, punctuated and cased, and the repeated French passage kept. One segment of the English
+passage ended (`voiceActivity` `ACTIVITY_END`) with no final at all, and the next segment's
+interim text replaced its stranded interim, so those words were lost there too. Moving to
+VERBATIM would change the interface copy about Smart transcription, the
+[privacy notice](privacy.md) and [transcript export](transcript-export.md) notes, and needs a
+fix for that stranded segment; it is left as a decision.
 
 When a message carries both, the finalized text wins. An empty final or segment close retracts
 an all-filler speculative caption rather than keeping it as speech, and the front end discards
@@ -222,14 +309,17 @@ under `generationConfig`. `gemini::transcribe::live_probe` sends the production 
 frame and response types to Google with the bundled rehearsal recording and reports the
 interim and finalized segments.
 
-```bash
-GEMINI_API_KEY=... cargo test -p live-translation --lib live_probe -- --ignored --nocapture
+```powershell
+cargo test --manifest-path src-tauri/Cargo.toml --lib the_documented_shape_is_the_shape_the_server_accepts -- --ignored --nocapture
 ```
 
 It is `#[ignore]`d, so CI never runs it or bills anyone. Run it before an event and after any
-change to either setup message; it costs a few cents (about twenty seconds of audio). The key
-comes from the environment or a `.env` at the repo root (`dotenvy` walks up from the crate
-directory; copy `.env.example`). Its assertions concern the shape of the exchange, not the
+change to either setup message; it costs a few cents (about twenty seconds of audio). The key is
+the one saved in the app, read in process and never printed; failing that, `GEMINI_API_KEY` from
+the environment or a `.env` at the repo root (`dotenvy` walks up from the crate directory; copy
+`.env.example`). The same module holds the two spoken-language probes above:
+`every_spoken_language_hint_is_accepted` sends no audio, and
+`the_french_recording_under_a_right_and_a_wrong_hint` streams forty seconds. Its assertions concern the shape of the exchange, not the
 words: setup is accepted, `generationComplete` arrives, and speculative updates outnumber
 finalized segments — which is what makes replace-don't-append correct.
 

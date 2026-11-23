@@ -13,6 +13,7 @@ import {
 import { api } from './tauri';
 import { secondCaptionLanguageOf, type SourceSwitch, type StartOptions } from './types';
 import { captionLanguageError } from './languages';
+import { spokenLanguageFor } from './providers';
 import { locale, t } from './i18n';
 
 /** Own start/stop serialization separately from page rendering. A stop requested during
@@ -49,7 +50,13 @@ export function createSessionController(
 			statusMessage.set('');
 			// A second language chosen for translation stays in the saved setup when the mode
 			// changes, so switching back restores it; only a run that can use it sends it.
-			const run: StartOptions = { ...options, secondTargetLanguage: second ?? null };
+			// Likewise the spoken language: only an engine that takes it gets it, and Gemini
+			// Transcribe only one it knows, as its picker shows (#249).
+			const run: StartOptions = {
+				...options,
+				secondTargetLanguage: second ?? null,
+				spokenLanguage: spokenLanguageFor(options.provider, options.spokenLanguage)
+			};
 			beginSession(run);
 			const work = Promise.resolve().then(() => port.startSession(run));
 			operation = work;

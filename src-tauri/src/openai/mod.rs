@@ -7,6 +7,8 @@ mod transcribe;
 
 #[cfg(test)]
 mod language_probe;
+#[cfg(test)]
+mod live_probe;
 
 pub use client::{
     DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSLATE_MODEL,
