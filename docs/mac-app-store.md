@@ -8,18 +8,22 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 
 ## Status (23 November 2026)
 
-**1.13.1** was last reported in App Review on 17 November 2026 (first reported in review on
-13 November; the upload and submission dates were not recorded). It carries the fixes of the
-first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026)). 1.14.0 and 1.15.0
-were not uploaded. **1.16.0** (tagged 23 November 2026) is the next Mac build, uploaded from its
-tag with the *Mac App Store* workflow; submit it once 1.13.1's review is settled. Since 1.13.1 it
-adds 1.14.0's DeepL engine, 1.15.0's operator features (spending guard, markers, Find, the
-overlay notice, the [system-wide keys](#what-app-review-may-question)), and 1.16.0's OpenAI
-subtitles, continuing a cloud source with offline Whisper, the Gemini subtitles fix and the
-20 November audit's fixes, including the System Audio Recording hint that no longer returns after
-a pause in a call. None of these has been tried on a Mac yet. The store build never checks for
-new versions; only the disk image can. The English screenshots are in
-[store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+**1.16.0 (build 9) was submitted for review on 23 November 2026 at 21:07** and is *Waiting for
+Review*, set to release automatically once approved (the maintainer's choice). It replaced
+**1.13.1**, which had been *Waiting for Review* since 11 November without an answer: the
+account was in order (agreements, bank account, tax forms and the EU Digital Services Act
+declaration all active), so the wait was App Review's queue. 1.13.1 was withdrawn the same
+evening (*Developer Rejected*), and its version record was renamed 1.16.0 and given build 9,
+uploaded from the `v1.16.0` tag with the *Mac App Store* workflow (run 45222738780). 1.14.0 and
+1.15.0 were never uploaded. Since 1.13.1 the build adds 1.14.0's DeepL engine, 1.15.0's operator
+features (spending guard, markers, Find, the overlay notice, the
+[system-wide keys](#what-app-review-may-question)), and 1.16.0's OpenAI subtitles, continuing a
+cloud source with offline Whisper, the Gemini subtitles fix and the 20 November audit's fixes,
+including the System Audio Recording hint that no longer returns after a pause in a call. None
+of these has been tried on a Mac or in TestFlight yet. The listing's primary language is English
+(U.K.). The description, review notes, marketing URL and subtitle below are the text submitted
+with 1.16.0. The store build never checks for new versions; only the disk image can. The English
+screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
 unlock proposed in [#195](https://github.com/fmadore/Live-translation/issues/195) are dropped, so
@@ -45,10 +49,10 @@ What is ready in the repository:
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. That build was not
-submitted; 1.13.1 was, and is still in App Review (17 November 2026). What only the maintainer
-can do: following up on 1.13.1's review, then submitting the 1.16.0 build uploaded from its tag
-as the next version, and a TestFlight run of the store build itself, which is also where the system-wide
-keys are first tried in the sandbox. The one question that was open,
+submitted; 1.13.1 was, then was withdrawn after twelve days unanswered, and 1.16.0 (build 9) is
+in App Review since 23 November 2026. What only the maintainer can do: answering App Review, and
+a TestFlight run of the store build itself, which is also where the system-wide keys are first
+tried in the sandbox. The one question that was open,
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 
 ## The open question: system audio in the sandbox
@@ -145,7 +149,7 @@ question touches generated content. The expected rating is 4+.
 
 **Content rights**: *No*: the app contains, shows or accesses no third-party content of its own.
 
-## The listing (English, U.S.)
+## The listing (English, U.K., as submitted with 1.16.0)
 
 Every paragraph is one unwrapped line for pasting. Screenshots must show the Mac app
 (Guideline 2.3.3), at one of App Store Connect's Mac sizes (1280 × 800, 1440 × 900, 2560 × 1600
@@ -173,15 +177,17 @@ Live captions over your slides, calls and videos. Transcribe offline with Whispe
 **Description**:
 
 ```text
-Put live captions over any meeting, lecture, video call or slide deck. Live Translation & Subtitles transcribes speech on your own Mac with Whisper: download a model once, and captions run offline with no account or subscription. Whisper can also translate into English offline. When your audience needs another language, add cloud translation with your own Google Gemini or OpenAI API key; provider usage charges may apply.
+Put live captions over any meeting, lecture, video call or slide deck. Live Translation & Subtitles transcribes speech on your own Mac with Whisper: download a model once, and captions run offline with no account or subscription. Whisper can also translate into English offline. When your audience needs another language, add cloud translation with your own Google Gemini, OpenAI or DeepL API key; provider usage charges may apply, and DeepL needs a paid DeepL API plan.
 
 Captions appear in a transparent overlay that floats above your slides, your call or a full-screen presentation, in every Space, and lets clicks pass through to the window beneath. Choose what to listen to: a room microphone, the sound your Mac plays, a single app, or the microphone and system audio together. In a Zoom meeting, you can also share one caption language with Zoom's own caption bar, using the caption link the host copies in Zoom.
 
-For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your Mac's graphics processor with no account, API key or internet connection, and built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Whisper captions in the language being spoken, or translates it into English (with Small; Large v3 Turbo only transcribes); for any other language, use cloud translation: Gemini into 78 languages or OpenAI into 13, with two languages on screen at once if you like.
+For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your Mac's graphics processor with no account, API key or internet connection, and built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Whisper captions in the language being spoken, or translates it into English (with Small; Large v3 Turbo only transcribes); for any other language, use cloud translation: Gemini into 78 languages, DeepL into 42 or OpenAI into 13, with two languages on screen at once if you like. DeepL is experimental. Gemini, Mistral and OpenAI also offer cloud subtitles in the spoken language with your own key, and a list of names and terms helps them and Whisper spell speakers' names and acronyms. If a cloud engine stops during a session, the app offers to carry on with offline Whisper in the same session.
 
-Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Save meeting profiles for the rooms you use often, and pause during breaks. Copy the transcript, export it as text, Markdown, SRT or WebVTT, and keep an optional local history of past sessions.
+Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Save meeting profiles for the rooms you use often, and pause during breaks, with an optional notice such as "Back soon" on the overlay. Optional system-wide keys pause captions and show or hide the overlay while your slides or meeting app are in front. With a cloud engine, an optional spending guard pauses a quiet session and tells you when the estimated cost passes a limit you set.
 
-With Whisper, audio stays on your Mac. With a cloud engine, audio goes straight to the provider you chose. API keys are kept in the macOS Keychain. The developer receives no audio, keys, transcripts or telemetry, and the app is free, with nothing to buy.
+During a session, find words in the transcript and add markers for a talk's start or a speaker's name. Copy the transcript, export it as text, Markdown, SRT or WebVTT, and keep an optional local history of past sessions.
+
+With Whisper, audio stays on your Mac. With a cloud engine, audio goes straight to the provider you chose, and the app asks before it first sends audio to each provider. API keys are kept in the macOS Keychain. The developer receives no audio, keys, transcripts or telemetry, and the app is free, with nothing to buy.
 
 Use the interface in English, French or German, whatever the caption language. An optional English/French demo lets you try the display without any setup; it plays a prepared script and does not recognize speech.
 
@@ -191,7 +197,7 @@ Zoom is a trademark of Zoom Communications, Inc. Live Translation & Subtitles is
 ```
 
 **Support URL**: `https://github.com/fmadore/Live-translation/issues`. **Marketing URL**:
-`https://github.com/fmadore/Live-translation`.
+`https://fmadore.github.io/Live-translation/` (since 1.16.0; the GitHub repository before).
 
 ## Review notes
 
@@ -209,9 +215,11 @@ Real speech recognition without any account or API key:
 
 Setup-free check without audio: choose the engine Built-in demo and click Start demo subtitles. It plays a prepared English or French script through the overlay, timer, level meter and export, without capturing or recognizing any audio, and says so on screen.
 
-Optional cloud engines (Google Gemini, OpenAI, Mistral, DeepL) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. DeepL, marked experimental in the app, needs a paid DeepL API plan; a free DeepL key (ending in :fx) is refused with an explanation and nothing is sent. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. The app sells no access and the developer receives nothing.
+Optional cloud engines (Google Gemini, OpenAI and DeepL for translation; Gemini, Mistral and OpenAI for subtitles) use the user's own API key, entered in the app and kept in the macOS Keychain; audio then goes directly from the Mac to that provider, which may charge the user. DeepL, marked experimental in the app, needs a paid DeepL API plan; a free DeepL key (ending in :fx) is refused with an explanation and nothing is sent. Before the first session with each provider, the app asks for permission, naming the provider and what is sent, with the privacy policy's address; nothing is sent on Cancel. If a cloud engine ends a source during a session (a key, quota or network error), a banner offers to continue that source with offline Whisper; it never switches on its own and sends nothing new. The app sells no access and the developer receives nothing.
 
-The overlay uses public AppKit only: a borderless transparent window at a high window level that joins every Space and full-screen apps and ignores mouse events while captions run.
+Optional system-wide keys (Settings > App, off by default): Control-Option-Shift-P pauses captions and Control-Option-Shift-O shows or hides the overlay. They are registered with Carbon's RegisterEventHotKey only while a session runs, need no Accessibility or Input Monitoring permission, and the app is told of these two combinations only, nothing else typed.
+
+The overlay uses public AppKit only: a borderless transparent window at a high window level that joins every Space and full-screen apps and ignores mouse events while captions run. This store build never checks for updates and shows no support or donation link.
 ```
 
 ## Each version
