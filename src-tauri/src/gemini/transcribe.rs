@@ -137,23 +137,43 @@ pub fn validate_spoken_language(spoken: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-impl RealtimeProtocol for GeminiTranscribeConfig {
+impl GeminiTranscribeConfig {
+    pub fn into_client(self) -> GeminiTranscribeClient {
+        GeminiTranscribeClient {
+            config: self,
+            document: String::new(),
+        }
+    }
+}
+
+/// The client: its configuration, and the transcript the server holds for this connection.
+pub struct GeminiTranscribeClient {
+    config: GeminiTranscribeConfig,
+    /// In `SMART` mode each `inputTranscription` is not its own segment but "the complete
+    /// updated replacement text for the session so far": every earlier turn again, cleaned
+    /// up, then the new one. This is the last such text, so a final captions only what it
+    /// adds. Cleared by the `setupComplete` that opens each connection, since a new session
+    /// starts from an empty text.
+    document: String,
+}
+
+impl RealtimeProtocol for GeminiTranscribeClient {
     const NAME: &'static str = "Gemini Transcribe";
 
     fn origin(&self) -> Origin {
-        self.origin
+        self.config.origin
     }
 
     fn connect_request(&self) -> Result<Request> {
-        gemini_request(Self::NAME, &self.host, &self.api_key)
+        gemini_request(Self::NAME, &self.config.host, &self.config.api_key)
     }
 
     fn setup_json(&self) -> Result<Option<String>> {
         Ok(Some(serde_json::to_string(
             &TranscribeSetupMessage::live_transcribe(
-                &self.model,
-                self.language_codes,
-                &self.custom_vocabulary,
+                &self.config.model,
+                self.config.language_codes,
+                &self.config.custom_vocabulary,
             ),
         )?))
     }
@@ -183,6 +203,9 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
             return MessageOutcome::default();
         };
 
+        if msg.setup_complete.is_some() {
+            self.document.clear();
+        }
         if let Some(outcome) = msg.control(self, "Gemini Transcribe error") {
             return outcome;
         }
@@ -193,7 +216,7 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
 
         // Empty finalized captions retract speculative text in both windows and the pending
         // transcript. Never archive an all-filler interim as confirmed speech.
-        match apply_transcription(&content, acc) {
+        match apply_transcription(&content, acc, &mut self.document) {
             Some(true) => MessageOutcome::activity(CaptionUpdate::Final),
             Some(false) => MessageOutcome::activity(CaptionUpdate::Interim),
             None => MessageOutcome::default(),
@@ -205,13 +228,17 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
     }
 }
 
-/// Final text wins even when a frame also carries an interim hypothesis.
+/// Final text wins even when a frame also carries an interim hypothesis. A final is the
+/// session's whole text so far (`document` holds the previous one), and the caption is what it
+/// adds; an interim is the turn being spoken, as it is spoken.
 fn apply_transcription(
     content: &super::protocol::ServerContent,
     acc: &mut TurnAccumulator,
+    document: &mut String,
 ) -> Option<bool> {
     if let Some(final_text) = &content.input_transcription {
-        acc.text.clone_from(&final_text.text);
+        acc.text = added_text(document, &final_text.text).to_owned();
+        document.clone_from(&final_text.text);
         return Some(true);
     }
     if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
@@ -227,6 +254,30 @@ fn apply_transcription(
         return Some(false);
     }
     None
+}
+
+/// What `document` adds to `shown`, the text the previous final carried. Normally it extends
+/// it, and the new turn is the rest. When the model has also rewritten earlier text (it
+/// cleans up across turns, and applies spoken edits such as "delete that" to the whole text)
+/// the captions already shown cannot change, so this starts at the last word the two still
+/// share. Nothing new, as when a turn only repeated earlier words, is an empty caption, which
+/// retracts the turn's interim text.
+fn added_text<'a>(shown: &str, document: &'a str) -> &'a str {
+    if let Some(rest) = document.strip_prefix(shown) {
+        return rest.trim_start();
+    }
+    let shared = shown
+        .char_indices()
+        .zip(document.chars())
+        .take_while(|((_, a), b)| a == b)
+        .last()
+        .map_or(0, |((at, c), _)| at + c.len_utf8());
+    let start = document[..shared]
+        .char_indices()
+        .rev()
+        .find(|(_, c)| c.is_whitespace())
+        .map_or(0, |(at, c)| at + c.len_utf8());
+    document[start..].trim_start()
 }
 
 #[cfg(test)]
@@ -245,7 +296,10 @@ mod smart_tests {
         let frame = content(
             r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
         );
-        assert_eq!(apply_transcription(&frame, &mut acc), Some(true));
+        assert_eq!(
+            apply_transcription(&frame, &mut acc, &mut String::new()),
+            Some(true)
+        );
         assert_eq!(acc.text, "Hello.");
     }
     #[test]
@@ -256,7 +310,10 @@ mod smart_tests {
         ] {
             let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
             acc.text = "Um, uh".into();
-            assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
+            assert_eq!(
+                apply_transcription(&content(raw), &mut acc, &mut String::new()),
+                Some(true)
+            );
             assert!(acc.is_empty());
         }
     }
@@ -264,14 +321,17 @@ mod smart_tests {
     #[test]
     fn interims_revise_the_segment_and_a_final_closes_it() {
         use crate::realtime::test_support::{Emitted, Harness};
-        let mut h = Harness::new(GeminiTranscribeConfig {
-            api_key: String::new(),
-            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
-            host: crate::gemini::DEFAULT_HOST.to_string(),
-            language_codes: &[],
-            custom_vocabulary: Vec::new(),
-            origin: Origin::Microphone,
-        });
+        let mut h = Harness::new(
+            GeminiTranscribeConfig {
+                api_key: String::new(),
+                model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+                host: crate::gemini::DEFAULT_HOST.to_string(),
+                language_codes: &[],
+                custom_vocabulary: Vec::new(),
+                origin: Origin::Microphone,
+            }
+            .into_client(),
+        );
         assert_eq!(
             h.send(r#"{"setupComplete":{}}"#).signal,
             Signal::SetupComplete
@@ -316,13 +376,13 @@ mod smart_tests {
             origin: Origin::Microphone,
         };
         assert_eq!(
-            handshake(config.connect_request().unwrap()),
+            handshake(config.clone().into_client().connect_request().unwrap()),
             handshake(translate.connect_request().unwrap())
         );
 
         // The operator reads this as the reconnecting status's detail.
         config.host = "not a host".to_string();
-        let error = config.connect_request().unwrap_err();
+        let error = config.into_client().connect_request().unwrap_err();
         assert_eq!(
             error.to_string(),
             "failed to build Gemini Transcribe request"
@@ -347,12 +407,13 @@ mod smart_tests {
             origin: Origin::Microphone,
         };
         assert_eq!(
-            config("fr").setup_json().unwrap().unwrap(),
+            config("fr").into_client().setup_json().unwrap().unwrap(),
             r#"{"setup":{"model":"models/gemini-3.5-transcribe-live","generationConfig":{"responseModalities":["TEXT"]},"inputAudioTranscription":{"languageCodes":["fr-FR"],"mode":"SMART"}}}"#
         );
-        let mut h = Harness::new(config("en"));
+        let mut h = Harness::new(config("en").into_client());
         assert!(
             config("en")
+                .into_client()
                 .setup_json()
                 .unwrap()
                 .unwrap()
@@ -509,17 +570,124 @@ mod smart_tests {
         );
     }
 
-    #[test]
-    fn the_close_drain_ends_on_the_final_after_the_stream_end() {
-        use crate::realtime::test_support::Harness;
-        let mut h = Harness::new(GeminiTranscribeConfig {
+    fn client() -> GeminiTranscribeClient {
+        GeminiTranscribeConfig {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
             language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
-        });
+        }
+        .into_client()
+    }
+
+    fn final_frame(text: &str) -> String {
+        serde_json::json!({ "serverContent": { "inputTranscription": { "text": text } } })
+            .to_string()
+    }
+
+    // The three passages of `live_probe::smart_finals_across_three_passages`, as the server
+    // finalized them on 23 November 2026: French, then English in two turns.
+    const FRENCH: &str = "Ceci est un enregistrement de répétition pour le système de sous-titre en direct. Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à l'écran. Les sous-titres apparaissent juste après les mots, puis sont corrigés lorsque la phrase devient claire.\n\nUtilisez cet enregistrement pour régler l'affichage avant l'arrivée du public.";
+    const ENGLISH: &str = "This is a rehearsal recording for the live caption system. A speaker is presenting to an audience, and every sentence is transcribed and shown on screen as it is spoken. Captions appear a moment after.";
+    const ENGLISH_END: &str = "Use this recording to check the overlay before the room fills up.";
+
+    /// The recorded SMART session. Every final repeated the whole session so far, and the
+    /// fourth, after the French passage was spoken again, was the third unchanged: SMART
+    /// cleaned the repetition away. Captioned as they came, through 1.15.0, the second
+    /// caption repeated the first and the third repeated both. The finals, their order and
+    /// the frames between them are as recorded; the interim text of the last turn is not.
+    #[test]
+    fn a_smart_final_captions_only_what_it_adds() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        let finals = [
+            FRENCH.to_string(),
+            format!("{FRENCH} {ENGLISH}"),
+            format!("{FRENCH} {ENGLISH} {ENGLISH_END}"),
+            format!("{FRENCH} {ENGLISH} {ENGLISH_END}"),
+        ];
+        for pair in finals.windows(2) {
+            assert!(pair[1].starts_with(&pair[0]), "the recording is cumulative");
+        }
+        let mut h = Harness::new(client());
+        h.send(r#"{"setupComplete":{}}"#);
+        for (turn, text) in finals.iter().enumerate() {
+            h.send(r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_START"}}"#);
+            if turn == 3 {
+                h.send(
+                    r#"{"serverContent":{"interimInputTranscription":{"text":"Ceci est un enregistrement"}}}"#,
+                );
+            }
+            h.send(&final_frame(text));
+            h.send(r#"{"serverContent":{"generationComplete":true}}"#);
+            h.send(r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_END"}}"#);
+        }
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::final_(0, FRENCH, ""),
+                Emitted::final_(1, ENGLISH, ""),
+                Emitted::final_(2, ENGLISH_END, ""),
+                Emitted::interim(3, "Ceci est un enregistrement", ""),
+                // Nothing new: the repeated passage's interim text is retracted.
+                Emitted::final_(3, "", ""),
+            ]
+        );
+    }
+
+    /// A new connection is a new session with an empty text, so its first final is all new.
+    #[test]
+    fn each_connection_starts_from_an_empty_text() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        let mut h = Harness::new(client());
+        h.send(r#"{"setupComplete":{}}"#);
+        h.send(&final_frame(ENGLISH));
+        // The ten-minute handover: the next socket's session knows nothing of the last.
+        h.send(r#"{"setupComplete":{}}"#);
+        h.send(&final_frame(ENGLISH_END));
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::final_(0, ENGLISH, ""),
+                Emitted::final_(1, ENGLISH_END, ""),
+            ]
+        );
+    }
+
+    /// When SMART rewrites earlier text, the shown captions stay as they are and the next
+    /// one starts at the first word that changed.
+    #[test]
+    fn a_rewrite_of_earlier_text_resumes_at_the_first_changed_word() {
+        assert_eq!(
+            added_text(
+                "We meet at two. See you",
+                "We meet at three. See you there."
+            ),
+            "three. See you there."
+        );
+        assert_eq!(added_text("Hello.", "Hello. Bonjour."), "Bonjour.");
+        assert_eq!(added_text("Hello.", "Hello."), "");
+        assert_eq!(added_text("Delete this.", ""), "");
+        assert_eq!(added_text("", "Première phrase."), "Première phrase.");
+        // A change in the very first word leaves nothing shared.
+        assert_eq!(added_text("Écoute.", "Écoutez bien."), "Écoutez bien.");
+    }
+
+    #[test]
+    fn the_close_drain_ends_on_the_final_after_the_stream_end() {
+        use crate::realtime::test_support::Harness;
+        let mut h = Harness::new(
+            GeminiTranscribeConfig {
+                api_key: String::new(),
+                model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+                host: crate::gemini::DEFAULT_HOST.to_string(),
+                language_codes: &[],
+                custom_vocabulary: Vec::new(),
+                origin: Origin::Microphone,
+            }
+            .into_client(),
+        );
         let interim =
             h.send(r#"{"serverContent":{"interimInputTranscription":{"text":"And fin"}}}"#);
         assert!(!h.proto.drain_complete(&interim));
@@ -589,6 +757,7 @@ mod live_probe {
             config.model,
             samples.len() as f32 / RATE as f32
         );
+        let config = config.into_client();
 
         let (socket, _) = connect_async(config.connect_request().unwrap())
             .await
@@ -720,21 +889,32 @@ mod live_probe {
         }
     }
 
+    type Socket = tokio_tungstenite::WebSocketStream<
+        tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+    >;
+
     /// Send the production setup and wait for `setupComplete`. `Err` carries the server's
     /// error or close frame, which name the field it refused and nothing secret.
-    async fn setup(
+    async fn setup(config: &GeminiTranscribeConfig) -> Result<Socket, String> {
+        setup_in_mode(config, None).await
+    }
+
+    /// [`setup`], with the transcription `mode` replaced when one is given.
+    async fn setup_in_mode(
         config: &GeminiTranscribeConfig,
-    ) -> Result<
-        tokio_tungstenite::WebSocketStream<
-            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-        >,
-        String,
-    > {
-        let (mut socket, _) = connect_async(config.connect_request().unwrap())
+        mode: Option<&str>,
+    ) -> Result<Socket, String> {
+        let client = config.clone().into_client();
+        let mut setup: serde_json::Value =
+            serde_json::from_str(&client.setup_json().unwrap().unwrap()).unwrap();
+        if let Some(mode) = mode {
+            setup["setup"]["inputAudioTranscription"]["mode"] = mode.into();
+        }
+        let (mut socket, _) = connect_async(client.connect_request().unwrap())
             .await
             .expect("the Live API should accept the connection");
         socket
-            .send(Message::Text(config.setup_json().unwrap().unwrap().into()))
+            .send(Message::Text(setup.to_string().into()))
             .await
             .unwrap();
         let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
@@ -816,7 +996,7 @@ mod live_probe {
             );
             let (mut write, mut read) = socket.split();
             let audio = samples.clone();
-            let frames = config.clone();
+            let frames = config.clone().into_client();
             let sender = tokio::spawn(async move {
                 let mut pcm = Vec::new();
                 for chunk in audio.chunks(chunk_samples(RATE)) {
@@ -871,5 +1051,105 @@ mod live_probe {
                 "{spoken}: no transcript"
             );
         }
+    }
+
+    /// Three passages with six seconds of silence between them — French, English, French —
+    /// under the production setup, printing every frame but the interim ones in arrival
+    /// order. On 23 November 2026 it showed that each SMART final is "the complete updated
+    /// replacement text for the session so far", as the guide says, not its own turn: the
+    /// recording behind `smart_tests::a_smart_final_captions_only_what_it_adds`.
+    #[tokio::test]
+    #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
+    async fn smart_finals_across_three_passages() {
+        three_passages(None).await;
+    }
+
+    /// The same stream in `VERBATIM` mode, Google's default, for comparison.
+    #[tokio::test]
+    #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
+    async fn verbatim_finals_across_three_passages() {
+        three_passages(Some("VERBATIM")).await;
+    }
+
+    async fn three_passages(mode: Option<&'static str>) {
+        let french = load_fixture(std::path::Path::new("resources/fixtures/rehearsal-fr.wav"))
+            .expect("the bundled rehearsal fixture should load");
+        let english = load_fixture(std::path::Path::new(FIXTURE))
+            .expect("the bundled rehearsal fixture should load");
+        let silence = vec![0.0_f32; RATE as usize * 6];
+        let stream: Vec<f32> = [&french[..], &silence, &english, &silence, &french].concat();
+        println!(
+            "streaming {:.1}s: French, 6 s silence, English, 6 s silence, French",
+            stream.len() as f32 / RATE as f32
+        );
+
+        let config = config(&[]);
+        let socket = setup_in_mode(&config, mode)
+            .await
+            .unwrap_or_else(|e| panic!("setup refused: {e}"));
+        let (mut write, mut read) = socket.split();
+        let frames = config.clone().into_client();
+        let started = tokio::time::Instant::now();
+        let sender = tokio::spawn(async move {
+            let mut pcm = Vec::new();
+            for chunk in stream.chunks(chunk_samples(RATE)) {
+                pcm.clear();
+                f32_to_pcm16_le(chunk, &mut pcm);
+                let data = base64::engine::general_purpose::STANDARD.encode(&pcm);
+                let frame = frames.audio_json(data).unwrap();
+                if write.send(Message::Text(frame.into())).await.is_err() {
+                    return write;
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            let _ = write.send(Message::Text(AUDIO_STREAM_END.into())).await;
+            write
+        });
+
+        let deadline = started + Duration::from_secs(150);
+        let mut interim = 0usize;
+        let mut last_interim = String::new();
+        let mut finals: Vec<String> = Vec::new();
+        let mut drained_at = None;
+        while let Ok(Some(Ok(message))) = tokio::time::timeout_at(deadline, read.next()).await {
+            let Some(json) = frame_json(&message) else {
+                continue;
+            };
+            let parsed: ServerMessage = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("unparsed server message: {e} :: {json}"));
+            assert!(parsed.error.is_none(), "provider error: {:?}", parsed.error);
+            let Some(content) = parsed.server_content else {
+                println!("{:>6.1}s {json}", started.elapsed().as_secs_f32());
+                continue;
+            };
+            if let Some(text) = &content.interim_input_transcription
+                && content.input_transcription.is_none()
+            {
+                interim += 1;
+                last_interim.clone_from(&text.text);
+                continue;
+            }
+            if interim > 0 {
+                println!("        ({interim} interim, the last: {last_interim:?})");
+                interim = 0;
+            }
+            println!("{:>6.1}s {json}", started.elapsed().as_secs_f32());
+            if let Some(text) = content.input_transcription {
+                finals.push(text.text);
+            }
+            // Once the audio is all sent, give the server ten seconds to flush and stop.
+            if sender.is_finished() {
+                let at = *drained_at.get_or_insert_with(tokio::time::Instant::now);
+                if at.elapsed() > Duration::from_secs(10) {
+                    break;
+                }
+            }
+        }
+        drop(sender.await.unwrap());
+        println!("{} finalized segment(s)", finals.len());
+        for (i, text) in finals.iter().enumerate() {
+            println!("--- final {i} ({} chars)\n{text}", text.chars().count());
+        }
+        assert!(finals.len() > 1, "expected more than one final");
     }
 }

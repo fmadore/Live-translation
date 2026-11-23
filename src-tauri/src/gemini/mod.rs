@@ -73,14 +73,17 @@ mod tests {
 
     #[test]
     fn go_away_says_how_long_the_connection_has_left() {
-        let mut h = Harness::new(GeminiTranscribeConfig {
-            api_key: String::new(),
-            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
-            host: DEFAULT_HOST.to_string(),
-            language_codes: &[],
-            custom_vocabulary: Vec::new(),
-            origin: Origin::Microphone,
-        });
+        let mut h = Harness::new(
+            GeminiTranscribeConfig {
+                api_key: String::new(),
+                model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+                host: DEFAULT_HOST.to_string(),
+                language_codes: &[],
+                custom_vocabulary: Vec::new(),
+                origin: Origin::Microphone,
+            }
+            .into_client(),
+        );
         for (frame, expected) in [
             (
                 r#"{"goAway":{"timeLeft":"10s"}}"#,
@@ -125,14 +128,17 @@ mod tests {
             fatal(translate.send(frame)),
             r#"Gemini realtime error: {"code":400,"message":"bad"}"#
         );
-        let mut transcribe = Harness::new(GeminiTranscribeConfig {
-            api_key: String::new(),
-            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
-            host: DEFAULT_HOST.to_string(),
-            language_codes: &[],
-            custom_vocabulary: Vec::new(),
-            origin: Origin::Microphone,
-        });
+        let mut transcribe = Harness::new(
+            GeminiTranscribeConfig {
+                api_key: String::new(),
+                model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+                host: DEFAULT_HOST.to_string(),
+                language_codes: &[],
+                custom_vocabulary: Vec::new(),
+                origin: Origin::Microphone,
+            }
+            .into_client(),
+        );
         assert_eq!(
             fatal(transcribe.send(frame)),
             r#"Gemini Transcribe error: {"code":400,"message":"bad"}"#
@@ -143,14 +149,17 @@ mod tests {
     /// the source in Error until the operator restarted it.
     #[test]
     fn a_transient_provider_error_reconnects_instead() {
-        let mut transcribe = Harness::new(GeminiTranscribeConfig {
-            api_key: String::new(),
-            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
-            host: DEFAULT_HOST.to_string(),
-            language_codes: &[],
-            custom_vocabulary: Vec::new(),
-            origin: Origin::Microphone,
-        });
+        let mut transcribe = Harness::new(
+            GeminiTranscribeConfig {
+                api_key: String::new(),
+                model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+                host: DEFAULT_HOST.to_string(),
+                language_codes: &[],
+                custom_vocabulary: Vec::new(),
+                origin: Origin::Microphone,
+            }
+            .into_client(),
+        );
         for frame in [
             r#"{"error":{"code":503,"message":"The service is currently unavailable.","status":"UNAVAILABLE"}}"#,
             r#"{"error":{"code":500,"message":"Internal error encountered.","status":"INTERNAL"}}"#,

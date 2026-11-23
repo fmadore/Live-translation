@@ -195,12 +195,53 @@ The audio frame is the one live translate uses — 16 kHz mono PCM16 LE, base64 
 
 - `serverContent.interimInputTranscription.text` is a speculative partial hypothesis, revised
   as the speaker talks.
-- `serverContent.inputTranscription.text` is the finalized, authoritative transcript for one
-  speech segment, emitted when the speaker pauses.
+- `serverContent.inputTranscription.text` is the finalized, authoritative transcript, emitted
+  when the speaker pauses. **In SMART mode it is the whole session's text so far, not the
+  segment** (see [SMART finals are cumulative](#smart-finals-are-cumulative)).
 
-**Both describe the same segment, so each replaces the caption buffer rather than extending
-it.** Live translate appends `inputTranscription` deltas; doing so here would repeat every
-revised hypothesis on screen. One finalized segment becomes one transcript line.
+**An interim replaces the caption buffer rather than extending it.** Live translate appends
+`inputTranscription` deltas; doing so here would repeat every revised hypothesis on screen. A
+final becomes one transcript line holding what it adds to the previous final.
+
+### SMART finals are cumulative
+
+The [guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) says that in SMART
+mode `input_transcription` "returns the cumulative, cleaned, and formatted transcript for the
+session so far", and that SMART turns on voice editing: the server keeps the text and applies
+spoken instructions ("delete that", "make it more professional") to all of it. Through 1.15.0
+the client took each final for its own segment, so every caption after the first repeated the
+session before it.
+
+`live_probe::smart_finals_across_three_passages` showed it on 23 November 2026: the French
+recording, six seconds of silence, the English one, silence, the French one again. Four finals
+came back, each starting with the whole of the one before: the French passage; the French
+passage and the first two English sentences; the same plus the last English sentence; and,
+after the French passage was spoken again, the third final unchanged, the repetition cleaned
+away. The client now remembers the last final of the connection and captions only what the
+next one adds (`added_text`); when SMART has rewritten earlier text, it resumes at the first
+word that changed, since captions already shown cannot change. A final that adds nothing is
+an empty caption, which retracts the turn's interim text. The remembered text is cleared on
+each `setupComplete`, because a new connection is a new session.
+`smart_tests::a_smart_final_captions_only_what_it_adds` replays the recording.
+
+What the same run showed about SMART, for the choice of mode:
+
+- **A repeated passage disappears.** The third passage was shown as interim text and then
+  dropped from the final. A speaker who repeats a sentence loses the repetition.
+- **Spoken edits apply.** A speaker saying "delete that" edits the text rather than being
+  captioned; the client then shows nothing new.
+- **Finals came late, and later as the session went on.** The first final arrived about
+  15 seconds after the French passage ended, against about 2.5 seconds in VERBATIM mode on the
+  same stream; the last about 30 seconds after the audio ended, against about 8. Even the
+  `voiceActivity` frames were held back with them.
+
+`verbatim_finals_across_three_passages` ran the same stream in VERBATIM mode: one final per
+segment, punctuated and cased, and the repeated French passage kept. One segment of the English
+passage ended (`voiceActivity` `ACTIVITY_END`) with no final at all, and the next segment's
+interim text replaced its stranded interim, so those words were lost there too. Moving to
+VERBATIM would change the interface copy about Smart transcription, the
+[privacy notice](privacy.md) and [transcript export](transcript-export.md) notes, and needs a
+fix for that stranded segment; it is left as a decision.
 
 When a message carries both, the finalized text wins. An empty final or segment close retracts
 an all-filler speculative caption rather than keeping it as speech, and the front end discards

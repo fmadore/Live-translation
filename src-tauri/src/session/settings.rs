@@ -167,14 +167,17 @@ impl ProviderSettings {
                 model,
                 language_codes,
                 custom_vocabulary,
-            } => io.spawn_realtime(GeminiTranscribeConfig {
-                api_key,
-                model: model.clone(),
-                host: host.clone(),
-                language_codes,
-                custom_vocabulary: custom_vocabulary.clone(),
-                origin,
-            }),
+            } => io.spawn_realtime(
+                GeminiTranscribeConfig {
+                    api_key,
+                    model: model.clone(),
+                    host: host.clone(),
+                    language_codes,
+                    custom_vocabulary: custom_vocabulary.clone(),
+                    origin,
+                }
+                .into_client(),
+            ),
             Self::OpenAi {
                 host,
                 model,
