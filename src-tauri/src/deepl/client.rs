@@ -44,10 +44,9 @@ use super::protocol::{
     deepl_target_code, source_media_chunk, source_media_frame,
 };
 use super::session::{self, Refusal};
-use crate::audio::AudioChunk;
 use crate::realtime::{
     CaptionUpdate, Keepalive, MessageControl, MessageOutcome, PrepareError, RealtimeProtocol,
-    TurnAccumulator, Verdict, classify, ends_sentence, parse_or_log,
+    TurnAccumulator, Verdict, classify, ends_sentence, idle_keepalive, parse_or_log,
 };
 use crate::types::{Origin, TargetLanguage};
 
@@ -55,10 +54,6 @@ pub const DEFAULT_DEEPL_HOST: &str = "api.deepl.com";
 /// No new target text for this long closes the turn, unless DeepL still holds tentative text.
 /// Most turns close earlier, on a concluded sentence.
 const FINALIZE_AFTER: Duration = Duration::from_millis(1_000);
-/// DeepL ends a session after 30 seconds without audio. Silence goes out well before that.
-const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
-/// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
-const SILENCE_BYTES: usize = 3_200;
 /// Whether a streaming URL may be plain `ws`. The token is a credential for the session, so a
 /// release build refuses it; a debug build allows it for the loopback servers of the tests and
 /// for whatever a developer's `DEEPL_API_HOST` hands out.
@@ -407,13 +402,9 @@ impl RealtimeProtocol for DeepLClient {
         Ok(source_media_frame(pcm_le))
     }
 
+    /// DeepL ends a session after 30 seconds without audio. Silence goes out well before that.
     fn keepalive(&self) -> Option<Keepalive> {
-        Some(Keepalive {
-            after: KEEPALIVE_AFTER,
-            silence: AudioChunk {
-                pcm_le: vec![0; SILENCE_BYTES],
-            },
-        })
+        Some(idle_keepalive())
     }
 
     /// Ends the session: DeepL concludes what is tentative, then sends `end_of_stream`.

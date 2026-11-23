@@ -8,10 +8,9 @@ use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
-use crate::audio::AudioChunk;
 use crate::realtime::{
     CaptionUpdate, Keepalive, MessageControl, MessageOutcome, RealtimeProtocol, Signal,
-    TurnAccumulator, bearer_request, ends_sentence, parse_or_log, provider_error,
+    TurnAccumulator, bearer_request, ends_sentence, idle_keepalive, parse_or_log, provider_error,
 };
 use crate::types::Origin;
 
@@ -20,11 +19,7 @@ pub const DEFAULT_MISTRAL_HOST: &str = "api.mistral.ai";
 /// A small context window keeps subtitles responsive while improving recognition quality.
 pub const DEFAULT_TARGET_STREAMING_DELAY_MS: u32 = 480;
 const FINALIZE_AFTER: Duration = Duration::from_millis(900);
-/// Mistral ends a session after 30 seconds without audio (code 3401, seen live on 17 November
-/// 2026 on the system source of a quiet meeting). Silence goes out well before that.
-const KEEPALIVE_AFTER: Duration = Duration::from_secs(10);
-/// 100 ms of 16 kHz mono PCM16, like every chunk capture sends.
-const SILENCE_BYTES: usize = 3_200;
+
 #[derive(Clone)]
 pub struct MistralConfig {
     pub api_key: String,
@@ -104,13 +99,10 @@ impl RealtimeProtocol for MistralClient {
         Ok(serde_json::to_string(&InputAudioAppend::pcm16(base64_pcm))?)
     }
 
+    /// Mistral ends a session after 30 seconds without audio (code 3401, seen live on 17
+    /// November 2026 on the system source of a quiet meeting). Silence goes out well before.
     fn keepalive(&self) -> Option<Keepalive> {
-        Some(Keepalive {
-            after: KEEPALIVE_AFTER,
-            silence: AudioChunk {
-                pcm_le: vec![0; SILENCE_BYTES],
-            },
-        })
+        Some(idle_keepalive())
     }
 
     fn closing_json(&mut self) -> Result<Vec<String>> {

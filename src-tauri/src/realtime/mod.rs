@@ -30,7 +30,10 @@ use crate::timing::SessionClock;
 use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use policy::{After, Reconnect, RunEnd};
 use socket::{Backlog, SocketIo};
-pub use wire::{Verdict, bearer_request, classify, ends_sentence, parse_or_log, provider_error};
+pub use wire::{
+    CLOSING_MARKS, SENTENCE_ENDERS, Verdict, bearer_request, classify, ends_sentence,
+    idle_keepalive, parse_or_log, provider_error,
+};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -275,11 +278,11 @@ pub trait RealtimeProtocol {
         self.audio_json(base64::engine::general_purpose::STANDARD.encode(pcm_le))
     }
 
-    /// For a provider that ends a session whose input stops — DeepL, after 30 seconds without
-    /// data: silence to send whenever the source has sent no audio for a while. A microphone
-    /// delivers chunks continuously, silence included, but system audio can deliver none while
-    /// nothing plays (event-driven WASAPI loopback is not signalled when no stream renders).
-    /// `None`: send nothing.
+    /// For a provider that ends a session whose input stops — DeepL and Mistral, after 30
+    /// seconds without audio (`idle_keepalive`): silence to send whenever the source has sent
+    /// no audio for a while. A microphone delivers chunks continuously, silence included, but
+    /// system audio can deliver none while nothing plays (event-driven WASAPI loopback is not
+    /// signalled when no stream renders). `None`: send nothing.
     fn keepalive(&self) -> Option<Keepalive> {
         None
     }

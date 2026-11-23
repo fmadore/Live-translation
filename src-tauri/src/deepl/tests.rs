@@ -15,6 +15,7 @@ use tokio_tungstenite::{WebSocketStream, accept_hdr_async};
 use tokio_util::sync::CancellationToken;
 
 use super::*;
+use crate::audio::AudioChunk;
 use crate::errors::id;
 use crate::realtime::Signal;
 use crate::realtime::test_support::{Emitted, Harness, handshake};
