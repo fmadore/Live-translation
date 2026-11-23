@@ -8,7 +8,7 @@ use tauri::{AppHandle, Emitter};
 use tokio::sync::mpsc::channel;
 use tokio_util::sync::CancellationToken;
 
-use super::builder::AUDIO_CHANNEL_CAPACITY;
+use super::builder::{AUDIO_CHANNEL_CAPACITY, catching_panics};
 use super::capture::{CaptureTarget, join_threads, source_failure, spawn_level_forwarder};
 use super::options::live_origins;
 use super::{SessionManager, lock};
@@ -42,6 +42,18 @@ fn complete_probe(
             message: Some(source_failure(origin, &error)),
         });
     }
+}
+
+/// A probe thread's whole life: the capture, then `complete_probe` whatever way it ended. A
+/// driver panic is caught as a session's capture thread catches it; one that unwound past
+/// `complete_probe` would leave the test showing as active with no device behind it.
+fn probe(
+    capture: impl FnOnce() -> Result<()>,
+    origin: Origin,
+    cancel: &CancellationToken,
+    publish: impl FnOnce(AudioTestUpdate),
+) {
+    complete_probe(catching_panics(capture), origin, cancel, publish);
 }
 
 impl SessionManager {
@@ -107,16 +119,22 @@ impl SessionManager {
                     if start_rx.recv().is_err() || probe_cancel.is_cancelled() {
                         return;
                     }
-                    let result = capture.run(
+                    probe(
+                        || {
+                            capture.run(
+                                origin,
+                                TEST_SAMPLE_RATE,
+                                level_tx,
+                                audio_tx.into(),
+                                &probe_cancel,
+                            )
+                        },
                         origin,
-                        TEST_SAMPLE_RATE,
-                        level_tx,
-                        audio_tx.into(),
                         &probe_cancel,
+                        |update| {
+                            let _ = probe_app.emit(events::AUDIO_TEST, update);
+                        },
                     );
-                    complete_probe(result, origin, &probe_cancel, |update| {
-                        let _ = probe_app.emit(events::AUDIO_TEST, update);
-                    });
                 })
                 .context("failed to spawn audio test thread")?;
             capture_threads.push(handle);
@@ -188,6 +206,31 @@ mod tests {
         assert_eq!(updates.len(), 1);
         assert!(!updates[0].active);
         assert_eq!(updates[0].message.as_ref().unwrap().id, id::MIC_STREAM);
+    }
+
+    /// #238: a panic in the probe's capture used to skip `complete_probe`, and the test stayed
+    /// active. It now stops the test and reports why.
+    #[test]
+    fn a_panicking_probe_capture_completes_the_probe_with_an_error() {
+        let test = CancellationToken::new();
+        let mut updates = Vec::new();
+        probe(
+            || panic!("ReleaseBuffer failed"),
+            Origin::System,
+            &test,
+            |update| updates.push(update),
+        );
+        assert!(test.is_cancelled());
+        assert_eq!(updates.len(), 1);
+        assert!(!updates[0].active);
+        let message = updates[0].message.as_ref().unwrap();
+        assert_eq!(message.id, id::SYSTEM_CAPTURE);
+        assert!(
+            message
+                .detail
+                .as_deref()
+                .is_some_and(|detail| detail.contains("ReleaseBuffer failed"))
+        );
     }
 
     #[test]

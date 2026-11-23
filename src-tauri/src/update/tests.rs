@@ -156,7 +156,7 @@ impl Fixture {
     }
 
     async fn check(&self, now: u64) -> UpdateStatus {
-        self.updates.check(&self.cx, now, false).await
+        self.updates.check(&self.cx, now, false).await.unwrap()
     }
 
     fn stored(&self) -> Stored {
@@ -488,7 +488,7 @@ async fn no_request_while_a_session_runs() {
     let server = Server::start(Answer::release("v1.15.0"));
     let fixture = Fixture::switched_on(&server);
 
-    let status = fixture.updates.check(&fixture.cx, NOW, true).await;
+    let status = fixture.updates.check(&fixture.cx, NOW, true).await.unwrap();
 
     assert!(server.requests().is_empty());
     assert_eq!(status.last_checked_ms, None, "nothing was checked");

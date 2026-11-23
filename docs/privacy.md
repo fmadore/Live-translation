@@ -1,11 +1,13 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 16 November 2026 (adds the optional check for new versions, made only by
+**Effective date:** 23 November 2026 (corrects where the names and terms entered in the setup
+are used: by Mistral and Gemini Transcribe subtitles, which receive them, and by local Whisper,
+which uses them on the device; the stored preferences named Mistral alone. What the app sends
+is unchanged)
+
+Previous version: 16 November 2026 (added the optional check for new versions, made only by
 copies installed from GitHub, and only once the user turns it on, the optional system-wide
 shortcuts, and the markers an operator adds, which are kept with the transcript)
-
-Previous version: 11 November 2026 (added DeepL as a fourth optional cloud provider, for
-translation)
 
 ## What this app is
 
@@ -213,7 +215,8 @@ the spending-guard choices for cloud engines, whether a notice on the overlay cl
 captions resume (the notice's text is not stored), whether transcript history or the optional recovery
 copy is enabled, on a copy installed from GitHub the new-version check's state described
 [above](#new-version-check-copies-installed-from-github), whether a running session shows the Live or the Transcript view, the names and
-terms entered for Mistral subtitles, whether closing the window leaves the app running in
+terms entered in the setup for the speech engines that use them (Mistral and Gemini Transcribe
+subtitles, and local Whisper), whether closing the window leaves the app running in
 the notification area (the menu bar on macOS), whether the system-wide shortcuts are switched
 on, and which cloud providers the user has agreed to send audio to.
 The app also remembers the folder of the last successful transcript export, the chosen export
@@ -294,8 +297,9 @@ is sent unless the user chooses to send; the answer is remembered on the device 
 provider. Removing the provider's API key stops anything being sent to it. With Mistral or Gemini subtitles, the names and terms entered in the setup, if
 any, are sent to that provider at the start of each session, together with the audio, so that
 its model favours those spellings. They may include the names of the people speaking; enter only
-what may be shared with that provider. Local Whisper keeps them on the computer, and the
-translation engines are not sent them.
+what may be shared with that provider. Local Whisper, transcribing or translating, uses them on
+the computer to guide its recognition and sends them nowhere, and the translation engines are
+not sent them.
 
 With **DeepL**, which translates only, the audio of the chosen sources is streamed, while a
 DeepL session runs, to DeepL SE (Cologne, Germany) together with the chosen caption language;

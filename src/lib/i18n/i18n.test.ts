@@ -154,12 +154,29 @@ describe('the message catalogs', () => {
 // that the alternative — a line breaking between a word and its question mark — is not
 // hypothetical. Invisible in a diff, so checked here.
 describe('French typography', () => {
+	// A message built from its arguments is checked as it reads: called with each sample in
+	// every argument, so the singular, plural and zero branches all come out. Catalogue
+	// functions take counts and names only, and a number reads as well in a name's place.
+	const SAMPLES = [0, 1, 2, 'Réunion'];
 	const strings = (value: unknown): string[] =>
 		typeof value === 'string'
 			? [value]
-			: typeof value === 'object' && value !== null
-				? Object.values(value).flatMap(strings)
-				: [];
+			: typeof value === 'function'
+				? SAMPLES.flatMap((sample) =>
+						strings((value as (...args: unknown[]) => unknown)(...Array(value.length).fill(sample)))
+					)
+				: typeof value === 'object' && value !== null
+					? Object.values(value).flatMap(strings)
+					: [];
+
+	it('checks the messages built from their arguments too', () => {
+		expect(strings({ count: (n: number) => (n === 1 ? 'un' : 'plusieurs') })).toEqual([
+			'plusieurs',
+			'un',
+			'plusieurs',
+			'plusieurs'
+		]);
+	});
 
 	it('uses a non-breaking space before its double punctuation', () => {
 		for (const message of [...strings(fr), ...strings(macFr)]) {

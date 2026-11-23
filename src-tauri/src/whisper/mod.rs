@@ -4,9 +4,12 @@
 //!
 //! Where the windows are decoded: on Windows, on the graphics processor through the Vulkan
 //! helper (`gpu.rs`) when one is installed and finds a usable device; on a Mac, on the graphics
-//! processor through Metal, in the app; otherwise, and whenever the graphics processor fails,
-//! on the processor. Silero's speech detection (`vad.rs`) decides first whether a window is
-//! worth decoding at all.
+//! processor through Metal, in the app; otherwise on the processor. Only the Vulkan helper falls
+//! back to the processor: a helper that cannot start, or that fails during the session, is
+//! replaced by the model on the processor for the rest of it (`backend.rs`). Metal has no such
+//! fallback: a model that does not load on it, or a window that fails on it, is an error, as on
+//! the processor. Silero's speech detection (`vad.rs`) decides first whether a window is worth
+//! decoding at all.
 //!
 //! `backend.rs` holds where windows are decoded, `pipeline.rs` how a source's audio becomes
 //! captions.

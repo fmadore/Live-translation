@@ -39,6 +39,12 @@ vi.mock('./tauri', () => ({
 	)
 }));
 vi.mock('./textScale', () => ({ followTextScale: async () => () => {} }));
+// The page follows the theme at init; with `isTauri` true, the real module would ask a window
+// that is not there for its title bar and log the TypeError.
+vi.mock('./theme', async (importOriginal) => ({
+	...(await importOriginal<typeof import('./theme')>()),
+	followTheme: () => () => {}
+}));
 vi.mock('./overlayController.svelte', () => ({
 	createOverlayController: () => ({
 		captionFaces: [],
