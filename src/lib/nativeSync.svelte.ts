@@ -16,7 +16,8 @@ import {
 	sessionState,
 	statusMessage,
 	transcript,
-	transcriptDirty
+	transcriptDirty,
+	trackEngines
 } from './stores';
 import { api, on } from './tauri';
 import { listenAll } from './coreEvents';
@@ -46,6 +47,7 @@ export function syncNative({
 	const messages = fromStore(t);
 	const interfaceLocale = fromStore(locale);
 	const setup = fromStore(options);
+	const engines = fromStore(trackEngines);
 
 	// The core's close guard. While it and the tray preference are both false a close is not
 	// intercepted at all, so a wedged renderer cannot produce an unclosable window.
@@ -112,6 +114,8 @@ export function syncNative({
 	const captionLanguage = $derived(captionLanguageOf(setup.current));
 	const secondCaptionLanguage = $derived(secondCaptionLanguageOf(setup.current));
 	$effect(() => {
+		// A source can change its caption language without changing the saved setup.
+		void engines.current;
 		overlay.pushOverlayConfig({
 			locale: interfaceLocale.current,
 			captionLanguage,

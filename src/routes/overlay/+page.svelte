@@ -29,7 +29,14 @@
 	import { isTargetLanguage } from '#lib/languages.js';
 	import { api, on, isTauri } from '#lib/tauri.js';
 	import { listenAll } from '#lib/coreEvents.js';
-	import type { Lane, OverlayFit, Origin, TargetLanguage } from '#lib/types.js';
+	import {
+		trackOf,
+		type OverlayConfig,
+		type Lane,
+		type OverlayFit,
+		type Origin,
+		type TargetLanguage
+	} from '#lib/types.js';
 
 	// The initial appearance comes from the shared localStorage keys (same origin as the
 	// operator), then the operator pushes live updates via the overlay-config event.
@@ -65,6 +72,7 @@
 	// move-mode chrome and the origin labels follow the operator's locale, the captions do
 	// not. Only the operator window can work it out, so it is pushed. Undefined means unknown
 	// — before the first push, and while a subtitle engine is detecting the spoken language.
+	let trackLanguages = $state<OverlayConfig['trackLanguages']>();
 	let captionLanguage = $state<TargetLanguage | undefined>(undefined);
 	/** Lane 1's language, when the session captions in a second one. */
 	let secondCaptionLanguage = $state<TargetLanguage | undefined>(undefined);
@@ -89,10 +97,14 @@
 	// sources are on screen.
 	const bilingualRows = $derived(lines.some((line) => line.lane === 1));
 	const bothSources = $derived(new Set(lines.map((line) => line.origin)).size > 1);
-	const rowLanguage = (lane: Lane) => (lane === 1 ? secondCaptionLanguage : captionLanguage);
+	function rowLanguage(line: { origin: Origin; lane: Lane }) {
+		const override = trackLanguages?.[trackOf(line.origin, line.lane)];
+		if (override !== undefined) return isTargetLanguage(override) ? override : undefined;
+		return line.lane === 1 ? secondCaptionLanguage : captionLanguage;
+	}
 	function rowLabel(line: { origin: Origin; lane: Lane }): string {
 		if (!bilingualRows) return originLabel[line.origin];
-		const code = (rowLanguage(line.lane) ?? '').toUpperCase();
+		const code = (rowLanguage(line) ?? '').toUpperCase();
 		return bothSources ? `${originLabel[line.origin]} · ${code}` : code;
 	}
 	const sidePadding = $derived(
@@ -177,6 +189,7 @@
 				if (isLocale(cfg.locale)) locale.set(cfg.locale);
 				// Unconditional, unlike the rest: an absent caption language is a real answer
 				// ("nobody knows"), so it has to be able to clear one that was set before.
+				trackLanguages = cfg.trackLanguages;
 				captionLanguage = isTargetLanguage(cfg.captionLanguage) ? cfg.captionLanguage : undefined;
 				secondCaptionLanguage = isTargetLanguage(cfg.secondCaptionLanguage)
 					? cfg.secondCaptionLanguage
@@ -326,7 +339,7 @@
 								? rowHeight - originalRegion - ORIGINAL_GAP
 								: rowHeight}
 							fontKey={rowFont + ':' + captionFace + ':' + fontsLoaded}
-							language={rowLanguage(line.lane) ?? ''}
+							language={rowLanguage(line) ?? ''}
 						/>
 						{#if line.original && rowFit.original}
 							<!-- The speaker's language is whatever they spoke, which nobody has

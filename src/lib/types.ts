@@ -412,6 +412,8 @@ export interface OverlayConfig {
 	 *  phonemes. Absent while a subtitle engine is auto-detecting and nobody knows — see
 	 *  `captionLanguageOf`, which is where the answer is worked out. */
 	captionLanguage?: TargetLanguage;
+	/** Overrides for tracks that changed engines. A null language leaves direction to the text. */
+	trackLanguages?: Partial<Record<Track, TargetLanguage | null>>;
 	/** The language of lane 1's captions, when the session has a second one. Unconditional
 	 *  on arrival like `captionLanguage`: absent clears it. */
 	secondCaptionLanguage?: TargetLanguage;

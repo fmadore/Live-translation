@@ -7,7 +7,7 @@ import { mockTauri, type TauriMock } from './testing/tauriMock';
 import { createOverlayController } from './overlayController.svelte';
 import { syncNative } from './nativeSync.svelte';
 import type { SessionClock } from './sessionClock.svelte';
-import { applyStatus, options } from './stores';
+import { applyStatus, options, trackEngines } from './stores';
 import { on } from './tauri';
 import type { OverlayConfig } from './types';
 
@@ -74,6 +74,18 @@ it('answers the overlay being ready with a whole configuration', async () => {
 	await core.emit('overlay-state', { fontSize: 40 });
 	await new Promise((resolve) => setTimeout(resolve, 20));
 	expect(pushes).toHaveLength(1);
+});
+
+it('pushes a language override only for the source continued by Whisper', async () => {
+	options.update((o) => ({ ...o, provider: 'gemini', mode: 'translate', targetLanguage: 'fr' }));
+	const pushes = await overlayPushes();
+	await mount();
+	trackEngines.set({ system: 'whisper' });
+	await expect
+		.poll(() => pushes.at(-1))
+		.toMatchObject({ captionLanguage: 'fr', trackLanguages: { system: null } });
+	trackEngines.set({});
+	await expect.poll(() => pushes.at(-1)?.trackLanguages).toEqual({});
 });
 
 it('carries move mode in the answer to a reloaded overlay', async () => {

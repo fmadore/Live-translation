@@ -15,7 +15,9 @@ import {
 	overlayShowOriginal,
 	noticeUntilCaptions,
 	sessionState,
-	statusMessage
+	statusMessage,
+	trackEngines,
+	trackLanguage
 } from './stores';
 import {
 	NO_NOTICE,
@@ -24,8 +26,8 @@ import {
 	showNotice,
 	type NoticeState
 } from './overlayNotice';
-import { captionLanguageOf, secondCaptionLanguageOf } from './types';
-import type { OverlayConfig, OverlayFit, OverlayStateMsg } from './types';
+import { TRACK_ORDER, captionLanguageOf, secondCaptionLanguageOf } from './types';
+import type { OverlayConfig, OverlayFit, OverlayStateMsg, StartOptions } from './types';
 import {
 	clampOverlayFont,
 	DEFAULT_APPEARANCE,
@@ -81,7 +83,14 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 	let captionFaces = $state<readonly CaptionFace[]>(CAPTION_FACES);
 
 	/** Read the current audience language when building a complete configuration. */
-	const captionLanguage = () => captionLanguageOf(get(options));
+	function trackLanguages(setup: StartOptions) {
+		const engines = get(trackEngines);
+		const languages: NonNullable<OverlayConfig['trackLanguages']> = {};
+		for (const track of TRACK_ORDER) {
+			if (engines[track]) languages[track] = trackLanguage(setup, track, engines) ?? null;
+		}
+		return languages;
+	}
 
 	// Every push carries the whole appearance, not the field that changed: the overlay is a
 	// separate webview that can be reloaded independently, and a partial config would leave
@@ -103,14 +112,16 @@ export function createOverlayController(port = api, schedule = beforeNextFrame) 
 	}
 
 	function flushOverlayConfig() {
+		const setup = get(options);
 		const extra = pendingExtra ?? {};
 		pendingExtra = null;
 		if ('interactive' in extra) extra.interactive = moveOverlay;
 		void api
 			.setOverlayConfig({
 				...toOverlayConfig(get(appearance)),
-				captionLanguage: captionLanguage(),
-				secondCaptionLanguage: secondCaptionLanguageOf(get(options)),
+				captionLanguage: captionLanguageOf(setup),
+				trackLanguages: trackLanguages(setup),
+				secondCaptionLanguage: secondCaptionLanguageOf(setup),
 				fillerWords: [...get(overlayFillerWords)],
 				showOriginal: get(overlayShowOriginal),
 				notice: notice.text,
