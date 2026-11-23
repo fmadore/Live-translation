@@ -121,6 +121,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
 | DeepL Voice API | Translate | 16 kHz PCM16 | concluded and tentative target segments, lines closed at a concluded sentence end | end of source media, drain to end of stream |
 | Mistral Voxtral Realtime 3 | Transcribe | 16 kHz PCM16 | transcription deltas, lines closed at detected turn ends | flush, end, drain |
 | Google Gemini Transcribe Live | Transcribe | 16 kHz PCM16 | interim/final input transcription | audio stream end, drain to final |
+| OpenAI Realtime transcription | Transcribe | 24 kHz PCM16 | transcription deltas, buffer committed by the client at pauses | commit, drain to its completion |
 | Local Whisper | Transcribe | 16 kHz PCM16 | finalized multilingual segments | EOF, finish queued audio |
 | Local Whisper translation | Translate, English only | 16 kHz PCM16 | finalized segments in English, no source text | EOF, finish queued audio |
 | Built-in demo | Transcribe demo | bundled deterministic timeline | scripted partial/final events | cancellation token |
@@ -147,6 +148,12 @@ the same way with its code 3401, asks for the same). A DeepL Free key (`:fx`) is
 when saved and again at Start (`error.deeplPaidPlan`): the Voice API is not on the free host.
 See [`deepl-voice-api.md`](deepl-voice-api.md).
 
+OpenAI's two rows are split like Gemini's, on one stored key. Its transcription session has no
+turn detection of its own: the client commits the audio buffer at the end of each turn, from
+the loudness of the chunks it sends, through `RealtimeProtocol::after_audio`, a frame the
+runner sends straight after a chunk's audio. See
+[`openai-transcribe-api.md`](openai-transcribe-api.md).
+
 The subtitle backends and the built-in demo are unavailable in translation mode;
 `session/options.rs` enforces this through `Provider::can_translate`.
 
@@ -154,16 +161,17 @@ Providers whose text has no turn boundary of its own close a line in the runner.
 apply, each opt-in through `RealtimeProtocol`:
 
 - **Idle boundary:** a line closes once new caption text has stopped for `finalize_after`
-  (900 ms for OpenAI and Mistral, 1 s for DeepL, whose lines mostly close earlier, on a
-  concluded sentence).
+  (900 ms for both OpenAI engines and Mistral, 1 s for DeepL, whose lines mostly close earlier,
+  on a concluded sentence).
 - **End of turn:** `Signal::EndOfTurn(grace)` sets a hard deadline: the line closes after the
   grace, however much text arrives meanwhile. Mistral sends it on `turn.end`, with its
   streaming delay as the grace, because the speaker's last words are still on their way.
 - **Mid-sentence hold:** `keeps_turn_open` lets the provider hold a line at the idle boundary
   while the speaker is mid-sentence. The boundary checks again one interval later, and stops
   holding once the text has been still for `MAX_HOLD` (4 s). Mistral holds while turn
-  detection says the speaker is talking and the text does not end a sentence; DeepL while it
-  still has tentative text it may revise.
+  detection says the speaker is talking and the text does not end a sentence; OpenAI's
+  transcription, which has no turn events, while the text does not end a sentence; DeepL while
+  it still has tentative text it may revise.
 
 See [Mistral's API notes](mistral-realtime-api.md#how-a-subtitle-line-closes) and
 [DeepL's](deepl-voice-api.md#how-a-caption-line-closes).
@@ -256,6 +264,11 @@ sent still comes back as text. From the drain on, and while the new socket conne
 up, it keeps reading the producer into a backlog of up to 70 chunks (about seven seconds; the
 oldest go first beyond that), sends it in order once setup completes, then whatever is still
 queued (`next_chunk`'s catch-up) rather than coalescing it as a stall's backlog. The gap becomes latency instead of lost speech.
+
+**A fresh start** (Start, or Resume after a pause) holds audio the same way: the speech that
+begins while the socket opens and the provider confirms its setup goes into the same bounded
+backlog and out in order once streaming, so the speaker's first words are not lost to the
+handshake. Only a recovery after a failure drops what queued meanwhile, as a stall's backlog.
 
 **Device presence.** Capture threads check that their endpoint still exists through
 `audio::devices::PresenceCheck`: at once when the device watcher reports a change, and

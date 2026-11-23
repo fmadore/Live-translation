@@ -265,6 +265,7 @@ export const en = {
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
+		'openai-transcribe': 'OpenAI',
 		mistral: 'Voxtral',
 		deepl: 'DeepL',
 		ondevice: 'Built-in demo'
@@ -296,6 +297,7 @@ export const en = {
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
+			'openai-transcribe': 'OpenAI',
 			mistral: 'Mistral Voxtral',
 			deepl: 'DeepL',
 			ondevice: 'Built-in demo'
@@ -310,6 +312,9 @@ export const en = {
 		/** One line under DeepL in the engine picker: why an operator might choose it. */
 		deeplNote:
 			'Experimental, not yet tried in a live session. Known for its translation quality; provider based in the EU. Needs a paid DeepL API plan (Growth or higher).',
+		/** Under the spoken-language choice, for OpenAI's subtitles. */
+		openaiLanguageHint:
+			'Sent to OpenAI as a hint to the language spoken. Choose it when you know it; with automatic detection, OpenAI recognises the language itself.',
 		costNote: {
 			whisper:
 				'Audio is processed on this computer. Pending audio uses a temporary file, deleted when processing ends. No API charges.',
@@ -321,6 +326,8 @@ export const en = {
 				'Gemini: audio in is billed on wall clock, transcript text only while someone is speaking.',
 			openai:
 				'OpenAI: audio in and text out are billed per minute for as long as the stream stays open.',
+			'openai-transcribe':
+				'OpenAI: audio in is billed per minute for as long as the stream stays open, pauses included.',
 			mistral:
 				'Voxtral: billed per minute of audio streamed, for as long as the session stays open.',
 			deepl:

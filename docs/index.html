@@ -1243,8 +1243,15 @@
 										Translation into 13 languages
 										<span class="model mono">gpt-realtime-translate</span>
 									</p>
+									<p>
+										Subtitles in the spoken language, detected by the model or set by you
+										<span class="model mono">gpt-live-transcribe</span>
+									</p>
 								</td>
-								<td data-label="Cost per hour"><span class="rate">$3.06</span></td>
+								<td data-label="Cost per hour">
+									<p><span class="rate">$3.06</span> translation</p>
+									<p><span class="rate">$1.02</span> subtitles</p>
+								</td>
 								<td data-label="Where the audio goes">
 									Streamed directly to OpenAI, under your own key and OpenAI's terms.
 								</td>
@@ -1300,8 +1307,9 @@
 								<a href="https://ai.google.dev/gemini-api/docs/pricing">Gemini API pricing</a> and
 								<a href="https://developers.openai.com/api/docs/pricing">OpenAI API pricing</a>
 								pages, last checked 27 August 2026. Gemini is a range because its output is billed
-								only while it translates; OpenAI's figure includes the transcript of the original
-								speech, billed on top of the translation.
+								only while it translates; OpenAI's translation figure includes the transcript of the
+								original speech, billed on top of the translation. OpenAI subtitles are $0.017 per
+								minute, checked 23 November 2026.
 							</li>
 							<li>
 								Mistral: the

@@ -224,7 +224,9 @@ impl SessionManager {
         };
         // A key from the environment never went through `set_api_key`'s check.
         secrets::check_plan(provider, &api_key)?;
-        let settings = ProviderSettings::resolve(provider)?.with_glossary(&options.glossary);
+        let settings = ProviderSettings::resolve(provider)?
+            .with_glossary(&options.glossary)
+            .with_spoken_language(options.spoken_language.as_deref());
         // Made before the model loads, so discarding (and quitting) also ends a load that hangs.
         let abort = CancellationToken::new();
         let local_model = if provider.is_local_whisper() {

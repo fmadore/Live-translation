@@ -19,7 +19,7 @@
 	const modeProviders = $derived<Provider[]>(
 		$options.mode === 'translate'
 			? ['gemini', 'openai', 'deepl', 'whisper-translate']
-			: ['whisper', 'mistral', 'gemini-transcribe', 'ondevice']
+			: ['whisper', 'mistral', 'gemini-transcribe', 'openai-transcribe', 'ondevice']
 	);
 </script>
 

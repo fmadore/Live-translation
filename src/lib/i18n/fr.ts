@@ -254,6 +254,7 @@ export const fr: Messages = {
 		gemini: 'Gemini',
 		'gemini-transcribe': 'Gemini',
 		openai: 'OpenAI',
+		'openai-transcribe': 'OpenAI',
 		mistral: 'Voxtral',
 		deepl: 'DeepL',
 		ondevice: 'Démo intégrée'
@@ -285,6 +286,7 @@ export const fr: Messages = {
 			gemini: 'Google Gemini',
 			'gemini-transcribe': 'Google Gemini',
 			openai: 'OpenAI',
+			'openai-transcribe': 'OpenAI',
 			mistral: 'Mistral Voxtral',
 			deepl: 'DeepL',
 			ondevice: 'Démo intégrée'
@@ -299,6 +301,9 @@ export const fr: Messages = {
 		/** One line under DeepL in the engine picker: why an operator might choose it. */
 		deeplNote:
 			'Expérimental, pas encore essayé en séance réelle. Réputé pour la qualité de ses traductions ; fournisseur établi dans l’UE. Nécessite un forfait API DeepL payant (Growth ou supérieur).',
+		/** Under the spoken-language choice, for OpenAI's subtitles. */
+		openaiLanguageHint:
+			'Transmise à OpenAI pour indiquer la langue parlée. Choisissez-la si vous la connaissez ; en détection automatique, OpenAI reconnaît la langue lui-même.',
 		costNote: {
 			whisper:
 				'Le son est traité sur cet ordinateur. Le son en attente est conservé dans un fichier temporaire, supprimé à la fin du traitement. Aucun frais d’API.',
@@ -310,6 +315,8 @@ export const fr: Messages = {
 				'Gemini : l’audio entrant est facturé au temps réel, le texte de la transcription uniquement lorsque quelqu’un parle.',
 			openai:
 				'OpenAI : l’audio entrant et le texte sortant sont facturés à la minute tant que le flux reste ouvert.',
+			'openai-transcribe':
+				'OpenAI : l’audio entrant est facturé à la minute tant que le flux reste ouvert, pauses comprises.',
 			mistral: 'Voxtral : facturé à la minute d’audio transmis, tant que la session reste ouverte.',
 			deepl:
 				'DeepL : les heures de parole incluses dans votre forfait API payant sont utilisées d’abord ; le tarif est le prix rapporté par heure supplémentaire d’audio transmis.',

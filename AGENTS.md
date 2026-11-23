@@ -49,6 +49,12 @@ packaging. This file and the docs win where they differ, and every rule here hol
 - A change to what the app sends, to whom, or what it keeps updates
   [docs/privacy.md](docs/privacy.md) with a new effective date; a change to what it advertises
   updates [docs/store-listing-next.md](docs/store-listing-next.md).
+- **Keep the public docs site current.** GitHub Pages publishes `docs/` at
+  <https://fmadore.github.io/Live-translation/>. A change users can see, and every new feature,
+  updates it in the same pull request: the user guide that covers it (or a new one, linked from
+  the home page), and [docs/index.html](docs/index.html) when it changes what the home page
+  says (features, engines, rates with their date, platforms, guides). Relative links stay
+  inside `docs/`; `src/lib/docsLinks.test.ts` checks them.
 - Check the latest version of a dependency on its registry before adding or bumping it.
 
 ## Before every commit

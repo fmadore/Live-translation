@@ -42,7 +42,7 @@ ${['gemini', 'openai', 'deepl', 'ondevice', 'whisper-translate']
 				.join('\n                    | ')}\n            ),`
 	)
 	.join('\n')}
-            Provider::Mistral | Provider::GeminiTranscribe | Provider::Whisper => true,
+            Provider::Mistral | Provider::GeminiTranscribe | Provider::OpenAiTranscribe | Provider::Whisper => true,
         }
     }
 }

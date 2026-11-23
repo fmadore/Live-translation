@@ -110,6 +110,10 @@ pub enum Provider {
     #[serde(rename = "gemini-transcribe")]
     GeminiTranscribe,
     OpenAi,
+    /// OpenAI's `gpt-live-transcribe` — subtitles, through a Realtime transcription session.
+    /// Shares OpenAI's API key, and is a separate variant for the reasons the Gemini pair is.
+    #[serde(rename = "openai-transcribe")]
+    OpenAiTranscribe,
     Mistral,
     /// DeepL Voice API: speech in any language it detects, translated captions out. Spelled
     /// out so the serde string stays `deepl` whatever the casing rule.
@@ -130,7 +134,7 @@ impl Provider {
     pub fn input_sample_rate(self) -> u32 {
         // Listed rather than `_`, so a new provider has to state its rate.
         match self {
-            Provider::OpenAi => 24_000,
+            Provider::OpenAi | Provider::OpenAiTranscribe => 24_000,
             Provider::Gemini
             | Provider::GeminiTranscribe
             | Provider::Mistral
@@ -166,7 +170,16 @@ impl Provider {
     /// Whether the engine takes the session's names and terms (`glossary`). The translation
     /// models document no vocabulary field, and the demo recognises nothing.
     pub fn takes_glossary(self) -> bool {
-        matches!(self, Provider::Mistral | Provider::GeminiTranscribe) || self.is_local_whisper()
+        matches!(
+            self,
+            Provider::Mistral | Provider::GeminiTranscribe | Provider::OpenAiTranscribe
+        ) || self.is_local_whisper()
+    }
+
+    /// Whether the engine takes the spoken language the operator chooses (`spoken_language`):
+    /// Whisper, which needs it to translate, and OpenAI's transcription, as a language hint.
+    pub fn takes_spoken_language(self) -> bool {
+        self == Provider::OpenAiTranscribe || self.is_local_whisper()
     }
 }
 
@@ -196,6 +209,7 @@ mod provider_tests {
         for provider in [
             Provider::Mistral,
             Provider::GeminiTranscribe,
+            Provider::OpenAiTranscribe,
             Provider::Whisper,
             Provider::WhisperTranslate,
         ] {
@@ -208,6 +222,33 @@ mod provider_tests {
             Provider::OnDevice,
         ] {
             assert!(!provider.takes_glossary(), "{provider:?}");
+        }
+    }
+
+    /// The contract with the interface (`src/lib/types.ts`): OpenAI's transcription writes
+    /// subtitles from OpenAI's key at its 24 kHz, with the glossary and the spoken language.
+    #[test]
+    fn openai_transcribe_is_a_keyed_subtitle_engine_at_24_khz() {
+        let provider = Provider::OpenAiTranscribe;
+        assert_eq!(
+            serde_json::to_string(&provider).unwrap(),
+            "\"openai-transcribe\""
+        );
+        assert_eq!(
+            serde_json::from_str::<Provider>("\"openai-transcribe\"").unwrap(),
+            provider
+        );
+        assert_eq!(provider.input_sample_rate(), 24_000);
+        assert!(provider.requires_api_key());
+        assert!(!provider.can_translate());
+        assert!(provider.takes_spoken_language());
+        assert!(Provider::Whisper.takes_spoken_language());
+        for provider in [
+            Provider::Mistral,
+            Provider::GeminiTranscribe,
+            Provider::OpenAi,
+        ] {
+            assert!(!provider.takes_spoken_language(), "{provider:?}");
         }
     }
 

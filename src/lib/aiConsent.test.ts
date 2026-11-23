@@ -45,6 +45,12 @@ describe('the provider question', () => {
 		expect(get(aiConsent)).toEqual(['Gemini']);
 	});
 
+	it('asks once for OpenAI, whichever of its two engines comes first', () => {
+		grantAiConsent('openai-transcribe');
+		expect(get(aiConsent)).toEqual(['OpenAI']);
+		expect(needsAiConsent('openai', get(aiConsent))).toBe(false);
+	});
+
 	it('asks about DeepL on its own, and reads its answer back', () => {
 		grantAiConsent('openai');
 		expect(needsAiConsent('deepl', get(aiConsent))).toBe(true);
