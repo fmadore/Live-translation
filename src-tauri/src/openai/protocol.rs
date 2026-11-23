@@ -4,6 +4,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::types::Origin;
+
 // ---- Outgoing ------------------------------------------------------------
 
 /// `session.update` — sent once after connect to set the target output language and turn on
@@ -31,7 +33,9 @@ pub struct AudioConfig {
 pub struct AudioInput {
     /// Source-language transcription model — drives the operator monitor.
     pub transcription: TranscriptionModel,
-    pub noise_reduction: NoiseReduction,
+    /// Written as `null` when off, never left out: the reference says `null` disables the
+    /// filter and does not say what a missing field means.
+    pub noise_reduction: Option<NoiseReduction>,
 }
 
 #[derive(Debug, Serialize)]
@@ -39,10 +43,35 @@ pub struct TranscriptionModel {
     pub model: String,
 }
 
-#[derive(Debug, Serialize)]
+/// The input noise filter. The server echoes it with a `strength` of 1, its default, which the
+/// app leaves alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct NoiseReduction {
     #[serde(rename = "type")]
     pub kind: &'static str,
+}
+
+impl NoiseReduction {
+    /// For close-talking microphones such as headphones. The app cannot tell a headset from a
+    /// room microphone, so it never picks this; the live comparison does.
+    #[cfg(test)]
+    pub const NEAR_FIELD: Self = Self { kind: "near_field" };
+    /// For far-field microphones such as laptop or conference-room ones.
+    pub const FAR_FIELD: Self = Self { kind: "far_field" };
+
+    /// The filter for a capture source (issue #249, `docs/openai-realtime-api.md`).
+    ///
+    /// - The microphone gets `far_field`. In a hall it is a laptop, lectern or room
+    ///   microphone at a distance from the speaker, and a close-talking filter risks treating
+    ///   a distant voice as the background it removes. A headset loses little to it.
+    /// - System audio gets none. It is already digital and, from a meeting, already cleaned
+    ///   by the far end; a filter tuned for microphones can only take something away.
+    pub fn for_origin(origin: Origin) -> Option<Self> {
+        match origin {
+            Origin::Microphone => Some(Self::FAR_FIELD),
+            Origin::System => None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -52,7 +81,11 @@ pub struct AudioOutput {
 }
 
 impl SessionUpdate {
-    pub fn translate(target_language_code: &str, transcription_model: &str) -> Self {
+    pub fn translate(
+        target_language_code: &str,
+        transcription_model: &str,
+        noise_reduction: Option<NoiseReduction>,
+    ) -> Self {
         SessionUpdate {
             kind: "session.update",
             session: SessionConfig {
@@ -61,7 +94,7 @@ impl SessionUpdate {
                         transcription: TranscriptionModel {
                             model: transcription_model.to_string(),
                         },
-                        noise_reduction: NoiseReduction { kind: "near_field" },
+                        noise_reduction,
                     },
                     output: AudioOutput {
                         language: target_language_code.to_string(),
@@ -128,8 +161,12 @@ mod tests {
 
     #[test]
     fn session_update_sets_language_and_transcription() {
-        let v =
-            serde_json::to_value(SessionUpdate::translate("fr", "gpt-realtime-whisper")).unwrap();
+        let v = serde_json::to_value(SessionUpdate::translate(
+            "fr",
+            "gpt-realtime-whisper",
+            Some(NoiseReduction::FAR_FIELD),
+        ))
+        .unwrap();
         assert_eq!(v["type"], "session.update");
         assert_eq!(v["session"]["audio"]["output"]["language"], "fr");
         assert_eq!(
@@ -138,8 +175,46 @@ mod tests {
         );
         assert_eq!(
             v["session"]["audio"]["input"]["noise_reduction"]["type"],
-            "near_field"
+            "far_field"
         );
+    }
+
+    /// The server's answers to the two updates the client sends, captured verbatim by
+    /// `live_probe::noise_reduction_by_value` on 23 November 2026.
+    const UPDATED_FAR_FIELD: &str = r#"{"event_id":"event_EnIVgcGiqFOB0avcTIHIO","session":{"audio":{"input":{"noise_reduction":{"strength":1.0,"type":"far_field"},"transcription":{"model":"gpt-realtime-whisper"}},"output":{"language":"en"}},"expires_at":1795421532,"id":"sess_EnIVfT8o12ixTNvD9jnHV","include":null,"model":"gpt-realtime-translate","type":"translation"},"type":"session.updated"}"#;
+    const UPDATED_OFF: &str = r#"{"event_id":"event_EnIWCrnglsgeoEEE3ITbx","session":{"audio":{"input":{"noise_reduction":null,"transcription":{"model":"gpt-realtime-whisper"}},"output":{"language":"en"}},"expires_at":1795421564,"id":"sess_EnIWCjIWvtOIbaSvrwaSs","include":null,"model":"gpt-realtime-translate","type":"translation"},"type":"session.updated"}"#;
+
+    /// The microphone is filtered as a far-field source and system audio not at all, written
+    /// as an explicit `null`; and the server took each, echoing the same value back.
+    #[test]
+    fn each_source_gets_the_noise_filter_the_server_accepted() {
+        for (origin, recorded) in [
+            (Origin::Microphone, UPDATED_FAR_FIELD),
+            (Origin::System, UPDATED_OFF),
+        ] {
+            let sent = serde_json::to_value(SessionUpdate::translate(
+                "en",
+                "gpt-realtime-whisper",
+                NoiseReduction::for_origin(origin),
+            ))
+            .unwrap();
+            let sent = &sent["session"]["audio"]["input"];
+            assert!(
+                sent.as_object().unwrap().contains_key("noise_reduction"),
+                "{origin:?}: off is written as null, not left out"
+            );
+            let echoed: serde_json::Value = serde_json::from_str(recorded).unwrap();
+            assert_eq!(echoed["type"], "session.updated");
+            let echoed = &echoed["session"]["audio"]["input"]["noise_reduction"];
+            assert_eq!(
+                sent["noise_reduction"]["type"], echoed["type"],
+                "{origin:?}"
+            );
+            assert_eq!(sent["noise_reduction"].is_null(), echoed.is_null());
+            // The answer is not a caption or an error; the client reads past it.
+            let event: ServerEvent = serde_json::from_str(recorded).unwrap();
+            assert!(event.error.is_none() && event.payload().is_none());
+        }
     }
 
     #[test]

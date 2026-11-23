@@ -49,6 +49,38 @@ describe('session coordination', () => {
 		expect(get(sessionStartedAt)).toBeNull();
 	});
 
+	// Issue #249: one spoken-language choice serves Whisper and Gemini Transcribe. Each run
+	// sends it only where its picker shows it, so Gemini never gets a language it cannot name.
+	it('sends the spoken language only with the engines that show the choice', async () => {
+		const startSession = vi.fn().mockResolvedValue(undefined);
+		const controller = createSessionController({
+			startSession,
+			stopSession: vi.fn(),
+			pauseSession: vi.fn()
+		});
+		for (const [provider, spokenLanguage, sent] of [
+			['whisper', 'fr', 'fr'],
+			['gemini-transcribe', 'fr', 'fr'],
+			// Whisper hears Yoruba; Google's table has no row for it.
+			['whisper', 'yo', 'yo'],
+			['gemini-transcribe', 'yo', null],
+			['mistral', 'fr', null]
+		] as const) {
+			expect(
+				await controller.start({
+					...get(options),
+					mode: 'transcribe',
+					provider,
+					spokenLanguage
+				})
+			).toBe(true);
+			expect(startSession).toHaveBeenLastCalledWith(
+				expect.objectContaining({ provider, spokenLanguage: sent })
+			);
+			applyStatus({ state: 'idle' });
+		}
+	});
+
 	// Review U11: worded where it is shown, so it follows a change of interface language rather
 	// than staying in the one that was active when Start was refused.
 	it('re-words a refused start when the interface language changes', async () => {

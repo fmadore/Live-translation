@@ -2,6 +2,8 @@
 // integration notes and their dated verification sources live in docs/*-realtime-api.md,
 // gemini-live-api.md and deepl-voice-api.md.
 
+import geminiTranscribeLanguages from './geminiTranscribeLanguages.json';
+import whisperLanguages from './whisperLanguages.json';
 import type { Messages } from './i18n/en';
 import type { Provider } from './types';
 
@@ -39,11 +41,13 @@ export function providerKeyName(provider: Provider): string {
 	return 'Gemini';
 }
 
-/** Whether the backend identifies the spoken language itself, so there is no language for
- *  the operator to choose. True for the subtitle engines; the built-in demo instead picks
- *  which bundled script to play. DeepL detects the spoken language too, but like Gemini Live
- *  Translate it writes the caption language the operator picks, so it is false there. Whisper's translate task detects the spoken language too, but
- *  the room reads English, which the operator chooses, so it is false there. */
+/** Whether the backend identifies the spoken language itself, so the room reads what is
+ *  spoken and there is no caption language to choose. True for the subtitle engines (Whisper
+ *  and Gemini Transcribe can be told the spoken language; see `spokenLanguageFor`); the
+ *  built-in demo instead picks which bundled script to play. DeepL detects the spoken language
+ *  too, but like Gemini Live Translate it writes the caption language the operator picks, so it
+ *  is false there. Whisper's translate task detects the spoken language too, but the room
+ *  reads English, which the operator chooses, so it is false there. */
 export function providerDetectsLanguage(provider: Provider): boolean {
 	return (
 		provider === 'mistral' ||
@@ -54,10 +58,35 @@ export function providerDetectsLanguage(provider: Provider): boolean {
 }
 
 /** Whether the setup asks which language is spoken in the room: Whisper, which needs it to
- *  translate and decodes better with it, and OpenAI's transcription, which takes it as a
- *  language hint. Both offer automatic detection. Mirrors `Provider::takes_spoken_language`. */
+ *  translate and decodes better with it, and Gemini Transcribe and OpenAI's transcription,
+ *  which take it as a language hint. All offer automatic detection. Mirrors
+ *  `Provider::takes_spoken_language`. */
 export function providerTakesSpokenLanguage(provider: Provider): boolean {
-	return provider === 'openai-transcribe' || isLocalWhisper(provider);
+	return spokenLanguagesOf(provider) !== null;
+}
+
+/** The spoken languages an engine can be told, from Whisper's list (`whisperLanguages.json`),
+ *  or null for an engine that takes none. OpenAI's transcription takes the whole list as a
+ *  hint; Gemini Transcribe takes the 71 that Google's table names, which
+ *  `gemini::transcribe::language_codes` maps onto its locales. */
+export function spokenLanguagesOf(provider: Provider): readonly string[] | null {
+	if (isLocalWhisper(provider) || provider === 'openai-transcribe')
+		return whisperLanguages.map((l) => l.code);
+	if (provider === 'gemini-transcribe') return geminiTranscribeLanguages;
+	return null;
+}
+
+/** The spoken language a run of `provider` uses: the setup's choice where the engine takes it
+ *  and knows it, and otherwise null, automatic detection. One choice serves both engines, so a
+ *  language Whisper knows and Gemini does not is kept for Whisper and reads as automatic
+ *  detection under Gemini, which is what the setup shows and the run sends. */
+export function spokenLanguageFor(
+	provider: Provider,
+	spokenLanguage: string | null | undefined
+): string | null {
+	return spokenLanguage && spokenLanguagesOf(provider)?.includes(spokenLanguage)
+		? spokenLanguage
+		: null;
 }
 
 /** Whether the engine takes the setup's names and terms: Voxtral's `context_bias`, Gemini

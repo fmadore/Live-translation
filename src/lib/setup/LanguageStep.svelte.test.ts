@@ -57,6 +57,71 @@ describe('Whisper translation', () => {
 	});
 });
 
+// Issue #249: Gemini Transcribe can be told the spoken language, from the part of Whisper's
+// list that Google's table names.
+describe('Gemini Transcribe', () => {
+	const gemini: Partial<StartOptions> = {
+		mode: 'transcribe',
+		provider: 'gemini-transcribe',
+		spokenLanguage: null
+	};
+
+	function choices(select: HTMLElement): string[] {
+		return [...select.querySelectorAll('option')].map((o) => o.value);
+	}
+
+	it('offers automatic detection first, then only the languages Gemini knows', async () => {
+		const view = mount(gemini);
+		expect(view.getByRole('heading', { name: 'Spoken language' })).toBeInTheDocument();
+		expect(view.getByText(/to steady short sentences/)).toBeInTheDocument();
+		expect(view.queryByText(/auto-detects the spoken language/)).toBeNull();
+		const spoken = view.getByRole('combobox', { name: 'Spoken language' });
+		expect(spoken).toHaveValue('');
+		const offered = choices(spoken);
+		expect(offered[0]).toBe('');
+		expect(offered).toHaveLength(72);
+		expect(offered).toEqual(expect.arrayContaining(['fr', 'en', 'zh', 'jw', 'tl']));
+		// Whisper hears Yoruba and Welsh; Google's table has no row for either.
+		expect(offered).not.toContain('yo');
+		expect(offered).not.toContain('cy');
+		await fireEvent.change(spoken, { target: { value: 'fr' } });
+		expect(get(options).spokenLanguage).toBe('fr');
+		await fireEvent.change(spoken, { target: { value: '' } });
+		expect(get(options).spokenLanguage).toBeNull();
+	});
+
+	it('reads a Whisper language it cannot name as automatic detection, and keeps it for Whisper', () => {
+		const view = mount({ ...gemini, spokenLanguage: 'yo' });
+		expect(view.getByRole('combobox', { name: 'Spoken language' })).toHaveValue('');
+		expect(get(options).spokenLanguage).toBe('yo');
+	});
+
+	it('shows a shared choice it knows, and locks it with the rest of the setup', () => {
+		const view = mount({ ...gemini, spokenLanguage: 'de' }, { locked: true });
+		const spoken = view.getByRole('combobox', { name: 'Spoken language' });
+		expect(spoken).toHaveValue('de');
+		expect(spoken).toBeDisabled();
+	});
+
+	it('words its hint in each interface language', () => {
+		for (const [locale, hint] of [
+			['fr', /fiabiliser les phrases courtes/],
+			['de', /Kurze Sätze werden dann sicherer erkannt/]
+		] as const) {
+			setLocale(locale);
+			const view = mount(gemini);
+			expect(view.getByText(hint)).toBeInTheDocument();
+			view.unmount();
+		}
+	});
+
+	it('leaves Voxtral with its auto-detect note and no picker', () => {
+		const view = mount({ ...gemini, provider: 'mistral' });
+		expect(view.getByText(/Voxtral auto-detects the spoken language/)).toBeInTheDocument();
+		expect(view.queryByRole('combobox', { name: 'Spoken language' })).toBeNull();
+	});
+});
+
 describe('the demo language cards', () => {
 	const demo: Partial<StartOptions> = {
 		mode: 'transcribe',
