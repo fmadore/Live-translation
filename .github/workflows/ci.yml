@@ -110,6 +110,11 @@ jobs:
       - name: unused files, exports and dependencies (knip)
         run: npm run knip
 
+      # The generated language enums (`languageCodes.ts`, `language_codes.rs`) against
+      # `languages.json`, as `npm run verify` checks them.
+      - name: generated language lists
+        run: npm run check:languages
+
       - name: unit tests
         if: matrix.node != 24
         run: npm test

@@ -22,8 +22,8 @@
 //! GitHub's answer nor one from the renderer ever reaches the shell.
 
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use reqwest::Client;
@@ -221,28 +221,51 @@ pub(crate) struct Context {
 #[derive(Default)]
 pub struct Updates {
     checking: AsyncMutex<()>,
-    io: Mutex<()>,
+    /// Shared with the blocking pool, where `check` runs its file operations.
+    io: Arc<Mutex<()>>,
     launch_counted: AtomicBool,
 }
 
+/// Read the state file; a missing, unreadable or malformed one is the first launch's state.
+fn load(io: &Mutex<()>, path: &Path) -> Stored {
+    let _io = lock(io);
+    read(path)
+}
+
+/// Change the state file. A failed write is logged and otherwise ignored: nothing about this
+/// feature is worth an error in front of the operator.
+fn modify(io: &Mutex<()>, path: &Path, change: impl FnOnce(&mut Stored)) -> Stored {
+    let _io = lock(io);
+    let mut stored = read(path);
+    let before = stored.clone();
+    change(&mut stored);
+    if stored != before {
+        write(path, &stored);
+    }
+    stored
+}
+
 impl Updates {
-    /// Read the state file; a missing, unreadable or malformed one is the first launch's state.
     fn load(&self, path: &Path) -> Stored {
-        let _io = lock(&self.io);
-        read(path)
+        load(&self.io, path)
     }
 
-    /// Change the state file. A failed write is logged and otherwise ignored: nothing about
-    /// this feature is worth an error in front of the operator.
     fn modify(&self, path: &Path, change: impl FnOnce(&mut Stored)) -> Stored {
-        let _io = lock(&self.io);
-        let mut stored = read(path);
-        let before = stored.clone();
-        change(&mut stored);
-        if stored != before {
-            write(path, &stored);
-        }
-        stored
+        modify(&self.io, path, change)
+    }
+
+    /// A file operation of `check`, which is async: the read and the write's fsync run on the
+    /// blocking pool, as the other commands' do through `blocking`, under the same lock.
+    async fn off_runtime<T: Send + 'static>(
+        &self,
+        cx: &Context,
+        step: impl FnOnce(&Mutex<()>, &Path) -> T + Send + 'static,
+    ) -> Result<T, AppError> {
+        let io = Arc::clone(&self.io);
+        let path = cx.path.clone();
+        tauri::async_runtime::spawn_blocking(move || step(&io, &path))
+            .await
+            .map_err(|e| AppError::with(id::TASK_FAILED, e))
     }
 
     /// The status, counting this process's launch the first time it is asked for, until the
@@ -308,15 +331,15 @@ impl Updates {
         cx: &Context,
         now_ms: u64,
         session_running: bool,
-    ) -> UpdateStatus {
+    ) -> Result<UpdateStatus, AppError> {
         if !cx.eligible {
-            return UpdateStatus::default();
+            return Ok(UpdateStatus::default());
         }
         // One at a time: a second caller waits, then finds the check already made today.
         let _checking = self.checking.lock().await;
-        let stored = self.load(&cx.path);
+        let stored = self.off_runtime(cx, load).await?;
         if stored.checks != UpdateChecks::On || session_running || !stored.due(now_ms) {
-            return stored.status(cx.running);
+            return Ok(stored.status(cx.running));
         }
         let outcome = match client(cx.timeout) {
             Ok(http) => latest_release(&http, &cx.api_base).await,
@@ -328,13 +351,21 @@ impl Updates {
             // Silent to the operator, and only info here: offline is not a fault.
             Err(failure) => tracing::info!("update check failed: {failure}"),
         }
-        self.modify(&cx.path, |stored| {
-            stored.last_checked_ms = Some(now_ms);
-            if let Ok(Tag::Release(version)) = outcome {
-                stored.latest = Some(version.to_string());
-            }
-        })
-        .status(cx.running)
+        let latest = match outcome {
+            Ok(Tag::Release(version)) => Some(version.to_string()),
+            _ => None,
+        };
+        let stored = self
+            .off_runtime(cx, move |io, path| {
+                modify(io, path, |stored| {
+                    stored.last_checked_ms = Some(now_ms);
+                    if let Some(version) = latest {
+                        stored.latest = Some(version);
+                    }
+                })
+            })
+            .await?;
+        Ok(stored.status(cx.running))
     }
 }
 
@@ -533,7 +564,7 @@ pub async fn check_for_update(
     sessions: State<'_, SessionManager>,
 ) -> Result<UpdateStatus, AppError> {
     let cx = context(&app);
-    Ok(updates.check(&cx, now_ms(), sessions.is_active()).await)
+    updates.check(&cx, now_ms(), sessions.is_active()).await
 }
 
 /// *Check for new versions*, on or off.
