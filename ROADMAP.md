@@ -278,11 +278,13 @@ glossaries, live corrections and offline text translation are not planned.
   `-no-tts` archives, whose TTS builds link espeak-ng (GPL-3.0). whisper.cpp 1.9.0 added
   Parakeet support upstream, which would avoid a second inference runtime, but whisper-rs 0.16
   still vendors 1.8.3 and has no binding for it (checked 20 November 2026). Research only.
-- More engines ([#250](https://github.com/fmadore/Live-translation/issues/250), [#251](https://github.com/fmadore/Live-translation/issues/251)): Soniox returns transcript and translation on one stream
-  at a fraction of the current rates, one target language per session; OpenAI's
-  `gpt-live-transcribe` ($0.017 a minute, with keyword hints and several language hints) would
-  give OpenAI-only users subtitles that take the names-and-terms list. Both need their
-  documentation read, privacy terms and a billable trial before a decision.
+- More engines ([#250](https://github.com/fmadore/Live-translation/issues/250)): Soniox returns transcript and translation on one stream
+  at a fraction of the current rates, one target language per session. It needs its
+  documentation read, privacy terms and a billable trial before a decision. OpenAI's
+  `gpt-live-transcribe` ([#251](https://github.com/fmadore/Live-translation/issues/251)) is on
+  main as a subtitle engine, tried on the rehearsal recordings only
+  ([notes](docs/openai-transcribe-api.md)); a live session in a real room comes before it is
+  advertised.
 - A public home page ([#252](https://github.com/fmadore/Live-translation/issues/252)): GitHub Pages already serves `docs/`, whose home is the
   developers' index; a small page with the Store screenshots and the user guides would give the
   Stores a support URL.

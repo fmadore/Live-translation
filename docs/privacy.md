@@ -1,11 +1,12 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 16 November 2026 (adds the optional check for new versions, made only by
+**Effective date:** 23 November 2026 (OpenAI can now make subtitles as well as translations:
+with OpenAI subtitles, the audio, the names and terms entered in the setup and the spoken
+language chosen there go to OpenAI)
+
+Previous version: 16 November 2026 (added the optional check for new versions, made only by
 copies installed from GitHub, and only once the user turns it on, the optional system-wide
 shortcuts, and the markers an operator adds, which are kept with the transcript)
-
-Previous version: 11 November 2026 (added DeepL as a fourth optional cloud provider, for
-translation)
 
 ## What this app is
 
@@ -213,7 +214,7 @@ the spending-guard choices for cloud engines, whether a notice on the overlay cl
 captions resume (the notice's text is not stored), whether transcript history or the optional recovery
 copy is enabled, on a copy installed from GitHub the new-version check's state described
 [above](#new-version-check-copies-installed-from-github), whether a running session shows the Live or the Transcript view, the names and
-terms entered for Mistral subtitles, whether closing the window leaves the app running in
+terms entered for subtitles, whether closing the window leaves the app running in
 the notification area (the menu bar on macOS), whether the system-wide shortcuts are switched
 on, and which cloud providers the user has agreed to send audio to.
 The app also remembers the folder of the last successful transcript export, the chosen export
@@ -291,11 +292,13 @@ with that provider. Before the first session or rehearsal with each provider, th
 names the provider, says that the captured audio goes to it with whatever is said, under the
 user's own account, API key and the provider's terms, and gives this policy's address. Nothing
 is sent unless the user chooses to send; the answer is remembered on the device for that
-provider. Removing the provider's API key stops anything being sent to it. With Mistral or Gemini subtitles, the names and terms entered in the setup, if
-any, are sent to that provider at the start of each session, together with the audio, so that
-its model favours those spellings. They may include the names of the people speaking; enter only
-what may be shared with that provider. Local Whisper keeps them on the computer, and the
-translation engines are not sent them.
+provider. Removing the provider's API key stops anything being sent to it. With Mistral, Gemini
+or OpenAI subtitles, the names and terms entered in the setup, if any, are sent to that provider
+at the start of each session, together with the audio, so that its model favours those
+spellings. They may include the names of the people speaking; enter only what may be shared
+with that provider. With OpenAI subtitles, the spoken language chosen in the setup, if one is, is
+sent as well. Local Whisper keeps them on the computer, and the translation engines are not
+sent them. OpenAI's subtitles and translations use the same OpenAI key.
 
 With **DeepL**, which translates only, the audio of the chosen sources is streamed, while a
 DeepL session runs, to DeepL SE (Cologne, Germany) together with the chosen caption language;

@@ -117,7 +117,8 @@ comes first ([architecture](architecture.md#provider-contracts) has the runner's
 Step 03 of the setup sheet has a **Names and terms** list (see `GlossaryList.svelte`): speaker
 names, institutions, acronyms and jargon to favour for the whole session. Voxtral receives it as
 `context_bias`. The same list goes to Gemini Transcribe as `customVocabulary`
-([Gemini notes](gemini-live-api.md)) and to local Whisper as its decoder prompt
+([Gemini notes](gemini-live-api.md)), to OpenAI's transcription as `keywords`
+([OpenAI notes](openai-transcribe-api.md#the-engine)) and to local Whisper as its decoder prompt
 ([Whisper notes](local-whisper.md#names-and-terms)); the translation engines take none
 (`Provider::takes_glossary`).
 

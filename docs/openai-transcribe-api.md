@@ -91,7 +91,8 @@ detection and no transcription. The client then sends one `session.update`:
 - **`delay`.** `minimal`, `low`, `medium`, `high` or `xhigh`, trading latency for accuracy. The
   guide shows it with `gpt-live-transcribe`; the client-event reference says it is "only
   supported with `gpt-realtime-whisper`". The probe sent `low`: no error, but `session.updated`
-  did not echo it, so whether this model applies it is unknown and the app leaves it out.
+  did not echo it, so whether this model applies it is unknown and the app leaves it out. The
+  issue's idea of mapping it onto the reading controls waits on that.
 - **`noise_reduction`** (`near_field` or `far_field`) and `include` (log probabilities) are
   available and unused.
 
@@ -142,6 +143,46 @@ classification already hands over to a new session.
 No keepalive is documented. The runner's WebSocket pings prove the path while the room is quiet;
 whether a transcription session ends after a long stretch without audio has not been observed.
 
+## The engine
+
+`src-tauri/src/openai/transcribe.rs` speaks this session on the shared realtime runner, as
+`Provider::OpenAiTranscribe` (`openai-transcribe` in the interface).
+
+- **Setup.** The `session.update` above, sent straight after the handshake. The client waits
+  for `session.updated` before streaming (`wait_for_setup_complete`), so a keyword or language
+  code OpenAI refuses ends the source during setup, with OpenAI's message. `delay` and
+  `prompt` are not sent.
+- **Glossary.** The setup's names and terms go as `keywords`, `<`, `>` and line breaks replaced
+  by spaces. The shared limits of 100 entries of 200 characters apply
+  ([Mistral notes](mistral-realtime-api.md#glossary)).
+- **Spoken language.** Step 03 shows the spoken-language selector Whisper uses, with automatic
+  detection as the default. A chosen language goes as the one entry of `languages`, Whisper's
+  `jw` (Javanese) as ISO `jv`; automatic detection sends no `languages`. The selector lists
+  Whisper's 99 languages; OpenAI publishes no list for this model and rejects a code it does not
+  support, so an unusual choice can stop the source at setup with OpenAI's message.
+- **Commits.** With no server turn detection, the client commits the buffer from the level of
+  the 100 ms chunks it sends (`RealtimeProtocol::after_audio`): once at least a second of audio
+  is buffered, speech (RMS above about −40 dBFS) has been heard, and half a second has been
+  quiet since, the default silence of OpenAI's own server VAD; and at 20 seconds whatever the
+  audio. A commit only bounds the server's item: the probe showed deltas streaming before any
+  commit and a mid-sentence commit losing no word, so the threshold decides where items end,
+  never what is captioned.
+- **Caption lines.** Deltas append to the line, the first without its leading space. A line
+  closes once its text has been still for 900 ms, and stays open past that while its text does
+  not end a sentence, up to the runner's four-second hold, as Mistral's do without turn events.
+  A completion adds nothing to the line unless its item streamed no delta, in which case its
+  transcript is the line. A `failed` turn is logged and the session goes on.
+- **Pause and Stop.** The client commits what is still buffered and drains until every commit
+  it sent has completed, or for the runner's four seconds; with nothing buffered there is
+  nothing to commit, and an empty commit would be an error.
+- **Errors.** Shared with the translation session: `session_expired` hands over, transient
+  errors reconnect, the rest stop the source with OpenAI's message.
+- **Key and consent.** The OpenAI key saved for translation (`openai-api-key`); the question
+  before audio first goes to a provider is asked once for OpenAI, whichever of its engines is
+  used first.
+- **Rate.** $1.02 an hour per source in `src/lib/providers.ts`, for the cost estimate and the
+  spending guard.
+
 ## Live probe, 23 November 2026
 
 One session, from an ignored test that read the saved key in-process and printed only server
@@ -160,3 +201,35 @@ to 24 kHz and sent in 100 ms chunks at real-time pace, with one commit 8 s in an
 - **Accuracy:** both items' transcripts were the script word for word.
 - **Usage:** each completion reported its audio as `{"type":"duration","seconds":9}` and
   `13`.
+
+The probe's server events, with nothing secret in them, are the contract tests' fixture
+(`src-tauri/src/openai/fixtures/live-transcribe-en.jsonl`).
+
+## Live check of the engine, 23 November 2026
+
+The ignored test `openai::transcribe::tests::the_rehearsal_recordings_through_the_real_endpoint`
+streams both rehearsal recordings through the real runner at real-time pace, then two seconds
+of silence and Stop, and prints the lines it closes. The French run sends the glossary
+`["sous-titres", "Live Translation"]` and the spoken language `fr`:
+
+```bash
+cargo test --manifest-path src-tauri/Cargo.toml --lib the_rehearsal_recordings -- --ignored --nocapture
+```
+
+- **Accepted:** the keywords and the language hint, with no error.
+- **Accuracy:** both recordings word for word, four lines each, one per sentence: the idle
+  boundary closed every line at a sentence end and none mid-sentence.
+- **Timing:** the lines closed 4.9, 12.2, 18.9 and 23.4 s (English) and 6.9, 13.7, 20.4 and
+  25.9 s (French) after the first chunk.
+- **A first run that spoke as the session opened** lost the start: "This is a" in English, and
+  in French "Ceci" came back as "Live". The runner drops audio queued while a session sets up
+  as stale, so the clipped opening was transcribed from its tail, and the `Live Translation`
+  keyword is the likely source of the substitution. The test now waits for the session to run
+  before speaking, as an operator does. A keyword that never occurs in the speech may pull
+  a clipped or unclear word towards it, which is worth watching for with real glossaries.
+
+The recordings are Windows text-to-speech, so these runs test the protocol, the line closing
+and relative timing, not accuracy on real speakers. Mistral's runs on the same recordings were
+also word for word ([Mistral notes](mistral-realtime-api.md#live-check-21-october-2026)); the
+three engines have not been compared on real speech. Still to try in the running app: a long
+session past the 60-minute cap, a quiet system source for minutes on end, and a real room.
