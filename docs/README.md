@@ -1,5 +1,13 @@
 # Documentation
 
+The developers' index. The public home page on GitHub Pages,
+<https://fmadore.github.io/Live-translation/>, is [`index.html`](index.html) in this folder
+([#252](https://github.com/fmadore/Live-translation/issues/252)); it links here as *Developer
+documentation*, through GitHub, because Pages publishes this file only as raw Markdown once an
+`index.html` exists. Pages publishes `docs/` and nothing above it, so a link from these guides to
+a file elsewhere in the repository uses its GitHub URL; `src/lib/docsLinks.test.ts` fails on a
+relative link that leaves `docs/`.
+
 These guides describe `main`, released as
 **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** (tagged and
 published on GitHub on 17 November 2026; the Store submission is still to be made): a spending
