@@ -116,6 +116,16 @@ it('shows no original line for a translation that has none, and one for a transl
 	// Fitted text is laid out by measurement, which jsdom cannot do: the structure is the test.
 	expect(view.container.querySelectorAll('.captions .row')).toHaveLength(1);
 	expect(view.container.querySelector('.original')).toBeNull();
+	handlers.config({
+		fontSize: 38,
+		showOriginal: true,
+		captionLanguage: 'fr',
+		trackLanguages: { system: null }
+	});
+	handlers.caption({ ...english, origin: 'microphone', text: 'Bonjour.' });
+	await tick();
+	expect(view.container.querySelector('.captions [dir="auto"][lang=""]')).toBeInTheDocument();
+	expect(view.container.querySelector('.captions [dir="ltr"][lang="fr"]')).toBeInTheDocument();
 	handlers.caption({ ...english, turnId: 2, text: 'Next.', sourceText: 'Ensuite.' });
 	await tick();
 	expect(view.container.querySelector('.original')).not.toBeNull();

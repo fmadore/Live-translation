@@ -263,6 +263,27 @@ describe('the fallback controller', () => {
 		);
 	});
 
+	it.each([true, false])(
+		'settles a failed reconnect switch with a live peer: %s',
+		async (peerLive) => {
+			vi.useFakeTimers();
+			const error = { id: 'error.whisperModel' };
+			const switchEngine = vi.fn(async (request: SourceSwitch) => {
+				report({ state: 'error', origin: request.origin, message: error });
+				throw error;
+			});
+			const { fallback, report } = controller(context(), switchEngine);
+			if (!peerLive) report({ state: 'idle', origin: 'microphone' });
+			report({ state: 'reconnecting', origin: 'system' });
+			vi.advanceTimersByTime(RECONNECT_OFFER_MS);
+			await fallback.proceed();
+			expect(switchEngine).toHaveBeenCalledOnce();
+			expect(fallback.offer).toBeNull();
+			expect(get(isRunning)).toBe(peerLive);
+			expect(get(statusMessage)).toEqual(error);
+		}
+	);
+
 	it('withdraws the reconnect offer when the source comes back, and starts again on the next outage', () => {
 		vi.useFakeTimers();
 		const { fallback, report } = controller();

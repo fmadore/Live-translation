@@ -943,6 +943,7 @@ export const en = {
 		format: 'Export format',
 		plainText: 'Plain text',
 		includeOriginal: 'Include original speech',
+		markersNeedFormat: 'Choose text, Markdown or WebVTT to save markers.',
 		noTiming: 'This recovered transcript has no timing. Save it as text or Markdown.',
 		clear: 'Clear',
 		confirmClear: 'Discard unsaved lines?',
@@ -1007,6 +1008,7 @@ export const en = {
 		unsaved: {
 			title: 'Save this transcript before closing?',
 			sessionEnded: 'The session has been stopped and the last captions collected.',
+			markersOnly: 'Closing without saving will discard your transcript markers.',
 			body: (lines: number) =>
 				lines === 1
 					? '1 line has not been saved. Closing without saving discards it.'
@@ -1020,6 +1022,7 @@ export const en = {
 		},
 		recovery: {
 			title: 'Recover the transcript from your last session?',
+			markersOnly: (savedAt: string) => `Your transcript markers were saved locally at ${savedAt}.`,
 			body: (lines: number, savedAt: string) =>
 				lines === 1
 					? `The app closed with 1 unsaved line still in the log. It was spooled locally at ${savedAt} and has not left this PC.`

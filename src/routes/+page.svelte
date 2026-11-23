@@ -54,6 +54,7 @@
 		applyStatus,
 		options,
 		transcript,
+		markers,
 		overlayFontSize,
 		noteActivity,
 		describeStatus,
@@ -176,7 +177,7 @@
 				runTracks(usesMic, usesSystem, $options),
 				$options.provider,
 				$billingChanges,
-				clock.streamedMs
+				clock.elapsedMs
 			),
 		pause: () => session.pause(true)
 	});
@@ -472,7 +473,7 @@
 				{/if}
 
 				<!-- Idle, the saved transcript follows the pre-flight check, once there is one. -->
-				{#if $isRunning || $transcript.length > 0}
+				{#if $isRunning || $transcript.length > 0 || $markers.length > 0}
 					<TranscriptMonitor
 						mode={$options.mode}
 						transcript={$transcript}

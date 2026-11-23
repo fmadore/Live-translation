@@ -33,7 +33,8 @@ export function createRecoveryCoordinator(port: RecoveryPort) {
 			const revision = generation;
 			const newest = newestDocumentId(lines, markers);
 			return enqueue(async () => {
-				if (revision !== generation || !lines.length || newest === spooledId) return;
+				if (revision !== generation || (!lines.length && !markers.length) || newest === spooledId)
+					return;
 				await port.writeRecovery(encodeRecovery(lines, now, markers));
 				if (revision === generation) spooledId = newest;
 			});
@@ -98,13 +99,14 @@ export function startRecoverySpool(
 	const timer = setInterval(() => {
 		if (writing || stopped || Date.now() < retryAt) return;
 		const lines = readUnsaved();
-		if (!lines?.length) {
+		const markers = readMarkers();
+		if (!lines || (!lines.length && !markers.length)) {
 			if (failures) recovered();
 			return;
 		}
 		writing = true;
 		void coordinator
-			.write(lines, new Date(), readMarkers())
+			.write(lines, new Date(), markers)
 			.then(() => {
 				if (!stopped && failures) recovered();
 			})

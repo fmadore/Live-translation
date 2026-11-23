@@ -93,7 +93,8 @@ pub mod id {
     /// A pause or resume reached no running session.
     pub const SESSION_PAUSE: &str = "error.sessionPause";
     /// A source could not be continued with another engine: the switch was refused (the
-    /// source is not on the engine the banner saw, or still running) or cut short by a Stop.
+    /// source is not on the engine the banner saw, or still running), cut short by a Stop, or
+    /// the model loaded but the source could not be restarted on it.
     pub const SESSION_FALLBACK: &str = "error.sessionFallback";
     /// The preflight level test could not open what it was asked to listen to.
     pub const AUDIO_TEST_START: &str = "error.audioTestStart";

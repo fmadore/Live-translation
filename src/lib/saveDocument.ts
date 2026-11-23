@@ -43,7 +43,7 @@ export async function saveTranscriptDocument(
 ): Promise<string> {
 	const lines = get(transcript);
 	const marks = get(markers);
-	if (!lines.length) return '';
+	if (!lines.length && (!marks.length || format === 'srt')) return '';
 	const path = await api.saveTranscript(
 		formatTranscript(lines, format, now, exportLabels(), {
 			original: get(exportOriginal),
@@ -54,7 +54,7 @@ export async function saveTranscriptDocument(
 	if (!path) return '';
 	markTranscriptSaved(lines, path, marks);
 	try {
-		if (get(transcript) === lines) await recovery.clear();
+		if (get(transcript) === lines && get(markers) === marks) await recovery.clear();
 	} catch {
 		// Deliberately ignored; see above.
 	}

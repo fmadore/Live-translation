@@ -40,7 +40,7 @@
 >
 	<p>
 		{#if endedSession}{$t.prompt.unsaved.sessionEnded}{/if}
-		{$t.prompt.unsaved.body(lines)}
+		{lines ? $t.prompt.unsaved.body(lines) : $t.prompt.unsaved.markersOnly}
 	</p>
 
 	{#if error}

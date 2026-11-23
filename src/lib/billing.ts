@@ -1,13 +1,13 @@
 // The running cost estimate as a ledger: each stream is billed at its own engine's rate for the
 // time it streamed. A run starts with every stream on the setup's engine; a stream that ends
 // stops adding to the estimate, and one continued by offline Whisper costs nothing from then on
-// (#248). Times are on the streamed timeline (`streamedMs`), so paused time is never billed.
+// (#248). Times are elapsed session milliseconds. Each paused track closes its own billed interval.
 
 import { PROVIDER_META } from './providers';
 import { LANES, laneCount, trackOf } from './types';
 import type { Provider, StartOptions, Track } from './types';
 
-/** A stream changing what it is billed at, `atMs` into the streamed time: another engine from
+/** A stream changing what it is billed at, `atMs` into the run: another engine from
  *  then on, or `null` when it stopped streaming. */
 export interface BillingChange {
 	track: Track;
@@ -26,7 +26,7 @@ export function billedAt(
 	return current;
 }
 
-/** The estimate for `tracks` streamed for `nowMs`, in US dollars: each stream's time at each
+/** The estimate for `tracks` after `nowMs` elapsed, in US dollars: each stream's time at each
  *  engine it ran on, at that engine's hourly figure. With no change it is the setup's rate
  *  times the streams, as it always was. */
 export function ledgerCost(

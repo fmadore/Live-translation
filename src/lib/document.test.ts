@@ -118,6 +118,13 @@ describe('recovery snapshot', () => {
 
 	// A spool written by a build from before captions were timed. Discarding it would be
 	// throwing away words the operator cannot get back over a field they never had.
+	it('restores a marker saved before the first caption', () => {
+		const markers = [{ id: 1, atMs: 2000, label: 'Opening speaker' }];
+		expect(decodeRecovery(encodeRecovery([], new Date(), markers))).toMatchObject({
+			lines: [],
+			markers
+		});
+	});
 	it('restores a spool written before captions carried a cue', () => {
 		const snapshot = decodeRecovery(
 			JSON.stringify({

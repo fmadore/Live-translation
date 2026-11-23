@@ -20,6 +20,7 @@ vi.mock('./tauri', () => ({
 
 const { endsLiveSession, prepareClose, resolveClose } = await import('./quit');
 const {
+	addMarker,
 	applyStatus,
 	clearTranscript,
 	pushCaption,
@@ -61,6 +62,24 @@ beforeEach(() => {
 });
 
 describe('preparing to close', () => {
+	it('saves a marker before the first caption on quit', async () => {
+		addMarker('Opening speaker', 2000);
+		exportFormat.set('srt');
+		expect(await resolveClose('save')).toBe(true);
+		expect(mocks.saveTranscript).toHaveBeenCalledWith(
+			expect.stringContaining('Opening speaker'),
+			expect.stringMatching(/\.md$/)
+		);
+	});
+	it('preserves the marker as a NOTE when WebVTT is selected', async () => {
+		addMarker('Opening speaker', 2000);
+		exportFormat.set('vtt');
+		expect(await resolveClose('save')).toBe(true);
+		expect(mocks.saveTranscript).toHaveBeenCalledWith(
+			expect.stringContaining('NOTE 0:00:02 Opening speaker'),
+			expect.stringMatching(/\.vtt$/)
+		);
+	});
 	it('does not quit or clear recovery when Save As is cancelled', async () => {
 		pushCaption(caption(1, 'Keep me'));
 		mocks.saveTranscript.mockResolvedValue(null);

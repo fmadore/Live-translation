@@ -241,6 +241,14 @@ describe('session history', () => {
 		expect(s.error).not.toHaveBeenCalled();
 		expect(s.port.renameHistory).not.toHaveBeenCalled();
 	});
+	it('keeps a session with a marker and no captions', async () => {
+		const s = setup();
+		const marker = { id: 1, atMs: 2000, label: 'Opening speaker' };
+		s.history.begin(options, start, id);
+		s.history.mark(marker);
+		await s.history.finish();
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({ lines: [], markers: [marker] });
+	});
 	it('writes nothing by default or for an empty session', async () => {
 		const s = setup(false);
 		s.history.begin(options, start, id);

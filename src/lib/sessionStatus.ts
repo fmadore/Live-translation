@@ -109,21 +109,6 @@ export function endHeldRun() {
  *  button answers at once rather than when each source reports it. Cleared with the run. */
 export const pauseRequested = writable(false);
 
-/** Time the current run has spent paused, for the running cost estimate: nothing is streamed
- *  while paused, so nothing is billed. `since` is set while a pause is under way. */
-export const pausedTime = writable<{ totalMs: number; since: number | null }>({
-	totalMs: 0,
-	since: null
-});
-
-sessionState.subscribe((state) => {
-	pausedTime.update((p) => {
-		if (state === 'paused') return p.since === null ? { ...p, since: Date.now() } : p;
-		if (p.since === null) return p;
-		return { totalMs: p.totalMs + Date.now() - p.since, since: null };
-	});
-});
-
 /** What each stream of the run is billed at, as it changed: a stream that ended, or that
  *  another engine continued (`billing.ts`). Empty for a run whose streams all ran on. */
 export const billingChanges = writable<BillingChange[]>([]);
@@ -134,26 +119,16 @@ function noteBilling(tracks: Track[], state: SessionState) {
 	const engines = get(trackEngines);
 	const startedAt = get(sessionStartedAt);
 	const now = Date.now();
-	const atMs = startedAt === null ? 0 : streamedMs(now - startedAt, get(pausedTime), now);
-	const ended = state === 'error' || state === 'idle';
+	const atMs = startedAt === null ? 0 : Math.max(0, now - startedAt);
+	const inactive = state === 'error' || state === 'idle' || state === 'paused';
 	billingChanges.update((changes) => {
 		let next = changes;
 		for (const track of tracks) {
-			const provider = ended ? null : (engines[track] ?? setup);
+			const provider = inactive ? null : (engines[track] ?? setup);
 			if (billedAt(track, setup, next) !== provider) next = [...next, { track, provider, atMs }];
 		}
 		return next;
 	});
-}
-
-/** How much of `elapsedMs` was spent streaming, as of `now`. */
-export function streamedMs(
-	elapsedMs: number,
-	paused: { totalMs: number; since: number | null },
-	now: number
-): number {
-	const current = paused.since === null ? 0 : Math.max(0, now - paused.since);
-	return Math.max(0, elapsedMs - paused.totalMs - current);
 }
 
 /** A message the window makes itself, worded from the catalog where it is shown — and so
@@ -206,6 +181,10 @@ export const runningSince = writable<Partial<Record<Origin, number>>>({});
 export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolean } = {}) {
 	if (u.origin) {
 		const origin = u.origin;
+		if (u.engine) {
+			const engine = u.engine;
+			trackEngines.update((engines) => ({ ...engines, [trackOf(origin, u.lane)]: engine }));
+		}
 		// A status with no lane is about the source itself — a capture failure — and so about
 		// every language it was feeding.
 		const known = get(originStates);
@@ -306,7 +285,6 @@ export function beginSession(sessionOptions = get(options)) {
 	heldSince.set(null);
 	billingChanges.set([]);
 	pauseRequested.set(false);
-	pausedTime.set({ totalMs: 0, since: null });
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });
 	systemLevel.set({ source: 'system', rms: 0, peak: 0 });
 	currentCaptions.set({});

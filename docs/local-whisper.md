@@ -80,7 +80,9 @@ than Stop, a change of engine and a new Start.
 
 - **When it appears.** When the provider stops or rejects a source, or when a source has been
   **Reconnecting** for 30 seconds. In the second case the reconnection carries on beside the
-  banner until you choose; if the connection comes back first, the banner goes away.
+  banner until you choose; if the connection comes back first, the banner goes away. If Whisper
+  fails to load after the reconnection stops, the source shows the failure. A second active
+  source keeps captioning.
 - **What the button does.** **Continue with offline Whisper** rebuilds that source on Whisper
   inside the running session: the clock, the transcript, the markers, the history entry and the
   overlay carry on, and the other source is not touched. With both sources waiting, one click

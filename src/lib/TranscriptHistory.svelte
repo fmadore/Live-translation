@@ -28,7 +28,7 @@
 	import { exportOriginal, statusMessage } from './stores';
 	import RecoveryPreference from './RecoveryPreference.svelte';
 	// The same remembered choice as the transcript toolbar's, like the original-speech option.
-	import { exportFormat as format, isTimedFormat } from './exportFormat';
+	import { exportFormat as format, canExportFormat } from './exportFormat';
 	import {
 		formatTranscript,
 		transcriptFilename,
@@ -63,7 +63,14 @@
 	}
 	let confirmDelete = $state('');
 	const selected = $derived(sessions.find((s) => s.id === selectedId)?.session);
-	const timed = $derived(selected ? hasTranscriptTiming(selected.lines) : false);
+	const canSaveSelected = $derived(
+		selected &&
+			canExportFormat(
+				$format,
+				hasTranscriptTiming(selected.lines),
+				!selected.lines.length && !!selected.markers?.length
+			)
+	);
 	let query = $state('');
 	let from = $state('');
 	let to = $state('');
@@ -149,7 +156,14 @@
 		for (const entry of chosen) {
 			const session = entry.session;
 			// Subtitles need each line's timing, as the single export's button says.
-			if (!session || (isTimedFormat(wanted) && !hasTranscriptTiming(session.lines))) {
+			if (
+				!session ||
+				!canExportFormat(
+					wanted,
+					hasTranscriptTiming(session.lines),
+					!session.lines.length && !!session.markers?.length
+				)
+			) {
 				skipped++;
 				continue;
 			}
@@ -480,9 +494,8 @@
 						<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton
 						>
 						<ExportFormatSelect disabled={busy} />
-						<ToolButton
-							disabled={busy || (isTimedFormat($format) && !timed)}
-							onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
+						<ToolButton disabled={busy || !canSaveSelected} onclick={() => action('export')}
+							>{$t.transcript.saveAs}</ToolButton
 						>
 						<ConfirmButton
 							variant="danger"
@@ -502,8 +515,8 @@
 							disabled={busy}
 							onchange={(value) => exportOriginal.set(value)}
 						/>{/if}
-					{#if isTimedFormat($format) && !timed}<p class="hint">
-							{$t.transcript.noTiming}
+					{#if !canSaveSelected}<p class="hint">
+							{selected.lines.length ? $t.transcript.noTiming : $t.transcript.markersNeedFormat}
 						</p>{/if}
 					<!-- svelte-ignore a11y_no_noninteractive_tabindex (Scrollable saved transcript.) -->
 					<div class="saved-text" role="region" aria-label={$t.history.fullTranscript} tabindex="0">

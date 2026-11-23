@@ -137,19 +137,7 @@ pub async fn switch_source_engine(
     manager
         .switch_source(&app, request)
         .await
-        .map_err(|error| switch_error(&error))
-}
-
-/// A refused or interrupted switch says the source could not be continued; a processor that
-/// cannot run Whisper, or a model that does not load, says that instead, as at Start.
-fn switch_error(error: &anyhow::Error) -> AppError {
-    if let Some(unsupported) = error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
-        return AppError::with(id::WHISPER_CPU, unsupported);
-    }
-    if let Some(refused) = error.downcast_ref::<crate::session::Refused>() {
-        return AppError::with(id::SESSION_FALLBACK, refused);
-    }
-    AppError::with(id::WHISPER_MODEL, error)
+        .map_err(|error| crate::session::switch_error(&error))
 }
 
 /// Whether this processor can run local Whisper, asked once by the setup sheet so an

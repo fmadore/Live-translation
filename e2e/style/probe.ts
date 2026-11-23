@@ -329,6 +329,11 @@ function installProbe(): void {
 
 	function value(read: Read, property: string): string {
 		switch (property) {
+			case 'align-items':
+			case 'align-self':
+			case 'justify-content':
+				// Edge 158 serializes the flex-start/end aliases as flow-start/end.
+				return read(property).replace(/^flow-(start|end)$/, 'flex-$1');
 			case 'padding':
 			case 'margin':
 				return sides(SIDES.map((s) => read(`${property}-${s}`)));

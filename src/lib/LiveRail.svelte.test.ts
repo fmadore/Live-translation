@@ -13,7 +13,6 @@ import { operatorContextMap } from './operatorContext';
 const clock = {
 	now: Date.now(),
 	elapsedMs: 3_600_000,
-	streamedMs: 3_600_000,
 	elapsed: '1:00:00'
 } as unknown as SessionClock;
 
