@@ -7,8 +7,9 @@
 	import LiveActivity from './LiveActivity.svelte';
 	import { displayNames, languageName } from './languages';
 	import { locale, localeTag, t } from './i18n';
-	import { micLevel, options, pauseRequested, systemLevel } from './stores';
-	import { estimateSessionCost, formatUsd, providerDetectsLanguage } from './providers';
+	import { billingChanges, micLevel, options, pauseRequested, systemLevel } from './stores';
+	import { ledgerCost, runTracks } from './billing';
+	import { formatUsd, providerDetectsLanguage } from './providers';
 	import { secondCaptionLanguageOf, streamCount } from './types';
 	import { overlayContext } from './operatorContext';
 	import type { SessionClock } from './sessionClock.svelte';
@@ -128,7 +129,12 @@
 				<span class="chip-label">{$t.cost.estimate}</span>
 				<span class="figure-value mint">
 					{formatUsd(
-						estimateSessionCost($options.provider, clock.streamedMs, billing.streams),
+						ledgerCost(
+							runTracks(usesMic, usesSystem, $options),
+							$options.provider,
+							$billingChanges,
+							clock.streamedMs
+						),
 						$localeTag
 					)}
 				</span>

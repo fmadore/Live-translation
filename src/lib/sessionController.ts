@@ -4,22 +4,30 @@ import {
 	applyStatus,
 	beginSession,
 	endTranscriptSession,
+	heldRunEnd,
 	isRunning,
 	pauseRequested,
+	sourcesActive,
 	statusMessage
 } from './stores';
 import { api } from './tauri';
-import { secondCaptionLanguageOf, type StartOptions } from './types';
+import { secondCaptionLanguageOf, type SourceSwitch, type StartOptions } from './types';
 import { captionLanguageError } from './languages';
 import { locale, t } from './i18n';
 
 /** Own start/stop serialization separately from page rendering. A stop requested during
  * startup waits for that startup; it must not silently return while capture comes alive. */
 export function createSessionController(
-	port = {
+	port: {
+		startSession: (options: StartOptions) => Promise<void>;
+		stopSession: () => Promise<void>;
+		pauseSession: (paused: boolean) => Promise<void>;
+		switchSourceEngine?: (request: SourceSwitch) => Promise<void>;
+	} = {
 		startSession: api.startSession,
 		stopSession: api.stopSession,
-		pauseSession: api.pauseSession
+		pauseSession: api.pauseSession,
+		switchSourceEngine: api.switchSourceEngine
 	}
 ) {
 	const busy = writable(false);
@@ -61,12 +69,29 @@ export function createSessionController(
 		/** Pause or resume the running session. Ignored while a start or stop is under way:
 		 *  the session it would address is the one being replaced. */
 		async pause(paused: boolean): Promise<void> {
-			if (operation || stopping || !get(isRunning)) return;
+			// A held run has no source left to pause (#248).
+			if (operation || stopping || !get(sourcesActive)) return;
 			try {
 				await port.pauseSession(paused);
 				pauseRequested.set(paused);
 			} catch (error) {
 				statusMessage.set(asStatus(error));
+			}
+		},
+		/** Continue one source with another engine (#248), in this window's queue, so it never
+		 *  runs alongside a start or stop. False when one is under way: it settles the run
+		 *  itself. A refusal is thrown, for the fallback banner to report. */
+		async switchSource(request: SourceSwitch): Promise<boolean> {
+			if (operation || stopping) return false;
+			const work = Promise.resolve().then(() =>
+				(port.switchSourceEngine ?? api.switchSourceEngine)(request)
+			);
+			operation = work;
+			try {
+				await work;
+				return true;
+			} finally {
+				operation = null;
 			}
 		},
 		stop(): Promise<void> {
@@ -75,9 +100,11 @@ export function createSessionController(
 			busy.set(true);
 			stopping = (async () => {
 				await startup?.catch(() => {});
+				// A held run ended when its last source did, not when it is stopped.
+				const heldEnd = heldRunEnd();
 				try {
 					await port.stopSession();
-					await endTranscriptSession();
+					await endTranscriptSession(heldEnd);
 				} catch (error) {
 					statusMessage.set(asStatus(error));
 				} finally {

@@ -10,7 +10,7 @@
 
 import { persisted, readStored } from './persisted';
 import { providerRequiresKey } from './providers';
-import type { Origin, Provider } from './types';
+import type { Origin, Provider, SessionState, Track } from './types';
 
 /** Minutes without a caption before a cloud session is paused. 0 is off. */
 export const IDLE_PAUSE_CHOICES = [0, 5, 10, 15, 30] as const;
@@ -43,6 +43,20 @@ export const durationWarningHours = persisted(DURATION_WARNING_KEY, () =>
  *  built-in demonstration are not — the same line as whether it needs a key. */
 export function isBilled(provider: Provider): boolean {
 	return providerRequiresKey(provider);
+}
+
+/** Whether anything the run still streams is billed: a stream on the setup's engine or on
+ *  another it was continued with (#248), while it is active. A run whose cloud streams have
+ *  all ended, or been continued by offline Whisper, has nothing left for the guard to watch. */
+export function billedStreamOpen(
+	states: Partial<Record<Track, SessionState>>,
+	engines: Partial<Record<Track, Provider>>,
+	provider: Provider
+): boolean {
+	return (Object.keys(states) as Track[]).some(
+		(track) =>
+			states[track] !== 'error' && states[track] !== 'idle' && isBilled(engines[track] ?? provider)
+	);
 }
 
 /**

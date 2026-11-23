@@ -6,15 +6,23 @@
 
 import { fromStore, get } from 'svelte/store';
 import { untrack } from 'svelte';
-import { activityTimes, isRunning, options, pauseRequested, runningSince } from './stores';
 import {
+	activityTimes,
+	isRunning,
+	options,
+	originStates,
+	pauseRequested,
+	runningSince,
+	trackEngines
+} from './stores';
+import {
+	billedStreamOpen,
 	costWarningDue,
 	costWarningUsd,
 	durationWarningDue,
 	durationWarningHours,
 	idlePauseDue,
 	idlePauseMinutes,
-	isBilled,
 	lastSignOfLife
 } from './spendingGuard';
 
@@ -62,7 +70,7 @@ export function createSpendingGuard({
 
 	function check() {
 		if (!running.current) return;
-		if (!isBilled(setup.current.provider)) return;
+		if (!billedStreamOpen(get(originStates), get(trackEngines), setup.current.provider)) return;
 		const now = clock.now;
 		if (
 			!paused.current &&
