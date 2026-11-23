@@ -273,8 +273,11 @@ writes in place and truncates a longer file it replaces, and the support link is
   arrive for three seconds, the meter events are marked `silenced` and the interface names the
   setting to open (`SilenceWatch` in `audio/loopback.rs`). Retested: the hint appeared three
   seconds into `afplay` on a refused build and went once it stopped. There is no public API to
-  ask for the permission itself; a stream that really plays digital silence (a muted call that
-  keeps its output open) shows the same hint, which disappears with the first real sound. While
+  ask for the permission itself; a stream that really plays digital silence (a call joined
+  while everyone is muted, with its output open) shows the same hint until the first real
+  sound. That sound proves the permission was granted, so the hint then stays away for the
+  rest of the capture, through any later pause in the call (#232; not yet tried in a real call
+  on a Mac). While
   the question is still on screen nothing is shown: Core Audio answers nothing until then, and
   the question is in front of the operator anyway.
 - *No microphone* was reported as a blocked privacy setting (`'!obj'` from a default input

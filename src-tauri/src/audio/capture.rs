@@ -212,9 +212,23 @@ fn wait_while_present(device: &cpal::Device, cancel: &CancellationToken) -> Resu
             .input_devices()
             .context("failed to check microphone availability")?
             .any(|device| device.id().is_ok_and(|id| id == pinned_id));
-        anyhow::ensure!(available, "selected microphone disconnected or disabled");
-        Ok(())
+        if available {
+            Ok(())
+        } else {
+            Err(microphone_vanished())
+        }
     })
+}
+
+/// What the presence check raises when the microphone it pinned has gone. The stream was
+/// already running, so this is a runtime failure, typed like the one cpal's error callback
+/// reports for the same unplug: whichever notices first, the operator reads the stream
+/// sentence, never the start-failure one that points at the privacy settings.
+pub(crate) fn microphone_vanished() -> anyhow::Error {
+    anyhow::Error::new(MicrophoneRuntimeError(cpal::Error::with_message(
+        cpal::ErrorKind::DeviceNotAvailable,
+        "selected microphone disconnected or disabled",
+    )))
 }
 
 /// Open an input stream whose samples need converting to f32. cpal fixes the sample type of
