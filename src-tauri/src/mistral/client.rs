@@ -196,9 +196,11 @@ impl RealtimeProtocol for MistralClient {
     /// Text can stall for longer than the idle boundary in the middle of a sentence. When turn
     /// detection says the speaker is still talking and the text has not ended a sentence, the
     /// line stays open; a sentence that has ended still closes at the boundary, so a speaker
-    /// who never pauses for a turn end does not make one endless line.
+    /// who never pauses for a turn end does not make one endless line. An empty turn holds
+    /// nothing open: after `MAX_HOLD` closed an unpunctuated line, turn detection can still say
+    /// mid-turn, and a Pause or Stop in a quiet room would wait for words that are not coming.
     fn keeps_turn_open(&self, acc: &TurnAccumulator) -> bool {
-        self.mid_turn && !ends_sentence(&acc.text)
+        !acc.is_empty() && self.mid_turn && !ends_sentence(&acc.text)
     }
 }
 
@@ -295,6 +297,28 @@ mod tests {
         h.send(r#"{"type":"turn.start","time_s":21.0}"#);
         h.send(r#"{"type":"session.created"}"#);
         assert!(!open(&h), "a new session starts with no turn");
+    }
+
+    /// `MAX_HOLD` closes a line turn detection still calls mid-turn. Nothing of it is left to
+    /// hold, so a Pause or Stop in a quiet room closes at once (the drain is skipped when the
+    /// turn is empty and nothing holds it open) instead of waiting out the close timeout.
+    #[test]
+    fn a_forced_close_leaves_nothing_for_a_pause_to_wait_for() {
+        let mut h = harness();
+        let open = |h: &Harness<MistralClient>| h.proto.keeps_turn_open(&h.acc);
+        h.send(r#"{"type":"turn.start","time_s":1.0}"#);
+        h.send(r#"{"type":"transcription.text.delta","text":"Utilisez cet"}"#);
+        assert!(open(&h));
+        // The runner's hold ran out, with the speaker still mid-turn.
+        h.finalize_idle();
+        assert_eq!(
+            h.captions.last(),
+            Some(&Emitted::final_(0, "Utilisez cet", ""))
+        );
+        assert!(!open(&h), "an empty turn holds nothing open");
+        // Its words resume: the new line is held again.
+        h.send(r#"{"type":"transcription.text.delta","text":" enregistrement"}"#);
+        assert!(open(&h));
     }
 
     #[test]

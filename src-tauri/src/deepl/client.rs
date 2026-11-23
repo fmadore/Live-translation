@@ -18,7 +18,8 @@
 //! turn closes as final:
 //! - when DeepL concludes target text that ends a sentence: the caption is the concluded text
 //!   alone, and any tentative text, the next sentence's start, opens the next turn: shown by
-//!   the next target update even if that repeats it, and drained for on a Pause or Stop;
+//!   the next target update even if that repeats it, drained for on a Pause or Stop, and
+//!   closed as it is when the runner closes the turn itself (`before_finalize`);
 //! - otherwise at the idle boundary (`FINALIZE_AFTER` without target text), held while DeepL
 //!   still has tentative text pending, up to the runner's `MAX_HOLD`;
 //! - at `end_of_stream`.
@@ -456,6 +457,17 @@ impl RealtimeProtocol for DeepLClient {
     /// and a Pause or Stop drains for them, as `end_of_source_media` makes DeepL conclude them.
     fn keeps_turn_open(&self, acc: &TurnAccumulator) -> bool {
         self.turn.pending(acc)
+    }
+
+    /// The tentative start a concluded sentence left behind is not in the accumulator yet
+    /// (`Turn::target`). When the runner closes the turn on its own (DeepL sent nothing more
+    /// before the hold ran out, or the connection or source ended), it goes out with the rest of
+    /// the turn rather than the runner closing an empty one. Otherwise the accumulator already
+    /// holds the turn as rendered, and rendering it again changes nothing.
+    fn before_finalize(&mut self, acc: &mut TurnAccumulator) {
+        if self.turn.id == Some(acc.id) && !self.turn.target.is_blank() {
+            self.turn.render(acc);
+        }
     }
 }
 

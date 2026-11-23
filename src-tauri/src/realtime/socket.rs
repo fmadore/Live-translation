@@ -20,7 +20,7 @@ use super::turn_timer::TurnTimer;
 use super::wire::{Close, Verdict};
 use super::{
     CaptionUpdate, Events, MessageControl, MessageOutcome, PauseRx, RealtimeProtocol, Signal,
-    TurnAccumulator, apply_caption, emit_caption, finalize_accumulator,
+    TurnAccumulator, apply_caption, close_turn, emit_caption,
 };
 use crate::audio::AudioChunk;
 use crate::types::{SessionState, StatusUpdate};
@@ -583,7 +583,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
 
             () = &mut finalize => {
                 if timer.fire(Instant::now(), || proto.keeps_turn_open(acc)) {
-                    finalize_accumulator(events, origin, acc);
+                    close_turn(events, proto, acc);
                 }
                 finalize.as_mut().reset(timer.deadline());
             }
@@ -694,7 +694,8 @@ async fn drain<P: RealtimeProtocol, E: Events>(
     mut queue: Option<Queue<'_>>,
 ) {
     // DeepL can hold the tentative start of a sentence that is not on screen yet: the
-    // accumulator is empty, and only the drain brings those words back.
+    // accumulator is empty, and the drain lets DeepL conclude those words (were it cut short,
+    // the runner's close would show them as they stand, `before_finalize`).
     let quiet = acc.is_empty()
         && !proto.keeps_turn_open(acc)
         && last_caption.elapsed() >= QUIET_BEFORE_CLOSE;
