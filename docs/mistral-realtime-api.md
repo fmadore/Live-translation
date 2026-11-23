@@ -15,7 +15,7 @@ Verified 21 October 2026 against Mistral's Voxtral 3 documentation:
 the realtime models generated in the `mistralai` Python SDK 3.2.0 and the official
 [`mistralai` realtime connection source](https://github.com/mistralai/client-python/blob/main/src/mistralai/extra/realtime/connection.py).
 The same day, a [live check](#live-check-21-october-2026) ran both models. The 1 August 2026
-verification of Realtime 2602 used Mistral's earlier guide, which it now files under
+verification of Realtime 2602 used Mistral's earlier guide, which Mistral now files under
 [deprecated pages](https://docs.mistral.ai/studio/audio/deprecated/speech_to_text/realtime_transcription),
 and its [client-auth page](https://docs.mistral.ai/studio/audio/deprecated/speech_to_text/realtime_transcription/client_auth).
 
@@ -23,7 +23,7 @@ and its [client-auth page](https://docs.mistral.ai/studio/audio/deprecated/speec
 
 `voxtral-mini-transcribe-realtime-3-0` (Voxtral Mini Transcribe Realtime 3, released 20 October
 2026) produces same-language realtime transcription. It does **not** translate, so the UI
-exposes it under **Live subtitles**. Mistral lists it as a Public Preview Premier model at
+exposes it under **Subtitles**. Mistral lists it as a Public Preview Premier model at
 $0.008 per minute of audio ($0.48 an hour), and counts 45 languages and dialects for it without
 publishing the list. The app sends 16 kHz mono signed 16-bit little-endian PCM with a default
 target streaming delay of 480 ms, Mistral's recommended starting point. Override the delay with
@@ -121,8 +121,8 @@ names, institutions, acronyms and jargon to favour for the whole session. Voxtra
 ([Whisper notes](local-whisper.md#names-and-terms)); the translation engines take none
 (`Provider::takes_glossary`).
 
-- **Limits:** up to 100 entries of up to 200 characters each. Duplicates are compared without
-  case. The setup sheet enforces these limits (`glossary.ts`), and the core checks them again
+- **Limits:** up to 100 entries of up to 200 characters each. Duplicates are compared regardless
+  of case. The setup sheet enforces these limits (`glossary.ts`), and the core checks them again
   at Start (`glossary::validate`), whichever engine it is sent to.
 - **Storage:** the list is saved with the last setup and in meeting profiles, and kept when
   another engine is selected.
@@ -171,7 +171,7 @@ gRPC `UNAVAILABLE` or `DEADLINE_EXCEEDED`, `grpc_status:14`, "gRPC connection er
 "connection reset by peer", "timeout waiting for response", "gRPC streaming transcription
 error", `EngineDeadError` or "no new audio received" (a bare "unavailable", which could describe
 a model the key cannot use, or a bare "timeout", which could be a limit the request broke, does
-not count). Everything else — including any code not listed — stops the source with Mistral's
+not count). Everything else, including any code not listed, stops the source with Mistral's
 message, as every error did before 1.7.0.
 
 Four mid-session payloads have been seen live, each pinned by a test with its exact text:
@@ -189,7 +189,7 @@ Four mid-session payloads have been seen live, each pinned by a test with its ex
   keepalive, as DeepL does: after 10 seconds without audio it sends 100 ms of silence (16 kHz
   mono PCM16), so the session should not go idle. A 3401 that still arrives reconnects.
 - **3800**, on 17 November 2026 in the same meeting: "gRPC streaming transcription error" with
-  an `EngineDeadError`, the recogniser behind the session having died. Since #230 it reconnects,
+  an `EngineDeadError`: the recogniser behind the session had died. Since #230 it reconnects,
   like 3803 and 3804, and the new session gets a live recogniser.
 
 The classifier matches the wording, not the code, so another code carrying the same wording
@@ -205,7 +205,7 @@ model access"). **Live check pending:** record further mid-session error payload
 widen the rules from them.
 
 Long-lived keys are safe here because the Rust backend, not a web page, opens the WebSocket.
-Mistral’s short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is for browser clients that
+Mistral's short-lived `rt_*` / `Sec-WebSocket-Protocol` flow is for browser clients that
 cannot set an `Authorization` header.
 
 ## Live check, 21 October 2026
