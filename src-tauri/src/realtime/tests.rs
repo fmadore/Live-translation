@@ -170,6 +170,11 @@ impl RealtimeProtocol for Fake {
         self.setup_ack
     }
 
+    /// A chunk tagged `COMMIT` ends a turn, as OpenAI's client-side turn detection does.
+    fn after_audio(&mut self, pcm_le: &[u8]) -> Option<String> {
+        (pcm_le == [COMMIT]).then(|| "commit".into())
+    }
+
     fn closing_json(&mut self) -> anyhow::Result<Vec<String>> {
         Ok(vec!["end".into()])
     }
@@ -219,6 +224,9 @@ impl RealtimeProtocol for Fake {
         self.hold
     }
 }
+
+/// The tag of a chunk after which the fake sends a frame of its own (`after_audio`).
+const COMMIT: u8 = 0xc0;
 
 /// The idle boundary and end-of-turn grace the fake asks for, Mistral's own values.
 const FINALIZE_AFTER: Duration = Duration::from_millis(900);
@@ -573,6 +581,44 @@ async fn a_planned_handover_drains_then_reconnects_at_once_and_replays_the_gap_i
         next.listen_for(Duration::from_secs(1)).await,
         (3..=15).collect::<Vec<u8>>()
     );
+
+    drop(next);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
+/// A frame the provider sends after a chunk (OpenAI's commit) follows that chunk's audio, and
+/// no other chunk's: live, and when a handover's gap is replayed on the next socket.
+#[tokio::test(start_paused = true)]
+async fn a_frame_after_a_chunk_follows_its_audio_live_and_in_a_replay() {
+    tick_clock();
+    let server = Server::bind().await;
+    let (mut client, mut peer, _) = running(&server).await;
+    for tag in [1, COMMIT, 2] {
+        client.speak(tag);
+    }
+    assert_eq!(peer.recv().await, Frame::Audio(1));
+    assert_eq!(peer.recv().await, Frame::Audio(COMMIT));
+    assert_eq!(peer.recv().await, Frame::Text("commit".into()));
+    assert_eq!(peer.recv().await, Frame::Audio(2));
+    assert!(peer.listen_for(STABLE_CONNECTION).await.is_empty());
+    peer.send("text:moving").await;
+    client.expect(interim("moving")).await;
+
+    peer.send("goaway").await;
+    assert_eq!(peer.recv().await, Frame::Text("end".into()));
+    client.speak(COMMIT);
+    client.speak(3);
+    sleep(Duration::from_millis(200)).await;
+    peer.send("final").await;
+    client.expect(final_("moving")).await;
+    assert_eq!(peer.recv().await, Frame::Close);
+    let mut next = server.accept().await;
+    next.ready().await;
+    client.expect(status(SessionState::Running)).await;
+    assert_eq!(next.recv().await, Frame::Audio(COMMIT));
+    assert_eq!(next.recv().await, Frame::Text("commit".into()));
+    assert_eq!(next.recv().await, Frame::Audio(3));
 
     drop(next);
     client.cancel.cancel();
