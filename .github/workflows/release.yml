@@ -260,15 +260,10 @@ jobs:
       - name: Configure native Whisper compiler
         uses: ./.github/actions/whisper-compiler
 
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: src-tauri
-          prefix-key: whisper-cpu-x64-v2
-          # Restore only. A cache saved by a tag run is scoped to that tag, so no other run can
-          # restore it: the tag caches had filled 5.6 GB of the repository's 10 GB and pushed
-          # CI's caches from main out. Release builds start cold either way.
-          save-if: false
+      # No Rust cache: the Windows release builds start cold. A tag run cannot save one for the
+      # next (a cache saved by a tag is scoped to that tag; the tag caches once filled 5.6 GB of
+      # the repository's 10 GB and pushed main's out), and nothing on main saves a release-profile
+      # Windows build to restore. The restore-only step that stood here never hit.
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -322,12 +317,14 @@ jobs:
       - name: Install Rust (rust-toolchain.toml)
         run: rustup toolchain install
 
+      # Restore only, from main: macos.yml's build on main makes the same release-profile build
+      # and saves it under this shared key (a tag run's own cache would be scoped to the tag).
       - name: Cache Rust build
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
           prefix-key: whisper-cpu-${{ runner.arch }}-v2
-          # Restore only, as for the Windows build.
+          shared-key: mac-release
           save-if: false
 
       - name: Setup Node
@@ -405,7 +402,7 @@ jobs:
   #
   # Runs beside `build`, which it takes nothing from, and uploads to the same release, which is
   # still a draft for a new tag. `gh release upload` finds a draft by its tag as well as a
-  # published release. Each architecture has its own Rust cache.
+  # published release.
   msix:
     name: MSIX package (${{ matrix.arch }})
     needs: prepare
@@ -436,15 +433,7 @@ jobs:
       - name: Configure native Whisper compiler
         uses: ./.github/actions/whisper-compiler
 
-      - name: Cache Rust build
-        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          workspaces: src-tauri
-          # Keep the native Windows package lanes separate. Bump with `.cargo/config.toml`:
-          # whisper-rs-sys does not rebuild ggml when its GGML_* variables change.
-          prefix-key: whisper-cpu-${{ matrix.arch }}-v2
-          # Restore only, as in `build`.
-          save-if: false
+      # No Rust cache, as in `build`.
 
       - name: Setup Node
         uses: actions/setup-node@v7
