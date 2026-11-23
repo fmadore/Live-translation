@@ -106,7 +106,8 @@ are unchanged, now pinned by `src/lib/msixIdentity.test.ts`. The
 - [ ] The open checks of the [1.14.0](#release-1140-handoff), [1.13.1](#release-1131-handoff) and
   [1.13.0](#release-1130-handoff) handoffs (maintainer test on Windows, WACK, sideload and
   accessibility checks, the Store screenshots decision) apply to 1.15.0.
-- [ ] The published privacy page reads "16 November 2026".
+- [ ] The published privacy page reads "23 November 2026" (#246 corrected the names-and-terms
+  wording after the 16 November version #227 published).
 - [ ] Submit `Live.Translation_1.15.0.msixbundle` in Partner Center with the 1.15.0 copy
   ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
 - [ ] **Mac:** once 1.13.1's App Review is settled (still in review on 17 November 2026), the
