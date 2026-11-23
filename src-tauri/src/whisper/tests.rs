@@ -91,6 +91,9 @@ impl Events for Recorder {
     }
 
     fn status(&self, update: StatusUpdate) {
+        if matches!(update.state, SessionState::Running | SessionState::Paused) {
+            assert_eq!(update.engine, Some(crate::types::Provider::Whisper));
+        }
         let id = update.message.map(|message| message.id);
         self.push(Recorded::Status(update.state, id));
     }
@@ -106,6 +109,7 @@ impl LocalEvents for Recorder {
 fn pipeline() -> (Pipeline<Recorder>, tokio::sync::mpsc::Sender<TimedChunk>) {
     let (input_tx, input) = tokio::sync::mpsc::channel(300);
     let pipeline = Pipeline {
+        engine: crate::types::Provider::Whisper,
         events: Recorder::default(),
         origin: Origin::Microphone,
         input,

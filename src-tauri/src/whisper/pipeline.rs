@@ -22,7 +22,7 @@ use super::validate_language;
 use crate::errors::{AppError, id};
 use crate::realtime::{Events, PauseRx, TurnCounter};
 use crate::sync::lock;
-use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
+use crate::types::{Caption, Origin, Provider, SessionState, StatusUpdate, events};
 
 /// Input quiet for this long releases whatever audio is held, so the last words before Pause,
 /// or before a call goes silent, are captioned now rather than when audio resumes.
@@ -116,6 +116,11 @@ pub async fn run(config: LocalSession) {
     let _ = app.emit(events::WHISPER_ENGINE, model.engine());
     let engine_app = app.clone();
     let pipeline = Pipeline {
+        engine: if translate {
+            Provider::WhisperTranslate
+        } else {
+            Provider::Whisper
+        },
         events: app,
         origin,
         input,
@@ -165,6 +170,7 @@ impl std::error::Error for CaptureFailed {}
 
 /// A local source without its model: everything `drive` needs besides the inference itself.
 pub(super) struct Pipeline<E> {
+    pub(super) engine: Provider,
     pub(super) events: E,
     pub(super) origin: Origin,
     pub(super) input: Receiver<TimedChunk>,
@@ -192,6 +198,7 @@ pub(super) async fn drive<E: LocalEvents>(
     infer: impl FnOnce(&Spool, &CancellationToken, Emit<'_>, Report<'_>) -> Result<()> + Send + 'static,
 ) {
     let Pipeline {
+        engine,
         events: app,
         origin,
         mut input,
@@ -211,7 +218,10 @@ pub(super) async fn drive<E: LocalEvents>(
         } else {
             SessionState::Running
         };
-        app.status(StatusUpdate::source(origin, state, None));
+        app.status(StatusUpdate {
+            engine: Some(engine),
+            ..StatusUpdate::source(origin, state, None)
+        });
     }
     let ingest_spool = spool.clone();
     let ingest_app = app.clone();

@@ -16,6 +16,7 @@ import {
 	pushCaption,
 	sessionStartedAt
 } from './stores';
+import { ledgerCost } from './billing';
 import { decodeSession, historyEnabled, sessionHistory } from './history';
 import { api } from './tauri';
 import { DEFAULT_START_OPTIONS } from './startOptions';
@@ -106,6 +107,24 @@ it('closes the record at the failure’s time when the operator stops the held r
 	applyStatus({ state: 'idle' });
 	expect(get(heldSince)).toBeNull();
 	expect((await record()).endedAt).toBe(new Date(FAILED).toISOString());
+});
+
+it('uses the first Whisper status to price offline time even before the switch reply', () => {
+	applyStatus(quota);
+	vi.setSystemTime(FAILED + 10_000);
+	applyStatus({ state: 'running', origin: 'system', engine: 'whisper' });
+	expect(ledgerCost(['system'], 'gemini', get(billingChanges), 3_670_000)).toBeCloseTo(1.73 / 60);
+});
+
+it('stops charging the paused track when its peer has failed and resumes at its own rate', () => {
+	applyStatus({ state: 'running', origin: 'microphone' });
+	applyStatus(quota);
+	applyStatus({ state: 'paused', origin: 'microphone' });
+	vi.setSystemTime(FAILED + 3_600_000);
+	applyStatus({ state: 'running', origin: 'microphone' });
+	expect(
+		ledgerCost(['system', 'microphone'], 'gemini', get(billingChanges), 3_720_000)
+	).toBeCloseTo((3 * 1.73) / 60);
 });
 
 it('resumes the run, clock and record, when the replacement reports', async () => {

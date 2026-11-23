@@ -138,7 +138,7 @@
 							runTracks(usesMic, usesSystem, $options),
 							$options.provider,
 							$billingChanges,
-							clock.streamedMs
+							clock.elapsedMs
 						),
 						$localeTag
 					)}

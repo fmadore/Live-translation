@@ -344,6 +344,8 @@ export const SESSION_STATES = [
 export type SessionState = (typeof SESSION_STATES)[number];
 
 export interface StatusUpdate {
+	/** The local engine reporting its first state, including after a source switch. */
+	engine?: Provider;
 	state: SessionState;
 	/** Why the state changed. The core sends a structured error the interface words (see
 	 *  `describeError`); plain text is accepted for messages made in the interface. */

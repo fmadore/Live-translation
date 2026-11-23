@@ -412,6 +412,9 @@ pub enum SessionState {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusUpdate {
+    /// Engine that started this track, included with Whisper's first status after a switch.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engine: Option<Provider>,
     pub state: SessionState,
     /// Why, when there is a why: an id the interface translates, plus the untranslated
     /// technical detail underneath it. See `errors::AppError`.
@@ -437,6 +440,7 @@ impl StatusUpdate {
         Self {
             state,
             message,
+            engine: None,
             origin: None,
             lane: None,
         }
@@ -448,6 +452,7 @@ impl StatusUpdate {
         Self {
             state,
             message,
+            engine: None,
             origin: Some(origin),
             lane: None,
         }
@@ -464,6 +469,7 @@ impl StatusUpdate {
         Self {
             state,
             message,
+            engine: None,
             origin: Some(origin),
             lane: Some(lane),
         }
