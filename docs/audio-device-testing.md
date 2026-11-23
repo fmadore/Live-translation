@@ -6,7 +6,7 @@ local Whisper as well as a cloud engine, including Pause and Stop with pending a
 
 1.7.0 makes three of these cases more pressing. System capture runs on wasapi 0.27, and its
 loopback runner was split into named steps with a shared COM guard; the maintainer tested system
-audio on ARM64 on 20 October 2026, and x64 is still to do. Microphones that deliver 24-bit
+audio on ARM64 on 20 October 2026, and x64 is still to be tested. Microphones that deliver 24-bit
 samples, previously refused, now go through one generic stream builder. And Stop gives up on a
 capture thread after three seconds instead of waiting forever on a device that stops responding.
 
@@ -21,13 +21,14 @@ Regression tests exercise an STA caller and the real error-callback dispatch log
 
 The source section offers Refresh devices and an output selector for system audio.
 Windows add/remove/state/property/default notifications trigger a coalesced refresh.
-Microphones and outputs persist endpoint IDs; an older microphone name migrates only
-when it identifies one device. Missing idle selections reset to the Windows default
-with a visible explanation. Refresh failures retain the last successful list and choices.
+Microphones and outputs are saved by endpoint ID; an older saved microphone name is migrated
+only when it identifies one device. While idle, a saved selection that is missing resets to the
+Windows default with a visible explanation. If a refresh fails, the last successful list and
+choices are kept.
 
 An active capture stays attached to the endpoint opened at startup, including when the
-selection was Default; a new Windows default is used only on the next start. Removal or
-disabling ends the affected source with a microphone/system-specific error, and the other
+selection was Default; a new Windows default is used only on the next start. Removing or
+disabling the device ends the affected source with a microphone- or system-specific error, and the other
 source can continue. Stop and retry ends and drains the whole session before restarting; its
 fallback variant resets only the failed source to Default. Both actions keep the transcript
 and may start billable provider capture again. Nothing reconnects or changes capture
