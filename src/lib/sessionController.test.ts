@@ -279,6 +279,31 @@ describe('continuing a source with another engine', () => {
 		applyStatus({ state: 'idle' });
 	});
 
+	it('sends Stop while Whisper is loading and keeps Start locked until both settle', async () => {
+		let refuse!: (error: Error) => void;
+		const stopSession = vi.fn(async () => {});
+		const controller = createSessionController({
+			startSession: vi.fn(),
+			pauseSession: vi.fn(),
+			switchSourceEngine: () =>
+				new Promise<void>((_, reject) => {
+					refuse = reject;
+				}),
+			stopSession
+		});
+		const switching = controller.switchSource(request);
+		await Promise.resolve();
+		const stopping = controller.stop();
+		await Promise.resolve();
+		expect(stopSession).toHaveBeenCalledOnce();
+		expect(await controller.start(get(options))).toBe(false);
+		expect(get(controller.busy)).toBe(true);
+		refuse(new Error('cancelled'));
+		expect(await switching).toBe(false);
+		await stopping;
+		expect(get(controller.busy)).toBe(false);
+	});
+
 	it('passes a refusal on to the banner', async () => {
 		const refusal = { id: 'error.sessionFallback', detail: 'the source is still running' };
 		const controller = createSessionController({

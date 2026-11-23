@@ -32,13 +32,14 @@ export function createSessionController(
 	}
 ) {
 	const busy = writable(false);
-	let operation: Promise<unknown> | null = null;
+	let startup: Promise<void> | null = null;
+	let switching: Promise<void> | null = null;
 	let stopping: Promise<void> | null = null;
 
 	return {
 		busy,
 		async start(options: StartOptions): Promise<boolean> {
-			if (operation || stopping || get(isRunning)) return false;
+			if (startup || switching || stopping || get(isRunning)) return false;
 			if (captionLanguageError(options, get(t), get(locale))) {
 				// Worded where it is shown, from the setup that was refused, so a change of
 				// interface language re-words it there.
@@ -59,7 +60,7 @@ export function createSessionController(
 			};
 			beginSession(run);
 			const work = Promise.resolve().then(() => port.startSession(run));
-			operation = work;
+			startup = work;
 			try {
 				await work;
 				return true;
@@ -69,7 +70,7 @@ export function createSessionController(
 				statusMessage.set(asStatus(error));
 				return false;
 			} finally {
-				operation = null;
+				startup = null;
 				if (!stopping) busy.set(false);
 			}
 		},
@@ -77,7 +78,7 @@ export function createSessionController(
 		 *  the session it would address is the one being replaced. */
 		async pause(paused: boolean): Promise<void> {
 			// A held run has no source left to pause (#248).
-			if (operation || stopping || !get(sourcesActive)) return;
+			if (startup || switching || stopping || !get(sourcesActive)) return;
 			try {
 				await port.pauseSession(paused);
 				pauseRequested.set(paused);
@@ -85,25 +86,26 @@ export function createSessionController(
 				statusMessage.set(asStatus(error));
 			}
 		},
-		/** Continue one source with another engine (#248), in this window's queue, so it never
-		 *  runs alongside a start or stop. False when one is under way: it settles the run
-		 *  itself. A refusal is thrown, for the fallback banner to report. */
+		/** Continue one source. Stop can interrupt the load and takes over reporting its outcome. */
 		async switchSource(request: SourceSwitch): Promise<boolean> {
-			if (operation || stopping) return false;
+			if (startup || switching || stopping) return false;
 			const work = Promise.resolve().then(() =>
 				(port.switchSourceEngine ?? api.switchSourceEngine)(request)
 			);
-			operation = work;
+			switching = work;
 			try {
 				await work;
-				return true;
+				return !stopping;
+			} catch (error) {
+				if (stopping) return false;
+				throw error;
 			} finally {
-				operation = null;
+				switching = null;
 			}
 		},
 		stop(): Promise<void> {
 			if (stopping) return stopping;
-			const startup = operation;
+			const pendingSwitch = switching;
 			busy.set(true);
 			stopping = (async () => {
 				await startup?.catch(() => {});
@@ -115,6 +117,7 @@ export function createSessionController(
 				} catch (error) {
 					statusMessage.set(asStatus(error));
 				} finally {
+					await pendingSwitch?.catch(() => {});
 					stopping = null;
 					busy.set(false);
 				}
