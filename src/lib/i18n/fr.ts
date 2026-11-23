@@ -911,6 +911,7 @@ export const fr: Messages = {
 		format: 'Format d’export',
 		plainText: 'Texte brut',
 		includeOriginal: 'Inclure la parole originale',
+		markersNeedFormat: 'Choisissez le texte, Markdown ou WebVTT pour enregistrer les repères.',
 		noTiming:
 			'Cette transcription récupérée ne contient pas d’horodatage. Enregistrez-la en texte ou en Markdown.',
 		clear: 'Effacer',
@@ -974,6 +975,7 @@ export const fr: Messages = {
 		unsaved: {
 			title: 'Enregistrer cette transcription avant de fermer ?',
 			sessionEnded: 'La session a été arrêtée et les derniers sous-titres ont été récupérés.',
+			markersOnly: 'Fermer sans enregistrer supprimera les repères de la transcription.',
 			body: (lines: number) =>
 				lines < 2
 					? `${lines} ligne n’a pas été enregistrée. Fermer sans enregistrer la supprime.`
@@ -987,6 +989,8 @@ export const fr: Messages = {
 		},
 		recovery: {
 			title: 'Récupérer la transcription de votre dernière session ?',
+			markersOnly: (savedAt: string) =>
+				`Les repères de votre transcription ont été enregistrés localement à ${savedAt}.`,
 			body: (lines: number, savedAt: string) =>
 				lines < 2
 					? `L’application s’est fermée alors que ${lines} ligne non enregistrée était encore dans le journal. Elle a été copiée localement à ${savedAt} et n’a pas quitté ce PC.`

@@ -15,7 +15,7 @@
 		transcriptDirty
 	} from './stores';
 	import { TRANSCRIPT_WARN_LINES } from './document';
-	import { exportFormat, isTimedFormat } from './exportFormat';
+	import { exportFormat, canExportFormat } from './exportFormat';
 	import { exportLabels, saveTranscriptDocument } from './saveDocument';
 	import {
 		formatTranscript,
@@ -68,14 +68,18 @@
 	// The export format is a stored preference (`exportFormat.ts`), not this component's
 	// state, so the quit prompt's Save and the history view use the same one.
 	// One pass over the log for both the timed export formats and Copy's time window.
+	const hasContent = $derived(transcript.length > 0 || markers.length > 0);
 	const timed = $derived(hasTranscriptTiming(transcript));
-	const missingTiming = $derived(isTimedFormat($exportFormat) && !timed);
+	const missingTiming = $derived(
+		!canExportFormat($exportFormat, timed, !transcript.length && markers.length > 0)
+	);
 	// Clear throws away unsaved text, so when there is any it asks once rather than acting on
 	// the first click. New captions withdraw the question — the log the operator was about to
 	// throw away is no longer the log in front of them — so it is derived from the transcript,
 	// and only the click that asks sets it.
 	let confirmingClear = $derived.by(() => {
 		void transcript.length;
+		void markers.length;
 		return false;
 	});
 
@@ -134,7 +138,7 @@
 	}
 
 	async function save(format: TranscriptFormat) {
-		if (!transcript.length || saving) return;
+		if (!hasContent || saving) return;
 		saving = true;
 		try {
 			await saveTranscriptDocument(format);
@@ -162,7 +166,7 @@
 	<span class="count">{$t.transcript.lines(transcript.length)}</span>
 	<!-- The whole point of the badge: on screen, a transcript that exists only in memory
 	     looks exactly like one that is on disk. -->
-	{#if transcript.length}
+	{#if hasContent}
 		<span class="state" class:unsaved={$transcriptDirty} data-testid="save-state">
 			{$transcriptDirty ? $t.transcript.unsaved : $t.transcript.saved}
 		</span>
@@ -201,7 +205,7 @@
 		<ToolButton
 			variant="ghost"
 			size="sm"
-			disabled={(!transcript.length && !(live && $hasInFlightLines)) || copying}
+			disabled={(!hasContent && !(live && $hasInFlightLines)) || copying}
 			aria-busy={copying}
 			onclick={copy}
 		>
@@ -221,7 +225,7 @@
 	<ToolButton
 		variant="ghost"
 		size="sm"
-		disabled={!desktop || !transcript.length || saving || missingTiming}
+		disabled={!desktop || !hasContent || saving || missingTiming}
 		aria-busy={saving}
 		onclick={() => save($exportFormat)}
 	>
@@ -230,7 +234,7 @@
 	<ToolButton
 		variant={confirmingClear ? 'danger' : 'ghost'}
 		size="sm"
-		disabled={!transcript.length || saving}
+		disabled={!hasContent || saving}
 		onclick={clear}
 	>
 		{confirmingClear ? $t.transcript.confirmClear : $t.transcript.clear}
@@ -239,7 +243,9 @@
 <!-- The two notes below are statuses that stay in the DOM and change only their text — a live
      region inserted together with its text is often missed. Empty, they take no room. -->
 <p class="hint live-slot" role="status">
-	{#if missingTiming && transcript.length}{$t.transcript.noTiming}{/if}
+	{#if missingTiming && hasContent}{transcript.length
+			? $t.transcript.noTiming
+			: $t.transcript.markersNeedFormat}{/if}
 </p>
 
 <!-- The announcement lives in its own always-present region — a live region created at the

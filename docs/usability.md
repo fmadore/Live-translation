@@ -213,9 +213,9 @@ characters) and press Enter, or leave it blank for a numbered section break (**S
 Escape puts the field away; either way focus goes back to where it was. The marker is placed at
 the session's time, between the paragraphs on either side of it; it is drawn as a heading in
 the log, so a screen reader can move from one talk to the next, and a status says it was added.
-Markers make the transcript unsaved, are written into every export (see
+Markers make the transcript unsaved, are written into plain text, Markdown and WebVTT exports (see
 [transcript export](transcript-export.md#markers)), and are kept in the recovery copy and the
-session history when those are on. They are never shown on the overlay or sent to Zoom.
+session history when those are on, even before the first caption. SubRip omits markers. They are never shown on the overlay or sent to Zoom.
 
 **Find** (or Ctrl+F), on the stage's **Transcript** tab, opens a field over the log with the
 match count (**2 of 7**), previous and next (Enter, Shift+Enter) and close (Escape, which hands

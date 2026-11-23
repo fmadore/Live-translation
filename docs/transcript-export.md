@@ -86,7 +86,7 @@ the Zoom share — can take one for speech, and a marker ends the paragraph it f
 - **Markdown:** a heading, `## Talk 2 starts · 0:42:10`, one level under the language's
   heading (`###`) in a two-language transcript, where each language's section repeats it.
 - **WebVTT:** a `NOTE 0:42:10 Talk 2 starts` comment block before the first cue at or after its
-  moment. Players skip comments; cue numbers are unchanged, and a `-->` in the text is written
+  moment. A marker-only document contains these comments without cues. Players skip comments; cue numbers are unchanged, and a `-->` in the text is written
   `->`, which would otherwise end the comment.
 - **SubRip:** nothing. SRT has no comments, and a marker cue would be shown as a subtitle, so
   the file is exactly what it would be without markers.

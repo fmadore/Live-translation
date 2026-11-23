@@ -32,9 +32,13 @@ function loadExportFormat(): TranscriptFormat {
 
 export const exportFormat = persisted<TranscriptFormat>(EXPORT_FORMAT_KEY, loadExportFormat);
 
-/** Whether the format writes cue times, which an older recovered transcript does not have. */
-export function isTimedFormat(format: TranscriptFormat): boolean {
-	return format === 'srt' || format === 'vtt';
+/** Text and Markdown accept any document. WebVTT can also carry markers alone as NOTE blocks. */
+export function canExportFormat(
+	format: TranscriptFormat,
+	timed: boolean,
+	markersOnly: boolean
+): boolean {
+	return timed || (format !== 'srt' && (format !== 'vtt' || markersOnly));
 }
 
 /**
@@ -43,6 +47,12 @@ export function isTimedFormat(format: TranscriptFormat): boolean {
  * why; the quit prompt cannot, and a save that throws there would keep the app open with the
  * operator's text still unsaved.
  */
-export function savableFormat(format: TranscriptFormat, lines: TranscriptLine[]): TranscriptFormat {
-	return isTimedFormat(format) && !hasTranscriptTiming(lines) ? 'markdown' : format;
+export function savableFormat(
+	format: TranscriptFormat,
+	lines: TranscriptLine[],
+	markerCount = 0
+): TranscriptFormat {
+	return canExportFormat(format, hasTranscriptTiming(lines), !lines.length && markerCount > 0)
+		? format
+		: 'markdown';
 }

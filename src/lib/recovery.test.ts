@@ -22,6 +22,20 @@ const port = () => ({
 afterEach(() => vi.useRealTimers());
 
 describe('recovery coordination', () => {
+	it('spools markers while the run is still waiting for its first caption', async () => {
+		vi.useFakeTimers();
+		const io = port();
+		const markers = [{ id: 1, atMs: 500, label: 'Opening speaker' }];
+		const stop = startRecoverySpool(
+			() => [],
+			vi.fn(),
+			createRecoveryCoordinator(io),
+			() => markers
+		);
+		await vi.advanceTimersByTimeAsync(RECOVERY_INTERVAL_MS);
+		stop();
+		expect(JSON.parse(io.writeRecovery.mock.calls[0][0])).toMatchObject({ lines: [], markers });
+	});
 	it('waits for an active write, skips queued obsolete text, then deletes', async () => {
 		const io = port();
 		let finish!: (path: string) => void;

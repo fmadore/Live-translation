@@ -902,6 +902,7 @@ export const de: Messages = {
 		format: 'Exportformat',
 		plainText: 'Reiner Text',
 		includeOriginal: 'Originalwortlaut einschließen',
+		markersNeedFormat: 'Wählen Sie Text, Markdown oder WebVTT, um die Marken zu speichern.',
 		noTiming:
 			'Dieses wiederhergestellte Transkript hat keine Zeitangaben. Speichern Sie es als Text oder Markdown.',
 		clear: 'Leeren',
@@ -964,6 +965,7 @@ export const de: Messages = {
 		unsaved: {
 			title: 'Dieses Transkript vor dem Schließen speichern?',
 			sessionEnded: 'Die Sitzung wurde beendet und die letzten Untertitel wurden erfasst.',
+			markersOnly: 'Beim Schließen ohne Speichern gehen Ihre Transkriptmarken verloren.',
 			body: (lines: number) =>
 				lines === 1
 					? '1 Zeile wurde nicht gespeichert. Schließen ohne Speichern verwirft sie.'
@@ -977,6 +979,8 @@ export const de: Messages = {
 		},
 		recovery: {
 			title: 'Transkript der letzten Sitzung wiederherstellen?',
+			markersOnly: (savedAt: string) =>
+				`Ihre Transkriptmarken wurden um ${savedAt} lokal gesichert.`,
 			body: (lines: number, savedAt: string) =>
 				lines === 1
 					? `Die App wurde mit 1 nicht gespeicherten Zeile im Protokoll geschlossen. Sie wurde um ${savedAt} lokal zwischengespeichert und hat diesen PC nicht verlassen.`

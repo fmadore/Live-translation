@@ -14,7 +14,7 @@ import { get } from 'svelte/store';
 import type { CloseChoice } from './document';
 import { exportFormat, savableFormat } from './exportFormat';
 import { sessionHistory } from './history';
-import { endTranscriptSession, isRunning, transcript, transcriptDirty } from './stores';
+import { endTranscriptSession, isRunning, markers, transcript, transcriptDirty } from './stores';
 import { saveTranscriptDocument } from './saveDocument';
 import { api } from './tauri';
 import { recovery } from './recovery';
@@ -103,7 +103,7 @@ export async function prepareClose(
  */
 export async function resolveClose(choice: Exclude<CloseChoice, 'cancel'>): Promise<boolean> {
 	if (choice === 'save') {
-		const format = savableFormat(get(exportFormat), get(transcript));
+		const format = savableFormat(get(exportFormat), get(transcript), get(markers).length);
 		if (!(await saveTranscriptDocument(format))) return false;
 	} else {
 		// The spool only ever held the text now being thrown away.

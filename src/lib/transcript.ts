@@ -110,8 +110,8 @@ function timedTranscript(
 	original: boolean,
 	markers: readonly TranscriptMarker[]
 ): string {
-	if (!lines.length) return format === 'vtt' ? 'WEBVTT\n\n' : '';
-	if (!hasTranscriptTiming(lines)) throw new Error('Transcript has no valid cue timing');
+	if (lines.length && !hasTranscriptTiming(lines))
+		throw new Error('Transcript has no valid cue timing');
 	// Completion order may differ from start order when both sources speak together.
 	const ordered = [...lines].sort((a, b) => a.startMs! - b.startMs! || a.id - b.id);
 	const cues = ordered

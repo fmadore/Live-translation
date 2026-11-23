@@ -59,7 +59,7 @@ function checked(s: SavedSession, id: string): SavedSession | null {
 		(s.endedAt === null || isDate(s.endedAt)) &&
 		Number.isFinite(s.durationMs) &&
 		s.durationMs >= 0 &&
-		ids.length > 0 &&
+		(ids.length > 0 || !!s.markers?.length) &&
 		new Set(ids).size === ids.length &&
 		ids.every((n) => Number.isSafeInteger(n) && n >= 1)
 		? s
@@ -381,7 +381,13 @@ export function createHistoryCoordinator(
 		}
 	}
 	function persist() {
-		if (!enabled() || !active?.lines.length || deleted.has(active.id)) return;
+		if (
+			!enabled() ||
+			!active ||
+			(!active.lines.length && !active.markers?.length) ||
+			deleted.has(active.id)
+		)
+			return;
 		const session = active;
 		const version = ++revision;
 		// The snapshot is taken when the job runs, not when it is queued: a newer append for

@@ -108,7 +108,7 @@ single file in its own local application-data folder on the same PC:
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\recovery\transcript.json`
 
 - It contains finalized caption text and any markers the user added to the transcript (their
-  text and time) only — no audio, no API key, no provider identity, and no device name.
+  text and time), including markers added before the first caption. It stores these fields only — no audio, no API key, no provider identity, and no device name.
 - It is never uploaded, transmitted, or shared. The developer operates no service that could
   receive it.
 - There is one file and no history: each write replaces the previous one.
@@ -129,7 +129,7 @@ saves finalized raw caption lines from that point onward, in one file per sessio
 
 Each session contains its optional user-entered title, start time, duration through the last save, output mode, known
 language information, raw translated/source text with cue timing, and any markers the user
-added to the transcript (their text and time in the session). Automatically detected
+added to the transcript (their text and time in the session). A session containing only markers is also saved. Automatically detected
 source languages are marked as such; the app does not guess which language was spoken.
 No audio, credentials, application identity or device name is included.
 

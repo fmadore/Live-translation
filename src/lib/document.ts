@@ -193,7 +193,7 @@ export function readLine(value: unknown): TranscriptLine | null {
 /**
  * Read a recovery file back. It is untrusted input — it survived a crash, it may have been
  * truncated mid-write, and it sits in a directory the user can edit — so anything that is
- * not a complete, current-version snapshot with at least one usable line yields null and the
+ * not a complete, current-version snapshot with at least one usable line or marker yields null and the
  * app carries on as if there were nothing to recover.
  */
 export function decodeRecovery(raw: string): RecoverySnapshot | null {
@@ -211,11 +211,11 @@ export function decodeRecovery(raw: string): RecoverySnapshot | null {
 	}
 	if (!Array.isArray(snapshot.lines)) return null;
 	const lines = snapshot.lines.map(readLine).filter((line) => line !== null);
-	if (!lines.length) return null;
 	// A damaged marker is left out rather than costing the lines around it.
 	const markers = Array.isArray(snapshot.markers)
 		? snapshot.markers.map(readMarker).filter((marker) => marker !== null)
 		: [];
+	if (!lines.length && !markers.length) return null;
 	return {
 		version: RECOVERY_VERSION,
 		savedAt: snapshot.savedAt,

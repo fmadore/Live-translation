@@ -29,7 +29,7 @@
 <!-- No Escape dismissal: leaving it unanswered would leave captions on disk that the operator
      never chose to keep, which is the one outcome this feature must not produce. -->
 <ModalPrompt title={$t.prompt.recovery.title}>
-	<p>{$t.prompt.recovery.body(lines, savedAt)}</p>
+	<p>{lines ? $t.prompt.recovery.body(lines, savedAt) : $t.prompt.recovery.markersOnly(savedAt)}</p>
 
 	<div class="actions">
 		<ToolButton variant="primary" size="lg" bind:element={restoreEl} onclick={onRestore}>
