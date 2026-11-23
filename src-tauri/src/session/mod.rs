@@ -361,6 +361,7 @@ impl SessionManager {
         whisper::cpu::ensure_supported()?;
         let model_app = app.clone();
         self.switch_with(
+            app,
             &request,
             move |model, graphics, abort| async move {
                 tauri::async_runtime::spawn_blocking(move || {
@@ -391,6 +392,7 @@ impl SessionManager {
     /// tests can stand in for both.
     async fn switch_with<Load, Loading>(
         &self,
+        events: &impl Events,
         request: &SourceSwitch,
         load: Load,
         build: impl FnOnce(&ActiveSession, &mut SourceSlot) -> Result<()>,
@@ -457,6 +459,17 @@ impl SessionManager {
         // `CLIENT_DRAIN_TIMEOUT` for a client still reconnecting.
         drain_slots(vec![draining]).await;
 
+        // A reconnecting client was cancelled above and will emit no terminal status. If its
+        // replacement fails, retire that source in the window before releasing the lifecycle lock.
+        let report_failure = |error: &anyhow::Error| {
+            if request.reconnecting {
+                events.status(StatusUpdate::source(
+                    request.origin,
+                    SessionState::Error,
+                    Some(AppError::with(crate::errors::id::WHISPER_MODEL, error)),
+                ));
+            }
+        };
         let model = match model {
             Some(model) => model,
             None => {
@@ -465,7 +478,7 @@ impl SessionManager {
                 let loading = abort.child_token();
                 let _stop_loading = loading.clone().drop_guard();
                 tokio::select! {
-                    model = load(choice.0, choice.1, loading.clone()) => model?,
+                    model = load(choice.0, choice.1, loading.clone()) => model.inspect_err(report_failure)?,
                     () = switching.cancelled() => anyhow::bail!(Refused("stopped while loading")),
                 }
             }
@@ -499,6 +512,7 @@ impl SessionManager {
         if let Some((error, slot)) = failed {
             slot.cancel.cancel();
             drain_slots(vec![slot]).await;
+            report_failure(&error);
             return Err(error);
         }
         Ok(())
@@ -930,10 +944,21 @@ mod tests {
         let manager = ended_on_gemini().await;
         // Not the engine the banner saw end.
         let request = to_whisper(Origin::Microphone, Provider::OpenAi, false);
-        assert!(!refused(manager.switch_with(&request, no_model, no_build).await).is_empty());
+        assert!(
+            !refused(
+                manager
+                    .switch_with(&Statuses::default(), &request, no_model, no_build)
+                    .await
+            )
+            .is_empty()
+        );
         // No such source.
         let request = to_whisper(Origin::System, Provider::Gemini, false);
-        refused(manager.switch_with(&request, no_model, no_build).await);
+        refused(
+            manager
+                .switch_with(&Statuses::default(), &request, no_model, no_build)
+                .await,
+        );
         {
             let active = lock(&manager.active);
             let slot = &active.as_ref().unwrap().slots[0];
@@ -944,7 +969,10 @@ mod tests {
         // A source still running is not the banner's to replace.
         let live = manager_with(session(false, &[Origin::Microphone], ends_with_its_source));
         let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
-        refused(live.switch_with(&request, no_model, no_build).await);
+        refused(
+            live.switch_with(&Statuses::default(), &request, no_model, no_build)
+                .await,
+        );
         assert!(lock(&live.active).as_ref().unwrap().slots[0].is_running());
 
         // Nor is a rehearsal's.
@@ -952,12 +980,20 @@ mod tests {
         rehearsal.options = options("system", Some("en"));
         let rehearsal = manager_with(rehearsal);
         let request = to_whisper(Origin::System, Provider::Gemini, false);
-        refused(rehearsal.switch_with(&request, no_model, no_build).await);
+        refused(
+            rehearsal
+                .switch_with(&Statuses::default(), &request, no_model, no_build)
+                .await,
+        );
 
         // Stopped meanwhile: no session left to continue.
         manager.stop(&Statuses::default()).await;
         let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
-        refused(manager.switch_with(&request, no_model, no_build).await);
+        refused(
+            manager
+                .switch_with(&Statuses::default(), &request, no_model, no_build)
+                .await,
+        );
         live.stop(&Statuses::default()).await;
     }
 
@@ -971,14 +1007,21 @@ mod tests {
         }));
         let request = to_whisper(Origin::Microphone, Provider::Gemini, true);
         let started = tokio::time::Instant::now();
+        let events = Statuses::default();
         let result = manager
             .switch_with(
+                &events,
                 &request,
                 |_, _, _| async { Err(anyhow::anyhow!("model file missing")) },
                 no_build,
             )
             .await;
         assert_eq!(result.unwrap_err().to_string(), "model file missing");
+        let [update] = &events.take()[..] else {
+            panic!("expected one terminal status")
+        };
+        assert_eq!(update.origin, Some(Origin::Microphone));
+        assert_eq!(update.state, SessionState::Error);
         assert!(
             started.elapsed() >= CLIENT_DRAIN_TIMEOUT,
             "the reconnecting client was waited for"
@@ -999,6 +1042,7 @@ mod tests {
         let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
         let events = Statuses::default();
         let switch = manager.switch_with(
+            &events,
             &request,
             |_, _, token: CancellationToken| {
                 let (loading, told_to_stop) = (&loading, &told_to_stop);
