@@ -58,6 +58,35 @@ impl std::fmt::Display for Refused {
 
 impl std::error::Error for Refused {}
 
+/// The model loaded but the source could not be restarted on it (its spool, its capture
+/// thread): not the model's fault, so not worded as one.
+#[derive(Debug)]
+struct RestartFailed;
+
+impl std::fmt::Display for RestartFailed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("the source could not be restarted with Whisper")
+    }
+}
+
+impl std::error::Error for RestartFailed {}
+
+/// How a failed source switch is worded, both in the command's answer and in the status a
+/// reconnecting source is retired with, so the two never disagree. A refusal, an interruption
+/// or a restart that failed says the source could not be continued; a processor that cannot
+/// run Whisper, or a model that does not load, says that instead, as at Start.
+pub fn switch_error(error: &anyhow::Error) -> AppError {
+    use crate::errors::id;
+    if let Some(unsupported) = error.downcast_ref::<whisper::cpu::Unsupported>() {
+        return AppError::with(id::WHISPER_CPU, unsupported);
+    }
+    if error.downcast_ref::<Refused>().is_some() || error.downcast_ref::<RestartFailed>().is_some()
+    {
+        return AppError::with(id::SESSION_FALLBACK, error);
+    }
+    AppError::with(id::WHISPER_MODEL, error)
+}
+
 #[derive(Default)]
 pub struct SessionManager {
     /// Serializes concurrent start/stop commands so an older request cannot tear down a
@@ -466,7 +495,7 @@ impl SessionManager {
                 events.status(StatusUpdate::source(
                     request.origin,
                     SessionState::Error,
-                    Some(AppError::with(crate::errors::id::WHISPER_MODEL, error)),
+                    Some(switch_error(error)),
                 ));
             }
         };
@@ -512,6 +541,7 @@ impl SessionManager {
         if let Some((error, slot)) = failed {
             slot.cancel.cancel();
             drain_slots(vec![slot]).await;
+            let error = error.context(RestartFailed);
             report_failure(&error);
             return Err(error);
         }
@@ -1022,6 +1052,10 @@ mod tests {
         };
         assert_eq!(update.origin, Some(Origin::Microphone));
         assert_eq!(update.state, SessionState::Error);
+        assert_eq!(
+            update.message.as_ref().map(|message| message.id),
+            Some(id::WHISPER_MODEL)
+        );
         assert!(
             started.elapsed() >= CLIENT_DRAIN_TIMEOUT,
             "the reconnecting client was waited for"
@@ -1030,6 +1064,27 @@ mod tests {
         let slot = &active.as_ref().unwrap().slots[0];
         assert!(!slot.is_live(), "its reconnection was stopped");
         assert_eq!(slot.engine, Provider::Gemini);
+    }
+
+    /// A model that does not load is the model's failure; a source that could not be restarted
+    /// on a model that did is the switch's, worded as such with its cause kept underneath.
+    #[test]
+    fn a_failed_switch_names_what_failed() {
+        let model = switch_error(&anyhow::anyhow!("model file missing"));
+        assert_eq!(model.id, id::WHISPER_MODEL);
+        let refused = switch_error(&anyhow::Error::new(Refused("the source is still running")));
+        assert_eq!(refused.id, id::SESSION_FALLBACK);
+        assert_eq!(
+            refused.detail.as_deref(),
+            Some("the source is still running")
+        );
+        let restart =
+            switch_error(&anyhow::anyhow!("failed to spawn capture thread").context(RestartFailed));
+        assert_eq!(restart.id, id::SESSION_FALLBACK);
+        assert_eq!(
+            restart.detail.as_deref(),
+            Some("the source could not be restarted with Whisper: failed to spawn capture thread")
+        );
     }
 
     /// A Stop during a switch does not wait out the model: the load is told to stop, the
