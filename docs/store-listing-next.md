@@ -18,6 +18,15 @@ controls. New installations open on Whisper / Base / automatic detection, and ex
 setups are preserved. Model download and capture remain explicit user actions. The Store
 listing is for Windows: 1.13 and later also ship a Mac app, which the listing does not mention.
 
+## Since 1.15.0
+
+- **Continue with offline Whisper** ([#248](https://github.com/fmadore/Live-translation/issues/248)):
+  when a cloud engine ends a source mid-session (a key, quota or billing error), or has been
+  reconnecting for 30 seconds, a banner offers to continue that source with offline Whisper in
+  the same session: same clock, transcript and history entry, with a marker at the switch.
+  Nothing new is sent to anyone, so the privacy policy gains one sentence and keeps its
+  23 November 2026 date.
+
 ## What 1.15.0 adds
 
 From the [release notes](release-1.15.0.md) and the

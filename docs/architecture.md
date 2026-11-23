@@ -216,6 +216,19 @@ idle input releases the window the worker holds, so the last words before a Paus
 spell are captioned at once. Quit discards the backlog rather than waiting for it. Backlog
 limits and disk or overflow failures are covered in [local Whisper](local-whisper.md).
 
+**Continuing a source with Whisper** ([#248](https://github.com/fmadore/Live-translation/issues/248)).
+`switch_source_engine`, granted to the operator window only, rebuilds one `SourceSlot` with
+offline Whisper inside the running session: same clock, pause channel and turn counters
+(`realtime::TurnCounter`, so turn ids keep increasing), while the other source runs on. It takes
+the lifecycle lock, and refuses (`error.sessionFallback`) unless the source is still on the
+engine the banner saw and has ended, or, when the banner saw it reconnecting for 30 seconds, is
+a cloud source whose reconnection it stops first. The old capture and clients are drained
+outside the session mutex, the model loads only if the session holds none, and Stop or Start
+cancel the shared `switching` token before they wait for the lock, so neither waits out a
+model load. The interface holds the run open while the banner offers the switch after the last
+source ended (`heldSince` in `sessionStatus.ts`), and a declined run's history record ends at
+the failure's time.
+
 The built-in demo observes the same cancellation token on every short delay, so Stop remains
 responsive and cannot leave an audio or recognizer thread behind.
 
