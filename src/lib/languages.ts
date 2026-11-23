@@ -20,6 +20,7 @@ export function supportsLanguage(provider: Provider, code: TargetLanguage): bool
 		provider === 'whisper' ||
 		provider === 'mistral' ||
 		provider === 'gemini-transcribe' ||
+		provider === 'openai-transcribe' ||
 		!!catalog.languages.find((l) => l.code === code)?.providers.includes(provider)
 	);
 }
