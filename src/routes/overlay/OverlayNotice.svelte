@@ -58,10 +58,6 @@
 		text-align: center;
 		color: var(--caption-ink-final);
 		overflow-wrap: anywhere;
-		/* Sized by measurement, at once. Reduced motion gives every property a 0.01 ms transition
-		   (`app.css`): the probe then reads the size it had, not the one just set, and the line
-		   can be left drawn at its old size. */
-		transition: none;
 		text-shadow:
 			0 1px 3px var(--caption-halo-tight),
 			0 2px 14px var(--caption-halo-soft);
