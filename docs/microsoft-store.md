@@ -61,7 +61,7 @@ removed Windows AI Speech/ML and the Windows speech recognizer, and introduced t
 
 Since 1.7.0, Whisper is built for AVX2 on x64 and for dot-product instructions on ARM64, and
 checks the processor before any of its code runs. On an x64 processor without AVX2, such as
-some budget Celeron and Pentium Silver PCs, Whisper is listed as unavailable with the reason and
+some budget Celeron and Pentium Silver PCs, Whisper is listed as unavailable with the reason, and
 a selected Whisper, including the first-launch default, becomes the built-in demo. A clean
 install on a reviewer's PC therefore always opens on something that starts. The listing
 requirements and certification notes say so; see
@@ -70,7 +70,7 @@ requirements and certification notes say so; see
 Review the current [Microsoft Store policies](https://learn.microsoft.com/en-us/windows/apps/publish/store-policies)
 when submitting: metadata must describe dependencies and costs accurately, advertised features
 must work on supported devices, and reviewers need a usable test path. The certification notes
-provide Whisper setup and the demo fallback. Resolve access needed to test cloud features
+provide Whisper setup and the demo fallback. Resolve the access needed to test cloud features
 before submission; a passing local check does not imply certification.
 
 ## Store identity (assigned)
@@ -124,7 +124,7 @@ before submission; a passing local check does not imply certification.
   WebView2's own find bar shut; the overlay notice replaces the captions and clears. With both
   sources and two caption languages in the default strip, all four rows show a line.
 - [ ] Real microphone, system and application capture work; a failed source preserves captions.
-- [ ] Whisper Pause admits no new audio; existing backlog can finish. Stop drains; confirmed
+- [ ] Whisper Pause admits no new audio; the existing backlog can finish. Stop drains; confirmed
   discard shows the incomplete-transcript notice. Export after completion contains the tail.
 - [ ] Cloud transcription and translation work with suitable credentials, including a
   non-EN/FR target, two targets, original speech where supplied, and Pause/Resume. Mistral
@@ -154,7 +154,7 @@ before submission; a passing local check does not imply certification.
 - [ ] Overlay placement, its restore across launches and mixed-DPI displays, all reading
   modes, RTL text, filler list, profiles and shortcuts pass the
   [layout](caption-layout.md#release-verification) and [accessibility](accessibility.md) checks.
-- [ ] Text/Markdown/SRT/VTT export, history, recovery, quit prompts and tray behavior work under package identity.
+- [ ] Text/Markdown/SRT/VTT export, history, recovery, quit prompts and tray behaviour work under package identity.
 - [ ] Windows App Certification Kit passes on the final packages.
 - [ ] EN/FR/DE copy, final-package screenshots and the public privacy policy match this version.
 
