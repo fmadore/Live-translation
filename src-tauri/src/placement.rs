@@ -29,10 +29,22 @@ pub struct Placement {
 /// The smallest overlay a placement is ever given, in physical pixels: room for a short line.
 const MIN_WIDTH: u32 = 320;
 const MIN_HEIGHT: u32 = 160;
+/// The largest side a placement is ever given, in physical pixels.
+const MAX_SIDE: u32 = 16384;
+
+/// `placement` with its size held between the floor and `MAX_SIDE`, where it already is.
+fn sized(placement: &Placement) -> Placement {
+    Placement {
+        width: placement.width.clamp(MIN_WIDTH, MAX_SIDE),
+        height: placement.height.clamp(MIN_HEIGHT, MAX_SIDE),
+        ..*placement
+    }
+}
 
 fn fit(saved: &Placement, bounds: &Placement) -> Placement {
-    let width = saved.width.clamp(MIN_WIDTH, 16384).min(bounds.width);
-    let height = saved.height.clamp(MIN_HEIGHT, 16384).min(bounds.height);
+    let Placement { width, height, .. } = sized(saved);
+    let width = width.min(bounds.width);
+    let height = height.min(bounds.height);
     // The far edge saturates: no position lies past `i32::MAX`, however far the area reaches.
     Placement {
         x: saved.x.clamp(
@@ -320,17 +332,14 @@ pub async fn get_overlay_placement(app: AppHandle) -> Result<Placement, AppError
 /// stays stretched, where fitting it to the monitor under its corner shrank it to one on every
 /// launch. Anything else gets the watcher's rescue, so a placement made for a projector that is
 /// not plugged in comes back on the display nearest it. Never smaller than the floor `fit`
-/// keeps, so a stored rectangle cannot shrink the captions to a speck.
+/// keeps, so a stored rectangle cannot shrink the captions to a speck, and never larger than
+/// `MAX_SIDE`.
 fn restored(placement: &Placement, screens: &[Screen]) -> Option<Placement> {
     if screens.is_empty() {
         return None;
     }
-    let floored = Placement {
-        width: placement.width.max(MIN_WIDTH),
-        height: placement.height.max(MIN_HEIGHT),
-        ..*placement
-    };
-    Some(rescue(&floored, screens).unwrap_or(floored))
+    let sized = sized(placement);
+    Some(rescue(&sized, screens).unwrap_or(sized))
 }
 
 #[tauri::command]
@@ -433,18 +442,34 @@ fn may_return_to(entry: &Placement, screens: Option<&[Screen]>) -> bool {
     screens.is_none_or(|screens| on_a_display(entry, screens))
 }
 
+/// Where Escape puts the overlay back, or `None` to leave it where it is. `entry` comes from
+/// the overlay, the less trusted window, so it gets no size a restore would not give it: held
+/// between the floor and `MAX_SIDE`, then put back as `restored` puts a remembered placement
+/// back, as it was if the room can see it there and rescued if not. Only while it is still on
+/// a display (`may_return_to`); with displays that cannot be read, sized and nothing more.
+fn undo_target(entry: &Placement, screens: Option<&[Screen]>) -> Option<Placement> {
+    let entry = sized(entry);
+    if !may_return_to(&entry, screens) {
+        return None;
+    }
+    match screens {
+        Some(screens) => restored(&entry, screens),
+        None => Some(entry),
+    }
+}
+
 /// Escape in move mode: put the overlay back at `entry`, where move mode found it, unless that
-/// is on a display that has gone; whether it was moved.
+/// is on a display that has gone; whether it was moved. See `undo_target`.
 #[tauri::command]
 pub async fn undo_overlay_move(app: AppHandle, entry: Placement) -> Result<bool, AppError> {
     let win = overlay_window(&app)?;
     let screens = screens(&app)
         .inspect_err(|error| tracing::warn!("displays could not be read: {error}"))
         .ok();
-    if !may_return_to(&entry, screens.as_deref()) {
+    let Some(target) = undo_target(&entry, screens.as_deref()) else {
         return Ok(false);
-    }
-    apply(&win, &entry)?;
+    };
+    apply(&win, &target)?;
     Ok(true)
 }
 
@@ -1012,6 +1037,49 @@ mod tests {
         assert!(!may_return_to(&entry, Some(&[])));
         // Displays that cannot be read: back it goes, as before.
         assert!(may_return_to(&entry, None));
+    }
+
+    /// #236: the overlay sends Escape's entry, and it used to be applied at whatever size it
+    /// named. A zero-size one centred on a display gets the floor `restored` gives.
+    #[test]
+    fn escape_never_puts_the_overlay_back_smaller_than_the_floor() {
+        let zero = Placement {
+            x: 1280,
+            y: 800,
+            width: 0,
+            height: 0,
+        };
+        let floored = Placement {
+            width: MIN_WIDTH,
+            height: MIN_HEIGHT,
+            ..zero
+        };
+        assert_eq!(undo_target(&zero, Some(&[LAPTOP_SCREEN])), Some(floored));
+        assert_eq!(undo_target(&zero, None), Some(floored));
+    }
+
+    /// …and an oversized one is capped, then fitted to the display like any placement the room
+    /// could not see whole.
+    #[test]
+    fn escape_never_puts_the_overlay_back_larger_than_a_display_allows() {
+        // Capped to 16384 a side, its centre is on the laptop.
+        let huge = Placement {
+            x: 1280 - 8192,
+            y: 800 - 8192,
+            width: 40_000,
+            height: u32::MAX,
+        };
+        assert_eq!(
+            undo_target(&huge, Some(&[LAPTOP_SCREEN])),
+            Some(LAPTOP_SCREEN.work_area)
+        );
+        let capped = undo_target(&huge, None).expect("put back");
+        assert_eq!((capped.width, capped.height), (MAX_SIDE, MAX_SIDE));
+        // An entry the room can see goes back exactly as it was, and one on a display that has
+        // gone stays where the watcher left the overlay.
+        let entry = strip(480, 1200);
+        assert_eq!(undo_target(&entry, Some(&[LAPTOP_SCREEN])), Some(entry));
+        assert_eq!(undo_target(&strip(2720, 820), Some(&[LAPTOP_SCREEN])), None);
     }
 
     #[test]
