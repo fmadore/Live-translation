@@ -49,7 +49,8 @@
 						>{#if model.length > 1}{#each model as part, i (i)}{#if i}<wbr />{/if}<span
 									class="model-part">{part}</span
 								>{/each}{:else}{model[0]}{/if}</span
-					>{#if id === 'gemini-transcribe'}<span class="hint">{$t.design.smartSummary}</span
+					>{#if id === 'gemini-transcribe'}<span class="hint"
+							>{$t.design.geminiTranscribeSummary}</span
 						>{/if}{#if id === 'deepl'}<span class="hint">{$t.provider.deeplNote}</span
 						>{/if}{#if refused}<span class="hint"
 							>{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}</span
