@@ -140,8 +140,14 @@ The probe's `session.created` had an `expires_at` 60 minutes after the session o
 Realtime API's session cap. At the cap OpenAI sends `session_expired`, which the shared
 classification already hands over to a new session.
 
-No keepalive is documented. The runner's WebSocket pings prove the path while the room is quiet;
-whether a transcription session ends after a long stretch without audio has not been observed.
+No keepalive and no idle timeout are documented: the server-events reference has none for
+transcription sessions (its only `idle_timeout_ms` belongs to `server_vad`, which this model
+does not use, and triggers a model response rather than ending a session). So the client sets no
+`keepalive`, unlike Mistral and DeepL, which end a session after 30 seconds without audio. The
+runner's WebSocket pings prove the path while the room is quiet. **Untested:** whether a
+transcription session ends after a long stretch without audio, as a system source sends while
+nothing plays. If it does, the error it sends will say so, and a `keepalive` of silence is the
+fix the other two engines use.
 
 ## The engine
 
@@ -222,11 +228,14 @@ cargo test --manifest-path src-tauri/Cargo.toml --lib the_rehearsal_recordings -
 - **Timing:** the lines closed 4.9, 12.2, 18.9 and 23.4 s (English) and 6.9, 13.7, 20.4 and
   25.9 s (French) after the first chunk.
 - **A first run that spoke as the session opened** lost the start: "This is a" in English, and
-  in French "Ceci" came back as "Live". The runner drops audio queued while a session sets up
-  as stale, so the clipped opening was transcribed from its tail, and the `Live Translation`
-  keyword is the likely source of the substitution. The test now waits for the session to run
-  before speaking, as an operator does. A keyword that never occurs in the speech may pull
-  a clipped or unclear word towards it, which is worth watching for with real glossaries.
+  in French "Ceci" came back as "Live". The runner then dropped audio queued while a fresh
+  session set up, as it still does after a failure, so the clipped opening was transcribed from
+  its tail, and the `Live Translation` keyword is the likely source of the substitution. Since
+  then a fresh start holds that audio in the runner's bounded backlog and sends it once the
+  session streams, for every engine ([architecture](architecture.md#concurrency-and-shutdown)).
+  The test waits for the session to run before speaking all the same. A keyword that never
+  occurs in the speech may pull a clipped or unclear word towards it, which is worth watching
+  for with real glossaries.
 
 The recordings are Windows text-to-speech, so these runs test the protocol, the line closing
 and relative timing, not accuracy on real speakers. Mistral's runs on the same recordings were

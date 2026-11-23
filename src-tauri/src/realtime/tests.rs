@@ -600,6 +600,34 @@ async fn a_planned_handover_drains_then_reconnects_at_once_and_replays_the_gap_i
     client.finished().await;
 }
 
+/// The speaker's first words, spoken while the session opens and the provider confirms its
+/// setup, go out in order once it streams, rather than being dropped as a stall's backlog.
+#[tokio::test(start_paused = true)]
+async fn speech_while_a_fresh_session_sets_up_is_sent_once_it_streams() {
+    tick_clock();
+    let server = Server::bind().await;
+    let mut client = Client::start(&server.url);
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = server.accept().await;
+    // A second of speech while the provider takes its time to confirm the setup: twice what
+    // the producer queue holds on its own.
+    for tag in 1..=10 {
+        client.speak(tag);
+        sleep(Duration::from_millis(100)).await;
+    }
+    peer.ready().await;
+    client.expect(status(SessionState::Running)).await;
+    client.speak(11);
+    assert_eq!(
+        peer.listen_for(Duration::from_secs(1)).await,
+        (1..=11).collect::<Vec<u8>>()
+    );
+
+    drop(peer);
+    client.cancel.cancel();
+    client.finished().await;
+}
+
 /// A frame the provider sends after a chunk (OpenAI's commit) follows that chunk's audio, and
 /// no other chunk's: live, and when a handover's gap is replayed on the next socket.
 #[tokio::test(start_paused = true)]

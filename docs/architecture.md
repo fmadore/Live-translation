@@ -250,6 +250,11 @@ up, it keeps reading the producer into a backlog of up to 70 chunks (about seven
 oldest go first beyond that), sends it in order once setup completes, then whatever is still
 queued (`next_chunk`'s catch-up) rather than coalescing it as a stall's backlog. The gap becomes latency instead of lost speech.
 
+**A fresh start** (Start, or Resume after a pause) holds audio the same way: the speech that
+begins while the socket opens and the provider confirms its setup goes into the same bounded
+backlog and out in order once streaming, so the speaker's first words are not lost to the
+handshake. Only a recovery after a failure drops what queued meanwhile, as a stall's backlog.
+
 **Device presence.** Capture threads check that their endpoint still exists through
 `audio::devices::PresenceCheck`: at once when the device watcher reports a change, and
 otherwise on a fallback interval (5 s for the microphone's enumeration, 1 s for loopback's
