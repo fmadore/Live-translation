@@ -506,7 +506,9 @@ export const de: Messages = {
 				: `${n} Sitzungen übersprungen: unlesbar oder ohne die Zeitangaben, die Untertitel brauchen.`,
 		/** In front of the first failure of a batch, in place of `actionFailed`. */
 		batchFailed: (failed: number, total: number) =>
-			`${failed} von ${total} ausgewählten Sitzungen wurden nicht abgeschlossen.`
+			failed === 1
+				? `1 von ${total} ausgewählten Sitzungen wurde nicht abgeschlossen.`
+				: `${failed} von ${total} ausgewählten Sitzungen wurden nicht abgeschlossen.`
 	},
 	overlayControls: {
 		stable: 'Ruhiger Lesemodus',

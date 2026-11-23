@@ -39,6 +39,15 @@
 	let stopEl = $state<HTMLButtonElement | null>(null);
 	let pauseEl = $state<HTMLButtonElement | null>(null);
 
+	// Which of Start and Rehearse was pressed, so that only that one says it is starting.
+	// Forgotten once nothing is in flight: the shortcut starts a session without a press.
+	let pressed = $state<'start' | 'rehearse'>('start');
+	$effect.pre(() => {
+		if (!busy) pressed = 'start';
+	});
+	const starting = $derived(busy && pressed === 'start');
+	const rehearsing = $derived(busy && pressed === 'rehearse');
+
 	// Start and Rehearse make way for Stop and Pause as a run begins, and the other way round
 	// as it ends, so the button the keyboard was on is removed and focus falls to the page.
 	// Noted before the swap reaches the DOM, and handed to the counterpart once it is there:
@@ -130,10 +139,12 @@
 			bind:element={startEl}
 			disabled={startDisabled && !busy}
 			aria-disabled={busy || undefined}
-			aria-busy={busy}
+			aria-busy={starting}
 			aria-keyshortcuts={ariaKeys}
 			onclick={() => {
-				if (!busy) onStart();
+				if (busy) return;
+				pressed = 'start';
+				onStart();
 			}}
 		>
 			<svg
@@ -143,7 +154,7 @@
 				fill="currentColor"
 				aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg
 			>
-			{busy
+			{starting
 				? $t.preflight.start.starting
 				: $options.mode === 'translate'
 					? $t.preflight.start.translate
@@ -159,9 +170,11 @@
 			bind:element={rehearseEl}
 			disabled={rehearseDisabled && !busy}
 			aria-disabled={busy || undefined}
-			aria-busy={busy}
+			aria-busy={rehearsing}
 			onclick={() => {
-				if (!busy) onRehearse();
+				if (busy) return;
+				pressed = 'rehearse';
+				onRehearse();
 			}}
 		>
 			<svg
@@ -176,7 +189,7 @@
 				aria-hidden="true"
 				><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
 			>
-			{busy ? $t.preflight.start.starting : $t.preflight.rehearse.action}
+			{rehearsing ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 		</ToolButton>
 	{/if}
 </div>
