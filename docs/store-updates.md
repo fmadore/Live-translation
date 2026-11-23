@@ -9,13 +9,115 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.16.0 handoff
+
+**Prepared on 23 November 2026** in the release PR, to be tagged `v1.16.0` from its merge; **Store
+submission pending**. The Store serves **1.15.0.0**, read with `Get-AppxPackage` on the
+maintainer's ARM64 PC on 23 November 2026 ([1.15.0's handoff](#release-1150-handoff)). Target app
+version: **1.16.0**, MSIX **1.16.0.0**, in `Live.Translation_1.16.0.msixbundle`, with
+`Live.Translation_1.16.0_aarch64.dmg` for the Mac and the Mac App Store build uploaded from the
+tag. What's new and the certification notes' first paragraph cover the changes since 1.15.0; the
+descriptions, the cloud-subtitles feature line and the certification notes' *Optional cloud
+features* add OpenAI subtitles and the fallback to Whisper ([store-listing.md](store-listing.md),
+[what changed](store-listing-next.md#what-1160-adds)).
+
+Since `v1.15.0`:
+
+- [#266](https://github.com/fmadore/Live-translation/pull/266): OpenAI subtitles through
+  `gpt-live-transcribe` on Realtime transcription, as provider `openai-transcribe`, on the one
+  OpenAI key, at $1.02 an hour ([notes](openai-transcribe-api.md)). Also a cross-engine fix: on a
+  fresh start (Start, or Resume after a pause), audio captured while the socket opens is kept in
+  the bounded backlog and sent in order, instead of being dropped as a stall's backlog.
+- [#268](https://github.com/fmadore/Live-translation/pull/268): Gemini Transcribe on VERBATIM
+  instead of SMART, whose cumulative finals made every caption since 1.4.0 repeat the session so
+  far; a segment ended without a final keeps its interim. With
+  [#249](https://github.com/fmadore/Live-translation/issues/249): OpenAI noise reduction by source
+  (`far_field` for the microphone, none for system audio) and a spoken language for Gemini
+  Transcribe (71 languages, BCP-47).
+- [#270](https://github.com/fmadore/Live-translation/pull/270) and
+  [#271](https://github.com/fmadore/Live-translation/pull/271): one `SourceSlot` per source, then
+  continuing a cloud source with offline Whisper inside the running session
+  ([#248](https://github.com/fmadore/Live-translation/issues/248),
+  [design note](decisions/2026-11-23-fallback-engine.md)); the cost estimate becomes a ledger.
+- [#272](https://github.com/fmadore/Live-translation/pull/272): marker-only transcripts kept
+  through close, recovery, history and export; Stop interrupts a pending switch; a failed switch
+  on a reconnecting source retires it, worded as the switch's failure when the model loaded;
+  costs per track by engine and pause; the overlay's caption language per track.
+- The [20 November audit](https://github.com/fmadore/Live-translation/blob/main/ROADMAP.md#the-20-november-audit):
+  [#257](https://github.com/fmadore/Live-translation/pull/257) (microphone unplug, Test audio
+  panic, overlay placement, the macOS audio hint),
+  [#258](https://github.com/fmadore/Live-translation/pull/258) (Whisper in unspaced scripts, the
+  Vulkan helper's crash report), [#259](https://github.com/fmadore/Live-translation/pull/259)
+  (tests, the release workflow's asset check, cleanups, privacy wording),
+  [#260](https://github.com/fmadore/Live-translation/pull/260) (History deletes, the Whisper model
+  list, reduced motion, interface polish),
+  [#261](https://github.com/fmadore/Live-translation/pull/261) (echo filter, DeepL and Mistral
+  turn closing, one table of sentence ends).
+- Docs: the public home page on GitHub Pages
+  ([#264](https://github.com/fmadore/Live-translation/pull/264)), Soniox notes
+  ([#263](https://github.com/fmadore/Live-translation/pull/263)), a copy-edit round
+  ([#265](https://github.com/fmadore/Live-translation/pull/265)) and the rule to keep the docs site
+  current ([#269](https://github.com/fmadore/Live-translation/pull/269)).
+- Dependencies: `url` 2.5.9 (#256, RUSTSEC-2026-0592), `cookie` 0.18.3 (#267,
+  RUSTSEC-2026-0594), the npm dev group (#255), `taiki-e/install-action` 2.90.5 (#254).
+
+**Changed under the surface:** one new command, `switch_source_engine`, in `lib.rs`,
+`command_names.rs` and the operator capability only (`src-tauri/capabilities/operator.json`); a
+test pins that `overlay.json` never gets it. One new error id, `error.sessionFallback`, in
+`errors.rs` and the three catalogues. One new `Provider` value, `openai-transcribe`, on both sides
+of the contract, sharing the `openai-api-key` credential; `StatusUpdate` gains an optional
+`engine`. No new Rust or npm dependency. The CSP keeps `connect-src 'self'`. The MSIX template,
+`bundle.config.json` and the package's capabilities are unchanged (pinned by
+`src/lib/msixIdentity.test.ts`). The [privacy policy](privacy.md) is effective 23 November 2026
+(OpenAI as a recipient of subtitle audio and the names-and-terms list; where the list goes).
+
+### Preparation
+
+- [x] #257–#272 merged by 23 November 2026, each with CI green on Linux, Windows x64, Windows
+  ARM64 and macOS.
+- [ ] The release PR merged, with the version bump in the seven files of
+  [the route](#the-route), `CITATION.cff` (1.16.0, 23 November 2026) and
+  `docs/release-1.16.0.md`; `npm run verify` and `npm run verify:rust` pass, and its CI passes,
+  the macOS lane included.
+- [ ] **By hand, never tried before the tag** (the pull requests' own lists): a real provider
+  failure mid-session (a spent quota or a revoked key) and the banner's click; an outage of more
+  than 30 seconds, then the click; Stop during a slow model load; an OpenAI subtitles session
+  past the 60-minute handover and a quiet system source for several minutes; Gemini subtitles in
+  a real room, with and without a spoken language; the first words after Start with each cloud
+  engine; an unplugged USB microphone; an overlay on an unplugged projector.
+- [ ] The French and German sentences new in 1.16.0 (What's new, the descriptions' and feature
+  line's changes, the certification notes) reviewed by the maintainer.
+- [ ] Partner Center limits rechecked ([walkthrough](partner-center-walkthrough.md)).
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.16.0` (annotated: "Live Translation & Subtitles v1.16.0") on the release PR's
+  merge; the workflow publishes the release with `docs/release-1.16.0.md`, the bundle and the
+  disk image attached.
+- [ ] Verify the bundle at **1.16.0.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled.
+- [ ] The open checks of the [1.15.0](#release-1150-handoff), [1.14.0](#release-1140-handoff),
+  [1.13.1](#release-1131-handoff) and [1.13.0](#release-1130-handoff) handoffs apply to 1.16.0.
+- [ ] Submit `Live.Translation_1.16.0.msixbundle` in Partner Center with the 1.16.0 copy
+  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
+- [ ] **Mac:** upload the 1.16.0 build from its tag with the
+  [Mac App Store steps](mac-app-store.md#each-version) (1.14.0 and 1.15.0 were not uploaded),
+  then settle 1.13.1's App Review before submitting it; on TestFlight, the system-wide keys in
+  the sandbox, and continuing with Whisper after a cloud source ends.
+- [ ] Partner Center *Website* (and *Support*, if wanted) and the App Store Connect *Marketing
+  URL* switched to <https://fmadore.github.io/Live-translation/>, carried over from 1.15.0's
+  handoff; the repository homepage already points there.
+
 ## Release 1.15.0 handoff
 
-**Tagged and published on GitHub on 17 November 2026** (`v1.15.0` at `cd0289b`); **Store
-submission pending**, and no 1.15.0 Mac build uploaded. The Store serves
-**1.14.0.0**, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
-maintainer's ARM64 PC on 17 November 2026 (Version 1.14.0.0, SignatureKind Store); the
-submission and certification dates were not recorded ([1.14.0's handoff](#release-1140-handoff)).
+**Tagged and published on GitHub on 17 November 2026** (`v1.15.0` at `cd0289b`); **live in the
+Store** as 1.15.0.0, read with `Get-AppxPackage 49346FMadore.LiveTranslationSubtitles` on the
+maintainer's ARM64 PC on 23 November 2026 (Version 1.15.0.0, SignatureKind Store). The
+submission and certification dates and the rollout were not recorded; the checks below that stay
+unticked were not recorded as done and stay open against the Store build. No 1.15.0 Mac build was
+uploaded. 1.16.0 follows it ([handoff](#release-1160-handoff)). It replaced **1.14.0.0**
+([1.14.0's handoff](#release-1140-handoff)).
 Target app version: **1.15.0**, MSIX **1.15.0.0**, in `Live.Translation_1.15.0.msixbundle`, with
 `Live.Translation_1.15.0_aarch64.dmg` for the Mac. What's new and the certification notes' first
 paragraph cover the changes since 1.14.0; the descriptions' fifth and sixth paragraphs and three

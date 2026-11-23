@@ -1,38 +1,43 @@
-# Partner Center submission walkthrough — 1.15.0
+# Partner Center submission walkthrough — 1.16.0
 
-Target: **Live Translation & Subtitles 1.15.0**, Product ID `9PFB8LR3RR9X`. **Tagged and published on
-GitHub on 17 November 2026; not yet submitted.**
-The Store serves 1.14.0 (MSIX 1.14.0.0), read from the installed package with `Get-AppxPackage`
-on 17 November 2026; 1.15.0.0 replaces it. Keep this walkthrough as the template for the
+Target: **Live Translation & Subtitles 1.16.0**, Product ID `9PFB8LR3RR9X`. **Tagged on
+23 November 2026; not yet submitted.**
+The Store serves 1.15.0 (MSIX 1.15.0.0), read from the installed package with `Get-AppxPackage`
+on 23 November 2026; 1.16.0.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
-`https://github.com/fmadore/Live-translation/releases/download/v1.15.0/Live.Translation_1.15.0.msixbundle`.
-The [release handoff](store-updates.md#release-1150-handoff) has the package evidence and
+`https://github.com/fmadore/Live-translation/releases/download/v1.16.0/Live.Translation_1.16.0.msixbundle`
+once the tag is built.
+The [release handoff](store-updates.md#release-1160-handoff) has the package evidence and
 outstanding acceptance checks.
 
-1.15.0 adds tools for the operator: a spending guard for cloud engines, markers and Find in the
-transcript, a notice on the overlay for breaks, and opt-in system-wide Pause and Show/hide
-overlay keys (`RegisterHotKey`, held only while a session runs, no capability). It carries the
-fixes of the [16 November app review](app-review-2026-11-16.md). Its new-version notice is for
-copies installed from GitHub; a Store package never shows it and never contacts GitHub. Beyond
-What's new it changes three things in Partner Center: the descriptions' fifth and sixth
-paragraphs gain the operator tools; three feature lines (the fourth, twelfth and fourteenth)
-change in place; and the certification notes' first paragraph describes the system-wide keys and
-says the update check is absent from Store packages. The published **privacy policy**,
-effective 23 November 2026, already covers the keys, markers and the GitHub-only check.
-Everything earlier releases brought stays: DeepL in the descriptions and *Optional cloud
-features*, the helper and the bundled model in the certification notes' last paragraph, the
-certification notes' **paragraph on Zoom** and each description's **trademark line** (see
+1.16.0 adds OpenAI subtitles (OpenAI's `gpt-live-transcribe`, on the same key as OpenAI
+translation) and **Continue with offline Whisper**, a banner that offers to carry on a source
+with local Whisper in the same session when a cloud engine stops; it never switches on its own
+and sends nothing new. It also fixes Gemini subtitles, which repeated earlier text and now use
+Google's VERBATIM mode with a spoken-language choice, keeps the first words at Start or Resume on
+cloud engines, and carries the fixes of the 20 November audit. Beyond What's new it changes
+three things in Partner Center: each description's fourth paragraph (cloud translation and
+subtitles) adds OpenAI subtitles, OpenAI among the engines that take names and terms, and one
+sentence on the offline Whisper fallback; two feature lines (the first and the fifth) change in
+place; and the certification notes' first paragraph describes OpenAI subtitles, the fallback and
+the Gemini fix, while *Optional cloud features* adds OpenAI subtitles and the names and terms
+sent to OpenAI. The published **privacy policy**, effective 23 November 2026, already names
+OpenAI as a recipient of subtitle audio, names and terms.
+Everything earlier releases brought stays: 1.15.0's operator tools in the descriptions' fifth
+and sixth paragraphs, DeepL in the descriptions and *Optional cloud features*, the helper and the
+bundled model in the certification notes' last paragraph, the certification notes' **paragraph
+on Zoom** and each description's **trademark line** (see
 [Captions in Zoom](#captions-in-zoom-privacy-notes-and-trademark) and
 [store-listing-next.md](store-listing-next.md)). There is no new product declaration: the one
 ticked for 1.11.0's support link stays ticked. Paste the descriptions, features, What's new and
 the certification notes again from [store-listing.md](store-listing.md); the short
 descriptions, keywords and additional system requirements are unchanged. What's new covers the
-changes since 1.14.0; the certification notes already name 1.15.0.0.
+changes since 1.15.0; the certification notes already name 1.16.0.0.
 
 ## Before Partner Center
 
-1. Verify the unsigned `Live.Translation_1.15.0.msixbundle` contains both native packages at
-   **1.15.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
+1. Verify the unsigned `Live.Translation_1.16.0.msixbundle` contains both native packages at
+   **1.16.0.0**, with the assigned [Store identity](microsoft-store.md#store-identity-assigned),
    and that both carry the wave-to-words `Square44x44Logo`, `Square150x150Logo`,
    `Wide310x150Logo` and `StoreLogo` assets, the
    [icon variants](packaging-msix.md#icon-variants-and-resourcespri) and `resources.pri`, and
@@ -49,16 +54,21 @@ changes since 1.14.0; the certification notes already name 1.15.0.0.
    DeepL's refusal of a free key and, with a paid key, a DeepL session, the overlay with both
    sources in a 160 px strip and with four rows, the system-wide keys over full-screen
    PowerPoint, Find, a marker, the overlay notice, the spending guard's idle pause, no
-   new-version question in the Store package, export and WACK.
+   new-version question in the Store package, an OpenAI subtitles session with an OpenAI key,
+   Gemini subtitles arriving once each without earlier text, the first words after Start and
+   Resume on a cloud engine, Continue with offline Whisper after a cloud engine stops (a revoked
+   key, or the network cut for 30 seconds), export and WACK.
 4. The current [screenshots](store-screenshots/README.md) do not show the *Zoom captions*
    button (1.12.0), 1.13.0's setup switches, disabled Start and custom-colour chips, DeepL in
-   the translation engine list (1.14.0), or Add marker, Find and the overlay notice (1.15.0).
-   Decide whether to retake them; if so, retake them from the 1.15.0 MSIX in all three listing
+   the translation engine list (1.14.0), Add marker, Find and the overlay notice (1.15.0), or
+   OpenAI as a fifth engine card in Subtitles and Gemini's spoken-language choice (1.16.0).
+   Decide whether to retake them; if so, retake them from the 1.16.0 MSIX in all three listing
    languages, with Settings › App › Theme set to **Dark** whatever mode the PC is in, so the set shows one theme, and keep any Zoom
    window and Zoom's artwork out of them. The 21 October 2026 set, from the 1.7.1 MSIX,
    predates the Live and Transcript tabs.
 5. Check the published [privacy policy](https://fmadore.github.io/Live-translation/privacy)
-   reads "23 November 2026", has the check for new versions (copies installed from GitHub
+   reads "23 November 2026", names OpenAI as a recipient of subtitle audio, names and terms
+   and the chosen spoken language, has the check for new versions (copies installed from GitHub
    only), the system-wide keys and markers, names DeepL as a recipient with a link to DeepL's
    privacy policy, and still has the *Optional captions in Zoom* section, the *macOS* section, and the Zoom line
    and the question asked before audio first goes to a provider under *Third-party processing*.
@@ -79,7 +89,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 | Purchases outside Microsoft commerce | **Ticked since 1.11.0; leave it ticked** (Product declarations, below): the Buy Me a Coffee link; provider dependencies and charges disclosed in the listing. Captions in Zoom involves no payment |
 | Accessibility certification | Do not claim certification without a completed audit |
 | Generative AI | Yes: optional Gemini/OpenAI/DeepL translation and local Whisper translation into English generate text |
-| Personal-information transmission | Cloud modes send selected audio directly to third parties, after the app asks once for each provider, and Mistral and Gemini subtitles also receive any names and terms entered; local Whisper sends nothing. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
+| Personal-information transmission | Cloud modes send selected audio directly to third parties, after the app asks once for each provider, and Mistral, Gemini and OpenAI subtitles also receive any names and terms entered (OpenAI also the chosen spoken language); local Whisper sends nothing, including after the switch to offline Whisper. From 1.12.0, Captions in Zoom, once the user starts it, sends caption text (never audio), including Whisper's, directly to Zoom |
 | Recommended memory | 8 GB; Large v3 Turbo takes about 1 GB more; model, processor and graphics processor determine Whisper speed |
 
 ### Product declarations: the support link
@@ -87,7 +97,7 @@ chosen provider. Keep the publisher, product name and identity unchanged.
 Store Policy 10.8.2 lets a voluntary donation that gives nothing in return go through a secure
 third-party payment provider, and says: "You must note the use of a secure third-party purchase
 API in Partner Center during the submission process." Since 1.11.0 it is noted in two places,
-and 1.15.0 keeps both:
+and 1.16.0 keeps both:
 
 1. **Properties › Product declarations** (*Propriétés › Déclarations de produit*): tick
    **This product allows users to make purchases, but does not use the Microsoft Store commerce
@@ -129,7 +139,7 @@ microphone capture; system capture and the demo do not require one.
 ## Packages
 
 Replace the previous submission packages with the single unsigned multi-architecture
-`Live.Translation_1.15.0.msixbundle`. The Store signs accepted packages. Keep locally signed
+`Live.Translation_1.16.0.msixbundle`. The Store signs accepted packages. Keep locally signed
 test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 
 | Manifest element | Value |
@@ -137,7 +147,7 @@ test copies separate; do not upload an NSIS, MSI or Whisper Test artifact here.
 | Identity name | `49346FMadore.LiveTranslationSubtitles` |
 | Publisher | `CN=5D0ECC96-3998-452E-B7E9-29BE9B576F86` |
 | Publisher display name | `FMadore` |
-| Version | `1.15.0.0` |
+| Version | `1.16.0.0` |
 | Architectures / family | `x64`, `arm64` / `Windows.Desktop` |
 
 ## Store listings
@@ -146,19 +156,21 @@ Use the separate English (United States), French (France) and German (Germany) b
 [store-listing.md](store-listing.md). Complete German review and screenshots before adding
 that listing if it is not already present. For each language, paste:
 
-1. **Description**: full paragraphs, up to 10,000 characters. 1.15.0 ends the appearance
-   paragraph (fifth) with the overlay notice, the system-wide keys and the spending guard, and
-   adds Find and markers to the transcript paragraph (sixth). 1.14.0's DeepL sentences, 1.13's
-   offline-subtitles paragraph, 1.12.0's Zoom sentences and the trademark line, the last
-   paragraph, stay.
-2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.15.0
-   changes the fourth (cloud translation, now with the spending guard), twelfth (Pause, now with
-   the break notice and system-wide keys) and fourteenth (the transcript, now with Find and
-   markers) lines in place; the list stays at twenty, and the twentieth, on Captions in Zoom,
-   stays.
+1. **Description**: full paragraphs, up to 10,000 characters (EN 5,972, FR 7,225, DE 6,714).
+   1.16.0 changes the cloud paragraph (fourth) only: Gemini, Mistral and OpenAI offer cloud
+   subtitles, OpenAI on the same key as its translation; OpenAI joins the engines that take the
+   names and terms; and a new sentence says the app offers to carry on with offline Whisper in
+   the same session when a cloud engine stops. 1.15.0's operator tools in the fifth and sixth
+   paragraphs, 1.14.0's DeepL sentences, 1.13's offline-subtitles paragraph, 1.12.0's Zoom
+   sentences and the trademark line, the last paragraph, stay.
+2. **Features**: one supplied line per entry, at most 20 entries of 200 characters each. 1.16.0
+   changes the first (offline Whisper, which can now carry on a session when a cloud engine
+   stops: EN 162, FR 185, DE 185 characters) and the fifth (cloud subtitles, now with OpenAI on
+   the same key as translation: EN 171, FR 174, DE 190) lines in place; the list stays at
+   twenty, and the twentieth, on Captions in Zoom, stays.
 3. **Short description**: the supplied paragraph, kept below 270 characters for compact views.
-4. **What's new**: the 1.15.0 block, under 1,500 characters (EN 1,237, FR 1,494, DE 1,451). It
-   covers the changes since 1.14.0, the version the Store serves.
+4. **What's new**: the 1.16.0 block, under 1,500 characters (EN 1,255, FR 1,451, DE 1,451). It
+   covers the changes since 1.15.0, the version the Store serves.
 5. **Additional system requirements**: separate supplied lines, each under 200 characters.
    Unchanged since 1.13.1.
 6. Packaged-app screenshots with matching localized captions, showing the current interface
@@ -189,9 +201,12 @@ appears only as a secondary, explicitly scripted feature.
 ## Submission options
 
 Paste [Notes for certification](store-listing.md#notes-for-certification), including the
-first paragraph on the changes since 1.14.0 (with the system-wide keys and the update check
-absent from Store packages), the second on Captions in Zoom, the third on the support link, and
-*Optional cloud features*, which covers DeepL. Resolve any
+first paragraph on the changes since 1.15.0 (OpenAI subtitles, Continue with offline Whisper
+and the conditions under which the banner appears, and the Gemini fix), the second on Captions in
+Zoom, the third on the support link, and *Optional cloud features*, which covers DeepL and now
+OpenAI subtitles, the consent answer both OpenAI engines share and the names and terms sent to
+OpenAI. Exercising OpenAI subtitles needs an OpenAI key; the fallback banner needs a cloud key
+and an installed Whisper model. Resolve any
 required cloud test credentials privately before submission; no personal keys belong in public
 metadata or screenshots.
 
@@ -209,20 +224,21 @@ Suggested `runFullTrust` justification:
 
 Confirm all sections are complete, the Product declaration for purchases outside Microsoft
 commerce is still ticked, each description ends with the Zoom trademark line, packages and copy
-agree on 1.15.0.0, screenshots and Store
+agree on 1.16.0.0, screenshots and Store
 logos match the final UI and the wave-to-words icon, each listing carries the super hero art,
 and the privacy page is current. Test both
 credential-free routes: Whisper for real speech after download, and the scripted demo for a
 setup-free display check. Neither substitutes for testing the advertised cloud features.
 
-Rollout ([route step 9](store-updates.md#the-route)): **gradual**, starting at 10%. 1.15.0
-changes the session lifecycle (the spending guard's automatic Pause, the system-wide keys held
-only while a session runs, DeepL's drain at Pause and Stop, the retry limit for a provider that
-closes each connection as it opens), the echo filter, and how a loopback format is refused at
-open.
+Rollout ([route step 9](store-updates.md#the-route)): **gradual**, starting at 10%. 1.16.0
+adds a cloud engine (OpenAI subtitles, with a 60-minute session handover) and changes the
+session lifecycle (switching a source to offline Whisper mid-session, the audio buffered while a
+cloud connection opens, Stop interrupting a pending engine switch or a loading Whisper model,
+Mistral's Pause and Stop after a forced close), Gemini's transcription mode, the echo filter and
+the cost estimate.
 
-Submit manually when the [handoff checklist](store-updates.md#release-1150-handoff) is complete,
+Submit manually when the [handoff checklist](store-updates.md#release-1160-handoff) is complete,
 and record the submission date and certification result there. Do not mark a version live
-until Partner Center or the public listing confirms publication. 1.14.0 is live, read from the
-installed package on 17 November 2026; its submission and certification dates were not
+until Partner Center or the public listing confirms publication. 1.15.0 is live, read from the
+installed package on 23 November 2026; its submission and certification dates were not
 recorded.

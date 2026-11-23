@@ -1,31 +1,33 @@
-# Partner Center listing text — 1.15.0
+# Partner Center listing text — 1.16.0
 
-Written for **1.15.0 / MSIX 1.15.0.0**, tagged and published on GitHub on 17 November 2026,
-with the Store submission still pending. The Store serves 1.14.0 (MSIX 1.14.0.0), read from the installed package on
-17 November 2026 ([handoff](store-updates.md#release-1150-handoff)). What's new covers the
-changes since 1.14.0; everything earlier releases brought to the listing (DeepL, the
-offline-subtitles paragraph, the Zoom sentences, the trademark line, the twentieth feature line,
-the certification notes' Zoom paragraph and the helper and bundled model in their last
-paragraph) is already in the Store and stays. For the next version, replace What's new and the
-certification notes' first paragraph. Paste each block into its named field after the
-[release checks](store-updates.md). These descriptions lead with the actual captioning workflow;
-the scripted demo is a secondary setup aid.
+Written for **1.16.0 / MSIX 1.16.0.0**, tagged on 23 November 2026, with the Store submission
+still pending. The Store serves 1.15.0 (MSIX 1.15.0.0), read from the installed package on
+23 November 2026 ([handoff](store-updates.md#release-1160-handoff)). What's new covers the
+changes since 1.15.0; everything earlier releases brought to the listing (the operator tools of
+1.15.0, DeepL, the offline-subtitles paragraph, the Zoom sentences, the trademark line, the
+twentieth feature line, the certification notes' Zoom paragraph and the helper and bundled model
+in their last paragraph) is already in the Store and stays. For the next version, replace What's
+new and the certification notes' first paragraph. Paste each block into its named field after
+the [release checks](store-updates.md). These descriptions lead with the actual captioning
+workflow; the scripted demo is a secondary setup aid.
 
-For 1.15.0, What's new is replaced in all three languages: one paragraph on the operator tools
-(the spending guard, Add marker, Find, the overlay notice, the system-wide keys and acting on several saved sessions at once) and one on
-the fixes of the [16 November review](app-review-2026-11-16.md). It does not mention the
-new-version notice, which a Store package never shows. As planned in
-[store-listing-next.md](store-listing-next.md#what-1150-adds), each description changes in two
-places: the appearance paragraph (fifth) ends with the overlay notice, the system-wide keys and
-the spending guard, and the transcript paragraph (sixth) gains Find and markers. Three feature
-lines change in place, so the list stays at twenty: the fourth (cloud translation) adds the
-spending guard, the twelfth (Pause) adds the break notice and the system-wide keys, and the
-fourteenth (the transcript) adds Find and markers. The certification notes change in their
-first paragraph only (the version, and everything since 1.14.0, including the system-wide keys
-and the absence of the update check in Store packages). The short descriptions, the keywords,
-the additional system requirements, the screenshot captions and the trademark line are
-unchanged. The French and German sentences new in 1.15.0 need the maintainer's review, as each
-release's do. The listing is for Windows: it does not mention the Mac app.
+For 1.16.0, What's new is replaced in all three languages: a paragraph on OpenAI subtitles and
+Continue with offline Whisper, one on the Gemini subtitles fix and the first words kept at Start
+or Resume, and a short list of fixes from the 20 November audit. As planned in
+[store-listing-next.md](store-listing-next.md#what-1160-adds), each description changes in its
+fourth paragraph (cloud translation and subtitles) only: Gemini, Mistral and OpenAI offer cloud
+subtitles, OpenAI on the same key as its translation; OpenAI joins the engines that take the
+names and terms; and one new sentence says the app offers to carry on with offline Whisper in
+the same session when a cloud engine stops. The German opening paragraph already names every
+provider and is unchanged. Two feature lines change in place, so the list stays at twenty: the
+first (offline Whisper) adds that it can carry on a session when a cloud engine stops, and the
+fifth (cloud subtitles) adds OpenAI. The certification notes change in their first paragraph
+(the version, and everything since 1.15.0) and in *Optional cloud features* (OpenAI subtitles,
+the consent answer both OpenAI engines share, and the names and terms sent to OpenAI). The short
+descriptions, the keywords, the additional system requirements, the screenshot captions and the
+trademark line are unchanged. The French and German sentences new in 1.16.0 need the
+maintainer's review, as each release's do. The listing is for Windows: it does not mention the
+Mac app.
 
 Every paragraph inside a block is one unwrapped line, because Partner Center keeps line
 breaks; blank lines separate paragraphs. Prettier ignores Markdown in this repository
@@ -52,7 +54,7 @@ Captions appear in a transparent overlay that stays on top of your slides, call 
 
 For offline subtitles, pick a multilingual Whisper model and one of 99 spoken languages, or let the app detect the language. The Tiny, Base, Small and Large v3 Turbo models download separately, at about 31, 57, 182 and 547 MiB. Once a model is installed, recognition runs on your PC with no account, API key or internet connection: on its graphics processor when it has a suitable one, otherwise on its processor. Built-in speech detection skips silence and music, so Whisper does not invent captions over a quiet room. Speed and accuracy depend on the computer, the model and the language. Whisper captions in the language being spoken, or translates it into English; for translation, choose Small, as Tiny and Base translate poorly and Large v3 Turbo only transcribes. For any other language, use cloud translation.
 
-For multilingual audiences, translate with Gemini into 78 languages, with DeepL into 42 or with OpenAI into 13. DeepL is experimental: it has not yet been tried in a live session, and free DeepL API keys are refused. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini and Mistral also offer cloud subtitles in the spoken language, with your own API key. A list of names and terms helps Gemini, Mistral and Whisper spell speaker names, institutions and acronyms.
+For multilingual audiences, translate with Gemini into 78 languages, with DeepL into 42 or with OpenAI into 13. DeepL is experimental: it has not yet been tried in a live session, and free DeepL API keys are refused. Show two languages at once, or set the original speech beneath the translation in Fit window or Compact when the engine provides it. A second language opens another cloud session for each audio source and adds to provider usage. Gemini, Mistral and OpenAI also offer cloud subtitles in the spoken language, with your own API key; OpenAI's subtitles use the same key as its translation. A list of names and terms helps Gemini, Mistral, OpenAI and Whisper spell speaker names, institutions and acronyms. If a cloud engine stops during a session, the app offers to carry on with offline Whisper in the same session, provided a Whisper model is installed.
 
 Tune captions for the room: typeface, size, colours, backing, how long lines stay on screen and how quickly they update. Choose Fit window, Compact or Stable reading, with support for right-to-left scripts. The optional filler filter hides hesitations from the overlay; edit its word list while the raw transcript stays intact. Save meeting profiles for the rooms you use often, and pause during breaks without splitting the session. During a break, a notice such as “Back soon” can stand in for the captions on the overlay. Optional system-wide keys pause captions and show or hide the overlay while your slides or meeting app are in front. With a cloud engine, an optional spending guard pauses a session when nothing has been captioned for a while and tells you when the estimated cost or the session's length passes a limit you set.
 
@@ -67,22 +69,24 @@ Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and
 Zoom is a trademark of Zoom Communications, Inc. Live Translation & Subtitles is not affiliated with or endorsed by Zoom.
 ```
 
-### What's new in this version — 1.15.0
+### What's new in this version — 1.16.0
 
 ```text
-For the person running the captions: an optional spending guard for cloud engines (Settings › App) can pause a session when nothing has been captioned for a while, and tells you once when the estimated cost or the session's length passes a limit you choose. Add marker (Ctrl+Shift+M) puts a talk's start, a speaker's name or a section break into the transcript and its exports, and Ctrl+F finds words in the live transcript. During a break, a notice such as “Back soon” can replace the captions on the overlay. Optional system-wide keys, Ctrl+Alt+Shift+P and Ctrl+Alt+Shift+O, pause captions and show or hide the overlay while your slides or meeting app are in front. In Transcript history, you can now select several saved sessions and save them all to a folder or delete them at once.
+OpenAI subtitles: OpenAI's live transcription joins Whisper, Mistral and Gemini as a subtitles engine. It uses the same OpenAI key as its translation, and takes your list of names and terms and the spoken language as hints. If a cloud engine stops during a session, after a key, quota or billing error or 30 seconds of reconnecting, a banner offers Continue with offline Whisper: the session goes on with the same clock, transcript and history entry, and a marker records the switch. It needs an installed Whisper model, and nothing new is sent anywhere.
 
-Fixes: with both sources and two caption languages, every overlay row now shows a line, and the app says when captions are drawn smaller than chosen. DeepL (experimental) no longer drops finished sentences. With both sources and Whisper, the room microphone no longer captions the call a second time when Whisper falls behind. The pre-flight counts both sources in the cost estimate, and on a new install it downloads the Whisper model in one click.
+Gemini subtitles are fixed: in earlier versions, each caption after the first repeated what had been said before it. Captions now arrive word for word, fillers included, about a second after the speaker pauses, and you can choose the spoken language. With cloud engines, the first words after Start or Resume are no longer lost.
+
+Fixes: the echo filter catches more microphone echoes; DeepL (experimental) shows a sentence's last words without waiting for the next one; Whisper repeats itself less in Chinese, Japanese and Thai; the app says when a microphone is unplugged; the overlay comes back when an unplugged projector leaves it off screen; and the cost estimate stops counting a paused source.
 ```
 
 ### Features — one feature per line
 
 ```text
-Offline Whisper captions in 99 spoken languages or automatic detection, on the graphics processor when available
+Offline Whisper captions in 99 spoken languages or automatic detection, on the graphics processor when available; can carry on a session when a cloud engine stops
 Download Tiny, Base, Small or Large v3 Turbo once, then transcribe without an account, API key or internet
 Offline translation into English with Whisper, from any of its 99 languages, with no API key
 Cloud translation with your own Gemini, OpenAI or DeepL key (DeepL: paid API plan, experimental); usage charges may apply; optional spending guard
-Cloud subtitles with your own Gemini or Mistral key; Gemini, Mistral and Whisper take a list of names and terms to favour
+Cloud subtitles with your own Gemini, Mistral or OpenAI key (OpenAI: same key as translation); Gemini, Mistral, OpenAI and Whisper take a list of names and terms to favour
 Two translation languages at once, plus optional original speech when available
 Capture a microphone, system audio, a single app, or microphone and system audio together
 Transparent, always-on-top, click-through captions over slides and video calls
@@ -129,7 +133,7 @@ Les sous-titres s'affichent dans une surimpression transparente qui reste au-des
 
 Pour les sous-titres hors ligne, choisissez un modèle Whisper multilingue et l'une des 99 langues parlées, ou laissez l'application détecter la langue. Les modèles Tiny, Base, Small et Large v3 Turbo se téléchargent séparément et pèsent environ 31, 57, 182 et 547 Mio. Une fois le modèle installé, la reconnaissance s'effectue sur votre PC, sans compte, clé API ni connexion Internet : sur son processeur graphique s'il en a un qui convient, sinon sur son processeur. La détection de la parole intégrée ignore les silences et la musique, pour que Whisper n'invente pas de sous-titres dans une salle silencieuse. La vitesse et la précision dépendent de l'ordinateur, du modèle et de la langue. Whisper sous-titre dans la langue parlée ou traduit la parole vers l'anglais ; pour traduire, choisissez Small, car Tiny et Base traduisent mal et Large v3 Turbo ne fait que transcrire. Pour toute autre langue, utilisez la traduction cloud.
 
-Pour un public multilingue, traduisez avec Gemini vers 78 langues, avec DeepL vers 42 ou avec OpenAI vers 13. DeepL est expérimental : il n'a pas encore été essayé en séance réelle, et les clés API DeepL gratuites sont refusées. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini et Mistral proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API. Une liste de noms et termes aide Gemini, Mistral et Whisper à écrire correctement les noms d'intervenants, les institutions et les sigles.
+Pour un public multilingue, traduisez avec Gemini vers 78 langues, avec DeepL vers 42 ou avec OpenAI vers 13. DeepL est expérimental : il n'a pas encore été essayé en séance réelle, et les clés API DeepL gratuites sont refusées. Affichez deux langues à la fois, ou placez le texte original sous la traduction en mode Adapter à la fenêtre ou Compact lorsque le moteur le fournit. Une seconde langue ouvre une session cloud supplémentaire par source audio et augmente l'utilisation facturée par le fournisseur. Gemini, Mistral et OpenAI proposent aussi des sous-titres cloud dans la langue parlée, avec votre propre clé API ; les sous-titres d'OpenAI utilisent la même clé que sa traduction. Une liste de noms et termes aide Gemini, Mistral, OpenAI et Whisper à écrire correctement les noms d'intervenants, les institutions et les sigles. Si un moteur cloud s'arrête pendant une session, l'application propose de continuer avec Whisper hors ligne dans la même session, à condition qu'un modèle Whisper soit installé.
 
 Adaptez les sous-titres à la salle : police, taille, couleurs, fond, durée d'affichage et rythme des mises à jour. Choisissez Adapter à la fenêtre, Compact ou Lecture stable, avec prise en charge des écritures de droite à gauche. Le filtre d'hésitations facultatif les masque dans la surimpression, et vous pouvez modifier sa liste de mots sans toucher à la transcription originale. Enregistrez des profils de réunion pour vos salles habituelles et faites une pause sans scinder la session. Pendant une pause, une annonce comme « Reprise dans un instant » peut remplacer les sous-titres sur la surimpression. Des raccourcis système facultatifs mettent les sous-titres en pause et affichent ou masquent la surimpression pendant que vos diapositives ou votre application de réunion sont au premier plan. Avec un moteur cloud, un garde-fou de dépenses facultatif met la session en pause quand rien n'a été sous-titré depuis un moment et vous prévient quand le coût estimé ou la durée de la session dépasse la limite choisie.
 
@@ -144,22 +148,24 @@ Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec des paquets x64 e
 Zoom est une marque de Zoom Communications, Inc. Live Translation & Subtitles n'est ni affiliée à Zoom ni approuvée par Zoom.
 ```
 
-### Nouveautés de cette version — 1.15.0
+### Nouveautés de cette version — 1.16.0
 
 ```text
-Pour la personne qui gère les sous-titres : un garde-fou de dépenses facultatif pour les moteurs cloud (Paramètres › Application) peut mettre la session en pause quand rien n'a été sous-titré depuis un moment, et vous prévient une fois quand le coût estimé ou la durée de la session dépasse la limite choisie. Ajouter un repère (Ctrl+Maj+M) inscrit le début d'une intervention, le nom d'un intervenant ou un saut de section dans la transcription et ses exports, et Ctrl+F recherche dans la transcription en direct. Pendant une pause, une annonce comme « Reprise dans un instant » peut remplacer les sous-titres. Des raccourcis système facultatifs, Ctrl+Alt+Maj+P et Ctrl+Alt+Maj+O, mettent les sous-titres en pause et affichent ou masquent la surimpression quand vos diapositives ou votre application de réunion sont au premier plan. Dans l'historique, plusieurs sessions peuvent être enregistrées dans un dossier ou supprimées d'un coup.
+Sous-titres OpenAI : la transcription en direct d'OpenAI rejoint Whisper, Mistral et Gemini parmi les moteurs de sous-titres. Elle utilise la même clé OpenAI que sa traduction et tient compte de votre liste de noms et termes et de la langue parlée. Si un moteur cloud s'arrête pendant une session, après une erreur de clé, de quota ou de facturation ou après 30 secondes de tentatives de reconnexion, un bandeau propose Continuer avec Whisper hors ligne : la session se poursuit avec le même chronomètre, la même transcription et la même entrée d'historique, et un repère marque le changement. Il faut un modèle Whisper installé, et rien de nouveau n'est envoyé.
 
-Corrections : avec les deux sources et deux langues de sous-titres, chaque rangée de la surimpression montre désormais une ligne, et l'application signale quand les sous-titres sont plus petits que la taille choisie. DeepL (expérimental) ne perd plus de phrases terminées. Avec les deux sources et Whisper, le microphone de salle ne sous-titre plus l'appel une seconde fois quand Whisper prend du retard. La vérification avant démarrage compte les deux sources dans le coût estimé et télécharge le modèle Whisper en un clic sur une nouvelle installation.
+Les sous-titres Gemini sont corrigés : dans les versions précédentes, chaque sous-titre après le premier répétait ce qui avait été dit avant lui. Ils arrivent désormais mot pour mot, hésitations comprises, environ une seconde après une pause de l'orateur, et vous pouvez choisir la langue parlée. Avec les moteurs cloud, les premiers mots après Démarrer ou Reprendre ne sont plus perdus.
+
+Corrections : le filtre d'écho repère davantage d'échos du microphone ; DeepL (expérimental) affiche les derniers mots d'une phrase sans attendre la suivante ; Whisper se répète moins en chinois, japonais et thaï ; l'application signale un microphone débranché ; la surimpression revient quand un projecteur débranché la laisse hors de l'écran ; et le coût estimé ne compte plus une source en pause.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
 
 ```text
-Sous-titres Whisper hors ligne dans 99 langues parlées ou détection automatique, sur le processeur graphique s'il convient
+Sous-titres Whisper hors ligne dans 99 langues parlées ou détection automatique, sur le processeur graphique s'il convient ; prend le relais d'un moteur cloud arrêté en cours de session
 Téléchargez Tiny, Base, Small ou Large v3 Turbo, puis transcrivez sans compte, clé API ni connexion Internet
 Traduction hors ligne vers l'anglais avec Whisper, depuis ses 99 langues, sans clé API
 Traduction cloud avec votre clé Gemini, OpenAI ou DeepL (DeepL : forfait API payant, expérimental) ; frais d'utilisation possibles ; garde-fou de dépenses
-Sous-titres cloud avec votre clé Gemini ou Mistral ; Gemini, Mistral et Whisper privilégient une liste de noms et termes
+Sous-titres cloud avec votre clé Gemini, Mistral ou OpenAI (OpenAI : même clé que la traduction) ; Gemini, Mistral, OpenAI et Whisper privilégient une liste de noms et termes
 Deux langues de traduction à la fois et affichage facultatif du texte original disponible
 Captez un microphone, l'audio système, une application précise, ou le microphone et l'audio système ensemble
 Sous-titres transparents, toujours visibles et traversables par les clics, sur vos diapositives et appels
@@ -206,7 +212,7 @@ Platzieren Sie ein transparentes Untertitel-Overlay über Folien, einem Anruf od
 
 Für Offline-Untertitel wählen Sie ein mehrsprachiges Whisper-Modell und eine von 99 gesprochenen Sprachen oder die automatische Erkennung. Tiny, Base, Small und Large v3 Turbo werden separat heruntergeladen (etwa 31, 57, 182 und 547 MiB). Danach läuft die Erkennung auf Ihrem PC, ohne Konto, API-Schlüssel oder Internetverbindung: auf dem Grafikprozessor, wenn ein geeigneter vorhanden ist, sonst auf der CPU. Die eingebaute Spracherkennung überspringt Stille und Musik, damit Whisper in einem stillen Raum keine Untertitel erfindet. Geschwindigkeit und Genauigkeit hängen von Computer, Modell und Sprache ab. Whisper transkribiert in der gesprochenen Sprache oder übersetzt ins Englische; zum Übersetzen wählen Sie Small, da Tiny und Base schlecht übersetzen und Large v3 Turbo nur transkribiert. Für andere Sprachen nutzen Sie die Cloud-Übersetzung.
 
-Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini, DeepL oder OpenAI. Die App bietet 78 Zielsprachen für Gemini, 42 für DeepL und 13 für OpenAI. DeepL ist experimentell und noch nicht in einer echten Sitzung erprobt; kostenlose DeepL-API-Schlüssel werden abgelehnt. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini und Mistral bieten auch Cloud-Untertitel in der gesprochenen Sprache. Eine Liste mit Namen und Begriffen hilft Gemini, Mistral und Whisper bei der Schreibweise von Namen der Vortragenden, Institutionen und Abkürzungen.
+Für ein mehrsprachiges Publikum übersetzen Sie mit Gemini, DeepL oder OpenAI. Die App bietet 78 Zielsprachen für Gemini, 42 für DeepL und 13 für OpenAI. DeepL ist experimentell und noch nicht in einer echten Sitzung erprobt; kostenlose DeepL-API-Schlüssel werden abgelehnt. Zeigen Sie zwei Zielsprachen gleichzeitig oder den Originaltext unter der Übersetzung in An Fenster anpassen oder Kompakt, sofern die Engine ihn liefert. Eine zweite Zielsprache öffnet für jede Audioquelle eine zusätzliche Cloud-Sitzung und erhöht die Anbieternutzung. Gemini, Mistral und OpenAI bieten auch Cloud-Untertitel in der gesprochenen Sprache; OpenAI nutzt dafür denselben Schlüssel wie für die Übersetzung. Eine Liste mit Namen und Begriffen hilft Gemini, Mistral, OpenAI und Whisper bei der Schreibweise von Namen der Vortragenden, Institutionen und Abkürzungen. Stoppt eine Cloud-Engine während einer Sitzung, bietet die App an, die Sitzung mit Offline-Whisper fortzusetzen, sofern ein Whisper-Modell installiert ist.
 
 Passen Sie Schrift, Größe, Farbe, Kontrast, Anzeigedauer und Aktualisierungstempo an. Wählen Sie An Fenster anpassen, Kompakt oder Ruhiger Lesemodus, auch für Text von rechts nach links. Bearbeiten Sie die Wörter des optionalen Füllwortfilters, während das Originaltranskript erhalten bleibt. Nutzen Sie gespeicherte Besprechungsprofile und pausieren Sie, ohne die Sitzung aufzuteilen. In einer Pause kann ein Hinweis wie „Gleich geht es weiter“ die Untertitel im Overlay ersetzen. Optionale systemweite Tastenkombinationen pausieren die Untertitel und blenden das Overlay ein oder aus, während Folien oder eine Meeting-App im Vordergrund sind. Bei Cloud-Engines pausiert eine optionale Kostenbremse die Sitzung, wenn eine Weile nichts untertitelt wurde, und meldet, wenn die geschätzten Kosten oder die Sitzungsdauer ein gewähltes Limit übersteigen.
 
@@ -221,22 +227,24 @@ Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime. Native x64- und AR
 Zoom ist eine Marke von Zoom Communications, Inc. Live Translation & Subtitles ist nicht mit Zoom verbunden und wird nicht von Zoom unterstützt.
 ```
 
-### Neu in dieser Version — 1.15.0
+### Neu in dieser Version — 1.16.0
 
 ```text
-Für alle, die die Untertitel betreuen: Eine optionale Kostenbremse für Cloud-Engines (Einstellungen › App) pausiert die Sitzung, wenn eine Weile nichts untertitelt wurde, und meldet einmal, wenn die geschätzten Kosten oder die Sitzungsdauer ein gewähltes Limit übersteigen. Marke setzen (Strg+Umschalt+M) trägt den Beginn eines Vortrags, den Namen einer sprechenden Person oder einen Abschnittswechsel in das Transkript und seine Exporte ein, und Strg+F durchsucht das laufende Transkript. In einer Pause kann ein Hinweis wie „Gleich geht es weiter“ die Untertitel im Overlay ersetzen. Optionale systemweite Tastenkombinationen, Strg+Alt+Umschalt+P und Strg+Alt+Umschalt+O, pausieren die Untertitel und blenden das Overlay ein oder aus, während Folien oder eine Meeting-App im Vordergrund sind. Im Transkriptverlauf lassen sich jetzt mehrere gespeicherte Sitzungen auswählen und gemeinsam in einem Ordner speichern oder auf einmal löschen.
+OpenAI-Untertitel: Die Live-Transkription von OpenAI ergänzt Whisper, Mistral und Gemini als Untertitel-Engine. Sie nutzt denselben OpenAI-Schlüssel wie die Übersetzung und berücksichtigt Ihre Liste mit Namen und Begriffen sowie die gesprochene Sprache. Stoppt eine Cloud-Engine während einer Sitzung, nach einem Schlüssel-, Kontingent- oder Abrechnungsfehler oder nach 30 Sekunden Verbindungsversuchen, bietet ein Banner „Mit Offline-Whisper fortsetzen“ an: Die Sitzung läuft mit derselben Zeitanzeige, demselben Transkript und demselben Verlaufseintrag weiter, und eine Marke hält den Wechsel fest. Dafür muss ein Whisper-Modell installiert sein; es wird nichts Neues gesendet.
 
-Korrekturen: Mit beiden Quellen und zwei Untertitelsprachen zeigt jeder Bereich des Overlays jetzt eine Zeile, und die App meldet, wenn Untertitel kleiner als gewählt dargestellt werden. DeepL (experimentell) verliert keine abgeschlossenen Sätze mehr. Mit beiden Quellen und Whisper untertitelt das Raummikrofon den Anruf nicht mehr ein zweites Mal, wenn Whisper in Verzug gerät. Die Startprüfung zählt beide Quellen in der Kostenschätzung und lädt bei einer Neuinstallation das Whisper-Modell mit einem Klick.
+Gemini-Untertitel sind korrigiert: In früheren Versionen wiederholte jeder Untertitel nach dem ersten alles zuvor Gesagte. Jetzt kommen sie wortgetreu, Füllwörter eingeschlossen, etwa eine Sekunde nach einer Sprechpause an, und Sie können die gesprochene Sprache wählen. Bei Cloud-Engines gehen die ersten Wörter nach dem Start oder Fortsetzen nicht mehr verloren.
+
+Korrekturen: Der Echofilter erkennt mehr Mikrofonechos; DeepL (experimentell) zeigt die letzten Wörter eines Satzes, ohne auf den nächsten zu warten; Whisper wiederholt sich auf Chinesisch, Japanisch und Thai seltener; die App meldet ein ausgestecktes Mikrofon; das Overlay kehrt zurück, wenn ein getrennter Projektor es aus dem Bild schiebt; und die Kostenschätzung zählt eine pausierte Quelle nicht mehr.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
 
 ```text
-Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung, auf dem Grafikprozessor, wenn verfügbar
+Offline-Untertitel mit Whisper: 99 gesprochene Sprachen oder automatische Erkennung, auf dem Grafikprozessor, wenn verfügbar; kann eine Sitzung fortsetzen, wenn eine Cloud-Engine stoppt
 Tiny, Base, Small oder Large v3 Turbo herunterladen und danach ohne Konto, API-Schlüssel oder Internet transkribieren
 Offline-Übersetzung ins Englische mit Whisper aus allen 99 Sprachen, ohne API-Schlüssel
 Cloud-Übersetzung mit eigenem Gemini-, OpenAI- oder DeepL-Schlüssel (DeepL: kostenpflichtiger API-Tarif, experimentell); Kosten möglich; Kostenbremse
-Cloud-Untertitel mit eigenem Gemini- oder Mistral-Schlüssel; Gemini, Mistral und Whisper nutzen eine Liste mit Namen und Begriffen
+Cloud-Untertitel mit eigenem Gemini-, Mistral- oder OpenAI-Schlüssel (OpenAI: derselbe wie für die Übersetzung); Gemini, Mistral, OpenAI und Whisper nutzen eine Liste mit Namen und Begriffen
 Zwei Übersetzungssprachen gleichzeitig und optional der verfügbare Originaltext
 Mikrofon, Systemaudio, eine Anwendung mit Unterprozessen oder Mikrofon und Systemaudio gemeinsam
 Transparente, durchklickbare Untertitel im Vordergrund über Folien und Videoanrufen
@@ -275,7 +283,7 @@ Offline-Spracherkennung
 ## Adding the German listing
 
 The interface supports German. Before publishing a German listing, review the German copy,
-including the sentences new in 1.13.0, 1.13.1, 1.14.0 and 1.15.0.
+including the sentences new in 1.13.0, 1.13.1, 1.14.0, 1.15.0 and 1.16.0.
 The German screenshots are captured from the 1.7.1 MSIX with the interface set to German; see
 the [screenshot notes](store-screenshots/README.md).
 
@@ -318,7 +326,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.15.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.14.0, this update adds tools for the operator, all off or unused until the user chooses them. A spending guard (Settings › App › Cloud spending) can pause a cloud session through the ordinary Pause when nothing has been captioned for 5 to 30 minutes, and shows a notice once when the estimated cost or the session's length passes a chosen value; it never stops a session and does nothing for Whisper or the demo. Add marker (Ctrl+Shift+M) writes a line into the transcript and its exports, never onto the overlay, and Ctrl+F on the Transcript tab finds text in it. Show a notice on the overlay replaces the captions with one line, such as Back soon, until it is cleared. Optional system-wide keys (Settings › App, off by default), Ctrl+Alt+Shift+P for Pause and Ctrl+Alt+Shift+O to show or hide the overlay, are registered with RegisterHotKey only while a session runs, so they work while slides are in front; the app is told of these two combinations and nothing else typed, and there is no Start or Stop key. The update also fixes the overlay with four rows, DeepL dropping finished sentences, and the echo filter with both sources and Whisper. Copies installed from GitHub can check GitHub for a new version once the user turns that on; a Store package never shows that question and never makes that request. The privacy policy, effective 16 November 2026, covers the system-wide keys and markers. It adds no capability and no product declaration. The test routes below are those of 1.14.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.16.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.15.0, this update adds OpenAI subtitles: OpenAI's gpt-live-transcribe (Realtime transcription) becomes a Live subtitles engine beside Whisper, Mistral and Gemini. It needs the user's own OpenAI key, the same one as OpenAI translation, and is covered by the same one-time question before audio first goes to OpenAI. It also adds Continue with offline Whisper: when a cloud engine ends a source during a session after a key, quota or billing error, or has been reconnecting for 30 seconds, a banner offers Continue with offline Whisper (Continue in the spoken language when the installed model cannot write the chosen caption language) and Not now. Choosing it continues the same session, with the same clock, transcript and history entry, and puts a marker in the transcript at the switch; Not now leaves the source as it is. It never switches on its own, needs an installed Whisper model and a processor that can run Whisper, is not offered in a rehearsal, the demo or with two caption languages, and sends nothing new anywhere, since Whisper runs on the PC. Gemini subtitles now use Google's VERBATIM transcription mode, which fixes captions that repeated earlier text, and take a spoken language. The update also keeps the first words captured while a cloud connection opens, sets OpenAI's noise reduction by source, and fixes the echo filter, DeepL's last words, Whisper loops in Chinese, Japanese and Thai, and recovery from unplugged devices and displays. The privacy policy, effective 23 November 2026, names OpenAI as a recipient of subtitle audio, names and terms and the chosen spoken language. It adds no capability and no product declaration. The test routes below are unchanged since 1.15.0.
 
 Optional Captions in Zoom (off until the user starts it): the Zoom captions button in the operator window's toolbar opens a dialog where the user pastes the caption link (API token) that a Zoom meeting's host copies with Show Captions > Set up manual captioner > Copy the API token, and chooses Start sharing. From then until Stop sharing or the app quits, the app posts finished caption text in one caption language over HTTPS directly to that zoom.us or zoomgov.com address, and Zoom shows it in the meeting's caption bar. This includes captions made offline with Whisper or by the built-in demo; no audio, API key or device information is sent, and nothing passes through a developer server. The dialog says that caption text is sent to Zoom above its Start sharing button, and the privacy policy describes the flow. The link is held in memory only and never saved. To exercise it, host a Zoom meeting (a free Basic account is enough) on an account whose settings have Manual captions on and the third-party caption API token allowed, copy the API token in the meeting, paste it, start sharing, choose Send test caption, then run the built-in demo or Whisper: attendees see the captions after choosing Show Captions. Without a Zoom meeting, open the dialog and paste any https address outside Zoom: it is refused locally with an explanation and nothing is sent. The rest of the app works the same whether or not Zoom is used. Zoom is named descriptively only; the app uses no Zoom logo and is not affiliated with Zoom Communications, Inc.
 
@@ -337,7 +345,7 @@ Setup-free display check if capture hardware or model downloads are unavailable:
 In Subtitles, select Built-in demo in the engine list, choose English and click Start demo subtitles. The bundled English/French script exercises status, meter animation, timer, overlay, Stop and export without devices, network or credentials. Repeat with French. It is explicitly a scripted demo and does not recognize speech; Whisper above is the first-launch local speech engine.
 
 Optional cloud features:
-Gemini/OpenAI/DeepL translation and Gemini/Mistral subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it. Mistral subtitles now use Voxtral Realtime 3 (voxtral-mini-transcribe-realtime-3-0), which Mistral lists as a public preview. DeepL translation (DeepL Voice API, by DeepL SE), which the app marks as experimental because it has not yet run in a live session, needs a key from a paid DeepL API plan: the Voice API is not on DeepL's free API. Without one, saving a free DeepL API key (one ending in :fx) for DeepL shows the app's refusal, with its reason, and no request is made. Before the first session or rehearsal with Gemini, OpenAI, Mistral or DeepL, the app asks once for that provider: it names the provider, says that the captured audio goes to it under the user's own account, key and terms, and gives the privacy policy's address. Choose Send to (the provider's name) to continue; Cancel, which has the focus, starts nothing. Both Gemini engines share one answer. Entries in the optional Names and terms list, shown in the setup for Mistral, Gemini subtitles and Whisper, are sent to Mistral or Gemini with the session; Whisper keeps them on the PC, and the translation engines are not sent them.
+Gemini/OpenAI/DeepL translation and Gemini/Mistral/OpenAI subtitles require the user's compatible third-party account and API key and may incur provider charges. The app supplies no cloud account or credits. Keys are entered in the app and kept in Windows Credential Manager. Cloud testing requires suitable test credentials to be arranged separately before submission. Never place a personal key in public listing fields or screenshots. Choose two supported translation targets to check bilingual output; this creates a second provider session per audio source. Original speech is shown only when the provider supplies it. Mistral subtitles now use Voxtral Realtime 3 (voxtral-mini-transcribe-realtime-3-0), which Mistral lists as a public preview. DeepL translation (DeepL Voice API, by DeepL SE), which the app marks as experimental because it has not yet run in a live session, needs a key from a paid DeepL API plan: the Voice API is not on DeepL's free API. Without one, saving a free DeepL API key (one ending in :fx) for DeepL shows the app's refusal, with its reason, and no request is made. Before the first session or rehearsal with Gemini, OpenAI, Mistral or DeepL, the app asks once for that provider: it names the provider, says that the captured audio goes to it under the user's own account, key and terms, and gives the privacy policy's address. Choose Send to (the provider's name) to continue; Cancel, which has the focus, starts nothing. Both Gemini engines share one answer, and so do both OpenAI engines. Entries in the optional Names and terms list, shown in the setup for Mistral, Gemini subtitles, OpenAI subtitles and Whisper, are sent to Mistral, Gemini or OpenAI with the session; Whisper keeps them on the PC, and the translation engines are not sent them.
 
 The full-trust desktop process performs WASAPI/microphone capture, Whisper transcription and translation (on the processor, or on the graphics processor through the bundled whisper-vulkan.exe helper it starts), speech detection with a bundled model, user-requested verified model downloads, Credential Manager access, window/overlay management and explicit transcript export. Whisper buffers pending audio in an automatically deleted local temporary file. Cloud engines send audio directly to the selected provider. Captions in Zoom, when the user starts it, sends caption text directly to the Zoom address the user pasted. There is no developer relay, telemetry, driver, service, auto-start task, Windows AI component or required speech language pack.
 ```

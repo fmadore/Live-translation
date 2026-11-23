@@ -5,33 +5,47 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.14.0 in the Store, 1.15.0 tagged
+## Current status — 1.15.0 in the Store, 1.16.0 tagged
 
-[**1.15.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0) was tagged and
-published on GitHub on 17 November 2026; its Store submission is pending and no 1.15 Mac build
-has been uploaded ([release notes](docs/release-1.15.0.md),
-[handoff](docs/store-updates.md#release-1150-handoff)). It ships the work of the [16 November app review](docs/app-review-2026-11-16.md)
-([#227](https://github.com/fmadore/Live-translation/pull/227)): for the person running the
-captions, a spending guard for cloud engines, markers and Find in the transcript, a notice on the
-overlay for breaks and opt-in system-wide Pause and overlay keys; a new-version notice for copies
-installed from GitHub ([#217](https://github.com/fmadore/Live-translation/issues/217)); Mistral keeping a quiet source open
-([#230](https://github.com/fmadore/Live-translation/pull/230)); several saved sessions deleted or saved at once ([#231](https://github.com/fmadore/Live-translation/pull/231)); and the
-review's fixes (four overlay rows that each show a line, DeepL keeping concluded text, the echo
-filter by session time, the pre-flight's stream count). None of it had run on Windows hardware or
-a Mac when it was merged; the review lists what to check by hand. The
-[20 November audit](#the-20-november-audit) found defects in this code, filed as issues.
+[**1.16.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0) was tagged on
+23 November 2026; its Store submission and Mac upload follow from the tag
+([release notes](docs/release-1.16.0.md),
+[handoff](docs/store-updates.md#release-1160-handoff)). It adds OpenAI subtitles through
+`gpt-live-transcribe` ([#251](https://github.com/fmadore/Live-translation/issues/251)); a
+banner that continues a cloud source with offline Whisper in the same session when its engine
+stops on a key, quota or billing error, or has been reconnecting for 30 seconds
+([#248](https://github.com/fmadore/Live-translation/issues/248)); a spoken language for Gemini
+subtitles and OpenAI noise reduction by source
+([#249](https://github.com/fmadore/Live-translation/issues/249)); Gemini subtitles that no
+longer repeat everything said before (a bug since 1.4.0, now on Gemini's verbatim mode); the
+first words after Start kept on cloud engines; and the fixes of the
+[20 November audit](#the-20-november-audit). None of the engine changes has run against a real
+provider failure or on a Mac; the pull requests list what to check by hand.
 
-The Store serves [**1.14.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)
-(13 November 2026, MSIX 1.14.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
-17 November 2026 (SignatureKind Store); the submission and certification dates were not
-recorded ([handoff](docs/store-updates.md#release-1140-handoff),
+The Store serves [**1.15.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)
+(17 November 2026, MSIX 1.15.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
+23 November 2026 (SignatureKind Store); the submission and certification dates were not
+recorded ([handoff](docs/store-updates.md#release-1150-handoff),
+[release notes](docs/release-1.15.0.md)). It shipped the work of the
+[16 November app review](docs/app-review-2026-11-16.md)
+([#227](https://github.com/fmadore/Live-translation/pull/227)): a spending guard for cloud
+engines, markers and Find in the transcript, a notice on the overlay for breaks, opt-in
+system-wide Pause and overlay keys, a new-version notice for copies installed from GitHub
+([#217](https://github.com/fmadore/Live-translation/issues/217)), Mistral keeping a quiet source
+open ([#230](https://github.com/fmadore/Live-translation/pull/230)) and several saved sessions
+deleted or saved at once ([#231](https://github.com/fmadore/Live-translation/pull/231)). On the
+Mac, 1.13.1 was last reported in App Review on 17 November 2026; 1.14.0 and 1.15.0 were not
+uploaded, and 1.16.0 is the next Mac build.
+
+Before it, the Store served
+[**1.14.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)
+(13 November 2026, MSIX 1.14.0.0), read with `Get-AppxPackage` on 17 November 2026
+([handoff](docs/store-updates.md#release-1140-handoff),
 [release notes](docs/release-1.14.0.md)): DeepL as an experimental fourth cloud translation
 engine, for paid DeepL API plans only
 ([#220](https://github.com/fmadore/Live-translation/pull/220)); Mistral subtitles that reconnect
 after a transcription timeout (code 3804); and overlay rows that each show a line when both
 sources share a strip sized for one ([#221](https://github.com/fmadore/Live-translation/pull/221)).
-On the Mac, 1.13.1 is still in App Review (17 November 2026); 1.14.0 was not uploaded, and 1.15.0
-is the next Mac build.
 
 Before it, the Store served
 [**1.13.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)
@@ -83,7 +97,8 @@ detection, while upgrades preserve saved setups.
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
 package or a native speaker, kept distinct from unit and fixture tests. The
-[1.15.0 handoff](docs/store-updates.md#release-1150-handoff) carries the open checks, with
+[1.16.0 handoff](docs/store-updates.md#release-1160-handoff) carries the open checks, with
+[1.15.0's](docs/store-updates.md#release-1150-handoff),
 [1.14.0's](docs/store-updates.md#release-1140-handoff),
 [1.13.1's](docs/store-updates.md#release-1131-handoff) and
 [1.13.0's](docs/store-updates.md#release-1130-handoff).
@@ -146,7 +161,9 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 ### The 20 November audit
 
 A whole-repository audit of v1.15.0 (`cd0289b`) was checked finding by finding against the code
-on 20 November 2026. No structural change is needed; what it found is filed in the milestone
+on 20 November 2026. Its fixes shipped in 1.16.0, except the second part of
+[#245](https://github.com/fmadore/Live-translation/issues/245) (building the x64 Vulkan helper once) and what is left of
+[#246](https://github.com/fmadore/Live-translation/issues/246). No structural change is needed; what it found is filed in the milestone
 [1.16 — Audit fixes](https://github.com/fmadore/Live-translation/milestone/4), each issue with
 its files, the fix and its acceptance criteria. Suggested order:
 
@@ -174,10 +191,10 @@ Features and research it raised, outside the milestone: [#248](https://github.co
 
 ### Earlier
 
-- **Deferred from the [16 November app review](docs/app-review-2026-11-16.md):** a one-click
-  fallback engine when a source ends on a key or quota error (it restarts a source inside a
-  running session; [#248](https://github.com/fmadore/Live-translation/issues/248)), and saving the transcript to a chosen folder at Stop (the Mac App Store
-  sandbox needs a security-scoped bookmark for a folder kept across launches).
+- **Deferred from the [16 November app review](docs/app-review-2026-11-16.md):** saving the
+  transcript to a chosen folder at Stop (the Mac App Store sandbox needs a security-scoped
+  bookmark for a folder kept across launches). The one-click fallback engine it also deferred
+  shipped in 1.16.0 ([#248](https://github.com/fmadore/Live-translation/issues/248)).
 
 [#187](https://github.com/fmadore/Live-translation/issues/187) was triaged on 26 October 2026:
 captions in Zoom first, then Whisper's names-and-terms prompt and speech detection; OBS output
@@ -196,7 +213,7 @@ glossaries, live corrections and offline text translation are not planned.
   on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
   uploaded a build to App Store Connect on 5 November 2026, which was not submitted; 1.13.1 was,
-  and is still in App Review (17 November 2026); 1.15.0 is the next build to upload. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
+  and was last reported in App Review on 17 November 2026; 1.16.0 is the next build to upload. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
   10–11 November 2026, whose fixes shipped in 1.13.1
   ([macOS notes](docs/macos.md#first-run-1011-november-2026)). The paid trial proposed in the issue was dropped: the Mac version is
   free.
@@ -294,7 +311,15 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.15.0** (17 November 2026; published on GitHub, Store submission pending): a spending guard for
+- **1.16.0** (23 November 2026; tagged, Store submission and Mac upload pending): OpenAI
+  subtitles through `gpt-live-transcribe` ([#251](https://github.com/fmadore/Live-translation/issues/251)); continuing a cloud source with
+  offline Whisper in the same session when its engine stops ([#248](https://github.com/fmadore/Live-translation/issues/248)); a spoken language
+  for Gemini subtitles and OpenAI noise reduction by source ([#249](https://github.com/fmadore/Live-translation/issues/249)); Gemini subtitles
+  that no longer repeat earlier speech; the first words after Start kept on cloud engines; and
+  the fixes of the [20 November audit](#the-20-november-audit)
+  ([#257](https://github.com/fmadore/Live-translation/pull/257)–[#261](https://github.com/fmadore/Live-translation/pull/261), [#272](https://github.com/fmadore/Live-translation/pull/272)).
+  [Release body](docs/release-1.16.0.md).
+- **1.15.0** (17 November 2026; live in the Store, read 23 November 2026): a spending guard for
   cloud engines, markers and Find in the transcript, a notice on the overlay for breaks, opt-in
   system-wide Pause and overlay keys, a new-version notice for copies installed from GitHub
   ([#217](https://github.com/fmadore/Live-translation/issues/217)), Mistral keeping a quiet source open
