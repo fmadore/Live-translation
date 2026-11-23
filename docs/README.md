@@ -41,6 +41,9 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
   on a Mac ([#195](https://github.com/fmadore/Live-translation/issues/195)), and the
   [Mac App Store submission](mac-app-store.md), with its
   [decision record](decisions/2026-11-05-mac-app-store.md).
+- Design notes in [decisions/](decisions/): the
+  [one-click fallback engine](decisions/2026-11-23-fallback-engine.md) for a cloud source that
+  ends mid-session (proposed, [#248](https://github.com/fmadore/Live-translation/issues/248)).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md), [DeepL](deepl-voice-api.md).
 - [Security policy](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md),
   [roadmap](https://github.com/fmadore/Live-translation/blob/main/ROADMAP.md) and
