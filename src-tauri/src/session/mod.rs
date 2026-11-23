@@ -21,6 +21,7 @@ use futures_util::future::join_all;
 use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tauri::{AppHandle, Manager};
 use tokio::sync::Mutex as AsyncMutex;
+use tokio::sync::mpsc::Sender;
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
@@ -29,8 +30,8 @@ use crate::realtime::Events;
 use crate::secrets;
 use crate::sync::lock;
 use crate::timing::SessionClock;
-use crate::types::{Origin, Provider, SessionState, StartOptions, StatusUpdate};
-use crate::whisper;
+use crate::types::{AudioLevel, Origin, Provider, SessionState, StartOptions, StatusUpdate};
+use crate::whisper::{self, LoadedModel};
 use builder::SessionBuilder;
 use capture::{CaptureTarget, join_threads, spawn_level_forwarder};
 use options::{is_live, session_origins, validate_start};
@@ -53,24 +54,64 @@ pub struct SessionManager {
 
 struct ActiveSession {
     cancel: CancellationToken,
-    local: bool,
     failure: Arc<Mutex<Option<AppError>>>,
     abort: CancellationToken,
+    /// Every client holds a receiver; see `SessionManager::set_paused`.
+    pause: watch::Sender<bool>,
+    /// One per source, in the order `start` added them.
+    slots: Vec<SourceSlot>,
+    /// What a source is built from, kept for as long as the session runs.
+    options: StartOptions,
+    /// One clock for the session, copied into every source, so the microphone and system
+    /// timelines agree in a transcript that interleaves them. See `timing::SessionClock`.
+    clock: SessionClock,
+    capture: CaptureTarget,
+    level_tx: Sender<AudioLevel>,
+    /// The Whisper model a local source decodes with, loaded once for the session.
+    model: Option<Arc<LoadedModel>>,
+}
+
+/// Everything one source of a session runs: what feeds its audio channel and the clients that
+/// read it, with the engine they speak and the token that stops them.
+struct SourceSlot {
+    origin: Origin,
+    engine: Provider,
+    /// A child of the session's token; cancelled when the source ends, by Stop or by itself.
+    cancel: CancellationToken,
     /// Cancelled when Stop gives up on a capture thread that did not stop in time. Such a
     /// thread still holds its source's audio channel open, so a local transcriber waiting for
     /// the channel to close would hold Stop forever; this tells it to finish without the end.
     abandoned: CancellationToken,
-    /// One per source, in the order `start` added them, so `set_paused` can zip the two.
-    origins: Vec<Origin>,
-    /// Every client holds a receiver; see `SessionManager::set_paused`.
-    pause: watch::Sender<bool>,
-    sources: Vec<CancellationToken>,
-    capture_threads: Vec<JoinHandle<()>>,
-    /// Timer-driven audio producers used by commercial-provider rehearsal playback.
-    fixture_tasks: Vec<AsyncJoinHandle<()>>,
-    /// With a second caption language, one relay per source copies its audio to both clients.
-    relay_tasks: Vec<AsyncJoinHandle<()>>,
-    client_tasks: Vec<AsyncJoinHandle<()>>,
+    capture: Option<JoinHandle<()>>,
+    /// The timer-driven audio producer of a commercial-provider rehearsal.
+    fixture: Option<AsyncJoinHandle<()>>,
+    /// With a second caption language, the relay that copies the audio to both clients.
+    relay: Option<AsyncJoinHandle<()>>,
+    clients: Vec<AsyncJoinHandle<()>>,
+}
+
+impl SourceSlot {
+    fn new(origin: Origin, engine: Provider, cancel: CancellationToken) -> Self {
+        Self {
+            origin,
+            engine,
+            cancel,
+            abandoned: CancellationToken::new(),
+            capture: None,
+            fixture: None,
+            relay: None,
+            clients: Vec::new(),
+        }
+    }
+
+    /// Whisper has no connection to close, so a pause and Stop are the manager's to handle.
+    fn is_local(&self) -> bool {
+        self.engine.is_local_whisper()
+    }
+
+    fn is_running(&self) -> bool {
+        !self.cancel.is_cancelled()
+    }
 }
 
 /// Publish a pause or resume to every client. False when it changes nothing: an unchanged
@@ -144,46 +185,38 @@ impl SessionManager {
                 crate::echo::HOLD_CLOUD
             },
         );
-        let mut builder = SessionBuilder {
-            app,
-            options: &options,
-            settings,
-            api_key,
+        let mut session = ActiveSession {
+            cancel,
+            failure: Arc::new(Mutex::new(None)),
+            abort,
+            pause: watch::Sender::new(false),
+            slots: Vec::with_capacity(origins.len()),
             capture: CaptureTarget::for_session(&options),
-            target_rate: provider.input_sample_rate(),
-            // One clock for the session, copied into every source, so the microphone and
-            // system timelines agree in a transcript that interleaves them. See
-            // `timing::SessionClock`.
+            options,
             clock: SessionClock::start(),
             level_tx: spawn_level_forwarder(app),
-            session: ActiveSession {
-                cancel,
-                local: provider.is_local_whisper(),
-                failure: Arc::new(Mutex::new(None)),
-                abort,
-                abandoned: CancellationToken::new(),
-                origins: origins.clone(),
-                pause: watch::Sender::new(false),
-                sources: Vec::new(),
-                capture_threads: Vec::new(),
-                fixture_tasks: Vec::new(),
-                relay_tasks: Vec::new(),
-                client_tasks: Vec::new(),
-            },
-            local_model,
+            model: local_model,
         };
-        for &origin in &origins {
-            if let Err(error) = builder.add_source(origin) {
+        let builder = SessionBuilder {
+            app,
+            settings,
+            api_key,
+        };
+        for origin in origins {
+            let mut slot = SourceSlot::new(origin, provider, session.cancel.child_token());
+            let built = builder.build_source(&session, &mut slot);
+            session.slots.push(slot);
+            if let Err(error) = built {
                 // The sources before this one are already capturing and connecting. Release
                 // them as Stop would, so a failed start leaves no thread, task or token behind.
                 // No Idle: the start reports its own failure, and a late Idle would clear it.
-                self.shutdown(builder.session).await;
+                self.shutdown(session).await;
                 return Err(error);
             }
         }
 
         cancel_guard.disarm();
-        *lock(&self.active) = Some(builder.session);
+        *lock(&self.active) = Some(session);
         Ok(())
     }
 
@@ -196,23 +229,21 @@ impl SessionManager {
         let active = lock(&self.active);
         let session = active
             .as_ref()
-            .filter(|session| session.sources.iter().any(|source| !source.is_cancelled()))
+            .filter(|session| session.slots.iter().any(SourceSlot::is_running))
             .context("No session is running")?;
         if !signal_pause(&session.pause, paused) {
             return Ok(());
         }
-        if session.local {
-            for (origin, source) in session.origins.iter().zip(&session.sources) {
-                if source.is_cancelled() {
-                    continue;
-                }
-                let state = if paused {
-                    SessionState::Paused
-                } else {
-                    SessionState::Running
-                };
-                events.status(StatusUpdate::source(*origin, state, None));
+        for slot in &session.slots {
+            if !slot.is_local() || !slot.is_running() {
+                continue;
             }
+            let state = if paused {
+                SessionState::Paused
+            } else {
+                SessionState::Running
+            };
+            events.status(StatusUpdate::source(slot.origin, state, None));
         }
         Ok(())
     }
@@ -222,7 +253,10 @@ impl SessionManager {
         if let Some(abort) = lock(&self.local_abort).as_ref() {
             abort.cancel();
         }
-        if let Some(session) = lock(&self.active).as_ref().filter(|s| s.local) {
+        if let Some(session) = lock(&self.active)
+            .as_ref()
+            .filter(|s| s.slots.iter().any(SourceSlot::is_local))
+        {
             session.cancel.cancel();
         }
     }
@@ -247,66 +281,76 @@ impl SessionManager {
 
     /// Cancel a session and wait for everything it started: capture, playback, relays and
     /// clients. Shared by Stop and by a start that failed part-way.
-    async fn shutdown(&self, mut session: ActiveSession) {
+    async fn shutdown(&self, session: ActiveSession) {
         session.cancel.cancel();
-        if !join_threads(session.capture_threads, "capture").await {
-            // macOS can do this while it waits for the operator to answer the System Audio
-            // Recording question: every Core Audio call of the app's waits with it.
-            session.abandoned.cancel();
-        }
-
-        // Rehearsal playback holds the producer end of its audio channel, and the client
-        // below only sees the stream end once that is dropped — so drain it here, in the
-        // same place the capture threads are joined.
-        // A relay ends once its producer has: the capture threads are joined and the
-        // rehearsal tasks are next, so this cannot wait on anything still running.
-        for result in join_all(
-            session
-                .fixture_tasks
-                .iter_mut()
-                .chain(session.relay_tasks.iter_mut()),
-        )
-        .await
-        {
-            if let Err(error) = result {
-                tracing::warn!("rehearsal playback task failed: {error}");
-            }
-        }
-
-        // Providers may emit their last transcript while flushing. Do not report Idle
-        // (or start a replacement session) until that bounded drain has completed.
-        if session.local {
-            // Local Stop is an EOF, not cancellation of inference. Do not truncate the
-            // transcript at the cloud client's five-second shutdown deadline.
-            for result in join_all(session.client_tasks.iter_mut()).await {
-                if let Err(error) = result {
-                    tracing::warn!("local transcription task failed: {error}");
-                }
-            }
+        let local = session.slots.iter().any(SourceSlot::is_local);
+        drain_slots(session.slots).await;
+        if local {
             *lock(&self.local_abort) = None;
-        } else {
-            let aborts: Vec<_> = session
-                .client_tasks
-                .iter()
-                .map(|task| task.inner().abort_handle())
-                .collect();
-            // One `JoinAll`, polled again after the timeout: it never polls a finished handle
-            // twice, which a `JoinHandle` does not allow.
-            let joined = join_all(session.client_tasks.iter_mut());
-            tokio::pin!(joined);
-            if tokio::time::timeout(CLIENT_DRAIN_TIMEOUT, &mut joined)
-                .await
-                .is_err()
-            {
-                tracing::warn!("realtime clients did not finish graceful shutdown in time");
-                for abort in &aborts {
-                    abort.abort();
-                }
-                // A client cut off finalizes its open turn as it is dropped (`run_session`).
-                // Wait for that, so its last line comes before the Idle and not into the next
-                // session.
-                joined.await;
+        }
+    }
+}
+
+/// Wait for everything some cancelled sources started, each source by its own engine and all
+/// of them at once: first what feeds them, then their clients.
+async fn drain_slots(slots: Vec<SourceSlot>) {
+    join_all(slots.into_iter().map(drain_slot)).await;
+}
+
+async fn drain_slot(mut slot: SourceSlot) {
+    if let Some(thread) = slot.capture.take()
+        && !join_threads(vec![thread], "capture").await
+    {
+        // macOS can do this while it waits for the operator to answer the System Audio
+        // Recording question: every Core Audio call of the app's waits with it.
+        slot.abandoned.cancel();
+    }
+
+    // Rehearsal playback holds the producer end of its audio channel, and the client below
+    // only sees the stream end once that is dropped — so drain it here, in the same place the
+    // capture thread is joined.
+    // A relay ends once its producer has: the capture thread is joined and the rehearsal task
+    // is next, so this cannot wait on anything still running.
+    for task in [slot.fixture.take(), slot.relay.take()]
+        .into_iter()
+        .flatten()
+    {
+        if let Err(error) = task.await {
+            tracing::warn!("rehearsal playback task failed: {error}");
+        }
+    }
+
+    // Providers may emit their last transcript while flushing. Do not report Idle (or start a
+    // replacement session) until that bounded drain has completed.
+    if slot.is_local() {
+        // Local Stop is an EOF, not cancellation of inference. Do not truncate the transcript
+        // at the cloud client's five-second shutdown deadline.
+        for result in join_all(slot.clients.iter_mut()).await {
+            if let Err(error) = result {
+                tracing::warn!("local transcription task failed: {error}");
             }
+        }
+    } else {
+        let aborts: Vec<_> = slot
+            .clients
+            .iter()
+            .map(|task| task.inner().abort_handle())
+            .collect();
+        // One `JoinAll`, polled again after the timeout: it never polls a finished handle
+        // twice, which a `JoinHandle` does not allow.
+        let joined = join_all(slot.clients.iter_mut());
+        tokio::pin!(joined);
+        if tokio::time::timeout(CLIENT_DRAIN_TIMEOUT, &mut joined)
+            .await
+            .is_err()
+        {
+            tracing::warn!("realtime clients did not finish graceful shutdown in time");
+            for abort in &aborts {
+                abort.abort();
+            }
+            // A client cut off finalizes its open turn as it is dropped (`run_session`). Wait
+            // for that, so its last line comes before the Idle and not into the next session.
+            joined.await;
         }
     }
 }
@@ -343,20 +387,31 @@ mod tests {
         client: impl Fn(CancellationToken) -> AsyncJoinHandle<()>,
     ) -> ActiveSession {
         let cancel = CancellationToken::new();
-        let sources: Vec<_> = origins.iter().map(|_| cancel.child_token()).collect();
+        let engine = if local {
+            Provider::Whisper
+        } else {
+            Provider::Gemini
+        };
+        let slots = origins
+            .iter()
+            .map(|&origin| {
+                let mut slot = SourceSlot::new(origin, engine, cancel.child_token());
+                slot.clients = vec![client(slot.cancel.clone())];
+                slot
+            })
+            .collect();
+        let options = options("microphone", None);
         ActiveSession {
-            local,
             failure: Arc::new(Mutex::new(None)),
             abort: CancellationToken::new(),
-            abandoned: CancellationToken::new(),
-            origins: origins.to_vec(),
             pause: watch::Sender::new(false),
-            client_tasks: sources.iter().cloned().map(client).collect(),
-            sources,
+            slots,
             cancel,
-            capture_threads: Vec::new(),
-            fixture_tasks: Vec::new(),
-            relay_tasks: Vec::new(),
+            capture: CaptureTarget::for_session(&options),
+            options,
+            clock: SessionClock::start(),
+            level_tx: tokio::sync::mpsc::channel(1).0,
+            model: None,
         }
     }
 
@@ -376,7 +431,7 @@ mod tests {
     #[tokio::test]
     async fn a_session_whose_sources_have_all_ended_cannot_be_paused() {
         let ended = session(false, &[Origin::Microphone], ends_with_its_source);
-        ended.sources[0].cancel();
+        ended.slots[0].cancel.cancel();
         let manager = manager_with(ended);
         let events = Statuses::default();
         assert!(manager.set_paused(&events, true).is_err());
@@ -392,7 +447,7 @@ mod tests {
             &[Origin::Microphone, Origin::System],
             ends_with_its_source,
         );
-        active.sources[1].cancel();
+        active.slots[1].cancel.cancel();
         let manager = manager_with(active);
         let events = Statuses::default();
 
@@ -418,7 +473,7 @@ mod tests {
     #[tokio::test]
     async fn stop_reports_one_idle_with_the_failure_that_ended_the_session() {
         let active = session(true, &[Origin::Microphone], ends_with_its_source);
-        let source = active.sources[0].clone();
+        let source = active.slots[0].cancel.clone();
         *lock(&active.failure) = Some(AppError::with(id::WHISPER_SESSION, "disk full"));
         let manager = manager_with(active);
         let events = Statuses::default();
@@ -465,6 +520,46 @@ mod tests {
         assert_eq!(events.take().len(), 1, "Idle, once");
     }
 
+    /// Each source is drained by its own engine: Stop waits out a local transcriber's whole
+    /// backlog, however long, and cuts a cloud client off after `CLIENT_DRAIN_TIMEOUT`, in the
+    /// same session and at the same time.
+    #[tokio::test(start_paused = true)]
+    async fn a_mixed_session_drains_each_source_by_its_engine() {
+        let backlog = CLIENT_DRAIN_TIMEOUT * 3;
+        let mut active = session(true, &[Origin::Microphone], |source| {
+            AsyncJoinHandle::Tokio(tokio::spawn(async move {
+                source.cancelled().await;
+                tokio::time::sleep(backlog).await;
+            }))
+        });
+        let (dropped_tx, dropped) = tokio::sync::oneshot::channel::<()>();
+        let mut cloud = SourceSlot::new(
+            Origin::System,
+            Provider::Gemini,
+            active.cancel.child_token(),
+        );
+        cloud.clients = vec![AsyncJoinHandle::Tokio(tokio::spawn(async move {
+            let _guard = dropped_tx;
+            std::future::pending::<()>().await;
+        }))];
+        active.slots.push(cloud);
+        let manager = manager_with(active);
+        let events = Statuses::default();
+
+        let started = tokio::time::Instant::now();
+        manager.stop(&events).await;
+        assert!(
+            started.elapsed() >= backlog,
+            "the local backlog was cut short"
+        );
+        assert!(
+            started.elapsed() < backlog + CLIENT_DRAIN_TIMEOUT,
+            "drained one after the other"
+        );
+        assert!(dropped.await.is_err(), "the cloud client was cut off");
+        assert_eq!(events.take().len(), 1, "Idle, once");
+    }
+
     /// A capture thread stuck in a driver call (macOS does this while the System Audio
     /// Recording question is open) holds its source's audio channel, so a local transcriber
     /// waiting for that channel to close would hold Stop forever. Stop gives up on the thread
@@ -475,12 +570,12 @@ mod tests {
         let (release_tx, release) = std::sync::mpsc::channel::<()>();
         let mut active = session(true, &[Origin::System], ends_with_its_source);
         // Deaf to cancellation, as a thread inside a blocked Core Audio call is.
-        active.capture_threads = vec![std::thread::spawn(move || {
+        active.slots[0].capture = Some(std::thread::spawn(move || {
             let _ = release.recv();
-        })];
-        let abandoned = active.abandoned.clone();
+        }));
+        let abandoned = active.slots[0].abandoned.clone();
         // Ends only on `abandoned`, as the Whisper source does while its input is still open.
-        active.client_tasks = vec![AsyncJoinHandle::Tokio(tokio::spawn(
+        active.slots[0].clients = vec![AsyncJoinHandle::Tokio(tokio::spawn(
             abandoned.clone().cancelled_owned(),
         ))];
         let manager = manager_with(active);
@@ -503,13 +598,13 @@ mod tests {
     #[tokio::test]
     async fn stop_abandons_nothing_when_the_capture_threads_stop() {
         let mut active = session(false, &[Origin::Microphone], ends_with_its_source);
-        let source = active.sources[0].clone();
-        active.capture_threads = vec![std::thread::spawn(move || {
+        let source = active.slots[0].cancel.clone();
+        active.slots[0].capture = Some(std::thread::spawn(move || {
             while !source.is_cancelled() {
                 std::thread::sleep(Duration::from_millis(5));
             }
-        })];
-        let abandoned = active.abandoned.clone();
+        }));
+        let abandoned = active.slots[0].abandoned.clone();
         let manager = manager_with(active);
         manager.stop(&Statuses::default()).await;
         assert!(!abandoned.is_cancelled());
@@ -522,16 +617,16 @@ mod tests {
     #[tokio::test]
     async fn a_failed_start_is_shut_down_without_an_idle_or_an_active_session() {
         let mut partial = session(true, &[Origin::Microphone], ends_with_its_source);
-        let source = partial.sources[0].clone();
+        let source = partial.slots[0].cancel.clone();
         let thread_source = source.clone();
         let (joined_tx, joined) = std::sync::mpsc::channel::<()>();
-        partial.capture_threads = vec![std::thread::spawn(move || {
+        partial.slots[0].capture = Some(std::thread::spawn(move || {
             while !thread_source.is_cancelled() {
                 std::thread::sleep(Duration::from_millis(5));
             }
             let _ = joined_tx.send(());
-        })];
-        let abandoned = partial.abandoned.clone();
+        }));
+        let abandoned = partial.slots[0].abandoned.clone();
         let manager = SessionManager::default();
         *lock(&manager.local_abort) = Some(CancellationToken::new());
 

@@ -11,7 +11,7 @@ use tokio_util::sync::CancellationToken;
 use super::builder::{AUDIO_CHANNEL_CAPACITY, catching_panics};
 use super::capture::{CaptureTarget, join_threads, source_failure, spawn_level_forwarder};
 use super::options::live_origins;
-use super::{SessionManager, lock};
+use super::{SessionManager, SourceSlot, lock};
 use crate::audio::AudioChunk;
 use crate::audio::applications::SystemCapture;
 use crate::types::{AudioSource, AudioTestUpdate, Origin, events};
@@ -76,7 +76,7 @@ impl SessionManager {
         let _lifecycle = self.lifecycle.lock().await;
         if lock(&self.active)
             .as_ref()
-            .is_some_and(|session| session.sources.iter().any(|source| !source.is_cancelled()))
+            .is_some_and(|session| session.slots.iter().any(SourceSlot::is_running))
         {
             anyhow::bail!("A session is already running, so its meters are already live");
         }
