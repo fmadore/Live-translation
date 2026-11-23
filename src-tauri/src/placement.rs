@@ -198,13 +198,35 @@ fn on_a_display(window: &Placement, screens: &[Screen]) -> bool {
         .any(|s| distance_squared(point, &s.display.bounds()) == 0)
 }
 
-/// Whether the room can see the overlay where it is: its centre lies on some display, and the
-/// displays together are large enough to hold it whole. Deliberately generous. A placement the
+/// The most of a window that may lie on no display before it is rescued, in percent of its
+/// area. Above the part a placement running off an edge on purpose leaves off (under two
+/// fifths), below what a strip that half reached onto an unplugged projector leaves.
+const OFF_DISPLAY_PERCENT: i128 = 40;
+
+/// How much of `window` lies on a display, in square pixels: `i128`, because a window can be
+/// `u32::MAX` pixels a side. Displays on one desktop do not overlap, so the parts add up.
+fn area_on_displays(window: &Placement, screens: &[Screen]) -> i128 {
+    let span = |start: i32, length: u32| (i64::from(start), i64::from(start) + i64::from(length));
+    let overlap = |(a, b): (i64, i64), (c, d): (i64, i64)| i128::from((b.min(d) - a.max(c)).max(0));
+    let (across, down) = (span(window.x, window.width), span(window.y, window.height));
+    screens
+        .iter()
+        .map(|s| {
+            let bounds = s.display.bounds();
+            overlap(across, span(bounds.x, bounds.width))
+                * overlap(down, span(bounds.y, bounds.height))
+        })
+        .sum()
+}
+
+/// Whether the room can see the overlay where it is: its centre lies on some display, the
+/// displays together are large enough to hold it whole, and no more than
+/// `OFF_DISPLAY_PERCENT` of it lies on none of them. Deliberately generous. A placement the
 /// operator chose stays put even if it overlaps the taskbar, runs a little off an edge or is
 /// stretched across two displays on purpose; the rescue is for a window nobody can see or
 /// reach, not a second opinion on one they placed. What it does catch is a window from a
-/// larger desktop than the one left: stretched across a projector that has gone, or sized for
-/// a resolution the display no longer has.
+/// larger desktop than the one left: stretched across a projector that has gone, left hanging
+/// far off the display that remains, or sized for a resolution the display no longer has.
 fn usable(window: &Placement, screens: &[Screen]) -> bool {
     let on_a_display = on_a_display(window, screens);
     // The extent of the whole desktop, in i64 so displays far from the origin cannot overflow.
@@ -215,9 +237,12 @@ fn usable(window: &Placement, screens: &[Screen]) -> bool {
     };
     let desktop_width = extent(|b| i64::from(b.x), |b| i64::from(b.x) + i64::from(b.width));
     let desktop_height = extent(|b| i64::from(b.y), |b| i64::from(b.y) + i64::from(b.height));
+    let area = i128::from(window.width) * i128::from(window.height);
+    let off_display = area - area_on_displays(window, screens).min(area);
     on_a_display
         && i64::from(window.width) <= desktop_width
         && i64::from(window.height) <= desktop_height
+        && off_display * 100 <= area * OFF_DISPLAY_PERCENT
 }
 
 /// Where the overlay has to go so the room can see it again, or `None` when it can stay where
@@ -804,6 +829,33 @@ mod tests {
         assert_eq!(rescue(&across, &[LAPTOP_SCREEN, PROJECTOR_SCREEN]), None);
         // …until the projector goes, and the desktop with it.
         assert!(rescue(&across, &[LAPTOP_SCREEN]).is_some());
+    }
+
+    /// #236: a strip reaching from the laptop onto the projector kept its centre on the laptop
+    /// and its width under the laptop's once the projector went, so it stayed with 860 of its
+    /// 1920 pixels on no display. More than two fifths off: it is rescued.
+    #[test]
+    fn a_strip_left_hanging_off_the_laptop_by_an_unplugged_projector_is_rescued() {
+        let hanging = Placement {
+            x: 1500,
+            y: 800,
+            width: 1920,
+            height: 200,
+        };
+        // Stretched across both displays on purpose, with nothing off either: left alone.
+        assert_eq!(rescue(&hanging, &[LAPTOP_SCREEN, PROJECTOR_SCREEN]), None);
+        assert_eq!(
+            restored(&hanging, &[LAPTOP_SCREEN, PROJECTOR_SCREEN]),
+            Some(hanging)
+        );
+        // The projector gone: back on the laptop, its size kept.
+        assert!(on_a_display(&hanging, &[LAPTOP_SCREEN]));
+        assert_eq!(
+            rescue(&hanging, &[LAPTOP_SCREEN]),
+            Some(Placement { x: 640, ..hanging })
+        );
+        // Running a little off the laptop's edge, a third of it off, is still the operator's.
+        assert_eq!(rescue(&strip(1500, 800), &[LAPTOP_SCREEN]), None);
     }
 
     #[test]
