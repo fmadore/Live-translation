@@ -1,6 +1,6 @@
 # 2026-11-23 · A one-click fallback engine for a source that ends mid-session
 
-**Status:** proposed, for the maintainer to agree before any code
+**Status:** agreed on 23 November 2026, with the answers under *Decisions taken* below
 ([#248](https://github.com/fmadore/Live-translation/issues/248), finding F7 of the
 [16 November review](../app-review-2026-11-16.md)). Line numbers are for `ff374de`.
 
@@ -22,7 +22,7 @@ that starts from zero. What the code does now:
 | The "banner" | `src/lib/RunningStage.svelte:20-22`, `LiveActivity.svelte` | There is none: the failure is the status line (`error.providerStopped`, `en.ts:1102`) and the source's `error` activity row. The only recovery banner is `DeviceRecoveryBanner.svelte` for capture failures, driven by `deviceFailure.svelte.ts`, which stops and starts the whole session. |
 | The engine in documents | `src/lib/history.ts:103-113`, `types.ts:407-424` | Not recorded anywhere: the history header has mode and languages, lines have origin, lane and language. |
 
-## Decision (proposed)
+## Decision
 
 A source that ended on a provider failure can be continued with another engine from a banner,
 in the same run: same core `ActiveSession`, same `SessionClock`, same transcript, markers and
@@ -288,14 +288,14 @@ Interface (Vitest and component tests):
 **v1, the smallest useful version:**
 
 - Offline Whisper only, single caption language, live sessions (no rehearsal, no demo).
-- Offered on `error.providerStopped` and `error.providerRejected`; one click continues every
-  source that ended so.
+- Offered on `error.providerStopped` and `error.providerRejected`, and on a source that has been
+  `Reconnecting` for 30 s (decision 3); one click continues every source in either state.
 - `SourceSlot` refactor, `switch_source_engine`, `TurnCounter`, the held run, the automatic
   marker, the cost ledger, `error.sessionFallback` and the strings in three languages.
 - `privacy.md` sentence and `store-listing-next.md` line.
 
 **Deferred:** another cloud engine (with its consent step, Zoom rule and privacy paragraph); two
-caption languages; a source stuck `Reconnecting`; a fallback from Whisper or the demo; comparing
+caption languages; a fallback from Whisper or the demo; comparing
 across translation and transcript in the echo filter; recording the engine in the history
 header.
 
@@ -308,7 +308,26 @@ counter and pause 60); interface about 600 lines, half of them tests (controller
 held run 60, ledger 60); docs 40. Three to four days, best as two pull requests: the
 `SourceSlot` refactor with no change in behaviour, then the feature.
 
-### Open questions for the maintainer
+### Decisions taken
+
+The maintainer agreed the proposal on 23 November 2026, with these answers to the questions
+that follow:
+
+1. **Held run:** yes. The clock and the history record stay open while the banner offers the
+   switch after the last source ended. If the operator declines (Stop, or dismissing the
+   banner), the run's end time is set back to the moment of the failure.
+2. **Engine change in documents:** the automatic marker. The engine in the history header is
+   deferred.
+3. **Network outages:** in v1. After a source has been `Reconnecting` for 30 s, the banner offers
+   the switch beside the reconnection, which carries on until the operator clicks; the click
+   cancels that source's reconnection and starts Whisper in its place.
+4. **Spoken language instead of a translation:** offer Whisper, with the warning on the button
+   that the captions will be in the spoken language.
+5. **Whisper model:** the setup's model, else the best installed one that fits.
+6. **Cost estimate:** accepted. A stream that has ended stops adding to the estimate.
+7. **Phase 2 (another cloud engine):** not now. Revisit once v1 has been used at an event.
+
+### Open questions for the maintainer (as asked)
 
 1. **Held run.** Keep the clock and history record open while the banner offers a switch after
    the last source ended (proposed), with the end time set back to the failure if the operator
