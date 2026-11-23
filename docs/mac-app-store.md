@@ -38,7 +38,7 @@ What is ready in the repository:
 - the *Mac App Store* workflow, which signs the app and its installer package and uploads them
   to App Store Connect;
 - no support link in the store build (App Review Guideline 3.1.1; see `src-tauri/src/support.rs`);
-- the privacy policy's macOS section and the provider question (effective 5 November 2026; the policy now in force, effective 16 November 2026, adds DeepL, the system-wide keys, markers and the disk image's check for new versions).
+- the privacy policy's macOS section and the provider question (effective 5 November 2026; the 16 November 2026 version added DeepL, the system-wide keys, markers and the disk image's check for new versions, and the policy now in force is effective 23 November 2026).
 
 Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, the provisioning
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran

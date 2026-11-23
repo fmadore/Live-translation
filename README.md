@@ -45,7 +45,8 @@ both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
   and accuracy depend on the computer, model and language; on x64, Whisper needs a processor
   with AVX2.
 - **Offline translation into English.** Whisper also translates any of those languages into
-  English, with the same models and no key. English is its only target; choose Small, since
+  English, with the Tiny, Base and Small models and no key (Large v3 Turbo cannot translate).
+  English is its only target; choose Small, since
   Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets in the app's
   catalog, DeepL 42 and OpenAI 13. DeepL needs a paid DeepL API plan, since its Voice API is not

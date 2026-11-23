@@ -681,8 +681,8 @@ against a fake registrar, so the tests reach no display server.
 
 ## Security and privacy
 
-Provider authentication happens in Rust. Each optional key has its own Windows Credential
-Manager entry, with an environment-variable fallback, and never enters the Svelte renderer,
+Provider authentication happens in Rust. Each optional key has its own entry in Windows
+Credential Manager or the macOS Keychain, with an environment-variable fallback, and never enters the Svelte renderer,
 whose content-security policy blocks direct connections. Only debug builds load `.env` or
 honour the `*_WS_HOST` host overrides. Local Whisper sends no audio over the network and
 deletes its temporary audio file on close; its pinned model downloads are integrity-checked and

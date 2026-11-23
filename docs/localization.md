@@ -72,7 +72,7 @@ history bounds and clearing filters.
     type system, passes parity, and renders the wrong language; shared sentences are the
     cheapest signal of it.
   - `errors.test.ts` — reads the ids out of `src-tauri/src/errors.rs` and fails if a failure
-    the core can report has no sentence in either catalogue.
+    the core can report has no sentence in any of the three catalogues.
   - `transcript.test.ts` — the saved file's headings and date follow the language it is given.
 
 ## Adding a language
