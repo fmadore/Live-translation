@@ -294,6 +294,28 @@ fn graphics_by_default() -> bool {
     true
 }
 
+/// Continue one source of the running session with another engine, from the operator's
+/// fallback banner (`SessionManager::switch_source`). `from` is the engine the banner saw end:
+/// the core switches only a source still on it, so a second click or a stale banner does
+/// nothing. Offline Whisper is the one engine offered so far.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceSwitch {
+    pub origin: Origin,
+    pub from: Provider,
+    pub to: Provider,
+    /// The Whisper model to load when the session holds none; the setup's when absent.
+    #[serde(default)]
+    pub whisper_model: Option<crate::whisper::models::ModelId>,
+    /// Whether Whisper may use the graphics processor; the setup's choice when absent.
+    #[serde(default)]
+    pub whisper_gpu: Option<bool>,
+    /// The source is still reconnecting, as the banner saw it for 30 seconds: stop the
+    /// reconnection first. Without it, a source still running is refused.
+    #[serde(default)]
+    pub reconnecting: bool,
+}
+
 /// Borrows the turn's text rather than owning it: a caption is serialized the moment it is
 /// emitted, and an interim is emitted for every delta, so an owned copy of the whole turn so
 /// far would be made and thrown away each time.

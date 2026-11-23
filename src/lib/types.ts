@@ -279,6 +279,21 @@ export interface StartOptions {
 	glossary?: string[];
 }
 
+/** Continue one source of the running session with another engine, from the fallback banner
+ *  (`switch_source_engine`). `from` is the engine the banner saw end: the core switches only
+ *  a source still on it. Keep in sync with `SourceSwitch` in `src-tauri/src/types.rs`. */
+export interface SourceSwitch {
+	origin: Origin;
+	from: Provider;
+	to: Provider;
+	/** The Whisper model to load when the session holds none; the setup's when absent. */
+	whisperModel?: WhisperModelId | null;
+	/** Whether Whisper may use the graphics processor; the setup's choice when absent. */
+	whisperGpu?: boolean | null;
+	/** The source is still reconnecting, as the banner saw it for 30 seconds: stop that first. */
+	reconnecting?: boolean;
+}
+
 /** A caption update streamed from the active translation or subtitle session. */
 export interface Caption {
 	/** Monotonic id for the current utterance of this origin; a new turn increments it.

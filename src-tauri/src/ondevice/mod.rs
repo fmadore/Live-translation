@@ -120,7 +120,7 @@ pub async fn run_session(
     app.status(StatusUpdate::source(origin, SessionState::Running, None));
 
     // The demonstration captions in one language, so on the first lane.
-    let mut acc = TurnAccumulator::new(clock, 0);
+    let mut acc = TurnAccumulator::new(clock, 0, crate::realtime::TurnCounter::default());
     let mut pulse_index = 0usize;
 
     'session: loop {

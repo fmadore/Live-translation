@@ -20,7 +20,7 @@ use super::segment::{Segmenter, Window};
 use super::spool::{Next, Spool, TimedChunk};
 use super::validate_language;
 use crate::errors::{AppError, id};
-use crate::realtime::Events;
+use crate::realtime::{Events, PauseRx, TurnCounter};
 use crate::sync::lock;
 use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 
@@ -89,6 +89,11 @@ pub struct LocalSession {
     /// Stop gave up on this source's capture thread: stop waiting for `input` to close.
     pub abandoned: CancellationToken,
     pub failure: Arc<Mutex<Option<AppError>>>,
+    /// The session's pause, for the source's first status: a source continued by Whisper while
+    /// the session is paused reports Paused, not Running.
+    pub pause: PauseRx,
+    /// The source's turn ids, which continue from the engine it had before.
+    pub turns: TurnCounter,
 }
 
 pub async fn run(config: LocalSession) {
@@ -105,6 +110,8 @@ pub async fn run(config: LocalSession) {
         abort,
         abandoned,
         failure,
+        pause,
+        turns,
     } = config;
     let _ = app.emit(events::WHISPER_ENGINE, model.engine());
     let engine_app = app.clone();
@@ -117,6 +124,7 @@ pub async fn run(config: LocalSession) {
         abort,
         abandoned,
         failure,
+        pause,
     };
     drive(pipeline, move |spool, abort, emit, report| {
         transcribe(
@@ -125,6 +133,7 @@ pub async fn run(config: LocalSession) {
                 language: language.as_deref(),
                 translate,
                 glossary: &glossary,
+                turns,
             },
             spool,
             abort,
@@ -164,6 +173,7 @@ pub(super) struct Pipeline<E> {
     pub(super) abort: CancellationToken,
     pub(super) abandoned: CancellationToken,
     pub(super) failure: Arc<Mutex<Option<AppError>>>,
+    pub(super) pause: PauseRx,
 }
 
 /// One caption from the inference: its text, start and end in session milliseconds, and turn.
@@ -190,8 +200,19 @@ pub(super) async fn drive<E: LocalEvents>(
         abort,
         abandoned,
         failure,
+        pause,
     } = pipeline;
-    app.status(StatusUpdate::source(origin, SessionState::Running, None));
+    {
+        // Reported under the pause's read lock, so a pause sent meanwhile is reported after
+        // this, by `SessionManager::set_paused`, and is the status that stands.
+        let paused = pause.borrow();
+        let state = if *paused {
+            SessionState::Paused
+        } else {
+            SessionState::Running
+        };
+        app.status(StatusUpdate::source(origin, state, None));
+    }
     let ingest_spool = spool.clone();
     let ingest_app = app.clone();
     let ingest_cancel = capture_cancel.clone();
@@ -310,11 +331,14 @@ pub(super) async fn drive<E: LocalEvents>(
 }
 
 /// What a source's windows are decoded as: the spoken language, or `None` to detect it; whether
-/// to translate into English; and the session's names and terms, for the prompt.
+/// to translate into English; the session's names and terms, for the prompt; and where the
+/// lines' turn ids come from.
 pub(super) struct Task<'a> {
     pub(super) language: Option<&'a str>,
     pub(super) translate: bool,
     pub(super) glossary: &'a [String],
+    /// Where the lines' turn ids come from.
+    pub(super) turns: TurnCounter,
 }
 
 pub(super) fn transcribe(
@@ -327,7 +351,7 @@ pub(super) fn transcribe(
 ) -> Result<()> {
     let mut state = None;
     let prompt = glossary_prompt(model, task.glossary);
-    let mut reconciler = Reconciler::default();
+    let mut reconciler = Reconciler::continuing(task.turns.clone());
     let mut languages = Languages::new(task.language);
     let threads = inference_threads(std::thread::available_parallelism().map_or(2, usize::from));
     let process = |window: Window| -> Result<()> {

@@ -14,7 +14,7 @@ use super::pipeline::*;
 use super::spool::{Spool, TimedChunk};
 use super::*;
 use crate::errors::{AppError, id};
-use crate::realtime::Events;
+use crate::realtime::{Events, TurnCounter};
 use crate::types::{Caption, Origin, SessionState, StatusUpdate};
 
 fn speech(start_ms: u64) -> TimedChunk {
@@ -29,6 +29,7 @@ enum Recorded {
     Status(SessionState, Option<&'static str>),
     Caption(String),
     Progress(u64),
+    Turn(u64),
 }
 
 /// What a local source reports, in order, in place of the app's events.
@@ -70,9 +71,23 @@ impl Recorder {
     }
 }
 
+impl Recorder {
+    fn turns(&self) -> Vec<u64> {
+        let recorded = self.0.lock().unwrap();
+        recorded
+            .iter()
+            .filter_map(|r| match r {
+                Recorded::Turn(turn) => Some(*turn),
+                _ => None,
+            })
+            .collect()
+    }
+}
+
 impl Events for Recorder {
     fn caption(&self, caption: Caption<'_>) {
         self.push(Recorded::Caption(caption.text.to_string()));
+        self.push(Recorded::Turn(caption.turn_id));
     }
 
     fn status(&self, update: StatusUpdate) {
@@ -99,6 +114,7 @@ fn pipeline() -> (Pipeline<Recorder>, tokio::sync::mpsc::Sender<TimedChunk>) {
         abort: CancellationToken::new(),
         abandoned: CancellationToken::new(),
         failure: Arc::new(Mutex::new(None)),
+        pause: tokio::sync::watch::channel(false).1,
     };
     (pipeline, input_tx)
 }
@@ -153,6 +169,65 @@ async fn stop_drains_every_accepted_frame_then_reports_idle() {
     assert_eq!(spool.pending_ms(), 0);
     assert_eq!(events.last_progress(), Some(0));
     assert!(failure.lock().unwrap().is_none());
+}
+
+/// A source continued by Whisper after its cloud engine ended: its lines carry on from the
+/// turn ids the cloud engine used, so the transcript, the echo filter and Zoom never see an id
+/// again.
+#[tokio::test]
+async fn a_local_replacement_continues_the_turn_ids() {
+    let (pipeline, input) = pipeline();
+    let events = pipeline.events.clone();
+    // The cloud engine used ids 0 to 6 and had reserved 7 for a turn it never finished.
+    let turns = TurnCounter::starting_at(8);
+    for i in 0..20 {
+        input.send(speech(i * 100)).await.unwrap();
+    }
+    drop(input);
+    drive(pipeline, move |spool, abort, emit, report| {
+        let mut reconciler = super::reconcile::Reconciler::continuing(turns);
+        pump(spool, abort, Duration::from_millis(10), |window| {
+            spool.complete(window.consumed);
+            if window.speech {
+                let segment = super::reconcile::RawSegment {
+                    text: format!("words at {}", window.start_ms),
+                    start_cs: 0,
+                    end_cs: i64::try_from(window.samples.len() / 160).unwrap(),
+                    no_speech: 0.1,
+                    mean_logprob: -0.3,
+                };
+                let duration_ms = window.samples.len() as u64 / 16;
+                if let Some(line) = reconciler.accept(window.start_ms, duration_ms, &segment) {
+                    emit(&line.text, line.start_ms, line.end_ms, line.turn);
+                }
+            }
+            report();
+            Ok(())
+        })
+    })
+    .await;
+
+    let ids = events.turns();
+    assert!(!ids.is_empty(), "nothing was captioned");
+    assert_eq!(ids[0], 8);
+    assert!(ids.windows(2).all(|pair| pair[1] > pair[0]), "{ids:?}");
+}
+
+/// A source continued by Whisper while the session is paused says so: no Running before the
+/// Paused, which would show the source live while nothing it hears is captioned.
+#[tokio::test]
+async fn a_replacement_started_while_paused_reports_paused() {
+    let (mut pipeline, input) = pipeline();
+    let (pause, paused) = tokio::sync::watch::channel(true);
+    pipeline.pause = paused;
+    let events = pipeline.events.clone();
+    drop(input);
+    drive(pipeline, echo).await;
+    drop(pause);
+    assert_eq!(
+        events.statuses(),
+        [Recorded::Status(SessionState::Paused, None), IDLE]
+    );
 }
 
 /// First run on a real Mac: with the System Audio Recording question unanswered, the capture
@@ -537,6 +612,7 @@ async fn smoke(placement: &Placement<'_>, expected_device: &str) {
                 language,
                 translate,
                 glossary: terms,
+                turns: TurnCounter::default(),
             },
         );
         // The time is the one number CI can compare across instruction-set changes.
@@ -559,6 +635,7 @@ fn quiet_audio_with_a_prompt(model: &LoadedModel, glossary: &[String]) {
         language: Some("en"),
         translate: false,
         glossary,
+        turns: TurnCounter::default(),
     };
     let only_terms = |text: &str| {
         let words: Vec<String> = text.split_whitespace().map(reconcile::normalise).collect();

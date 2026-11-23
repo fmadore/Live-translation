@@ -13,6 +13,7 @@ import {
 	WHISPER_MODELS,
 	ZOOM_STATES
 } from './types';
+import type { SourceSwitch } from './types';
 import { DEMO_LANGUAGES } from './languages';
 import { GLOBAL_SHORTCUT_KEYS } from './globalShortcuts';
 
@@ -156,5 +157,37 @@ describe('shared enums', () => {
 			? 'zoom.rs'
 			: 'zoom/mod.rs';
 		expect(sorted(ZOOM_STATES)).toEqual(sorted(serdeVariants(rust(file), 'ZoomState')));
+	});
+});
+
+// The fallback banner's request (#248): the fields the core reads are the ones the interface
+// sends, under the argument name the handler takes.
+describe('SourceSwitch', () => {
+	const types = rust('types.rs');
+	const block = types.slice(types.indexOf('pub struct SourceSwitch {'));
+	const fields = [...block.slice(0, block.indexOf('\n}')).matchAll(/^\s+pub ([a-z_]+):/gm)].map(
+		(m) => m[1].replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+	);
+	// Every field and no other: `Required` fails the type check on a missing one, the object
+	// literal on an extra one.
+	const sent: Required<SourceSwitch> = {
+		origin: 'system',
+		from: 'gemini',
+		to: 'whisper',
+		whisperModel: 'small',
+		whisperGpu: true,
+		reconnecting: false
+	};
+
+	it('has the same fields on both sides', () => {
+		expect(fields.length).toBeGreaterThan(3);
+		expect(sorted(fields)).toEqual(sorted(Object.keys(sent)));
+	});
+
+	it('is passed as the argument the handler names', () => {
+		expect(rust('commands.rs')).toMatch(
+			/pub async fn switch_source_engine\([^)]*request: SourceSwitch/
+		);
+		expect(TAURI_TS).toMatch(/invoke<void>\('switch_source_engine', \{ request \}\)/);
 	});
 });

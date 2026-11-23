@@ -17,7 +17,7 @@ use super::{ActiveSession, SourceSlot};
 use crate::audio::AudioChunk;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::sink::{AudioSink, CaptureCompletion};
-use crate::realtime::{Events, PauseRx, RealtimeProtocol, run_session};
+use crate::realtime::{Events, PauseRx, RealtimeProtocol, Track, TurnCounter, run_session};
 use crate::timing::SessionClock;
 use crate::types::{Origin, Provider, TargetLanguage};
 use crate::whisper::{self, LocalSession, spool::Spool};
@@ -71,6 +71,8 @@ pub(super) struct ClientIo {
     pub(super) cancel: CancellationToken,
     pub(super) clock: SessionClock,
     pub(super) pause: PauseRx,
+    /// Where this track's turn ids come from; see `TurnCounter`.
+    turns: TurnCounter,
 }
 
 impl ClientIo {
@@ -85,7 +87,10 @@ impl ClientIo {
             self.cancel,
             self.clock,
             self.pause,
-            self.lane,
+            Track {
+                lane: self.lane,
+                turns: self.turns,
+            },
         ))
     }
 }
@@ -110,7 +115,6 @@ impl SessionBuilder<'_> {
         if slot.engine.is_local_whisper() {
             return self.build_local_source(session, slot);
         }
-        let origin = slot.origin;
         let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
         let cancel = slot.cancel.clone();
         spawn_producer(self.app, session, slot, audio_tx.into())?;
@@ -119,7 +123,7 @@ impl SessionBuilder<'_> {
         if targets.len() == 1 {
             // One language: the client reads the producer directly and owns the source's
             // token, so its end stops the capture, as it always has.
-            let client = self.client(session, origin, 0, targets[0], audio_rx, cancel)?;
+            let client = self.client(session, slot, 0, targets[0], audio_rx, cancel)?;
             slot.clients.push(client);
             return Ok(());
         }
@@ -130,8 +134,7 @@ impl SessionBuilder<'_> {
         for (lane, target) in (0u8..).zip(targets) {
             let (lane_tx, lane_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             outputs.push(lane_tx);
-            let client =
-                self.client(session, origin, lane, target, lane_rx, cancel.child_token())?;
+            let client = self.client(session, slot, lane, target, lane_rx, cancel.child_token())?;
             slot.clients.push(client);
         }
         slot.relay = Some(tauri::async_runtime::spawn(relay_audio(
@@ -143,7 +146,7 @@ impl SessionBuilder<'_> {
     fn client(
         &self,
         session: &ActiveSession,
-        origin: Origin,
+        slot: &SourceSlot,
         lane: u8,
         target: TargetLanguage,
         audio_rx: Receiver<AudioChunk>,
@@ -151,12 +154,13 @@ impl SessionBuilder<'_> {
     ) -> Result<AsyncJoinHandle<()>> {
         let io = ClientIo {
             app: self.app.clone(),
-            origin,
+            origin: slot.origin,
             lane,
             audio_rx,
             cancel,
             clock: session.clock,
             pause: session.pause.subscribe(),
+            turns: slot.turns[usize::from(lane)].clone(),
         };
         self.settings.spawn_client(io, &self.api_key, target)
     }
@@ -194,6 +198,9 @@ impl SessionBuilder<'_> {
                 abort: session.abort.clone(),
                 abandoned: slot.abandoned.clone(),
                 failure: session.failure.clone(),
+                pause: session.pause.subscribe(),
+                // Whisper writes one language, so the source's first lane.
+                turns: slot.turns[0].clone(),
             })));
         Ok(())
     }

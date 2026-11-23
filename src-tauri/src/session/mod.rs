@@ -12,6 +12,7 @@ mod options;
 mod preflight;
 mod settings;
 
+use std::future::Future;
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -27,18 +28,35 @@ use tokio_util::sync::CancellationToken;
 
 use crate::errors::AppError;
 use crate::realtime::Events;
+use crate::realtime::TurnCounter;
 use crate::secrets;
 use crate::sync::lock;
 use crate::timing::SessionClock;
-use crate::types::{AudioLevel, Origin, Provider, SessionState, StartOptions, StatusUpdate};
+use crate::types::{
+    AudioLevel, Origin, Provider, SessionState, SourceSwitch, StartOptions, StatusUpdate,
+};
+use crate::whisper::models::ModelId;
 use crate::whisper::{self, LoadedModel};
 use builder::SessionBuilder;
 use capture::{CaptureTarget, join_threads, spawn_level_forwarder};
-use options::{is_live, session_origins, validate_start};
+use options::{caption_languages, is_live, session_origins, validate_start};
 use preflight::ActiveTest;
 use settings::ProviderSettings;
 
 const CLIENT_DRAIN_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// A source switch the core would not make, or that a Stop or Start cut short: the interface
+/// says the source could not be continued (`error.sessionFallback`).
+#[derive(Debug)]
+pub struct Refused(pub &'static str);
+
+impl std::fmt::Display for Refused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
+impl std::error::Error for Refused {}
 
 #[derive(Default)]
 pub struct SessionManager {
@@ -50,6 +68,9 @@ pub struct SessionManager {
     /// holding the same capture device at once.
     active_test: Mutex<Option<ActiveTest>>,
     local_abort: Mutex<Option<CancellationToken>>,
+    /// Shared by every source switch in flight. Stop and Start cancel it before they wait for
+    /// the lifecycle lock, so neither waits out a switch's model load.
+    switching: Mutex<CancellationToken>,
 }
 
 struct ActiveSession {
@@ -88,10 +109,33 @@ struct SourceSlot {
     /// With a second caption language, the relay that copies the audio to both clients.
     relay: Option<AsyncJoinHandle<()>>,
     clients: Vec<AsyncJoinHandle<()>>,
+    /// One per caption language, kept when the source is continued by another engine, so its
+    /// turn ids keep increasing.
+    turns: [TurnCounter; 2],
 }
 
 impl SourceSlot {
     fn new(origin: Origin, engine: Provider, cancel: CancellationToken) -> Self {
+        // Whisper numbers a source's first line 1, the realtime clients their first turn 0.
+        let first = u64::from(engine.is_local_whisper());
+        Self::continuing(
+            origin,
+            engine,
+            cancel,
+            [
+                TurnCounter::starting_at(first),
+                TurnCounter::starting_at(first),
+            ],
+        )
+    }
+
+    /// A slot for `origin` whose turn ids continue from `turns`.
+    fn continuing(
+        origin: Origin,
+        engine: Provider,
+        cancel: CancellationToken,
+        turns: [TurnCounter; 2],
+    ) -> Self {
         Self {
             origin,
             engine,
@@ -101,7 +145,34 @@ impl SourceSlot {
             fixture: None,
             relay: None,
             clients: Vec::new(),
+            turns,
         }
+    }
+
+    /// What the slot runs, moved into a slot of its own to be drained, leaving this one empty.
+    fn take_running(&mut self) -> Self {
+        Self {
+            capture: self.capture.take(),
+            fixture: self.fixture.take(),
+            relay: self.relay.take(),
+            clients: std::mem::take(&mut self.clients),
+            abandoned: self.abandoned.clone(),
+            ..Self::continuing(
+                self.origin,
+                self.engine,
+                self.cancel.clone(),
+                self.turns.clone(),
+            )
+        }
+    }
+
+    /// Whether anything of the source still runs: its token, or a client still draining.
+    fn is_live(&self) -> bool {
+        self.is_running()
+            || self
+                .clients
+                .iter()
+                .any(|client| !client.inner().is_finished())
     }
 
     /// Whisper has no connection to close, so a pause and Stop are the manager's to handle.
@@ -128,6 +199,7 @@ impl SessionManager {
     }
 
     pub async fn start(&self, app: &AppHandle, options: StartOptions) -> Result<()> {
+        self.cancel_switches();
         let _lifecycle = self.lifecycle.lock().await;
         self.stop_active(app).await;
         // A preflight test is holding the very devices this session is about to open.
@@ -262,8 +334,172 @@ impl SessionManager {
     }
 
     pub async fn stop(&self, events: &impl Events) {
+        self.cancel_switches();
         let _lifecycle = self.lifecycle.lock().await;
         self.stop_active(events).await;
+    }
+
+    /// End every source switch in flight at its next wait, so a Stop or Start behind it gets
+    /// the lifecycle lock without waiting out a model load. Later switches get a new token.
+    fn cancel_switches(&self) {
+        std::mem::take(&mut *lock(&self.switching)).cancel();
+    }
+
+    /// Continue one source of the running session with offline Whisper, in place: same session,
+    /// clock, pause and turn ids, while the other source carries on untouched. The source must
+    /// still be on `request.from` and have ended, or — with `request.reconnecting` — be a cloud
+    /// source the operator saw reconnecting, whose reconnection this stops. A refusal, or a
+    /// Stop meanwhile, is `Refused`; a model that cannot load is the model's own error.
+    pub async fn switch_source(&self, app: &AppHandle, request: SourceSwitch) -> Result<()> {
+        // Checked before anything is stopped, as at Start.
+        anyhow::ensure!(
+            request.to.is_local_whisper(),
+            Refused("only offline Whisper can continue a source")
+        );
+        whisper::cpu::ensure_supported()?;
+        let model_app = app.clone();
+        self.switch_with(
+            &request,
+            move |model, graphics, abort| async move {
+                tauri::async_runtime::spawn_blocking(move || {
+                    whisper::load(&model_app, model, graphics, &abort)
+                })
+                .await
+                .context("Whisper model loading stopped unexpectedly")?
+            },
+            |session, slot| {
+                SessionBuilder {
+                    app,
+                    settings: ProviderSettings::Whisper,
+                    api_key: String::new(),
+                }
+                .build_source(session, slot)
+            },
+        )
+        .await?;
+        // A local engine captions a window behind: let a microphone line wait for its echo
+        // as long as a local session's would.
+        app.state::<crate::echo::EchoGuard>()
+            .lengthen_hold(crate::echo::HOLD_LOCAL);
+        tracing::info!(origin = ?request.origin, to = ?request.to, "source continued");
+        Ok(())
+    }
+
+    /// `switch_source` with how the model loads and how the slot is built handed in, so the
+    /// tests can stand in for both.
+    async fn switch_with<Load, Loading>(
+        &self,
+        request: &SourceSwitch,
+        load: Load,
+        build: impl FnOnce(&ActiveSession, &mut SourceSlot) -> Result<()>,
+    ) -> Result<()>
+    where
+        Load: FnOnce(ModelId, bool, CancellationToken) -> Loading,
+        Loading: Future<Output = Result<Arc<LoadedModel>>>,
+    {
+        let switching = lock(&self.switching).clone();
+        let _lifecycle = tokio::select! {
+            guard = self.lifecycle.lock() => guard,
+            () = switching.cancelled() => anyhow::bail!(Refused("stopped while waiting")),
+        };
+
+        // Take what the source still runs, under the compare-and-swap.
+        let (draining, model, abort, choice) = {
+            let mut active = lock(&self.active);
+            let session = active.as_mut().ok_or(Refused("no session is running"))?;
+            anyhow::ensure!(
+                is_live(&session.options) && caption_languages(&session.options).len() == 1,
+                Refused("only a live session in one caption language can be continued")
+            );
+            anyhow::ensure!(
+                request.to != Provider::WhisperTranslate
+                    || request
+                        .whisper_model
+                        .unwrap_or(session.options.whisper_model)
+                        .translates(),
+                Refused("Large v3 Turbo cannot translate")
+            );
+            whisper::validate_language(session.options.spoken_language.as_deref())
+                .map_err(|_| Refused("Whisper does not know the spoken language"))?;
+            let choice = (
+                request
+                    .whisper_model
+                    .unwrap_or(session.options.whisper_model),
+                request.whisper_gpu.unwrap_or(session.options.whisper_gpu),
+            );
+            let slot = session
+                .slots
+                .iter_mut()
+                .find(|slot| slot.origin == request.origin)
+                .ok_or(Refused("the session has no such source"))?;
+            anyhow::ensure!(
+                slot.engine == request.from,
+                Refused("the source is not on the engine that ended")
+            );
+            if slot.is_live() {
+                anyhow::ensure!(
+                    request.reconnecting && !slot.is_local(),
+                    Refused("the source is still running")
+                );
+            }
+            slot.cancel.cancel();
+            let model = session.model.clone();
+            if model.is_none() {
+                *lock(&self.local_abort) = Some(session.abort.clone());
+            }
+            (slot.take_running(), model, session.abort.clone(), choice)
+        };
+
+        // The old engine's capture and clients, outside the mutex: the device is free before it
+        // is opened again at the new engine's rate. Bounded: three seconds for the capture,
+        // `CLIENT_DRAIN_TIMEOUT` for a client still reconnecting.
+        drain_slots(vec![draining]).await;
+
+        let model = match model {
+            Some(model) => model,
+            None => {
+                // Discard and Quit cut the load short through the session's abort, a Stop or
+                // Start through `switching`.
+                let loading = abort.child_token();
+                let _stop_loading = loading.clone().drop_guard();
+                tokio::select! {
+                    model = load(choice.0, choice.1, loading.clone()) => model?,
+                    () = switching.cancelled() => anyhow::bail!(Refused("stopped while loading")),
+                }
+            }
+        };
+
+        // Built under the mutex, which no await may hold: what a build that failed part-way
+        // started is drained after it.
+        let failed = {
+            let mut active = lock(&self.active);
+            let session = active.as_mut().ok_or(Refused("no session is running"))?;
+            let index = session
+                .slots
+                .iter()
+                .position(|slot| slot.origin == request.origin)
+                .ok_or(Refused("the session has no such source"))?;
+            session.model.get_or_insert(model);
+            let mut slot = SourceSlot::continuing(
+                request.origin,
+                request.to,
+                session.cancel.child_token(),
+                session.slots[index].turns.clone(),
+            );
+            match build(session, &mut slot) {
+                Ok(()) => {
+                    session.slots[index] = slot;
+                    None
+                }
+                Err(error) => Some((error, slot)),
+            }
+        };
+        if let Some((error, slot)) = failed {
+            slot.cancel.cancel();
+            drain_slots(vec![slot]).await;
+            return Err(error);
+        }
+        Ok(())
     }
 
     async fn stop_active(&self, events: &impl Events) {
@@ -640,6 +876,154 @@ mod tests {
         let events = Statuses::default();
         manager.stop(&events).await;
         assert!(events.take().is_empty());
+    }
+
+    /// A request to continue `origin` with Whisper after `from` ended.
+    fn to_whisper(origin: Origin, from: Provider, reconnecting: bool) -> SourceSwitch {
+        SourceSwitch {
+            origin,
+            from,
+            to: Provider::Whisper,
+            whisper_model: None,
+            whisper_gpu: None,
+            reconnecting,
+        }
+    }
+
+    /// A client that has already returned, as one whose provider ended the source has.
+    fn finished(_: CancellationToken) -> AsyncJoinHandle<()> {
+        AsyncJoinHandle::Tokio(tokio::spawn(async {}))
+    }
+
+    /// A cloud session whose microphone source has ended on its own, every client returned.
+    async fn ended_on_gemini() -> SessionManager {
+        let active = session(false, &[Origin::Microphone], finished);
+        active.slots[0].cancel.cancel();
+        while active.slots[0].is_live() {
+            tokio::task::yield_now().await;
+        }
+        manager_with(active)
+    }
+
+    fn refused(result: Result<()>) -> &'static str {
+        let error = result.expect_err("the switch was made");
+        error
+            .downcast_ref::<Refused>()
+            .unwrap_or_else(|| panic!("not a refusal: {error:#}"))
+            .0
+    }
+
+    async fn no_model(_: ModelId, _: bool, _: CancellationToken) -> Result<Arc<LoadedModel>> {
+        panic!("a refused switch loaded a model")
+    }
+
+    fn no_build(_: &ActiveSession, _: &mut SourceSlot) -> Result<()> {
+        panic!("a refused switch built a source")
+    }
+
+    /// The compare-and-swap: a second click, a stale banner or a newer session finds the source
+    /// on another engine, or still running, or no session at all, and nothing is touched.
+    #[tokio::test]
+    async fn a_switch_is_refused_unless_the_source_ended_on_the_expected_engine() {
+        let manager = ended_on_gemini().await;
+        // Not the engine the banner saw end.
+        let request = to_whisper(Origin::Microphone, Provider::OpenAi, false);
+        assert!(!refused(manager.switch_with(&request, no_model, no_build).await).is_empty());
+        // No such source.
+        let request = to_whisper(Origin::System, Provider::Gemini, false);
+        refused(manager.switch_with(&request, no_model, no_build).await);
+        {
+            let active = lock(&manager.active);
+            let slot = &active.as_ref().unwrap().slots[0];
+            assert_eq!(slot.engine, Provider::Gemini, "untouched");
+            assert_eq!(slot.clients.len(), 1, "untouched");
+        }
+
+        // A source still running is not the banner's to replace.
+        let live = manager_with(session(false, &[Origin::Microphone], ends_with_its_source));
+        let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
+        refused(live.switch_with(&request, no_model, no_build).await);
+        assert!(lock(&live.active).as_ref().unwrap().slots[0].is_running());
+
+        // Nor is a rehearsal's.
+        let mut rehearsal = session(false, &[Origin::System], finished);
+        rehearsal.options = options("system", Some("en"));
+        let rehearsal = manager_with(rehearsal);
+        let request = to_whisper(Origin::System, Provider::Gemini, false);
+        refused(rehearsal.switch_with(&request, no_model, no_build).await);
+
+        // Stopped meanwhile: no session left to continue.
+        manager.stop(&Statuses::default()).await;
+        let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
+        refused(manager.switch_with(&request, no_model, no_build).await);
+        live.stop(&Statuses::default()).await;
+    }
+
+    /// Decision 3: a source the operator saw reconnecting for 30 seconds is stopped before
+    /// Whisper loads, its client cut off after `CLIENT_DRAIN_TIMEOUT` at worst. A model that
+    /// then fails to load is the switch's answer, and the source stays ended on its old engine.
+    #[tokio::test(start_paused = true)]
+    async fn a_reconnecting_source_is_stopped_before_whisper_loads() {
+        let manager = manager_with(session(false, &[Origin::Microphone], |_| {
+            AsyncJoinHandle::Tokio(tokio::spawn(std::future::pending::<()>()))
+        }));
+        let request = to_whisper(Origin::Microphone, Provider::Gemini, true);
+        let started = tokio::time::Instant::now();
+        let result = manager
+            .switch_with(
+                &request,
+                |_, _, _| async { Err(anyhow::anyhow!("model file missing")) },
+                no_build,
+            )
+            .await;
+        assert_eq!(result.unwrap_err().to_string(), "model file missing");
+        assert!(
+            started.elapsed() >= CLIENT_DRAIN_TIMEOUT,
+            "the reconnecting client was waited for"
+        );
+        let active = lock(&manager.active);
+        let slot = &active.as_ref().unwrap().slots[0];
+        assert!(!slot.is_live(), "its reconnection was stopped");
+        assert_eq!(slot.engine, Provider::Gemini);
+    }
+
+    /// A Stop during a switch does not wait out the model: the load is told to stop, the
+    /// switch is refused, and Stop reports its one Idle.
+    #[tokio::test]
+    async fn stop_during_a_switch_does_not_wait_for_the_model() {
+        let manager = ended_on_gemini().await;
+        let loading = tokio::sync::Notify::new();
+        let told_to_stop = std::sync::atomic::AtomicBool::new(false);
+        let request = to_whisper(Origin::Microphone, Provider::Gemini, false);
+        let events = Statuses::default();
+        let switch = manager.switch_with(
+            &request,
+            |_, _, token: CancellationToken| {
+                let (loading, told_to_stop) = (&loading, &told_to_stop);
+                async move {
+                    loading.notify_one();
+                    token.cancelled().await;
+                    told_to_stop.store(true, std::sync::atomic::Ordering::Relaxed);
+                    std::future::pending::<Result<Arc<LoadedModel>>>().await
+                }
+            },
+            no_build,
+        );
+        let stop = async {
+            loading.notified().await;
+            manager.stop(&events).await;
+        };
+        let (switched, ()) = tokio::time::timeout(Duration::from_secs(10), async {
+            tokio::join!(switch, stop)
+        })
+        .await
+        .expect("Stop waited for the model");
+        refused(switched);
+        let [idle] = &events.take()[..] else {
+            panic!("expected exactly one status");
+        };
+        assert_eq!(idle.state, SessionState::Idle);
+        assert!(lock(&manager.active).is_none());
     }
 
     /// A Gemini start captioning in French from `source`, shared by the submodules' tests.

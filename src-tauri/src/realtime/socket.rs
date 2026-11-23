@@ -859,7 +859,11 @@ mod tests {
             pause: &mut pause,
             backlog,
         };
-        let mut acc = TurnAccumulator::new(SessionClock::start(), 0);
+        let mut acc = TurnAccumulator::new(
+            SessionClock::start(),
+            0,
+            crate::realtime::TurnCounter::default(),
+        );
         let end = stream(io, &mut NoAck, &mut acc, conn, false).await;
         (end, events.0.into_inner().unwrap())
     }

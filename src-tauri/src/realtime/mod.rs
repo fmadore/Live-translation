@@ -15,6 +15,8 @@ mod turn_timer;
 mod wire;
 
 use std::future::Future;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use tauri::{AppHandle, Emitter, Manager};
@@ -94,8 +96,42 @@ pub async fn wait_for_resume(pause: &mut PauseRx, cancel: &CancellationToken) ->
     }
 }
 
+/// Where a track's turn ids come from: one per source and caption language, made when the
+/// session starts and kept by the source, so the ids keep increasing when the source is
+/// continued by another engine (`SessionManager::switch_source`). Only one client per track
+/// runs at a time, and each takes its ids from here, so none is ever given twice.
+#[derive(Clone, Debug, Default)]
+pub struct TurnCounter(Arc<AtomicU64>);
+
+impl TurnCounter {
+    /// A counter whose first id is `first`.
+    pub fn starting_at(first: u64) -> Self {
+        Self(Arc::new(AtomicU64::new(first)))
+    }
+
+    /// The next id, never given before.
+    pub fn next(&self) -> u64 {
+        self.0.fetch_add(1, Ordering::Relaxed)
+    }
+
+    /// Never give `id` or anything below it again: for an accumulator whose id was set by hand.
+    fn passed(&self, id: u64) {
+        self.0.fetch_max(id.saturating_add(1), Ordering::Relaxed);
+    }
+}
+
+/// Which track a client produces: its caption language (`Caption::lane`) and where that
+/// track's turn ids come from.
+#[derive(Clone, Debug, Default)]
+pub struct Track {
+    pub lane: u8,
+    pub turns: TurnCounter,
+}
+
 pub struct TurnAccumulator {
     pub id: u64,
+    /// Where `id` comes from; see `TurnCounter`.
+    turns: TurnCounter,
     /// The caption language this accumulator's captions are in; see `Caption::lane`. Fixed
     /// for its life: a client produces one lane.
     lane: u8,
@@ -113,9 +149,10 @@ pub struct TurnAccumulator {
 }
 
 impl TurnAccumulator {
-    pub fn new(clock: SessionClock, lane: u8) -> Self {
+    pub fn new(clock: SessionClock, lane: u8, turns: TurnCounter) -> Self {
         Self {
-            id: 0,
+            id: turns.next(),
+            turns,
             lane,
             source: String::new(),
             text: String::new(),
@@ -125,7 +162,8 @@ impl TurnAccumulator {
     }
 
     pub fn next_turn(&mut self) {
-        self.id += 1;
+        self.turns.passed(self.id);
+        self.id = self.turns.next();
         self.source.clear();
         self.text.clear();
         self.started_ms = None;
@@ -341,8 +379,9 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     cancel: CancellationToken,
     clock: SessionClock,
     mut pause: PauseRx,
-    lane: u8,
+    track: Track,
 ) {
+    let Track { lane, turns } = track;
     // Aborting a client task must release its producer too. Normal terminal exits below
     // also finalize text before reporting that the source has ended.
     let _capture_guard = cancel.clone().drop_guard();
@@ -353,7 +392,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let mut acc = FinalizeOnDrop {
         events: &events,
         origin,
-        acc: TurnAccumulator::new(clock, lane),
+        acc: TurnAccumulator::new(clock, lane, turns),
     };
     // Also outside it: a handover fills it while the old connection drains, the next one
     // replays it.
@@ -656,7 +695,7 @@ pub(crate) mod test_support {
         pub fn new(proto: P) -> Self {
             Self {
                 proto,
-                acc: TurnAccumulator::new(SessionClock::start(), 0),
+                acc: TurnAccumulator::new(SessionClock::start(), 0, TurnCounter::default()),
                 captions: Vec::new(),
             }
         }
@@ -739,7 +778,7 @@ mod unit_tests {
     }
 
     fn accumulator_at(elapsed_ms: u64) -> TurnAccumulator {
-        TurnAccumulator::new(SessionClock::at(elapsed_ms), 0)
+        TurnAccumulator::new(SessionClock::at(elapsed_ms), 0, TurnCounter::default())
     }
 
     #[test]

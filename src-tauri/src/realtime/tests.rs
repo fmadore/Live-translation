@@ -65,10 +65,19 @@ fn final_(text: &str) -> Event {
     }
 }
 
-struct Recorder(mpsc::UnboundedSender<(Instant, Event)>);
+/// Every final caption's turn id and start, in the order they were emitted.
+type Finals = std::sync::Arc<std::sync::Mutex<Vec<(u64, u64)>>>;
+
+struct Recorder(mpsc::UnboundedSender<(Instant, Event)>, Finals);
 
 impl Events for Recorder {
     fn caption(&self, caption: Caption<'_>) {
+        if caption.final_ {
+            self.1
+                .lock()
+                .unwrap()
+                .push((caption.turn_id, caption.start_ms));
+        }
         let event = Event::Caption {
             text: caption.text.to_string(),
             final_: caption.final_,
@@ -244,6 +253,7 @@ struct Client {
     pause: watch::Sender<bool>,
     cancel: CancellationToken,
     task: JoinHandle<()>,
+    finals: Finals,
 }
 
 impl Client {
@@ -252,19 +262,26 @@ impl Client {
     }
 
     fn start_with(fake: Fake) -> Self {
+        Self::start_on(fake, SessionClock::start(), TurnCounter::default())
+    }
+
+    /// A client on a session's clock and a source's turn counter, as `SessionBuilder` makes
+    /// one when a source starts, or is continued by another engine.
+    fn start_on(fake: Fake, clock: SessionClock, turns: TurnCounter) -> Self {
+        let finals = Finals::default();
         let (recorder, events) = mpsc::unbounded_channel();
         // The producer queue's real size: what a handover can hold without the runner's help.
         let (audio, audio_rx) = mpsc::channel(5);
         let (pause, pause_rx) = watch::channel(false);
         let cancel = CancellationToken::new();
         let task = tokio::spawn(run_session(
-            Recorder(recorder),
+            Recorder(recorder, finals.clone()),
             fake,
             audio_rx,
             cancel.clone(),
-            SessionClock::start(),
+            clock,
             pause_rx,
-            0,
+            Track { lane: 0, turns },
         ));
         Self {
             events,
@@ -272,6 +289,7 @@ impl Client {
             pause,
             cancel,
             task,
+            finals,
         }
     }
 
@@ -1472,4 +1490,123 @@ async fn pause_drains_while_the_provider_holds_words_still_to_come() {
 
     client.cancel.cancel();
     client.finished().await;
+}
+
+/// One source's caption turns on the server's side: `text:` then `final`, once per line.
+async fn caption_lines(client: &mut Client, peer: &mut Peer, lines: &[&str]) {
+    for line in lines {
+        peer.send(&format!("text:{line}")).await;
+        client.expect(interim(line)).await;
+        peer.send("final").await;
+        client.expect(final_(line)).await;
+        sleep(Duration::from_millis(200)).await;
+    }
+}
+
+/// #248: the provider ends a source on its quota, and the operator continues it with another
+/// engine, in the same session. The new client, on the same clock and turn counter, captions
+/// with turn ids above every one the first used and times that never go back.
+#[tokio::test(start_paused = true)]
+async fn a_fatal_end_then_a_switch_continues_the_source_with_increasing_turn_ids() {
+    tick_clock();
+    let clock = SessionClock::start();
+    let turns = TurnCounter::default();
+    let first = Server::bind().await;
+    let mut client = Client::start_on(Fake::new(&first.url), clock, turns.clone());
+    client.expect(status(SessionState::Connecting)).await;
+    let mut peer = first.accept().await;
+    peer.ready().await;
+    client.expect(status(SessionState::Running)).await;
+    caption_lines(&mut client, &mut peer, &["one", "two"]).await;
+    peer.send("fatal").await;
+    client
+        .expect(Event::Status(
+            SessionState::Error,
+            Some(id::PROVIDER_STOPPED),
+        ))
+        .await;
+    let before = client.finals.lock().unwrap().clone();
+    assert!(client.cancel.is_cancelled(), "the source ended");
+    client.finished().await;
+
+    let second = Server::bind().await;
+    let mut replacement = Client::start_on(Fake::new(&second.url), clock, turns);
+    replacement.expect(status(SessionState::Connecting)).await;
+    let mut peer = second.accept().await;
+    peer.ready().await;
+    replacement.expect(status(SessionState::Running)).await;
+    caption_lines(&mut replacement, &mut peer, &["three", "four"]).await;
+    let after = replacement.finals.lock().unwrap().clone();
+
+    let all: Vec<_> = before.iter().chain(&after).collect();
+    assert_eq!(all.len(), 4);
+    assert!(
+        all.windows(2).all(|pair| pair[1].0 > pair[0].0),
+        "turn ids went back: {all:?}"
+    );
+    assert!(
+        all.windows(2).all(|pair| pair[1].1 >= pair[0].1),
+        "times went back: {all:?}"
+    );
+    replacement.cancel.cancel();
+    replacement.finished().await;
+}
+
+/// The other source captions on through the switch: its turn ids and its connection are its
+/// own, and it reports nothing while the failed source is replaced beside it.
+#[tokio::test(start_paused = true)]
+async fn the_other_source_captions_through_a_switch() {
+    tick_clock();
+    let clock = SessionClock::start();
+    let room = Server::bind().await;
+    let mut microphone = Client::start_on(Fake::new(&room.url), clock, TurnCounter::default());
+    microphone.expect(status(SessionState::Connecting)).await;
+    let mut room_peer = room.accept().await;
+    room_peer.ready().await;
+    microphone.expect(status(SessionState::Running)).await;
+
+    let remote = Server::bind().await;
+    let system_turns = TurnCounter::default();
+    let mut system = Client::start_on(Fake::new(&remote.url), clock, system_turns.clone());
+    system.expect(status(SessionState::Connecting)).await;
+    let mut remote_peer = remote.accept().await;
+    remote_peer.ready().await;
+    system.expect(status(SessionState::Running)).await;
+
+    caption_lines(&mut microphone, &mut room_peer, &["hello"]).await;
+    remote_peer.send("fatal").await;
+    system
+        .expect(Event::Status(
+            SessionState::Error,
+            Some(id::PROVIDER_STOPPED),
+        ))
+        .await;
+    system.finished().await;
+    caption_lines(&mut microphone, &mut room_peer, &["still here"]).await;
+
+    let replaced = Server::bind().await;
+    let mut system = Client::start_on(Fake::new(&replaced.url), clock, system_turns);
+    system.expect(status(SessionState::Connecting)).await;
+    let mut replaced_peer = replaced.accept().await;
+    replaced_peer.ready().await;
+    system.expect(status(SessionState::Running)).await;
+    caption_lines(&mut microphone, &mut room_peer, &["and again"]).await;
+    caption_lines(&mut system, &mut replaced_peer, &["back"]).await;
+
+    let ids: Vec<u64> = microphone
+        .finals
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|f| f.0)
+        .collect();
+    assert_eq!(ids, [0, 1, 2], "the microphone's own ids, untouched");
+    assert!(
+        microphone.events.try_recv().is_err(),
+        "no status from the microphone"
+    );
+    for client in [microphone, system] {
+        client.cancel.cancel();
+        client.finished().await;
+    }
 }

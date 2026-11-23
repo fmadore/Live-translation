@@ -566,7 +566,7 @@ mod tests {
             cancel.clone(),
             crate::timing::SessionClock::start(),
             pause_rx,
-            0,
+            crate::realtime::Track::default(),
         ));
         // At the pace of speech: a recording sent at once is not what a room sounds like.
         for chunk in samples.chunks(chunk_samples(16_000)) {
