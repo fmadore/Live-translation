@@ -15,6 +15,7 @@ use tokio_tungstenite::{WebSocketStream, accept_hdr_async};
 use tokio_util::sync::CancellationToken;
 
 use super::*;
+use crate::audio::AudioChunk;
 use crate::errors::id;
 use crate::realtime::Signal;
 use crate::realtime::test_support::{Emitted, Harness, handshake};
@@ -135,6 +136,34 @@ fn text_shown_by_an_idle_close_is_not_repeated_when_concluded() {
             Emitted::interim(0, "Muchas gracias", ""),
             Emitted::final_(0, "Muchas gracias", ""),
             Emitted::final_(1, "¿Y usted?", ""),
+        ]
+    );
+}
+
+/// The tentative start a concluded sentence left behind is closed with the turn when the runner
+/// closes it itself, rather than the runner closing an empty turn; when DeepL concludes those
+/// words afterwards they have already been shown, and are not printed again.
+#[test]
+fn the_tentative_tail_of_a_closed_sentence_goes_out_when_the_runner_closes_the_turn() {
+    let mut h = harness();
+    h.send(&target(
+        &[("Buenos días a todos.", 1200)],
+        &[(" Hoy vamos", 1500)],
+    ));
+    assert!(h.acc.is_empty(), "not shown yet");
+    assert!(h.proto.keeps_turn_open(&h.acc), "tentative text is pending");
+    h.finalize_idle();
+    assert!(!h.proto.keeps_turn_open(&h.acc));
+
+    let outcome = h.send(&target(&[(" Hoy vamos", 1500)], &[]));
+    assert_eq!(outcome.caption, CaptionUpdate::None);
+    h.send(&target(&[(" a empezar.", 2300)], &[]));
+    assert_eq!(
+        h.captions,
+        [
+            Emitted::final_(0, "Buenos días a todos.", ""),
+            Emitted::final_(1, "Hoy vamos", ""),
+            Emitted::final_(2, "a empezar.", ""),
         ]
     );
 }
@@ -792,6 +821,54 @@ async fn a_session_is_requested_resumed_after_a_drop_and_drained_on_stop() {
         .await;
     peer.send(r#"{"end_of_stream":{}}"#).await;
     client.expect(Event::Caption("Adiós.".into(), true)).await;
+    assert_eq!(peer.recv().await, "<close>");
+    client.finished().await;
+}
+
+/// One message concludes a sentence and carries the tentative start of the next, then DeepL
+/// sends nothing more. Those words go out at the hold deadline, `MAX_HOLD` after the sentence
+/// closed: the runner used to find the accumulator empty there and close nothing, so they
+/// stayed off screen until DeepL's next update or the next Pause or Stop.
+///
+/// The clock is paused, and kept moving a millisecond at a time as in `realtime::tests`, so
+/// the multi-second hold is crossed on purpose and measured exactly.
+#[tokio::test(start_paused = true)]
+async fn the_tentative_start_after_a_concluded_sentence_goes_out_at_the_hold_deadline() {
+    tokio::spawn(async {
+        loop {
+            tokio::time::sleep(Duration::from_millis(1)).await;
+        }
+    });
+    let rest = Rest::bind().await;
+    let stream = Stream::bind().await;
+    let mut client = Client::start(&rest.base);
+    client.expect(status(SessionState::Connecting)).await;
+    rest.answer("200 OK", &stream.ticket("one")).await;
+    let (_, mut peer) = stream.accept().await;
+    client.expect(status(SessionState::Running)).await;
+
+    peer.send(&target(
+        &[("Buenos días a todos.", 1200)],
+        &[(" Hoy vamos", 1500)],
+    ))
+    .await;
+    client
+        .expect(Event::Caption("Buenos días a todos.".into(), true))
+        .await;
+    let closed = tokio::time::Instant::now();
+    client
+        .expect(Event::Caption("Hoy vamos".into(), true))
+        .await;
+    let after = closed.elapsed();
+    assert!(
+        after >= crate::realtime::MAX_HOLD
+            && after < crate::realtime::MAX_HOLD + Duration::from_millis(50),
+        "took {after:?}"
+    );
+
+    // Nothing is left to drain for, and nothing was captioned for seconds: Stop closes at once.
+    client.cancel.cancel();
+    assert_eq!(peer.recv().await, r#"{"end_of_source_media":{}}"#);
     assert_eq!(peer.recv().await, "<close>");
     client.finished().await;
 }

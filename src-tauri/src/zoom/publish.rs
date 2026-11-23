@@ -7,6 +7,7 @@
 //! engine that builds a turn by appending (see `Publisher::interims_grow`); waiting for the end
 //! of a long Gemini Live Translate turn would hold a whole paragraph back.
 
+use crate::realtime::{CLOSING_MARKS, SENTENCE_ENDERS};
 use crate::types::{Caption, Origin};
 
 /// The longest caption posted to Zoom, in characters. Zoom documents no limit; this follows
@@ -21,16 +22,11 @@ const RUN_CHARS: usize = 160;
 /// its own would flash past; it waits to go out with the sentence after it.
 const MIN_INTERIM_CHARS: usize = 20;
 
-/// Sentence terminators that end a sentence only when whitespace follows, so `3.5` and `e.g`
-/// inside a word do not.
-const TERMINATORS: [char; 4] = ['.', '!', '?', '…'];
-
-/// Full-width terminators. Chinese and Japanese put no space after them, so any following
-/// character confirms the sentence has ended.
+/// The sentence enders (`realtime::SENTENCE_ENDERS`) of scripts written without spaces.
+/// Chinese and Japanese put no space after them, so any following character confirms the
+/// sentence has ended. Every other ender ends one only when whitespace follows, so `3.5` and
+/// `e.g` inside a word do not.
 const FULL_WIDTH_TERMINATORS: [char; 3] = ['。', '！', '？'];
-
-/// Closing quotes and brackets, which belong to the sentence they close: `He said "Stop." Then`.
-const CLOSERS: [char; 11] = ['"', '\'', '”', '’', '»', ')', ']', '」', '』', '）', '】'];
 
 /// Which captions a share sends: one caption language, from the sources the operator chose.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -161,18 +157,17 @@ fn sentence_ends(text: &str) -> Vec<usize> {
     let mut ends = Vec::new();
     let mut chars = text.char_indices().peekable();
     while let Some((at, c)) = chars.next() {
-        let mut full_width = FULL_WIDTH_TERMINATORS.contains(&c);
-        if !(full_width || TERMINATORS.contains(&c)) {
+        if !SENTENCE_ENDERS.contains(&c) {
             continue;
         }
+        let mut full_width = FULL_WIDTH_TERMINATORS.contains(&c);
         // `?!`, `...` and `.”` are one sentence end, after their last mark.
         let mut end = at + c.len_utf8();
         while let Some(&(next_at, next)) = chars.peek() {
-            let terminator = FULL_WIDTH_TERMINATORS.contains(&next);
-            if !(terminator || TERMINATORS.contains(&next) || CLOSERS.contains(&next)) {
+            if !(SENTENCE_ENDERS.contains(&next) || CLOSING_MARKS.contains(&next)) {
                 break;
             }
-            full_width |= terminator;
+            full_width |= FULL_WIDTH_TERMINATORS.contains(&next);
             end = next_at + next.len_utf8();
             chars.next();
         }
@@ -347,6 +342,54 @@ mod tests {
             ),
             ["今日は会議にご参加いただきありがとうございます。「始めましょう。」"]
         );
+    }
+
+    /// The Arabic question mark and the Devanagari danda end a sentence as a full stop does,
+    /// before a space. They were missing from this table, so Arabic and Hindi interims waited
+    /// for their final.
+    #[test]
+    fn arabic_and_devanagari_sentence_ends_are_recognised() {
+        assert_eq!(
+            published(
+                true,
+                &[
+                    interim(1, "هل أنتم مستعدون لبدء الاجتماع الآن؟"),
+                    interim(1, "هل أنتم مستعدون لبدء الاجتماع الآن؟ حسنا"),
+                ]
+            ),
+            ["هل أنتم مستعدون لبدء الاجتماع الآن؟"]
+        );
+        assert_eq!(
+            published(true, &[interim(1, "आज की बैठक में आपका स्वागत है। अब हम")]),
+            ["आज की बैठक में आपका स्वागत है।"]
+        );
+        assert_eq!(
+            sentence_ends("مستعدون؟ حسنا. और यह। अब"),
+            [
+                "مستعدون؟".len(),
+                "مستعدون؟ حسنا.".len(),
+                "مستعدون؟ حسنا. और यह।".len()
+            ]
+        );
+    }
+
+    /// A closing corner bracket after a full stop belongs to the sentence, which ends after it
+    /// with no space needed.
+    #[test]
+    fn a_full_stop_inside_corner_brackets_ends_the_sentence_after_them() {
+        assert_eq!(
+            sentence_ends("「始めましょう。」次に"),
+            ["「始めましょう。」".len()]
+        );
+        // Without a space after it, a Latin full stop confirms nothing.
+        assert!(sentence_ends("「Start.」Next").is_empty());
+    }
+
+    #[test]
+    fn the_unspaced_terminators_are_sentence_enders() {
+        for c in FULL_WIDTH_TERMINATORS {
+            assert!(SENTENCE_ENDERS.contains(&c), "{c}");
+        }
     }
 
     #[test]

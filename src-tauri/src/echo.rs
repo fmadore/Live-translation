@@ -265,7 +265,8 @@ struct Heard {
 struct MicTurn {
     turn_id: u64,
     start_ms: u64,
-    /// Whether the windows show it: it has had text, and has not been withdrawn since.
+    /// Whether the windows show it: it has had words, caption or source text, and has not been
+    /// withdrawn since.
     shown: bool,
     /// Withdrawn as an echo: only its final may bring it back.
     withdrawn: bool,
@@ -424,7 +425,7 @@ impl Guard {
     }
 
     fn system(&mut self, index: usize, caption: &Caption<'_>, now: Instant) -> Outcome {
-        let spoke = !caption.text.trim().is_empty();
+        let spoke = has_words(caption);
         if spoke {
             self.captioned.note(caption.start_ms, caption.end_ms);
         }
@@ -480,6 +481,10 @@ impl Guard {
             });
         }
         let queued = !lane.held.is_empty();
+        let words = has_words(caption);
+        // A final with no caption text commits nothing and clears the turn, whatever source
+        // text it carries (`isWithdrawal` in `src/lib/transcriptLog.ts`): it has nothing to
+        // wait for, and holding it would only keep the turn's last interim on screen longer.
         let blank = caption.text.trim().is_empty();
         if !caption.final_ {
             let Some(turn) = lane.mic.as_mut() else {
@@ -490,7 +495,7 @@ impl Guard {
             }
             turn.text.read(caption.text);
             turn.source.read(caption.source_text);
-            let echo = !blank
+            let echo = words
                 && repeats(
                     &lane.heard,
                     &turn.text,
@@ -520,7 +525,9 @@ impl Guard {
             } else if queued {
                 lane.waiting = Some(OwnedCaption::of(caption));
             } else {
-                turn.shown |= !blank;
+                // The windows show a caption with source text alone: one that turns out to be
+                // an echo must be withdrawn too.
+                turn.shown |= words;
                 outcome.pass = true;
             }
             return outcome;
@@ -531,7 +538,7 @@ impl Guard {
         lane.waiting = None;
         turn.text.read(caption.text);
         turn.source.read(caption.source_text);
-        let echo = !blank
+        let echo = words
             && repeats(
                 &lane.heard,
                 &turn.text,
@@ -600,10 +607,17 @@ fn settle(lane: &mut Lane, now: Instant, out: &mut Vec<OwnedCaption>) {
             .as_mut()
             .filter(|turn| turn.turn_id == waiting.turn_id)
         {
-            turn.shown |= !waiting.text.trim().is_empty();
+            turn.shown |= has_words(&waiting.as_caption());
         }
         out.push(waiting);
     }
+}
+
+/// Whether a caption has words to show or compare: caption text, or source text alone. Engines
+/// that transcribe ahead of their translation (Gemini Live Translate, OpenAI Realtime, DeepL)
+/// send interims with source text and no caption text yet, and the windows show them.
+fn has_words(caption: &Caption<'_>) -> bool {
+    !caption.text.trim().is_empty() || !caption.source_text.trim().is_empty()
 }
 
 /// A held line leaving the queue: withdrawn if it was an echo the windows show, dropped if
@@ -628,7 +642,7 @@ fn remember(heard: &mut Vec<Heard>, caption: &Caption<'_>) {
         turn.end_ms = caption.end_ms;
         return;
     }
-    if caption.text.trim().is_empty() {
+    if !has_words(caption) {
         return;
     }
     if heard.len() >= MAX_HEARD {
@@ -827,6 +841,57 @@ mod tests {
         "the committee has approved the new schedule for the spring",
         "questions can be sent by email before the meeting ends",
     ];
+
+    /// A caption with source text, on `lane`.
+    fn heard<'a>(mut caption: Caption<'a>, source_text: &'a str, lane: u8) -> Caption<'a> {
+        caption.source_text = source_text;
+        caption.lane = lane;
+        caption
+    }
+
+    /// An engine that transcribes ahead of its translation, on both sources: the microphone's
+    /// first source-only interim is shown, so once the translation shows the turn is an echo it
+    /// must be withdrawn. It stayed on screen: only caption text counted as shown.
+    #[test]
+    fn a_source_only_microphone_interim_is_withdrawn_once_the_turn_is_an_echo() {
+        for lane in 0..2 {
+            let now = Instant::now();
+            let mut guard = guard(now);
+            // Too few words to judge, and shown.
+            let outcome = guard.caption(&heard(mic(4, "", false, 0), "the budget", lane), now);
+            assert!(outcome.pass);
+            let outcome = guard.caption(&heard(system(9, "", false, 100), SPEECH, lane), now);
+            assert!(outcome.pass);
+            // The translations, the system's first.
+            let translated = "Le budget de l'année prochaine sera présenté jeudi matin";
+            guard.caption(&heard(system(9, translated, false, 100), SPEECH, lane), now);
+            let room = "le budget de l'année prochaine sera présenté jeudi";
+            let outcome = guard.caption(&heard(mic(4, room, false, 0), "the budget", lane), now);
+            assert!(!outcome.pass, "lane {lane}");
+            assert_eq!(shape(&outcome.before), [(4, "", true)], "lane {lane}");
+            assert_eq!(outcome.before[0].lane, lane);
+            // Withdrawn once; its final is dropped without a second withdrawal.
+            let outcome = guard.caption(&heard(mic(4, room, true, 0), ROOM_HEARD, lane), now);
+            assert_eq!(outcome, Outcome::default(), "lane {lane}");
+        }
+    }
+
+    /// Source text alone is enough to recognise an echo, before either translation: the system
+    /// turn is remembered from its first source-only interim, and the microphone's is compared.
+    #[test]
+    fn source_only_interims_are_compared() {
+        let now = Instant::now();
+        let mut guard = guard(now);
+        assert!(
+            guard
+                .caption(&heard(mic(4, "", false, 0), "the budget", 0), now)
+                .pass
+        );
+        guard.caption(&heard(system(9, "", false, 100), SPEECH, 0), now);
+        let outcome = guard.caption(&heard(mic(4, "", false, 0), ROOM_HEARD, 0), now);
+        assert!(!outcome.pass);
+        assert_eq!(shape(&outcome.before), [(4, "", true)]);
+    }
 
     #[test]
     fn a_microphone_line_repeating_the_system_one_is_dropped() {

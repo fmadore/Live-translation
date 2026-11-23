@@ -30,7 +30,13 @@ use crate::timing::SessionClock;
 use crate::types::{Caption, Origin, SessionState, StatusUpdate, events};
 use policy::{After, Reconnect, RunEnd};
 use socket::{Backlog, SocketIo};
-pub use wire::{Verdict, bearer_request, classify, ends_sentence, parse_or_log, provider_error};
+/// For the providers' own tests of when the runner closes a held turn.
+#[cfg(test)]
+pub(crate) use turn_timer::MAX_HOLD;
+pub use wire::{
+    CLOSING_MARKS, SENTENCE_ENDERS, Verdict, bearer_request, classify, ends_sentence,
+    idle_keepalive, parse_or_log, provider_error,
+};
 
 /// Whether the operator has paused the session. One sender per session, a receiver per client.
 pub type PauseRx = watch::Receiver<bool>;
@@ -275,11 +281,11 @@ pub trait RealtimeProtocol {
         self.audio_json(base64::engine::general_purpose::STANDARD.encode(pcm_le))
     }
 
-    /// For a provider that ends a session whose input stops — DeepL, after 30 seconds without
-    /// data: silence to send whenever the source has sent no audio for a while. A microphone
-    /// delivers chunks continuously, silence included, but system audio can deliver none while
-    /// nothing plays (event-driven WASAPI loopback is not signalled when no stream renders).
-    /// `None`: send nothing.
+    /// For a provider that ends a session whose input stops — DeepL and Mistral, after 30
+    /// seconds without audio (`idle_keepalive`): silence to send whenever the source has sent
+    /// no audio for a while. A microphone delivers chunks continuously, silence included, but
+    /// system audio can deliver none while nothing plays (event-driven WASAPI loopback is not
+    /// signalled when no stream renders). `None`: send nothing.
     fn keepalive(&self) -> Option<Keepalive> {
         None
     }
@@ -319,6 +325,13 @@ pub trait RealtimeProtocol {
     fn keeps_turn_open(&self, _acc: &TurnAccumulator) -> bool {
         false
     }
+
+    /// Called just before the runner closes the open turn on its own (`close_turn`): at the
+    /// idle boundary, when a connection ends, and when the source ends. A provider holding text
+    /// of the turn that the accumulator does not show yet puts it there, so the final caption
+    /// carries it rather than the runner closing an empty turn: DeepL's tentative start of the
+    /// sentence after a concluded one. Nothing, by default.
+    fn before_finalize(&mut self, _acc: &mut TurnAccumulator) {}
 }
 
 pub async fn run_session<P: RealtimeProtocol, E: Events>(
@@ -450,7 +463,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
             break;
         }
 
-        finalize_accumulator(&events, origin, &mut acc.acc);
+        close_turn(&events, &mut proto, &mut acc.acc);
         if cancel.is_cancelled() {
             break;
         }
@@ -472,7 +485,7 @@ pub async fn run_session<P: RealtimeProtocol, E: Events>(
     let report_idle = !cancel.is_cancelled();
     finish_source(
         &cancel,
-        || finalize_accumulator(&events, origin, &mut acc.acc),
+        || close_turn(&events, &mut proto, &mut acc.acc),
         || {
             if let Some(error) = terminal_error {
                 events.status(StatusUpdate::lane(
@@ -549,6 +562,14 @@ fn finalize_accumulator(events: &impl Events, origin: Origin, acc: &mut TurnAccu
         emit_caption(events, origin, acc, true);
         acc.next_turn();
     }
+}
+
+/// Close the open turn as the runner does on its own, at the idle boundary or the end of a
+/// connection or source: first the provider adds what it holds of the turn that is not shown
+/// yet (`RealtimeProtocol::before_finalize`), then the turn goes out as final.
+fn close_turn<P: RealtimeProtocol>(events: &impl Events, proto: &mut P, acc: &mut TurnAccumulator) {
+    proto.before_finalize(acc);
+    finalize_accumulator(events, proto.origin(), acc);
 }
 
 /// Emit a caption, timed against the session clock.
@@ -650,8 +671,9 @@ pub(crate) mod test_support {
             outcome
         }
 
-        /// The runner's idle timer firing, as `finalize_accumulator` handles it.
+        /// The runner's idle timer firing, as `close_turn` handles it.
         pub fn finalize_idle(&mut self) {
+            self.proto.before_finalize(&mut self.acc);
             if !self.acc.is_empty() {
                 self.captions.push(Emitted::of(&self.acc, true));
                 self.acc.next_turn();
