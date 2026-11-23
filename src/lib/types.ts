@@ -30,12 +30,15 @@ export type { TargetLanguage } from './languages';
  *  `gemini` and `gemini-transcribe` are two different Google models sharing one endpoint and
  *  one key — Live Translate and Transcribe Live. They are separate ids because they serve
  *  different modes at different rates, and `providerCanTranslate` has to stay a plain
- *  function of the provider. `whisper` and `whisper-translate` are one local engine split the
- *  same way: subtitles, and translation into English. */
+ *  function of the provider. `openai` and `openai-transcribe` are OpenAI's pair, split the
+ *  same way: Realtime Translate and `gpt-live-transcribe`, on one key. `whisper` and
+ *  `whisper-translate` are one local engine split the same way: subtitles, and translation into
+ *  English. */
 export const PROVIDERS = [
 	'gemini',
 	'gemini-transcribe',
 	'openai',
+	'openai-transcribe',
 	'mistral',
 	'deepl',
 	'ondevice',

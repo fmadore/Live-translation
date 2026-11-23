@@ -402,7 +402,7 @@ impl TargetLanguage {
                 self,
                 Self::En
             ),
-            Provider::Mistral | Provider::GeminiTranscribe | Provider::Whisper => true,
+            Provider::Mistral | Provider::GeminiTranscribe | Provider::OpenAiTranscribe | Provider::Whisper => true,
         }
     }
 }

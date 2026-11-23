@@ -36,7 +36,10 @@ fn credential(provider: Provider) -> Option<Credential> {
         Provider::Gemini | Provider::GeminiTranscribe => {
             ("gemini-api-key", "GEMINI_API_KEY", "Gemini")
         }
-        Provider::OpenAi => ("openai-api-key", "OPENAI_API_KEY", "OpenAI"),
+        // Likewise both OpenAI engines: one key covers translation and subtitles.
+        Provider::OpenAi | Provider::OpenAiTranscribe => {
+            ("openai-api-key", "OPENAI_API_KEY", "OpenAI")
+        }
         Provider::Mistral => ("mistral-api-key", "MISTRAL_API_KEY", "Mistral"),
         Provider::DeepL => ("deepl-api-key", "DEEPL_API_KEY", "DeepL"),
         Provider::OnDevice | Provider::Whisper | Provider::WhisperTranslate => return None,
@@ -346,6 +349,20 @@ mod tests {
         assert_eq!(resolve_api_key(Provider::Gemini).unwrap(), "AIza-shared");
     }
 
+    /// One OpenAI key covers translation and subtitles: never a second credential.
+    #[test]
+    fn both_openai_engines_read_the_one_openai_key() {
+        let Some(_keychain) = mock_keychain() else {
+            return;
+        };
+        set_api_key(Provider::OpenAi, "sk-shared").unwrap();
+        assert_eq!(
+            resolve_api_key(Provider::OpenAiTranscribe).unwrap(),
+            "sk-shared"
+        );
+        assert!(has_api_key(Provider::OpenAiTranscribe));
+    }
+
     /// B6: a key that cannot be one never reaches the keychain, and does not displace the one
     /// that is there.
     #[test]
@@ -473,6 +490,7 @@ mod tests {
             Provider::Gemini,
             Provider::GeminiTranscribe,
             Provider::OpenAi,
+            Provider::OpenAiTranscribe,
             Provider::Mistral,
             Provider::DeepL,
             Provider::OnDevice,
@@ -484,6 +502,7 @@ mod tests {
                 Provider::Gemini
                 | Provider::GeminiTranscribe
                 | Provider::OpenAi
+                | Provider::OpenAiTranscribe
                 | Provider::Mistral
                 | Provider::DeepL
                 | Provider::OnDevice
@@ -510,6 +529,10 @@ mod tests {
         assert_eq!(
             credential(Provider::Gemini),
             credential(Provider::GeminiTranscribe)
+        );
+        assert_eq!(
+            credential(Provider::OpenAi),
+            credential(Provider::OpenAiTranscribe)
         );
     }
 

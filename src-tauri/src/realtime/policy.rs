@@ -98,8 +98,9 @@ pub(super) struct Connect {
     pub status: Option<SessionState>,
     /// Drop the audio that queued while disconnected: after a failure it is a stall's backlog.
     pub drain_stale: bool,
-    /// Replay that audio in order instead, buffering more while the new socket opens: after a
-    /// planned handover it is live speech from the gap.
+    /// Buffer the audio that arrives while the new socket opens and sets up, and send it in
+    /// order once streaming: after a planned handover it is live speech from the gap (replayed
+    /// with what queued before), and on a fresh start the speaker's first words.
     pub catch_up: bool,
 }
 
@@ -152,14 +153,18 @@ impl Reconnect {
                 catch_up: true,
             };
         }
+        // A fresh start (Start, or Resume after a pause) holds the speech that begins while the
+        // socket opens and the provider confirms its setup, and sends it once streaming: the
+        // operator presses Start and the speaker begins. A recovery drops it, as a stall's.
+        let fresh = std::mem::take(&mut self.fresh);
         Connect {
-            status: Some(if std::mem::take(&mut self.fresh) {
+            status: Some(if fresh {
                 SessionState::Connecting
             } else {
                 SessionState::Reconnecting
             }),
             drain_stale: true,
-            catch_up: false,
+            catch_up: fresh,
         }
     }
 
@@ -249,14 +254,15 @@ mod tests {
         Connect {
             status: Some(SessionState::Connecting),
             drain_stale: true,
-            catch_up: false,
+            catch_up: true,
         }
     }
 
     fn reconnecting() -> Connect {
         Connect {
             status: Some(SessionState::Reconnecting),
-            ..connecting()
+            drain_stale: true,
+            catch_up: false,
         }
     }
 

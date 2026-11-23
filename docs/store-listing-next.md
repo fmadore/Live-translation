@@ -18,6 +18,13 @@ controls. New installations open on Whisper / Base / automatic detection, and ex
 setups are preserved. Model download and capture remain explicit user actions. The Store
 listing is for Windows: 1.13 and later also ship a Mac app, which the listing does not mention.
 
+## On main after 1.15.0, for the next listing
+
+- **OpenAI subtitles** ([#251](https://github.com/fmadore/Live-translation/issues/251)): OpenAI's
+  `gpt-live-transcribe` joins Whisper, Voxtral and Gemini under Live subtitles, on the same
+  OpenAI key as its translation, at $1.02 an hour; the privacy policy, effective 23 November
+  2026, names OpenAI as a recipient of subtitle audio, names and terms.
+
 ## What 1.15.0 adds
 
 From the [release notes](release-1.15.0.md) and the

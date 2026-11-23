@@ -1,8 +1,8 @@
 # Caption language coverage (issue #78)
 
 Current for 1.15.0. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
-separate spoken-language selector. The dated provider checks below are the latest recorded
-evidence, not fresh endpoint verification.
+separate spoken-language selector, which OpenAI transcription also reads, as a hint. The dated
+provider checks below are the latest recorded evidence, not fresh endpoint verification.
 
 | Engine | Caption language control |
 | --- | --- |
@@ -13,6 +13,7 @@ evidence, not fresh endpoint verification.
 | Local Whisper (translation) | English only, translated from 99 spoken languages or automatic detection |
 | Built-in demo | English/French script buttons only |
 | Mistral / Gemini Transcribe | Auto-detection hint, no language selector |
+| OpenAI transcription | Optional spoken-language hint from the 99 Whisper languages, or automatic detection; same-language subtitles |
 
 Choosing a caption language never changes the English/French/German interface; see
 [localization](localization.md).
@@ -80,6 +81,11 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
   which Mistral counts at 45 languages and dialects without publishing the list. Realtime 3
   accepts a two-letter `language` pin that the app does not send yet; see the
   [Mistral API notes](mistral-realtime-api.md#session-features-not-used-yet).
+- 2026-11-23: OpenAI transcription (`gpt-live-transcribe`) added for subtitles. OpenAI
+  publishes no language list for it. The spoken-language selector's choice goes as the one
+  entry of `languages` (Whisper's `jw` as ISO `jv`); OpenAI rejects codes it does not support,
+  which stops the source with its message, and no code beyond `en` and `fr` has been tried.
+  See the [OpenAI transcription notes](openai-transcribe-api.md).
 - Tests cover generated catalog parity, persistence/defaults, search ranking, favourites,
   F2, keyboard controls, unsupported options, history and caption direction. Rust tests
   verify provider memberships and every demo script's packaged WAV.

@@ -1,7 +1,8 @@
 //! The operator's names and terms: speaker names, institutions, acronyms and jargon the speech
 //! engine is asked to favour for a whole session. One list in the setup, sent the way each
-//! engine takes it: Voxtral's `context_bias`, Gemini Transcribe's `customVocabulary` and local
-//! Whisper's decoder prompt (`whisper::prompt`). The translation engines take none.
+//! engine takes it: Voxtral's `context_bias`, Gemini Transcribe's `customVocabulary`, OpenAI's
+//! `keywords` and local Whisper's decoder prompt (`whisper::prompt`). The translation engines
+//! take none.
 
 use anyhow::Result;
 
