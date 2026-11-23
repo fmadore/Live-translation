@@ -6,7 +6,9 @@ Included in **1.6.0** ([PR #99](https://github.com/fmadore/Live-translation/pull
 same-language meetings without ongoing API costs. Whisper is an additional **Subtitles**
 provider, and since 1.7.0 ([PR #121](https://github.com/fmadore/Live-translation/pull/121))
 also translates into English offline under **Live translation**; see
-[translation into English](#translation-into-english).
+[translation into English](#translation-into-english). Whisper can also take over a source
+whose cloud engine stopped mid-session; see
+[when a cloud engine stops](#when-a-cloud-engine-stops-continue-with-whisper).
 
 New installations open on Whisper with Base and automatic language detection selected.
 Downloading a model and starting capture both require the user's action. Saved engine, model,
@@ -68,6 +70,43 @@ match; a failed or cancelled download deletes it, and starting a download first 
 partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
 bytes are verified again before they are passed to the native loader. Files in use cannot be
 deleted or replaced.
+
+## When a cloud engine stops: continue with Whisper
+
+A cloud engine can end a source in the middle of an event: a spent quota, a revoked key, a
+billing problem, or a network that stays down. Since [#248](https://github.com/fmadore/Live-translation/issues/248)
+a banner under the toolbar offers to carry on with offline Whisper in the same session, rather
+than Stop, a change of engine and a new Start.
+
+- **When it appears.** When the provider stops or rejects a source, or when a source has been
+  **Reconnecting** for 30 seconds. In the second case the reconnection carries on beside the
+  banner until you choose; if the connection comes back first, the banner goes away.
+- **What the button does.** **Continue with offline Whisper** rebuilds that source on Whisper
+  inside the running session: the clock, the transcript, the markers, the history entry and the
+  overlay carry on, and the other source is not touched. With both sources waiting, one click
+  continues both. The transcript gets a marker at the switch (*System audio: offline Whisper
+  from here*), so a reader of the export sees why the captions changed. **Not now** leaves the
+  source as it is.
+- **Which model.** The one chosen in the setup if it is installed (and can translate, when the
+  room reads English), otherwise the most accurate installed model that fits, with the setup's
+  graphics-processor choice. The setup itself is not changed: the next Start uses the engine you
+  chose there.
+- **The spoken-language warning.** Whisper translates into English only, and Large v3 Turbo not
+  at all. When the room reads English and a model that translates is installed, the button says
+  **Continue with offline Whisper** and that Whisper keeps translating into English. Otherwise
+  it says **Continue in the spoken language**, with the reason underneath (the caption language
+  is not English, or only Large v3 Turbo is installed), because the overlay will then show the
+  speaker's own language. Screen readers hear the reason with the button.
+- **When nothing is offered.** In a rehearsal or the built-in demo, in a session with two
+  caption languages, on a processor that cannot run Whisper, with no model installed (or one
+  still downloading), and for a source Whisper has already taken over once in this session.
+- **When the last source has ended.** The session is held open while the banner is shown: the
+  clock keeps running and the history entry stays open. **Not now** or **Stop** then end the
+  session, and its history entry ends at the moment the engine stopped, not when you answered.
+
+From the switch, that source's audio stays on the computer and costs nothing: the running cost
+estimate stops counting a stream once it has ended, and counts the time after the switch as
+free.
 
 ## Names and terms
 
