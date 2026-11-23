@@ -331,7 +331,9 @@ impl ZoomCaptions {
 fn interims_only_grow(provider: Provider) -> bool {
     match provider {
         // Each appends transcript deltas to the turn.
-        Provider::Gemini | Provider::OpenAi | Provider::Mistral => true,
+        Provider::Gemini | Provider::OpenAi | Provider::OpenAiTranscribe | Provider::Mistral => {
+            true
+        }
         // Transcribe Live replaces its hypothesis; the demonstration rewrites its partial
         // line; Whisper sends finals only.
         // DeepL's tentative text is replaced by each update, so even the start of a turn that
@@ -751,7 +753,12 @@ mod tests {
 
     #[test]
     fn engines_that_append_may_share_interim_text_and_the_others_may_not() {
-        for provider in [Provider::Gemini, Provider::OpenAi, Provider::Mistral] {
+        for provider in [
+            Provider::Gemini,
+            Provider::OpenAi,
+            Provider::OpenAiTranscribe,
+            Provider::Mistral,
+        ] {
             assert!(interims_only_grow(provider), "{provider:?}");
         }
         for provider in [

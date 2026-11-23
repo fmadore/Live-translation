@@ -29,10 +29,11 @@ export function providerRequiresKey(provider: Provider): boolean {
 	return provider !== 'ondevice' && !isLocalWhisper(provider);
 }
 
-/** Which credential a backend reads. Both Gemini models share one AI Studio key, so saving
- *  it once covers translation and subtitles. Mirrors `account()` in `src-tauri/src/secrets.rs`. */
+/** Which credential a backend reads. Both Gemini models share one AI Studio key, and both
+ *  OpenAI models one OpenAI key, so saving it once covers translation and subtitles. Mirrors
+ *  `credential()` in `src-tauri/src/secrets.rs`. */
 export function providerKeyName(provider: Provider): string {
-	if (provider === 'openai') return 'OpenAI';
+	if (provider === 'openai' || provider === 'openai-transcribe') return 'OpenAI';
 	if (provider === 'mistral') return 'Mistral';
 	if (provider === 'deepl') return 'DeepL';
 	return 'Gemini';
@@ -44,14 +45,31 @@ export function providerKeyName(provider: Provider): string {
  *  Translate it writes the caption language the operator picks, so it is false there. Whisper's translate task detects the spoken language too, but
  *  the room reads English, which the operator chooses, so it is false there. */
 export function providerDetectsLanguage(provider: Provider): boolean {
-	return provider === 'mistral' || provider === 'gemini-transcribe' || provider === 'whisper';
+	return (
+		provider === 'mistral' ||
+		provider === 'gemini-transcribe' ||
+		provider === 'openai-transcribe' ||
+		provider === 'whisper'
+	);
+}
+
+/** Whether the setup asks which language is spoken in the room: Whisper, which needs it to
+ *  translate and decodes better with it, and OpenAI's transcription, which takes it as a
+ *  language hint. Both offer automatic detection. Mirrors `Provider::takes_spoken_language`. */
+export function providerTakesSpokenLanguage(provider: Provider): boolean {
+	return provider === 'openai-transcribe' || isLocalWhisper(provider);
 }
 
 /** Whether the engine takes the setup's names and terms: Voxtral's `context_bias`, Gemini
- *  Transcribe's `customVocabulary` and Whisper's decoder prompt. The translation models document
- *  no vocabulary field. Mirrors `Provider::takes_glossary`. */
+ *  Transcribe's `customVocabulary`, OpenAI's `keywords` and Whisper's decoder prompt. The
+ *  translation models document no vocabulary field. Mirrors `Provider::takes_glossary`. */
 export function providerTakesGlossary(provider: Provider): boolean {
-	return provider === 'mistral' || provider === 'gemini-transcribe' || isLocalWhisper(provider);
+	return (
+		provider === 'mistral' ||
+		provider === 'gemini-transcribe' ||
+		provider === 'openai-transcribe' ||
+		isLocalWhisper(provider)
+	);
 }
 
 export interface ProviderMeta {
@@ -106,8 +124,21 @@ export const PROVIDER_META: Record<Provider, ProviderMeta> = {
 	openai: {
 		id: 'openai',
 		modelId: 'gpt-realtime-translate',
+		// $0.034 a minute for the translation and $0.017 for the `gpt-realtime-whisper` source
+		// transcription that feeds the operator's monitor, both billed for as long as the
+		// stream stays open (OpenAI's pricing page, checked 2026-11-23).
 		hourlyRate: '$3.06',
 		hourlyEstimate: 3.06,
+		perStream: true,
+		keyUrl: 'https://platform.openai.com/api-keys'
+	},
+	'openai-transcribe': {
+		id: 'openai-transcribe',
+		modelId: 'gpt-live-transcribe',
+		// $0.017 per minute of realtime audio (OpenAI's model and pricing pages, checked
+		// 2026-11-23).
+		hourlyRate: '$1.02',
+		hourlyEstimate: 1.02,
 		perStream: true,
 		keyUrl: 'https://platform.openai.com/api-keys'
 	},

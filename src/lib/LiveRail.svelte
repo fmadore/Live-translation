@@ -30,11 +30,12 @@
 	const overlay = overlayContext();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
-	// Whisper's subtitles are in the spoken language, when one was chosen; its translations are
-	// in English, the target, like any other translation.
+	// Whisper's and OpenAI's subtitles are in the spoken language, when one was chosen; Whisper's
+	// translations are in English, the target, like any other translation.
 	const second = $derived(secondCaptionLanguageOf($options));
 	const roomReadsLabel = $derived(
-		$options.provider === 'whisper' && $options.spokenLanguage
+		($options.provider === 'whisper' || $options.provider === 'openai-transcribe') &&
+			$options.spokenLanguage
 			? (displayNames($locale)?.of($options.spokenLanguage) ?? $options.spokenLanguage)
 			: providerDetectsLanguage($options.provider)
 				? $t.language.auto

@@ -9,7 +9,12 @@
 	import { displayNames, languageName } from '../languages';
 	import { locale, t } from '../i18n';
 	import { languageFavourites, options } from '../stores';
-	import { isLocalWhisper, providerDetectsLanguage, providerTakesGlossary } from '../providers';
+	import {
+		isLocalWhisper,
+		providerDetectsLanguage,
+		providerTakesGlossary,
+		providerTakesSpokenLanguage
+	} from '../providers';
 	import type { TargetLanguage } from '../types';
 	import type { SetupActions } from '../setupActions';
 
@@ -72,8 +77,10 @@
 		</Field>
 		<p class="hint">{hint}</p>
 	{/snippet}
-	{#if $options.provider === 'whisper'}
-		{@render spokenLanguage($t.whisper.languageHint)}
+	{#if $options.mode === 'transcribe' && providerTakesSpokenLanguage($options.provider)}
+		{@render spokenLanguage(
+			$options.provider === 'whisper' ? $t.whisper.languageHint : $t.provider.openaiLanguageHint
+		)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
 	{:else if $options.mode === 'translate'}

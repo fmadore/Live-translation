@@ -1,0 +1,76 @@
+{"event_id":"event_EnITZMMAcVqhHPAwWACVa","session":{"audio":{"input":{"format":{"rate":24000,"type":"audio/pcm"},"noise_reduction":null,"transcription":null,"turn_detection":{"prefix_padding_ms":300,"silence_duration_ms":200,"threshold":0.5,"type":"server_vad"}}},"expires_at":1795421401,"id":"sess_EnITZqBe4jsgk8P25r4rD","include":null,"object":"realtime.transcription_session","type":"transcription"},"type":"session.created"}
+{"event_id":"event_EnITaelIGMlkyjTDBqwHV","session":{"audio":{"input":{"format":{"rate":24000,"type":"audio/pcm"},"noise_reduction":null,"transcription":{"language":null,"languages":null,"model":"gpt-live-transcribe","prompt":null},"turn_detection":null}},"expires_at":1795421401,"id":"sess_EnITZqBe4jsgk8P25r4rD","include":null,"object":"realtime.transcription_session","type":"transcription"},"type":"session.updated"}
+{"event_id":"event_EnITaSdqPNWqv2kNqrK84","session":{"audio":{"input":{"format":{"rate":24000,"type":"audio/pcm"},"noise_reduction":null,"transcription":{"keywords":["Live Translation","subtitles"],"language":null,"languages":["en"],"model":"gpt-live-transcribe","prompt":"A short rehearsal recording for a live captioning app."},"turn_detection":null}},"expires_at":1795421401,"id":"sess_EnITZqBe4jsgk8P25r4rD","include":null,"object":"realtime.transcription_session","type":"transcription"},"type":"session.updated"}
+{"content_index":0,"delta":" This","event_id":"event_EnITb6ui9KPKdkIm9VNeX","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" is","event_id":"event_EnITb9Yb6OVR7zPH9kXj4","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" a","event_id":"event_EnITbmhKlQ4kRnC6zcQMo","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" rehearsal","event_id":"event_EnITczOykREtTfGTTi9eS","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" recording","event_id":"event_EnITcjwncwvp6klcTf9pe","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" for","event_id":"event_EnITcSA0HfQx1MPOGE0yP","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" the","event_id":"event_EnITciXIxr6xTGhzysdHA","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" live","event_id":"event_EnITdpbZnpzF5cK2qymos","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" caption","event_id":"event_EnITdyhQdXfIXp6zYomGA","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" system","event_id":"event_EnITePa55T6H3TmGCAAX6","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":".","event_id":"event_EnITe2UwgNgDuxkwvYb0S","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" A","event_id":"event_EnITfluUHolSsJy0HgmcV","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" speaker","event_id":"event_EnITfTmFdiV8HEzD7eVEu","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" is","event_id":"event_EnITgAXrn2A8B622VAMtt","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" presenting","event_id":"event_EnITg8UTbfM6B8X4boE6N","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" to","event_id":"event_EnITguLicdS8dDlKtBmEt","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" an","event_id":"event_EnITgL9GOsxMcOPwiRvMw","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" audience","event_id":"event_EnIThfYPjZUAAnLFSipS1","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":",","event_id":"event_EnIThuv4GRUrMKEcHULc5","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" and","event_id":"event_EnIThlhVVT1t5FRoXXnFx","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" every","event_id":"event_EnITiKnpkCCtFyLaxVZmK","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" sentence","event_id":"event_EnITiN1fo3SGvN7ciyd5T","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" is","event_id":"event_EnITibnqNDOnwUPzSO107","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"event_id":"event_EnITjfKG8z7559rBrsU2C","item_id":"item_EnITaHF7zdaUszaIJj6kM","previous_item_id":null,"type":"input_audio_buffer.committed"}
+{"event_id":"event_EnITjaDe5kd4kRVWemBFC","item":{"content":[{"transcript":null,"type":"input_audio"}],"id":"item_EnITaHF7zdaUszaIJj6kM","role":"user","status":"completed","type":"message"},"previous_item_id":null,"type":"conversation.item.added"}
+{"event_id":"event_EnITjGbxWzqa41UKHcNBl","item":{"content":[{"transcript":null,"type":"input_audio"}],"id":"item_EnITaHF7zdaUszaIJj6kM","role":"user","status":"completed","type":"message"},"previous_item_id":null,"type":"conversation.item.done"}
+{"content_index":0,"delta":" trans","event_id":"event_EnITjhz3Ii3U0BE5yPkhd","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":"cribed","event_id":"event_EnITjcVoZq2iNh46cmKVi","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" and","event_id":"event_EnITj1A7DUZn3TSVFAjER","item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"event_id":"event_EnITjRfBq46d1V8STTbzM","item_id":"item_EnITaHF7zdaUszaIJj6kM","transcript":"This is a rehearsal recording for the live caption system. A speaker is presenting to an audience, and every sentence is transcribed and","type":"conversation.item.input_audio_transcription.completed","usage":{"seconds":9,"type":"duration"}}
+{"content_index":0,"delta":" Sh","event_id":"event_EnITkMTbZbMIJu7QdNjYD","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":"own","event_id":"event_EnITkFqrNBU61gvWHNfTS","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" on","event_id":"event_EnITk4idwboqszBCpptI8","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" screen","event_id":"event_EnITkoROdrkoMKLLv0Ve4","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" as","event_id":"event_EnITkIKkMoNuyUVzWj6ml","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" it","event_id":"event_EnITlkrJX5DzMNjo8tO8I","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" is","event_id":"event_EnITlM4JLbflJLeKDOzJV","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" spoken","event_id":"event_EnITlYLjuHFMjG1O2miwI","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":".","event_id":"event_EnITlkJJFiCBApk1q4niR","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" Capt","event_id":"event_EnITngz6XlEH5NvjX6PgN","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":"ions","event_id":"event_EnITnGLoGqENyTKrUAQVT","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" appear","event_id":"event_EnITnYrm47grMx1skPTgK","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" a","event_id":"event_EnITnA5e6oLNtFuMgdhQ6","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" moment","event_id":"event_EnITobzLP1UWV6xr3hpUP","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" after","event_id":"event_EnITorYlQQBK7z8INcemP","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" the","event_id":"event_EnIToYmVhvydsBwxefhIy","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" words","event_id":"event_EnITpxBRnuxDmzUGdfrTI","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" and","event_id":"event_EnITpNTUt2qBkbgMCWD9W","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" are","event_id":"event_EnITqGsbTT4LbDeYAUvU0","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" corrected","event_id":"event_EnITq7Qaj6nM1ki7pzQ8C","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" once","event_id":"event_EnITql3yehT6LjGQaDQxm","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" the","event_id":"event_EnITqVeB2MXn7WEOk2b0e","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" sentence","event_id":"event_EnITrZlyf1IbSchaxthxP","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" becomes","event_id":"event_EnITremM5WdFF9y64LEZX","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" clear","event_id":"event_EnITsSFYnPR5jxB6MuGNt","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":".","event_id":"event_EnITsScTMWWyMGJRye6cp","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" Use","event_id":"event_EnITtL6W6wFMsrrRWjYZE","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" this","event_id":"event_EnITthIUOVWdwaA2007hC","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" recording","event_id":"event_EnITuoJjW2oTKJv3HVKL1","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" to","event_id":"event_EnITuHTWhXxjCmquJvLtn","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" check","event_id":"event_EnITuttI8LI79O8uRlRpJ","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" the","event_id":"event_EnITvyrvpsNRhMqKo0kJK","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" overlay","event_id":"event_EnITvF4kP8IhSaRsdywfI","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" before","event_id":"event_EnITvjPT5e0gDbl7wuPqu","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" the","event_id":"event_EnITwyCuPVJssfArhptrK","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" room","event_id":"event_EnITwJMgf8Fh7ax2pV1Mz","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" fills","event_id":"event_EnITwQyWNCEgEdWB2AVrd","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":" up","event_id":"event_EnITwAxNRmEGP10L7E9YU","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"content_index":0,"delta":".","event_id":"event_EnITwSC0Dy5YI4VcFzJjr","item_id":"item_EnITjADgizen5ysIMnOBS","type":"conversation.item.input_audio_transcription.delta"}
+{"event_id":"event_EnITxWyJ8W1mXsim9iu7m","item_id":"item_EnITjADgizen5ysIMnOBS","previous_item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"input_audio_buffer.committed"}
+{"event_id":"event_EnITxV3CoE0czmqntiLbv","item":{"content":[{"transcript":null,"type":"input_audio"}],"id":"item_EnITjADgizen5ysIMnOBS","role":"user","status":"completed","type":"message"},"previous_item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.added"}
+{"event_id":"event_EnITx5NgfZnRqfq1LsQqR","item":{"content":[{"transcript":null,"type":"input_audio"}],"id":"item_EnITjADgizen5ysIMnOBS","role":"user","status":"completed","type":"message"},"previous_item_id":"item_EnITaHF7zdaUszaIJj6kM","type":"conversation.item.done"}
+{"content_index":0,"event_id":"event_EnITxfdn8LMWfWJRnbD5F","item_id":"item_EnITjADgizen5ysIMnOBS","transcript":"Shown on screen as it is spoken. Captions appear a moment after the words and are corrected once the sentence becomes clear. Use this recording to check the overlay before the room fills up.","type":"conversation.item.input_audio_transcription.completed","usage":{"seconds":13,"type":"duration"}}
