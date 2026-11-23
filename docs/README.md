@@ -45,6 +45,8 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
   [one-click fallback engine](decisions/2026-11-23-fallback-engine.md) for a cloud source that
   ends mid-session (proposed, [#248](https://github.com/fmadore/Live-translation/issues/248)).
 - Provider integration notes: [Gemini](gemini-live-api.md), [OpenAI](openai-realtime-api.md), [Mistral](mistral-realtime-api.md), [DeepL](deepl-voice-api.md).
+  Research for a possible fifth engine, not built:
+  [Soniox](soniox-realtime-api.md) ([#250](https://github.com/fmadore/Live-translation/issues/250)).
 - [Security policy](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md),
   [roadmap](https://github.com/fmadore/Live-translation/blob/main/ROADMAP.md) and
   [release history](release-notes.md).
