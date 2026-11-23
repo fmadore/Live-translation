@@ -2,17 +2,17 @@
 
 Implements [issue #81](https://github.com/fmadore/Live-translation/issues/81).
 
-Open **Settings → Transcript history** in the operator window and enable **Automatically save
-sessions locally** before starting a meeting. It is off by default. Enabling it mid-session
-saves subsequent finalized lines; it does not retroactively archive the transcript already in
-memory.
+Open **Settings → Transcript history** in the operator window and turn on **Automatically save
+sessions locally** before starting a meeting. It is off by default. Turning it on mid-session
+saves the finalized lines from then on; the transcript already in memory is not saved
+retroactively.
 
 Each Start creates a separate session. Finalized lines are saved progressively to
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`. The first line
 is written at once; after that, new lines are saved at most every 5 seconds rather than after
 every caption. Stop, quit, retry and the next Start write anything still waiting immediately.
 Stop drains and saves trailing partial text before finishing the session. Whisper may keep
-producing finalized lines after Stop while its backlog drains; wait for completion before
+producing finalized lines after Stop while its backlog drains; wait for it to finish before
 exporting a finished session. Pause keeps the same history session. A crash leaves the last
 saved snapshot, which can miss up to the last 5 seconds of lines. Empty sessions create no file.
 
@@ -22,7 +22,7 @@ or quit. While the History tab is open during a session, its list refreshes at m
 seconds; Refresh, rename and delete still update it immediately. A refresh reads only the
 sessions that are new or whose file has grown since the tab last read them. A file that cannot
 be read at that moment (locked by backup or antivirus software, say) is skipped and logged,
-and the other sessions still list; one the tab already shows stays as it was until it can be
+and the other sessions are still listed; one the tab already shows stays as it was until it can be
 read again.
 
 The session list opens automatically and shows start date/time, duration and known language
@@ -30,16 +30,16 @@ information; a session captioned in two languages shows both, for example `→ F
 speech is labelled auto-detected when the provider does not report its language;
 demonstration and rehearsal sources have known languages. Whisper history records its source
 language as automatic even when an explicit recognition language was chosen. Unfinished
-sessions show duration through the last save. Select a session to read its raw captions and
+sessions show the duration up to the last save. Select a session to read its raw captions and
 available source transcription, copy it, or export Markdown, plain text, WebVTT or SRT through
-the existing Save As dialog. The format is the one chosen in the transcript toolbar, and
+the usual Save As dialog. The format is the one chosen in the transcript toolbar, and
 changing it here changes it there too. Timed formats require valid cue timing. Browsing and
 exporting history never replaces the active transcript.
 
-History remains after clearing the active transcript, export, quitting, and disabling automatic
-history. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current
-session prevents further history writes for that session; the next Start creates a new one.
-Unreadable records are shown individually and remain deletable.
+History is kept after the active transcript is cleared or exported, after quitting, and after
+automatic history is turned off. Use **Delete**, then **Delete permanently**, to remove a session. Deleting the current
+session stops further history writes for that session; the next Start creates a new one.
+Unreadable records are shown individually and can still be deleted.
 
 Several sessions can be handled at once. Each row has a checkbox, and **Select all shown** ticks
 every session the search, dates and language filter leave in the list; a count says how many
@@ -52,7 +52,7 @@ each file. Unreadable sessions, and sessions without cue timing when SRT or WebV
 are skipped and counted. Both commands carry on past a file that fails and return the failures
 as `{ item, error }`, so the tab says how many of the selection did not complete and why, and a
 session that could not be deleted stays ticked to try again. Save failures stay visible with
-a retry action; pending failed sessions are retained in memory until retried or the app exits.
+a retry action; sessions whose save failed are kept in memory until they are retried or the app exits.
 
 There is no automatic expiry and no upload. Files are unencrypted local text. No audio, keys,
 device names or application identities are saved. History and the optional single recovery
@@ -73,7 +73,7 @@ record per line.
 The latest progress and title records win. Markers were added without a new version: a
 build from before them skips a record it does not know, so it still reads the session's lines,
 and every older file reads as it did, with no markers. A damaged marker record is skipped
-rather than costing the session. The History reader shows markers as headings between the
+rather than losing the whole session. The History reader shows markers as headings between the
 lines and its search finds their text. The first write of a session, and any write after
 a failure, replaces the file whole through a flushed staging file; every later write goes
 through `append_history`, which adds only the new lines and flushes them. Appending never
@@ -99,7 +99,7 @@ validation, operator-only command permissions, and the history UI's copy/export/
 The listing is covered for unchanged, grown, deleted, unreadable, locked (on Windows) and
 lossily read files, and the History tab for keeping an unchanged session's decoded copy.
 
-Native release acceptance should also exercise the built-in demonstration with history enabled,
+Native release acceptance testing should also run the built-in demonstration with history on,
 restart the packaged app, reopen two sessions, export and delete one, and confirm the other is
 still available. Abruptly end a disposable demo run and check its last saved snapshot. No paid
 provider call is needed for these checks.
@@ -107,7 +107,7 @@ provider call is needed for these checks.
 ## Titles and search
 
 Saved sessions can be renamed (up to 120 characters); a blank title restores the date label.
-Titles are stored in the session file, including while the active session continues receiving
+Titles are stored in the session file, including while the active session is still receiving
 captions. Older files without titles remain readable. Changing a title never edits caption
 text.
 
@@ -116,13 +116,13 @@ filter uses the translation target (either one, for a session captioned in two l
 the known source language for subtitles; automatically detected languages remain marked
 unknown rather than guessed. Filters do not delete sessions or change export contents.
 
-The selected session appears beside the list (below it in narrow windows), with rename, copy,
-export and confirmed deletion grouped beside it.
+The selected session appears beside the list (below it in narrow windows), with its rename, copy,
+export and confirmed-deletion actions grouped together.
 
 Enter date bounds in year-month-day order, or use the calendar button. The format hint
 follows the interface language: **YYYY-MM-DD** (English), **AAAA-MM-JJ** (French) and
 **JJJJ-MM-TT** (German); for example, `2026-09-20` in every language. Invalid dates show a
-localized error and do not replace the last valid filter. Both bounds include the whole
+localised error and do not replace the last valid filter. Both bounds include the whole
 selected local day. Clear a field to remove that bound, or use **Clear filters** to reset the
 search, dates and language. The calendar popup is a native browser/WebView control; its
 presentation can follow the host's regional settings independently of the translated field.
