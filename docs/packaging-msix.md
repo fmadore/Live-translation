@@ -42,7 +42,7 @@ Three things in there are not what they look like:
   any of these differ by a character, so they are written out in the template and checked
   against *Store identity (assigned)* in `microsoft-store.md`.
 - **`"publisher"` in `tauri.conf.json` is load-bearing.** Tauri defaults the Windows publisher
-  to the second element of `identifier` — *github* in `io.github.fmadore.live-translation` —
+  to the second element of `identifier` (*github* in `io.github.fmadore.live-translation`)
   and writes it into the packaged executable's `CompanyName` and the NSIS/MSI installers.
   `"publisher": "Frédérick Madore"` sets it explicitly. The Store identity is unaffected: it is
   a literal in `bundle.config.json`, which is what made the 1.2.0 rename of the identifier safe.
@@ -69,7 +69,7 @@ model under `models/`; Whisper's model weights download only at the user's reque
 bundler stages the helper declared there as a sidecar, then removes it: an ordinary build or
 `tauri dev` does not need the helper. Build it first with
 `node scripts/build-whisper-vulkan.mjs <target>`, which needs LunarG's Vulkan SDK
-([local Whisper notes](local-whisper.md#building)). The same pattern as Kalamu's packaging.
+([local Whisper notes](local-whisper.md#building)). Kalamu's packaging uses the same pattern.
 
 `Version` is the field that moves: the bundler stamps it from `tauri.conf.json`, with a fourth
 component appended.
@@ -154,7 +154,7 @@ npm run bundle:msix:arm64
 ```
 
 That builds the front end, compiles the app for `aarch64-pc-windows-msvc` with `--no-bundle`
-(so no NSIS or MSI installer — use `npm run tauri build` for those), stages the payload in
+(so no NSIS or MSI installer; use `npm run tauri build` for those), stages the payload in
 `src-tauri/target/appx/arm64/`, and writes:
 
 ```text
@@ -208,7 +208,7 @@ follows.
 The certificate's **subject must equal the manifest's `Publisher` exactly**, or the install
 fails with a publisher mismatch.
 
-1. Create it (normal, non-elevated PowerShell — this writes to your own store):
+1. Create it (normal, non-elevated PowerShell; this writes to your own store):
 
    ```powershell
    $cert = New-SelfSignedCertificate -Type Custom `
@@ -271,7 +271,7 @@ fails with a publisher mismatch.
    ```
 
    Installing a *rebuilt* package with the same version fails with `0x80073CFB` ("same
-   identity, different contents") — Windows only swaps packages in place when the version
+   identity, different contents"): Windows only swaps packages in place when the version
    increases. Remove the old one first; Credential Manager keys survive, WebView-stored
    preferences reset:
 
@@ -293,7 +293,7 @@ fails with a publisher mismatch.
    Store when the verification round is done. Expect this on any machine that has the app from
    the Store.
 
-6. Confirm the identity is the one Partner Center assigned — the family name's hash suffix is
+6. Confirm the identity is the one Partner Center assigned. The family name's hash suffix is
    derived from `Name` plus `Publisher`, so this is a byte-for-byte check of both:
 
    ```powershell
@@ -318,7 +318,7 @@ nothing. Then work through the list; the
 | **Built-in demo (optional)** | Select Built-in demo, then click *Start demo subtitles*, without audio hardware or network. Demo status, elapsed time, level movement, partial/final captions, overlay, Stop and export work. Repeat in English and French. |
 | **Microphone (optional live mode)** | With Mistral/Gemini/OpenAI configured, the app appears under Settings → Privacy & security → Microphone and captures with access on. With access blocked, it reports the exact Settings path. |
 | **WASAPI loopback** | Join a real Teams or Zoom call from the same machine, run *System audio* or *Both*, and confirm the far end is captioned. This is the highest-risk item in the whole plan: it cannot be tested in CI and it invalidates the route if it fails. |
-| **Credential Manager** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two — and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
+| **Credential Manager** | Save a provider key in an *unpackaged* build first (`npm run tauri build`, or dev), then start the MSIX build and confirm the key is already there. `Control Panel → Credential Manager → Windows Credentials` should show one generic credential `io.github.fmadore.live-translation`, not two, and no `org.stias.live-translation`, which 1.2.0 migrates across and deletes on first read. |
 | **Overlay** | Transparent background, click-through to the window behind, always on top over a full-screen slide deck, and move mode still drags it. Placed and confirmed with Done, it reopens in the same place at the next launch, including on a second display at another scaling. |
 | **Export** | Use native Save As to choose a folder and filename for text, Markdown, SRT and VTT. Verify remembered folder, overwrite confirmation and cancellation (including the quit prompt); check the file exists at the exact selected path. See [transcript export](transcript-export.md#verification). Older packages may use the previous Documents export path. |
 
@@ -355,7 +355,7 @@ winapp run
 ```
 
 The CLI's `winapp init` / `winapp cert` / `winapp pack` flow is a first-party alternative to the
-packaging above — single-architecture, and not what the release workflow uses.
+packaging above: single-architecture, and not what the release workflow uses.
 
 ## What CI does
 

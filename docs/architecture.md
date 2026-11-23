@@ -20,8 +20,8 @@ caption events ── optional, opt-in ── Zoom caption sender → Zoom meeti
 
 1. **Live capture.** Each live source owns a native capture thread. `CaptureState` downmixes,
    applies a Kaiser-windowed sinc anti-alias filter when downsampling, resamples to the
-   provider rate by linear interpolation, converts to mono PCM16,
-   and forms roughly 100 ms chunks. Realtime callbacks write only to bounded channels.
+   provider rate by linear interpolation, converts to mono PCM16 and forms roughly 100 ms
+   chunks. Real-time callbacks write only to bounded channels.
 2. **Provider sessions.** Gemini Live Translate, OpenAI and DeepL Voice produce translated
    captions; Mistral Voxtral and Gemini Transcribe Live produce same-language captions. One async
    client runs per selected source and owns setup, timeouts, backoff, reconnect classification,
@@ -39,12 +39,11 @@ caption events ── optional, opt-in ── Zoom caption sender → Zoom meeti
    turns at inference on it: in the app, on the processor or on a Mac's graphics processor
    (Metal); or on Windows in `whisper-vulkan`, a helper program on the graphics processor
    (`whisper/gpu.rs`, `src-tauri/whisper-vulkan/`), with the processor as the fallback. Each
-   source owns its inference state. Capture
-   timestamps travel with the audio, so a slow recognizer preserves meeting timing. ggml is
-   compiled for AVX2 on x64 and for dot-product on ARM64, so `whisper/cpu.rs` refuses an older
-   processor before any native code runs and the interface offers another engine. Where the
-   windows are decoded, and why not on the graphics processor if it failed, goes to the
-   interface on `whisper-engine` (`whisper::Engine`). See [local Whisper](local-whisper.md).
+   source owns its inference state. Capture timestamps travel with the audio, so a slow
+   recognizer preserves meeting timing. ggml is compiled for AVX2 on x64 and for dot-product on
+   ARM64, so `whisper/cpu.rs` refuses an older processor before any native code runs and the
+   interface offers another engine. Where the windows are decoded, and why not on the graphics
+   processor if it failed, is sent to the interface on `whisper-engine` (`whisper::Engine`). See [local Whisper](local-whisper.md).
 5. **Render/export.** Both windows receive caption events. Pending turns are keyed by
    `(origin, turnId)` and finalized lines remain available for plain-text or Markdown export.
 
@@ -92,7 +91,7 @@ The transcript is an explicit document with a saved state, not a scrolling side 
   save, clear, discard, disable, and once a startup recovery offer is answered; a malformed or
   truncated spool is deleted rather than shown. Save, Clear, Disable, Restore and Quit share
   one renderer queue: deletion invalidates queued snapshots and waits for an active write. The
-  core serializes filesystem access and writes and flushes a sibling staging file before
+  core serializes filesystem access, and writes and flushes a sibling staging file before
   replacing the committed snapshot, so a failed write preserves the previous one; startup and
   deletion remove interrupted staging files.
 - **Reading long transcripts.** Paragraphs break on a source change, a five-second pause,
@@ -139,9 +138,9 @@ before every connection and cut short by Pause and Stop like the handshake, asks
 session (or resumes the one whose socket dropped) and receives a single-use streaming URL and
 token; its failures become the runner's usual ends (`PrepareError`), so a refused key, a spent
 quota or a rate limit report and retry as a refused handshake would. Its socket takes no setup
-message (`setup_json` returns `None`), and because DeepL ends a session after 30 seconds
-without audio, while system audio can deliver no chunks at all when nothing plays, the runner sends
-the silence its `keepalive` asks for after 10 quiet seconds (Mistral, which ends an idle session
+message (`setup_json` returns `None`). Because DeepL ends a session after 30 seconds without
+audio, and system audio can deliver no chunks at all when nothing plays, the runner sends the
+silence its `keepalive` asks for after 10 quiet seconds (Mistral, which ends an idle session
 the same way with its code 3401, asks for the same). A DeepL Free key (`:fx`) is refused
 when saved and again at Start (`error.deeplPaidPlan`): the Voice API is not on the free host.
 See [`deepl-voice-api.md`](deepl-voice-api.md).
@@ -159,7 +158,7 @@ apply, each opt-in through `RealtimeProtocol`:
   grace, however much text arrives meanwhile. Mistral sends it on `turn.end`, with its
   streaming delay as the grace, because the speaker's last words are still on their way.
 - **Mid-sentence hold:** `keeps_turn_open` lets the provider hold a line at the idle boundary
-  while the speaker is mid-sentence. The boundary looks again one interval later, and stops
+  while the speaker is mid-sentence. The boundary checks again one interval later, and stops
   holding once the text has been still for `MAX_HOLD` (4 s). Mistral holds while turn
   detection says the speaker is talking and the text does not end a sentence; DeepL while it
   still has tentative text it may revise.
@@ -172,16 +171,16 @@ A drain ends on the provider's own signal (`RealtimeProtocol::drain_complete`, o
 the provider holds nothing still to come (`keeps_turn_open`: DeepL's tentative start of a
 sentence that is not on screen yet) and the connection has produced no caption for three
 seconds (`QUIET_BEFORE_CLOSE`), the closing frames are still sent but not waited on, so a Pause
-in a quiet room takes effect at once. Whatever ends a drain, the source reports the Pause or Stop that started it, and the
-runner finalizes the turn so far, so a provider that rejects a closing frame costs at most the
-drain.
+in a quiet room takes effect at once. Whatever ends a drain, the source reports the Pause or
+Stop that started it, and the runner finalizes the turn so far, so a provider that rejects a
+closing frame costs at most the drain.
 
 Every provider's `error` event goes through one classifier (`realtime::wire::classify`), so the
 providers cannot drift apart. A Close frame, during setup or mid-stream, is read by
 `wire::Close`: 1007, 1008 or key, quota or billing wording end the source with the reason;
 any other close, a bare 1000 included, is retried, and its code and reason are the
-Reconnecting detail. For `error` events: Authentication, permission,
-quota, billing and credit wording stop the source with the provider's message, whatever code
+Reconnecting detail. For `error` events: authentication, permission, quota, billing and credit
+wording stop the source with the provider's message, whatever code
 it comes under; a backend failure (gRPC UNAVAILABLE), HTTP 408, 429 or 5xx, close codes 1001,
 1011, 1012 and 1013, and Google's transient names reconnect with backoff; an expired session
 (OpenAI's or Mistral's cap) is a planned handover; anything unrecognized stays fatal, 1007 and
@@ -191,11 +190,9 @@ the fifth such failure in a row ends the source; an accepted setup resets the co
 that sends no setup acknowledgement (OpenAI, Mistral, DeepL) has accepted a connection once it
 is open, so one that it ends within five seconds (`UNCONFIRMED_OPEN`) without having sent a
 message counts as a failed setup too (`policy::unconfirmed_end`); a connection that stays open,
-however quiet the room, does not. A
-provider that ends its session mid-stream
-(OpenAI's `session.closed`, Mistral's `transcription.done`, DeepL's `end_of_stream`) does not
-end the source either:
-its last caption is emitted and the runner hands over to a new session.
+however quiet the room, does not. A provider that ends its session mid-stream (OpenAI's
+`session.closed`, Mistral's `transcription.done`, DeepL's `end_of_stream`) does not end the
+source either: its last caption is emitted and the runner hands over to a new session.
 
 ## Concurrency and shutdown
 
@@ -231,7 +228,7 @@ holds between steps. The renderer counts paused time out of the running cost est
 
 **Connection health.** Every send is bounded (three seconds), and a connected client pings
 every 15 seconds; 30 seconds with no inbound frame at all, pongs included, means the path is
-gone even if the operating system has not noticed, and the client reconnects. Without this a
+gone even if the operating system has not noticed, and the client reconnects. Without this, a
 Wi-Fi handoff or a dropped NAT entry left a source reporting Running while its sends blocked
 for minutes and Pause went unseen.
 
@@ -242,9 +239,8 @@ it drains the old socket like a Pause, within `min(timeLeft, 4 s)`: it sends the
 (`audioStreamEnd` for Gemini) and reads until the provider's flush is done, so the audio already
 sent still comes back as text. From the drain on, and while the new socket connects and sets
 up, it keeps reading the producer into a backlog of up to 70 chunks (about seven seconds; the
-oldest go first beyond that), sends it in order once setup
-completes, then whatever is still queued (`next_chunk`'s catch-up) rather than coalescing it as
-a stall's backlog. The gap becomes latency instead of lost speech.
+oldest go first beyond that), sends it in order once setup completes, then whatever is still
+queued (`next_chunk`'s catch-up) rather than coalescing it as a stall's backlog. The gap becomes latency instead of lost speech.
 
 **Device presence.** Capture threads check that their endpoint still exists through
 `audio::devices::PresenceCheck`: at once when the device watcher reports a change, and
@@ -259,7 +255,7 @@ Preflight workers wait until the active event is published, so an immediate devi
 failure cannot be followed by a stale active event. With its receiver closed, preflight
 meters audio without resampling it or retaining a PCM buffer.
 
-The operator's `src/lib/sessionController.ts` serializes start/stop requests and resets a
+The operator's `src/lib/sessionController.ts` serializes start and stop requests and resets a
 failed startup's clock. A Stop requested during startup waits for startup to settle before
 stopping the core; repeated Stop requests share that operation.
 
@@ -269,16 +265,15 @@ The operator page owns native event subscriptions, layout, launch and shortcuts,
 delegates state to controller modules: `preflightController.svelte.ts` (device readiness,
 signal expiry, audio tests, and whether the chosen engine is ready: a stored key, an
 installed Whisper model on a supported processor, or the bundled demo),
-`quitController.svelte.ts` (tray and close prompts),
-`overlayController.svelte.ts` (appearance and window commands), `sessionClock.svelte.ts`,
-`setupActions.ts` (mode, source, language, engine, F2), `deviceFailure.svelte.ts` (capture
-failure recovery), `recoveryOffer.svelte.ts` (the start-up spool offer),
-`zoomCaptions.svelte.ts` (the share with Zoom: its status, and the caption link, held in
-memory only), `updateCheck.svelte.ts` (the new-version notice and its question), `spendingGuard.svelte.ts`
-(the cloud spending guard, on the session clock's own tick) and `nativeSync.svelte.ts` (effects that mirror state to the core and the
-overlay). These
-controllers expose reactive getters and explicit actions; they do not subscribe globally
-when imported. Page teardown disposes the preflight timers and capture test.
+`quitController.svelte.ts` (tray and close prompts), `overlayController.svelte.ts` (appearance
+and window commands), `sessionClock.svelte.ts`, `setupActions.ts` (mode, source, language,
+engine, F2), `deviceFailure.svelte.ts` (capture failure recovery), `recoveryOffer.svelte.ts`
+(the start-up spool offer), `zoomCaptions.svelte.ts` (the share with Zoom: its status, and the
+caption link, held in memory only), `updateCheck.svelte.ts` (the new-version notice and its
+question), `spendingGuard.svelte.ts` (the cloud spending guard, on the session clock's own tick)
+and `nativeSync.svelte.ts` (effects that mirror state to the core and the overlay). These
+controllers expose reactive getters and explicit actions; they do not subscribe globally when
+imported. Page teardown disposes the preflight timers and capture test.
 `launchController.svelte.ts` owns the rehearsal flag and the launch path: Start, Rehearse and
 Ctrl+Shift+Space read its one derived list of start blockers (busy, a run opening but not yet
 reporting, caption language, engine, application), so the three cannot disagree about whether
@@ -288,11 +283,10 @@ components that need them through a Svelte context, instead of props through eve
 The page renders `OperatorToolbar` (the window's one bar, with `SessionControls` passed in as
 its actions), `DeviceRecoveryBanner`, `SetupSheet` (its four steps under `src/lib/setup/`) or
 `LiveRail`, `IdleStage` (with `PreflightChecklist`) or `RunningStage` (with `LiveTurns`),
-`SettingsDialog` and `ZoomCaptionsDialog`, over the shared primitives in `src/lib/ui/`. The transcript
-(`TranscriptMonitor`: `TranscriptActions` over `TranscriptLog`) is mounted once in the stage
-column for both states, so its copy window, follow state and an in-flight save survive Start
-and Stop. Every button is
-a `ToolButton` (`variant` default, primary, ghost, danger or warn; `size` sm, md or lg), drawn
+`SettingsDialog` and `ZoomCaptionsDialog`, over the shared primitives in `src/lib/ui/`. The
+transcript (`TranscriptMonitor`: `TranscriptActions` over `TranscriptLog`) is mounted once in
+the stage column for both states, so its copy window, follow state and an in-flight save
+survive Start and Stop. Every button is a `ToolButton` (`variant` default, primary, ghost, danger or warn; `size` sm, md or lg), drawn
 once under `.ui-tool` in `app.css`. Classes the components share (`kicker`, `hint`,
 `divider`, `pref`, `rail-section`) are global there too. `app.css` is also the only place a
 design value is written: colours (three surfaces, three lines, four text levels, the accent,
@@ -326,8 +320,8 @@ reads each push through, keeping what is on screen for a field that is missing) 
 reading `PRESETS`. They persist one key each through `persisted.ts`, which reads and writes
 localStorage without ever throwing, and `preferences.ts` exposes them together as `appearance`
 with `applyAppearance`. `stores.ts` re-exports the four store modules: `sessionStatus.ts`,
-`transcriptLog.ts`, `sourceActivity.ts` and `preferences.ts`. Every other module
-that reads storage as it loads (history, the interface language, meeting profiles and the
+`transcriptLog.ts`, `sourceActivity.ts` and `preferences.ts`. Every other module that reads
+storage as it loads (history, the interface language, meeting profiles and the
 export format in `exportFormat.ts`) goes through `persisted.ts` too, so blocked site data
 cannot throw at import and leave a window blank. Names shared with the core (commands, events
 and the string values of serde enums) are checked against the Rust source by
@@ -380,8 +374,8 @@ The renderer's history coordinator creates a UUID at each Start and takes raw fi
 from the transcript commit path, with session-relative cue timing. It queues and coalesces
 writes and remembers how many of each session's lines are already on disk. It writes a
 session's first line at once, later lines at most every 5 seconds, and anything waiting at
-Stop, quit, retry and the next Start. It retries failures, orders deletion after
-any in-flight write, finishes the record of a run whose sources all end by themselves, and
+Stop, quit, retry and the next Start. It retries failures, orders deletion after any in-flight
+write, finishes the record of a run whose sources all end by themselves, and
 keeps a tombstone so an active deleted session cannot reappear.
 
 A session file is a log ([file format](transcript-history.md#file-format)). After the first
@@ -434,9 +428,9 @@ Both sides are compared on their last 200 words, split once and kept per turn, s
 streams for minutes is still caught and costs no more to check as it grows. The last 32 system
 turns of a lane are kept to compare with, and nothing forgets them on the clock: a microphone
 line local Whisper decodes behind a backlog can arrive long after its system line, with newer
-system lines between them, and is still judged by session time. A turn withdrawn as
-an echo stays withdrawn until its final, which is judged afresh, so a line near the threshold
-does not blink.
+system lines between them, and is still judged by session time. A turn withdrawn as an echo
+stays withdrawn until its final, which is judged afresh, so a line near the threshold does not
+blink.
 
 The engines do not finish in step, so a finished microphone line waits when the system source
 was sounding within four seconds of it in session time, sounding meaning loud on the meter
@@ -461,7 +455,8 @@ off unless the operator turns on *Leave out the call heard by the room mic*, off
 
 `zoom.rs` sends one caption language to a Zoom meeting's third-party caption URL
 ([captions in Zoom](zoom-captions.md)). It taps the one place every engine's captions leave the
-core, `Events::caption` for `AppHandle`, so no provider, the demo or Whisper knows about it.
+core, `Events::caption` for `AppHandle`, so none of the providers, the demo or Whisper knows
+about it.
 The tap is cheap and cannot block: it filters by lane and origin, works out what is newly safe
 to publish, cuts it into captions of at most 120 characters and `try_send`s them into a queue of
 64, counting a full queue as a drop. A sender task owns the queue, the HTTP client and Zoom's
@@ -469,8 +464,8 @@ to publish, cuts it into captions of at most 120 characters and `try_send`s them
 
 Only text that cannot change is published. `SessionManager::start` tells the module whether the
 session's provider only ever appends to an interim line (Gemini Live Translate, OpenAI and
-Mistral do; Gemini Transcribe and DeepL revise); for those, a completed sentence goes as soon as the next
-begins, and the rest of the line when it is final. Every other engine publishes final lines
+Mistral do; Gemini Transcribe and DeepL revise); for those, a completed sentence goes as soon
+as the next begins, and the rest of the line when it is final. Every other engine publishes final lines
 only. Each stream `(origin, lane)` remembers how far into its current turn it has published.
 
 Sharing is independent of the caption session: it is started and stopped by its own commands,
@@ -495,7 +490,7 @@ release page, and downloads nothing; there is no updater plugin and no signed up
   beside it. A copy that is not eligible gets `UpdateStatus::default()` from every command and
   its state file is never read or written.
 - **Off until answered.** The issue left the default open; the middle way was chosen: the switch
-  (*Check for new versions*, Settings › App) starts unanswered, which means off. From the second
+  (*Check for new versions*, Settings → App) starts unanswered, which means off. From the second
   launch (counted by the core, once per process, so a reloaded window is not a launch) the start
   screen shows one line, *Check for new versions? This asks GitHub once a day.*, with **Turn on**
   and **No thanks**, until it is answered. Nothing is requested before **Turn on**.
@@ -528,7 +523,7 @@ release page, and downloads nothing; there is no updater plugin and no signed up
 The interface (`updateCheck.svelte.ts`, `UpdateNotice.svelte`, `UpdateSettings.svelte`) shows
 the notice and the question on the start screen only while no session runs, under a live region
 mounted a render before its sentence, and the switch, the notice and the last check's time in
-Settings › App. In a browser preview, and on a store build, it shows nothing.
+Settings → App. In a browser preview, and on a store build, it shows nothing.
 
 ## Responsive caption overlay
 
@@ -610,7 +605,7 @@ them is a cheap path that skips a step:
 
 1. **Claim it.** `ack_close`, before anything is stopped.
 2. **Hide instead?** With *Keep running in the tray* on, closing hides the window and stops
-   here — the session, the overlay and the transcript all carry on. The first hide explains
+   here: the session, the overlay and the transcript all carry on. The first hide explains
    itself in the window rather than as a toast, which Focus Assist or a full-screen slideshow
    could swallow. Escape on that explanation neither hides nor quits: the window stays open,
    and the explanation is still owed to the first hide.
@@ -625,7 +620,8 @@ them is a cheap path that skips a step:
 
 `CloseGuard` intercepts a close only while the front-end reports unsaved text, a live session,
 or the tray preference. Two rules stop it from ever producing a window that refuses to close:
-that default of off, and an interception nothing acknowledges within `ACK_TIMEOUT` is released.
+it is off by default, and an interception that nothing acknowledges within `ACK_TIMEOUT` is
+released.
 `WindowEvent::Destroyed` on the operator window exits the process, so the undecorated
 always-on-top overlay cannot outlive its controls. Hiding to the tray never reaches it: that
 window is hidden, never destroyed. Closing the overlay itself (Alt+F4 in move mode, Task View's
@@ -636,15 +632,15 @@ operator's toggle and the tray offer Show.
 
 Tray behaviour is deliberately explicit: a normal minimize keeps Windows taskbar semantics, and
 the operator chooses **Minimize to tray** or enables **Keep running in the tray when I close
-the window**. A live session must never disappear silently. The menu always provides Open,
+this window**. A live session must never disappear silently. The menu always provides Open,
 Show/Hide overlay, Stop session and Quit.
 
-`tray.rs` builds the icon and menu once, in `setup`. The menu holds no state of its own —
+`tray.rs` builds the icon and menu once, in `setup`. The menu holds no state of its own:
 session and overlay state live in the front-end and are written onto the live menu items
 through `set_tray_state`, so a menu that offers **Stop session** is a session that is running.
 The front-end also passes localized `TrayLabels`; the menu uses them, plus a disabled status
-item showing the elapsed session time. `set_tray_state` is synchronous, so it runs on the main thread; `tray.rs`
-remembers the text and enabled state last written to each item and skips unchanged writes,
+item showing the elapsed session time. `set_tray_state` is synchronous, so it runs on the main
+thread; `tray.rs` remembers the text and enabled state last written to each item and skips unchanged writes,
 which leaves one status write per second during a session.
 
 **Open** is handled entirely in the core, because showing a window needs nothing from the
@@ -685,8 +681,8 @@ against a fake registrar, so the tests reach no display server.
 
 ## Security and privacy
 
-Provider authentication happens in Rust. Each optional key has its own Windows Credential
-Manager entry, with an environment-variable fallback, and never enters the Svelte renderer,
+Provider authentication happens in Rust. Each optional key has its own entry in Windows
+Credential Manager or the macOS Keychain, with an environment-variable fallback, and never enters the Svelte renderer,
 whose content-security policy blocks direct connections. Only debug builds load `.env` or
 honour the `*_WS_HOST` host overrides. Local Whisper sends no audio over the network and
 deletes its temporary audio file on close; its pinned model downloads are integrity-checked and
@@ -695,7 +691,8 @@ network and needs no credential. Caption text reaches Zoom only while the operat
 with a meeting. The developer operates no backend, relay, telemetry, analytics or
 crash-reporting service. The one request the app makes of its own accord is the new-version
 check of a copy installed from GitHub, once the operator has turned it on
-([above](#new-versions-for-copies-installed-from-github)). See [`SECURITY.md`](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md) and the
+([above](#new-versions-for-copies-installed-from-github)). See
+[`SECURITY.md`](https://github.com/fmadore/Live-translation/blob/main/SECURITY.md) and the
 [privacy policy](privacy.md) for what is stored and what leaves the machine.
 
 ## The two windows are not equally trusted
@@ -703,7 +700,7 @@ check of a copy installed from GitHub, once the operator has turned it on
 The operator window and the overlay are separate webviews, and the overlay is the one an
 audience looks at. It needs to listen for captions, move itself, resize itself, restore its own
 click-through while the operator is placing it, and tell the operator window what happened on
-it — and nothing else: not the commands that read a provider key's presence, start a billable
+it. It needs nothing else: not the commands that read a provider key's presence, start a billable
 session, write the transcript or quit the app (issue #31), and not emitting events or moving
 another window (B4).
 
@@ -712,7 +709,7 @@ Two things make the split real rather than documentary:
 - `build.rs` declares an **app ACL manifest** (`AppManifest::commands`, fed from
   `src/command_names.rs`), which generates an `allow-<command>` permission per command. Once an
   app has such a manifest, Tauri checks every one of its own commands against the calling
-  window's capability and rejects anything not granted — without it, app commands are only
+  window's capability and rejects anything not granted; without it, app commands are only
   checked for remote origins.
 - `capabilities/operator.json` grants the operator's commands to `operator`;
   `capabilities/overlay.json` grants `overlay` its own short list and two core permissions,
@@ -729,10 +726,9 @@ Two things make the split real rather than documentary:
 
 The tests in `src/command_names.rs` hold the three pieces together: they fail if a command is
 registered without a permission (which would be rejected at runtime the first time an operator
-used it), if a capability grants something that no longer exists, or if the overlay's
+used it), if a capability grants something that no longer exists, if the overlay's
 permissions, core ones included, differ in any way from the list pinned there, or if either
-window is granted the global-shortcut plugin's commands.
-`overlayPlacement.svelte.test.ts` checks that what the overlay sends in move mode is all in its
+window is granted the global-shortcut plugin's commands. `overlayPlacement.svelte.test.ts` checks that what the overlay sends in move mode is all in its
 capability.
 
 To see the boundary work, open the overlay's dev tools in `npm run tauri dev` and invoke a
@@ -750,6 +746,6 @@ await window.__TAURI_INTERNALS__.invoke('stop_session')
 - Windows is the supported release target; native x64 and ARM64 packages are built.
 - CI contract-tests provider messages but does not call billable services.
 - Cloud caption accuracy and availability depend on the selected third-party provider. Local
-  Whisper accuracy and speed depend on its model, language and the computer’s processor or
+  Whisper accuracy and speed depend on its model, language and the computer's processor or
   graphics processor.
 - The built-in demo verifies product presentation and workflow, not microphone recognition.

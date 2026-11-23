@@ -20,22 +20,14 @@ themes and of Windows text scaling (see [below](#windows-text-scaling)).
 | Text size | `src/app.css` — seven type roles (caption 11, small 12, body 13, label 14, title 17, heading 21, display 27px at 100%), each a multiple of `--text-scale`. Spacing is a six-step `rem` scale, so the space around text grows with it too. No component declares its own pixel size or spacing. |
 | Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
-| Caption reflow | Fit window measures rendered text against the overlay width and height, preserving newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
+| Caption reflow | Fit window measures rendered text against the overlay width and height, keeping the newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
 | Caption colours | `src/lib/captionColour.ts` — the operator picks the ink and the scrim, and every ratio is computed on the **composite**: the scrim as it is thinned under the text, over both a white and a black slide, with the halo that rings the glyph. One function settles how dim each step is painted *and* what the readout says, so the two cannot disagree. A single control puts the whole overlay appearance back to what it ships with, because a way into an unreadable palette needs a way out of it. |
-| Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesized bold at projector size is a legibility failure, not a cosmetic one. |
+| Caption typeface | `src/lib/captionFont.ts` offers faces this machine actually has, checked with a canvas width probe rather than assumed from the Windows SKU. Every stack ends in the bundled Archivo, and every face offered has a real weight at 600 — a synthesised bold at projector size is a legibility failure, not a cosmetic one. |
 | Reaching the controls | The caption appearance controls are one snippet rendered in two places — the running rail and the settings panel — and the panel is opened by the one button that is in the same place in every state, so no control is discoverable only in a state the operator has to reach first. |
 | Language | `src/lib/i18n/index.ts` sets `<html lang>` from the active locale, in both windows. The overlay's captions are not in the interface language, so they carry their own `lang`, pushed as `OverlayConfig.captionLanguage`; while a subtitle engine is auto-detecting it is `lang=""`, which is how HTML says the language is unknown. The operator window's live turns and transcript paragraphs carry their caption language the same way, with `dir` set right to left for Arabic, Hebrew, Persian, Urdu and Sindhi; the original speech, and a line restored from a recovery file, are `lang=""` with the direction taken from the text. |
 | Focus | One `:focus-visible` ring in `src/app.css`, on every focusable element. A component may restyle it; none may remove it. Start and Rehearse make way for Stop and Pause as a run begins, and back as it ends: when the keyboard was on one of them, focus moves to the counterpart (Stop after a start, Start after a stop) instead of falling to the page. The pre-flight Whisper row's Download hands focus on the same way: to the row's sentence while the download starts (Cancel is enabled once the core reports the download), to Cancel or the sentence when that goes in turn, and back to Download after a cancel or a failure. Add marker (or Ctrl+Shift+M) puts focus in its field, and Enter or Escape gives it back to where it was; Find (or Ctrl+F) does the same with its field, and Escape there closes find and returns focus. The overlay notice's panel opens on its field and Escape returns to its button. |
 | Section structure | The window has one `h1` (its name — visually hidden, because the Windows frame already prints it above the toolbar) and an `h2` per region, so Narrator's heading navigation walks the rail and the stage. |
-| Announcements | A live region says that something changed state, never how far something has got, and none holds anything that changes on a timer. Two are always present in the operator window: session state and the last status message. The running rail's input labels are not live, because they flip with every pause in speech; a region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. Local Whisper's waiting-audio strip is not live either, because its seconds move with every progress report; it appears only once Whisper falls behind (more than 21 s waiting, two of its 10-second windows) or while it finishes, and a region beside it speaks once when finishing starts and once when a discard is confirmed. The Whisper model's status says that the model is missing, downloading or ready, once each; the download's percentage is its progress bar's value. The pre-flight checklist's Whisper row offers the same download with its own bar and Cancel, but is not a second region: the model step's status speaks for both. Under the rail's caption size, a status says once that the overlay draws captions smaller than chosen, has hidden the original speech for room, or has no room at all, without the size it draws them at, which a resize moves; the size is in the visible notice beside it. The transcript panel announces a completed save and a copy, and has a status for the long-session warning and the missing-timing note. Background saving that keeps failing is said once per run of failures — a recovery copy on the status line, history saving in the panel's own region — and stays written beside the save badge until it works again. The rest answer the operator's own edits where they happen: glossary and filler-word changes, profile and history notices, the language picker's error and empty filter, the setup's language error, the capture picker's notes, and each stepper's new value (an `<output>`). A spending-guard status, mounted with each session (and so minutes before it can speak),
-says why the guard paused a cloud session and that a session has passed the chosen estimate or
-length, once each; the notices above the stage are its copy for the eye, with Resume and
-Dismiss outside the region. **Add marker** has a
-status that says each marker as it goes in (*Marker added at 0:42:10: Talk 2 starts*); the
-transcript reader's find bar has one, mounted with the bar before any count, that says the
-match count after each search (*2 of 7*, *No matches*), not as the operator steps. The rail's
-overlay notice says what the room now reads and, once it is gone, that the captions are back.
-Captions in Zoom says its state (sharing, waiting, refused, unreachable) in a status; the counts of captions sent and skipped sit beside it, outside the region, because they climb with every caption. The toolbar's Zoom button prints the state as a word beside its dot and carries it in its name. On a copy installed from GitHub, the start screen's new-version line is a status mounted, empty, a render before its sentence (*Version X.Y.Z is available*, or the question whether to check), so it is said once when it arrives; its buttons sit outside it, and the same notice in Settings › App is not live. A failure that needs an answer — a rejected entry, a failed profile or history action, the discard question, a failed save when quitting — is `role="alert"`. |
+| Announcements | A live region says that something changed state, never how far something has got, and none holds anything that changes on a timer. Two are always present in the operator window: session state and the last status message. The running rail's input labels are not live, because they flip with every pause in speech; a region beside them speaks only when a source stops with an error or has sent audio but no captions for 15 seconds, and is empty again once it recovers. Local Whisper's waiting-audio strip is not live either, because its seconds move with every progress report; it appears only once Whisper falls behind (more than 21 s waiting, two of its 10-second windows) or while it finishes, and a region beside it speaks once when finishing starts and once when a discard is confirmed. The Whisper model's status says that the model is missing, downloading or ready, once each; the download's percentage is its progress bar's value. The pre-flight checklist's Whisper row offers the same download with its own bar and Cancel, but is not a second region: the model step's status speaks for both. Under the rail's caption size, a status says once that the overlay draws captions smaller than chosen, has hidden the original speech to make room, or has no room at all, without the size it draws them at, which a resize moves; the size is in the visible notice beside it. The transcript panel announces a completed save and a copy, and has a status for the long-session warning and the missing-timing note. Background saving that keeps failing is said once per run of failures — a recovery copy on the status line, history saving in the panel's own region — and stays written beside the save badge until it works again. The rest answer the operator's own edits where they happen: glossary and filler-word changes, profile and history notices, the language picker's error and empty filter, the setup's language error, the capture picker's notes, and each stepper's new value (an `<output>`). A spending-guard status, mounted with each session (and so minutes before it can speak), says why the guard paused a cloud session and that a session has passed the chosen estimate or length, once each; the notices above the stage are its copy for the eye, with Resume and Dismiss outside the region. **Add marker** has a status that announces each marker as it goes in (*Marker added at 0:42:10: Talk 2 starts*); the transcript reader's find bar has one, mounted with the bar before any count, that says the match count after each search (*2 of 7*, *No matches*), not as the operator steps. The rail's overlay notice says what the room now reads and, once it is gone, that the captions are back. Captions in Zoom says its state (sharing, waiting, refused, unreachable) in a status; the counts of captions sent and skipped sit beside it, outside the region, because they climb with every caption. The toolbar's Zoom button prints the state as a word beside its dot and carries it in its name. On a copy installed from GitHub, the start screen's new-version line is a status mounted, empty, a render before its sentence (*Version X.Y.Z is available*, or the question whether to check), so it is said once when it arrives; its buttons sit outside it, and the same notice in Settings › App is not live. A failure that needs an answer — a rejected entry, a failed profile or history action, the discard question, a failed save when quitting — is `role="alert"`. |
 | Toggle buttons | A button whose name changes with its state — Pause and Resume, Move and Done — is a plain button, not also `aria-pressed`: Narrator read "Resume, toggle button, pressed", which says the opposite of what is happening. While moving, Done is drawn as the primary action instead of a pressed one. `aria-pressed` stays on selections whose name does not change: the source, engine, interface-language and theme cards, presets, swatches and pinned languages. |
 | Progress | `aria-busy` on Start, Rehearse, Stop, the audio test, and the save buttons. While a start or stop is under way, Start, Rehearse and Stop are `aria-disabled` rather than `disabled`, so the button keeps the focus it holds until the swap hands it on; a press is ignored, and a contrast theme greys them as it greys a disabled button. |
 | Level meters | `role="meter"`, with `aria-valuenow` rounded to a tenth so the attribute does not change twenty times a second. |
@@ -97,7 +89,7 @@ treats the window.
 1. **Keyboard only.** Unplug the mouse. Reach every control in the rail, the checklist, the
    transcript panel and the tray menu. Start a session, place the overlay, stop it, save the
    transcript, and quit. Focus order follows the visual order and the ring is always visible.
-2. **Narrator.** Same walk. Headings navigate (`H`). The session state, status messages and a
+2. **Narrator.** Same walk. Heading navigation works (`H`). The session state, status messages and a
    completed save are each announced once, not repeatedly. The level meters do not chatter.
    The input status is silent while captions flow and speaks once when a source goes stale or
    stops with an error. Pause, Resume, Move and Done read as plain buttons.
@@ -117,7 +109,7 @@ treats the window.
    and the steps the check is decided by. The reading beside the control is computed against
    exactly these two extremes; this is the step that confirms the model matches the room.
 5. **Text scaling.** Settings → Accessibility → Text size. Walk 100%, 150% and 225% with the
-   window at its 980 × 660 minimum and again maximized. The window follows the slider without
+   window at its 980 × 660 minimum and again maximised. The window follows the slider without
    a restart. Nothing is clipped or overlapping; the rail's cards keep their proportions; the
    two columns stack into one scrolling column when they no longer fit, and come back when the
    window is widened. The overlay does not change — see below.
@@ -161,7 +153,7 @@ the key field and the dialog are all measured in `em`, and the two-column layout
 query — `@container window (min-width: 53.75em)`, the 380px rail plus the narrowest stage that
 still shows a caption line. Being in `em`, that threshold rises with the text, so the columns
 stack into one scrolling column where they would otherwise start clipping, and return when the
-operator widens or maximizes the window. At 100% it resolves to 860px, inside the 980px minimum
+operator widens or maximises the window. At 100% it resolves to 860px, inside the 980px minimum
 window, so the normal layout is untouched.
 
 **The overlay opts out**, for the same reason it opts out of contrast themes: its captions are
@@ -187,14 +179,14 @@ Windows text scaling and mixed-DPI acceptance for the final package are tracked 
 ### Settings and date fields
 
 Settings uses a roving tab stop with Left/Right, Home and End navigation. The dialog
-frame and tab bar stay stationary while the selected body scrolls; the body is also
-keyboard focusable. Opening Settings puts focus on the selected tab. Switching tabs starts the new panel at its top. The close control
-remains outside the scrolling body. Modal Tab cycling excludes negative-tabindex controls.
+frame and tab bar stay in place while the selected tab's body scrolls; the body can also take
+keyboard focus. Opening Settings puts focus on the selected tab. Switching tabs starts the new
+panel at its top. The close control stays outside the scrolling body. Modal Tab cycling excludes negative-tabindex controls.
 
-Date fields have explicit labels, localized format hints and `aria-invalid` with a linked
-localized error for invalid input. Calendar buttons have translated accessible names;
+Date fields have explicit labels, localised format hints and `aria-invalid` with a linked
+localised error for invalid input. Calendar buttons have translated accessible names;
 the implementation's hidden native date input is excluded from the accessibility tree
-and normal Tab order. Packaged WebView calendar and screen-reader acceptance remain pending.
+and normal Tab order. Packaged WebView calendar and screen-reader acceptance are still pending.
 
 ### Caption language selector (#78)
 
@@ -203,12 +195,12 @@ selected and disabled states. Keyboard and pin interaction are documented in
 [language coverage](language-coverage.md#keyboard-and-accessibility). Test in all three UI
 locales, including an unsupported pinned language after a provider change. The list has
 bounded scrolling and scrolls into the operator viewport on opening; the Start/Stop bar
-remains reachable. Confirm active option and disabled reason with Narrator in the native
-build before release. Automated keyboard tests are not a substitute for that check.
+remains reachable. Confirm the active option and the disabled reason with Narrator in the
+native build before release. Automated keyboard tests are not a substitute for that check.
 
 Caption paragraphs inherit their selected language and explicit RTL/LTR direction; unknown
 subtitle languages use auto direction. Stable reading uses logical start alignment so Arabic
-starts at the right edge. Verify actual Japanese and Arabic glyph fallback on Windows; the
+starts at the right edge. Verify Japanese and Arabic glyph fallback on Windows; the
 bundled Archivo face falls back to the system for uncovered scripts.
 
 ### Markers, find and the overlay notice
@@ -228,6 +220,6 @@ Test keyboard access to Whisper's spoken-language and model selectors, Download/
 and the model's ready/error status. Verify that the pending-audio duration and finishing state
 are readable, that Narrator says "Finishing the transcript" and "Downloading model" once rather
 than with every second or percent, and that the discard confirmation keeps focus inside the
-active dialog. Check
+active dialog. Check the
 Pause/Resume labels and Ctrl+Shift+P without losing access to Stop. These native checks remain
 part of final-package acceptance, including Narrator and enlarged Windows text.

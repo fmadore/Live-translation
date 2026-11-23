@@ -8,13 +8,13 @@ Follows [issue #77](https://github.com/fmadore/Live-translation/issues/77). Than
 Settings → Reading → Caption layout → **Fit window** (French: **Paramètres → Lecture →
 Disposition des sous-titres → Adapter à la fenêtre**) is the default when no layout preference
 has been saved; Settings stays available during a live session. Widening the overlay allows
-more words per line; increasing its height shows more recent context. The font size stays
-unchanged, captions stay bottom-aligned with margins, and the newest words take priority when
+more words per line; increasing its height shows more recent context. The font size does not
+change, captions stay bottom-aligned with margins, and the newest words take priority when
 space shrinks.
 
-Use **Place the overlay** to move or resize it, then **Lock into place** to see the audience
+Use **Move overlay** to move or resize it, then **Lock into place** to see the audience
 view again; placement mode shows positioning controls instead of live captions. The locked
-overlay remains click-through. **Align to bottom / Aligner en bas** also resets the height to
+overlay stays click-through. **Snap to bottom / Aligner en bas** also resets the height to
 a shallow strip sized for roughly two lines per visible source (160 logical pixels at the
 default font with one source); new overlays start at 160 pixels high. Drag the edges taller
 for more reading context. Resizing does not create text: a short caption or a new session
@@ -33,7 +33,7 @@ laptop does not replace the placement remembered for the projector.
 Finishing placement (**Done**, **Lock into place** or Enter) and loading a meeting profile both
 count as placing it; Escape, which puts the window back, does not. Displays the app has not
 seen yet reopen the most recent placement, kept within a connected display's work area, and
-the first launch is centred. Eight arrangements are kept, the one used longest ago making way.
+the first launch is centred. Eight arrangements are kept; when a ninth is added, the one used longest ago is dropped.
 A change of Windows scaling counts as a new arrangement: the most recent placement keeps its
 size in physical pixels, so captions there read larger or smaller, and placing the overlay
 again remembers it for the new scaling.
@@ -48,47 +48,49 @@ down to 20 px; the original speech, when shown, gives up its line so the transla
 at 20 px or more; and the rows go smaller than 20 px, down to 12 px, rather than show no
 caption. Both sources in two caption languages in the default 160 px strip are drawn at 20 px,
 6 px apart, without the original. Before 1.14.0 the rows showed their labels and no caption;
-in 1.14.0 four rows still did, and with the original on the original showed and the translation
-did not. The window is never resized for it: Snap to bottom gives the selected size its room
+in 1.14.0 four rows still did, and with the original speech on, the original showed and the
+translation did not. The window is never resized for it: Snap to bottom gives the selected size its room
 back.
 
-The operator window is told. Under **Caption size** in the live rail, a notice gives the size
-the rows are drawn at and why — "Drawn at 20 px: the overlay is too shallow for 4 rows at this
-size." — with a line when the original is hidden for room, and points to **Move overlay** and
-**Snap to bottom**. A status says the same once, without the size, which a resize changes
-without anything worth interrupting for. The overlay sends the fit (`OverlayFit`, through
-`report_overlay_state`) only when it changes and only while captions are drawn, so the notice
-does not come and go with each pause in speech, and clears it when the session stops.
+The operator window is told when this happens. Under **Caption size** in the live rail, a notice
+gives the size the rows are drawn at and why — "Drawn at 20 px: the overlay is too shallow for
+4 rows at this size." — with an extra line when the original is hidden to make room, and points
+to **Move overlay** and **Snap to bottom**. A status message says the same once, without the
+size, because a resize changes the size and that is not worth interrupting for. The overlay
+sends the fit (`OverlayFit`, through `report_overlay_state`) only when it changes and only while
+captions are drawn, so the notice does not come and go with each pause in speech. The overlay
+clears the fit when the session stops.
 
 ## Compact
 
-Choose **Compact** to retain a limited line width. **Line width / Largeur des lignes**
+Choose **Compact** to keep the line width limited. **Line width / Largeur des lignes**
 appears only in this mode. The default is 30ch, adjustable from 20ch to 60ch; the
 character budget remains proportional to this width. A smaller window can further
 limit the text that fits.
 
 Switching layouts keeps the chosen font, colours and compact width. The layout preference
-survives relaunch and is shared by the settings panel and live rail. **Reset appearance**
-restores Fit window and the other appearance defaults; it does not move the overlay.
+is kept after a relaunch and is shared by the settings panel and live rail. **Reset**, in the
+appearance settings, restores Fit window and the other appearance defaults; it does not move the
+overlay.
 
 ## Stable reading
 
 Choose **Stable reading** for a teleprompter-style display ([issue #79](https://github.com/fmadore/Live-translation/issues/79)).
 Text is left-aligned and anchored to the top of each source's allocated area. New words wrap
 naturally. Once the area fills, the viewport advances one complete rendered line at a time;
-there is no continuous centering, animated scrolling, or moving caret. Earlier turns retain
-the same colour so finishing a turn does not visually relocate the reading point.
+there is no continuous centring, animated scrolling, or moving caret. Earlier turns keep the
+same colour, so finishing a turn does not appear to move the reading point.
 
-This mode retains the session's caption context in memory, including during pauses; Stop
+This mode keeps the session's caption context in memory, including during pauses; Stop
 clears it. Once 180 lines have scrolled out of view, the oldest are dropped at the start of a
 rendered line, keeping 60 hidden lines; cutting only at a line start means no line already on
 screen re-wraps. A single turn that streams for minutes is bounded too, as Fit window and
 Compact bound theirs: past 12,000 characters only its newest 10,000 to 12,000 are laid out,
 cut at a word, with no context before them (`stableTurnTail`). The cut moves in 2,000-character
 steps rather than with every word, and lands thousands of characters above the lines on
-screen, so those keep their wrap. The two sources remain independent and share the window. Resizing, changing
-fonts, adding a second source, or provider corrections can still reflow text. The backing is
-even across the reading area so top-aligned text is readable over light content.
+screen, so those keep their wrap. The two sources remain independent and share the window.
+Resizing, changing fonts, adding a second source, or provider corrections can still reflow text.
+The backing is even across the reading area, so top-aligned text is readable over light content.
 
 ## Hide filler words
 
@@ -112,7 +114,7 @@ Fit window and Compact apply it to the text on screen at once.
 
 While the option is on, **Settings → Reading** shows the active list under it
 ([issue #85](https://github.com/fmadore/Live-translation/issues/85)). Operators can remove any
-word, including the built-in ones, add words one at a time, and **Reset to defaults**. Each
+word, including the built-in ones, add words one at a time, and use **Reset to defaults**. Each
 change reaches the overlay at once, without restarting the session.
 
 - **Whole words only.** A listed word matches only between spaces or punctuation, in any
@@ -122,15 +124,15 @@ change reaches the overlay at once, without restarting the session.
 - **One word per entry.** Entries are trimmed, and blank entries and duplicates (ignoring case)
   are rejected. Letters, marks and digits may be joined by hyphens or apostrophes (`mm-hmm`,
   `y'know`); either apostrophe or hyphen form in the captions matches. Phrases, patterns and
-  per-language lists are out of scope. The list holds up to 100 words of up to 40 characters.
+  per-language lists are not supported. The list holds up to 100 words of up to 40 characters.
 - **Languages written without spaces.** In Chinese, Japanese and Thai captions a listed word is
   removed only when it stands alone between spaces or punctuation.
-- **Storage.** Nothing is stored while the list is the built-in one. A customized list persists
-  as JSON under `overlay.fillerWords`; an emptied list persists as `[]` and removes nothing.
+- **Storage.** Nothing is stored while the list is the built-in one. A customised list is saved
+  as JSON under `overlay.fillerWords`; an emptied list is saved as `[]` and removes nothing.
 
-The option and the list persist across relaunch and synchronize with the live controls. The
-list is not part of the appearance: Reset appearance switches the option off but keeps the
-list, and meeting profiles do not store it.
+The option and the list are kept after a relaunch and stay in step with the live controls. The
+list is not part of the appearance: resetting the appearance switches the option off but keeps
+the list, and meeting profiles do not store it.
 
 ## Original speech under translations
 
@@ -151,7 +153,7 @@ During a break the operator can show one line on the overlay in place of the cap
 at the size one caption row would have in the strip (`fitRows` with one row), and
 `fitNoticeFont` shrinks it until the whole line fits the strip's height, down to the 12 px
 floor rows have; below that it is clipped as a row would be. A notice is never cut with an
-ellipsis like a caption: it is short and read whole. While it is up the overlay reports no fit
+ellipsis like a caption: it is short and read whole. While it is up, the overlay reports no fit
 to the operator window, since no caption rows are drawn.
 
 ## Two caption languages
@@ -161,7 +163,7 @@ language, the first above the second, in the order remote-first, room-second. Th
 become language codes — `FR`, `EN` — with the source name too when both sources are on
 screen; a name would crowd the caption at projector distance. Each row is marked up with its
 own language. The original speech, when shown, goes under the first language only: the second
-heard the same speech. Snap to bottom sizes the strip for up to four rows. `?language=bilingual`
+comes from the same speech. Snap to bottom sizes the strip for up to four rows. `?language=bilingual`
 previews it in a browser, and `?language=bilingual-both` previews both sources in both
 languages: four rows.
 
@@ -182,7 +184,7 @@ word.
 
 ## Recent context and the transcript
 
-Fit window retains a bounded recent history in memory for each source. Completed text is
+Fit window keeps a limited recent history in memory for each source. Completed text is
 dimmed ahead of the current turn. Growing the window can reveal more of that history;
 shrinking it removes older words from the audience view first. Very long unbroken tokens can be
 shortened so their newest characters still fit.
@@ -232,9 +234,9 @@ Fit window and Compact keep finished captions for a configurable **2–30 second
 minimum display time that delays new speech. Unfinished, stalled text still expires after
 3 seconds. Stable reading keeps its session-long context, bounded as described above.
 
-**Immediate** remains the default. **Steadier** presents the most recent interim hypothesis
+**Immediate** is the default. **Steadier** presents the most recent interim hypothesis
 every 450 ms per source, without waiting indefinitely for silence. Final text and turn
-transitions flush promptly; it can still revise already displayed words. This setting only
+transitions flush promptly; Steadier can still revise words already displayed. This setting only
 changes presentation: it does not buffer audio, delay transcription storage or add requests.
 
 **Settings → Captions** keeps presets and the appearance preview visible, with sample text at
