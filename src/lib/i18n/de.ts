@@ -331,7 +331,7 @@ export const de: Messages = {
 		never: 'Nie',
 		minutes: (n: number) => `${n} Minuten`,
 		hours: (n: number) => (n === 1 ? '1 Stunde' : `${n} Stunden`),
-		note: 'Nur für Cloud-Dienste: Lokales Whisper und die eingebaute Demo kosten nichts. Pausiert wird wie mit „Pausieren“: Sitzung, Uhr und Transkript bleiben, wie sie sind. Die Hinweise beenden nie etwas.',
+		note: 'Nur für Cloud-Dienste: Lokales Whisper und die integrierte Demo kosten nichts. Pausiert wird wie mit „Pausieren“: Sitzung, Uhr und Transkript bleiben, wie sie sind. Die Hinweise beenden nie etwas.',
 		idlePaused: (minutes: number) =>
 			`Pausiert: ${minutes} Minuten lang wurde nichts untertitelt. Bis zum Fortsetzen wird nichts gesendet oder abgerechnet.`,
 		costPassed: (amount: string) =>
@@ -342,7 +342,7 @@ export const de: Messages = {
 				: `Diese Sitzung läuft seit ${hours} Stunden. Sie läuft weiter.`,
 		resume: 'Fortsetzen',
 		dismiss: 'Schließen',
-		showNotice: (text: string) => `„${text}“ in der Einblendung zeigen`
+		showNotice: (text: string) => `„${text}“ im Overlay zeigen`
 	},
 
 	applications: {
@@ -506,12 +506,14 @@ export const de: Messages = {
 				: `${n} Sitzungen übersprungen: unlesbar oder ohne die Zeitangaben, die Untertitel brauchen.`,
 		/** In front of the first failure of a batch, in place of `actionFailed`. */
 		batchFailed: (failed: number, total: number) =>
-			`${failed} von ${total} ausgewählten Sitzungen wurden nicht abgeschlossen.`
+			failed === 1
+				? `1 von ${total} ausgewählten Sitzungen wurde nicht abgeschlossen.`
+				: `${failed} von ${total} ausgewählten Sitzungen wurden nicht abgeschlossen.`
 	},
 	overlayControls: {
 		stable: 'Ruhiger Lesemodus',
 		cleanSpeech: 'Fülllaute ausblenden',
-		cleanSpeechHint: 'Nur in der Einblendung. Das Transkript behält den Originaltext.',
+		cleanSpeechHint: 'Nur im Overlay. Das Transkript behält den Originaltext.',
 		showOriginal: 'Originalwortlaut unter der Übersetzung zeigen',
 		showOriginalHint:
 			'Eine kleinere Zeile unter jeder übersetzten Untertitelzeile – für alle, die der Sprache der vortragenden Person folgen. Nur bei Übersetzung, nicht im ruhigen Lesemodus.',
@@ -603,8 +605,8 @@ export const de: Messages = {
 	},
 
 	overlayNotice: {
-		openLabel: 'Einen Hinweis in der Einblendung zeigen…',
-		heading: 'Hinweis in der Einblendung',
+		openLabel: 'Einen Hinweis im Overlay zeigen…',
+		heading: 'Hinweis im Overlay',
 		field: 'Hinweistext',
 		suggestions: 'Vorschläge',
 		presets: {
@@ -615,9 +617,9 @@ export const de: Messages = {
 		show: 'Hinweis zeigen',
 		clear: 'Hinweis entfernen',
 		untilCaptions: 'Entfernen, sobald nach einer Pause wieder Untertitel kommen',
-		hint: 'Ersetzt die Untertitel in der Einblendung durch diese eine Zeile. Sie wird nicht ins Transkript geschrieben und nicht an Zoom gesendet und verschwindet, wenn die Sitzung endet.',
-		showing: (text: string) => `Die Einblendung zeigt „${text}“ statt der Untertitel.`,
-		cleared: 'Die Einblendung zeigt wieder Untertitel.'
+		hint: 'Ersetzt die Untertitel im Overlay durch diese eine Zeile. Sie wird nicht ins Transkript geschrieben und nicht an Zoom gesendet und verschwindet, wenn die Sitzung endet.',
+		showing: (text: string) => `Das Overlay zeigt „${text}“ statt der Untertitel.`,
+		cleared: 'Das Overlay zeigt wieder Untertitel.'
 	},
 
 	window: {
@@ -909,7 +911,7 @@ export const de: Messages = {
 		addLabel: 'Eine Marke ins Transkript setzen',
 		field: 'Text der Marke (optional)',
 		placeholder: 'Vortrag 2 beginnt',
-		hint: 'Leer lassen für einen nummerierten Abschnitt. Marken werden mit dem Transkript gespeichert und exportiert, aber nie in der Einblendung gezeigt.',
+		hint: 'Leer lassen für einen nummerierten Abschnitt. Marken werden mit dem Transkript gespeichert und exportiert, aber nie im Overlay gezeigt.',
 		confirm: 'Setzen',
 		cancel: 'Abbrechen',
 		section: (n: number) => `Abschnitt ${n}`,

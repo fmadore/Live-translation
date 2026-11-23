@@ -266,7 +266,7 @@ impl SessionBuilder<'_> {
 /// `AssertUnwindSafe` is sound here: the device, the audio channel and the meter go down with
 /// the closure, and the one thing used after it, the cancellation token, is synchronised
 /// internally, so an unwind cannot leave it half-updated.
-fn catching_panics(produce: impl FnOnce() -> Result<()>) -> Result<()> {
+pub(super) fn catching_panics(produce: impl FnOnce() -> Result<()>) -> Result<()> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(produce)).unwrap_or_else(|payload| {
         let message = payload
             .downcast_ref::<&str>()

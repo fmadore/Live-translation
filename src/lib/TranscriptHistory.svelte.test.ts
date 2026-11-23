@@ -610,6 +610,28 @@ describe('several sessions at once', () => {
 		view.unmount();
 	});
 
+	// #235: armed while a filter hid some ticked sessions, the confirmation went on to delete
+	// them all once the filter was cleared, more than it had counted.
+	it('withdraws the batch confirmation when a filter changes what is selected', async () => {
+		const deletion = vi.spyOn(sessionHistory, 'deleteMany');
+		const view = render(TranscriptHistory);
+		await waitFor(() => expect(view.container.querySelectorAll('.session')).toHaveLength(3));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Board meeting' }));
+		await fireEvent.click(view.getByRole('checkbox', { name: 'Select Keynote' }));
+		const search = view.getByLabelText('Search titles and transcript text');
+		await fireEvent.input(search, { target: { value: 'board' } });
+		expect(view.getByText('1 session selected')).toBeTruthy();
+		await fireEvent.click(view.getByText('Delete selected'));
+		expect(view.getByText('Delete 1 session permanently')).toBeTruthy();
+		await fireEvent.input(search, { target: { value: '' } });
+		expect(view.getByText('2 sessions selected')).toBeTruthy();
+		expect(view.queryByText('Delete 2 sessions permanently')).toBeNull();
+		expect(view.getByText('Delete selected')).toBeTruthy();
+		expect(deletion).not.toHaveBeenCalled();
+		deletion.mockRestore();
+		view.unmount();
+	});
+
 	it('reports the sessions a batch deletion could not delete', async () => {
 		const deletion = vi.spyOn(sessionHistory, 'deleteMany').mockResolvedValue({
 			deleted: [saved.id],

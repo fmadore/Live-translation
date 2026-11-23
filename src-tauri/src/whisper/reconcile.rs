@@ -100,16 +100,26 @@ impl Reconciler {
 /// Whisper's known failure on noise and silence, which people saying "non, non, non" do not reach.
 const LOOP_WORD: usize = 6;
 const LOOP_GROUP: usize = 4;
+/// The longest group compared, in words. A word of a script written without spaces is often two
+/// characters, so there a group may hold twice as many.
+const LOOP_SPAN: usize = 8;
 
 /// The text with a word said over and over, or a group of up to eight words, kept once. Words
-/// repeated a few times, as people do, are left. Ported from Kalamu's `whisper.rs`.
+/// repeated a few times, as people do, are left. In scripts written without spaces each character
+/// counts as a word, as in `echo.rs`: "谢谢谢谢谢谢谢谢" is a loop. Ported from Kalamu's
+/// `whisper.rs`.
 fn collapse_repeats(text: &str) -> String {
-    let all: Vec<&str> = text.split_whitespace().collect();
-    let keys: Vec<String> = all.iter().map(|w| normalise(w)).collect();
-    let mut out: Vec<&str> = Vec::new();
+    let all = tokens(text);
+    let keys: Vec<String> = all.iter().map(|token| normalise(token.text)).collect();
+    let span = if text.chars().any(unspaced) {
+        2 * LOOP_SPAN
+    } else {
+        LOOP_SPAN
+    };
+    let mut out: Vec<&Token> = Vec::new();
     let mut i = 0;
     'words: while i < all.len() {
-        for n in 1..=8 {
+        for n in 1..=span {
             let needed = if n == 1 { LOOP_WORD } else { LOOP_GROUP };
             if i + n * needed > all.len() || keys[i..i + n].iter().all(String::is_empty) {
                 continue;
@@ -126,10 +136,56 @@ fn collapse_repeats(text: &str) -> String {
                 continue 'words;
             }
         }
-        out.push(all[i]);
+        out.push(&all[i]);
         i += 1;
     }
-    out.join(" ")
+    let mut joined = String::with_capacity(text.len());
+    for token in out {
+        if token.spaced && !joined.is_empty() {
+            joined.push(' ');
+        }
+        joined.push_str(token.text);
+    }
+    joined
+}
+
+/// A word as `collapse_repeats` compares it, with the punctuation that follows it.
+struct Token<'a> {
+    text: &'a str,
+    /// Whether a space came before it; the words of an unspaced script join up again without.
+    spaced: bool,
+}
+
+/// The words of `text`: what lies between spaces, except that each letter of a script written
+/// without spaces is a word of its own. Punctuation stays with the word before it, so text in
+/// other scripts splits exactly as on whitespace.
+fn tokens(text: &str) -> Vec<Token<'_>> {
+    let mut out = Vec::new();
+    for word in text.split_whitespace() {
+        let mut start = 0;
+        // Whether the word being read has a letter yet, and whether that letter belongs to an
+        // unspaced script, so that only punctuation may follow it.
+        let (mut lettered, mut closed) = (false, false);
+        for (index, c) in word.char_indices() {
+            if !c.is_alphanumeric() {
+                continue;
+            }
+            if closed || (lettered && unspaced(c)) {
+                out.push(Token {
+                    text: &word[start..index],
+                    spaced: start == 0,
+                });
+                start = index;
+            }
+            lettered = true;
+            closed = unspaced(c);
+        }
+        out.push(Token {
+            text: &word[start..],
+            spaced: start == 0,
+        });
+    }
+    out
 }
 
 /// Subtitle credits Whisper learnt from its training data and writes over silence or music.
@@ -183,7 +239,12 @@ pub fn trim_overlap<'a>(previous: &str, current: &'a str, overlaps: bool) -> &'a
     if !overlaps {
         return current;
     }
-    if current.chars().next().is_some_and(unspaced) {
+    // On the first letter: an opening "「" or "…" says nothing about the script.
+    if current
+        .chars()
+        .find(|c| c.is_alphanumeric())
+        .is_some_and(unspaced)
+    {
         trim_characters(previous, current)
     } else {
         trim_words(previous, current)
@@ -226,16 +287,32 @@ fn trim_words<'a>(previous: &str, current: &'a str) -> &'a str {
 }
 
 fn trim_characters<'a>(previous: &str, current: &'a str) -> &'a str {
-    // Prefer a complete match before shorter prefixes: repeated characters such as "你好你好"
+    // Letters and digits only, as `trim_words` compares them: Whisper ends nearly every window
+    // in these scripts with "。", "、" or "？", which no start of the next window would match.
+    // Each letter comes with the byte offset just past it.
+    fn letters(text: &str) -> Vec<(char, usize)> {
+        text.char_indices()
+            .filter(|(_, c)| c.is_alphanumeric())
+            .flat_map(|(at, c)| {
+                c.to_lowercase()
+                    .map(move |lower| (lower, at + c.len_utf8()))
+            })
+            .collect()
+    }
+    let before: Vec<char> = letters(previous).into_iter().map(|(c, _)| c).collect();
+    let after = letters(current);
+    // Longest match first, all of `current` included: repeated characters such as "你好你好"
     // otherwise leave an extra "你好" at the next window boundary. Two characters is a word in
     // these scripts; one is too often a coincidence.
-    if current.chars().count() >= 2 && previous.ends_with(current) {
-        return "";
-    }
-    for (index, _) in current.char_indices().rev() {
-        let prefix = &current[..index];
-        if prefix.chars().count() >= 2 && previous.ends_with(prefix) {
-            return current[index..].trim_start();
+    for k in (2..=before.len().min(after.len())).rev() {
+        if after[..k]
+            .iter()
+            .map(|(c, _)| c)
+            .eq(&before[before.len() - k..])
+        {
+            // Drop punctuation left dangling at the cut: "、ですね" reads as "ですね".
+            return current[after[k - 1].1..]
+                .trim_start_matches(|c: char| c.is_whitespace() || !c.is_alphanumeric());
         }
     }
     current
@@ -311,6 +388,62 @@ mod tests {
         assert_eq!(trim_overlap("สวัสดีครับ", "ครับวันนี้", true), "วันนี้");
         // One shared character is not enough to call it a repeat.
         assert_eq!(trim_overlap("我们", "们好", true), "们好");
+    }
+
+    #[test]
+    fn punctuation_does_not_hide_an_overlap_in_scripts_without_spaces() {
+        assert_eq!(
+            trim_overlap("我们今天讨论预算。", "讨论预算，然后休息", true),
+            "然后休息"
+        );
+        assert_eq!(
+            trim_overlap("今日はいい天気。", "いい天気ですね", true),
+            "ですね"
+        );
+        assert_eq!(
+            trim_overlap("今日はいい天気。", "「いい天気」、ですね", true),
+            "ですね"
+        );
+        assert_eq!(trim_overlap("สวัสดีครับ!", "ครับ วันนี้", true), "วันนี้");
+        assert_eq!(trim_overlap("你好你好。", "你好你好。", true), "");
+        // Punctuation does not count towards the two characters either.
+        assert_eq!(trim_overlap("我们。", "们，好", true), "们，好");
+
+        let mut reconciler = Reconciler::default();
+        reconciler
+            .accept(0, 10_000, &segment("今日はいい天気。", 600, 1_000))
+            .unwrap();
+        let line = reconciler
+            .accept(9_000, 10_000, &segment("いい天気ですね。", 0, 300))
+            .unwrap();
+        assert_eq!(line.text, "ですね。");
+    }
+
+    #[test]
+    fn character_loops_are_cut_back_in_scripts_without_spaces() {
+        // Chinese.
+        assert_eq!(collapse_repeats("谢谢谢谢谢谢谢谢谢谢"), "谢");
+        assert_eq!(
+            collapse_repeats("他说谢谢大家谢谢大家谢谢大家谢谢大家谢谢大家。"),
+            "他说谢谢大家"
+        );
+        assert_eq!(collapse_repeats("好好好，我知道了。"), "好好好，我知道了。");
+        // Japanese: a ten-character phrase is a group of five words or so.
+        assert_eq!(
+            collapse_repeats(
+                "ありがとうございますありがとうございますありがとうございますありがとうございます"
+            ),
+            "ありがとうございます"
+        );
+        assert_eq!(
+            collapse_repeats("はいはいはい、わかりました。"),
+            "はいはいはい、わかりました。"
+        );
+        // Thai.
+        assert_eq!(collapse_repeats("ครับครับครับครับครับ"), "ครับ");
+        assert_eq!(collapse_repeats("ดีดี ครับครับ ขอบคุณ"), "ดีดี ครับครับ ขอบคุณ");
+        // Spaces around words of other scripts are kept as they were.
+        assert_eq!(collapse_repeats("我用 iPhone 拍照"), "我用 iPhone 拍照");
     }
 
     #[test]

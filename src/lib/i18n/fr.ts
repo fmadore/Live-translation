@@ -108,7 +108,7 @@ export const fr: Messages = {
 		globalShortcutsNote:
 			'Désactivé par défaut. Pendant une session, même en pause, ces deux raccourcis fonctionnent aussi lorsque des diapositives ou une application de réunion sont au premier plan. L’application ne reçoit que ces deux combinaisons de touches, rien d’autre de ce que vous tapez. Démarrer et arrêter restent dans cette fenêtre.',
 		globalRefused: (keys: string, count: number) =>
-			`Impossible d’enregistrer ${keys} : une autre application ${count === 1 ? 'l’utilise' : 'les utilise'} déjà. Les raccourcis de cette fenêtre fonctionnent toujours.`,
+			`Impossible d’enregistrer ${keys} : une autre application ${count === 1 ? 'l’utilise' : 'les utilise'} déjà. Les raccourcis de cette fenêtre fonctionnent toujours.`,
 		listening: 'À l’écoute — aucun signal audio récent',
 		silenced:
 			'Du son est diffusé, mais seul du silence arrive — le système empêche peut-être cette application de l’enregistrer',
@@ -510,8 +510,8 @@ export const fr: Messages = {
 				: `${n} transcriptions enregistrées dans ${folder}`,
 		skipped: (n: number) =>
 			n === 1
-				? '1 session ignorée : illisible, ou sans le minutage qu’exigent les sous-titres.'
-				: `${n} sessions ignorées : illisibles, ou sans le minutage qu’exigent les sous-titres.`,
+				? '1 session ignorée : illisible, ou sans le minutage qu’exigent les sous-titres.'
+				: `${n} sessions ignorées : illisibles, ou sans le minutage qu’exigent les sous-titres.`,
 		/** In front of the first failure of a batch, in place of `actionFailed`. */
 		batchFailed: (failed: number, total: number) =>
 			failed === 1

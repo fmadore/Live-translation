@@ -43,7 +43,7 @@ pub(super) fn source_failure(origin: Origin, error: &anyhow::Error) -> AppError 
     }
     let detail = format!("{error:#}");
     match origin {
-        Origin::Microphone if error.downcast_ref::<MicrophoneRuntimeError>().is_some() => {
+        Origin::Microphone if error.chain().any(|e| e.is::<MicrophoneRuntimeError>()) => {
             AppError::with(id::MIC_STREAM, detail)
         }
         Origin::Microphone => AppError::with(id::MIC_CAPTURE, detail),
@@ -175,6 +175,28 @@ mod tests {
         assert_eq!(
             source_failure(Origin::Microphone, &error).id,
             id::MIC_CAPTURE
+        );
+    }
+
+    /// #238: the presence poll can notice an unplugged microphone before cpal's error callback
+    /// does. Either way the stream had started, so it is the stream sentence, not the start one.
+    #[test]
+    fn a_microphone_that_vanished_mid_capture_is_a_stream_failure_not_a_start_failure() {
+        let failure = source_failure(
+            Origin::Microphone,
+            &crate::audio::capture::microphone_vanished(),
+        );
+        assert_eq!(failure.id, id::MIC_STREAM);
+        assert!(
+            failure
+                .detail
+                .is_some_and(|detail| detail.contains("disconnected"))
+        );
+        // Still found under any context a caller adds on the way up.
+        let wrapped = crate::audio::capture::microphone_vanished().context("capture stopped");
+        assert_eq!(
+            source_failure(Origin::Microphone, &wrapped).id,
+            id::MIC_STREAM
         );
     }
 

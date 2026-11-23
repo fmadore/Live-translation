@@ -60,8 +60,12 @@ done. Credential Manager keys survive the swap; preferences held by the WebView 
 "@
 }
 
+# The newest SDK by its version folder (10.0.26100.0), compared as a version, not as text: as
+# text, a 10.0.100000.0 would sort below 10.0.26100.0. A folder not named as a version is
+# skipped.
 $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" |
-    Sort-Object FullName -Descending |
+    Where-Object { $sdk = $null; [version]::TryParse($_.Directory.Parent.Name, [ref]$sdk) } |
+    Sort-Object { [version]$_.Directory.Parent.Name } -Descending |
     Select-Object -First 1
 if (-not $signTool) {
     throw 'SignTool.exe was not found. Install the Windows SDK first.'

@@ -62,8 +62,11 @@ jobs:
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: src-tauri
-          # As in ci.yml; the job name keeps this release-profile cache apart from its tests'.
+          # As in ci.yml; the shared key keeps this release-profile cache apart from its tests'.
+          # The Mac release builds (release.yml's disk image, app-store.yml's two jobs) make the
+          # same build and restore this cache, saved only here, on main, by that key.
           prefix-key: whisper-cpu-${{ runner.arch }}-v2
+          shared-key: mac-release
           cache-on-failure: true
           save-if: ${{ github.ref == 'refs/heads/main' }}
 

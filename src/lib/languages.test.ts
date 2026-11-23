@@ -2,7 +2,6 @@ import { get } from 'svelte/store';
 import { languageFavourites } from './stores';
 import { LANGUAGE_FAVOURITES_KEY } from './languages';
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { execFileSync } from 'node:child_process';
 import {
 	captionDirection,
 	displayNames,
@@ -20,8 +19,10 @@ import { DEFAULT_START_OPTIONS, normalizeStartOptions, loadStartOptions } from '
 
 afterEach(() => vi.unstubAllGlobals());
 
-it('keeps generated Rust and TypeScript aligned with the provider catalog', () => {
-	execFileSync(process.execPath, ['scripts/generate-languages.mjs', '--check']);
+// That the generated Rust and TypeScript match `languages.json` is `npm run check:languages`,
+// run by `npm run verify` and by CI before the tests: spawning Node and Prettier from here took
+// over a second and once ran past the 5 s timeout under the full parallel run.
+it('offers each engine the languages of the provider catalog', () => {
 	expect(languageRows('gemini', [], '', 'en')).toHaveLength(78);
 	expect(languageRows('openai', [], '', 'en')).toHaveLength(13);
 	expect(languageRows('deepl', [], '', 'en')).toHaveLength(42);

@@ -102,12 +102,37 @@ describe('the session actions', () => {
 		for (const button of [start, rehearse]) {
 			expect(button).not.toBeDisabled();
 			expect(button).toHaveAttribute('aria-disabled', 'true');
-			expect(button).toHaveAttribute('aria-busy', 'true');
-			expect(button).toHaveAccessibleName('Starting…');
 			await fireEvent.click(button);
 		}
 		expect(onStart).not.toHaveBeenCalled();
 		expect(onRehearse).not.toHaveBeenCalled();
+	});
+
+	// #242: Start and Rehearse both said "Starting…", whichever was pressed.
+	it('say "Starting…" on the button pressed only', async () => {
+		const view = render(SessionControls, { props: idle });
+		const [start, rehearse] = view.getAllByRole('button');
+		await fireEvent.click(rehearse);
+		await view.rerender({ busy: true });
+		expect(rehearse).toHaveAccessibleName('Starting…');
+		expect(rehearse).toHaveAttribute('aria-busy', 'true');
+		expect(start).toHaveAccessibleName('Start subtitles');
+		expect(start).toHaveAttribute('aria-busy', 'false');
+		await view.rerender({ busy: false });
+		await fireEvent.click(start);
+		await view.rerender({ busy: true });
+		expect(start).toHaveAccessibleName('Starting…');
+		expect(start).toHaveAttribute('aria-busy', 'true');
+		expect(rehearse).toHaveAccessibleName('Rehearse');
+		expect(rehearse).toHaveAttribute('aria-busy', 'false');
+		await view.rerender({ busy: false });
+		// The shortcut starts without a press: Start says so, whatever was pressed before.
+		await fireEvent.click(rehearse);
+		await view.rerender({ busy: true });
+		await view.rerender({ busy: false });
+		await view.rerender({ busy: true });
+		expect(start).toHaveAccessibleName('Starting…');
+		expect(rehearse).toHaveAccessibleName('Rehearse');
 	});
 
 	it('are disabled outright for anything else that blocks a start', () => {
@@ -122,8 +147,7 @@ describe('the session actions', () => {
 
 	it('hand the keyboard from Start to Stop as the run begins, and back as it ends', async () => {
 		const view = render(SessionControls, { props: { ...idle, busy: true } });
-		// Start, pressed: Rehearse says "Starting…" as well.
-		const [start] = view.getAllByRole('button', { name: 'Starting…' });
+		const start = view.getByRole('button', { name: 'Starting…' });
 		start.focus();
 
 		originStates.set({ microphone: 'connecting' });

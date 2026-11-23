@@ -82,7 +82,14 @@
 	const checked = new SvelteSet<string>();
 	const chosen = $derived(filtered.filter((entry) => checked.has(entry.id)));
 	const allShown = $derived(filtered.length > 0 && chosen.length === filtered.length);
-	let confirmBatch = $state(false);
+	const chosenIds = $derived(chosen.map((entry) => entry.id).join(' '));
+	// Armed for the sessions chosen when it was asked: whatever changes them (a tick, select-all,
+	// a filter showing or hiding ticked sessions, a deletion) withdraws the question, so the
+	// confirmation never covers sessions it did not count.
+	let confirmBatch = $derived.by(() => {
+		void chosenIds;
+		return false;
+	});
 	// A batch's failures have their own headline, which counts them; `actionError`'s says
 	// "this session".
 	let batchError = $state.raw<{ failed: number; total: number; error: Caught } | null>(null);
@@ -93,12 +100,10 @@
 			if (untick) checked.delete(entry.id);
 			else checked.add(entry.id);
 		}
-		confirmBatch = false;
 	}
 	function toggle(id: string, on: boolean) {
 		if (on) checked.add(id);
 		else checked.delete(id);
-		confirmBatch = false;
 	}
 	/** The name a row's checkbox reads out: the session's title or start, as its button shows. */
 	function entryName(entry: HistoryEntry) {
@@ -107,6 +112,7 @@
 	}
 	function startBatch() {
 		busy = true;
+		confirmBatch = false;
 		actionError = '';
 		batchError = null;
 		notice = '';
@@ -388,12 +394,8 @@
 			>
 			<span class="count" aria-live="polite">{$t.history.selected(chosen.length)}</span>
 			{#if chosen.length}
-				<ToolButton
-					disabled={busy}
-					onclick={() => {
-						checked.clear();
-						confirmBatch = false;
-					}}>{$t.history.clearSelection}</ToolButton
+				<ToolButton disabled={busy} onclick={() => checked.clear()}
+					>{$t.history.clearSelection}</ToolButton
 				>
 				<ExportFormatSelect disabled={busy} label={$t.history.selectionFormat} />
 				<ToolButton disabled={busy} onclick={() => void exportChosen()}
@@ -483,6 +485,7 @@
 							onclick={() => action('export')}>{$t.transcript.saveAs}</ToolButton
 						>
 						<ConfirmButton
+							variant="danger"
 							confirming={confirmDelete === selectedId}
 							label={$t.history.delete}
 							confirmLabel={$t.history.confirmDelete}
@@ -531,7 +534,7 @@
 				{:else if selectedId}
 					<p class="hint">{$t.history.unreadable}</p>
 					<ConfirmButton
-						class="danger"
+						variant="danger"
 						confirming={confirmDelete === selectedId}
 						label={$t.history.delete}
 						confirmLabel={$t.history.confirmDelete}

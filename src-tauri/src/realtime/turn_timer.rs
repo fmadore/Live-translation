@@ -12,7 +12,7 @@ pub(super) const IDLE: Duration = Duration::from_secs(24 * 60 * 60);
 /// mid-sentence (`keeps_turn_open`), counted from the turn's last text. Mistral ends a turn
 /// after three seconds of silence whatever its model thinks, so a turn still held past this
 /// has lost its end, not merely paused.
-pub(super) const MAX_HOLD: Duration = Duration::from_secs(4);
+pub(crate) const MAX_HOLD: Duration = Duration::from_secs(4);
 
 /// The finalize timer of one connection.
 ///

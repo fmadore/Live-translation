@@ -16,19 +16,31 @@ export const whisperDownloading = derived(whisperModels, (models) =>
 	models.some((m) => m.downloading)
 );
 
-let refreshing = false;
+let refreshing: Promise<void> | null = null;
+let refreshAgain = false;
 
-/** Ask the core which models are installed, and how far a download has got. */
-async function refreshWhisperModels() {
-	if (refreshing) return;
-	refreshing = true;
-	try {
-		whisperModels.set(await api.whisperModels());
-	} catch (error) {
-		statusMessage.set(asStatus(error));
-	} finally {
-		refreshing = false;
+/** Ask the core which models are installed, and how far a download has got. A call while a
+ *  read is under way reads once more after it, and resolves with that read: the answer in
+ *  flight may predate what the caller just did, such as the end of a download or a removal,
+ *  and the poll that stops then would leave the list as it was before. */
+function refreshWhisperModels(): Promise<void> {
+	if (refreshing) {
+		refreshAgain = true;
+		return refreshing;
 	}
+	refreshing = (async () => {
+		try {
+			do {
+				refreshAgain = false;
+				whisperModels.set(await api.whisperModels());
+			} while (refreshAgain);
+		} catch (error) {
+			statusMessage.set(asStatus(error));
+		} finally {
+			refreshing = null;
+		}
+	})();
+	return refreshing;
 }
 
 /** One change to the installed models at a time, never during a download, and the list

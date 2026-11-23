@@ -8,6 +8,7 @@ import {
 	HISTORY_LOG_VERSION,
 	isSessionDeleted,
 	SESSION_DELETED,
+	type BatchDeletion,
 	type SavedSession
 } from './history';
 import { describeError } from './errors';
@@ -68,7 +69,7 @@ function setup(enabled = true) {
 		deleteHistory: vi.fn(async (id: string) => {
 			disk.delete(id);
 		}),
-		deleteHistories: vi.fn(async (ids: string[]) => {
+		deleteHistories: vi.fn(async (ids: string[]): Promise<BatchDeletion> => {
 			for (const id of ids) disk.delete(id);
 			return { deleted: ids, failed: [] };
 		})
@@ -159,6 +160,65 @@ describe('session history', () => {
 		await s.history.finish();
 		expect(s.disk.size).toBe(0);
 		expect(s.error).not.toHaveBeenCalled();
+	});
+	// #235: a failed deletion left the session marked deleted until restart. It stayed listed,
+	// yet renaming it was refused and, if it was recording, its lines were no longer written.
+	it('keeps a session renameable and writable when deleting it fails', async () => {
+		const s = setup();
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		const saved = decodeSession(s.disk.get(id)!, id)!;
+		s.port.deleteHistory.mockRejectedValueOnce(new Error('access denied'));
+		await expect(s.history.delete(id)).rejects.toThrow('access denied');
+		await s.history.rename(saved, 'Still here');
+		s.history.append({ ...line, id: 2 });
+		await s.history.finish();
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			title: 'Still here',
+			lines: [{ id: 2 }, { id: 1 }]
+		});
+	});
+	it('keeps the sessions a batch deletion could not delete renameable and writable', async () => {
+		const s = setup();
+		const other = '12345678-1234-1234-1234-0000000000ff';
+		s.history.begin(options, start, other);
+		s.history.append(line);
+		await s.history.finish();
+		const older = decodeSession(s.disk.get(other)!, other)!;
+		s.history.begin(options, start, id);
+		s.history.append(line);
+		await s.history.flush();
+		const recording = decodeSession(s.disk.get(id)!, id)!;
+		const failure = { error: { id: 'error.historyStorage' } };
+		s.port.deleteHistories.mockResolvedValueOnce({
+			deleted: [],
+			failed: [
+				{ item: id, ...failure },
+				{ item: other, ...failure }
+			]
+		});
+		const outcome = await s.history.deleteMany([id, other]);
+		expect(outcome.failed).toHaveLength(2);
+		await s.history.rename(older, 'Older');
+		await s.history.rename(recording, 'Recording');
+		s.history.append({ ...line, id: 2 });
+		await s.history.flush();
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			title: 'Recording',
+			lines: [{ id: 2 }, { id: 1 }]
+		});
+		expect(decodeSession(s.disk.get(other)!, other)?.title).toBe('Older');
+		// A rejected batch takes back every deletion.
+		s.port.deleteHistories.mockRejectedValueOnce(new Error('task failed'));
+		await expect(s.history.deleteMany([id, other])).rejects.toThrow('task failed');
+		await s.history.rename(recording, 'Again');
+		s.history.append({ ...line, id: 3 });
+		await s.history.finish();
+		expect(decodeSession(s.disk.get(id)!, id)).toMatchObject({
+			title: 'Again',
+			lines: [{ id: 3 }, { id: 2 }, { id: 1 }]
+		});
 	});
 	// Review B18: renaming a session deleted a moment before showed the English text "Session
 	// deleted" and marked history as not saving. It is refused in the catalogue's words, and

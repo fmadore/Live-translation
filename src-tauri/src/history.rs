@@ -16,6 +16,7 @@ use std::{
     io::{BufRead, BufReader, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
     sync::Mutex,
+    time::Duration,
 };
 use tauri::{AppHandle, Manager};
 
@@ -135,6 +136,38 @@ fn read_text(path: &Path) -> std::io::Result<(String, u64)> {
     Ok((text, length))
 }
 
+/// How old a session's staging file (`<id>.json.pending`) must be before a listing deletes it.
+/// Every history write in this process holds `HISTORY_IO`, and so does the listing, so one
+/// found then is already what a crash left: `write_history` and a rename stage, fsync and
+/// rename within the lock, and `atomic_file::replace` clears a leftover the same way before its
+/// own write. The age only guards against a writer outside this process, which would finish in
+/// seconds; an hour leaves no doubt, and a leftover kept longer costs nothing but its bytes.
+const STALE_STAGING: Duration = Duration::from_secs(60 * 60);
+
+/// Whether `path` is a session's staging file that a crashed save left behind: named after a
+/// valid session, a plain file (a link is not followed), and older than `STALE_STAGING`. A
+/// modification time in the future, or none, is not old.
+fn is_stale_staging(dir: &Path, path: &Path) -> bool {
+    let Some(id) = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .and_then(|name| name.strip_suffix(".json.pending"))
+    else {
+        return false;
+    };
+    if session_path(dir, id).is_err() {
+        return false;
+    }
+    std::fs::symlink_metadata(path).is_ok_and(|metadata| {
+        metadata.is_file()
+            && metadata
+                .modified()
+                .ok()
+                .and_then(|modified| modified.elapsed().ok())
+                .is_some_and(|age| age >= STALE_STAGING)
+    })
+}
+
 /// List the session files, reading only those the renderer does not already hold.
 ///
 /// A log only ever grows at its end, so a file whose length is the one the renderer holds
@@ -143,6 +176,9 @@ fn read_text(path: &Path) -> std::io::Result<(String, u64)> {
 /// a backup or a virus scan, say — is skipped with a warning instead of hiding every session:
 /// a new one is listed once it can be read, and one the renderer holds is reported at its
 /// old length, so the renderer keeps its copy and the next listing tries again.
+///
+/// A staging file an interrupted save left beside a session is never listed, and once it is
+/// stale (`is_stale_staging`) it is deleted, so crashes do not pile them up in the folder.
 ///
 /// `read` is `read_text`, and a parameter only so a test can make one file fail.
 fn list_sessions(
@@ -170,6 +206,17 @@ fn list_sessions(
             }
         };
         let path = entry.path();
+        if is_stale_staging(dir, &path) {
+            match std::fs::remove_file(&path) {
+                Ok(()) => tracing::info!(
+                    "removed {}, left by an interrupted history save",
+                    path.display()
+                ),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => tracing::warn!("could not remove {}: {error}", path.display()),
+            }
+            continue;
+        }
         if path.extension().is_none_or(|e| e != "json") {
             continue;
         }
@@ -469,6 +516,64 @@ mod tests {
 
     const FIRST: &str = "12345678-1234-1234-1234-123456789abc";
     const SECOND: &str = "12345678-1234-1234-1234-123456789abd";
+
+    /// Write `path` and date it `age` ago.
+    fn write_aged(path: &Path, contents: &str, age: Duration) {
+        std::fs::write(path, contents).unwrap();
+        let file = std::fs::OpenOptions::new().write(true).open(path).unwrap();
+        file.set_modified(std::time::SystemTime::now() - age)
+            .unwrap();
+    }
+
+    // A crash between staging and renaming left `<id>.json.pending` behind, and nothing but a
+    // later save of that same session ever removed it.
+    #[test]
+    fn a_listing_removes_only_stale_staging_files_of_sessions() {
+        let dir = tempfile::tempdir().unwrap();
+        let first = session_path(dir.path(), FIRST).unwrap();
+        let second = session_path(dir.path(), SECOND).unwrap();
+        atomic_file::replace(&first, b"{\"version\":2}\n").unwrap();
+        let stale = atomic_file::staging_path(&first);
+        let recent = atomic_file::staging_path(&second);
+        let hour = STALE_STAGING;
+        write_aged(&stale, "interrupted save", hour + Duration::from_secs(60));
+        write_aged(
+            &recent,
+            "a save in progress",
+            hour - Duration::from_secs(60),
+        );
+        // Old, but not a session's staging file: the folder may hold what is not the app's.
+        let unrelated = dir.path().join("notes.json.pending");
+        write_aged(&unrelated, "not a session", hour * 2);
+        let folder = dir
+            .path()
+            .join("22345678-1234-1234-1234-123456789abc.json.pending");
+        std::fs::create_dir(&folder).unwrap();
+
+        let listing = list(dir.path(), &[]);
+
+        assert_eq!(
+            listing.sessions.len(),
+            1,
+            "a staging file is never a session"
+        );
+        assert!(!stale.exists(), "the crash's leftover is removed");
+        assert!(recent.exists(), "a recent one may be a save in progress");
+        assert!(unrelated.exists());
+        assert!(folder.is_dir());
+        // A modification time in the future is not old.
+        std::fs::OpenOptions::new()
+            .write(true)
+            .open(&recent)
+            .unwrap()
+            .set_modified(std::time::SystemTime::now() + hour * 2)
+            .unwrap();
+        list(dir.path(), &[]);
+        assert!(recent.exists());
+        // The session the leftover belonged to is untouched, and still saves.
+        atomic_file::replace(&first, b"{\"version\":2}\n{\"line\":1}\n").unwrap();
+        assert_eq!(listed(&list(dir.path(), &[]), FIRST).length, 25);
+    }
 
     fn list(dir: &Path, known: &[(&str, u64)]) -> HistoryListing {
         let known = known.iter().map(|&(id, n)| (id.to_owned(), n)).collect();
