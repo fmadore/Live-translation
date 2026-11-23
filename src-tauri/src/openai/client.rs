@@ -12,7 +12,7 @@ use std::time::Duration;
 use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
-use super::protocol::{InputAudioAppend, ServerEvent, SessionUpdate};
+use super::protocol::{InputAudioAppend, NoiseReduction, ServerEvent, SessionUpdate};
 use crate::realtime::{
     CaptionUpdate, MessageControl, MessageOutcome, RealtimeProtocol, TurnAccumulator,
     bearer_request, parse_or_log, provider_error,
@@ -61,7 +61,11 @@ impl RealtimeProtocol for OpenAiConfig {
     }
 
     fn setup_json(&self) -> Result<Option<String>> {
-        let setup = SessionUpdate::translate(&self.target_language_code, &self.transcribe_model);
+        let setup = SessionUpdate::translate(
+            &self.target_language_code,
+            &self.transcribe_model,
+            NoiseReduction::for_origin(self.origin),
+        );
         Ok(Some(serde_json::to_string(&setup)?))
     }
 

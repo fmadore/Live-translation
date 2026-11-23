@@ -29,6 +29,7 @@ async fn probe_target_language_codes() -> anyhow::Result<()> {
                 serde_json::to_string(&super::protocol::SessionUpdate::translate(
                     code,
                     super::DEFAULT_OPENAI_TRANSCRIBE_MODEL,
+                    super::protocol::NoiseReduction::for_origin(crate::types::Origin::Microphone),
                 ))?
                 .into(),
             ))
