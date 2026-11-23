@@ -17,8 +17,7 @@ and German interface · MIT license**
 
 The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
 and the [macOS notes](docs/macos.md) give the results and the open points. Each GitHub release
-attaches a notarised disk image. A free Mac App Store version is on its way through App Store
-Connect ([submission notes](docs/mac-app-store.md)).
+attaches a notarised disk image. A free Mac App Store version, 1.16.0, is in Apple's review ([submission notes](docs/mac-app-store.md)).
 
 **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (23 November
 2026) is the newest release; its Store submission is still to be made. OpenAI joins the

@@ -34,8 +34,8 @@ system-wide Pause and overlay keys, a new-version notice for copies installed fr
 ([#217](https://github.com/fmadore/Live-translation/issues/217)), Mistral keeping a quiet source
 open ([#230](https://github.com/fmadore/Live-translation/pull/230)) and several saved sessions
 deleted or saved at once ([#231](https://github.com/fmadore/Live-translation/pull/231)). On the
-Mac, 1.13.1 was last reported in App Review on 17 November 2026; 1.14.0 and 1.15.0 were not
-uploaded, and 1.16.0 is the next Mac build.
+Mac, 1.13.1 waited twelve days in App Review unanswered and was withdrawn on 23 November 2026;
+1.16.0 (build 9) was submitted in its place the same day.
 
 Before it, the Store served
 [**1.14.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)
@@ -213,7 +213,7 @@ glossaries, live corrections and offline text translation are not planned.
   on every push, a notarised disk image built by the release workflow from 1.13.0 on and a free Mac App Store build with its upload workflow
   ([macOS notes](docs/macos.md), [App Store notes](docs/mac-app-store.md)). That workflow
   uploaded a build to App Store Connect on 5 November 2026, which was not submitted; 1.13.1 was,
-  and was last reported in App Review on 17 November 2026; 1.16.0 is the next build to upload. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
+  was withdrawn after twelve days in App Review, and 1.16.0 (build 9) was submitted on 23 November 2026. First run on a real Mac (an M2 Mac mini on macOS 26, direct and sandboxed builds) on
   10–11 November 2026, whose fixes shipped in 1.13.1
   ([macOS notes](docs/macos.md#first-run-1011-november-2026)). The paid trial proposed in the issue was dropped: the Mac version is
   free.

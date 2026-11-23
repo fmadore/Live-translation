@@ -101,10 +101,11 @@ of the contract, sharing the `openai-api-key` credential; `StatusUpdate` gains a
   [1.13.1](#release-1131-handoff) and [1.13.0](#release-1130-handoff) handoffs apply to 1.16.0.
 - [ ] Submit `Live.Translation_1.16.0.msixbundle` in Partner Center with the 1.16.0 copy
   ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
-- [ ] **Mac:** upload the 1.16.0 build from its tag with the
-  [Mac App Store steps](mac-app-store.md#each-version) (1.14.0 and 1.15.0 were not uploaded),
-  then settle 1.13.1's App Review before submitting it; on TestFlight, the system-wide keys in
-  the sandbox, and continuing with Whisper after a cloud source ends.
+- [x] **Mac:** the 1.16.0 build uploaded from its tag (build 9, run 45222738780) and submitted
+  for review on 23 November 2026, after 1.13.1 was withdrawn from a twelve-day wait
+  ([status](mac-app-store.md#status-23-november-2026)); release automatic once approved.
+- [ ] **Mac, TestFlight:** the system-wide keys in the sandbox, and continuing with Whisper after
+  a cloud source ends.
 - [ ] Partner Center *Website* (and *Support*, if wanted) and the App Store Connect *Marketing
   URL* switched to <https://fmadore.github.io/Live-translation/>, carried over from 1.15.0's
   handoff; the repository homepage already points there.
