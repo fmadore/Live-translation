@@ -85,6 +85,8 @@
 		{@render spokenLanguage($t.whisper.languageHint)}
 	{:else if $options.provider === 'gemini-transcribe'}
 		{@render spokenLanguage($t.rail.geminiLanguageHint)}
+	{:else if $options.provider === 'openai-transcribe'}
+		{@render spokenLanguage($t.provider.openaiLanguageHint)}
 	{:else if $options.mode === 'transcribe' && providerDetectsLanguage($options.provider)}
 		<p class="hint">{$t.rail.autoDetectHint($t.engine[$options.provider])}</p>
 	{:else if $options.mode === 'translate'}

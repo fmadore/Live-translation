@@ -24,7 +24,7 @@ has run yet:** everything below the REST host check is from the documentation, a
 ## Scope
 
 DeepL Voice transcribes speech and translates it in one session. The app uses it for
-**Translated captions** only (`Provider::DeepL`, serde `deepl`, `can_translate`): DeepL detects
+**Live translation** only (`Provider::DeepL`, serde `deepl`, `can_translate`): DeepL detects
 the spoken language (`source_language_mode: "auto"`, no `source_language`), so the operator
 picks no spoken language, and the caption is the translation. The source transcript goes to the
 operator's monitor as `source`. There is no DeepL subtitle (same-language) variant in this
@@ -84,8 +84,8 @@ sent.
 The client uses the URL DeepL returned, never a fixed one, and refuses one that is not `wss`
 (`check_streaming_scheme`); a debug build also takes plain `ws`, for the tests' loopback servers
 and a developer's `DEEPL_API_HOST`, and no build takes any other scheme. There is no setup
-message (`setup_json` returns `None`): audio follows the handshake, each chunk's base64 encoded
-straight into its `source_media_chunk` frame (`RealtimeProtocol::audio_frame`).
+message (`setup_json` returns `None`): audio follows the handshake, and each chunk is base64
+encoded straight into its `source_media_chunk` frame (`RealtimeProtocol::audio_frame`).
 
 With no setup acknowledgement, an open socket is all the acceptance DeepL gives. One that DeepL
 closes within five seconds without having sent a message counts as a failed setup, with the
@@ -158,9 +158,10 @@ message.
 
 DeepL ends a session after 30 seconds without data. A microphone delivers chunks continuously,
 silence included, but system audio can deliver none while nothing plays: event-driven WASAPI
-loopback is not signalled when no stream renders (Windows behaviour, not measured in this app). The runner therefore sends what `RealtimeProtocol::keepalive` asks for: 100 ms
-of silence whenever no audio has gone out for 10 seconds. Speech resets the wait, so a talking
-room sends nothing extra. The silence is a fraction of a percent of audio, if DeepL bills it.
+loopback is not signalled when no stream renders (Windows behaviour, not measured in this
+app). The runner therefore sends what `RealtimeProtocol::keepalive` asks for: 100 ms of silence
+whenever no audio has gone out for 10 seconds. Speech resets the wait, so a talking room sends
+nothing extra. If DeepL bills the silence, it is a fraction of a percent of the audio.
 
 ## How a caption line closes
 
@@ -190,9 +191,8 @@ A line closed on a timer (the idle boundary, or a connection that ended) may hav
 tentative text that DeepL concludes later. Segments ending no later than what that final line
 showed are dropped (`shown_until`), so the words are not printed twice; each drop is logged at
 debug level with its end time, how far the final line went and its length in characters, never
-its text. Only the
-runner's own closes set this: a line closed on a concluded sentence showed concluded text
-alone, which DeepL sends once, so what follows it is kept whatever its times. And the filter
+its text. Only the runner's own closes set the filter: a line closed on a concluded sentence
+showed concluded text alone, which DeepL sends once, so what follows it is kept whatever its times. And the filter
 lifts at the first concluded segment that ends after the final line: DeepL has moved past it,
 so times that do not strictly increase cost at most the segments around one timer close. Segment
 times are trusted within one connection only: after a reconnect nothing is dropped (duplicated
@@ -201,8 +201,8 @@ words are the lesser fault), and a segment without times is always kept.
 The source transcript is matched against its own times the same way, so source words a timer
 close showed are not repeated under the next line. The monitor's source text for a line closed
 on a concluded sentence is all the source DeepL concluded before it closed: source and target
-times are not matched against each other, the source leads, so the start of the next sentence's
-source can appear under the line before it.
+times are not matched against each other, and since the source leads, the start of the next
+sentence's source can appear under the line before it.
 
 Because tentative text is replaced, an interim line's start can change; a Zoom share therefore
 publishes DeepL's final lines only (`zoom::interims_only_grow`).

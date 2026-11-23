@@ -15,8 +15,8 @@ use crate::mistral::{
 };
 use crate::ondevice::{self, OnDeviceConfig};
 use crate::openai::{
-    DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSLATE_MODEL,
-    OpenAiConfig,
+    DEFAULT_OPENAI_HOST, DEFAULT_OPENAI_LIVE_TRANSCRIBE_MODEL, DEFAULT_OPENAI_TRANSCRIBE_MODEL,
+    DEFAULT_OPENAI_TRANSLATE_MODEL, OpenAiConfig, OpenAiTranscribeConfig,
 };
 use crate::types::{Provider, TargetLanguage};
 
@@ -42,6 +42,14 @@ pub(super) enum ProviderSettings {
         host: String,
         model: String,
         transcribe_model: String,
+    },
+    OpenAiTranscribe {
+        host: String,
+        model: String,
+        /// The session's glossary; see `with_glossary`.
+        keywords: Vec<String>,
+        /// The spoken language chosen; see `with_spoken_language`.
+        language: Option<String>,
     },
     Mistral {
         host: String,
@@ -90,6 +98,15 @@ impl ProviderSettings {
                 model: value("OPENAI_TRANSLATE_MODEL", DEFAULT_OPENAI_TRANSLATE_MODEL),
                 transcribe_model: value("OPENAI_TRANSCRIBE_MODEL", DEFAULT_OPENAI_TRANSCRIBE_MODEL),
             },
+            Provider::OpenAiTranscribe => Self::OpenAiTranscribe {
+                host: host("OPENAI_WS_HOST", DEFAULT_OPENAI_HOST),
+                model: value(
+                    "OPENAI_LIVE_TRANSCRIBE_MODEL",
+                    DEFAULT_OPENAI_LIVE_TRANSCRIBE_MODEL,
+                ),
+                keywords: Vec::new(),
+                language: None,
+            },
             Provider::Mistral => Self::Mistral {
                 host: host("MISTRAL_WS_HOST", DEFAULT_MISTRAL_HOST),
                 model: value("MISTRAL_TRANSCRIBE_MODEL", DEFAULT_MISTRAL_MODEL),
@@ -111,8 +128,9 @@ impl ProviderSettings {
     }
 
     /// Add the session's glossary for the realtime clients that send it: Mistral as
-    /// `context_bias`, Gemini Transcribe as `customVocabulary`. Local Whisper takes it from the
-    /// start options (`SessionBuilder::add_local_source`); the translation clients ignore it.
+    /// `context_bias`, Gemini Transcribe as `customVocabulary`, OpenAI's transcription as
+    /// `keywords`. Local Whisper takes it from the start options
+    /// (`SessionBuilder::add_local_source`); the translation clients ignore it.
     pub(super) fn with_glossary(mut self, glossary: &[String]) -> Self {
         match &mut self {
             Self::Mistral {
@@ -122,6 +140,9 @@ impl ProviderSettings {
             | Self::GeminiTranscribe {
                 custom_vocabulary: terms,
                 ..
+            }
+            | Self::OpenAiTranscribe {
+                keywords: terms, ..
             } => *terms = glossary.to_vec(),
             Self::Gemini { .. }
             | Self::OpenAi { .. }
@@ -132,15 +153,22 @@ impl ProviderSettings {
         self
     }
 
-    /// Add the spoken language the operator chose, for Gemini Transcribe as `languageCodes`;
-    /// `None` keeps automatic detection. `options::validate_start` has already refused a
-    /// language it cannot name. Local Whisper takes it from the start options; the other
-    /// clients detect the language themselves.
+    /// Add the spoken language the operator chose, for the realtime clients that take it as a
+    /// hint: Gemini Transcribe as `languageCodes`, OpenAI's transcription as `languages`. `None`
+    /// keeps automatic detection; `options::validate_start` has already refused a language the
+    /// engine cannot name. Local Whisper takes it from the start options; the other engines
+    /// detect the language themselves.
     pub(super) fn with_spoken_language(mut self, spoken: Option<&str>) -> Self {
-        if let Self::GeminiTranscribe { language_codes, .. } = &mut self {
-            *language_codes = spoken
-                .and_then(crate::gemini::transcribe::language_codes)
-                .unwrap_or_default();
+        match &mut self {
+            Self::GeminiTranscribe { language_codes, .. } => {
+                *language_codes = spoken
+                    .and_then(crate::gemini::transcribe::language_codes)
+                    .unwrap_or_default();
+            }
+            Self::OpenAiTranscribe { language, .. } => {
+                *language = spoken.map(str::to_string);
+            }
+            _ => {}
         }
         self
     }
@@ -190,6 +218,22 @@ impl ProviderSettings {
                 target_language_code,
                 origin,
             }),
+            Self::OpenAiTranscribe {
+                host,
+                model,
+                keywords,
+                language,
+            } => io.spawn_realtime(
+                OpenAiTranscribeConfig {
+                    api_key,
+                    model: model.clone(),
+                    host: host.clone(),
+                    keywords: keywords.clone(),
+                    language: language.clone(),
+                    origin,
+                }
+                .into_client(),
+            ),
             Self::Mistral {
                 host,
                 model,
@@ -321,6 +365,24 @@ mod tests {
             panic!("wrong provider settings")
         };
         assert_eq!(custom_vocabulary, glossary);
+        let ProviderSettings::OpenAiTranscribe {
+            keywords, language, ..
+        } = ProviderSettings::resolve_with(Provider::OpenAiTranscribe, none)
+            .unwrap()
+            .with_glossary(&glossary)
+            .with_spoken_language(Some("fr"))
+        else {
+            panic!("wrong provider settings")
+        };
+        assert_eq!(keywords, glossary);
+        assert_eq!(language.as_deref(), Some("fr"));
+        // Only OpenAI's transcription takes the spoken language as a hint.
+        assert_eq!(
+            ProviderSettings::resolve_with(Provider::Mistral, none)
+                .unwrap()
+                .with_spoken_language(Some("fr")),
+            ProviderSettings::resolve_with(Provider::Mistral, none).unwrap()
+        );
         // The translation models document no vocabulary field.
         for provider in [Provider::Gemini, Provider::OpenAi, Provider::DeepL] {
             assert_eq!(

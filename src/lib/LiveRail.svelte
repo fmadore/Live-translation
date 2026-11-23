@@ -35,8 +35,8 @@
 	const overlay = overlayContext();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
-	// Whisper's and Gemini Transcribe's subtitles are in the spoken language, when one was
-	// chosen; Whisper's translations are in English, the target, like any other translation.
+	// Whisper's, Gemini Transcribe's and OpenAI's subtitles are in the spoken language, when one
+	// was chosen; Whisper's translations are in English, the target, like any other translation.
 	const second = $derived(secondCaptionLanguageOf($options));
 	const spoken = $derived(
 		providerDetectsLanguage($options.provider)

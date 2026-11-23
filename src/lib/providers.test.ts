@@ -11,6 +11,7 @@ import {
 	providerKeyName,
 	providerRequiresKey,
 	providerTakesGlossary,
+	providerTakesSpokenLanguage,
 	rateText,
 	spokenLanguageFor,
 	spokenLanguagesOf
@@ -39,6 +40,38 @@ describe('the two Gemini backends', () => {
 		expect(PROVIDER_META['gemini-transcribe'].hourlyEstimate).toBeLessThan(
 			PROVIDER_META.gemini.hourlyEstimate
 		);
+	});
+});
+
+// OpenAI's pair is split the same way: Realtime Translate for captions, gpt-live-transcribe
+// for subtitles, on one OpenAI key.
+describe('the two OpenAI backends', () => {
+	it('routes each to exactly one mode, on one credential', () => {
+		expect(providerCanTranslate('openai')).toBe(true);
+		expect(providerCanTranslate('openai-transcribe')).toBe(false);
+		expect(providerKeyName('openai-transcribe')).toBe('OpenAI');
+		expect(providerKeyName('openai-transcribe')).toBe(providerKeyName('openai'));
+		expect(PROVIDER_META['openai-transcribe'].keyUrl).toBe(PROVIDER_META.openai.keyUrl);
+		expect(providerRequiresKey('openai-transcribe')).toBe(true);
+	});
+
+	it('takes the glossary and the spoken language as hints', () => {
+		expect(providerTakesGlossary('openai-transcribe')).toBe(true);
+		expect(providerTakesSpokenLanguage('openai-transcribe')).toBe(true);
+		expect(providerDetectsLanguage('openai-transcribe')).toBe(true);
+		for (const provider of ['mistral', 'openai', 'deepl'] as const)
+			expect(providerTakesSpokenLanguage(provider), provider).toBe(false);
+		expect(providerTakesSpokenLanguage('whisper')).toBe(true);
+		expect(providerTakesSpokenLanguage('gemini-transcribe')).toBe(true);
+		expect(spokenLanguageFor('openai-transcribe', 'yo')).toBe('yo');
+		expect(spokenLanguageFor('gemini-transcribe', 'yo')).toBeNull();
+	});
+
+	it('bills $0.017 a minute per open stream', () => {
+		expect(PROVIDER_META['openai-transcribe'].modelId).toBe('gpt-live-transcribe');
+		expect(rateText(PROVIDER_META['openai-transcribe'], en)).toBe('$1.02/hr');
+		expect(estimateSessionCost('openai-transcribe', 3_600_000, 2)).toBeCloseTo(2.04);
+		expect(modelIdParts('gpt-live-transcribe')).toEqual(['gpt-', 'live-', 'transcribe']);
 	});
 });
 
@@ -116,6 +149,7 @@ describe('providerTakesGlossary', () => {
 		for (const provider of [
 			'mistral',
 			'gemini-transcribe',
+			'openai-transcribe',
 			'whisper',
 			'whisper-translate'
 		] as const)

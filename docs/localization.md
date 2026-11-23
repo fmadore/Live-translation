@@ -9,10 +9,10 @@ Nothing here touches `options.targetLanguage`, and the language selector is deli
 
 | | |
 | --- | --- |
-| `src/lib/i18n/en.ts` | The English catalog, and the shape every other catalog has to match. `Messages` is `typeof en`. |
-| `src/lib/i18n/fr.ts` | French. Typed as `Messages`, so a missing, extra or wrongly-shaped key fails `npm run check`. |
+| `src/lib/i18n/en.ts` | The English catalogue, and the shape every other catalogue has to match. `Messages` is `typeof en`. |
+| `src/lib/i18n/fr.ts` | French. Typed as `Messages`, so a missing, extra or wrongly shaped key fails `npm run check`. |
 | `src/lib/i18n/de.ts` | German. Same contract as French. |
-| `src/lib/i18n/index.ts` | The `locale` store, `t` (the active catalog), `localeTag`, detection and persistence. |
+| `src/lib/i18n/index.ts` | The `locale` store, `t` (the active catalogue), `localeTag`, detection and persistence. |
 | `src-tauri/src/errors.rs` | The ids the core reports failures under. It never writes a sentence. |
 | `src/lib/errors.ts` | Turns an id plus its technical detail into one line the operator can read. |
 
@@ -31,14 +31,13 @@ A command that fails rejects with `{ id, detail? }`, not with a sentence:
 AppError::with(id::MIC_CAPTURE, format!("{error:#}"))
 ```
 
-The catalog owns the wording for `error.micCapture`; the detail is the Windows or provider
-text, which is never translated and is appended in parentheses. An id the catalog has never
+The catalogue owns the wording for `error.micCapture`; the detail is the Windows or provider
+text, which is never translated and is appended in parentheses. An id the catalogue has never
 heard of falls back to the detail alone, so a core that has learned a new failure still says
 something an operator can act on.
 
 Status events carry the same shape, and the status store keeps it structured until render
-time — which is what lets a message already on screen re-word itself when the language
-changes.
+time, which lets a message already on screen reword itself when the language changes.
 
 ## Choosing the language
 
@@ -46,7 +45,7 @@ First run follows Windows (`navigator.languages`, matched on the primary subtag,
 and `fr-FR` are both French). After that the explicit choice wins and is persisted in
 `localStorage` under `ui.locale`.
 
-The overlay is a **separate webview**, so the operator pushes the choice to it through the
+The overlay is a **separate webview**, so the operator window pushes the choice to it through the
 existing overlay-config event rather than relying on a `storage` event crossing two windows.
 
 ## Dates
@@ -55,13 +54,13 @@ History date fields (`usability.dateFormat`, `chooseDate`, `invalidDate`) show a
 interface language for the same ISO year-month-day value; changing language changes the hint,
 not an entered date or its filter (see
 [transcript history](transcript-history.md#titles-and-search)). The native calendar receives
-the locale tag, but its popup wording can still follow browser/WebView regional settings.
+the locale tag, but its popup wording can still follow the browser's or WebView's regional settings.
 German component tests cover input validation, leap days, calendar selection, inclusive
 history bounds and clearing filters.
 
 ## What is checked automatically
 
-- `npm run check` — the type system is the completeness check. Every catalog is `Messages`.
+- `npm run check` — the type system is the completeness check. Every catalogue is `Messages`.
 - `npm test`:
   - `i18n.test.ts` — key-for-key parity, matching parameter counts, nothing blank, each
     language named in its own language, every locale the selector offers actually named,
@@ -69,11 +68,11 @@ history bounds and clearing filters.
     `TRANSLATIONS`, so a fourth language is one entry there rather than a new copy of each
     test.
   - `i18n.test.ts` also bounds how many whole English sentences a translation may keep
-    (under 10% of them). A catalog copied from another and left half-translated passes the
+    (under 10% of them). A catalogue copied from another and left half-translated passes the
     type system, passes parity, and renders the wrong language; shared sentences are the
     cheapest signal of it.
   - `errors.test.ts` — reads the ids out of `src-tauri/src/errors.rs` and fails if a failure
-    the core can report has no sentence in either catalog.
+    the core can report has no sentence in any of the three catalogues.
   - `transcript.test.ts` — the saved file's headings and date follow the language it is given.
 
 ## Adding a language
@@ -83,11 +82,11 @@ history bounds and clearing filters.
    it. `detectLocale` needs nothing: it matches the primary subtag against `LOCALES`, so
    `de-AT` and `de-CH` are German the same way `fr-CA` is French.
 3. Widen `OverlayConfig.locale` in `src/lib/types.ts`. The overlay validates what it is handed
-   with the exported `isLocale`, so there is no second list to update there — and the Rust
-   core has no locale of its own; it reports ids, never sentences.
+   with the exported `isLocale`, so there is no second list to update there. The Rust core
+   has no locale of its own: it reports ids, never sentences.
 4. Add it to `TRANSLATIONS` in `i18n.test.ts` and to the `it.each` list in `errors.test.ts`.
 5. Run `npm run check` and `npm test`; both will name anything missing.
-6. Walk the operator window and the overlay at the minimum window size (980×660) — a
+6. Walk the operator window and the overlay at the minimum window size (980×660): a
    translation is routinely 20–30% longer than its English source, and this UI is dense.
    Look first at labels in fixed columns: a language that builds compound words has nowhere to
    wrap. German's `Raummikrofon` painted across the level meter until its label column was
@@ -107,7 +106,7 @@ has to find on their own screen:
 | Credential Manager | **Windows-Anmeldeinformationsverwaltung** |
 | settings paths | **Windows-Einstellungen > System > Sound**, **> Datenschutz und Sicherheit > Mikrofon** |
 
-The `ms-settings:` URIs are left alone — they are identifiers, not prose.
+The `ms-settings:` URIs are left alone: they are identifiers, not prose.
 
 **Overlay** and **Engine** are kept as they are; both are current in German software. Otherwise:
 **Untertitel** covers captions and subtitles alike, **Transkript** the transcript,
@@ -120,17 +119,17 @@ English and French both name the month, which is what `formatDateTime`'s test as
 The German Store copy (description, features, short description, release note and screenshot
 descriptions) is in `docs/store-listing.md`. Still open:
 
-- A native German speaker reviews the catalog and the Store copy.
+- A native German speaker reviews the catalogue and the Store copy.
 - **German subtitles are unverified.** Both subtitle engines detect the spoken language and
-  Gemini documents over 70, so they most likely work already, but nobody has put German speech
-  in front of them, so nothing claims it. It would be the strongest line a German listing could
+  Gemini documents over 70, so they most likely work already. Nobody has put German speech in
+  front of them, so nothing claims it. It would be the strongest line a German listing could
   carry.
 
 ## French, specifically
 
 `fr.ts` is translated. Its wording follows the French Store copy in `docs/store-listing.md`,
 which was written first and is what a French-speaking operator will have read before
-installing — **surimpression**, **transcription**, **démonstration intégrée**, **zone de
+installing: **surimpression**, **transcription**, **démonstration intégrée**, **zone de
 notification**, **Gestionnaire d'informations d'identification Windows**. The layout controls
 are **Disposition des sous-titres**, **Adapter à la fenêtre**, **Compact** and **Largeur des
 lignes**, the same in the live rail and the settings panel.
@@ -150,8 +149,8 @@ final-package screenshots, because earlier review does not certify newly added s
 
 ## Caption languages (issue #78)
 
-Caption languages have their own catalog, `src/lib/languages.json`, independent of the
-interface: choosing one never changes the interface language. UI catalogs contain only the
+Caption languages have their own catalogue, `src/lib/languages.json`, independent of the
+interface: choosing one never changes the interface language. UI catalogues contain only the
 selector's copy; language names come from `Intl.DisplayNames` in the interface locale. The
-catalog, search, favourites and text direction are described in
+catalogue, search, favourites and text direction are described in
 [language coverage](language-coverage.md#catalog).

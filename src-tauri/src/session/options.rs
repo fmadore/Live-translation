@@ -15,8 +15,9 @@ fn validate_provider(mode: OutputMode, provider: Provider) -> Result<()> {
 
 pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     validate_provider(options.mode, options.provider)?;
-    // Both tasks take the spoken language: translating, it is the one Whisper translates from.
-    if options.provider.is_local_whisper() {
+    // Both Whisper tasks take the spoken language (translating, it is the one Whisper
+    // translates from); Gemini Transcribe and OpenAI's transcription take it as a hint.
+    if options.provider.takes_spoken_language() {
         whisper::validate_language(options.spoken_language.as_deref())?;
     }
     if options.provider == Provider::GeminiTranscribe {
@@ -121,6 +122,7 @@ mod tests {
             (Provider::OpenAi, true),
             (Provider::DeepL, true),
             (Provider::GeminiTranscribe, false),
+            (Provider::OpenAiTranscribe, false),
             (Provider::Mistral, false),
             (Provider::OnDevice, false),
             (Provider::Whisper, false),
@@ -193,6 +195,18 @@ mod tests {
         let mut options = local("whisper-translate", "translate", "en");
         options.spoken_language = Some("fake".into());
         assert!(validate_start(&options).is_err());
+    }
+
+    /// OpenAI's transcription takes the spoken language as a hint, from the same list.
+    #[test]
+    fn openai_transcribe_checks_its_spoken_language_hint() {
+        assert!(validate_start(&local("openai-transcribe", "transcribe", "en")).is_ok());
+        assert!(validate_start(&local("openai-transcribe", "translate", "en")).is_err());
+        let mut options = local("openai-transcribe", "transcribe", "en");
+        options.spoken_language = Some("fake".into());
+        assert!(validate_start(&options).is_err());
+        options.spoken_language = None;
+        assert!(validate_start(&options).is_ok());
     }
 
     #[test]

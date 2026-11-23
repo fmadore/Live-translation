@@ -97,6 +97,26 @@ impl Connection {
             .await
     }
 
+    /// One chunk's audio frame, then whatever the provider sends after it
+    /// (`RealtimeProtocol::after_audio`). Both are built before either is sent, for the reason
+    /// `send_audio` gives.
+    async fn send_chunk<P: RealtimeProtocol>(
+        &mut self,
+        proto: &mut P,
+        pcm_le: &[u8],
+    ) -> Result<(), RunEnd> {
+        let frame = proto.audio_frame(pcm_le);
+        let after = proto.after_audio(pcm_le);
+        self.send_audio(frame).await?;
+        match after {
+            Some(after) => {
+                self.send(Message::Text(after.into()), "failed to send audio chunk")
+                    .await
+            }
+            None => Ok(()),
+        }
+    }
+
     /// Best effort: the connection is ending either way.
     async fn close(&mut self) {
         let _ = timeout(SEND_TIMEOUT, self.write.send(Message::Close(None))).await;
@@ -200,7 +220,7 @@ async fn stream<P: RealtimeProtocol, E: Events>(
     }
     let backlog = std::mem::take(io.backlog);
     for chunk in backlog.chunks {
-        if let Err(end) = conn.send_audio(proto.audio_frame(&chunk.pcm_le)).await {
+        if let Err(end) = conn.send_chunk(proto, &chunk.pcm_le).await {
             return end;
         }
     }
@@ -469,7 +489,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 match maybe_chunk {
                     Some(chunk) => {
                         let chunk = next_chunk(chunk, audio_rx, &mut catch_up);
-                        if let Err(end) = conn.send_audio(proto.audio_frame(&chunk.pcm_le)).await {
+                        if let Err(end) = conn.send_chunk(proto, &chunk.pcm_le).await {
                             return end;
                         }
                         last_audio = Instant::now();
@@ -572,8 +592,7 @@ async fn pump<P: RealtimeProtocol, E: Events>(
                 let Some(keepalive) = &keepalive else { continue };
                 let deadline = last_audio + keepalive.after;
                 if deadline <= Instant::now() {
-                    let frame = proto.audio_frame(&keepalive.silence.pcm_le);
-                    if let Err(end) = conn.send_audio(frame).await {
+                    if let Err(end) = conn.send_chunk(proto, &keepalive.silence.pcm_le).await {
                         return end;
                     }
                     last_audio = Instant::now();

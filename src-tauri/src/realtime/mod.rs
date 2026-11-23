@@ -281,6 +281,14 @@ pub trait RealtimeProtocol {
         self.audio_json(base64::engine::general_purpose::STANDARD.encode(pcm_le))
     }
 
+    /// A frame to send straight after this chunk's audio frame, or `None`. OpenAI's
+    /// transcription session has no turn detection of its own and leaves the end of each turn
+    /// to the client, which commits the audio buffer here. Asked for every chunk sent: live,
+    /// replayed after a handover, or a keepalive's silence.
+    fn after_audio(&mut self, _pcm_le: &[u8]) -> Option<String> {
+        None
+    }
+
     /// For a provider that ends a session whose input stops — DeepL and Mistral, after 30
     /// seconds without audio (`idle_keepalive`): silence to send whenever the source has sent
     /// no audio for a while. A microphone delivers chunks continuously, silence included, but
