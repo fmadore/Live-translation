@@ -1,4 +1,4 @@
-//! Wiring one session's sources while `start` spawns them: each source's producer, its audio
+//! Wiring a session's sources into their slots: each source's producer, its audio
 //! channel, and the client — or, with a second caption language, the relay and two clients —
 //! reading it.
 
@@ -10,17 +10,17 @@ use tauri::async_runtime::JoinHandle as AsyncJoinHandle;
 use tokio::sync::mpsc::{Receiver, Sender, channel, error::TrySendError};
 use tokio_util::sync::CancellationToken;
 
-use super::ActiveSession;
-use super::capture::{CaptureTarget, report_source_failure, source_failure};
+use super::capture::{report_source_failure, source_failure};
 use super::options::caption_languages;
 use super::settings::ProviderSettings;
+use super::{ActiveSession, SourceSlot};
 use crate::audio::AudioChunk;
 use crate::audio::fixture::run_rehearsal;
 use crate::audio::sink::{AudioSink, CaptureCompletion};
 use crate::realtime::{Events, PauseRx, RealtimeProtocol, run_session};
 use crate::timing::SessionClock;
-use crate::types::{AudioLevel, Origin, Provider, StartOptions, TargetLanguage};
-use crate::whisper::{self, LoadedModel, LocalSession, spool::Spool};
+use crate::types::{Origin, Provider, TargetLanguage};
+use crate::whisper::{self, LocalSession, spool::Spool};
 
 /// At most half a second of 100 ms chunks. The realtime consumer coalesces queued chunks
 /// to the newest one after a stall, favoring live latency over replaying stale speech.
@@ -90,35 +90,38 @@ impl ClientIo {
     }
 }
 
-/// Collects one session's sources while `start` spawns them.
+/// Builds a session's sources, each into its slot: `start` with the session's engine. It holds
+/// what is particular to an engine; the session holds the rest.
 pub(super) struct SessionBuilder<'a> {
     pub(super) app: &'a AppHandle,
-    pub(super) options: &'a StartOptions,
     pub(super) settings: ProviderSettings,
     pub(super) api_key: String,
-    pub(super) capture: CaptureTarget,
-    pub(super) target_rate: u32,
-    pub(super) clock: SessionClock,
-    pub(super) level_tx: Sender<AudioLevel>,
-    pub(super) session: ActiveSession,
-    pub(super) local_model: Option<Arc<LoadedModel>>,
 }
 
 impl SessionBuilder<'_> {
-    pub(super) fn add_source(&mut self, origin: Origin) -> Result<()> {
-        if self.options.provider.is_local_whisper() {
-            return self.add_local_source(origin);
+    /// Start the producer and the clients of `slot`'s source, with `slot`'s engine. What has
+    /// been started is in the slot even when this fails part-way, so draining the slot releases
+    /// it.
+    pub(super) fn build_source(
+        &self,
+        session: &ActiveSession,
+        slot: &mut SourceSlot,
+    ) -> Result<()> {
+        if slot.engine.is_local_whisper() {
+            return self.build_local_source(session, slot);
         }
+        let origin = slot.origin;
         let (audio_tx, audio_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
-        let cancel = self.session.cancel.child_token();
-        self.session.sources.push(cancel.clone());
-        self.spawn_producer(origin, audio_tx.into(), &cancel)?;
+        let cancel = slot.cancel.clone();
+        spawn_producer(self.app, session, slot, audio_tx.into())?;
 
-        let targets = caption_languages(self.options);
+        let targets = caption_languages(&session.options);
         if targets.len() == 1 {
             // One language: the client reads the producer directly and owns the source's
             // token, so its end stops the capture, as it always has.
-            return self.add_client(origin, 0, targets[0], audio_rx, cancel);
+            let client = self.client(session, origin, 0, targets[0], audio_rx, cancel)?;
+            slot.clients.push(client);
+            return Ok(());
         }
         // Two languages: each client gets its own copy of the audio and a child token, so
         // one failing leaves the other captioning. The relay stops the capture when both
@@ -127,134 +130,130 @@ impl SessionBuilder<'_> {
         for (lane, target) in (0u8..).zip(targets) {
             let (lane_tx, lane_rx) = channel::<AudioChunk>(AUDIO_CHANNEL_CAPACITY);
             outputs.push(lane_tx);
-            self.add_client(origin, lane, target, lane_rx, cancel.child_token())?;
+            let client =
+                self.client(session, origin, lane, target, lane_rx, cancel.child_token())?;
+            slot.clients.push(client);
         }
-        self.session
-            .relay_tasks
-            .push(tauri::async_runtime::spawn(relay_audio(
-                audio_rx, outputs, cancel,
-            )));
+        slot.relay = Some(tauri::async_runtime::spawn(relay_audio(
+            audio_rx, outputs, cancel,
+        )));
         Ok(())
     }
 
-    fn add_client(
-        &mut self,
+    fn client(
+        &self,
+        session: &ActiveSession,
         origin: Origin,
         lane: u8,
         target: TargetLanguage,
         audio_rx: Receiver<AudioChunk>,
         cancel: CancellationToken,
-    ) -> Result<()> {
+    ) -> Result<AsyncJoinHandle<()>> {
         let io = ClientIo {
             app: self.app.clone(),
             origin,
             lane,
             audio_rx,
             cancel,
-            clock: self.clock,
-            pause: self.session.pause.subscribe(),
+            clock: session.clock,
+            pause: session.pause.subscribe(),
         };
-        let client = self.settings.spawn_client(io, &self.api_key, target)?;
-        self.session.client_tasks.push(client);
-        Ok(())
+        self.settings.spawn_client(io, &self.api_key, target)
     }
 
-    fn add_local_source(&mut self, origin: Origin) -> Result<()> {
+    fn build_local_source(&self, session: &ActiveSession, slot: &mut SourceSlot) -> Result<()> {
         // Thirty seconds of scheduling slack for the disk writer. Inference never consumes
         // this queue; it reads its own spool and may lag by much longer without losing audio.
         let (sender, input) = channel(300);
         let spool = Arc::new(Spool::new()?);
-        let cancel = self.session.cancel.child_token();
-        self.session.sources.push(cancel.clone());
+        let cancel = slot.cancel.clone();
         let sink = AudioSink::Local {
             sender,
             spool: spool.clone(),
-            clock: self.clock,
-            pause: self.session.pause.subscribe(),
+            clock: session.clock,
+            pause: session.pause.subscribe(),
             cancel: cancel.clone(),
         };
-        self.spawn_producer(origin, sink, &cancel)?;
-        let model = self
-            .local_model
+        spawn_producer(self.app, session, slot, sink)?;
+        let model = session
+            .model
             .clone()
             .context("Whisper model was not loaded")?;
-        self.session
-            .client_tasks
+        slot.clients
             .push(tauri::async_runtime::spawn(whisper::run(LocalSession {
                 app: self.app.clone(),
                 model,
-                language: self.options.spoken_language.clone(),
+                language: session.options.spoken_language.clone(),
                 // The only difference between the two Whisper providers.
-                translate: self.options.provider.can_translate(),
-                glossary: self.options.glossary.clone(),
-                origin,
+                translate: slot.engine.can_translate(),
+                glossary: session.options.glossary.clone(),
+                origin: slot.origin,
                 input,
                 spool,
                 capture_cancel: cancel,
-                abort: self.session.abort.clone(),
-                abandoned: self.session.abandoned.clone(),
-                failure: self.session.failure.clone(),
+                abort: session.abort.clone(),
+                abandoned: slot.abandoned.clone(),
+                failure: session.failure.clone(),
             })));
         Ok(())
     }
+}
 
-    /// Start whatever feeds one source's audio channel.
-    fn spawn_producer(
-        &mut self,
-        origin: Origin,
-        audio_tx: AudioSink,
-        cancel: &CancellationToken,
-    ) -> Result<()> {
-        if self.options.provider == Provider::OnDevice {
-            // The deterministic demo emits its own level/caption timeline and never opens a
-            // capture device. Close the unused producer immediately.
-            drop(audio_tx);
-            return Ok(());
-        }
-
-        let app = self.app.clone();
-        let mut capture_completion = audio_tx.completion_guard();
-        let level_tx = self.level_tx.clone();
-        let target_rate = self.target_rate;
-        let cancel = cancel.clone();
-        match self.options.rehearsal {
-            // Rehearsal swaps the capture device for a bundled recording and changes nothing
-            // else: same channel, same chunk shape, same engine below it.
-            Some(language) => {
-                self.session
-                    .fixture_tasks
-                    .push(tauri::async_runtime::spawn(async move {
-                        let result = run_rehearsal(
-                            &app,
-                            language,
-                            target_rate,
-                            level_tx,
-                            audio_tx,
-                            cancel.clone(),
-                        )
-                        .await;
-                        finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
-                    }));
-            }
-            None => {
-                let capture = self.capture.clone();
-                let handle = std::thread::Builder::new()
-                    .name(format!("capture-{origin:?}"))
-                    .spawn(move || {
-                        produce(
-                            || capture.run(origin, target_rate, level_tx, audio_tx, &cancel),
-                            capture_completion.as_mut(),
-                            &app,
-                            origin,
-                            &cancel,
-                        );
-                    })
-                    .context("failed to spawn capture thread")?;
-                self.session.capture_threads.push(handle);
-            }
-        }
-        Ok(())
+/// Start whatever feeds one source's audio channel, at the rate its engine takes.
+fn spawn_producer(
+    app: &AppHandle,
+    session: &ActiveSession,
+    slot: &mut SourceSlot,
+    audio_tx: AudioSink,
+) -> Result<()> {
+    if slot.engine == Provider::OnDevice {
+        // The deterministic demo emits its own level/caption timeline and never opens a
+        // capture device. Close the unused producer immediately.
+        drop(audio_tx);
+        return Ok(());
     }
+
+    let app = app.clone();
+    let origin = slot.origin;
+    let mut capture_completion = audio_tx.completion_guard();
+    let level_tx = session.level_tx.clone();
+    let target_rate = slot.engine.input_sample_rate();
+    let cancel = slot.cancel.clone();
+    match session.options.rehearsal {
+        // Rehearsal swaps the capture device for a bundled recording and changes nothing
+        // else: same channel, same chunk shape, same engine below it.
+        Some(language) => {
+            slot.fixture = Some(tauri::async_runtime::spawn(async move {
+                let result = run_rehearsal(
+                    &app,
+                    language,
+                    target_rate,
+                    level_tx,
+                    audio_tx,
+                    cancel.clone(),
+                )
+                .await;
+                finish_producer(result, capture_completion.as_mut(), &app, origin, &cancel);
+            }));
+        }
+        None => {
+            let capture = session.capture.clone();
+            let handle = std::thread::Builder::new()
+                .name(format!("capture-{origin:?}"))
+                .spawn(move || {
+                    produce(
+                        || capture.run(origin, target_rate, level_tx, audio_tx, &cancel),
+                        capture_completion.as_mut(),
+                        &app,
+                        origin,
+                        &cancel,
+                    );
+                })
+                .context("failed to spawn capture thread")?;
+            slot.capture = Some(handle);
+        }
+    }
+    Ok(())
 }
 
 /// Run a capture thread's work, turning a panic into an error so `finish_producer` always

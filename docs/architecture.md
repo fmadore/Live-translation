@@ -68,9 +68,11 @@ machine against a loopback WebSocket server on a paused clock. Every status, fro
 the demonstration, Whisper or the session itself, is built by a `StatusUpdate` constructor
 (`session`, `source` or `lane`, by what it addresses) and leaves through `Events::status`.
 `SessionManager::start` (`session/mod.rs`) builds each source through `SessionBuilder`
-(`session/builder.rs`): a producer (the demo's own timeline, the rehearsal fixture or a
-`CaptureTarget` thread, `session/capture.rs`) and one client, spawned by
-`ProviderSettings::spawn_client` (`session/settings.rs`). Validation and the choice of sources
+(`session/builder.rs`) into a `SourceSlot` of its own: a producer (the demo's own timeline, the
+rehearsal fixture or a `CaptureTarget` thread, `session/capture.rs`) and one client, spawned by
+`ProviderSettings::spawn_client` (`session/settings.rs`). The slot records its source's engine
+and token, so Pause and Stop treat each source by its own engine; the session keeps the start
+options, the clock and the loaded Whisper model the slots are built from. Validation and the choice of sources
 are in `session/options.rs`; the preflight test (`session/preflight.rs`) opens devices through
 the same `CaptureTarget`.
 
