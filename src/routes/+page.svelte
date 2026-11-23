@@ -2,12 +2,14 @@
 	import WhisperActivity from '#lib/WhisperActivity.svelte';
 	import { whisperModels } from '#lib/stores.js';
 	import { whisperPendingSeconds } from '#lib/whisperProgress.js';
-	import { estimateSessionCost, isLocalWhisper } from '#lib/providers.js';
+	import { isLocalWhisper } from '#lib/providers.js';
+	import { ledgerCost, runTracks } from '#lib/billing.js';
 	import { onDestroy, onMount } from 'svelte';
 	import MeetingProfiles from '#lib/MeetingProfiles.svelte';
 	import OperatorToolbar from '#lib/OperatorToolbar.svelte';
 	import SessionControls from '#lib/SessionControls.svelte';
 	import DeviceRecoveryBanner from '#lib/DeviceRecoveryBanner.svelte';
+	import SourceFallbackBanner from '#lib/SourceFallbackBanner.svelte';
 	import RunningStage from '#lib/RunningStage.svelte';
 	import IdleStage from '#lib/IdleStage.svelte';
 	import LaunchNotes from '#lib/LaunchNotes.svelte';
@@ -29,6 +31,7 @@
 	import { createSessionController } from '#lib/sessionController.js';
 	import { createSetupActions } from '#lib/setupActions.js';
 	import { createDeviceFailure } from '#lib/deviceFailure.svelte.js';
+	import { createSourceFallback } from '#lib/sourceFallback.svelte.js';
 	import { createRecoveryOffer } from '#lib/recoveryOffer.svelte.js';
 	import { createZoomCaptions } from '#lib/zoomCaptions.svelte.js';
 	import { createUpdateCheck } from '#lib/updateCheck.svelte.js';
@@ -36,7 +39,7 @@
 	import { syncNative } from '#lib/nativeSync.svelte.js';
 	import { createSpendingGuard } from '#lib/spendingGuard.svelte.js';
 	import GuardNotice from '#lib/GuardNotice.svelte';
-	import { captionLanguageOf, streamCount } from '#lib/types.js';
+	import { captionLanguageOf } from '#lib/types.js';
 	import { noticeLocale } from '#lib/overlayNotice.js';
 	import { provideOperatorContext } from '#lib/operatorContext.js';
 	import { createLaunchController } from '#lib/launchController.svelte.js';
@@ -56,7 +59,9 @@
 		describeStatus,
 		pauseRequested,
 		pushCaption,
-		stageView
+		stageView,
+		billingChanges,
+		trackEngines
 	} from '#lib/stores.js';
 	import Tabs from '#lib/ui/Tabs.svelte';
 	import { followTextScale } from '#lib/textScale.js';
@@ -136,6 +141,25 @@
 	});
 	const rehearsalRunning = $derived(launch.rehearsalRunning);
 
+	// A cloud source that ended mid-session, continued with offline Whisper in the same run
+	// (#248). Offered from what the window already knows, and asked of the core through the
+	// session controller's queue.
+	const fallback = createSourceFallback({
+		switchEngine: (request) => session.switchSource(request),
+		context: () => ({
+			setup: $options,
+			models: $whisperModels,
+			cpuSupported: preflight.whisperCpu?.supported === true,
+			rehearsal: rehearsalRunning
+		})
+	});
+	onDestroy(() => fallback.dispose());
+	// Whisper runs in this session, from the start or since a source was continued with it.
+	const whisperRuns = $derived(
+		isLocalWhisper($options.provider) ||
+			Object.values($trackEngines).some((engine) => engine && isLocalWhisper(engine))
+	);
+
 	// A rehearsal is a single System-origin stream no matter what source is saved, so the
 	// meters follow the fixture rather than showing a dead Room meter. Idle is unaffected
 	// (`rehearsalRunning` is false there, so the pre-flight audio check keeps its semantics).
@@ -148,10 +172,11 @@
 	const guard = createSpendingGuard({
 		clock,
 		cost: () =>
-			estimateSessionCost(
+			ledgerCost(
+				runTracks(usesMic, usesSystem, $options),
 				$options.provider,
-				clock.streamedMs,
-				streamCount(usesMic, usesSystem, $options).streams
+				$billingChanges,
+				clock.streamedMs
 			),
 		pause: () => session.pause(true)
 	});
@@ -204,6 +229,7 @@
 			on.status((s) => {
 				applyStatus(s);
 				device.noteStatus(s);
+				fallback.noteStatus(s);
 			}),
 			on.devicesChanged(() => void preflight.refresh()),
 			// A test is not a session, so it reports on its own channel and never touches the
@@ -310,7 +336,11 @@
 	}}
 />
 
-<div class="app" class:device-error={device.failed !== null}>
+<div
+	class="app"
+	class:device-error={device.failed !== null}
+	class:fallback={fallback.offer !== null && $isRunning}
+>
 	<OperatorToolbar
 		elapsed={clock.elapsed}
 		{settingsOpen}
@@ -352,6 +382,17 @@
 			onReselect={device.reselectApplication}
 		/>
 	{/if}
+	{#if fallback.offer && $isRunning}
+		<SourceFallbackBanner
+			offer={fallback.offer}
+			origins={fallback.origins}
+			from={(origin) => $trackEngines[origin] ?? $options.provider}
+			reconnecting={fallback.reconnecting}
+			switching={fallback.switching}
+			onContinue={() => void fallback.proceed()}
+			onDismiss={fallback.dismiss}
+		/>
+	{/if}
 
 	<div class="body">
 		<aside class="rail">
@@ -381,7 +422,7 @@
 		</aside>
 
 		<main class="stage">
-			{#if isLocalWhisper($options.provider)}<WhisperActivity />{/if}
+			{#if whisperRuns}<WhisperActivity />{/if}
 			{#if browserMode}
 				<div class="banner">
 					{$t.stage.browserBanner.before}
@@ -501,7 +542,7 @@
 	<ActiveSessionPrompt
 		elapsed={clock.elapsed}
 		fromTray={quit.sessionPromptFromTray}
-		pendingSeconds={isLocalWhisper($options.provider) ? $whisperPendingSeconds : 0}
+		pendingSeconds={whisperRuns ? $whisperPendingSeconds : 0}
 		onChoice={(stopIt) => void quit.onSessionChoice(stopIt)}
 	/>
 {/if}
@@ -528,8 +569,12 @@
 		   is what lets a text-size change move the breakpoint. */
 		container: window / inline-size;
 	}
-	.app.device-error {
+	.app.device-error,
+	.app.fallback {
 		grid-template-rows: auto 2px auto minmax(0, 1fr);
+	}
+	.app.device-error.fallback {
+		grid-template-rows: auto 2px auto auto minmax(0, 1fr);
 	}
 
 	/* ---- Header ------------------------------------------------------------- */

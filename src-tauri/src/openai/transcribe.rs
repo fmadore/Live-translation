@@ -860,7 +860,10 @@ mod tests {
             cancel.clone(),
             crate::timing::SessionClock::start(),
             pause_rx,
-            0,
+            crate::realtime::Track {
+                lane: 0,
+                turns: crate::realtime::TurnCounter::default(),
+            },
         ));
         let next = || seen.recv_timeout(Duration::from_secs(10)).unwrap();
         assert!(matches!(next(), Seen::Running));
@@ -952,7 +955,10 @@ mod tests {
                 cancel.clone(),
                 crate::timing::SessionClock::start(),
                 pause_rx,
-                0,
+                crate::realtime::Track {
+                    lane: 0,
+                    turns: crate::realtime::TurnCounter::default(),
+                },
             ));
             // As in the room: the operator starts the session, then the speaker speaks. Audio
             // queued while the session sets up is dropped as stale when it starts streaming.

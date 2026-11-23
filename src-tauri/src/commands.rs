@@ -17,7 +17,7 @@ use crate::overlay::{self, OVERLAY_LABEL};
 use crate::secrets;
 use crate::session::SessionManager;
 use crate::textscale;
-use crate::types::{AudioDevice, AudioSource, Provider, StartOptions, events};
+use crate::types::{AudioDevice, AudioSource, Provider, SourceSwitch, StartOptions, events};
 
 #[tauri::command]
 pub async fn list_microphones() -> Result<Vec<AudioDevice>, AppError> {
@@ -123,6 +123,33 @@ fn start_error(error: &anyhow::Error) -> AppError {
         return paid_plan_required();
     }
     AppError::with(id::SESSION_START, error)
+}
+
+/// Continue one source of the running session with offline Whisper, from the operator's
+/// fallback banner; see `SessionManager::switch_source`. The operator window's alone: the
+/// overlay is never granted it.
+#[tauri::command]
+pub async fn switch_source_engine(
+    app: AppHandle,
+    manager: State<'_, SessionManager>,
+    request: SourceSwitch,
+) -> Result<(), AppError> {
+    manager
+        .switch_source(&app, request)
+        .await
+        .map_err(|error| switch_error(&error))
+}
+
+/// A refused or interrupted switch says the source could not be continued; a processor that
+/// cannot run Whisper, or a model that does not load, says that instead, as at Start.
+fn switch_error(error: &anyhow::Error) -> AppError {
+    if let Some(unsupported) = error.downcast_ref::<crate::whisper::cpu::Unsupported>() {
+        return AppError::with(id::WHISPER_CPU, unsupported);
+    }
+    if let Some(refused) = error.downcast_ref::<crate::session::Refused>() {
+        return AppError::with(id::SESSION_FALLBACK, refused);
+    }
+    AppError::with(id::WHISPER_MODEL, error)
 }
 
 /// Whether this processor can run local Whisper, asked once by the setup sheet so an

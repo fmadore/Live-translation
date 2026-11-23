@@ -292,7 +292,11 @@ mod smart_tests {
     }
     #[test]
     fn smart_final_replaces_interim_even_in_the_same_frame() {
-        let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
+        let mut acc = TurnAccumulator::new(
+            crate::timing::SessionClock::start(),
+            0,
+            crate::realtime::TurnCounter::default(),
+        );
         let frame = content(
             r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
         );
@@ -308,7 +312,11 @@ mod smart_tests {
             r#"{"serverContent":{"inputTranscription":{"text":""}}}"#,
             r#"{"serverContent":{"generationComplete":true}}"#,
         ] {
-            let mut acc = TurnAccumulator::new(crate::timing::SessionClock::start(), 0);
+            let mut acc = TurnAccumulator::new(
+                crate::timing::SessionClock::start(),
+                0,
+                crate::realtime::TurnCounter::default(),
+            );
             acc.text = "Um, uh".into();
             assert_eq!(
                 apply_transcription(&content(raw), &mut acc, &mut String::new()),

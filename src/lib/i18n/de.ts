@@ -380,6 +380,27 @@ export const de: Messages = {
 		idleFallback:
 			'Ein gespeichertes Audiogerät ist nicht verfügbar. Die nächste Sitzung verwendet den Windows-Standard.'
 	},
+	/** Das Banner, das eine Cloud-Quelle mit Offline-Whisper fortsetzt (#248). */
+	fallback: {
+		region: 'Sitzung fortsetzen',
+		ended: (source: string, engine: string) =>
+			`${source}: ${engine} hat die Untertitelung beendet.`,
+		reconnecting: (source: string, engine: string) =>
+			`${source}: ${engine} versucht seit 30 Sekunden, sich neu zu verbinden, und versucht es weiter, bis Sie wählen.`,
+		whisper: 'Mit Offline-Whisper fortsetzen',
+		spoken: 'In der gesprochenen Sprache fortsetzen',
+		keepsEnglish: 'Offline-Whisper übersetzt weiter ins Englische.',
+		cannotTranslate: (language: string) =>
+			`Offline-Whisper kann nicht in ${language} übersetzen: Die Untertitel werden in der gesprochenen Sprache fortgesetzt.`,
+		turboCannotTranslate:
+			'Large v3 Turbo kann nicht übersetzen: Die Untertitel werden in der gesprochenen Sprache fortgesetzt.',
+		bothSources: 'Beide Quellen werden damit fortgesetzt.',
+		switching: 'Engine wird gewechselt…',
+		continued: (source: string, engine: string) => `${source} wird mit ${engine} fortgesetzt.`,
+		marker: (source: string, engine: string) => `${source}: ab hier ${engine}`,
+		offlineWhisper: 'Offline-Whisper',
+		notNow: 'Nicht jetzt'
+	},
 	rail: {
 		locked: 'Sitzung gesperrt',
 		lockedNote: 'Beenden Sie die Sitzung, um hieran etwas zu ändern.',
@@ -1042,6 +1063,7 @@ export const de: Messages = {
 		demoUnavailable: 'Die integrierte Demonstration konnte nicht vorbereitet werden',
 		sessionStart: 'Die Sitzung konnte nicht gestartet werden',
 		sessionPause: 'Die Sitzung konnte nicht pausiert oder fortgesetzt werden',
+		sessionFallback: 'Die Quelle konnte nicht mit einer anderen Engine fortgesetzt werden',
 		audioTestStart: 'Der Audiotest konnte diese Quelle nicht öffnen',
 		overlayWindow: 'Das Overlay-Fenster hat nicht reagiert',
 		operatorWindow: 'Das Hauptfenster hat nicht reagiert',

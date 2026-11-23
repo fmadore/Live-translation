@@ -379,6 +379,13 @@ impl Guard {
         };
     }
 
+    /// Let a finished microphone line wait at least `hold` from now on: a source continued by
+    /// Whisper mid-session captions a window behind, as a local session does from its start.
+    /// Never shortens the hold, and keeps what each lane has heard and holds.
+    pub fn lengthen_hold(&mut self, hold: Duration) {
+        self.hold = self.hold.max(hold);
+    }
+
     /// A meter reading: the system source sounding is a reason to hold a microphone line.
     pub fn level(&mut self, origin: Origin, rms: f32, now: Instant) {
         if self.enabled && origin == Origin::System && rms >= LOUD_RMS {
@@ -730,6 +737,11 @@ impl EchoGuard {
         lock(&self.0).begin(enabled, hold, Instant::now());
     }
 
+    /// See `Guard::lengthen_hold`.
+    pub fn lengthen_hold(&self, hold: Duration) {
+        lock(&self.0).lengthen_hold(hold);
+    }
+
     pub fn level(&self, level: &AudioLevel) {
         lock(&self.0).level(level.source, level.rms, Instant::now());
     }
@@ -978,6 +990,37 @@ mod tests {
         assert!(guard.due(now + Duration::from_secs(1)).is_empty());
         let due = guard.due(now + HOLD_CLOUD);
         assert_eq!(shape(&due), [(2, "I would like to ask a question", true)]);
+    }
+
+    /// A source continued by Whisper mid-session lengthens the hold for the lines still to
+    /// come, and forgets nothing: a line already held still waits for its echo, and a system
+    /// turn heard before still withdraws the microphone's copy of it.
+    #[test]
+    fn lengthening_the_hold_keeps_what_was_heard() {
+        let now = Instant::now();
+        let mut guard = guard(now);
+        guard.level(Origin::System, 0.1, now);
+        let outcome = guard.caption(&mic(2, "I would like to ask a question", true, 0), now);
+        assert!(!outcome.pass, "held");
+        assert!(guard.caption(&system(7, SPEECH, true, 200), now).pass);
+
+        guard.lengthen_hold(HOLD_LOCAL);
+        guard.lengthen_hold(HOLD_CLOUD);
+        assert_eq!(guard.hold, HOLD_LOCAL, "never shortened");
+        // The line held before still waits, and goes at its own time.
+        assert!(guard.due(now + Duration::from_secs(1)).is_empty());
+        assert_eq!(
+            shape(&guard.due(now + HOLD_CLOUD)),
+            [(2, "I would like to ask a question", true)]
+        );
+        // The system turn is still remembered: the room's copy of it is dropped.
+        let later = now + HOLD_CLOUD;
+        let outcome = guard.caption(&mic(3, ROOM_HEARD, true, 300), later);
+        assert_eq!(outcome, Outcome::default());
+        // A new line waits the longer hold.
+        guard.level(Origin::System, 0.1, later);
+        let outcome = guard.caption(&mic(4, "Could you say that again", true, 4_000), later);
+        assert_eq!(outcome.wake, Some(later + HOLD_LOCAL));
     }
 
     #[test]

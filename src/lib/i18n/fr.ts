@@ -383,6 +383,26 @@ export const fr: Messages = {
 		idleFallback:
 			'Un appareil audio mémorisé est indisponible. La prochaine session utilisera le choix par défaut de Windows.'
 	},
+	/** Le bandeau qui poursuit une source cloud avec Whisper hors ligne (#248). */
+	fallback: {
+		region: 'Poursuivre la session',
+		ended: (source: string, engine: string) => `${source} : ${engine} a cessé de sous-titrer.`,
+		reconnecting: (source: string, engine: string) =>
+			`${source} : ${engine} tente de se reconnecter depuis 30 secondes. Il continue jusqu’à votre choix.`,
+		whisper: 'Continuer avec Whisper hors ligne',
+		spoken: 'Continuer dans la langue parlée',
+		keepsEnglish: 'Whisper hors ligne continuera de traduire en anglais.',
+		cannotTranslate: (language: string) =>
+			`Whisper hors ligne ne peut pas traduire en ${language} : les sous-titres continueront dans la langue parlée.`,
+		turboCannotTranslate:
+			'Large v3 Turbo ne traduit pas : les sous-titres continueront dans la langue parlée.',
+		bothSources: 'Les deux sources continuent avec lui.',
+		switching: 'Changement de moteur…',
+		continued: (source: string, engine: string) => `${source} : suite avec ${engine}.`,
+		marker: (source: string, engine: string) => `${source} : ${engine} à partir d’ici`,
+		offlineWhisper: 'Whisper hors ligne',
+		notNow: 'Pas maintenant'
+	},
 	rail: {
 		locked: 'Session verrouillée',
 		lockedNote: 'Arrêtez la session pour modifier l’un de ces réglages.',
@@ -1055,6 +1075,7 @@ export const fr: Messages = {
 		demoUnavailable: 'La démonstration intégrée n’a pas pu être préparée',
 		sessionStart: 'La session n’a pas pu démarrer',
 		sessionPause: 'La session n’a pas pu être mise en pause ni reprise',
+		sessionFallback: 'La source n’a pas pu être poursuivie avec un autre moteur',
 		audioTestStart: 'Le test audio n’a pas pu ouvrir cette source',
 		overlayWindow: 'La fenêtre de surimpression n’a pas répondu',
 		operatorWindow: 'La fenêtre principale n’a pas répondu',

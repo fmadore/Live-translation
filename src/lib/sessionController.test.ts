@@ -252,3 +252,60 @@ describe('session coordination', () => {
 		expect(get(statusMessage)).toBeTruthy();
 	});
 });
+
+// #248: the fallback banner asks the core through the same queue as Start and Stop, so a switch
+// never runs alongside either, and a held run has nothing left to pause.
+describe('continuing a source with another engine', () => {
+	const request = { origin: 'system', from: 'gemini', to: 'whisper' } as const;
+
+	it('is refused while a start is under way, then runs alone in the queue', async () => {
+		let finishStart = () => {};
+		const startSession = vi.fn(
+			() => new Promise<void>((resolve) => (finishStart = () => resolve()))
+		);
+		const switchSourceEngine = vi.fn(async () => {});
+		const controller = createSessionController({
+			startSession,
+			stopSession: vi.fn(),
+			pauseSession: vi.fn(),
+			switchSourceEngine
+		});
+		const starting = controller.start({ ...get(options), provider: 'gemini' });
+		expect(await controller.switchSource(request)).toBe(false);
+		finishStart();
+		await starting;
+		expect(await controller.switchSource(request)).toBe(true);
+		expect(switchSourceEngine).toHaveBeenCalledExactlyOnceWith(request);
+		applyStatus({ state: 'idle' });
+	});
+
+	it('passes a refusal on to the banner', async () => {
+		const refusal = { id: 'error.sessionFallback', detail: 'the source is still running' };
+		const controller = createSessionController({
+			startSession: vi.fn(),
+			stopSession: vi.fn(),
+			pauseSession: vi.fn(),
+			switchSourceEngine: vi.fn(async () => {
+				throw refusal;
+			})
+		});
+		await expect(controller.switchSource(request)).rejects.toBe(refusal);
+		// The queue is free again.
+		await expect(controller.switchSource(request)).rejects.toBe(refusal);
+	});
+
+	it('does not pause a held run, which has no source left to pause', async () => {
+		const pauseSession = vi.fn();
+		const controller = createSessionController({
+			startSession: vi.fn(),
+			stopSession: vi.fn(),
+			pauseSession
+		});
+		applyStatus({ state: 'running', origin: 'system' });
+		applyStatus({ state: 'error', origin: 'system', message: { id: 'error.providerStopped' } });
+		expect(get(isRunning)).toBe(true);
+		await controller.pause(true);
+		expect(pauseSession).not.toHaveBeenCalled();
+		applyStatus({ state: 'idle' });
+	});
+});

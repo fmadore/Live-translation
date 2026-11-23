@@ -30,6 +30,7 @@ pub const COMMANDS: &[&str] = &[
     "start_session",
     "stop_session",
     "pause_session",
+    "switch_source_engine",
     "start_audio_test",
     "stop_audio_test",
     "set_overlay_click_through",
@@ -176,6 +177,23 @@ mod tests {
                 "allow-snap-overlay-to-bottom",
                 "allow-undo-overlay-move",
             ]
+        );
+    }
+
+    /// Continuing a source with another engine changes what the session sends and to whom, so
+    /// it is the operator's alone, like Start and Stop (#248).
+    #[test]
+    fn only_the_operator_may_switch_a_source_engine() {
+        assert!(COMMANDS.contains(&"switch_source_engine"));
+        assert!(
+            granted_commands(OPERATOR)
+                .iter()
+                .any(|g| g == "switch_source_engine")
+        );
+        assert!(
+            !granted_commands(OVERLAY)
+                .iter()
+                .any(|g| g == "switch_source_engine")
         );
     }
 

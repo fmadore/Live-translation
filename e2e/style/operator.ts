@@ -252,6 +252,38 @@ const STATES = {
 			);
 		}
 	},
+	/** The same session after Gemini ended both sources on its quota: the banner that continues
+	 *  them with offline Whisper, with the warning that captions change language (#248). Its
+	 *  longest sentences are the French and German ones at 225%. */
+	'running-fallback': {
+		overflowOnly: true,
+		prepare(core) {
+			STATES.running.prepare(core);
+			core.handle('whisper_models', () => [
+				{
+					id: 'small',
+					bytes: 1,
+					installed: true,
+					downloading: false,
+					downloadedBytes: 0,
+					inUse: false
+				}
+			]);
+		},
+		async reach(app) {
+			const { page, core, t } = app;
+			await STATES.running.reach(app);
+			for (const origin of ['system', 'microphone'] as const)
+				await core.emit('status', {
+					state: 'error',
+					origin,
+					message: { id: 'error.providerStopped', detail: 'Gemini — quota exceeded' }
+				} satisfies StatusUpdate);
+			const banner = page.getByRole('region', { name: t.fallback.region });
+			await expect(banner).toContainText(t.fallback.bothSources);
+			await expect(page.getByRole('button', { name: t.fallback.notNow })).toBeVisible();
+		}
+	},
 	/** The same session read back in the stage's transcript reader (issue #124). */
 	'running-transcript': {
 		prepare: (core) => STATES.running.prepare(core),

@@ -398,6 +398,30 @@ export const en = {
 		idleFallback:
 			'A saved audio device is unavailable. The next session will use the Windows default.'
 	},
+	/** The banner that continues a cloud source with offline Whisper after it ended mid-session
+	 *  (`SourceFallbackBanner.svelte`, #248). */
+	fallback: {
+		region: 'Continue the session',
+		ended: (source: string, engine: string) => `${source}: ${engine} stopped captioning.`,
+		reconnecting: (source: string, engine: string) =>
+			`${source}: ${engine} has been reconnecting for 30 seconds. It keeps trying until you choose.`,
+		whisper: 'Continue with offline Whisper',
+		spoken: 'Continue in the spoken language',
+		keepsEnglish: 'Offline Whisper will keep translating into English.',
+		cannotTranslate: (language: string) =>
+			`Offline Whisper cannot translate into ${language}: captions will continue in the spoken language.`,
+		turboCannotTranslate:
+			'Large v3 Turbo cannot translate: captions will continue in the spoken language.',
+		bothSources: 'Both sources continue with it.',
+		switching: 'Switching engine…',
+		continued: (source: string, engine: string) => `${source} continues with ${engine}.`,
+		/** The marker put in the transcript at the switch, in the interface language of the
+		 *  moment. */
+		marker: (source: string, engine: string) => `${source}: ${engine} from here`,
+		/** The engine's name inside the sentences above. */
+		offlineWhisper: 'offline Whisper',
+		notNow: 'Not now'
+	},
 	rail: {
 		locked: 'Session locked',
 		lockedNote: 'Stop the session to change any of these.',
@@ -1083,6 +1107,7 @@ export const en = {
 		demoUnavailable: 'The built-in demonstration could not be prepared',
 		sessionStart: 'The session could not be started',
 		sessionPause: 'The session could not be paused or resumed',
+		sessionFallback: 'The source could not be continued with another engine',
 		audioTestStart: 'The audio test could not open that source',
 		overlayWindow: 'The overlay window did not respond',
 		operatorWindow: 'The operator window did not respond',

@@ -19,6 +19,7 @@ import type {
 	OnDeviceReadiness,
 	Provider,
 	StartOptions,
+	SourceSwitch,
 	StatusUpdate,
 	StoredRecovery,
 	SystemCapture,
@@ -101,6 +102,8 @@ export const api = {
 
 	startSession: (options: StartOptions) => invoke<void>('start_session', { options }),
 	stopSession: () => invoke<void>('stop_session'),
+	/** Continue one source of the running session with another engine; see `SourceSwitch`. */
+	switchSourceEngine: (request: SourceSwitch) => invoke<void>('switch_source_engine', { request }),
 
 	/** Level-only capture for the preflight: no provider connection, no captions, no stored
 	 *  audio. See `SessionManager::start_test`. */

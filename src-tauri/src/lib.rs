@@ -177,6 +177,7 @@ pub fn run() {
             commands::start_session,
             commands::stop_session,
             commands::pause_session,
+            commands::switch_source_engine,
             commands::start_audio_test,
             commands::stop_audio_test,
             commands::set_overlay_click_through,

@@ -560,7 +560,7 @@ impl Client {
             cancel.clone(),
             crate::timing::SessionClock::start(),
             pause_rx,
-            0,
+            crate::realtime::Track::default(),
         ));
         Self {
             events,
@@ -1130,7 +1130,7 @@ async fn live_probe() {
         cancel.clone(),
         crate::timing::SessionClock::start(),
         pause_rx,
-        0,
+        crate::realtime::Track::default(),
     ));
     // At the pace of speech: DeepL caps input at twice real time.
     for chunk in samples.chunks(chunk_samples(16_000)) {

@@ -31,7 +31,9 @@ launch.
 **Pause**, beside Stop (or Ctrl+Shift+P), keeps the session, clock and transcript together.
 For cloud engines, each connection closes gracefully and flushes its final turn; after that,
 no audio is streamed or billed until **Resume** connects afresh. The cost estimate counts
-streamed time. With **Whisper**, Pause stops new audio entering recognition or temporary
+streamed time, each stream at its own engine's rate: a stream that has ended stops adding to
+it, and one continued by offline Whisper costs nothing from then on
+([local Whisper](local-whisper.md#when-a-cloud-engine-stops-continue-with-whisper)). With **Whisper**, Pause stops new audio entering recognition or temporary
 storage while pending speech continues processing. The demo holds between scripted steps.
 
 Capture and level meters remain active while paused. **Hide overlay** only blanks the

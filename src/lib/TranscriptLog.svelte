@@ -2,7 +2,7 @@
 	import { tick, untrack } from 'svelte';
 	import { t } from './i18n';
 	import { captionDirection } from './languages';
-	import { loggedLanguage, options } from './stores';
+	import { loggedLanguage, options, trackEngines, trackLanguage } from './stores';
 	import { groupTranscript, markerTime, markerTitle, withMarkers } from './transcript';
 	import {
 		createFindIndex,
@@ -12,7 +12,7 @@
 		type FindTarget
 	} from './transcriptFind';
 	import {
-		laneLanguage,
+		trackOf,
 		type Origin,
 		type OutputMode,
 		type TranscriptLine,
@@ -341,7 +341,8 @@
 						>
 						{@render caption(
 							line.text,
-							line.language ?? laneLanguage($options, line.lane ?? 0),
+							line.language ??
+								trackLanguage($options, trackOf(line.origin, line.lane), $trackEngines),
 							true,
 							showOriginal && (line.lane ?? 0) === 0 ? line.sourceText : '',
 							undefined

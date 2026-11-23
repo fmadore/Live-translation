@@ -2,6 +2,7 @@
 //! decisions at window boundaries can be tested directly.
 
 pub use super::engine::RawSegment;
+use crate::realtime::TurnCounter;
 
 /// A caption ready for the transcript.
 #[derive(Debug, PartialEq)]
@@ -28,9 +29,10 @@ fn is_silence(segment: &RawSegment) -> bool {
 
 /// Carries the last caption across windows, so the second of overlap between two windows is
 /// captioned once and caption times only ever move forward.
-#[derive(Default)]
 pub struct Reconciler {
-    turn: u64,
+    /// Where each line's turn id comes from: the source's, so ids continue from the engine the
+    /// source had before (`realtime::TurnCounter`).
+    turns: TurnCounter,
     previous_text: String,
     previous_end: u64,
     /// The words of the last line captioned, and how many lines in a row have said them since.
@@ -38,7 +40,25 @@ pub struct Reconciler {
     repeats: usize,
 }
 
+impl Default for Reconciler {
+    /// A source's first engine: its first line is turn 1.
+    fn default() -> Self {
+        Self::continuing(TurnCounter::starting_at(1))
+    }
+}
+
 impl Reconciler {
+    /// Lines numbered from `turns`.
+    pub fn continuing(turns: TurnCounter) -> Self {
+        Self {
+            turns,
+            previous_text: String::new(),
+            previous_end: 0,
+            last_said: Vec::new(),
+            repeats: 0,
+        }
+    }
+
     /// `window_start_ms` is the window's capture time and `duration_ms` its real length; Whisper
     /// sees short windows padded, and timestamps in the padding are clamped back to the audio.
     pub fn accept(
@@ -82,13 +102,13 @@ impl Reconciler {
             self.previous_end = end;
             return None;
         }
-        self.turn += 1;
+        let turn = self.turns.next();
         let start = start.max(self.previous_end);
         let line = Line {
             text: text.to_owned(),
             start_ms: start,
             end_ms: end.max(start),
-            turn: self.turn,
+            turn,
         };
         self.previous_text = line.text.clone();
         self.previous_end = end;

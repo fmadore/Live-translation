@@ -55,6 +55,9 @@ or closing the app before it has finished, keeps captions already produced but l
 transcript incomplete. Pause excludes newly captured audio from recognition and temporary
 storage while metering remains active.
 
+If a cloud source stops during a session, the user can continue it with local Whisper; from then
+on that source's audio stays on the computer.
+
 On Windows, Whisper may run in `whisper-vulkan`, a helper program installed with the app that
 uses the graphics processor; audio reaches it only through the computer's own memory, never a
 network, and it keeps nothing once the session ends. The speech-detection model that skips

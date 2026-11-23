@@ -2,10 +2,9 @@
 	import { CAPTION_TAIL_CHARS, tail } from './captionLayout';
 	import { locale, t } from './i18n';
 	import { captionDirection, languageName } from './languages';
-	import { currentCaptions, options } from './stores';
+	import { currentCaptions, options, trackEngines, trackLanguage } from './stores';
 	import {
 		laneCount,
-		laneLanguage,
 		trackLane,
 		trackOrigin,
 		type Caption,
@@ -39,7 +38,7 @@
 					caption,
 					text: tail(caption.text, CAPTION_TAIL_CHARS),
 					source: tail(caption.sourceText, CAPTION_TAIL_CHARS),
-					language: laneLanguage($options, trackLane(track))
+					language: trackLanguage($options, track, $trackEngines)
 				}
 			];
 		})
@@ -48,7 +47,7 @@
 	// it is in; the original speech is shown once, on the first.
 	const dual = $derived(laneCount($options) === 2);
 	function laneName(track: Track): string {
-		const language = laneLanguage($options, trackLane(track));
+		const language = trackLanguage($options, track, $trackEngines);
 		return language ? languageName(language, $locale) : '';
 	}
 </script>

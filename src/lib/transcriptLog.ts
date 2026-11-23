@@ -6,9 +6,11 @@ import { cleanMarkerLabel, isDirty, newestDocumentId, NOTHING_SAVED } from './do
 import { sessionHistory } from './history';
 import { options } from './preferences';
 import { noteActivity } from './sourceActivity';
-import { laneCount, laneLanguage, trackOf } from './types';
+import { providerDetectsLanguage } from './providers';
+import { laneCount, laneLanguage, trackLane, trackOf } from './types';
 import type {
 	Caption,
+	Provider,
 	StartOptions,
 	TargetLanguage,
 	Track,
@@ -22,6 +24,23 @@ import type {
 // both languages — at once. Key insertion order is kept in least-recently-updated order,
 // which is the order the stage renders the blocks in — newest at the bottom.
 export const currentCaptions = writable<Partial<Record<Track, Caption>>>({});
+
+/** The engine a track was continued with after its own ended (#248), for the tracks that
+ *  were; the others run the setup's engine. Cleared when a run begins. */
+export const trackEngines = writable<Partial<Record<Track, Provider>>>({});
+
+/** The caption language of `track`, when the app knows it: the setup's for the lane, unless
+ *  the track was continued by an engine that detects the spoken language, whose lines are in
+ *  whatever language was spoken. */
+export function trackLanguage(
+	setup: Pick<StartOptions, 'mode' | 'provider' | 'targetLanguage' | 'secondTargetLanguage'>,
+	track: Track,
+	engines: Partial<Record<Track, Provider>> = get(trackEngines)
+): TargetLanguage | undefined {
+	const engine = engines[track];
+	if (engine && providerDetectsLanguage(engine)) return undefined;
+	return laneLanguage(setup, trackLane(track));
+}
 
 // The transcript log, most recent finalized line first.
 //
@@ -107,7 +126,7 @@ function commit(c: Caption) {
 	if (!c.text.trim()) return;
 	const setup = get(options);
 	const line = toLine(c, nextLineId++, setup);
-	const language = laneLanguage(setup, c.lane ?? 0);
+	const language = trackLanguage(setup, trackOf(c.origin, c.lane));
 	if (language) lineLanguages.set(line.id, language);
 	transcript.update((list) => [line, ...list]);
 	sessionHistory.append({ ...line, startMs: c.startMs, endMs: c.endMs });
@@ -197,17 +216,19 @@ export function flushTranscript() {
 	}
 }
 
-/** End the run's document: commit in-flight lines, then close its history record. Safe to
- *  call more than once — a finished record keeps its first end time. */
-export function endTranscriptSession(): Promise<void> {
+/** End the run's document: commit in-flight lines, then close its history record, at `at`
+ *  when the run really ended earlier (a held run the operator declined). Safe to call more
+ *  than once — a finished record keeps its first end time. */
+export function endTranscriptSession(at?: Date): Promise<void> {
 	flushTranscript();
-	return sessionHistory.finish();
+	return sessionHistory.finish(at);
 }
 
 /** The transcript's part of `beginSession`: close the previous run's record and open this
  *  one's, without discarding already finalized lines. */
 export function beginTranscriptRun(sessionOptions: StartOptions) {
 	void endTranscriptSession();
+	trackEngines.set({});
 	sessionHistory.begin(sessionOptions);
 	// Retried/new sessions append to one document without resetting its cue timeline.
 	transcriptTimeOffset = Math.max(

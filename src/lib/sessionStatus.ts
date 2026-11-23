@@ -4,7 +4,8 @@
 // this module sits above `transcriptLog.ts` and `sourceActivity.ts`, never below them.
 
 import { derived, get, writable } from 'svelte/store';
-import { describeError, type AppError } from './errors';
+import { billedAt, type BillingChange } from './billing';
+import { describeError, isAppError, type AppError } from './errors';
 import type { Messages } from './i18n/en';
 import { options } from './preferences';
 import { activityTimes, micLevel, systemLevel } from './sourceActivity';
@@ -12,7 +13,8 @@ import {
 	beginTranscriptRun,
 	currentCaptions,
 	endTranscriptSession,
-	flushTranscript
+	flushTranscript,
+	trackEngines
 } from './transcriptLog';
 import { LANES, trackOf, trackOrigin } from './types';
 import type { Origin, SessionState, StatusUpdate, Track } from './types';
@@ -51,12 +53,57 @@ export const sessionState = derived(originStates, (m): SessionState => {
 	return DISPLAY_PRIORITY.find((s) => states.includes(s)) ?? 'idle';
 });
 
-// A paused session is still a session: Stop stays available and the setup stays locked.
-export const isRunning = derived(originStates, (m) =>
+/** Whether any source of the run is still active. A paused session is still a session. */
+export const sourcesActive = derived(originStates, (m) =>
 	Object.values(m).some(
 		(s) => s === 'running' || s === 'reconnecting' || s === 'connecting' || s === 'paused'
 	)
 );
+
+// ---- The held run (#248) ----------------------------------------------------
+// When the last source ends on a failure another engine can take over from, the run is held
+// open while the fallback banner offers that: the clock, the running layout and the history
+// record carry on, as the core's session does. Continuing resumes it; declining (Not now, Stop)
+// ends it with the record closed at the failure's time, so its duration does not run on.
+
+/** The failures that end a source the fallback banner can continue. */
+const FALLBACK_FAILURES: readonly string[] = ['error.providerStopped', 'error.providerRejected'];
+
+/** Whether `u` ends a source with a failure the fallback banner can continue. */
+export function endsForFallback(u: StatusUpdate): boolean {
+	return (
+		u.state === 'error' &&
+		u.origin !== undefined &&
+		isAppError(u.message) &&
+		FALLBACK_FAILURES.includes(u.message.id)
+	);
+}
+
+/** When the run's last source ended on such a failure, while the run is held; else null. */
+export const heldSince = writable<number | null>(null);
+
+// A paused session is still a session: Stop stays available and the setup stays locked. So is a
+// held one, until the operator continues or declines it.
+export const isRunning = derived(
+	[sourcesActive, heldSince],
+	([active, held]) => active || held !== null
+);
+
+/** The held run's end, for the history record, or undefined when the run is not held. */
+export function heldRunEnd(): Date | undefined {
+	const held = get(heldSince);
+	return held === null ? undefined : new Date(held);
+}
+
+/** Decline the held run: end it as an ended run always ended, at the time it really ended. */
+export function endHeldRun() {
+	const end = heldRunEnd();
+	if (!end) return;
+	heldSince.set(null);
+	sessionStartedAt.set(null);
+	runHadActiveSource = false;
+	void endTranscriptSession(end);
+}
 
 /** Whether the operator has paused the run: set when the core accepts the request, so the
  *  button answers at once rather than when each source reports it. Cleared with the run. */
@@ -76,6 +123,28 @@ sessionState.subscribe((state) => {
 		return { totalMs: p.totalMs + Date.now() - p.since, since: null };
 	});
 });
+
+/** What each stream of the run is billed at, as it changed: a stream that ended, or that
+ *  another engine continued (`billing.ts`). Empty for a run whose streams all ran on. */
+export const billingChanges = writable<BillingChange[]>([]);
+
+/** Note what `tracks` are billed at now that they report `state`. */
+function noteBilling(tracks: Track[], state: SessionState) {
+	const setup = get(options).provider;
+	const engines = get(trackEngines);
+	const startedAt = get(sessionStartedAt);
+	const now = Date.now();
+	const atMs = startedAt === null ? 0 : streamedMs(now - startedAt, get(pausedTime), now);
+	const ended = state === 'error' || state === 'idle';
+	billingChanges.update((changes) => {
+		let next = changes;
+		for (const track of tracks) {
+			const provider = ended ? null : (engines[track] ?? setup);
+			if (billedAt(track, setup, next) !== provider) next = [...next, { track, provider, atMs }];
+		}
+		return next;
+	});
+}
 
 /** How much of `elapsedMs` was spent streaming, as of `now`. */
 export function streamedMs(
@@ -151,6 +220,7 @@ export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolea
 			for (const track of tracks) next[track] = u.state;
 			return next;
 		});
+		noteBilling(tracks, u.state);
 		// Per source, as the activity row reads it: a second caption language back from a
 		// reconnect brings the source back to running, though the first never left.
 		const nowRunning = originState(get(originStates), origin) === 'running';
@@ -164,7 +234,12 @@ export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolea
 				for (const track of tracks) delete next[track];
 				return next;
 			});
-			if (!get(isRunning)) {
+			// The last source ended on a failure another engine can continue: hold the run
+			// while the banner offers it (`sourceFallback.svelte.ts`).
+			if (!get(sourcesActive) && runHadActiveSource && endsForFallback(u)) {
+				heldSince.set(Date.now());
+			} else if (!get(sourcesActive)) {
+				heldSince.set(null);
 				sessionStartedAt.set(null);
 				// Every source of this run has ended by itself — a provider failure, or a
 				// capture that died — with no Stop to close the record. Left open, it would be
@@ -177,6 +252,8 @@ export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolea
 		} else {
 			runHadActiveSource = true;
 			staleIdleDue = false;
+			// Continued by another engine: the held run goes on.
+			heldSince.set(null);
 			// Starting a replacement first drains the old backend session, whose Idle
 			// can arrive after beginSession. Its first active status starts the new clock.
 			if (get(sessionStartedAt) === null) sessionStartedAt.set(Date.now());
@@ -193,6 +270,10 @@ export function applyStatus(u: StatusUpdate, { local = false }: { local?: boolea
 			return;
 		}
 		coreHoldsSession = false;
+		// A held run the operator stopped ended when its last source did.
+		const heldEnd = heldRunEnd();
+		heldSince.set(null);
+		if (heldEnd) void endTranscriptSession(heldEnd);
 		// Whole-session stop: commit any in-flight caption so it can be saved, and
 		// clear per-source state so the meters don't freeze at their last value.
 		originStates.set({});
@@ -222,6 +303,8 @@ export function beginSession(sessionOptions = get(options)) {
 	coreHoldsSession = true;
 	originStates.set({});
 	runningSince.set({});
+	heldSince.set(null);
+	billingChanges.set([]);
 	pauseRequested.set(false);
 	pausedTime.set({ totalMs: 0, since: null });
 	micLevel.set({ source: 'microphone', rms: 0, peak: 0 });

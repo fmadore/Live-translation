@@ -24,6 +24,12 @@ listing is for Windows: 1.13 and later also ship a Mac app, which the listing do
   `gpt-live-transcribe` joins Whisper, Voxtral and Gemini under Live subtitles, on the same
   OpenAI key as its translation, at $1.02 an hour; the privacy policy, effective 23 November
   2026, names OpenAI as a recipient of subtitle audio, names and terms.
+- **Continue with offline Whisper** ([#248](https://github.com/fmadore/Live-translation/issues/248)):
+  when a cloud engine ends a source mid-session (a key, quota or billing error), or has been
+  reconnecting for 30 seconds, a banner offers to continue that source with offline Whisper in
+  the same session: same clock, transcript and history entry, with a marker at the switch.
+  Nothing new is sent to anyone, so the privacy policy gains one sentence and keeps its
+  23 November 2026 date.
 
 ## What 1.15.0 adds
 
