@@ -1,16 +1,15 @@
-# Next Store submission — 1.15.0
+# Next Store submission — 1.16.0
 
-**1.15.0 tagged and published on GitHub on 17 November 2026; Store submission pending.** The
-Store serves
-**1.14.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
-PC on 17 November 2026 (SignatureKind Store); the submission and certification dates were not
-recorded. The next submission is **1.15.0.0**, replacing it: one unsigned bundle with native x64
-and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.15.0/Live.Translation_1.15.0.msixbundle`
+**1.16.0 tagged on 23 November 2026; Store submission pending.** The Store serves
+**1.15.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
+PC on 23 November 2026 (SignatureKind Store); the submission and certification dates were not
+recorded. Everything 1.15.0 brought to the listing is in Partner Center. The next submission is
+**1.16.0.0**, replacing it: one unsigned bundle with native x64 and ARM64 packages, at
+`https://github.com/fmadore/Live-translation/releases/download/v1.16.0/Live.Translation_1.16.0.msixbundle`
 once the tag is built.
 
-What's new and the certification notes' first paragraph cover the changes since 1.14.0. What
-1.14.0, 1.13.1 and 1.12.0 brought to the listing is already in Partner Center and stays.
+What's new and the certification notes' first paragraph cover the changes since 1.15.0. What
+1.15.0, 1.14.0, 1.13.1 and 1.12.0 brought to the listing is already in Partner Center and stays.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -18,18 +17,72 @@ controls. New installations open on Whisper / Base / automatic detection, and ex
 setups are preserved. Model download and capture remain explicit user actions. The Store
 listing is for Windows: 1.13 and later also ship a Mac app, which the listing does not mention.
 
-## On main after 1.15.0, for the next listing
+## On main after 1.16.0, for the next listing
 
-- **OpenAI subtitles** ([#251](https://github.com/fmadore/Live-translation/issues/251)): OpenAI's
-  `gpt-live-transcribe` joins Whisper, Voxtral and Gemini under Live subtitles, on the same
-  OpenAI key as its translation, at $1.02 an hour; the privacy policy, effective 23 November
-  2026, names OpenAI as a recipient of subtitle audio, names and terms.
-- **Continue with offline Whisper** ([#248](https://github.com/fmadore/Live-translation/issues/248)):
-  when a cloud engine ends a source mid-session (a key, quota or billing error), or has been
-  reconnecting for 30 seconds, a banner offers to continue that source with offline Whisper in
-  the same session: same clock, transcript and history entry, with a marker at the switch.
-  Nothing new is sent to anyone, so the privacy policy gains one sentence and keeps its
-  23 November 2026 date.
+Nothing yet.
+
+## What 1.16.0 adds
+
+From the [release notes](release-1.16.0.md), user-visible:
+
+- **OpenAI subtitles** ([#251](https://github.com/fmadore/Live-translation/issues/251),
+  [#266](https://github.com/fmadore/Live-translation/pull/266)): OpenAI's `gpt-live-transcribe`
+  (Realtime transcription) joins Whisper, Mistral (Voxtral) and Gemini under Live subtitles, on
+  the same OpenAI key as its translation (no second key), at $0.017 a minute, **$1.02 an hour**
+  (OpenAI's pricing, read 23 November 2026). It takes the names and terms (as `keywords`) and the
+  chosen spoken language as hints. Sessions last 60 minutes and hand over. Both OpenAI engines
+  share one answer to the question asked before audio first goes to a provider.
+- **Continue with offline Whisper** ([#248](https://github.com/fmadore/Live-translation/issues/248),
+  [#271](https://github.com/fmadore/Live-translation/pull/271)): when a cloud engine ends a source
+  mid-session on a key, quota or billing error, or has been reconnecting for 30 seconds, a banner
+  offers **Continue with offline Whisper** (or **Continue in the spoken language** when the
+  installed model cannot translate or the caption language is not English). The same session
+  goes on: same clock, transcript and history entry, with an automatic marker at the switch. One
+  click continues every waiting source; **Not now** leaves them. It needs an installed Whisper
+  model and a processor that can run Whisper, and is not offered in a rehearsal, the demo or with
+  two caption languages. Whisper time costs nothing in the estimate, and nothing new is sent
+  anywhere.
+- **Gemini subtitles fixed** ([#268](https://github.com/fmadore/Live-translation/pull/268)):
+  since 1.4.0, every Gemini Transcribe caption after the first repeated everything said before
+  it, because Google's SMART mode sends cumulative finals. The app now uses VERBATIM: each
+  caption arrives about a second after the speaker pauses, word for word, fillers included (the
+  app's own optional filler filter can still hide them on the overlay). Gemini subtitles now take
+  a **spoken language** (71 languages, default Detect automatically).
+- **OpenAI noise reduction by source** ([#249](https://github.com/fmadore/Live-translation/issues/249)):
+  far-field for the microphone, none for system audio, with the OpenAI translation engine.
+- **The first words at Start or Resume** are no longer lost on cloud engines: audio captured
+  while the connection opens is buffered and sent
+  ([#266](https://github.com/fmadore/Live-translation/pull/266)).
+- **Fixes** from the 20 November audit and
+  [#272](https://github.com/fmadore/Live-translation/pull/272): the echo filter catches
+  microphone echoes that only have source text; DeepL (experimental) sends a finished
+  sentence's last words without waiting for the next one; Mistral's Pause and Stop no longer
+  wait after a forced close; Whisper removes overlaps and loops in Chinese, Japanese and Thai; a
+  crashed graphics-processor helper is reported with its cause; an unplugged microphone says so;
+  a driver crash in Test audio no longer leaves the test stuck; the overlay comes back when an
+  unplugged projector leaves most of it off screen; History restores sessions whose delete
+  failed; Stop no longer waits for a Whisper model to finish loading; transcripts holding only
+  markers can be saved, recovered and kept in history; the cost estimate stops counting a paused
+  track; the overlay uses each track's own caption language (right-to-left included) after a
+  switch; reduced motion is fully respected; the German interface says "Overlay" throughout.
+- **Security updates**: `url` 2.5.9 and `cookie` 0.18.3 (RustSec advisories).
+
+[store-listing.md](store-listing.md) replaces What's new in each language (OpenAI subtitles
+and the offline Whisper fallback first, then the Gemini fix, the first words, and a short list of
+fixes) and the certification notes' first paragraph. Each description changes in its fourth
+paragraph only: Gemini, Mistral and OpenAI offer cloud subtitles, OpenAI on the same key as its
+translation; OpenAI joins the engines that take names and terms; and one new sentence says the
+app offers to carry on with offline Whisper in the same session when a cloud engine stops. Two
+feature lines change in place, the first (offline Whisper can carry on a session) and the fifth
+(cloud subtitles with OpenAI), so the list stays at twenty. The certification notes'
+*Optional cloud features* paragraph adds OpenAI subtitles, the consent answer both OpenAI engines
+share and the names and terms sent to OpenAI. No capability or product declaration changes: the
+MSIX capabilities are still `runFullTrust` and `microphone`, and `AppxManifest.xml.template` and
+`bundle.config.json` are unchanged since `v1.15.0`. The privacy policy's effective date is
+**23 November 2026**: it names OpenAI as a recipient of subtitle audio, names and terms and the
+chosen spoken language, and corrects where names and terms go (Mistral `context_bias`, Gemini
+Transcribe `customVocabulary`, OpenAI subtitles `keywords`, local Whisper on the device). The
+fallback to offline Whisper sends nothing new.
 
 ## What 1.15.0 adds
 
@@ -209,33 +262,32 @@ capabilities are unchanged (`runFullTrust` and `microphone`); `AppxManifest.xml.
 
 ## The copy
 
-[store-listing.md](store-listing.md) is the 1.15.0 copy, with every block in English, French and
-German: What's new, the descriptions' new sentences, three feature lines and the certification
-notes. The French and German sentences new in 1.15.0 need the maintainer's review.
+[store-listing.md](store-listing.md) is the 1.16.0 copy, with every block in English, French and
+German: What's new, the descriptions' new sentences, two feature lines and the certification
+notes. The French and German sentences new in 1.16.0 need the maintainer's review.
 
 - [EN/FR/DE descriptions, What's new and certification notes](store-listing.md)
-- [Release notes](release-1.15.0.md)
-- [Build evidence and acceptance checklist](store-updates.md#release-1150-handoff)
-- [16 November app review](app-review-2026-11-16.md), with what is still to check by hand
+- [Release notes](release-1.16.0.md)
+- [Build evidence and acceptance checklist](store-updates.md#release-1160-handoff)
 - [Captions in Zoom guide](zoom-captions.md), which the app's dialog opens
 - [Screenshot plan](store-screenshots/README.md)
 - [Partner Center walkthrough](partner-center-walkthrough.md)
 
 Before submission, complete:
 
-- a test of the 1.15.0 package on Windows hardware: nothing in the 16 November work had run on
-  Windows when it was merged, so at least the system-wide keys over full-screen PowerPoint, the
-  overlay with four rows, Find (Ctrl+F keeping WebView2's find bar shut), a marker, the overlay
-  notice and the spending guard's idle pause;
-- that the installed Store-identity package shows no new-version question and sends nothing to
-  GitHub;
+- a test of the 1.16.0 package on Windows hardware: at least an OpenAI subtitles session with an
+  OpenAI key (names and terms, a chosen spoken language), Gemini subtitles arriving once each
+  without earlier text and with a chosen spoken language, the first words after Start and Resume
+  on a cloud engine, and Continue with offline Whisper after a cloud engine stops (a revoked key,
+  or the network cut for 30 seconds), with the marker in the transcript and one history entry;
 - the final-package checks, including `whisper-vulkan.exe` and the bundled model in both
   packages, and the checks still open from earlier releases
-  ([1.14.0's](store-updates.md#release-1140-handoff),
+  ([1.15.0's](store-updates.md#release-1150-handoff),
+  [1.14.0's](store-updates.md#release-1140-handoff),
   [1.13.1's](store-updates.md#release-1131-handoff) and
   [1.13.0's](store-updates.md#release-1130-handoff));
-- the screenshot decision;
-- the German and French copy review of the 1.15.0 sentences;
+- the screenshot decision (1.16.0 adds OpenAI as a fifth engine card in Subtitles);
+- the German and French copy review of the 1.16.0 sentences;
 - Windows App Certification Kit on the final packages.
 
 Use the normal Store identity: the side-by-side Local Test installation is for feedback, not the

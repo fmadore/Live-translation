@@ -9,18 +9,21 @@ a file elsewhere in the repository uses its GitHub URL; `src/lib/docsLinks.test.
 relative link that leaves `docs/`.
 
 These guides describe `main`, released as
-**[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** (tagged and
-published on GitHub on 17 November 2026; the Store submission is still to be made): a spending
-guard for cloud engines, markers and Find in the transcript, a notice on the overlay for breaks,
-opt-in system-wide Pause and overlay keys, several History sessions deleted or saved at once, a
-new-version notice for copies installed from GitHub, and the fixes of the
-[16 November app review](app-review-2026-11-16.md), which also lists what is still to check by
-hand. The version in the Store is
+**[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (tagged on
+23 November 2026; the Store submission is still to be made): OpenAI subtitles, continuing a
+cloud source with offline Whisper in the same session when its engine stops, a spoken language
+for Gemini subtitles, Gemini subtitles that no longer repeat earlier speech, the first words
+after Start kept on cloud engines, and the fixes of the 20 November audit. The version in the
+Store is **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)**
+(17 November 2026, MSIX 1.15.0.0), read from the installed package on 23 November 2026: a
+spending guard for cloud engines, markers and Find in the transcript, a notice on the overlay
+for breaks, opt-in system-wide Pause and overlay keys, several History sessions deleted or saved
+at once, and the fixes of the [16 November app review](app-review-2026-11-16.md), which also
+lists what is still to check by hand. It replaced
 **[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November
-2026, MSIX 1.14.0.0), read from the installed package on 17 November 2026: DeepL as an
-experimental fourth cloud translation engine, Mistral reconnecting after a transcription
-timeout, and overlay rows that each show a line with both sources. It replaced
-**[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November
+2026): DeepL as an experimental fourth cloud translation engine, Mistral reconnecting after a
+transcription timeout, and overlay rows that each show a line with both sources. Before it, the
+Store served **[1.13.1](https://github.com/fmadore/Live-translation/releases/tag/v1.13.1)** (11 November
 2026): the fixes from the Mac app's first run on a real Mac, on top of 1.13.0's Mac app, Whisper
 on the graphics processor, speech detection, Large v3 Turbo, names and terms for Gemini
 Transcribe and Whisper, and the question before audio first goes to a cloud provider. 1.10.0
@@ -61,16 +64,24 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.15.0 (tagged 17 November 2026, Store submission pending)
+## Release 1.16.0 (tagged 23 November 2026, Store submission pending)
+
+- [Release notes](release-1.16.0.md): OpenAI subtitles, continuing a cloud source with offline
+  Whisper when its engine stops, a spoken language for Gemini subtitles, Gemini subtitles that
+  no longer repeat earlier speech, the first words after Start kept, and the fixes of the
+  20 November audit.
+- [Release handoff](store-updates.md#release-1160-handoff) and
+  [what the Store submission needs](store-listing-next.md).
+
+## Release 1.15.0 (tagged 17 November 2026, in the Store)
 
 - [Release notes](release-1.15.0.md): a spending guard for cloud engines, markers and Find in
   the transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys,
   a new-version notice for copies installed from GitHub, and the fixes of the
   [16 November app review](app-review-2026-11-16.md).
-- [Release handoff](store-updates.md#release-1150-handoff) and
-  [what the Store submission needs](store-listing-next.md).
+- [Release handoff](store-updates.md#release-1150-handoff).
 
-## Release 1.14.0 (tagged 13 November 2026, in the Store)
+## Release 1.14.0 (tagged 13 November 2026, replaced in the Store by 1.15.0)
 
 - [Release notes](release-1.14.0.md): DeepL as an experimental fourth cloud translation engine
   (paid DeepL API plan only), Mistral reconnecting after a transcription timeout, and overlay rows

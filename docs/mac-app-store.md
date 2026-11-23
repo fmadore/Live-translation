@@ -6,18 +6,20 @@ version. The port itself is described in [macos.md](macos.md); the Microsoft Sto
 [microsoft-store.md](microsoft-store.md). Kalamu went through the same steps first
 (`docs/mac-app-store.md` in that repository), with the same team.
 
-## Status (17 November 2026)
+## Status (23 November 2026)
 
-**1.13.1 is still in App Review** (the maintainer, 17 November 2026; it was first reported in
-review on 13 November, and the upload and submission dates were not recorded). It carries the
-fixes of the first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026)).
-1.14.0 (tagged 13 November, in the Microsoft Store) was not uploaded. **1.15.0** (tagged 17
-November 2026, not uploaded) is the next Mac build to upload once 1.13.1's review is settled: it adds 1.14.0's
-DeepL engine and fixes, the operator features of the
-[16 November review](app-review-2026-11-16.md) (spending guard, markers, Find, the overlay
-notice, the [system-wide keys](#what-app-review-may-question)) and its fixes, none of them tried
-on a Mac yet. The store build never checks for new versions; only the disk image can. The
-English screenshots are in [store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
+**1.13.1** was last reported in App Review on 17 November 2026 (first reported in review on
+13 November; the upload and submission dates were not recorded). It carries the fixes of the
+first run on a real Mac ([macOS notes](macos.md#first-run-1011-november-2026)). 1.14.0 and 1.15.0
+were not uploaded. **1.16.0** (tagged 23 November 2026) is the next Mac build, uploaded from its
+tag with the *Mac App Store* workflow; submit it once 1.13.1's review is settled. Since 1.13.1 it
+adds 1.14.0's DeepL engine, 1.15.0's operator features (spending guard, markers, Find, the
+overlay notice, the [system-wide keys](#what-app-review-may-question)), and 1.16.0's OpenAI
+subtitles, continuing a cloud source with offline Whisper, the Gemini subtitles fix and the
+20 November audit's fixes, including the System Audio Recording hint that no longer returns after
+a pause in a call. None of these has been tried on a Mac yet. The store build never checks for
+new versions; only the disk image can. The English screenshots are in
+[store-screenshots/mac/en](store-screenshots/README.md#mac-app-store-english).
 The 5 November upload is a 1.12-era build without those fixes: do not submit it. The decision of 4 November 2026: the Mac
 App Store version is **free**, like the Windows one, with no in-app purchase. The trial and
 unlock proposed in [#195](https://github.com/fmadore/Live-translation/issues/195) are dropped, so
@@ -44,8 +46,8 @@ Every secret below and the `APPLE_APP_ID` variable were set on 5 November 2026, 
 profile and the app's Apple ID last, after steps 1, 3 and 5. The workflow's upload job then ran
 from `main` the same day and passed: the build is in App Store Connect. That build was not
 submitted; 1.13.1 was, and is still in App Review (17 November 2026). What only the maintainer
-can do: following up on 1.13.1's review, then uploading the 1.15.0 build from its tag as the next
-version, and a TestFlight run of the store build itself, which is also where the system-wide
+can do: following up on 1.13.1's review, then submitting the 1.16.0 build uploaded from its tag
+as the next version, and a TestFlight run of the store build itself, which is also where the system-wide
 keys are first tried in the sandbox. The one question that was open,
 [system audio in the sandbox](#the-open-question-system-audio-in-the-sandbox), is answered.
 

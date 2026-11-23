@@ -17,23 +17,21 @@ and German interface · MIT license**
 
 The macOS version is new: it has had its first run on a real Mac (an M2 Mac mini on macOS 26),
 and the [macOS notes](docs/macos.md) give the results and the open points. Each GitHub release
-attaches a notarised disk image. A free Mac App Store version, 1.13.1, is still in Apple's review
-([submission notes](docs/mac-app-store.md)).
+attaches a notarised disk image. A free Mac App Store version is on its way through App Store
+Connect ([submission notes](docs/mac-app-store.md)).
 
-**[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** was tagged and
-published on GitHub on 17 November 2026; its Store submission is still to be made. For the
-person running the captions, it adds a spending guard for cloud engines, markers and Find in the
+**[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (23 November
+2026) is the newest release; its Store submission is still to be made. OpenAI joins the
+subtitles engines, and when a cloud engine stops during a session, on a key, quota or network
+problem, the app offers to carry on with offline Whisper in the same session. Gemini subtitles
+no longer repeat earlier speech, the first words after Start are kept, and the release has the
+fixes of the 20 November audit. See its [release notes](docs/release-1.16.0.md) and
+[Store handoff](docs/store-updates.md#release-1160-handoff).
+**[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)** (17 November 2026)
+is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): for the
+person running the captions, a spending guard for cloud engines, markers and Find in the
 transcript, a notice on the overlay for breaks, opt-in system-wide Pause and overlay keys, and
-deleting or saving several saved sessions at once in History. Copies installed from GitHub get a
-new-version notice, and the release has the fixes of the
-[16 November review](docs/app-review-2026-11-16.md). See its
-[release notes](docs/release-1.15.0.md) and
-[Store handoff](docs/store-updates.md#release-1150-handoff).
-**[1.14.0](https://github.com/fmadore/Live-translation/releases/tag/v1.14.0)** (13 November 2026)
-is the version in the [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X): DeepL as
-an experimental fourth cloud translation engine (paid DeepL API plan only), Mistral subtitles
-that reconnect after a transcription timeout, and an overlay that shows a line in every row when
-both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
+several saved sessions deleted or saved at once ([release notes](docs/release-1.15.0.md)).
 
 ## What it does
 
@@ -50,10 +48,12 @@ both sources share a shallow strip ([release notes](docs/release-1.14.0.md)).
   Tiny and Base translate poorly.
 - **Cloud translation and subtitles.** Gemini offers 78 translation targets in the app's
   catalog, DeepL 42 and OpenAI 13. DeepL needs a paid DeepL API plan, since its Voice API is not
-  on the free one, and is experimental: it has not yet run in a live session. Gemini and Mistral
-  also offer same-language subtitles. With them and with local Whisper, a list of names and
-  terms helps spell speakers' names, institutions and jargon. Cloud engines need your own
-  compatible account, API key and internet connection; provider usage charges apply.
+  on the free one, and is experimental: it has not yet run in a live session. Gemini, Mistral and
+  OpenAI also offer same-language subtitles, OpenAI on the same key as its translation. With
+  them and with local Whisper, a list of names and terms helps spell speakers' names,
+  institutions and jargon. Cloud engines need your own compatible account, API key and internet
+  connection; provider usage charges apply. If a cloud engine stops during a session, the app
+  offers to carry on with offline Whisper in the same session.
 - **Your choice of audio.** Capture a microphone, the computer's system audio, one application
   (its process tree on Windows, the app and its helpers on macOS), or microphone and system
   audio together. With both, you can leave out the room mic's copy of a call played through the
