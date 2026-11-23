@@ -128,6 +128,8 @@ message and transcription fields differ.
   **83 distinct BCP-47 codes and 77 distinct languages** once locale variants collapse
   (`en-US`/`en-GB`/`en-IN`, `bn-BD`/`bn-IN`, …). User-facing copy therefore says "over 70
   languages", not "100+".
+- A chosen spoken language goes in `languageCodes` instead; see
+  [the spoken-language hint](#the-spoken-language-hint).
 - `mode: "SMART"` removes fillers and false starts, resolves spoken self-corrections, and
   applies punctuation and casing; an audience reading an overlay needs that more than every
   "um". `VERBATIM` (Google's default) is the alternative, not an extra setting. SMART rules out
@@ -143,6 +145,48 @@ message and transcription fields differ.
   `transcribe::live_probe` sends two terms, which proves the server accepts the field where the
   client puts it, not how much it helps. Live Translate documents no such field ("no support
   for tools or instructions"), so translated captions take no list.
+
+### The spoken-language hint
+
+When a start request carries a spoken language (`StartOptions.spokenLanguage`, issue #249), the
+core sends it as `languageCodes`, to steady recognition of short sentences; with none it sends
+`[]` and the model detects the language. The
+[guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) (read 23 November 2026)
+asks for BCP-47 codes "to bias recognition toward specific languages" and lists them by locale
+(`fr-FR`, `cmn-Hans-CN`), while the app's spoken-language list (`src/lib/whisperLanguages.json`)
+names languages as Whisper does (`fr`, `zh`). `gemini::transcribe::language_codes` maps one onto
+the other:
+
+- Only codes from Google's table are sent. A language the table lists under several locales
+  gets all of them: `en` → `en-US`, `en-GB`, `en-IN`; `es` → `es-419`, `es-US` (the guide's
+  example `es-ES` is not in its table); `pt` → `pt-BR`, `pt-PT`; `bn` and `pa` likewise.
+- Whisper's `jw` is Javanese, `jv-ID`; Tagalog (`tl`) is sent as Filipino, `fil-PH`; Norwegian
+  (`no`) is Bokmål, `nb-NO`, and Nynorsk has no row; Arabic has one row, Egyptian `ar-EG`.
+- 71 of Whisper's 99 languages map. A start with one of the other 28 (Tamil, Urdu, Yoruba,
+  Welsh, …) is refused rather than quietly left to automatic detection. Six table rows have no
+  Whisper language: Aromanian, Cantonese, Cebuano, Kabuverdianu, Kyrgyz and Oriya.
+- `spoken_languages_map_onto_googles_table` pins the table and the mapping.
+
+**The setup shows no spoken-language choice for Gemini Transcribe yet**, so the interface sends
+`spokenLanguage` only for local Whisper (`sessionController.ts`), and a Whisper choice left in
+the setup never reaches Gemini. Showing the choice for this engine is what remains before the
+hint reaches a session.
+
+**Live check, 23 November 2026** (`transcribe::live_probe`):
+
+- `every_spoken_language_hint_is_accepted` set up a session, without audio, for each of the 71
+  code lists: every one was accepted. So were `fr`, `es-ES` and `xx-XX`, which the client never
+  sends: **the server does not check the codes at setup**, so acceptance proves the field's
+  place, not the codes' validity.
+- `the_french_recording_under_a_right_and_a_wrong_hint` streamed the French rehearsal recording
+  under `fr-FR`, then under the English codes. Both came back as the same French text, word for
+  word; the English hint neither translated it nor garbled it. On twenty seconds of clear speech
+  the hint is a bias, not a constraint. What a wrong hint does to a short sentence, where it
+  should matter most, was not tried. Both runs returned the whole recording as one finalized
+  segment.
+
+**Live check pending:** a real session with the hint, once the interface offers it, before it is
+advertised.
 
 ### Streaming and events
 
@@ -222,14 +266,17 @@ under `generationConfig`. `gemini::transcribe::live_probe` sends the production 
 frame and response types to Google with the bundled rehearsal recording and reports the
 interim and finalized segments.
 
-```bash
-GEMINI_API_KEY=... cargo test -p live-translation --lib live_probe -- --ignored --nocapture
+```powershell
+cargo test --manifest-path src-tauri/Cargo.toml --lib the_documented_shape_is_the_shape_the_server_accepts -- --ignored --nocapture
 ```
 
 It is `#[ignore]`d, so CI never runs it or bills anyone. Run it before an event and after any
-change to either setup message; it costs a few cents (about twenty seconds of audio). The key
-comes from the environment or a `.env` at the repo root (`dotenvy` walks up from the crate
-directory; copy `.env.example`). Its assertions concern the shape of the exchange, not the
+change to either setup message; it costs a few cents (about twenty seconds of audio). The key is
+the one saved in the app, read in process and never printed; failing that, `GEMINI_API_KEY` from
+the environment or a `.env` at the repo root (`dotenvy` walks up from the crate directory; copy
+`.env.example`). The same module holds the two spoken-language probes above:
+`every_spoken_language_hint_is_accepted` sends no audio, and
+`the_french_recording_under_a_right_and_a_wrong_hint` streams forty seconds. Its assertions concern the shape of the exchange, not the
 words: setup is accepted, `generationComplete` arrives, and speculative updates outnumber
 finalized segments — which is what makes replace-don't-append correct.
 

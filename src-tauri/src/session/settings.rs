@@ -33,6 +33,8 @@ pub(super) enum ProviderSettings {
     GeminiTranscribe {
         host: String,
         model: String,
+        /// The chosen spoken language; see `with_spoken_language`.
+        language_codes: &'static [&'static str],
         /// The session's glossary; see `with_glossary`.
         custom_vocabulary: Vec<String>,
     },
@@ -80,6 +82,7 @@ impl ProviderSettings {
             Provider::GeminiTranscribe => Self::GeminiTranscribe {
                 host: host("GEMINI_WS_HOST", DEFAULT_HOST),
                 model: value("GEMINI_TRANSCRIBE_MODEL", DEFAULT_TRANSCRIBE_MODEL),
+                language_codes: &[],
                 custom_vocabulary: Vec::new(),
             },
             Provider::OpenAi => Self::OpenAi {
@@ -129,6 +132,19 @@ impl ProviderSettings {
         self
     }
 
+    /// Add the spoken language the operator chose, for Gemini Transcribe as `languageCodes`;
+    /// `None` keeps automatic detection. `options::validate_start` has already refused a
+    /// language it cannot name. Local Whisper takes it from the start options; the other
+    /// clients detect the language themselves.
+    pub(super) fn with_spoken_language(mut self, spoken: Option<&str>) -> Self {
+        if let Self::GeminiTranscribe { language_codes, .. } = &mut self {
+            *language_codes = spoken
+                .and_then(crate::gemini::transcribe::language_codes)
+                .unwrap_or_default();
+        }
+        self
+    }
+
     pub(super) fn spawn_client(
         &self,
         io: ClientIo,
@@ -149,11 +165,13 @@ impl ProviderSettings {
             Self::GeminiTranscribe {
                 host,
                 model,
+                language_codes,
                 custom_vocabulary,
             } => io.spawn_realtime(GeminiTranscribeConfig {
                 api_key,
                 model: model.clone(),
                 host: host.clone(),
+                language_codes,
                 custom_vocabulary: custom_vocabulary.clone(),
                 origin,
             }),
@@ -306,6 +324,33 @@ mod tests {
                 ProviderSettings::resolve_with(provider, none)
                     .unwrap()
                     .with_glossary(&glossary),
+                ProviderSettings::resolve_with(provider, none).unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn gemini_transcribe_takes_the_spoken_language_as_its_codes() {
+        let none = |_: &str| None;
+        let codes = |spoken: Option<&str>| {
+            let ProviderSettings::GeminiTranscribe { language_codes, .. } =
+                ProviderSettings::resolve_with(Provider::GeminiTranscribe, none)
+                    .unwrap()
+                    .with_spoken_language(spoken)
+            else {
+                panic!("wrong provider settings")
+            };
+            language_codes
+        };
+        assert_eq!(codes(None), &[] as &[&str]);
+        assert_eq!(codes(Some("fr")), ["fr-FR"]);
+        assert_eq!(codes(Some("pt")), ["pt-BR", "pt-PT"]);
+        // The other realtime clients detect the spoken language themselves.
+        for provider in [Provider::Mistral, Provider::OpenAi, Provider::Gemini] {
+            assert_eq!(
+                ProviderSettings::resolve_with(provider, none)
+                    .unwrap()
+                    .with_spoken_language(Some("fr")),
                 ProviderSettings::resolve_with(provider, none).unwrap()
             );
         }

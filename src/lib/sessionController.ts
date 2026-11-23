@@ -11,6 +11,7 @@ import {
 import { api } from './tauri';
 import { secondCaptionLanguageOf, type StartOptions } from './types';
 import { captionLanguageError } from './languages';
+import { isLocalWhisper } from './providers';
 import { locale, t } from './i18n';
 
 /** Own start/stop serialization separately from page rendering. A stop requested during
@@ -41,7 +42,14 @@ export function createSessionController(
 			statusMessage.set('');
 			// A second language chosen for translation stays in the saved setup when the mode
 			// changes, so switching back restores it; only a run that can use it sends it.
-			const run: StartOptions = { ...options, secondTargetLanguage: second ?? null };
+			// Likewise the spoken language chosen for Whisper. The core reads it for Gemini
+			// Transcribe too (#249), but the setup shows that engine no choice yet, so a Whisper
+			// language left behind must not reach it unseen.
+			const run: StartOptions = {
+				...options,
+				secondTargetLanguage: second ?? null,
+				spokenLanguage: isLocalWhisper(options.provider) ? (options.spokenLanguage ?? null) : null
+			};
 			beginSession(run);
 			const work = Promise.resolve().then(() => port.startSession(run));
 			operation = work;

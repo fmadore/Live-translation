@@ -77,6 +77,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
@@ -128,6 +129,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
@@ -145,6 +147,7 @@ mod tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });

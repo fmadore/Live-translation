@@ -49,6 +49,35 @@ describe('session coordination', () => {
 		expect(get(sessionStartedAt)).toBeNull();
 	});
 
+	// Issue #249: the core reads the spoken language for Gemini Transcribe too, which the setup
+	// offers no choice for yet, so a Whisper choice still in the setup must not reach it.
+	it('sends the spoken language only with the engines that show the choice', async () => {
+		const startSession = vi.fn().mockResolvedValue(undefined);
+		const controller = createSessionController({
+			startSession,
+			stopSession: vi.fn(),
+			pauseSession: vi.fn()
+		});
+		for (const [provider, sent] of [
+			['whisper', 'fr'],
+			['gemini-transcribe', null],
+			['mistral', null]
+		] as const) {
+			expect(
+				await controller.start({
+					...get(options),
+					mode: 'transcribe',
+					provider,
+					spokenLanguage: 'fr'
+				})
+			).toBe(true);
+			expect(startSession).toHaveBeenLastCalledWith(
+				expect.objectContaining({ provider, spokenLanguage: sent })
+			);
+			applyStatus({ state: 'idle' });
+		}
+	});
+
 	// Review U11: worded where it is shown, so it follows a change of interface language rather
 	// than staying in the one that was active when Start was refused.
 	it('re-words a refused start when the interface language changes', async () => {

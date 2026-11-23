@@ -19,6 +19,9 @@ pub(super) fn validate_start(options: &StartOptions) -> Result<()> {
     if options.provider.is_local_whisper() {
         whisper::validate_language(options.spoken_language.as_deref())?;
     }
+    if options.provider == Provider::GeminiTranscribe {
+        crate::gemini::transcribe::validate_spoken_language(options.spoken_language.as_deref())?;
+    }
     anyhow::ensure!(
         options.provider != Provider::WhisperTranslate || options.whisper_model.translates(),
         "Large v3 Turbo cannot translate; choose Small for translation into English"
@@ -190,6 +193,20 @@ mod tests {
         let mut options = local("whisper-translate", "translate", "en");
         options.spoken_language = Some("fake".into());
         assert!(validate_start(&options).is_err());
+    }
+
+    #[test]
+    fn gemini_transcribe_refuses_a_spoken_language_it_cannot_be_told() {
+        let mut options = local("gemini-transcribe", "transcribe", "en");
+        assert!(validate_start(&options).is_ok());
+        options.spoken_language = None;
+        assert!(validate_start(&options).is_ok());
+        // Whisper hears Yoruba; Google's table has no row for it.
+        options.spoken_language = Some("yo".into());
+        let error = validate_start(&options).unwrap_err().to_string();
+        assert!(error.contains("yo"), "{error}");
+        // The engines that detect the language themselves never read it.
+        assert!(validate_start(&local("mistral", "transcribe", "en")).is_ok());
     }
 
     #[test]

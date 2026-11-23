@@ -32,9 +32,109 @@ pub struct GeminiTranscribeConfig {
     pub api_key: String,
     pub model: String,
     pub host: String,
+    /// The chosen spoken language as `languageCodes` (see [`language_codes`]); empty for
+    /// automatic detection.
+    pub language_codes: &'static [&'static str],
     /// The session's names and terms, sent as `customVocabulary`.
     pub custom_vocabulary: Vec<String>,
     pub origin: Origin,
+}
+
+/// Transcribe Live's `languageCodes` for a spoken language from the app's list
+/// (`src/lib/whisperLanguages.json`, which names languages the way Whisper does), or `None`
+/// for a language Google's table does not list.
+///
+/// Google's table names locales (`fr-FR`, `cmn-Hans-CN`), not languages, so a language listed
+/// under several regions gets all of them, and nothing outside the table is sent. Two codes
+/// differ from Whisper's: Javanese is `jw` there and `jv-ID` here, and Tagalog is sent as
+/// Filipino. Norwegian is Bokmål; Nynorsk has no row. Arabic has one row, Egyptian.
+pub fn language_codes(spoken: &str) -> Option<&'static [&'static str]> {
+    Some(match spoken {
+        "af" => &["af-ZA"],
+        "am" => &["am-ET"],
+        "ar" => &["ar-EG"],
+        "as" => &["as-IN"],
+        "az" => &["az-AZ"],
+        "be" => &["be-BY"],
+        "bg" => &["bg-BG"],
+        "bn" => &["bn-BD", "bn-IN"],
+        "bs" => &["bs-BA"],
+        "ca" => &["ca-ES"],
+        "cs" => &["cs-CZ"],
+        "da" => &["da-DK"],
+        "de" => &["de-DE"],
+        "el" => &["el-GR"],
+        "en" => &["en-US", "en-GB", "en-IN"],
+        "es" => &["es-419", "es-US"],
+        "et" => &["et-EE"],
+        "fa" => &["fa-IR"],
+        "fi" => &["fi-FI"],
+        "fr" => &["fr-FR"],
+        "gl" => &["gl-ES"],
+        "gu" => &["gu-IN"],
+        "ha" => &["ha-NG"],
+        "he" => &["he-IL"],
+        "hi" => &["hi-IN"],
+        "hr" => &["hr-HR"],
+        "hu" => &["hu-HU"],
+        "hy" => &["hy-AM"],
+        "id" => &["id-ID"],
+        "is" => &["is-IS"],
+        "it" => &["it-IT"],
+        "ja" => &["ja-JP"],
+        "jw" => &["jv-ID"],
+        "ka" => &["ka-GE"],
+        "kk" => &["kk-KZ"],
+        "km" => &["km-KH"],
+        "kn" => &["kn-IN"],
+        "ko" => &["ko-KR"],
+        "ln" => &["ln-CD"],
+        "lt" => &["lt-LT"],
+        "lv" => &["lv-LV"],
+        "mk" => &["mk-MK"],
+        "ml" => &["ml-IN"],
+        "mn" => &["mn-MN"],
+        "mr" => &["mr-IN"],
+        "ms" => &["ms-MY"],
+        "mt" => &["mt-MT"],
+        "my" => &["my-MM"],
+        "ne" => &["ne-NP"],
+        "nl" => &["nl-NL"],
+        "no" => &["nb-NO"],
+        "pa" => &["pa-IN", "pa-Guru-IN"],
+        "pl" => &["pl-PL"],
+        "pt" => &["pt-BR", "pt-PT"],
+        "ro" => &["ro-RO"],
+        "ru" => &["ru-RU"],
+        "sd" => &["sd-Arab-IN"],
+        "sk" => &["sk-SK"],
+        "sl" => &["sl-SI"],
+        "sr" => &["sr-RS"],
+        "sv" => &["sv-SE"],
+        "sw" => &["sw-KE"],
+        "te" => &["te-IN"],
+        "tg" => &["tg-TJ"],
+        "th" => &["th-TH"],
+        "tl" => &["fil-PH"],
+        "tr" => &["tr-TR"],
+        "uk" => &["uk-UA"],
+        "uz" => &["uz-UZ"],
+        "vi" => &["vi-VN"],
+        "zh" => &["cmn-Hans-CN"],
+        _ => return None,
+    })
+}
+
+/// Refuse a spoken language Transcribe Live cannot be told about, rather than quietly fall
+/// back to automatic detection the operator did not choose.
+pub fn validate_spoken_language(spoken: Option<&str>) -> Result<()> {
+    if let Some(code) = spoken {
+        anyhow::ensure!(
+            language_codes(code).is_some(),
+            "Gemini Transcribe does not support spoken language {code}"
+        );
+    }
+    Ok(())
 }
 
 impl RealtimeProtocol for GeminiTranscribeConfig {
@@ -50,7 +150,11 @@ impl RealtimeProtocol for GeminiTranscribeConfig {
 
     fn setup_json(&self) -> Result<Option<String>> {
         Ok(Some(serde_json::to_string(
-            &TranscribeSetupMessage::live_transcribe(&self.model, &self.custom_vocabulary),
+            &TranscribeSetupMessage::live_transcribe(
+                &self.model,
+                self.language_codes,
+                &self.custom_vocabulary,
+            ),
         )?))
     }
 
@@ -164,6 +268,7 @@ mod smart_tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
@@ -199,6 +304,7 @@ mod smart_tests {
             api_key: "gemini-test".to_string(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         };
@@ -223,6 +329,186 @@ mod smart_tests {
         );
     }
 
+    /// What `live_probe::the_french_recording_under_a_right_and_a_wrong_hint` found on
+    /// 23 November 2026: the server took this setup, and under an English hint still wrote the
+    /// French recording in French, word for word as under the French one. The text is as
+    /// recorded; the frame around it is the shape `live_probe` captured.
+    const FRENCH_UNDER_AN_ENGLISH_HINT: &str = "Ceci est un enregistrement de répétition pour le système de sous-titre en direct. Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à l'écran. Les sous-titres apparaissent juste après les mots, puis sont corrigés lorsque la phrase devient claire. Utilisez cet enregistrement pour régler l'affichage avant l'arrivée du public.";
+
+    #[test]
+    fn a_spoken_language_hint_is_sent_as_the_server_accepted_it() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        let config = |spoken| GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            language_codes: language_codes(spoken).unwrap(),
+            custom_vocabulary: Vec::new(),
+            origin: Origin::Microphone,
+        };
+        assert_eq!(
+            config("fr").setup_json().unwrap().unwrap(),
+            r#"{"setup":{"model":"models/gemini-3.5-transcribe-live","generationConfig":{"responseModalities":["TEXT"]},"inputAudioTranscription":{"languageCodes":["fr-FR"],"mode":"SMART"}}}"#
+        );
+        let mut h = Harness::new(config("en"));
+        assert!(
+            config("en")
+                .setup_json()
+                .unwrap()
+                .unwrap()
+                .contains(r#""languageCodes":["en-US","en-GB","en-IN"]"#)
+        );
+        assert_eq!(
+            h.send(r#"{"setupComplete":{}}"#).signal,
+            Signal::SetupComplete
+        );
+        let frame = serde_json::json!({
+            "serverContent": { "inputTranscription": { "text": FRENCH_UNDER_AN_ENGLISH_HINT } }
+        });
+        h.send(&frame.to_string());
+        assert_eq!(
+            h.captions,
+            [Emitted::final_(0, FRENCH_UNDER_AN_ENGLISH_HINT, "")]
+        );
+    }
+
+    /// The "Supported languages" table of Google's Live transcription guide, read on
+    /// 23 November 2026: 84 rows, `en-IN` among them twice.
+    const GOOGLE_TABLE: [&str; 84] = [
+        "af-ZA",
+        "am-ET",
+        "ar-EG",
+        "hy-AM",
+        "as-IN",
+        "az-AZ",
+        "be-BY",
+        "bn-BD",
+        "bn-IN",
+        "bs-BA",
+        "bg-BG",
+        "rup-BG",
+        "my-MM",
+        "yue-Hant-HK",
+        "ca-ES",
+        "ceb",
+        "km-KH",
+        "hr-HR",
+        "cs-CZ",
+        "da-DK",
+        "nl-NL",
+        "en-GB",
+        "en-IN",
+        "en-US",
+        "et-EE",
+        "fa-IR",
+        "fil-PH",
+        "fi-FI",
+        "fr-FR",
+        "gl-ES",
+        "ka-GE",
+        "de-DE",
+        "el-GR",
+        "gu-IN",
+        "ha-NG",
+        "he-IL",
+        "hi-IN",
+        "hu-HU",
+        "is-IS",
+        "en-IN",
+        "id-ID",
+        "it-IT",
+        "ja-JP",
+        "jv-ID",
+        "kea-CV",
+        "kn-IN",
+        "kk-KZ",
+        "ko-KR",
+        "ky-KG",
+        "lv-LV",
+        "ln-CD",
+        "lt-LT",
+        "mk-MK",
+        "ms-MY",
+        "ml-IN",
+        "mt-MT",
+        "cmn-Hans-CN",
+        "mr-IN",
+        "mn-MN",
+        "ne-NP",
+        "nb-NO",
+        "or-IN",
+        "pl-PL",
+        "pt-BR",
+        "pt-PT",
+        "pa-IN",
+        "pa-Guru-IN",
+        "ro-RO",
+        "ru-RU",
+        "sr-RS",
+        "sd-Arab-IN",
+        "sk-SK",
+        "sl-SI",
+        "es-419",
+        "es-US",
+        "sw-KE",
+        "sv-SE",
+        "tg-TJ",
+        "te-IN",
+        "th-TH",
+        "tr-TR",
+        "uk-UA",
+        "uz-UZ",
+        "vi-VN",
+    ];
+
+    /// Only codes from Google's table are sent, each table row reachable from the app's
+    /// spoken-language list is offered, and every language the mapping knows is one the list
+    /// holds.
+    #[test]
+    fn spoken_languages_map_onto_googles_table() {
+        let catalogue: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../src/lib/whisperLanguages.json")).unwrap();
+        let spoken: Vec<&str> = catalogue
+            .iter()
+            .filter_map(|l| l["code"].as_str())
+            .collect();
+        let mut sent = std::collections::BTreeSet::new();
+        for code in &spoken {
+            for &gemini in language_codes(code).unwrap_or_default() {
+                assert!(GOOGLE_TABLE.contains(&gemini), "{code} -> {gemini}");
+                sent.insert(gemini);
+            }
+        }
+        assert_eq!(
+            spoken
+                .iter()
+                .filter(|c| language_codes(c).is_some())
+                .count(),
+            71
+        );
+        // The table's rows Whisper's list has no language for.
+        let unreachable: Vec<_> = GOOGLE_TABLE
+            .iter()
+            .filter(|code| !sent.contains(*code))
+            .collect();
+        assert_eq!(
+            unreachable,
+            [
+                &"rup-BG",
+                &"yue-Hant-HK",
+                &"ceb",
+                &"kea-CV",
+                &"ky-KG",
+                &"or-IN"
+            ]
+        );
+        assert!(language_codes("yo").is_none() && language_codes("nn").is_none());
+        assert!(validate_spoken_language(Some("yo")).is_err());
+        assert!(
+            validate_spoken_language(Some("fr")).is_ok() && validate_spoken_language(None).is_ok()
+        );
+    }
+
     #[test]
     fn the_close_drain_ends_on_the_final_after_the_stream_end() {
         use crate::realtime::test_support::Harness;
@@ -230,6 +516,7 @@ mod smart_tests {
             api_key: String::new(),
             model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
             host: crate::gemini::DEFAULT_HOST.to_string(),
+            language_codes: &[],
             custom_vocabulary: Vec::new(),
             origin: Origin::Microphone,
         });
@@ -288,17 +575,10 @@ mod live_probe {
     #[tokio::test]
     #[ignore = "streams the bundled fixture to Google and bills the key; run with --ignored"]
     async fn the_documented_shape_is_the_shape_the_server_accepts() {
-        let _ = dotenvy::dotenv();
-        let api_key = std::env::var("GEMINI_API_KEY")
-            .expect("set GEMINI_API_KEY, or copy .env.example to .env at the repo root");
-
         let config = GeminiTranscribeConfig {
-            api_key,
-            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
-            host: DEFAULT_HOST.to_string(),
             // Proves the server takes the field where the client puts it, not that it helps.
             custom_vocabulary: vec!["Gemini".to_string(), "Voxtral".to_string()],
-            origin: Origin::Microphone,
+            ..config(&[])
         };
 
         let samples = load_fixture(std::path::Path::new(FIXTURE))
@@ -423,5 +703,173 @@ mod live_probe {
             finals.len(),
             closes
         );
+    }
+
+    /// The production client's configuration, with the key the app saved (or `GEMINI_API_KEY`),
+    /// read in process and never printed.
+    fn config(language_codes: &'static [&'static str]) -> GeminiTranscribeConfig {
+        let _ = dotenvy::dotenv();
+        GeminiTranscribeConfig {
+            api_key: crate::secrets::resolve_api_key(crate::types::Provider::GeminiTranscribe)
+                .expect("save a Gemini key in the app, or set GEMINI_API_KEY"),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: DEFAULT_HOST.to_string(),
+            language_codes,
+            custom_vocabulary: Vec::new(),
+            origin: Origin::Microphone,
+        }
+    }
+
+    /// Send the production setup and wait for `setupComplete`. `Err` carries the server's
+    /// error or close frame, which name the field it refused and nothing secret.
+    async fn setup(
+        config: &GeminiTranscribeConfig,
+    ) -> Result<
+        tokio_tungstenite::WebSocketStream<
+            tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
+        >,
+        String,
+    > {
+        let (mut socket, _) = connect_async(config.connect_request().unwrap())
+            .await
+            .expect("the Live API should accept the connection");
+        socket
+            .send(Message::Text(config.setup_json().unwrap().unwrap().into()))
+            .await
+            .unwrap();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(20);
+        loop {
+            let message = match tokio::time::timeout_at(deadline, socket.next()).await {
+                Err(_) => return Err("timed out waiting for setupComplete".into()),
+                Ok(None) => return Err("closed before setupComplete".into()),
+                Ok(Some(Err(error))) => return Err(error.to_string()),
+                Ok(Some(Ok(message))) => message,
+            };
+            if let Message::Close(frame) = &message {
+                return Err(format!("{frame:?}"));
+            }
+            if let Some(json) = frame_json(&message) {
+                let parsed: ServerMessage = serde_json::from_str(&json)
+                    .unwrap_or_else(|e| panic!("unparsed setup reply: {e} :: {json}"));
+                if let Some(error) = parsed.error {
+                    return Err(error.to_string());
+                }
+                if parsed.setup_complete.is_some() {
+                    return Ok(socket);
+                }
+            }
+        }
+    }
+
+    /// Every `languageCodes` list the client can send, set up and closed without a byte of
+    /// audio — so nothing is transcribed — plus three codes it never sends, to show whether
+    /// the server checks the field at all.
+    #[tokio::test]
+    #[ignore = "opens a Gemini session per spoken language without sending audio; run with --ignored"]
+    async fn every_spoken_language_hint_is_accepted() {
+        let catalogue: Vec<serde_json::Value> =
+            serde_json::from_str(include_str!("../../../src/lib/whisperLanguages.json")).unwrap();
+        let mut refused = Vec::new();
+        for spoken in catalogue.iter().filter_map(|l| l["code"].as_str()) {
+            let Some(codes) = language_codes(spoken) else {
+                continue;
+            };
+            let verdict = setup(&config(codes)).await;
+            println!(
+                "{spoken} {codes:?}: {:?}",
+                verdict.as_ref().map(|_| "accepted")
+            );
+            if let Ok(mut socket) = verdict {
+                let _ = socket.close(None).await;
+            } else {
+                refused.push(spoken);
+            }
+        }
+        for codes in [&["fr"][..], &["es-ES"], &["xx-XX"]] {
+            let verdict = setup(&config(codes)).await;
+            println!(
+                "(not sent) {codes:?}: {:?}",
+                verdict.as_ref().map(|_| "accepted")
+            );
+            if let Ok(mut socket) = verdict {
+                let _ = socket.close(None).await;
+            }
+        }
+        assert!(refused.is_empty(), "refused: {refused:?}");
+    }
+
+    /// Stream the French recording once per hint and print the finalized segments: the right
+    /// hint, and English, to see what a wrong one does.
+    #[tokio::test]
+    #[ignore = "streams the bundled French fixture to Google twice and bills the key; run with --ignored"]
+    async fn the_french_recording_under_a_right_and_a_wrong_hint() {
+        let samples = load_fixture(std::path::Path::new("resources/fixtures/rehearsal-fr.wav"))
+            .expect("the bundled rehearsal fixture should load");
+        for spoken in ["fr", "en"] {
+            let config = config(language_codes(spoken).unwrap());
+            let socket = setup(&config)
+                .await
+                .unwrap_or_else(|e| panic!("{spoken}: setup refused: {e}"));
+            println!(
+                "=== hint {spoken} {:?}: setup accepted",
+                config.language_codes
+            );
+            let (mut write, mut read) = socket.split();
+            let audio = samples.clone();
+            let frames = config.clone();
+            let sender = tokio::spawn(async move {
+                let mut pcm = Vec::new();
+                for chunk in audio.chunks(chunk_samples(RATE)) {
+                    pcm.clear();
+                    f32_to_pcm16_le(chunk, &mut pcm);
+                    let data = base64::engine::general_purpose::STANDARD.encode(&pcm);
+                    let frame = frames.audio_json(data).unwrap();
+                    if write.send(Message::Text(frame.into())).await.is_err() {
+                        return write;
+                    }
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                let _ = write.send(Message::Text(AUDIO_STREAM_END.into())).await;
+                write
+            });
+            let deadline = tokio::time::Instant::now() + DEADLINE;
+            let mut finals = Vec::new();
+            while let Ok(Some(Ok(message))) = tokio::time::timeout_at(deadline, read.next()).await {
+                let Some(json) = frame_json(&message) else {
+                    continue;
+                };
+                let parsed: ServerMessage = serde_json::from_str(&json)
+                    .unwrap_or_else(|e| panic!("unparsed server message: {e} :: {json}"));
+                assert!(parsed.error.is_none(), "provider error: {:?}", parsed.error);
+                if let Some(text) = parsed.server_content.and_then(|c| c.input_transcription) {
+                    println!("  FINAL: {}", text.text);
+                    finals.push(text.text);
+                }
+                // The final after `audioStreamEnd` is the last one the recording yields.
+                if sender.is_finished() && !finals.is_empty() {
+                    let quiet = tokio::time::Instant::now() + Duration::from_secs(4);
+                    while let Ok(Some(Ok(message))) =
+                        tokio::time::timeout_at(quiet, read.next()).await
+                    {
+                        let Some(json) = frame_json(&message) else {
+                            continue;
+                        };
+                        if let Ok(parsed) = serde_json::from_str::<ServerMessage>(&json)
+                            && let Some(text) =
+                                parsed.server_content.and_then(|c| c.input_transcription)
+                        {
+                            println!("  FINAL: {}", text.text);
+                            finals.push(text.text);
+                        }
+                    }
+                    break;
+                }
+            }
+            drop(sender.await.unwrap());
+            assert!(
+                finals.iter().any(|t| !t.is_empty()),
+                "{spoken}: no transcript"
+            );
+        }
     }
 }
