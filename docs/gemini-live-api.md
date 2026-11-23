@@ -165,12 +165,14 @@ the other:
 - 71 of Whisper's 99 languages map. A start with one of the other 28 (Tamil, Urdu, Yoruba,
   Welsh, …) is refused rather than quietly left to automatic detection. Six table rows have no
   Whisper language: Aromanian, Cantonese, Cebuano, Kabuverdianu, Kyrgyz and Oriya.
-- `spoken_languages_map_onto_googles_table` pins the table and the mapping.
+- `spoken_languages_map_onto_googles_table` pins the table and the mapping, and checks that the
+  interface's list (`src/lib/geminiTranscribeLanguages.json`) holds the same 71.
 
-**The setup shows no spoken-language choice for Gemini Transcribe yet**, so the interface sends
-`spokenLanguage` only for local Whisper (`sessionController.ts`), and a Whisper choice left in
-the setup never reaches Gemini. Showing the choice for this engine is what remains before the
-hint reaches a session.
+Step 03 of the setup shows Whisper's spoken-language picker for Gemini Transcribe too, with
+automatic detection first and only those 71 languages. Both engines share one choice: a language
+Whisper knows and Gemini does not stays saved for Whisper, the Gemini picker shows automatic
+detection, and that is what the run sends (`spokenLanguageFor` in `providers.ts`, used by the
+picker, the running rail and `sessionController.ts`).
 
 **Live check, 23 November 2026** (`transcribe::live_probe`):
 
@@ -185,8 +187,8 @@ hint reaches a session.
   should matter most, was not tried. Both runs returned the whole recording as one finalized
   segment.
 
-**Live check pending:** a real session with the hint, once the interface offers it, before it is
-advertised.
+**Live check pending:** a real session with the hint, including a short sentence under a wrong
+one, before it is advertised.
 
 ### Streaming and events
 

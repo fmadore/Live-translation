@@ -1,7 +1,7 @@
 # Caption language coverage (issue #78)
 
 Current for 1.15.0. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
-separate spoken-language selector. The dated provider checks below are the latest recorded
+separate spoken-language selector, which Gemini Transcribe shares (issue #249). The dated provider checks below are the latest recorded
 evidence, not fresh endpoint verification.
 
 | Engine | Caption language control |
@@ -12,7 +12,8 @@ evidence, not fresh endpoint verification.
 | Local Whisper (subtitles) | 99 spoken languages or automatic detection; same-language subtitles |
 | Local Whisper (translation) | English only, translated from 99 spoken languages or automatic detection |
 | Built-in demo | English/French script buttons only |
-| Mistral / Gemini Transcribe | Auto-detection hint, no language selector |
+| Gemini Transcribe | 71 of Whisper's spoken languages or automatic detection; same-language subtitles |
+| Mistral | Auto-detection hint, no language selector |
 
 Choosing a caption language never changes the English/French/German interface; see
 [localization](localization.md).
@@ -23,8 +24,11 @@ same explanation, so typing "zul" under DeepL says why rather than "No matching 
 the unfiltered list holds only the engine's own languages and the pins. Switching engines
 does not change the chosen target: Start and Rehearse stay blocked until a supported language
 is selected, and the Rust core rejects unsupported targets too. Cloud subtitle auto-detection
-ignores the retained target, and Whisper uses its own spoken-language preference; switching
-back to translation keeps the operator's choice.
+ignores the retained target, and Whisper and Gemini Transcribe use the spoken-language
+preference; switching back to translation keeps the operator's choice. Gemini Transcribe offers
+the 71 of Whisper's languages that Google's table names (see
+[the spoken-language hint](gemini-live-api.md#the-spoken-language-hint)); a Whisper language
+outside them stays saved for Whisper and reads as automatic detection under Gemini.
 
 F2 swaps the first two favourites while translation is stopped. From outside that pair it
 selects the first. With fewer than two pins, or either pin unsupported, it does nothing.

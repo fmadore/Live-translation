@@ -149,7 +149,7 @@ describe('Whisper translation', () => {
 });
 
 describe('Names and terms', () => {
-	it('are offered under the auto-detect note with Voxtral and Gemini Transcribe', async () => {
+	it('are offered with Voxtral, under its auto-detect note, and with Gemini Transcribe', async () => {
 		options.set({ ...DEFAULT_START_OPTIONS, provider: 'mistral', glossary: ['UNESCO'] });
 		const view = mount(false);
 		expect(view.getByText(/Voxtral auto-detects the spoken language/)).toBeInTheDocument();

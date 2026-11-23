@@ -42,6 +42,25 @@ beforeEach(() => {
 });
 afterEach(() => options.set({ ...DEFAULT_START_OPTIONS }));
 
+// Issue #249: Gemini Transcribe locks in the spoken language it was told, or reads as automatic.
+it('says which spoken language a Gemini Transcribe run was told', () => {
+	for (const [spokenLanguage, label] of [
+		['fr', 'French'],
+		['yo', 'Auto'],
+		[null, 'Auto']
+	] as const) {
+		options.set({
+			...DEFAULT_START_OPTIONS,
+			mode: 'transcribe',
+			provider: 'gemini-transcribe',
+			spokenLanguage
+		});
+		const view = rail(false);
+		expect(view.getByText(label)).toBeInTheDocument();
+		view.unmount();
+	}
+});
+
 it('bills a live run on both sources as two streams', () => {
 	const view = rail(false);
 	expect(view.getByText('$3.46')).toBeInTheDocument();

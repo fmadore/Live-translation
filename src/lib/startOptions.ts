@@ -60,6 +60,13 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 	// Voxtral's names and terms come back whatever the engine, so a detour through another one
 	// keeps them. Absent when empty: no list and an emptied one mean the same thing.
 	const glossary = normalizeGlossary(stored.glossary);
+	// The spoken language, from Whisper's list, comes back with Whisper's choices, and with
+	// Gemini Transcribe, which takes it too.
+	const spokenLanguage =
+		typeof stored.spokenLanguage === 'string' &&
+		whisperLanguages.some((l) => l.code === stored.spokenLanguage)
+			? stored.spokenLanguage
+			: null;
 	const loaded: StartOptions = {
 		source: oneOf(AUDIO_SOURCES, stored.source, DEFAULT_START_OPTIONS.source),
 		mode: oneOf(OUTPUT_MODES, stored.mode, DEFAULT_START_OPTIONS.mode),
@@ -73,13 +80,11 @@ export function normalizeStartOptions(parsed: unknown): StartOptions {
 			? {
 					whisperModel: oneOf(WHISPER_MODELS, stored.whisperModel, 'base'),
 					...(stored.whisperGpu === false ? { whisperGpu: false } : {}),
-					spokenLanguage:
-						typeof stored.spokenLanguage === 'string' &&
-						whisperLanguages.some((l) => l.code === stored.spokenLanguage)
-							? stored.spokenLanguage
-							: null
+					spokenLanguage
 				}
-			: {}),
+			: provider === 'gemini-transcribe'
+				? { spokenLanguage }
+				: {}),
 		micDeviceName: typeof stored.micDeviceName === 'string' ? stored.micDeviceName : null,
 		micDeviceId: typeof stored.micDeviceId === 'string' ? stored.micDeviceId : null,
 		systemDeviceId: typeof stored.systemDeviceId === 'string' ? stored.systemDeviceId : null,

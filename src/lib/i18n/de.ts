@@ -427,6 +427,8 @@ export const de: Messages = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} erkennt die gesprochene Sprache selbst und schreibt Untertitel in derselben Sprache. Eine Zielsprache ist nicht nötig.`,
+		geminiLanguageHint:
+			'Gemini schreibt Untertitel in der gesprochenen Sprache. Wählen Sie sie, wenn Sie sie kennen: Kurze Sätze werden dann sicherer erkannt. Die automatische Erkennung folgt Sprechenden, die die Sprache wechseln.',
 		flipHint: 'Vor dem Start die ersten beiden Favoriten tauschen mit',
 		demoLanguageHint:
 			'Wählen Sie die Sprache der integrierten Demonstration. Dieser Modus führt Overlay und Export vor; er hört den Raum nicht ab.',

@@ -431,6 +431,8 @@ export const fr: Messages = {
 
 		autoDetectHint: (engine: string) =>
 			`${engine} détecte lui-même la langue parlée et écrit les sous-titres dans cette même langue. Aucune langue cible n’est nécessaire.`,
+		geminiLanguageHint:
+			'Gemini écrit les sous-titres dans la langue parlée. Choisissez-la si vous la connaissez, pour fiabiliser les phrases courtes. La détection automatique suit un orateur qui change de langue.',
 		flipHint: 'Permuter les deux premiers favoris avant de démarrer avec',
 		demoLanguageHint:
 			'Choisissez la langue de la démonstration intégrée. Ce mode illustre la surimpression et l’export ; il n’écoute pas la salle.',

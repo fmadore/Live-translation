@@ -8,7 +8,12 @@
 	import { displayNames, languageName } from './languages';
 	import { locale, localeTag, t } from './i18n';
 	import { micLevel, options, pauseRequested, systemLevel } from './stores';
-	import { estimateSessionCost, formatUsd, providerDetectsLanguage } from './providers';
+	import {
+		estimateSessionCost,
+		formatUsd,
+		providerDetectsLanguage,
+		spokenLanguageFor
+	} from './providers';
 	import { secondCaptionLanguageOf, streamCount } from './types';
 	import { overlayContext } from './operatorContext';
 	import type { SessionClock } from './sessionClock.svelte';
@@ -30,12 +35,17 @@
 	const overlay = overlayContext();
 
 	// The subtitle engines detect the spoken language themselves, so there is nothing to lock.
-	// Whisper's subtitles are in the spoken language, when one was chosen; its translations are
-	// in English, the target, like any other translation.
+	// Whisper's and Gemini Transcribe's subtitles are in the spoken language, when one was
+	// chosen; Whisper's translations are in English, the target, like any other translation.
 	const second = $derived(secondCaptionLanguageOf($options));
+	const spoken = $derived(
+		providerDetectsLanguage($options.provider)
+			? spokenLanguageFor($options.provider, $options.spokenLanguage)
+			: null
+	);
 	const roomReadsLabel = $derived(
-		$options.provider === 'whisper' && $options.spokenLanguage
-			? (displayNames($locale)?.of($options.spokenLanguage) ?? $options.spokenLanguage)
+		spoken
+			? (displayNames($locale)?.of(spoken) ?? spoken)
 			: providerDetectsLanguage($options.provider)
 				? $t.language.auto
 				: [$options.targetLanguage, ...(second ? [second] : [])]

@@ -540,13 +540,20 @@ mod smart_tests {
                 sent.insert(gemini);
             }
         }
-        assert_eq!(
-            spoken
-                .iter()
-                .filter(|c| language_codes(c).is_some())
-                .count(),
-            71
-        );
+        let mut mapped: Vec<&str> = spoken
+            .iter()
+            .copied()
+            .filter(|c| language_codes(c).is_some())
+            .collect();
+        assert_eq!(mapped.len(), 71);
+        // The interface offers exactly these (`src/lib/geminiTranscribeLanguages.json`).
+        let mut offered: Vec<String> = serde_json::from_str(include_str!(
+            "../../../src/lib/geminiTranscribeLanguages.json"
+        ))
+        .unwrap();
+        mapped.sort_unstable();
+        offered.sort_unstable();
+        assert_eq!(offered, mapped);
         // The table's rows Whisper's list has no language for.
         let unreachable: Vec<_> = GOOGLE_TABLE
             .iter()
