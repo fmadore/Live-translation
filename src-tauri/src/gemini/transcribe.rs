@@ -1162,7 +1162,10 @@ mod live_probe {
             cancel.clone(),
             crate::timing::SessionClock::start(),
             pause_rx,
-            0,
+            crate::realtime::Track {
+                lane: 0,
+                turns: crate::realtime::TurnCounter::default(),
+            },
         ));
         let started = std::time::Instant::now();
         for chunk in stream.chunks(chunk_samples(RATE)) {
