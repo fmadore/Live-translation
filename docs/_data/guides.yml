@@ -1,0 +1,30 @@
+# The user guides, in the order the home page lists them (docs/index.html, section #guides).
+# _layouts/default.html calls a page in this list a guide and lists the others at its foot.
+# Adding a guide: add it here and to the home page's Guides section, with the same words.
+- page: local-whisper.md
+  title: Offline captions with Whisper
+  blurb: Models, languages, translation into English, the graphics processor, and taking over when a cloud engine stops.
+- page: application-capture.md
+  title: Capturing one application
+  blurb: Caption a single app's audio instead of the whole system.
+- page: zoom-captions.md
+  title: Captions in Zoom
+  blurb: Share one caption language with a meeting's caption bar.
+- page: usability.md
+  title: Meeting controls and profiles
+  blurb: Pause, two caption languages, profiles and shortcuts.
+- page: caption-layout.md
+  title: Caption layout
+  blurb: Overlay placement, reading modes and filler-word lists.
+- page: language-coverage.md
+  title: Caption languages
+  blurb: Which languages each engine offers.
+- page: transcript-export.md
+  title: Transcript export
+  blurb: Text, Markdown, SRT and WebVTT.
+- page: transcript-history.md
+  title: Transcript history
+  blurb: Saving, searching and reopening past sessions.
+- page: accessibility.md
+  title: Accessibility
+  blurb: Keyboard, Narrator, text size and contrast themes.

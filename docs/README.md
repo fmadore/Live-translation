@@ -8,6 +8,13 @@ documentation*, through GitHub, because Pages publishes this file only as raw Ma
 a file elsewhere in the repository uses its GitHub URL; `src/lib/docsLinks.test.ts` fails on a
 relative link that leaves `docs/`.
 
+Jekyll renders every other Markdown page here with [`_layouts/default.html`](https://github.com/fmadore/Live-translation/blob/main/docs/_layouts/default.html),
+which gives it the home page's masthead, palette and footer from
+[`assets/site.css`](assets/site.css); [`assets/site.js`](assets/site.js) adds a `#` link to each
+heading, the section being read in the bar under the masthead and an *On this page* list. The
+user guides the home page lists are in [`_data/guides.yml`](https://github.com/fmadore/Live-translation/blob/main/docs/_data/guides.yml), which names them
+*Guide* and lists the others at the foot of each; a new guide goes there and on the home page.
+
 These guides describe `main`, released as
 **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (tagged on
 23 November 2026; the Store submission is still to be made): OpenAI subtitles, continuing a

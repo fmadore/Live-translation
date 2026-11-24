@@ -1,0 +1,141 @@
+<!doctype html>
+{%- comment -%}
+	Every Markdown page under docs/ on GitHub Pages: the user guides, the privacy policy and the
+	developers' notes. It gives them the home page's masthead, palette and footer (assets/site.css)
+	in place of the default Jekyll theme. Jekyll takes each page's title from its first heading.
+	assets/site.js adds a # link to each heading, the section name in the bar under the masthead
+	and the "On this page" list; without script the page reads the same without them.
+{%- endcomment -%}
+{%- assign guide = site.data.guides | where: "page", page.path | first -%}
+{%- assign is_privacy = false -%}
+{%- if page.path == "privacy.md" -%}{%- assign is_privacy = true -%}{%- endif -%}
+{%- assign page_title = page.title | default: site.title -%}
+{%- if guide -%}{%- assign page_title = guide.title -%}{%- endif -%}
+{%- if is_privacy -%}{%- assign page_title = "Privacy policy" -%}{%- endif -%}
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="light dark" />
+		<title>{{ page_title | escape }} · {{ site.title | escape }}</title>
+		<meta name="description" content="{{ guide.blurb | default: site.description | escape }}" />
+		<meta name="author" content="{{ site.author.name | escape }}" />
+		<link rel="canonical" href="{{ page.url | absolute_url }}" />
+		<meta property="og:type" content="article" />
+		<meta property="og:site_name" content="{{ site.title | escape }}" />
+		<meta property="og:title" content="{{ page_title | escape }}" />
+		<meta property="og:description" content="{{ guide.blurb | default: site.description | escape }}" />
+		<meta property="og:url" content="{{ page.url | absolute_url }}" />
+		<meta property="og:image" content="{{ '/assets/social-card.jpg' | absolute_url }}" />
+		<meta property="og:image:width" content="1280" />
+		<meta property="og:image:height" content="640" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Crect width='1024' height='1024' rx='224' fill='%23191d23'/%3E%3Cg fill='none' stroke-width='72' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='%235ad1a0' d='M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496'/%3E%3Cpath stroke='%23e9ebef' d='M500 680 L840 680'/%3E%3C/g%3E%3C/svg%3E"
+		/>
+		<link rel="stylesheet" href="{{ '/assets/site.css' | relative_url }}" />
+		<script src="{{ '/assets/site.js' | relative_url }}" defer></script>
+	</head>
+	<body>
+		<a class="skip" href="#main">Skip to content</a>
+		<div class="sticky-top">
+			<div class="masthead">
+				<header class="wrap top">
+					<a class="logo" href="{{ '/' | relative_url }}" aria-label="{{ site.title | escape }}, home">
+						<svg viewBox="0 0 1024 1024" aria-hidden="true">
+							<rect width="1024" height="1024" rx="224" fill="#111419" />
+							<g fill="none" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+								<path
+									stroke="#5ad1a0"
+									d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
+								/>
+								<path stroke="#e9ebef" d="M500 680 L840 680" />
+							</g>
+						</svg>
+						<span>{{ site.title | escape }}</span>
+					</a>
+					<nav aria-label="Site">
+						<ul>
+							<li class="wide"><a href="{{ '/#features' | relative_url }}">Features</a></li>
+							<li class="wide"><a href="{{ '/#engines' | relative_url }}">Engines and costs</a></li>
+							<li>
+								<a href="{{ '/#guides' | relative_url }}"{% if guide %} aria-current="true"{% endif %}>Guides</a>
+							</li>
+							<li>
+								<a href="{{ '/privacy.html' | relative_url }}"{% if is_privacy %} aria-current="page"{% endif %}>Privacy</a>
+							</li>
+							<li><a href="{{ '/#download' | relative_url }}">Download</a></li>
+						</ul>
+					</nav>
+				</header>
+			</div>
+			<div class="pagebar">
+				<div class="wrap">
+					<a class="pagebar-title" href="#top">{{ page_title | escape }}</a>
+					<span class="pagebar-sep" aria-hidden="true" hidden>/</span>
+					<a class="pagebar-section" href="#top" hidden></a>
+					<button class="copy" type="button" hidden>Copy link</button>
+				</div>
+			</div>
+		</div>
+
+		<main id="main">
+			<div class="wrap doc">
+				<details class="toc" hidden>
+					<summary>On this page</summary>
+				</details>
+				<article class="prose" id="top">
+					<p class="kicker">
+						{%- if guide -%}Guide{%- elsif is_privacy -%}Privacy{%- else -%}Documentation{%- endif -%}
+					</p>
+					{{ content }}
+
+					{%- if guide or is_privacy %}
+					<aside class="more" aria-labelledby="more-title">
+						<h2 id="more-title">{% if guide %}Other guides{% else %}Guides{% endif %}</h2>
+						<ul class="guides">
+							{%- for item in site.data.guides %}
+							{%- unless item.page == page.path %}
+							<li>
+								<a href="{{ item.page | replace: '.md', '.html' | relative_url }}">
+									<strong>{{ item.title }}</strong>
+									<span>{{ item.blurb }}</span>
+								</a>
+							</li>
+							{%- endunless %}
+							{%- endfor %}
+						</ul>
+					</aside>
+					{%- endif %}
+				</article>
+			</div>
+		</main>
+
+		<footer>
+			<div class="wrap">
+				<ul>
+					<li><a href="{{ '/' | relative_url }}">Home</a></li>
+					<li><a href="{{ '/privacy.html' | relative_url }}">Privacy policy</a></li>
+					<li><a href="https://github.com/fmadore/Live-translation/issues">Support</a></li>
+					<li><a href="https://github.com/fmadore/Live-translation">Source code</a></li>
+					<li>
+						<a href="https://github.com/fmadore/Live-translation/blob/main/docs/README.md"
+							>Developer documentation</a
+						>
+					</li>
+				</ul>
+				<p class="credit">
+					Developed by
+					<a href="{{ site.author.url }}" rel="author">{{ site.author.name }}</a>.
+					{{ site.title | escape }} is free and open source, under the MIT license.
+				</p>
+				<p>
+					<a href="https://github.com/fmadore/Live-translation/blob/main/docs/{{ page.path }}"
+						>This page on GitHub</a
+					>
+				</p>
+			</div>
+		</footer>
+	</body>
+</html>
