@@ -289,6 +289,34 @@ sentence boundaries and make text still being revised jump. Voxtral closes a lin
 after a sentence or at a detected turn end, which gives shorter lines: a fair reason to prefer
 it for a speaker who rarely pauses.
 
+**Continuous speech, 24 November 2026** (`every_frame_of_continuous_speech`: the English
+recording twice with no silence between, as Rehearse loops it, every frame printed). Transcribe
+Live closed a segment every 8 to 11 seconds whether or not the speaker paused, and the audio at
+each cut reached neither segment's text: "every sentence is" / "scribed and shown", "Use this"
+/ "The overlay" ("recording to check" lost), "words and are" / "sentence becomes clear"
+("corrected once the" lost). In the app's own Rehearse, three runs on the same day showed the
+same losses in the transcript ("every sentence is scribed", "Use this the overlay", "corrected
+once the comes clear"), with or without the two mends below. They are the service's: no frame carries the missing words, and no final arrived
+after its segment's `ACTIVITY_END`. Two things the client can mend and does:
+
+- **A final shorter than its interim.** The last segment's interim read "sentence becomes clear.
+  Use this recording to check the overlay before the room fills up." and its final only the
+  part from "Use this". When a final of three words or more is exactly the end of its last
+  interim (words compared without case or punctuation), the interim's opening words are kept
+  (`keep_dropped_opening`); any other final wins as it is.
+- **Sentences run together.** Interims and finals carried "as it is spoken.Captions appear".
+  A space goes back after `.`, `!` or `?` that follows a word of two or more lower-case letters
+  and precedes a capital (`space_sentences`), so "U.S.Army" and "3.5" stay as they are.
+
+Two setups were tried on the same stream and changed nothing worth having:
+`realtimeInputConfig.automaticActivityDetection` with `prefixPaddingMs: 500` and
+`silenceDurationMs: 800` was accepted (the transcribe guide documents only `disabled`) and gave
+the same cuts, one word lost at each ("transcribed" became "described"; "check" and "A" were
+lost); with `disabled: true` and no `activityStart` from the client nothing at all was
+transcribed. Cutting the stream at real pauses on the client, with the bundled Silero speech
+detection sending `activityStart` and `activityEnd`, is the remaining way to keep every word;
+it is not built.
+
 ### The ten-minute cap
 
 > Live transcription sessions support continuous streaming for up to 10 minutes.
@@ -336,6 +364,9 @@ three-passage probes stream about eighty seconds each:
 `captions_across_three_passages_as_the_app_shows_them` (the production client through the
 session runner, the one to rerun), `verbatim_finals_across_three_passages` (every frame) and
 `smart_finals_across_three_passages` (the old mode, for comparison).
+`every_frame_of_continuous_speech` streams the English recording twice without a pause, about
+fifty seconds, and prints every frame, interims included: the one to rerun for how segments
+end in continuous speech.
 
 ## Target-language catalog
 

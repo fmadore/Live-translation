@@ -249,13 +249,14 @@ impl RealtimeProtocol for GeminiTranscribeClient {
 }
 
 /// Final text wins even when a frame also carries an interim hypothesis. Both are the segment
-/// under way, so each replaces the caption text rather than extending it.
+/// under way, so each replaces the caption text rather than extending it; but a final that
+/// leaves out the opening words its last interim had keeps them (`keep_dropped_opening`).
 fn apply_transcription(
     content: &super::protocol::ServerContent,
     acc: &mut TurnAccumulator,
 ) -> Option<bool> {
     if let Some(final_text) = &content.input_transcription {
-        acc.text.clone_from(&final_text.text);
+        acc.text = space_sentences(&keep_dropped_opening(&acc.text, &final_text.text));
         return Some(true);
     }
     if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
@@ -267,10 +268,62 @@ fn apply_transcription(
         return Some(true);
     }
     if let Some(interim) = &content.interim_input_transcription {
-        acc.text.clone_from(&interim.text);
+        acc.text = space_sentences(&interim.text);
         return Some(false);
     }
     None
+}
+
+/// Fewer words than this in a final, and it is taken as it is: a short final that matches the
+/// end of its interim is as likely a correction as a cut.
+const MIN_FINAL_WORDS_TO_EXTEND: usize = 3;
+
+/// The final for a segment, with the opening words of its last interim put back when the final
+/// is exactly that interim's end. On 24 November 2026, in continuous speech, a segment's
+/// interim read "sentence becomes clear. Use this recording to check the overlay before the
+/// room fills up." and its final only "Use this recording to check the overlay before the room
+/// fills up.": the first three words, already on screen, were heard and then dropped.
+/// Words compare without case or punctuation; anything else and the final wins as it is.
+fn keep_dropped_opening(interim: &str, final_text: &str) -> String {
+    fn bare(word: &str) -> String {
+        word.chars()
+            .filter(|c| c.is_alphanumeric())
+            .flat_map(char::to_lowercase)
+            .collect()
+    }
+    let shown: Vec<&str> = interim.split_whitespace().collect();
+    let finished: Vec<&str> = final_text.split_whitespace().collect();
+    let cut = shown.len().saturating_sub(finished.len());
+    if finished.len() < MIN_FINAL_WORDS_TO_EXTEND
+        || cut == 0
+        || !shown[cut..]
+            .iter()
+            .zip(&finished)
+            .all(|(a, b)| bare(a) == bare(b))
+    {
+        return final_text.to_string();
+    }
+    format!("{} {}", shown[..cut].join(" "), final_text.trim())
+}
+
+/// A space after a sentence's end that Transcribe Live ran into the next sentence
+/// ("as it is spoken.Captions appear", 24 November 2026). Only after a word of two or more
+/// lower-case letters and before a capital, so "U.S.Army", "e.g.X" and "3.5" stay as they are.
+fn space_sentences(text: &str) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(text.len() + 4);
+    let mut lower_run = 0usize;
+    for (i, &c) in chars.iter().enumerate() {
+        out.push(c);
+        if matches!(c, '.' | '!' | '?')
+            && lower_run >= 2
+            && chars.get(i + 1).is_some_and(|next| next.is_uppercase())
+        {
+            out.push(' ');
+        }
+        lower_run = if c.is_lowercase() { lower_run + 1 } else { 0 };
+    }
+    out
 }
 
 #[cfg(test)]
@@ -702,6 +755,98 @@ mod client_tests {
         );
         // A segment's end with nothing pending is not a caption.
         assert_eq!(h.send(END).caption, CaptionUpdate::None);
+    }
+
+    /// The last segment of `live_probe::every_frame_of_continuous_speech` on 24 November 2026:
+    /// its final left out the three words its interim opened with, and they stay.
+    #[test]
+    fn a_final_that_drops_its_interims_opening_words_keeps_them() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        const INTERIM: &str = "sentence becomes clear. Use this recording to check the overlay before the room fills up.";
+        const FINAL: &str = "Use this recording to check the overlay before the room fills up.";
+        let mut h = Harness::new(client());
+        h.send(START);
+        h.send(&interim_frame(INTERIM));
+        h.send(&final_frame(FINAL));
+        h.send(CLOSE);
+        h.send(END);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, INTERIM, ""),
+                Emitted::final_(0, INTERIM, ""),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_final_that_is_not_its_interims_end_wins_as_it_is() {
+        // Longer than the interim: the usual case.
+        assert_eq!(
+            keep_dropped_opening("and every sentence", "and every sentence is"),
+            "and every sentence is"
+        );
+        // Words the interim did not end with.
+        assert_eq!(
+            keep_dropped_opening("Captions appear a moment after", "Captions appear later."),
+            "Captions appear later."
+        );
+        // Punctuation and case aside, the same words.
+        assert_eq!(
+            keep_dropped_opening(
+                "so captions appear a moment after the words.",
+                "Captions appear, a moment after the words."
+            ),
+            "so Captions appear, a moment after the words."
+        );
+        // Too short to tell a cut from a correction.
+        assert_eq!(
+            keep_dropped_opening("I I think so", "think so."),
+            "think so."
+        );
+        // An empty final still retracts.
+        assert_eq!(keep_dropped_opening("Um, uh", ""), "");
+    }
+
+    #[test]
+    fn a_sentence_run_into_the_next_gets_its_space() {
+        assert_eq!(
+            space_sentences("as it is spoken.Captions appear"),
+            "as it is spoken. Captions appear"
+        );
+        assert_eq!(
+            space_sentences("Really?Yes.Fine!Go"),
+            "Really? Yes. Fine! Go"
+        );
+        assert_eq!(
+            space_sentences("Fin de phrase.\u{c9}tape"),
+            "Fin de phrase. \u{c9}tape"
+        );
+        for unchanged in [
+            "The U.S.Army",
+            "e.g.Gemini",
+            "gemini-3.5 Transcribe",
+            "spoken. Captions",
+            "fills up This is",
+        ] {
+            assert_eq!(space_sentences(unchanged), unchanged);
+        }
+        // Through the client: an interim and its final both get the space.
+        let mut acc = TurnAccumulator::new(
+            crate::timing::SessionClock::start(),
+            0,
+            crate::realtime::TurnCounter::default(),
+        );
+        let interim = content(
+            r#"{"serverContent":{"interimInputTranscription":{"text":"as it is spoken.Captions appear"}}}"#,
+        );
+        assert_eq!(apply_transcription(&interim, &mut acc), Some(false));
+        assert_eq!(acc.text, "as it is spoken. Captions appear");
+        let last = content(
+            r#"{"serverContent":{"inputTranscription":{"text":"as it is spoken.Captions appear."}}}"#,
+        );
+        assert_eq!(apply_transcription(&last, &mut acc), Some(true));
+        assert_eq!(acc.text, "as it is spoken. Captions appear.");
     }
 
     #[test]
@@ -1200,6 +1345,54 @@ mod live_probe {
             }
         }
         assert!(finals.iter().filter(|t| !t.is_empty()).count() >= 3);
+    }
+
+    /// The English rehearsal recording twice with no silence between, as Rehearse loops it,
+    /// printing every frame in arrival order, interims included: how Transcribe Live ends a
+    /// segment in continuous speech, and whether a final follows its `ACTIVITY_END`.
+    #[tokio::test]
+    #[ignore = "streams about fifty seconds of the bundled fixture to Google and bills the key; run with --ignored"]
+    async fn every_frame_of_continuous_speech() {
+        let english = load_fixture(std::path::Path::new(FIXTURE))
+            .expect("the bundled rehearsal fixture should load");
+        let stream = [&english[..], &english[..]].concat();
+        let config = config(&[]);
+        let socket = setup_in_mode(&config, None)
+            .await
+            .unwrap_or_else(|e| panic!("setup refused: {e}"));
+        let (mut write, mut read) = socket.split();
+        let frames = config.clone().into_client();
+        let started = tokio::time::Instant::now();
+        let sender = tokio::spawn(async move {
+            let mut pcm = Vec::new();
+            for chunk in stream.chunks(chunk_samples(RATE)) {
+                pcm.clear();
+                f32_to_pcm16_le(chunk, &mut pcm);
+                let data = base64::engine::general_purpose::STANDARD.encode(&pcm);
+                let frame = frames.audio_json(data).unwrap();
+                if write.send(Message::Text(frame.into())).await.is_err() {
+                    return write;
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            let _ = write.send(Message::Text(AUDIO_STREAM_END.into())).await;
+            write
+        });
+        let deadline = started + Duration::from_secs(90);
+        let mut drained_at = None;
+        while let Ok(Some(Ok(message))) = tokio::time::timeout_at(deadline, read.next()).await {
+            let Some(json) = frame_json(&message) else {
+                continue;
+            };
+            println!("{:>6.2}s {json}", started.elapsed().as_secs_f32());
+            if sender.is_finished() {
+                let at = *drained_at.get_or_insert_with(tokio::time::Instant::now);
+                if at.elapsed() > Duration::from_secs(8) {
+                    break;
+                }
+            }
+        }
+        drop(sender.await.unwrap());
     }
 
     async fn three_passages(mode: Option<&'static str>) {
