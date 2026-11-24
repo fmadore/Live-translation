@@ -84,15 +84,24 @@ account or personal window. In `6-history.png` macOS capitalised the search word
 
 `super-hero-art.png` is the listing's 16:9 Super hero art, uploaded under **Trailers and
 additional assets**, where the Store shows it at the top of the listing and in promotional
-layouts. It is an illustration generated with OpenAI GPT Image (`gpt-image-2.5-flare`, high
-quality, 28 October 2026), rendered at 2560×1440 and resized to 1920×1080; the prompt and
-model are in `super-hero-art.png.json`, kept beside it.
+layouts. It is an illustration generated with OpenAI GPT Image (`gpt-image-2.6-flare`, high
+quality, 24 November 2026), rendered at 2560×1440 and resized to 1920×1080; the prompt and
+model are in `super-hero-art.png.json`, kept beside it. It replaced a glowing-tube rendering
+of the same idea, chosen against a Gemini (`gemini-nano-banana-2.1`) rendering of the same
+prompt.
 
-It extends the icon's wave-to-words mark: a speech wave splits at the centre into five
-caption lines, each tinted for a different language. Microsoft's rules for this image
-exclude text, app UI, devices and flags, and ask for the key content in the centre and out
-of the bottom third. It has no text, so one file serves every language. To change it, edit
-the prompt from the sidecar, draft at low quality, and keep the new sidecar with the image.
+It extends the icon's wave-to-words mark as a quiet studio object: graphite bars shaped like a
+speech wave lie down at the centre into four rows of frosted-glass caption bars, one in the
+accent mint. Microsoft's rules for this image exclude text, app UI, devices and flags, and ask
+for the key content in the centre and out of the bottom third. It has no text, so one file
+serves every language.
+
+The same render makes the home page's hero (`docs/assets/hero.jpg`) and the art of the
+repository's social preview (`.github/social-preview-art.jpg`): crops with the floor outside
+the sculpture masked and the black point raised, so the ground is pure black and the page
+blends it into the dark band with `mix-blend-mode: lighten`. The sidecar's `postprocess`
+records the steps. To change the art, edit the prompt from the sidecar, draft at low quality,
+render the final once, and regenerate all three files and the social preview together.
 
 ## Recapturing
 
