@@ -35,10 +35,10 @@ fixes of the 20 November audit.
 
 - **Gemini subtitles repeated everything said before.** Since 1.4.0, every Gemini Transcribe
   caption after the first repeated the whole session so far, because Gemini's default mode sends
-  the cleaned transcript of everything heard each time. The app now asks Gemini for a verbatim
-  transcript instead: each caption arrives about a second after the speaker pauses, word for
-  word, with fillers kept (the overlay's filler filter can still hide them). A segment Gemini
-  ends without a final transcript is now kept from its last interim text.
+  the cleaned transcript of everything heard each time. The app now captions only what each new
+  transcript adds. *Correction, 24 November 2026:* this line first said 1.16.0 asked Gemini for a
+  verbatim transcript, with captions about a second after a pause; that change was left out of
+  1.16.0 and ships in [1.16.1](release-1.16.1.md).
 - **The first words after Start or Resume** are no longer lost with cloud engines: audio captured
   while the connection opens is held and sent in order.
 - **Stop while Whisper is loading** after a switch no longer waits for the model to finish

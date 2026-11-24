@@ -17,17 +17,17 @@ Free, with every feature included. If the app is useful to you, you can
 **Windows 11, native x64 and ARM64 · macOS 15+ on Apple silicon (in testing) · English, French
 and German interface · MIT licence**
 
-- **Latest release:** **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)**
-  (23 November 2026; Microsoft Store submission pending). Adds OpenAI live subtitles, one-click
-  fallback to offline Whisper when a cloud engine drops out mid-session, fixed Gemini subtitles
-  that no longer repeat earlier speech, buffered opening words after Start, and fixes from the
-  20 November audit ([release notes](docs/release-1.16.0.md),
-  [Store handoff](docs/store-updates.md#release-1160-handoff)).
-- **Microsoft Store:** **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)**
-  (17 November 2026) is currently live in the
-  [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X), bringing the cloud spending
-  guard, transcript markers and Find, break notices on the overlay, optional system-wide shortcuts,
-  and bulk actions in Transcript history ([release notes](docs/release-1.15.0.md)).
+- **Latest release:** **[1.16.1](https://github.com/fmadore/Live-translation/releases/tag/v1.16.1)**
+  (24 November 2026; Microsoft Store submission pending). Gemini subtitles now arrive word for
+  word about a second after a pause, as 1.16.0 announced but did not yet do
+  ([release notes](docs/release-1.16.1.md),
+  [Store handoff](docs/store-updates.md#release-1161-handoff)).
+- **Microsoft Store:** **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)**
+  (23 November 2026) is currently live in the
+  [Microsoft Store](https://apps.microsoft.com/detail/9PFB8LR3RR9X), bringing OpenAI live
+  subtitles, one-click fallback to offline Whisper when a cloud engine drops out mid-session,
+  Gemini subtitles that no longer repeat earlier speech, buffered opening words after Start, and
+  fixes from the 20 November audit ([release notes](docs/release-1.16.0.md)).
 - **macOS:** Each GitHub release includes a notarised disk image, tested on an M2 Mac mini running
   macOS 26 ([macOS notes](docs/macos.md)). A free Mac App Store build (1.16.0) is currently in
   Apple's review ([submission notes](docs/mac-app-store.md)).

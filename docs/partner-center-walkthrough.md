@@ -1,14 +1,20 @@
-# Partner Center submission walkthrough — 1.16.0
+# Partner Center submission walkthrough — 1.16.1
 
-Target: **Live Translation & Subtitles 1.16.0**, Product ID `9PFB8LR3RR9X`. **Tagged on
-23 November 2026; not yet submitted.**
-The Store serves 1.15.0 (MSIX 1.15.0.0), read from the installed package with `Get-AppxPackage`
-on 23 November 2026; 1.16.0.0 replaces it. Keep this walkthrough as the template for the
+Target: **Live Translation & Subtitles 1.16.1**, Product ID `9PFB8LR3RR9X`. **Prepared on
+24 November 2026; not yet submitted.**
+The Store serves 1.16.0 (MSIX 1.16.0.0), read from the installed package with `Get-AppxPackage`
+on 24 November 2026; 1.16.1.0 replaces it. Keep this walkthrough as the template for the
 next submission. The combined x64 + ARM64 bundle will be at
-`https://github.com/fmadore/Live-translation/releases/download/v1.16.0/Live.Translation_1.16.0.msixbundle`
+`https://github.com/fmadore/Live-translation/releases/download/v1.16.1/Live.Translation_1.16.1.msixbundle`
 once the tag is built.
-The [release handoff](store-updates.md#release-1160-handoff) has the package evidence and
+The [release handoff](store-updates.md#release-1161-handoff) has the package evidence and
 outstanding acceptance checks.
+
+**For 1.16.1, follow the steps below with these differences:** the package and version are
+`Live.Translation_1.16.1.msixbundle` and **1.16.1.0**; in each language, replace only *What's
+new* and the certification notes' first paragraph ([store-listing.md](store-listing.md)); the
+descriptions, features and screenshots stay as 1.16.0 left them. The rest of this page was
+written for 1.16.0 and is kept as it was.
 
 1.16.0 adds OpenAI subtitles (OpenAI's `gpt-live-transcribe`, on the same key as OpenAI
 translation) and **Continue with offline Whisper**, a banner that offers to carry on a source
@@ -239,7 +245,7 @@ cloud connection opens, Stop interrupting a pending engine switch or a loading W
 Mistral's Pause and Stop after a forced close), Gemini's transcription mode, the echo filter and
 the cost estimate.
 
-Submit manually when the [handoff checklist](store-updates.md#release-1160-handoff) is complete,
+Submit manually when the [handoff checklist](store-updates.md#release-1161-handoff) is complete,
 and record the submission date and certification result there. Do not mark a version live
 until Partner Center or the public listing confirms publication. 1.15.0 is live, read from the
 installed package on 23 November 2026; its submission and certification dates were not

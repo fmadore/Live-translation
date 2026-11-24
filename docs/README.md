@@ -16,13 +16,16 @@ user guides the home page lists are in [`_data/guides.yml`](https://github.com/f
 *Guide* and lists the others at the foot of each; a new guide goes there and on the home page.
 
 These guides describe `main`, released as
-**[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (tagged on
-23 November 2026; the Store submission is still to be made): OpenAI subtitles, continuing a
-cloud source with offline Whisper in the same session when its engine stops, a spoken language
-for Gemini subtitles, Gemini subtitles that no longer repeat earlier speech, the first words
-after Start kept on cloud engines, and the fixes of the 20 November audit. The version in the
-Store is **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)**
-(17 November 2026, MSIX 1.15.0.0), read from the installed package on 23 November 2026: a
+**[1.16.1](https://github.com/fmadore/Live-translation/releases/tag/v1.16.1)** (24 November
+2026; the Store submission is still to be made): Gemini subtitles word for word, on Google's
+VERBATIM mode. The version in the Store is
+**[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (23 November
+2026, MSIX 1.16.0.0), read from the installed package on 24 November 2026: OpenAI subtitles,
+continuing a cloud source with offline Whisper in the same session when its engine stops, a
+spoken language for Gemini subtitles, Gemini subtitles that no longer repeat earlier speech, the
+first words after Start kept on cloud engines, and the fixes of the 20 November audit. Before
+it, the Store served **[1.15.0](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)**
+(17 November 2026, MSIX 1.15.0.0): a
 spending guard for cloud engines, markers and Find in the transcript, a notice on the overlay
 for breaks, opt-in system-wide Pause and overlay keys, several History sessions deleted or saved
 at once, and the fixes of the [16 November app review](app-review-2026-11-16.md), which also
@@ -71,7 +74,14 @@ The [6 October app review](app-review-2026-10-06.md) records the work in 1.7.0 a
 - [Repository statistics](repository-statistics.md): downloads per version and visits to the
   repository, recorded daily on the `stats` branch.
 
-## Release 1.16.0 (tagged 23 November 2026, Store submission pending)
+## Release 1.16.1 (24 November 2026, Store submission pending)
+
+- [Release notes](release-1.16.1.md): Gemini subtitles on Google's VERBATIM mode, as 1.16.0
+  announced, and a segment Gemini ends without a final kept.
+- [Release handoff](store-updates.md#release-1161-handoff) and
+  [the Store copy](store-listing.md).
+
+## Release 1.16.0 (23 November 2026, live in the Store)
 
 - [Release notes](release-1.16.0.md): OpenAI subtitles, continuing a cloud source with offline
   Whisper when its engine stops, a spoken language for Gemini subtitles, Gemini subtitles that

@@ -1,15 +1,17 @@
-# Next Store submission — 1.16.0
+# Next Store submission — 1.16.1
 
-**1.16.0 tagged on 23 November 2026; Store submission pending.** The Store serves
-**1.15.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
-PC on 23 November 2026 (SignatureKind Store); the submission and certification dates were not
-recorded. Everything 1.15.0 brought to the listing is in Partner Center. The next submission is
-**1.16.0.0**, replacing it: one unsigned bundle with native x64 and ARM64 packages, at
-`https://github.com/fmadore/Live-translation/releases/download/v1.16.0/Live.Translation_1.16.0.msixbundle`
+**1.16.1 prepared on 24 November 2026; Store submission pending.** The Store serves
+**1.16.0.0**, read from the installed package with `Get-AppxPackage` on the maintainer's ARM64
+PC on 24 November 2026 (SignatureKind Store). Everything 1.16.0 brought to the listing is in
+Partner Center. The next submission is **1.16.1.0**, replacing it: one unsigned bundle with
+native x64 and ARM64 packages, at
+`https://github.com/fmadore/Live-translation/releases/download/v1.16.1/Live.Translation_1.16.1.msixbundle`
 once the tag is built.
 
-What's new and the certification notes' first paragraph cover the changes since 1.15.0. What
-1.15.0, 1.14.0, 1.13.1 and 1.12.0 brought to the listing is already in Partner Center and stays.
+Only What's new and the certification notes' first paragraph change
+([store-listing.md](store-listing.md)): Gemini subtitles on Google's VERBATIM mode, which
+1.16.0's What's new already described ([release notes](release-1.16.1.md)). The descriptions,
+features and screenshots stay as 1.16.0 left them.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -17,7 +19,7 @@ controls. New installations open on Whisper / Base / automatic detection, and ex
 setups are preserved. Model download and capture remain explicit user actions. The Store
 listing is for Windows: 1.13 and later also ship a Mac app, which the listing does not mention.
 
-## On main after 1.16.0, for the next listing
+## On main after 1.16.1, for the next listing
 
 Nothing yet.
 
@@ -44,7 +46,7 @@ From the [release notes](release-1.16.0.md), user-visible:
   anywhere.
 - **Gemini subtitles fixed** ([#268](https://github.com/fmadore/Live-translation/pull/268)):
   since 1.4.0, every Gemini Transcribe caption after the first repeated everything said before
-  it, because Google's SMART mode sends cumulative finals. The app now uses VERBATIM: each
+  it, because Google's SMART mode sends cumulative finals. The app now uses VERBATIM (from 1.16.1): each
   caption arrives about a second after the speaker pauses, word for word, fillers included (the
   app's own optional filler filter can still hide them on the overlay). Gemini subtitles now take
   a **spoken language** (71 languages, default Detect automatically).
@@ -268,7 +270,7 @@ notes. The French and German sentences new in 1.16.0 need the maintainer's revie
 
 - [EN/FR/DE descriptions, What's new and certification notes](store-listing.md)
 - [Release notes](release-1.16.0.md)
-- [Build evidence and acceptance checklist](store-updates.md#release-1160-handoff)
+- [Build evidence and acceptance checklist](store-updates.md#release-1161-handoff)
 - [Captions in Zoom guide](zoom-captions.md), which the app's dialog opens
 - [Screenshot plan](store-screenshots/README.md)
 - [Partner Center walkthrough](partner-center-walkthrough.md)
