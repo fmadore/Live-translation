@@ -1,15 +1,17 @@
-# Partner Center listing text — 1.16.0
+# Partner Center listing text — 1.16.1
 
-Written for **1.16.0 / MSIX 1.16.0.0**, tagged on 23 November 2026, with the Store submission
-still pending. The Store serves 1.15.0 (MSIX 1.15.0.0), read from the installed package on
-23 November 2026 ([handoff](store-updates.md#release-1160-handoff)). What's new covers the
-changes since 1.15.0; everything earlier releases brought to the listing (the operator tools of
-1.15.0, DeepL, the offline-subtitles paragraph, the Zoom sentences, the trademark line, the
-twentieth feature line, the certification notes' Zoom paragraph and the helper and bundled model
-in their last paragraph) is already in the Store and stays. For the next version, replace What's
-new and the certification notes' first paragraph. Paste each block into its named field after
-the [release checks](store-updates.md). These descriptions lead with the actual captioning
-workflow; the scripted demo is a secondary setup aid.
+Written for **1.16.1 / MSIX 1.16.1.0**, prepared on 24 November 2026. The Store serves 1.16.0
+(MSIX 1.16.0.0), read from the installed package on 24 November 2026
+([handoff](store-updates.md#release-1161-handoff)). For 1.16.1 only What's new and the
+certification notes' first paragraph change: What's new leads with Gemini's move to verbatim
+transcription, which 1.16.0's text had already announced, then sums up 1.16 for users updating
+from 1.15; the certification notes say what changed since 1.16.0. The descriptions, features,
+short descriptions, keywords, requirements, screenshots and trademark line are 1.16.0's, kept
+below; the French and German What's new need the maintainer's review. Paste each block into its
+named field after the [release checks](store-updates.md). These descriptions lead with the
+actual captioning workflow; the scripted demo is a secondary setup aid.
+
+What 1.16.0 changed in the listing, kept for reference:
 
 For 1.16.0, What's new is replaced in all three languages: a paragraph on OpenAI subtitles and
 Continue with offline Whisper, one on the Gemini subtitles fix and the first words kept at Start
@@ -69,14 +71,12 @@ Requires Windows 11 and the Microsoft Edge WebView2 Runtime, with native x64 and
 Zoom is a trademark of Zoom Communications, Inc. Live Translation & Subtitles is not affiliated with or endorsed by Zoom.
 ```
 
-### What's new in this version — 1.16.0
+### What's new in this version — 1.16.1
 
 ```text
-OpenAI live subtitles: OpenAI's real-time transcription joins Whisper, Mistral and Gemini as a subtitles engine. It reuses your existing OpenAI translation key and accepts your list of names and terms plus a spoken-language hint. If a cloud engine stops mid-session after a key, quota or billing error, or after 30 seconds of reconnecting, a banner now offers Continue with offline Whisper. One click keeps the same clock, transcript and history entry running on your installed Whisper model, adds a switch marker to the transcript, and sends nothing new online.
+Gemini subtitles now arrive verbatim, a second or two after the speaker pauses. Version 1.16.0 stopped them repeating earlier speech, but they could still lag well behind the speaker and drop a repeated sentence; this update switches Gemini to its verbatim transcription, as 1.16.0 announced. Words Gemini has shown are no longer dropped when it finishes a stretch of speech. In long stretches without a pause, Gemini can still miss a word where it splits the speech.
 
-Fixed Gemini subtitles: in earlier versions, each caption after the first repeated earlier speech. Captions now arrive cleanly word for word about a second after a pause, and you can choose the spoken language. Across all cloud engines, opening words spoken right after Start or Resume are now buffered instead of dropped.
-
-More fixes: stronger echo filtering for room microphones; DeepL (experimental) flushes the last words of a sentence without waiting for the next; Whisper repeats itself less in Chinese, Japanese and Thai; the app alerts you when a microphone is unplugged; the overlay returns to a visible screen if an unplugged projector leaves it off screen; and the cost estimate stops counting paused sources.
+Also in 1.16: OpenAI live subtitles on your existing OpenAI key; Continue with offline Whisper when a cloud engine stops mid-session, in the same session, transcript and history entry; a spoken-language choice for Gemini; the first words after Start or Resume kept with every cloud engine; and fixes to echo filtering, DeepL sentence endings, Whisper in Chinese, Japanese and Thai, unplugged microphones and projectors, and the cost estimate during pauses.
 ```
 
 ### Features — one feature per line
@@ -148,14 +148,12 @@ Nécessite Windows 11 et Microsoft Edge WebView2 Runtime, avec paquets natifs x6
 Zoom est une marque de Zoom Communications, Inc. Live Translation & Subtitles n'est ni affiliée à Zoom ni approuvée par Zoom.
 ```
 
-### Nouveautés de cette version — 1.16.0
+### Nouveautés de cette version — 1.16.1
 
 ```text
-Sous-titres en direct OpenAI : la transcription temps réel d'OpenAI rejoint Whisper, Mistral et Gemini parmi les moteurs de sous-titres. Elle utilise la même clé OpenAI que la traduction et tient compte de votre liste de noms et termes ainsi que de la langue parlée. Si un moteur cloud s'arrête en cours de séance — erreur de clé, de quota ou de facturation, ou 30 secondes de reconnexion —, un bandeau propose Continuer avec Whisper hors ligne : la session se poursuit en un clic avec le même chronomètre, la même transcription et la même entrée d'historique, un repère marque le basculement, et rien de nouveau ne quitte votre PC (un modèle Whisper doit être installé).
+Les sous-titres Gemini arrivent désormais en verbatim, une ou deux secondes après une pause de l'orateur. La version 1.16.0 avait mis fin aux répétitions, mais les sous-titres pouvaient encore arriver bien après la parole et omettre une phrase répétée ; cette mise à jour fait passer Gemini à la transcription verbatim, comme l'annonçait la 1.16.0. Les mots déjà affichés ne sont plus perdus quand Gemini termine un passage. Dans un long passage sans pause, Gemini peut encore manquer un mot là où il coupe la parole.
 
-Sous-titres Gemini corrigés : les versions précédentes répétaient tout ce qui avait déjà été dit à chaque nouveau sous-titre. Les sous-titres arrivent désormais mot pour mot environ une seconde après une pause, et vous pouvez choisir la langue parlée. Avec tous les moteurs cloud, les premiers mots prononcés juste après Démarrer ou Reprendre ne sont plus perdus.
-
-Autres corrections : filtre d'écho renforcé pour les micros de salle ; DeepL (expérimental) affiche la fin d'une phrase sans attendre la suivante ; Whisper se répète moins en chinois, japonais et thaï ; l'application signale un micro débranché ; la surimpression revient sur un écran visible si un projecteur débranché la laisse hors cadre ; et le coût estimé cesse de compter une source en pause.
+Aussi dans la 1.16 : sous-titres en direct OpenAI avec votre clé OpenAI existante ; Continuer avec Whisper hors ligne quand un moteur cloud s'arrête en cours de séance, dans la même session, la même transcription et la même entrée d'historique ; le choix de la langue parlée pour Gemini ; les premiers mots après Démarrer ou Reprendre conservés avec tous les moteurs cloud ; et des corrections pour le filtre d'écho, la fin des phrases DeepL, Whisper en chinois, japonais et thaï, les micros et projecteurs débranchés, et le coût estimé pendant les pauses.
 ```
 
 ### Fonctionnalités — une fonctionnalité par ligne
@@ -227,14 +225,12 @@ Erfordert Windows 11 und die Microsoft Edge WebView2-Runtime, mit nativen Pakete
 Zoom ist eine Marke von Zoom Communications, Inc. Live Translation & Subtitles ist nicht mit Zoom verbunden und wird nicht von Zoom unterstützt.
 ```
 
-### Neu in dieser Version — 1.16.0
+### Neu in dieser Version — 1.16.1
 
 ```text
-OpenAI-Live-Untertitel: Die Echtzeit-Transkription von OpenAI ergänzt Whisper, Mistral und Gemini als Untertitel-Engine. Sie nutzt denselben OpenAI-Schlüssel wie die Übersetzung und berücksichtigt Ihre Liste mit Namen und Begriffen sowie die gesprochene Sprache. Stoppt eine Cloud-Engine mitten in einer Sitzung – nach einem Schlüssel-, Kontingent- oder Abrechnungsfehler oder 30 Sekunden Verbindungsversuchen –, bietet ein Banner „Mit Offline-Whisper fortsetzen“ an: Ein Klick führt Sitzung, Zeitanzeige, Transkript und Verlauf auf Ihrem installierten Whisper-Modell weiter, setzt eine Wechselmarke und sendet nichts Neues ins Netz.
+Gemini-Untertitel erscheinen jetzt wortgetreu, ein bis zwei Sekunden nach einer Sprechpause. Version 1.16.0 hatte die Wiederholungen beendet, doch die Untertitel konnten dem Gesagten noch deutlich hinterherhinken und einen wiederholten Satz auslassen; dieses Update stellt Gemini auf wortgetreue Transkription um, wie in 1.16.0 angekündigt. Bereits angezeigte Wörter gehen nicht mehr verloren, wenn Gemini einen Abschnitt abschließt. In langen Passagen ohne Pause kann Gemini an der Schnittstelle noch ein Wort auslassen.
 
-Gemini-Untertitel korrigiert: In früheren Versionen wiederholte jeder neue Untertitel alles zuvor Gesagte. Jetzt erscheinen Untertitel wortgetreu etwa eine Sekunde nach einer Sprechpause, und Sie können die gesprochene Sprache festlegen. Bei allen Cloud-Engines gehen die ersten Wörter nach Start oder Fortsetzen nicht mehr verloren.
-
-Weitere Korrekturen: stärkerer Echofilter für Raummikrofone; DeepL (experimentell) zeigt das Satzende, ohne auf den nächsten Satz zu warten; Whisper wiederholt sich auf Chinesisch, Japanisch und Thai seltener; die App meldet ein ausgestecktes Mikrofon; das Overlay kehrt auf einen sichtbaren Bildschirm zurück, wenn ein getrennter Projektor es außerhalb lässt; und die Kostenschätzung zählt pausierte Quellen nicht mehr mit.
+Außerdem in 1.16: OpenAI-Live-Untertitel mit Ihrem vorhandenen OpenAI-Schlüssel; „Mit Offline-Whisper fortsetzen“, wenn eine Cloud-Engine mitten in einer Sitzung stoppt, in derselben Sitzung, demselben Transkript und Verlaufseintrag; die Wahl der gesprochenen Sprache für Gemini; die ersten Wörter nach Start oder Fortsetzen bleiben bei allen Cloud-Engines erhalten; und Korrekturen am Echofilter, an DeepL-Satzenden, an Whisper auf Chinesisch, Japanisch und Thai, bei ausgesteckten Mikrofonen und Projektoren und an der Kostenschätzung während Pausen.
 ```
 
 ### Funktionen — eine Funktion pro Zeile
@@ -326,7 +322,7 @@ Zugriff auf die Audioquelle für Spracherkennung; ein Mikrofon ist nur für Mikr
 ## Notes for certification
 
 ```text
-Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.16.0.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.15.0, this update adds OpenAI subtitles: OpenAI's gpt-live-transcribe (Realtime transcription) becomes a Live subtitles engine beside Whisper, Mistral and Gemini. It needs the user's own OpenAI key, the same one as OpenAI translation, and is covered by the same one-time question before audio first goes to OpenAI. It also adds Continue with offline Whisper: when a cloud engine ends a source during a session after a key, quota or billing error, or has been reconnecting for 30 seconds, a banner offers Continue with offline Whisper (Continue in the spoken language when the installed model cannot write the chosen caption language) and Not now. Choosing it continues the same session, with the same clock, transcript and history entry, and puts a marker in the transcript at the switch; Not now leaves the source as it is. It never switches on its own, needs an installed Whisper model and a processor that can run Whisper, is not offered in a rehearsal, the demo or with two caption languages, and sends nothing new anywhere, since Whisper runs on the PC. Gemini subtitles now use Google's VERBATIM transcription mode, which fixes captions that repeated earlier text, and take a spoken language. The update also keeps the first words captured while a cloud connection opens, sets OpenAI's noise reduction by source, and fixes the echo filter, DeepL's last words, Whisper loops in Chinese, Japanese and Thai, and recovery from unplugged devices and displays. The privacy policy, effective 23 November 2026, names OpenAI as a recipient of subtitle audio, names and terms and the chosen spoken language. It adds no capability and no product declaration. The test routes below are unchanged since 1.15.0.
+Product: Live Translation & Subtitles. Product ID: 9PFB8LR3RR9X. Version: 1.16.1.0, native x64 and ARM64. Windows 11 with Edge WebView2 Runtime. Since 1.16.0, this update changes one thing: Gemini subtitles (the user's own Gemini key) ask Google's Gemini Transcribe for its VERBATIM transcription instead of SMART, so captions arrive verbatim a second or two after a pause; a segment the service closes without a final transcript keeps its last interim text, and words a final leaves out of what was already shown are kept. What is sent (audio, the optional names and terms and spoken language) and to whom is unchanged, and the privacy policy is unchanged. 1.16.0 added OpenAI subtitles (OpenAI's gpt-live-transcribe on the user's own OpenAI key, covered by the same one-time question before audio first goes to OpenAI) and Continue with offline Whisper: when a cloud engine ends a source after a key, quota or billing error, or has been reconnecting for 30 seconds, a banner offers to continue the same session with an installed Whisper model; it never switches on its own and sends nothing new anywhere. It adds no capability and no product declaration. The test routes below are unchanged since 1.15.0.
 
 Optional Captions in Zoom (off until the user starts it): the Zoom captions button in the operator window's toolbar opens a dialog where the user pastes the caption link (API token) that a Zoom meeting's host copies with Show Captions > Set up manual captioner > Copy the API token, and chooses Start sharing. From then until Stop sharing or the app quits, the app posts finished caption text in one caption language over HTTPS directly to that zoom.us or zoomgov.com address, and Zoom shows it in the meeting's caption bar. This includes captions made offline with Whisper or by the built-in demo; no audio, API key or device information is sent, and nothing passes through a developer server. The dialog says that caption text is sent to Zoom above its Start sharing button, and the privacy policy describes the flow. The link is held in memory only and never saved. To exercise it, host a Zoom meeting (a free Basic account is enough) on an account whose settings have Manual captions on and the third-party caption API token allowed, copy the API token in the meeting, paste it, start sharing, choose Send test caption, then run the built-in demo or Whisper: attendees see the captions after choosing Show Captions. Without a Zoom meeting, open the dialog and paste any https address outside Zoom: it is refused locally with an explanation and nothing is sent. The rest of the app works the same whether or not Zoom is used. Zoom is named descriptively only; the app uses no Zoom logo and is not affiliated with Zoom Communications, Inc.
 

@@ -9,11 +9,84 @@ account.
 The route below is what shipped every version so far. It takes about five minutes once the
 packages are built.
 
+## Release 1.16.1 handoff
+
+**Prepared on 24 November 2026** in the release PR, to be tagged `v1.16.1` from its merge. The
+Store serves **1.16.0.0**, read with `Get-AppxPackage` on the maintainer's ARM64 PC on
+24 November 2026 (SignatureKind Store; [1.16.0's handoff](#release-1160-handoff)). Target app
+version: **1.16.1**, MSIX **1.16.1.0**, in `Live.Translation_1.16.1.msixbundle`, with
+`Live.Translation_1.16.1_aarch64.dmg` for the Mac.
+
+**Why a patch release.** 1.16.0's release notes, its Store What's new and certification notes and
+the roadmap all said Gemini subtitles used Google's VERBATIM mode, but the change was committed
+after [#268](https://github.com/fmadore/Live-translation/pull/268) had merged and never reached
+`main`: 1.16.0 still asks Gemini for SMART. Its captions no longer repeat the session (1.16.0
+captions only what each cumulative final adds), but they come 15 to 30 seconds late, a repeated
+sentence is dropped and spoken edits ("delete that") apply. 1.16.1 brings what 1.16.0 described.
+
+Since `v1.16.0`:
+
+- [#277](https://github.com/fmadore/Live-translation/pull/277): Gemini Transcribe on VERBATIM;
+  a segment Gemini ends without a final keeps its interim text; the engine card and the
+  filler-filter note say Gemini writes word for word (EN/FR/DE); the Gemini, privacy, export,
+  caption-layout and usability docs follow (the privacy policy's effective date is unchanged:
+  same audio, same recipient, same retention). Also the fallback engine's design note records
+  the answers agreed on 23 November, and `AGENTS.md` asks for worktree and branch cleanup.
+- [#280](https://github.com/fmadore/Live-translation/pull/280): found by trying Rehearse on
+  Gemini before the tag. In continuous speech Transcribe Live cuts a segment every 8 to 11
+  seconds and the audio at the cut reaches no text; the app now keeps the opening words of an
+  interim its final leaves out, and puts back the space in run-together sentences. A new probe,
+  `every_frame_of_continuous_speech`, prints every frame; the boundary losses are recorded in
+  [the Gemini notes](gemini-live-api.md) and left open (cutting at real pauses on the client).
+- Docs only: the guides and privacy policy in the home page's look
+  ([#276](https://github.com/fmadore/Live-translation/pull/276)), new hero art
+  ([#275](https://github.com/fmadore/Live-translation/pull/275)), the Mac App Store 1.16.0 record
+  ([#274](https://github.com/fmadore/Live-translation/pull/274)) and a copy-edit round
+  ([#278](https://github.com/fmadore/Live-translation/pull/278)).
+
+**Changed under the surface:** no command, event, error id, capability, dependency or CSP
+change. Two catalogue keys renamed (`design.geminiTranscribeSummary`, `usability.geminiVerbatim`).
+The MSIX template, `bundle.config.json` and the package's capabilities are unchanged.
+
+### Preparation
+
+- [x] #277 merged on 24 November 2026 with CI green on Linux, Windows x64, Windows ARM64 and
+  macOS.
+- [x] **Live check, 24 November 2026:** `captions_across_three_passages_as_the_app_shows_them`
+  (the production client through the real session runner, the maintainer's key): five captions,
+  no repetition, each 3 to 5 seconds after its passage's audio; the segment Gemini ended without
+  a final was kept from its interim text, missing "A" and "after the words", as on 23 November
+  ([notes](gemini-live-api.md)).
+- [x] **In the app, 24 November 2026:** Rehearse on Gemini in a local release build, before and
+  after #280: captions within seconds, no repetition; words lost where Gemini cuts continuous
+  speech ("every sentence is scribed", "Use this the overlay"), the run-together sentence
+  spaced after #280.
+- [ ] The release PR merged, with the version bump in the seven files of
+  [the route](#the-route), `CITATION.cff` (1.16.1, 24 November 2026) and
+  `docs/release-1.16.1.md`; `npm run verify` and `npm run verify:rust` pass, and its CI passes.
+- [ ] The French and German What's new sentences for 1.16.1 reviewed by the maintainer.
+
+### Release and Store acceptance
+
+- [ ] Tag `v1.16.1` (annotated: "Live Translation & Subtitles v1.16.1") on the release PR's
+  merge; the workflow publishes the release with `docs/release-1.16.1.md`, the bundle and the
+  disk image attached.
+- [ ] Verify the bundle at **1.16.1.0** with the [1.8.0 checks](#release-180-handoff), plus
+  `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
+  and stapled.
+- [ ] Submit `Live.Translation_1.16.1.msixbundle` in Partner Center with the 1.16.1 What's new
+  and certification notes ([store-listing.md](store-listing.md)); the descriptions, features and
+  screenshots are 1.16.0's. Rollout **gradual**, starting at 10%.
+- [ ] **Mac:** 1.16.0 (build 9) is in App Review. Once it is decided, upload 1.16.1 from its tag
+  with the *Mac App Store* workflow and submit it, or wait for the next feature release.
+- [ ] The open checks of the [1.16.0](#release-1160-handoff) handoff carry over.
+
 ## Release 1.16.0 handoff
 
-**Prepared on 23 November 2026** in the release PR, to be tagged `v1.16.0` from its merge; **Store
-submission pending**. The Store serves **1.15.0.0**, read with `Get-AppxPackage` on the
-maintainer's ARM64 PC on 23 November 2026 ([1.15.0's handoff](#release-1150-handoff)). Target app
+**Prepared on 23 November 2026** in the release PR and tagged `v1.16.0` on `52fe57c`; **live in
+the Store** as 1.16.0.0, read with `Get-AppxPackage` on the maintainer's ARM64 PC on 24 November
+2026 (SignatureKind Store). Its notes' Gemini VERBATIM line was wrong: see
+[1.16.1](#release-1161-handoff). It replaced **1.15.0.0** ([1.15.0's handoff](#release-1150-handoff)). Target app
 version: **1.16.0**, MSIX **1.16.0.0**, in `Live.Translation_1.16.0.msixbundle`, with
 `Live.Translation_1.16.0_aarch64.dmg` for the Mac and the Mac App Store build uploaded from the
 tag. What's new and the certification notes' first paragraph cover the changes since 1.15.0; the
@@ -28,9 +101,10 @@ Since `v1.15.0`:
   OpenAI key, at $1.02 an hour ([notes](openai-transcribe-api.md)). Also a cross-engine fix: on a
   fresh start (Start, or Resume after a pause), audio captured while the socket opens is kept in
   the bounded backlog and sent in order, instead of being dropped as a stall's backlog.
-- [#268](https://github.com/fmadore/Live-translation/pull/268): Gemini Transcribe on VERBATIM
-  instead of SMART, whose cumulative finals made every caption since 1.4.0 repeat the session so
-  far; a segment ended without a final keeps its interim. With
+- [#268](https://github.com/fmadore/Live-translation/pull/268): Gemini Transcribe captions only
+  what each SMART final adds, since SMART's cumulative finals made every caption since 1.4.0
+  repeat the session so far (the move to VERBATIM described here was left off `main` and ships
+  in [1.16.1](#release-1161-handoff)). With
   [#249](https://github.com/fmadore/Live-translation/issues/249): OpenAI noise reduction by source
   (`far_field` for the microphone, none for system audio) and a spoken language for Gemini
   Transcribe (71 languages, BCP-47).
@@ -75,7 +149,7 @@ of the contract, sharing the `openai-api-key` credential; `StatusUpdate` gains a
 
 - [x] #257–#272 merged by 23 November 2026, each with CI green on Linux, Windows x64, Windows
   ARM64 and macOS.
-- [ ] The release PR merged, with the version bump in the seven files of
+- [x] The release PR merged, with the version bump in the seven files of
   [the route](#the-route), `CITATION.cff` (1.16.0, 23 November 2026) and
   `docs/release-1.16.0.md`; `npm run verify` and `npm run verify:rust` pass, and its CI passes,
   the macOS lane included.
@@ -91,7 +165,7 @@ of the contract, sharing the `openai-api-key` credential; `StatusUpdate` gains a
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.16.0` (annotated: "Live Translation & Subtitles v1.16.0") on the release PR's
+- [x] Tag `v1.16.0` (annotated: "Live Translation & Subtitles v1.16.0") on the release PR's
   merge; the workflow publishes the release with `docs/release-1.16.0.md`, the bundle and the
   disk image attached.
 - [ ] Verify the bundle at **1.16.0.0** with the [1.8.0 checks](#release-180-handoff), plus
@@ -99,8 +173,9 @@ of the contract, sharing the `openai-api-key` credential; `StatusUpdate` gains a
   and stapled.
 - [ ] The open checks of the [1.15.0](#release-1150-handoff), [1.14.0](#release-1140-handoff),
   [1.13.1](#release-1131-handoff) and [1.13.0](#release-1130-handoff) handoffs apply to 1.16.0.
-- [ ] Submit `Live.Translation_1.16.0.msixbundle` in Partner Center with the 1.16.0 copy
-  ([walkthrough](partner-center-walkthrough.md)); rollout **gradual**, starting at 10%.
+- [x] Submit `Live.Translation_1.16.0.msixbundle` in Partner Center with the 1.16.0 copy
+  ([walkthrough](partner-center-walkthrough.md)); live by 24 November 2026 (submission date and
+  rollout not recorded).
 - [x] **Mac:** the 1.16.0 build uploaded from its tag (build 9, run 45222738780) and submitted
   for review on 23 November 2026, after 1.13.1 was withdrawn from a twelve-day wait
   ([status](mac-app-store.md#status-23-november-2026)); release automatic once approved.

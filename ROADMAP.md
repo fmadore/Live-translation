@@ -5,11 +5,20 @@ the open work and a short record of what each release shipped; the
 [release notes](docs/release-notes.md), the [Store handoffs](docs/store-updates.md) and git
 history keep the detail.
 
-## Current status — 1.15.0 in the Store, 1.16.0 tagged
+## Current status — 1.16.0 in the Store, 1.16.1 prepared
 
-[**1.16.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0) was tagged on
-23 November 2026; its Store submission and Mac upload follow from the tag
-([release notes](docs/release-1.16.0.md),
+[**1.16.1**](https://github.com/fmadore/Live-translation/releases/tag/v1.16.1), prepared on
+24 November 2026 ([release notes](docs/release-1.16.1.md),
+[handoff](docs/store-updates.md#release-1161-handoff)), puts Gemini Transcribe on VERBATIM:
+1.16.0's notes announced it, but the change had been committed after its pull request merged and
+was left off `main` until [#277](https://github.com/fmadore/Live-translation/pull/277). Trying
+it in the app found Gemini losing a word where it cuts continuous speech every 8 to 11 seconds;
+[#280](https://github.com/fmadore/Live-translation/pull/280) keeps what the client can, and
+cutting at real pauses on the client is open ([Gemini notes](docs/gemini-live-api.md)).
+
+The Store serves [**1.16.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)
+(23 November 2026, MSIX 1.16.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
+24 November 2026 (SignatureKind Store) ([release notes](docs/release-1.16.0.md),
 [handoff](docs/store-updates.md#release-1160-handoff)). It adds OpenAI subtitles through
 `gpt-live-transcribe` ([#251](https://github.com/fmadore/Live-translation/issues/251)); a
 banner that continues a cloud source with offline Whisper in the same session when its engine
@@ -17,12 +26,12 @@ stops on a key, quota or billing error, or has been reconnecting for 30 seconds
 ([#248](https://github.com/fmadore/Live-translation/issues/248)); a spoken language for Gemini
 subtitles and OpenAI noise reduction by source
 ([#249](https://github.com/fmadore/Live-translation/issues/249)); Gemini subtitles that no
-longer repeat everything said before (a bug since 1.4.0, now on Gemini's verbatim mode); the
+longer repeat everything said before (a bug since 1.4.0; verbatim mode follows in 1.16.1); the
 first words after Start kept on cloud engines; and the fixes of the
 [20 November audit](#the-20-november-audit). None of the engine changes has run against a real
 provider failure or on a Mac; the pull requests list what to check by hand.
 
-The Store serves [**1.15.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)
+Before it, the Store served [**1.15.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.15.0)
 (17 November 2026, MSIX 1.15.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on
 23 November 2026 (SignatureKind Store); the submission and certification dates were not
 recorded ([handoff](docs/store-updates.md#release-1150-handoff),
@@ -324,7 +333,10 @@ glossaries, live corrections and offline text translation are not planned.
 
 ## Shipped
 
-- **1.16.0** (23 November 2026; tagged, Store submission and Mac upload pending): OpenAI
+- **1.16.1** (24 November 2026; prepared): Gemini Transcribe on VERBATIM, as 1.16.0 announced,
+  with a segment Gemini ends without a final kept from its interim text
+  ([#277](https://github.com/fmadore/Live-translation/pull/277)).
+- **1.16.0** (23 November 2026; live in the Store, Mac build in App Review): OpenAI
   subtitles through `gpt-live-transcribe` ([#251](https://github.com/fmadore/Live-translation/issues/251)); continuing a cloud source with
   offline Whisper in the same session when its engine stops ([#248](https://github.com/fmadore/Live-translation/issues/248)); a spoken language
   for Gemini subtitles and OpenAI noise reduction by source ([#249](https://github.com/fmadore/Live-translation/issues/249)); Gemini subtitles
