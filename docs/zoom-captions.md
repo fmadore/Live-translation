@@ -1,132 +1,124 @@
 # Captions in Zoom
 
-**Status:** released in 1.12.0 on 27 October 2026, in the Store as 1.12.0.0, as reported by the
-maintainer on 10 November 2026 ([release notes](release-1.12.0.md), [handoff](store-updates.md#release-1120-handoff)). The
-maintainer's test in a real meeting, the condition for shipping, passed on 27 October 2026 (see
-[live verification](#live-verification);
-[#187](https://github.com/fmadore/Live-translation/issues/187)).
+Send live captions straight into a Zoom meeting's built-in caption bar, so attendees simply turn
+captions on in Zoom with nothing to install. This uses Zoom's third-party closed-captioning
+interface, documented in
+[Zoom's support article](https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060368)
+(available since 1.12.0; see [release notes](release-1.12.0.md) and
+[live verification](#live-verification)).
 
-The app can send its captions to Zoom's own caption bar, so attendees turn them on in Zoom like
-any other captions and nobody installs anything. It uses Zoom's third-party caption interface,
-documented in [Zoom's support article](https://support.zoom.com/hc/en/article?id=zm_kb&sysparm_article=KB0060368).
-
-Sharing sends **caption text only**. Which audio is captured, and which engine captions it, are
-set up as before: the microphone for the room, system or application audio for the remote
-participants, local Whisper or a cloud engine. Sharing never opens another provider session,
-so it adds no provider cost.
+Sharing sends **caption text only**. Audio capture and engine setup stay unchanged: use a
+microphone for the room, system or application audio for remote participants, and either local
+Whisper or a cloud engine. Sharing never opens an extra provider session, so it adds no cloud
+cost.
 
 ## Setting it up
 
-The first two steps happen in Zoom and are done by the meeting's host, who may not be the
-person running this app. The **Step-by-step setup guide** link in the app's Zoom dialog opens
-this page.
+The first two steps are done in Zoom by the meeting host, who does not need to be the person
+running this app. The **Step-by-step setup guide** link inside the app's Zoom dialog opens this
+page.
 
 1. **Once, in the Zoom web portal** (sign in at zoom.us), as the host or an account admin:
    1. Open **Settings**, then the **Meeting** tab.
-   2. Under **In Meeting (Advanced)**, turn on **Manual captions** (also labelled *Manual
+   2. Under **In Meeting (Advanced)**, enable **Manual captions** (also labelled *Manual
       captioning*).
    3. Tick **Allow use of caption API Token to integrate with 3rd-party Closed Captioning
-      services** beneath it, and save.
+      services** underneath, then save.
 
-   If the option is greyed out, an account or group admin has locked it and has to change it.
-   Zoom moves its settings from time to time, so the labels may differ slightly; searching the
-   settings page for "caption" finds them.
-2. **In each meeting**, the host or a co-host clicks the small arrow beside **Show Captions** in
-   the meeting controls, chooses **Set up manual captioner**, then **Copy the API token**. The
-   host can send it to the person running this app in the meeting chat. A token belongs to one
-   meeting: copy a new one for the next.
-3. **In the app**, choose **Zoom captions** in the toolbar, paste the link into **Caption link (API
-   token)**, choose the caption language (with two caption languages) and the sources (with the
-   microphone and system audio both captured), then click **Start sharing**. Starting asks Zoom for the
-   meeting's last caption number, which checks the link without showing anything to attendees.
-4. **Send test caption** shows one line to everyone in the meeting, to confirm it arrives.
-5. **Attendees** turn captions on with **Show Captions** (or **CC**) in their own meeting
-   controls; nothing needs installing on their side.
+   If the toggle is greyed out, an account or group admin has locked it. Zoom occasionally renames
+   or moves these settings; searching the page for "caption" finds them quickly.
+2. **In each meeting**, the host or co-host clicks the small arrow beside **Show Captions** in the
+   meeting controls, chooses **Set up manual captioner**, and clicks **Copy the API token**. The
+   host can paste it into the meeting chat for the caption operator. Each token belongs to a
+   single meeting; copy a fresh one for the next.
+3. **In the app**, click **Zoom captions** in the toolbar, paste the link into **Caption link (API
+   token)**, pick the caption language (if running two languages) and the sources (if capturing
+   both microphone and system audio), then click **Start sharing**. The app queries Zoom for the
+   meeting's latest sequence number to verify the link without displaying anything to attendees.
+4. Click **Send test caption** to post one test line to the meeting and confirm delivery.
+5. **Attendees** turn captions on with **Show Captions** (or **CC**) in their own Zoom controls.
 
-Sharing can start before or during a caption session, and it carries on across Stop and Start:
-it ends with **Stop sharing** or when the app quits. To change the language or the sources,
-stop sharing and start again. A rehearsal and the built-in demo are never shared, even with
-sharing on: the meeting sees nothing of them, and the status keeps Zoom's last answer and count
-until a real session sends again.
+You can start sharing before or during a caption session, and it stays active across Stop and
+Start until you click **Stop sharing** or quit the app. To switch languages or sources, stop
+sharing and start again. Rehearsals and the built-in demo are never sent to Zoom, even while
+sharing is active.
 
-To caption Zoom only, untick **Show captions on this screen too** in the dialog. It hides the
-overlay, exactly like the overlay's own Hide button, the tray menu and Ctrl+Shift+O do, and the
-overlay stays hidden until it is shown again by any of them; sharing is unaffected.
+To caption Zoom without showing the desktop overlay, untick **Show captions on this screen too**
+in the dialog. That hides the overlay just like the overlay's Hide button, the tray menu or
+Ctrl+Shift+O, without affecting Zoom sharing.
 
 ### What the status means
 
 | Status | Meaning |
 | --- | --- |
-| Sharing | Zoom accepted the link or the last caption. The count is the captions Zoom accepted. |
-| Waiting for the meeting | Zoom answered that the meeting has not started (HTTP 400). Captions flow once it has. |
-| Refused | Zoom answered 401, 403 or 404: the link has expired, been revoked or was copied incompletely. Copy a new API token. |
+| Sharing | Zoom accepted the link or latest caption. The counter shows how many captions Zoom has accepted. |
+| Waiting for the meeting | Zoom reported that the meeting has not started yet (HTTP 400). Captions flow once it begins. |
+| Refused | Zoom returned 401, 403 or 404: the link expired, was revoked or was copied incompletely. Copy a new API token. |
 | Cannot reach Zoom | No connection, a timeout or a Zoom server error. Each new caption tries again. |
 
-Captions that could not be delivered in time are counted as skipped.
+Captions that cannot be delivered in time are counted as skipped.
 
 ## What is sent, and when
 
-The link is a credential for the meeting's captions. The app keeps it in memory until it quits,
-so it need not be pasted again after a Stop and Start. It is never written to the saved setup, a
-meeting profile, history, the recovery copy or a log, and the field is masked because the
-operator's screen may be projected. Errors name what was wrong with a link, never the link.
+The caption link acts as a credential for the meeting's captions. The app holds it in memory only
+until you quit, so you do not have to paste it again after stopping and restarting a session. It
+is never saved to preferences, meeting profiles, history, the recovery copy or logs, and the input
+field stays masked in case your screen is projected. Error messages describe what went wrong
+without printing the link.
 
-Only finished text is sent, so attendees never see a hypothesis that is later revised:
+Only finalised text is sent, so attendees never see shifting interim hypotheses:
 
-- **Gemini Live Translate, OpenAI and Mistral** build each line by appending text and never
-  change what they have sent, so a completed sentence is shared as soon as the next one begins,
-  without waiting for the end of a long turn. A run of 160 characters with no sentence end is
-  shared up to its last whole word.
-- **Gemini Transcribe Live** revises its hypothesis until it finalizes the line, and **DeepL**
-  replaces its tentative text with each update, so only their final lines are shared.
-- **Local Whisper** produces final lines only.
+- **Gemini Live Translate, OpenAI and Mistral** append text without revising earlier words, so
+  each completed sentence goes out as soon as the next begins. A stretch of 160 characters without
+  sentence-ending punctuation is sent up to its last whole word.
+- **Gemini Transcribe Live** and **DeepL** revise tentative text before finalising, so only their
+  finalised lines are shared.
+- **Local Whisper** emits finalised lines only.
 
-Each Zoom caption is at most 120 characters, cut between sentences where possible and otherwise
-between words. Newlines become spaces.
+Each Zoom caption is capped at 120 characters, split between sentences where possible and between
+words otherwise. Newlines become spaces.
 
-Only one caption language goes to a meeting: the one chosen when sharing starts. The app does
-not send Zoom's `lang` parameter, whose behaviour is not documented; Zoom reportedly shows every
-language posted to a meeting at once rather than letting each attendee choose one.
+Only one caption language goes to a meeting: the language selected when sharing starts. The app
+omits Zoom's undocumented `lang` parameter because Zoom reportedly displays all posted languages
+simultaneously rather than letting attendees pick one.
 
 ## Delivery
 
-- Every caption carries Zoom's sequence number `seq`, one higher than the last accepted caption.
-  A retry keeps its number. After a caption is given up, the app asks Zoom for the last number
-  it accepted before sending the next one.
-- Each request times out after 3 seconds. Failures Zoom lists as worth retrying (400, 403, 405,
-  408, 500, 502, 503, 504, plus 429 and network errors) are retried with randomised exponential
-  backoff for about 5 seconds; anything else is given up at once.
-- At most 64 captions wait to be sent, and a caption still waiting after 15 seconds is skipped:
-  after an outage the meeting sees current captions, not a replay of the backlog.
-- Sending runs on its own task. A slow or failing Zoom never delays capture, the overlay, the
-  transcript or exports, and while sharing is off nothing is sent or kept.
+- Every caption carries Zoom's sequence number `seq`, incrementing from the last accepted caption.
+  Retries reuse the same number. If a caption is dropped, the app queries Zoom for the latest
+  accepted sequence number before sending the next one.
+- Requests time out after 3 seconds. Retryable failures (400, 403, 405, 408, 429, 500, 502, 503,
+  504 and network errors) retry with randomised exponential backoff for about 5 seconds; all other
+  errors give up immediately.
+- At most 64 captions queue for delivery, and any caption still waiting after 15 seconds is
+  skipped so attendees see current speech after an outage rather than a delayed backlog.
+- Delivery runs on its own background task: a slow or unreachable Zoom endpoint never delays
+  audio capture, the overlay, the transcript or exports.
 
 ## Limits
 
-- Breakout rooms (`subconfid` links), Zoom Rooms and Zoom's own automatic or translated captions
-  running at the same time have not been tested.
-- Zoom does not document a length limit or how many lines its caption bar shows; the 120-character
-  captions follow Microsoft's guidance for Teams and may be tuned after the live checks.
-- Users on Zoom's developer forum report a delay of 15 seconds or more before the first caption of
-  a meeting appears.
-- Whether shared captions reach Zoom's saved transcript or cloud recording is not verified.
+- Breakout rooms (`subconfid` links), Zoom Rooms and running Zoom's built-in automatic or
+  translated captions alongside manual captions have not been tested.
+- Zoom documents no line or character limit for its caption bar; the 120-character cap follows
+  Microsoft's guidance for Teams and may be adjusted after live testing.
+- Users on Zoom's developer forum report a delay of 15 seconds or more before a meeting's first
+  caption appears.
+- Whether shared captions appear in Zoom's saved transcript or cloud recording has not been
+  verified.
 
 ## Live verification
 
-The maintainer tested the Local Test build in a real meeting on 27 October 2026, on a free
-(Basic) Zoom account, and reported that it works: the caption API token is available on a Basic
-account, and captions arrived in Zoom's caption bar. That test is the release gate for 1.12.0.
-The finer checks below are still to be recorded one by one, with the Zoom client version, the
-account type and the date; they no longer hold the release.
+Tested in a real meeting on 27 October 2026 on a free (Basic) Zoom account: the caption API token
+is available on Basic accounts and captions arrived in Zoom's caption bar. The remaining checks
+below are open for recording with the Zoom client version, account type and date:
 
-- [x] Host setup as described above on a Basic (free) account (27 October 2026).
+- [x] Host setup on a Basic (free) account (27 October 2026).
 - [ ] Host setup on a licensed account.
-- [ ] The start check against a meeting that has not started, one that has, and an expired link.
-- [ ] Attendees on Windows, macOS, a phone and the web client see the captions, with accents
-      and a right-to-left language intact.
-- [ ] Reading pace: whether Zoom's caption bar shows one caption at a time or several lines, and
-      whether 120 characters reads well.
-- [ ] Delay from the overlay to Zoom's caption bar, with local Whisper and with a cloud engine.
-- [ ] Pause and resume, Stop and Start while sharing, a Wi-Fi drop and its recovery, and a long
-      meeting.
-- [ ] Interaction with Zoom's own captions and with another manual captioner.
+- [ ] Start check against a meeting that has not started, one in progress, and an expired link.
+- [ ] Attendees on Windows, macOS, mobile and the web client see captions with accents and
+      right-to-left scripts intact.
+- [ ] Reading pace: how many lines Zoom's caption bar displays and whether 120 characters reads
+      comfortably.
+- [ ] End-to-end delay from overlay to Zoom's caption bar with local Whisper and a cloud engine.
+- [ ] Pause and resume, Stop and Start while sharing, Wi-Fi dropout recovery, and a long meeting.
+- [ ] Interaction with Zoom's built-in captions and with another manual captioner.

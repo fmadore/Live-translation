@@ -1,16 +1,16 @@
 # Accessibility
 
-What this app owes an operator who cannot rely on colour, a mouse, or small text, what is
-checked automatically, and what has to be checked by hand before a release.
+How Live Translation & Subtitles supports operators who rely on the keyboard, a screen reader,
+high-contrast themes or enlarged text—along with what is verified automatically and what requires
+manual checks before release.
 
-The target is WCAG 2.2 AA for the operator window, plus the Windows-specific behaviour the
-Microsoft Store accessibility checklist asks for: keyboard operation, Narrator, contrast
-themes, and text scaling.
+The operator window targets WCAG 2.2 AA and the Microsoft Store Windows accessibility checklist:
+full keyboard navigation, Narrator support, Windows contrast themes and live text scaling.
 
-The overlay is treated differently on purpose. It is not a control surface but the caption
-projected into a room, over slides nobody in this app controls. Its contrast is measured
-against the scrim it paints, not the operator's system palette, and it opts out of contrast
-themes and of Windows text scaling (see [below](#windows-text-scaling)).
+The caption overlay is handled differently by design. It is projected content shown over slides
+and calls rather than an operator control surface, so its contrast is measured against its own
+scrim over bright and dark backgrounds, and it intentionally opts out of Windows contrast themes
+and operator text scaling (see [Windows text scaling](#windows-text-scaling)).
 
 ## What the code guarantees
 

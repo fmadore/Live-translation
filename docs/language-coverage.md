@@ -1,9 +1,7 @@
-# Caption language coverage (issue #78)
+# Caption languages
 
-Current for 1.15.0. Translation targets keep the catalog introduced in 1.5.0; Whisper adds a
-separate spoken-language selector, which Gemini Transcribe shares (issue #249) and OpenAI
-transcription reads as a hint. The dated provider checks below are the latest recorded
-evidence, not fresh endpoint verification.
+Which spoken and translation languages each engine supports (current for 1.16.0). The dated
+verification notes below record the latest live checks rather than fresh endpoint probes.
 
 | Engine | Caption language control |
 | --- | --- |
@@ -17,41 +15,40 @@ evidence, not fresh endpoint verification.
 | Mistral | Auto-detection hint, no language selector |
 | OpenAI transcription | Optional spoken-language hint from the 99 Whisper languages, or automatic detection; same-language subtitles |
 
-Choosing a caption language never changes the English/French/German interface; see
-[localization](localization.md).
+Choosing a caption language never changes the English, French or German interface; see
+[localisation](localization.md).
 
-An unsupported favourite stays visible and disabled with an explanation. A search also finds
-languages the engine does not offer, listed after every supported match, disabled, with the
-same explanation, so typing "zul" under DeepL says why rather than "No matching languages";
-the unfiltered list holds only the engine's own languages and the pins. Switching engines
-does not change the chosen target: Start and Rehearse stay blocked until a supported language
-is selected, and the Rust core rejects unsupported targets too. Cloud subtitle auto-detection
-ignores the retained target, and Whisper and Gemini Transcribe use the spoken-language
-preference; switching back to translation keeps the operator's choice. Gemini Transcribe offers
-the 71 of Whisper's languages that Google's table names (see
+Unsupported favourites stay visible in the list, disabled with a brief explanation. Searching also
+turns up languages the current engine does not offer, listed below supported matches and disabled
+with the same explanation—so typing "zul" under DeepL explains why rather than showing "No
+matching languages". Switching engines preserves your chosen target: Start and Rehearse stay
+blocked until you pick a supported language, and the Rust core rejects unsupported targets as
+well. Cloud subtitle auto-detection ignores the saved translation target, while Whisper and Gemini
+Transcribe use the spoken-language selector; switching back to translation restores your earlier
+target. Gemini Transcribe offers the 71 Whisper languages listed in Google's table (see
 [the spoken-language hint](gemini-live-api.md#the-spoken-language-hint)); a Whisper language
-outside them stays saved for Whisper and reads as automatic detection under Gemini.
+outside that set stays saved for Whisper and falls back to automatic detection under Gemini.
 
-F2 swaps the first two favourites while translation is stopped. From outside that pair it
-selects the first. With fewer than two pins, or either pin unsupported, it does nothing.
-Rehearsal uses French for an English translation target and English for other targets.
-Demo scripts and rehearsal recordings remain restricted to English/French.
+F2 swaps your first two pinned favourites while translation is stopped (or selects the first if
+neither is active). With fewer than two pins, or if either pin is unsupported by the current
+engine, F2 does nothing. Rehearsal plays French for an English target and English for all other
+targets; demo scripts and rehearsal audio are English and French only.
 
-## Catalog
+## Catalogue
 
-`src/lib/languages.json` is the source of truth: English fallback names, endonyms, provider
-memberships, source URLs and verification dates. Run `npm run generate:languages` after
-editing it to regenerate the TypeScript union and the Rust enum/support checks;
-`npm run check:languages`, run by `npm run verify` and by CI, rejects drift. Norwegian uses `no`, with `nb` as a
-search alias rather than a second option. Portuguese region and Chinese script tags stay
-distinct.
+`src/lib/languages.json` is the single source of truth for English fallback names, endonyms,
+provider memberships, source URLs and verification dates. After editing it, run
+`npm run generate:languages` to regenerate the TypeScript union and Rust enum checks;
+`npm run check:languages` (run by `npm run verify` and CI) catches drift. Norwegian uses `no`,
+with `nb` as a search alias rather than a duplicate row. Portuguese regional variants and Chinese
+script tags stay separate.
 
-Names come from `Intl.DisplayNames` in the interface locale, falling back to the catalog's
-English name rather than a bare code. Search strips combining accents and case and matches
-codes, English/localized names, endonyms and aliases; prefixes rank before substrings. An empty
-search lists favourites first, in pin order; the star next to each row pins or unpins it.
-Favourites live in `language.favourites`, never in StartOptions or IPC, and survive restart
-independently of session options. UI catalogs contain only the selector's copy.
+Display names come from `Intl.DisplayNames` in the active interface locale, falling back to the
+catalogue's English name rather than a bare code. Search ignores combining accents and case,
+matching codes, English or localised names, endonyms and aliases, with prefix matches ranked
+ahead of substrings. An empty search lists pinned favourites first in pin order; the star beside
+each row toggles pinning. Favourites live in `language.favourites`, independent of session
+options, and persist across restarts. UI catalogues contain only the selector's own copy.
 
 Overlay captions carry the selected BCP-47 code and their own text direction. Arabic, Hebrew,
 Persian, Urdu and Sindhi are RTL; unknown auto-detected subtitles use `dir="auto"`, and Stable
@@ -91,12 +88,12 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
   entry of `languages` (Whisper's `jw` as ISO `jv`); OpenAI rejects codes it does not support,
   which stops the source with its message, and no code beyond `en` and `fr` has been tried.
   See the [OpenAI transcription notes](openai-transcribe-api.md).
-- Tests cover generated catalog parity, persistence/defaults, search ranking, favourites,
+- Tests cover generated catalogue parity, persistence and defaults, search ranking, favourites,
   F2, keyboard controls, unsupported options, history and caption direction. Rust tests
   verify provider memberships and every demo script's packaged WAV.
 - Browser checks at 980×660 in English, French and German: the open selector fits the rail,
   pinned Swahili survives the Gemini → OpenAI switch with a disabled reason, and the selected
-  value is preserved. Japanese/Arabic preview glyphs render, and Arabic stable reading aligns
+  value is preserved. Japanese and Arabic preview glyphs render, and Arabic stable reading aligns
   at the right edge with `dir="rtl"`. Reproduce with `/overlay?language=ja` or
   `/overlay?language=ar`; `he`, `fa` and `ur` previews are also available.
 - **Pending:** real speech into a non-EN/FR target on both engines, native Narrator
@@ -104,7 +101,7 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
   real-speech checks before Store submission.
 - 2026-11-11: DeepL Voice added for translation with 42 of DeepL's 48 Voice targets, from
   [DeepL's supported-languages page](https://developers.deepl.com/docs/voice/supported-voice-languages)
-  (`sources.deepl` in the catalog). Not in the catalog yet: Irish, Maltese, Tagalog, and the
+  (`sources.deepl` in the catalogue). Not in the catalogue yet: Irish, Maltese, Tagalog, and the
   Canadian French, Latin American Spanish and British English variants. DeepL detects the
   spoken language automatically among the languages it transcribes itself; spoken languages it
   transcribes through a partner are not auto-detected. Real speech through DeepL has not been
@@ -114,8 +111,8 @@ contrast/theme checks. Automated DOM assertions cannot establish what Narrator s
 
 1. Save OpenAI and Gemini keys in the app; never put keys in screenshots or test reports.
 2. Run the [OpenAI code probe](openai-realtime-api.md#target-language-catalog). Record every
-   accepted/rejected code, including all Portuguese/Chinese variants, and regenerate the
-   catalog if its memberships change.
+   accepted and rejected code, including all Portuguese and Chinese variants, and regenerate the
+   catalogue if its memberships change.
 3. In a native development build, choose Live translation → German → Gemini → microphone.
    Start, speak a new English or French sentence, confirm German in the overlay and transcript,
    then Stop. Repeat with OpenAI. Record the input sentence, output and provider/date; a

@@ -1,65 +1,40 @@
 # Caption layout
 
-Follows [issue #77](https://github.com/fmadore/Live-translation/issues/77). Thanks to
-**@valentinrabot for the feedback and responsive-layout suggestion** (not the implementation).
+Control how captions fit your screen, where the overlay opens across monitors, how fast lines
+update and which filler words are hidden on screen.
+
+*Inspired by [issue #77](https://github.com/fmadore/Live-translation/issues/77), with thanks to
+@valentinrabot for the responsive-layout suggestion.*
 
 ## Fit window
 
-Settings → Reading → Caption layout → **Fit window** (French: **Paramètres → Lecture →
-Disposition des sous-titres → Adapter à la fenêtre**) is the default when no layout preference
-has been saved; Settings stays available during a live session. Widening the overlay allows
-more words per line; increasing its height shows more recent context. The font size does not
-change, captions stay bottom-aligned with margins, and the newest words take priority when
-space shrinks.
+**Settings → Reading → Caption layout → Fit window** (French: **Paramètres → Lecture →
+Disposition des sous-titres → Adapter à la fenêtre**) is the default layout, and Settings stays
+accessible while a session runs. Making the overlay wider fits more words per line; making it
+taller reveals more recent context. Font size stays fixed, captions stay bottom-aligned with
+margins, and the newest words always take priority when space tightens.
 
-Use **Move overlay** to move or resize it, then **Lock into place** to see the audience
-view again; placement mode shows positioning controls instead of live captions. The locked
-overlay stays click-through. **Snap to bottom / Aligner en bas** also resets the height to
-a shallow strip sized for roughly two lines per visible source (160 logical pixels at the
-default font with one source); new overlays start at 160 pixels high. Drag the edges taller
-for more reading context. Resizing does not create text: a short caption or a new session
-with little history can still leave empty space.
+Click **Move overlay** to reposition or resize the strip, then **Lock into place** to return to
+the audience view; move mode displays positioning handles instead of live captions, and the locked
+overlay stays click-through. **Snap to bottom / Aligner en bas** resets the strip to roughly two
+lines per visible source (160 logical pixels high at the default font size). Drag the edges taller
+for extra reading context—resizing reveals stored history rather than inventing new text.
 
-At launch the overlay reopens where it was last placed, remembered separately for each
-arrangement of displays: on the projector whenever the projector is connected, and in the
-laptop's own place when it is not. The same holds while the app runs: unplugging the projector
-brings an overlay that was on it back onto a connected display, resized if it no longer fits,
-and plugging it back in returns the overlay to where it was last placed there. An overlay that
-is still fully usable is never moved, a hidden one is recovered without being shown, and
-captioning carries on throughout. **Move overlay** and showing a hidden overlay check its
-position again first, so the window is never placed or shown off every display, and Escape in
-move mode does not put it back on a display that has gone. Moving the overlay back onto the
-laptop does not replace the placement remembered for the projector.
-Finishing placement (**Done**, **Lock into place** or Enter) and loading a meeting profile both
-count as placing it; Escape, which puts the window back, does not. Displays the app has not
-seen yet reopen the most recent placement, kept within a connected display's work area, and
-the first launch is centred. Eight arrangements are kept; when a ninth is added, the one used longest ago is dropped.
-A change of Windows scaling counts as a new arrangement: the most recent placement keeps its
-size in physical pixels, so captions there read larger or smaller, and placing the overlay
-again remembers it for the new scaling.
+At launch, the overlay reopens where you last placed it, remembered separately for up to eight
+display arrangements (for instance, on the projector whenever it is plugged in, and on the laptop
+screen when it is not). The same applies mid-session: unplugging a projector moves an overlay that
+was on it back onto a connected display (resizing if needed), and reconnecting the projector
+returns it to its remembered spot—all without interrupting captioning. Unseen display setups open
+with your most recent placement constrained to the active work area, and first launch centres the
+overlay. A Windows display-scaling change counts as a distinct arrangement.
 
-When both sources have visible captions, system audio appears above the microphone,
-with labels, and they share the available height. A single visible source uses the
-available height without an origin label. When the rows' share of the window is too short
-for one line at the selected font size (a strip sized for one source, which a second source
-or caption language then splits), the overlay makes room in this order until every row holds a
-line (`fitRows` in `captionLayout.ts`): the rows close up from 18 px apart to 6 px and shrink,
-down to 20 px; the original speech, when shown, gives up its line so the translation keeps one
-at 20 px or more; and the rows go smaller than 20 px, down to 12 px, rather than show no
-caption. Both sources in two caption languages in the default 160 px strip are drawn at 20 px,
-6 px apart, without the original. Before 1.14.0 the rows showed their labels and no caption;
-in 1.14.0 four rows still did, and with the original speech on, the original showed and the
-translation did not. The window is never resized for it: Snap to bottom gives the selected size its room
-back.
-
-The operator window is told when this happens. Under **Caption size** in the live rail, a notice
-gives the size the rows are drawn at and why — "Drawn at 20 px: the overlay is too shallow for
-4 rows at this size." — with an extra line when the original is hidden to make room, and points
-to **Move overlay** and **Snap to bottom**. A status message says the same once, without the
-size, because a resize changes the size and that is not worth interrupting for. The overlay
-sends the fit (`OverlayFit`, through `report_overlay_state`) only when it changes and only while
-captions are drawn, so the notice does not come and go with each pause in speech. The overlay
-clears the fit when the session stops.
+When both sources have visible captions, system audio sits above the microphone with origin labels
+and shares the available height; a single visible source uses the full strip without a label. If
+the strip is too shallow for one line per row at your chosen font size (for example, four rows in
+a 160 px strip), the overlay tightens row spacing from 18 px to 6 px, shrinks rows down to 20 px,
+hides the original-speech line if needed to protect the translation, and finally scales down to
+12 px rather than dropping a row. When this happens, a notice under **Caption size** in the live
+rail tells you the actual drawn size and points to **Move overlay** and **Snap to bottom**.
 
 ## Compact
 
@@ -247,5 +222,5 @@ different dimensions, so finish placement on the presentation display.
 
 Gemini subtitles are requested
 [word for word](gemini-live-api.md#gemini-35-transcribe-live) (`VERBATIM`), fillers included,
-so the local filler filter is what takes them out of the overlay. Raw text means the
-provider's returned text, not a guaranteed verbatim record of speech.
+so the local filler filter hides them on the overlay while keeping the raw transcript intact. Raw
+text means the provider's returned text, not a guaranteed verbatim record of speech.

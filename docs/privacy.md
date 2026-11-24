@@ -1,346 +1,322 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 23 November 2026 (OpenAI can now make subtitles as well as translations:
-with OpenAI subtitles, the audio, the names and terms entered in the setup and the spoken
-language chosen there go to OpenAI; and corrects where the names and terms are used: by the
-Mistral, Gemini Transcribe and OpenAI subtitles, which receive them, and by local Whisper, which
-uses them on the device, where the stored preferences named Mistral alone)
+**Effective date:** 23 November 2026 (adds OpenAI subtitles, sending audio, entered names and
+terms, and the chosen spoken language to OpenAI; clarifies that names and terms are sent to
+Mistral, Gemini Transcribe and OpenAI subtitles and used locally by Whisper)
 
-Previous version: 16 November 2026 (added the optional check for new versions, made only by
-copies installed from GitHub, and only once the user turns it on, the optional system-wide
-shortcuts, and the markers an operator adds, which are kept with the transcript)
+Previous version: 16 November 2026 (added the optional new-version check for GitHub installs,
+optional system-wide shortcuts, and operator transcript markers)
 
 ## What this app is
 
-Live Translation & Subtitles is a desktop application for Windows and macOS with three kinds of
+Live Translation & Subtitles is a desktop application for Windows and macOS with three modes of
 operation:
 
-- local multilingual speech transcription, or translation into English, using Whisper on the
-  user’s computer;
-- optional cloud speech captioning or translation through a provider selected and configured
-  by the user: Google Gemini, OpenAI, Mistral, or DeepL; and
-- a scripted demonstration of the caption display, overlay, timer, level meter, transcript
-  and export workflow.
+- local multilingual speech transcription, or translation into English, using Whisper on your
+  computer;
+- optional cloud captioning or translation through a provider you choose and configure: Google
+  Gemini, OpenAI, Mistral or DeepL; and
+- a scripted demonstration of the caption display, overlay, timer, level meter, transcript and
+  export workflow.
 
-Whichever of these makes the captions, the user can optionally share one caption language with
-a Zoom meeting's own caption bar, as described under
-[Optional captions in Zoom](#optional-captions-in-zoom).
+With any of these, you can optionally share one caption language with a Zoom meeting's built-in
+caption bar, as described under [Optional captions in Zoom](#optional-captions-in-zoom).
 
-The built-in demonstration is explicitly labeled as a demonstration. It does not capture or
-recognize speech.
+The built-in demonstration is clearly labelled as a demonstration. It does not capture or
+recognise speech.
 
 ## Audio
 
-The built-in demonstration does not open a microphone or system-audio device. Its simulated
-level data and English/French caption text are bundled inside the application and remain on the
+The built-in demonstration never opens a microphone or system-audio device. Its simulated level
+data and English/French caption scripts are bundled inside the application and stay on your
 device.
 
-When a live provider is selected, the app captures only the audio source selected by the user:
-a chosen microphone, the computer's system audio, or both. With a cloud provider, audio is
-processed in memory and streamed directly to that provider for the duration of the session.
-System capture can use all audio on a selected output or only the selected application: on
-Windows with its child processes, on macOS with its helper processes. This includes that
-application’s notifications and may include several browser tabs. On macOS, system audio is
-captured through a Core Audio process tap, which macOS permits only after the user allows
-*System Audio Recording*; it captures sound only, never screen content.
-Application titles and process identities are used locally to select the source, not sent
-to the speech provider. Cloud captioning does not write captured audio to disk.
+When a live provider is selected, the app captures only the audio source you choose: a microphone,
+the computer's system audio, or both. With a cloud provider, audio is processed in memory and
+streamed directly to that provider for the duration of the session; nothing is written to disk.
+System capture can listen to all audio on an output device or to a single application (its child
+processes on Windows, or its helper processes on macOS). Single-app capture includes that
+application's notifications and may include multiple browser tabs. On macOS, system audio uses a
+Core Audio process tap, which macOS grants only after you allow *System Audio Recording*; it
+captures sound only, never screen content. Application titles and process identities stay local to
+select the source and are never sent to a speech provider.
 
-With **local Whisper**, audio is processed on the computer and is never uploaded. Pending audio
-is buffered in a temporary file so a slower recognizer can catch up without silently losing
-speech. This file is local, is not a saved recording, and is automatically deleted when its
-handle closes, including when the process exits. It is not an encrypted audio archive or a
-recoverable recording. Stop finishes the remaining audio; explicitly discarding the backlog,
-or closing the app before it has finished, keeps captions already produced but leaves the
-transcript incomplete. Pause excludes newly captured audio from recognition and temporary
-storage while metering remains active.
+With **local Whisper**, audio is processed on your computer and is never uploaded. Pending audio
+is buffered in a temporary file so a slower recogniser can catch up without dropping speech. This
+file stays local, is not a saved recording, and is deleted automatically when its handle closes,
+including when the app exits. It is neither an encrypted archive nor a recoverable recording.
+Stopping a session finishes any remaining audio; discarding the backlog, or closing the app before
+it finishes, keeps captions already produced but leaves the transcript incomplete. Pausing
+excludes new audio from recognition and temporary storage while keeping input meters active.
 
-If a cloud source stops during a session, the user can continue it with local Whisper; from then
-on that source's audio stays on the computer.
+If a cloud source stops mid-session, you can continue it with local Whisper; from that point on,
+that source's audio stays on your computer.
 
-On Windows, Whisper may run in `whisper-vulkan`, a helper program installed with the app that
-uses the graphics processor; audio reaches it only through the computer's own memory, never a
-network, and it keeps nothing once the session ends. The speech-detection model that skips
-silence before Whisper is part of the app and is never downloaded.
+On Windows, Whisper can run in `whisper-vulkan`, a bundled helper that uses your graphics
+processor. Audio reaches it only through local memory, never over a network, and it keeps nothing
+once the session ends. The speech-detection model that skips silence before Whisper is bundled
+with the app and is never downloaded.
 
-Whisper model files are downloaded only when the user chooses **Download model**. Downloads
-contact Hugging Face and its file-delivery infrastructure, which receive ordinary network
-request information such as the user's IP address. No captured audio, captions or provider
-key is included. When a proxy server is set in Windows Settings or macOS's network settings (or
-through the
-`HTTPS_PROXY`/`HTTP_PROXY` variables), downloads go through it, so it sees the same request
-information. While downloading, the file is held as `<model>.part` in the models folder; it is
-deleted if the download fails or is cancelled, or at the start of the next download if the app
-was closed mid-way. The app verifies model size and SHA-256 before installation and before use.
-Models remain under the application's local-data `whisper-models` folder until removed through
-the model controls. Once installed, local transcription and translation need no network
+Whisper model files download only when you click **Download model**. Downloads contact Hugging
+Face and its file-delivery infrastructure, which receive ordinary network request details such as
+your IP address, with no captured audio, captions or API keys. If a proxy server is configured in
+Windows Settings, macOS network settings, or `HTTPS_PROXY`/`HTTP_PROXY`, downloads go through it
+and the proxy sees the same request details. While downloading, the file is saved as `<model>.part`
+in the models folder and deleted if the download fails, is cancelled, or is superseded after an
+interrupted launch. The app verifies each model's size and SHA-256 checksum before installation
+and before use. Models stay in the application's local-data `whisper-models` folder until you
+remove them. Once a model is installed, local transcription and translation need no internet
 connection.
 
 ## Captions and transcripts
 
-Caption text is held in memory while the app runs, and the whole session is kept: the transcript
-is never shortened or discarded behind the user's back. A transcript is written to disk only when
-the user explicitly chooses to save it, or through the optional recovery copy or session history described below.
-The app does not automatically upload saved transcripts. Markers the user adds to the
-transcript (a talk's start, a speaker's name) are part of it, kept and written in the same
-places; a notice the user shows on the overlay during a break is held in memory only.
+Caption text is held in memory while the app runs, and the full session is kept intact: the
+transcript is never truncated or discarded behind your back. A transcript is written to disk only
+when you explicitly save it, or if you turn on the optional recovery copy or session history
+described below. Saved transcripts are never uploaded automatically. Markers you add to the
+transcript (such as a talk's start or a speaker's name) are stored and exported with it; break
+notices shown on the overlay stay in memory only.
 
-The overlay keeps a bounded amount of reading context in memory so that a larger window can
-show more captions. Stable reading drops the oldest hidden lines as its buffer fills. Text removed from the overlay by resizing or its idle timeout remains
-in the full session transcript. The layout feature creates no additional disk history or
-network requests.
+The overlay keeps a bounded amount of recent reading context in memory so a taller window can show
+more lines. Stable reading drops the oldest hidden lines once its buffer fills. Text cleared from
+the overlay by resizing or its idle timeout stays in the full session transcript. Layout choices
+create no extra disk history or network requests.
 
-**Copy**, in the session transcript or a saved session's transcript, places the chosen part of
-the transcript on the system clipboard as plain text, only when the user chooses it. From there
-other applications can read it. If the user has turned on clipboard history or clipboard sync
-across devices in Windows Settings, Windows keeps or syncs it as it would any copied text; on
-macOS, Universal Clipboard may offer it to the user's other Apple devices nearby. The app writes
-to the clipboard but never reads it.
+Clicking **Copy** in the live transcript or a saved session puts the selected text on your system
+clipboard as plain text. Other apps can then read it. If clipboard history or cross-device sync is
+enabled in Windows Settings, Windows keeps or syncs it like any copied text; on macOS, Universal
+Clipboard may offer it to your nearby Apple devices. The app writes to the clipboard but never
+reads from it.
 
-Closing the app with unsaved caption text asks whether to save or discard it first.
+Closing the app with unsaved captions asks whether to save or discard them first.
 
 ## Optional local recovery copy
 
-Recovery is **off by default**. When the user switches on *Keep a local recovery copy while
-captioning*, the app periodically writes the finalized caption lines of the current session to a
-single file in its own local application-data folder on the same PC:
+Recovery is **off by default**. If you turn on *Keep a local recovery copy while captioning*, the
+app periodically saves finalised caption lines from the current session to a single file in its
+local application-data folder:
 
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\recovery\transcript.json`
 
-- It contains finalized caption text and any markers the user added to the transcript (their
-  text and time), including markers added before the first caption. It stores these fields only — no audio, no API key, no provider identity, and no device name.
-- It is never uploaded, transmitted, or shared. The developer operates no service that could
-  receive it.
-- There is one file and no history: each write replaces the previous one.
-- It is deleted as soon as the transcript is saved, the log is cleared, the unsaved-transcript
-  prompt is answered, the recovery option is switched off, or a recovered transcript is restored
-  or refused at the next launch.
-- If the app is closed cleanly, no recovery file remains. One is only ever found at startup after
-  a crash or a power cut, and the user is asked whether to restore or delete it.
+- It stores only finalised caption text and any transcript markers (text and timestamp), including
+  markers added before the first caption. It never stores audio, API keys, provider identities or
+  device names.
+- It is never uploaded, transmitted or shared; the developer operates no service that could receive
+  it.
+- Only one file exists, with no history: each write replaces the previous one.
+- It is deleted automatically as soon as you save the transcript, clear the log, answer the
+  unsaved-transcript prompt, turn recovery off, or restore or decline it at the next launch.
+- After a clean exit, no recovery file remains. It appears at startup only after a crash or power
+  cut, when the app asks whether to restore or delete it.
 
-Deleting the file by hand at any time is safe and removes the data.
+You can delete the file manually at any time without affecting the app.
 
 ## Optional transcript history
 
-History is **off by default**. Enabling *Automatically save sessions locally* progressively
-saves finalized raw caption lines from that point onward, in one file per session under:
+History is **off by default**. Turning on *Automatically save sessions locally* progressively saves
+finalised raw caption lines from that point onward, one file per session, under:
 
 `%LOCALAPPDATA%\io.github.fmadore.live-translation\history\<session-id>.json`
 
-Each session contains its optional user-entered title, start time, duration through the last save, output mode, known
-language information, raw translated/source text with cue timing, and any markers the user
-added to the transcript (their text and time in the session). A session containing only markers is also saved. Automatically detected
-source languages are marked as such; the app does not guess which language was spoken.
-No audio, credentials, application identity or device name is included.
+Each file stores its optional title, start time, duration through the last save, output mode,
+known language details, raw translated and source text with cue timing, and any transcript markers
+(text and timestamp). A session containing only markers is also saved. Auto-detected source
+languages are marked as such rather than guessed. No audio, credentials, application identity or
+device name is saved.
 
-History remains after export, clearing the current transcript, clean shutdown, and disabling
-history. Disabling stops further saves; delete unwanted sessions in Transcript history.
-Deletion is permanent and requires confirmation. Files are local, unencrypted, and never
-automatically uploaded. There is no automatic expiry. An interrupted session remains readable
-through its last completed save. Clearing the recovery copy does not delete history.
+History remains after you export, clear the active transcript, close the app or turn history off.
+Turning history off stops future saves; delete unwanted sessions permanently (with confirmation)
+inside Transcript history. Files are local, unencrypted, never uploaded automatically and never
+expire on their own. An interrupted session stays readable up to its last completed save. Clearing
+the recovery copy does not affect history.
 
-*Hide filler words* is an optional overlay display filter. Its word list is edited by the
-operator and stored only on this device. Raw text in the transcript, history, recovery copy
-and exports remains unchanged. It introduces no network requests.
+*Hide filler words* is an optional overlay display filter. Its word list is edited by you and
+stored only on this device. Raw text in the transcript, history, recovery copy and exports stays
+untouched, and the filter makes no network requests.
 
 ## Optional captions in Zoom
 
-Sharing captions with Zoom is **off until the user starts it** for a meeting. The user pastes
-the caption link (API token) that the meeting's host copied from Zoom, and from then on the app
-sends caption text in the chosen caption language, from the chosen sources, directly to Zoom,
-which shows it to the meeting's participants. This applies to local Whisper captions too: once
-sharing is started, their text leaves the computer, although the audio does not. No audio,
-API key, device name or transcript file is sent, and nothing passes through a server of the
-developer's. Caption text is what was said, so it can include names and other personal
-information about the people speaking; it is shown to everyone in the meeting who turns
-captions on. **Send test caption** sends one fixed sentence, in the
-interface language ("Test caption from Live Translation." in English), to the meeting. Sharing ends with **Stop sharing** or when the app quits, and
-it carries on across Stop and Start of a caption session until then.
+Sharing captions with Zoom is **off until you start it** for a meeting. Once you paste the caption
+link (API token) copied by the meeting's host and start sharing, the app sends finished caption
+text in your chosen language and from your chosen sources directly to Zoom, which displays it to
+attendees. This includes captions generated locally by Whisper: once sharing is active, their text
+leaves your computer, though the audio never does. No audio, API key, device name or transcript
+file is sent, and nothing passes through a developer server. Because captions reflect what was
+said, they may contain names or other personal information, visible to anyone in the meeting who
+turns captions on. **Send test caption** sends one fixed sentence in the interface language ("Test
+caption from Live Translation." in English). Sharing stops when you click **Stop sharing** or quit
+the app, and stays active across Stop and Start of caption sessions until then.
 
-The caption link is held in memory only, until the app quits, so that sharing can be stopped
-and started again without pasting it anew. It is not saved in preferences, meeting profiles,
-history, the recovery copy or logs.
-Zoom receives ordinary network request information, such as the user's IP address, with each
-caption. What Zoom does with the captions, including whether it keeps them in a meeting's
-transcript or recording, is governed by Zoom's terms and the meeting host's settings.
+The caption link stays in memory only until the app quits, so you can stop and restart sharing
+without pasting it again. It is never saved in preferences, meeting profiles, history, the recovery
+copy or logs. Zoom receives ordinary network request details, such as your IP address, with each
+caption. How Zoom handles those captions, including whether they enter a meeting transcript or
+recording, is governed by Zoom's terms and the host's settings.
 
 ## New-version check (copies installed from GitHub)
 
-The Microsoft Store and the Mac App Store update their copies of the app themselves, and those
-copies never make this check or show anything about it. Neither do the MSIX test packages
-attached to GitHub releases. A copy installed from GitHub, with the Windows installer or MSI
-or the Mac disk image, can instead tell the user when a newer version has been released.
+Microsoft Store and Mac App Store builds update automatically and never run this check or display
+any setting for it, nor do the MSIX test packages attached to GitHub releases. Copies installed
+directly from GitHub (the Windows installer or MSI, or the Mac disk image) can optionally check
+for newer releases.
 
-- **Off until the user turns it on.** From the second launch, such a copy shows one line on its
-  start screen, *Check for new versions? This asks GitHub once a day.*, with **Turn on** and
-  **No thanks**. Nothing is requested before the user answers **Turn on**, or turns on *Check
-  for new versions* under Settings › App › Updates, where the same switch turns it off again.
-- **What is sent.** One ordinary HTTPS request, without an account or a key, to GitHub's API
-  (`api.github.com`), asking for the latest published release of this app's repository. Its
-  User-Agent header names the app and its version (for example `LiveTranslation/1.14.0`). No
-  identifier of the user, the device or the installation is sent, nor any audio, caption,
-  transcript, setting or key. GitHub receives ordinary network request information, such as the
-  user's IP address, as any website does. When a proxy server is set in the system's settings,
-  the request goes through it.
-- **When.** At most once a day, a few seconds after the app starts, and never while a session
-  runs. A failed check (offline, refused, or GitHub's rate limit) is not reported and is tried
-  again the next day.
-- **What is shown.** When a newer version exists, *Version X.Y.Z is available* on the start
-  screen and under Settings › App, with **Release notes**, which opens that version's release
-  page on GitHub in the default browser, and **Not now**, which hides it until a newer version.
-  The app downloads and installs nothing.
-- **What is kept.** The answer, the number of launches until it is given, the time of the last
-  check, the newest version seen and a version hidden with **Not now** are kept on the device in
-  one small file, `update-check.json`, in the app's local application-data folder
+- **Off until you turn it on.** From the second launch, the start screen asks once: *Check for new
+  versions? This asks GitHub once a day.*, with **Turn on** and **No thanks**. Nothing is sent
+  until you click **Turn on** or enable *Check for new versions* under Settings › App › Updates,
+  where you can also turn it off.
+- **What is sent.** One standard HTTPS request to GitHub's API (`api.github.com`) for the
+  repository's latest release, with no account or key. Its User-Agent header names only the app
+  and version (for example `LiveTranslation/1.14.0`). No user, device or installation identifier
+  is sent, and no audio, captions, transcripts, settings or keys leave your device. GitHub
+  receives ordinary network request details such as your IP address; if a system proxy is set, the
+  request uses it.
+- **When.** At most once a day, a few seconds after launch and never during a session. Failed
+  checks (offline, refused or rate-limited) are silent and retry the next day.
+- **What is shown.** When a newer release exists, *Version X.Y.Z is available* appears on the
+  start screen and under Settings › App, with **Release notes** (opening GitHub in your default
+  browser) and **Not now** (hiding the notice until a newer version arrives). The app never
+  downloads or installs updates itself.
+- **What is kept.** Your choice, the launch count until you answer, the last check time, the
+  newest version seen and any dismissed version are stored locally in `update-check.json` inside
+  the app's local application-data folder
   (`%LOCALAPPDATA%\io.github.fmadore.live-translation\` on Windows,
-  `~/Library/Application Support/io.github.fmadore.live-translation/` on a Mac). It is never
+  `~/Library/Application Support/io.github.fmadore.live-translation/` on macOS). It is never
   uploaded.
 
-The developer receives nothing from this request: it goes to GitHub, not to a service of the
-developer's.
+The developer receives nothing from this check: the request goes straight to GitHub.
 
 ## API keys
 
-No API key is needed for local Whisper or the built-in demonstration. Optional provider keys are
-stored in Windows Credential Manager or the macOS Keychain and read only by the native
-application core. A key is sent only to
-the provider that issued it to authenticate the live connection. The developer does not receive,
-copy, proxy, or store provider keys.
+Local Whisper and the built-in demonstration need no API key. Optional provider keys are stored in
+Windows Credential Manager or the macOS Keychain and read only by the native application core.
+Each key is sent solely to the provider that issued it to authenticate live sessions. The
+developer never receives, copies, proxies or stores your keys.
 
 ## Preferences stored on the device
 
-The app locally stores ordinary interface preferences, including the last selected mode,
-provider, Whisper model and spoken language, audio source, language, overlay position and size
-for up to eight display arrangements (each recorded as its displays' positions, resolutions and
-scaling, so the overlay reopens where it was placed on them), caption size,
-layout (Fit window, Compact or Stable reading),
-compact line width, caption persistence and update pace, filler-word cleanup and its word list,
-the spending-guard choices for cloud engines, whether a notice on the overlay clears itself when
-captions resume (the notice's text is not stored), whether transcript history or the optional recovery
-copy is enabled, on a copy installed from GitHub the new-version check's state described
-[above](#new-version-check-copies-installed-from-github), whether a running session shows the Live or the Transcript view, the names and
-terms entered in the setup for the speech engines that use them (Mistral, Gemini Transcribe and
-OpenAI subtitles, and local Whisper), whether closing the window leaves the app running in
-the notification area (the menu bar on macOS), whether the system-wide shortcuts are switched
-on, and which cloud providers the user has agreed to send audio to.
-The app also remembers the folder of the last successful transcript export, the chosen export
-format, and whether system capture uses an output or an application. The selected process identity is not
-persisted; choose the application again after relaunch. A Zoom caption link is never stored.
-Named meeting profiles additionally store the selected setup (including any names and terms),
-audio device identifiers,
-appearance and overlay rectangle locally in the app's webview storage. Profiles contain no
-API key, captured audio or caption text. Selected application process identities and rehearsal
-mode are not saved. Profiles remain until deleted with confirmation in Meeting profiles.
+The app stores ordinary interface preferences locally on your device:
+
+- **Setup and engines:** the last mode, provider, Whisper model and spoken language, audio source,
+  caption languages, names and terms entered for Mistral, Gemini Transcribe, OpenAI subtitles and
+  local Whisper, and which cloud providers you have agreed to send audio to.
+- **Overlay and reading:** overlay position and size for up to eight display arrangements
+  (recorded as display positions, resolutions and scaling so it reopens in the same spot), caption
+  size, layout (Fit window, Compact or Stable reading), compact line width, caption hold time and
+  update pace, filler-word cleanup and its word list, and whether a break notice clears itself
+  when captions resume (the notice text itself is never stored).
+- **Session and app behaviour:** cloud spending-guard choices, whether history or crash recovery
+  is enabled, the new-version check state on GitHub installs
+  ([above](#new-version-check-copies-installed-from-github)), whether a running session opens on
+  Live or Transcript, whether closing the window keeps the app in the notification area (or macOS
+  menu bar), whether system-wide shortcuts are enabled, the last export folder and format, and
+  whether system capture listens to an output device or a single application.
+
+Selected application process identities are never saved (choose the application again after
+relaunch), and Zoom caption links are never stored. Named meeting profiles save your setup
+(including names and terms), audio device identifiers, appearance and overlay rectangle in local
+webview storage; they contain no API keys, audio, caption text, application process identities or
+rehearsal mode, and stay until you delete them in Meeting profiles.
 
 Raw transcripts preserve the text returned by the provider. Gemini Transcribe returns a
-word-for-word transcript, hesitations included; the local overlay filter hides them on screen and
-does not change the transcript.
+word-for-word transcript, hesitations included; the local overlay filter hides them on screen
+without changing the transcript.
 
 ## Running in the notification area or the menu bar
 
-The app does not start with the computer and does not run as a background service. It appears in
-the Windows notification area, or the macOS menu bar, only while it is running, and closing the
-window quits it unless the user turns on *Keep running in the tray when I close this window*
-(*in the menu bar* on macOS). With that on, the first time the window
-is hidden the app says so explicitly, and quitting from the notification-area icon stops any
-active capture before it exits.
+The app never starts with your computer and does not run as a background service. It appears in
+the Windows notification area (or macOS menu bar) only while running. Closing the window quits the
+app unless you turn on *Keep running in the tray when I close this window* (*in the menu bar* on
+macOS). When that option is on, the app tells you the first time the window is hidden, and
+quitting from the icon stops any active capture before exiting.
 
 ## Optional system-wide shortcuts
 
-Settings › App › *Use shortcuts while other apps are in front* is off by default. With it on,
-and only while a session is running or paused, the app asks the system to tell it when one of
-two fixed key combinations is pressed: Ctrl+Alt+Shift+P (pause or resume) and Ctrl+Alt+Shift+O
-(show or hide the overlay), ⌃⌥⇧P and ⌃⌥⇧O on a Mac. It does this with the system's own hot-key
-registration (`RegisterHotKey` on Windows, `RegisterEventHotKey` on macOS), not a keyboard hook,
-an event tap or any other means of watching the keyboard. The app is told only that one of those
-two combinations was pressed (and, on Windows, when the key is let go); it never sees any other
-keystroke, what is typed, or which application is in front. Nothing about a key press is
-recorded or leaves the device. The combinations are released when the session stops, when the
-switch is turned off and when the app quits. macOS asks for no Accessibility or Input
-Monitoring permission for this, and none is requested.
+Settings › App › *Use shortcuts while other apps are in front* is off by default. When enabled,
+and only while a session is running or paused, the app registers two fixed combinations with the
+operating system: Ctrl+Alt+Shift+P (pause or resume) and Ctrl+Alt+Shift+O (show or hide the
+overlay), or ⌃⌥⇧P and ⌃⌥⇧O on macOS. It uses the system's own hot-key API (`RegisterHotKey` on
+Windows, `RegisterEventHotKey` on macOS), not a keyboard hook or event tap. The app is notified
+only when one of those two combinations is pressed (and released on Windows); it never sees other
+keystrokes, what you type or which app is in front, and nothing is recorded or sent anywhere. Both
+shortcuts are released when the session stops, when the option is turned off or when the app
+quits. macOS requests no Accessibility or Input Monitoring permission for this.
 
 ## Support link
 
-Settings › App and the foot of the start screen hold an optional *Buy me a coffee* link to the
-developer's page on Buy Me a Coffee (`https://buymeacoffee.com/fmadore`). The app passes that
-fixed address to the default web browser and nothing else: it sends no information about the
-user, the device or its use, and it contacts no payment service itself. Anything entered on
-that page, including any payment, is between the user and Buy Me a Coffee, under the
-[Buy Me a Coffee privacy policy](https://buymeacoffee.com/privacy-policy). Supporting is
-optional and changes nothing in the app. The Mac App Store version does not show the link.
+Settings › App and the foot of the start screen include an optional *Buy me a coffee* link to
+`https://buymeacoffee.com/fmadore`. Clicking it simply opens that fixed address in your default
+browser: the app sends no information about you, your device or your usage, and contacts no
+payment service itself. Anything you enter on that site is governed by the
+[Buy Me a Coffee privacy policy](https://buymeacoffee.com/privacy-policy). Supporting is optional
+and changes nothing in the app. The Mac App Store build omits this link.
 
 ## macOS
 
-On macOS the app asks the system for the microphone and for System Audio Recording the first time
-a session uses them; either can be withdrawn in System Settings › Privacy & Security. Its data
-folder (Whisper models, the optional history and recovery copy) is
-`~/Library/Application Support/io.github.fmadore.live-translation`, or, for the Mac App Store
-version, the same path inside the app's sandbox container
-(`~/Library/Containers/io.github.fmadore.live-translation`). When the Mac App Store version first
-starts, macOS moves the disk image version's data folder into that container. Distribution
-through Apple (notarisation of the disk image, and the App Store and TestFlight) involves Apple
-receiving the application from the developer, not anything of the user's; the App Store's own
-handling of downloads and purchases is governed by Apple's privacy policy.
+On macOS, the app requests Microphone and System Audio Recording permissions the first time a
+session needs them; either can be revoked in System Settings › Privacy & Security. Its data folder
+(Whisper models, optional history and recovery copy) lives at
+`~/Library/Application Support/io.github.fmadore.live-translation`, or inside the sandbox
+container (`~/Library/Containers/io.github.fmadore.live-translation`) for the Mac App Store build.
+On first launch of the Mac App Store version, macOS migrates any existing disk-image data folder
+into that container. Distribution through Apple (notarisation, App Store and TestFlight) involves
+Apple receiving the app package from the developer, never any user data; App Store downloads are
+governed by Apple's privacy policy.
 
 ## What the developer collects
 
-The developer operates no server, relay, account system, telemetry, advertising, analytics, or
-crash-reporting service for this app. The developer receives no audio, captions, transcripts,
-API keys, device identifiers, or usage data from the application. The only requests the app
-makes on its own, rather than to a provider, a Zoom meeting or Hugging Face at the user's
-choice, are the new-version checks of a copy installed from GitHub, once the user has turned
-them on; they go to GitHub.
+The developer operates no server, relay, account system, telemetry, advertising, analytics or
+crash-reporting service for this app, and receives no audio, captions, transcripts, API keys,
+device identifiers or usage data. The only requests the app makes on its own—outside the speech
+providers, Zoom meetings or Hugging Face model downloads you explicitly choose—are the optional
+daily version checks to GitHub on copies installed from GitHub.
 
 ## Third-party processing
 
-Starting a cloud session sends audio directly to the chosen provider under the user’s relationship
-with that provider. Before the first session or rehearsal with each provider, the app asks: it
-names the provider, says that the captured audio goes to it with whatever is said, under the
-user's own account, API key and the provider's terms, and gives this policy's address. Nothing
-is sent unless the user chooses to send; the answer is remembered on the device for that
-provider. Removing the provider's API key stops anything being sent to it. With Mistral, Gemini
-or OpenAI subtitles, the names and terms entered in the setup, if any, are sent to that provider
-at the start of each session, together with the audio, so that its model favours those
-spellings. They may include the names of the people speaking; enter only what may be shared
-with that provider. With OpenAI subtitles, the spoken language chosen in the setup, if one is, is
-sent as well; OpenAI's subtitles and translations use the same OpenAI key. Local Whisper,
-transcribing or translating, uses the names and terms on the computer to guide its recognition
-and sends them nowhere, and the translation engines are not sent them.
+Starting a cloud session streams audio directly to the provider you chose under your own account
+and terms. Before your first session or rehearsal with each provider, the app asks for
+confirmation: it names the provider, explains that captured audio goes there under your own
+account, API key and terms, and links to this policy. Nothing is sent unless you agree, and your
+answer is remembered locally for that provider. Deleting a provider's API key stops all traffic to
+it.
 
-With **DeepL**, which translates only, the audio of the chosen sources is streamed, while a
-DeepL session runs, to DeepL SE (Cologne, Germany) together with the chosen caption language;
-DeepL returns the transcript of what was said and its translation. The DeepL key is stored in
-Windows Credential Manager or the macOS Keychain like the others and sent only to DeepL. DeepL
-Voice is available only on a paid DeepL API plan, under the user's own DeepL account and terms;
-the app refuses a free-plan key rather than sending it audio.
+With Mistral, Gemini or OpenAI subtitles, any names and terms you entered are sent to that
+provider at session start alongside the audio to guide spelling; enter only names you are
+comfortable sharing with that provider. With OpenAI subtitles, your chosen spoken language (if set)
+is sent too, using the same API key as OpenAI translation. Local Whisper uses names and terms on
+your computer alone, and cloud translation engines do not receive them.
 
-The providers' terms and privacy policies apply:
+With **DeepL** (translation only), audio from your chosen sources and the target caption language
+are streamed to DeepL SE (Cologne, Germany) while the session runs, and DeepL returns the source
+transcript and translation. Your DeepL key stays in Windows Credential Manager or the macOS
+Keychain and goes only to DeepL. DeepL Voice requires a paid DeepL API plan; the app refuses
+free-plan keys without sending audio.
+
+Each provider's own terms and privacy policy apply:
 
 - [Google Privacy Policy](https://policies.google.com/privacy)
 - [OpenAI Privacy Policy](https://openai.com/policies/privacy-policy/)
 - [Mistral AI Privacy Policy](https://mistral.ai/terms/#privacy-policy)
 - [DeepL Privacy Policy](https://www.deepl.com/privacy)
 
-The built-in demonstration and local Whisper, transcribing or translating, contact none of these
-speech services.
-Captions shared with a Zoom meeting are covered by the
-[Zoom Privacy Statement](https://www.zoom.com/en/trust/privacy/privacy-statement/) and the
-meeting host's account settings.
-Model downloads are covered by the [Hugging Face privacy policy](https://huggingface.co/privacy).
-The new-version check of a copy installed from GitHub is covered by the
+The built-in demonstration and local Whisper (both subtitles and English translation) contact none
+of these services. Captions shared with Zoom are governed by the
+[Zoom Privacy Statement](https://www.zoom.com/en/trust/privacy/privacy-statement/) and the meeting
+host's settings. Model downloads are covered by the
+[Hugging Face privacy policy](https://huggingface.co/privacy). GitHub version checks are covered
+by the
 [GitHub General Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
 ## Children
 
-The app is not directed to children and the developer knowingly collects no personal information
+The app is not directed to children, and the developer knowingly collects no personal information
 from children.
 
 ## Changes to this policy
 
-Material changes will be published with a new effective date. The policy applicable to a release
-is included with its Store listing and repository documentation.
+Material changes are published with a new effective date. The policy matching each release appears
+in its Store listing and repository documentation.
 
 ## Contact
 
-For privacy questions, use the publisher support contact shown on the Microsoft Store listing for
+For privacy questions, use the publisher support contact listed on the Microsoft Store page for
 Live Translation & Subtitles (Product ID `9PFB8LR3RR9X`).
