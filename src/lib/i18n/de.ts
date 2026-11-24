@@ -22,7 +22,7 @@ import type { Messages } from './en';
 
 export const de: Messages = {
 	design: {
-		smartSummary: 'Intelligente Transkription entfernt Füllwörter und Fehlstarts.',
+		geminiTranscribeSummary: 'Schreibt Gesprochenes Wort für Wort mit, Füllwörter inklusive.',
 		captions: 'Untertitel',
 		reading: 'Lesen',
 		app: 'App',
@@ -65,8 +65,8 @@ export const de: Messages = {
 		contrast: 'Hoher Kontrast',
 		previewHint:
 			'Beispiel in der gewählten Schriftgröße; das Overlay kann eine andere Breite haben.',
-		geminiSmart:
-			'Gemini-Untertitel verwenden Smart-Transkription: Google entfernt Füllwörter und Fehlstarts vor der endgültigen Transkription. Füllwörter ausblenden ist ein zusätzlicher lokaler Overlay-Filter; das Ausschalten deaktiviert Googles Bereinigung nicht.',
+		geminiVerbatim:
+			'Gemini-Untertitel werden Wort für Wort transkribiert, mit Füllwörtern und Fehlstarts. Füllwörter ausblenden entfernt sie aus dem Overlay, das Transkript behält sie.',
 		profiles: 'Besprechungsprofile',
 		profileName: 'Profilname',
 		saveProfile: 'Aktuelle Einstellungen speichern',

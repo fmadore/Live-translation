@@ -54,7 +54,7 @@ says so. Copy does not mark the transcript saved.
 
 Session titles, history search, reading pace, hold duration and the local filler filter never
 change exported text or the date-based filename. Raw export text is what the provider
-returned: Gemini Smart transcription may already have removed fillers and false starts. See
+returned: Gemini Transcribe returns it word for word, fillers and false starts included. See
 [history titles/search](transcript-history.md#titles-and-search) and
 [reading controls](caption-layout.md#reading-pace-and-preview).
 

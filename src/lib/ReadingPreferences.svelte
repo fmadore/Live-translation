@@ -76,7 +76,7 @@
 		checked={$overlayShowOriginal}
 		onchange={overlay.setShowOriginal}
 	/>
-	{#if $options.provider === 'gemini-transcribe'}<p>{$t.usability.geminiSmart}</p>{/if}
+	{#if $options.provider === 'gemini-transcribe'}<p>{$t.usability.geminiVerbatim}</p>{/if}
 </div>
 
 <style>

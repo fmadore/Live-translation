@@ -391,7 +391,7 @@ describe('restoring a recovered snapshot', () => {
 	});
 });
 
-it('retracts an empty Smart final instead of archiving its speculative filler', () => {
+it('retracts an empty final instead of archiving its speculative filler', () => {
 	clearTranscript();
 	pushCaption({
 		turnId: 99,

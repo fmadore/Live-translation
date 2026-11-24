@@ -12,7 +12,8 @@ use tokio_tungstenite::tungstenite::handshake::client::Request;
 
 use super::gemini_request;
 use super::protocol::{
-    AUDIO_STREAM_END, RealtimeInputMessage, ServerMessage, TranscribeSetupMessage,
+    ACTIVITY_END, ACTIVITY_START, AUDIO_STREAM_END, RealtimeInputMessage, ServerMessage,
+    TranscribeSetupMessage,
 };
 use crate::realtime::{
     CaptionUpdate, MessageOutcome, RealtimeProtocol, TurnAccumulator, parse_or_log,
@@ -141,20 +142,19 @@ impl GeminiTranscribeConfig {
     pub fn into_client(self) -> GeminiTranscribeClient {
         GeminiTranscribeClient {
             config: self,
-            document: String::new(),
+            closed_without_final: false,
         }
     }
 }
 
-/// The client: its configuration, and the transcript the server holds for this connection.
+/// The client: its configuration, and what it knows of the speech segment under way.
 pub struct GeminiTranscribeClient {
     config: GeminiTranscribeConfig,
-    /// In `SMART` mode each `inputTranscription` is not its own segment but "the complete
-    /// updated replacement text for the session so far": every earlier turn again, cleaned
-    /// up, then the new one. This is the last such text, so a final captions only what it
-    /// adds. Cleared by the `setupComplete` that opens each connection, since a new session
-    /// starts from an empty text.
-    document: String,
+    /// The last segment ended (`ACTIVITY_END`) with no final, so its interim text was made its
+    /// caption. A final that still arrives before the next segment opens is that segment's,
+    /// and is not captioned twice. Cleared by the next `ACTIVITY_START`, the next interim, or a
+    /// new connection.
+    closed_without_final: bool,
 }
 
 impl RealtimeProtocol for GeminiTranscribeClient {
@@ -204,19 +204,39 @@ impl RealtimeProtocol for GeminiTranscribeClient {
         };
 
         if msg.setup_complete.is_some() {
-            self.document.clear();
+            self.closed_without_final = false;
         }
         if let Some(outcome) = msg.control(self, "Gemini Transcribe error") {
             return outcome;
         }
 
+        // A segment the server ends without a final would otherwise keep its interim text
+        // pending until the next segment's first interim replaced it, and lose it: on
+        // 23 November 2026 a segment of the English rehearsal recording ended that way. Its
+        // last interim text becomes its caption instead.
+        if let Some(activity) = &msg.voice_activity {
+            match activity.kind.as_str() {
+                ACTIVITY_START => self.closed_without_final = false,
+                ACTIVITY_END if !acc.is_empty() => {
+                    self.closed_without_final = true;
+                    return MessageOutcome::activity(CaptionUpdate::Final);
+                }
+                _ => {}
+            }
+        }
+
         let Some(content) = msg.server_content else {
             return MessageOutcome::default();
         };
+        if content.interim_input_transcription.is_some() {
+            self.closed_without_final = false;
+        } else if self.closed_without_final && content.input_transcription.is_some() {
+            return MessageOutcome::default();
+        }
 
         // Empty finalized captions retract speculative text in both windows and the pending
-        // transcript. Never archive an all-filler interim as confirmed speech.
-        match apply_transcription(&content, acc, &mut self.document) {
+        // transcript. Never archive an interim the server finalized as nothing.
+        match apply_transcription(&content, acc) {
             Some(true) => MessageOutcome::activity(CaptionUpdate::Final),
             Some(false) => MessageOutcome::activity(CaptionUpdate::Interim),
             None => MessageOutcome::default(),
@@ -228,17 +248,14 @@ impl RealtimeProtocol for GeminiTranscribeClient {
     }
 }
 
-/// Final text wins even when a frame also carries an interim hypothesis. A final is the
-/// session's whole text so far (`document` holds the previous one), and the caption is what it
-/// adds; an interim is the turn being spoken, as it is spoken.
+/// Final text wins even when a frame also carries an interim hypothesis. Both are the segment
+/// under way, so each replaces the caption text rather than extending it.
 fn apply_transcription(
     content: &super::protocol::ServerContent,
     acc: &mut TurnAccumulator,
-    document: &mut String,
 ) -> Option<bool> {
     if let Some(final_text) = &content.input_transcription {
-        acc.text = added_text(document, &final_text.text).to_owned();
-        document.clone_from(&final_text.text);
+        acc.text.clone_from(&final_text.text);
         return Some(true);
     }
     if content.generation_complete.unwrap_or(false) || content.turn_complete.unwrap_or(false) {
@@ -256,32 +273,8 @@ fn apply_transcription(
     None
 }
 
-/// What `document` adds to `shown`, the text the previous final carried. Normally it extends
-/// it, and the new turn is the rest. When the model has also rewritten earlier text (it
-/// cleans up across turns, and applies spoken edits such as "delete that" to the whole text)
-/// the captions already shown cannot change, so this starts at the last word the two still
-/// share. Nothing new, as when a turn only repeated earlier words, is an empty caption, which
-/// retracts the turn's interim text.
-fn added_text<'a>(shown: &str, document: &'a str) -> &'a str {
-    if let Some(rest) = document.strip_prefix(shown) {
-        return rest.trim_start();
-    }
-    let shared = shown
-        .char_indices()
-        .zip(document.chars())
-        .take_while(|((_, a), b)| a == b)
-        .last()
-        .map_or(0, |((at, c), _)| at + c.len_utf8());
-    let start = document[..shared]
-        .char_indices()
-        .rev()
-        .find(|(_, c)| c.is_whitespace())
-        .map_or(0, |(at, c)| at + c.len_utf8());
-    document[start..].trim_start()
-}
-
 #[cfg(test)]
-mod smart_tests {
+mod client_tests {
     use super::*;
     use crate::realtime::{MessageControl, Signal};
     fn content(raw: &str) -> super::super::protocol::ServerContent {
@@ -291,7 +284,7 @@ mod smart_tests {
             .unwrap()
     }
     #[test]
-    fn smart_final_replaces_interim_even_in_the_same_frame() {
+    fn a_final_replaces_the_interim_even_in_the_same_frame() {
         let mut acc = TurnAccumulator::new(
             crate::timing::SessionClock::start(),
             0,
@@ -300,14 +293,11 @@ mod smart_tests {
         let frame = content(
             r#"{"serverContent":{"interimInputTranscription":{"text":"Um, I, I mean hello"},"inputTranscription":{"text":"Hello."}}}"#,
         );
-        assert_eq!(
-            apply_transcription(&frame, &mut acc, &mut String::new()),
-            Some(true)
-        );
+        assert_eq!(apply_transcription(&frame, &mut acc), Some(true));
         assert_eq!(acc.text, "Hello.");
     }
     #[test]
-    fn empty_smart_final_and_bare_close_retract_fillers() {
+    fn an_empty_final_and_a_bare_close_retract_the_interim() {
         for raw in [
             r#"{"serverContent":{"inputTranscription":{"text":""}}}"#,
             r#"{"serverContent":{"generationComplete":true}}"#,
@@ -318,10 +308,7 @@ mod smart_tests {
                 crate::realtime::TurnCounter::default(),
             );
             acc.text = "Um, uh".into();
-            assert_eq!(
-                apply_transcription(&content(raw), &mut acc, &mut String::new()),
-                Some(true)
-            );
+            assert_eq!(apply_transcription(&content(raw), &mut acc), Some(true));
             assert!(acc.is_empty());
         }
     }
@@ -416,7 +403,7 @@ mod smart_tests {
         };
         assert_eq!(
             config("fr").into_client().setup_json().unwrap().unwrap(),
-            r#"{"setup":{"model":"models/gemini-3.5-transcribe-live","generationConfig":{"responseModalities":["TEXT"]},"inputAudioTranscription":{"languageCodes":["fr-FR"],"mode":"SMART"}}}"#
+            r#"{"setup":{"model":"models/gemini-3.5-transcribe-live","generationConfig":{"responseModalities":["TEXT"]},"inputAudioTranscription":{"languageCodes":["fr-FR"],"mode":"VERBATIM"}}}"#
         );
         let mut h = Harness::new(config("en").into_client());
         assert!(
@@ -602,91 +589,119 @@ mod smart_tests {
             .to_string()
     }
 
-    // The three passages of `live_probe::smart_finals_across_three_passages`, as the server
-    // finalized them on 23 November 2026: French, then English in two turns.
-    const FRENCH: &str = "Ceci est un enregistrement de répétition pour le système de sous-titre en direct. Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à l'écran. Les sous-titres apparaissent juste après les mots, puis sont corrigés lorsque la phrase devient claire.\n\nUtilisez cet enregistrement pour régler l'affichage avant l'arrivée du public.";
-    const ENGLISH: &str = "This is a rehearsal recording for the live caption system. A speaker is presenting to an audience, and every sentence is transcribed and shown on screen as it is spoken. Captions appear a moment after.";
-    const ENGLISH_END: &str = "Use this recording to check the overlay before the room fills up.";
+    fn interim_frame(text: &str) -> String {
+        serde_json::json!({ "serverContent": { "interimInputTranscription": { "text": text } } })
+            .to_string()
+    }
 
-    /// The recorded SMART session. Every final repeated the whole session so far, and the
-    /// fourth, after the French passage was spoken again, was the third unchanged: SMART
-    /// cleaned the repetition away. Captioned as they came, through 1.15.0, the second
-    /// caption repeated the first and the third repeated both. The finals, their order and
-    /// the frames between them are as recorded; the interim text of the last turn is not.
+    const START: &str = r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_START"}}"#;
+    const END: &str = r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_END"}}"#;
+    const CLOSE: &str = r#"{"serverContent":{"generationComplete":true}}"#;
+
+    // The segments of `live_probe::verbatim_finals_across_three_passages` on 23 November 2026,
+    // as the server sent them: the French recording, the English one in three segments, and
+    // the French one again. The second English segment ended with no final; its last interim
+    // text is `STRANDED`.
+    const FRENCH_FIRST: &str = "Ceci est un enregistrement de répétition pour le système de sous-titres en direct. Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à l'écran. Les sous-titres apparaissent juste après les mots puis sont corrigés lorsque la phrase devient claire. Utilisez cet enregistrement pour régler l'affichage avant l'arrivée du public.";
+    const ENGLISH_OPENING: &str = "This is a rehearsal recording for the live caption system.";
+    const STRANDED: &str = "speaker is presenting to an audience and every sentence is transcribed and shown on screen as it is spoken. Captions appear a";
+    const ENGLISH_END: &str = "and are corrected once the sentence becomes clear. Use this recording to check the overlay before the room fills up.";
+    const FRENCH_AGAIN: &str = "Ceci est un enregistrement de répétition pour le système de sous-titres en direct. Une oratrice s'adresse à un public et chaque phrase est transcrite puis affichée à l'écran. Les sous-titres apparaissent juste après les mots, puis sont corrigés lorsque la phrase devient claire. Utilisez cet enregistrement pour régler l'affichage avant l'arrivée du public.";
+
+    /// The recorded VERBATIM session, frame order as recorded; only the last interim before
+    /// each final was kept, and the interim before a final is that final's text. Each final
+    /// is its own segment, so the repeated French passage is captioned whole although it opens
+    /// with the same words as the first one; and the stranded segment keeps its interim text
+    /// as its caption instead of losing it to the next segment's.
     #[test]
-    fn a_smart_final_captions_only_what_it_adds() {
+    fn verbatim_segments_are_captioned_one_by_one_and_none_is_lost() {
         use crate::realtime::test_support::{Emitted, Harness};
-        let finals = [
-            FRENCH.to_string(),
-            format!("{FRENCH} {ENGLISH}"),
-            format!("{FRENCH} {ENGLISH} {ENGLISH_END}"),
-            format!("{FRENCH} {ENGLISH} {ENGLISH_END}"),
-        ];
-        for pair in finals.windows(2) {
-            assert!(pair[1].starts_with(&pair[0]), "the recording is cumulative");
-        }
         let mut h = Harness::new(client());
         h.send(r#"{"setupComplete":{}}"#);
-        for (turn, text) in finals.iter().enumerate() {
-            h.send(r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_START"}}"#);
-            if turn == 3 {
-                h.send(
-                    r#"{"serverContent":{"interimInputTranscription":{"text":"Ceci est un enregistrement"}}}"#,
-                );
+        for (interim, final_text) in [
+            (FRENCH_FIRST, Some(FRENCH_FIRST)),
+            (ENGLISH_OPENING, Some(ENGLISH_OPENING)),
+            (STRANDED, None),
+            (ENGLISH_END, Some(ENGLISH_END)),
+            (FRENCH_AGAIN, Some(FRENCH_AGAIN)),
+        ] {
+            h.send(START);
+            h.send(&interim_frame(interim));
+            if let Some(text) = final_text {
+                h.send(&final_frame(text));
+                h.send(CLOSE);
             }
-            h.send(&final_frame(text));
-            h.send(r#"{"serverContent":{"generationComplete":true}}"#);
-            h.send(r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_END"}}"#);
+            h.send(END);
         }
         assert_eq!(
             h.captions,
             [
-                Emitted::final_(0, FRENCH, ""),
-                Emitted::final_(1, ENGLISH, ""),
-                Emitted::final_(2, ENGLISH_END, ""),
-                Emitted::interim(3, "Ceci est un enregistrement", ""),
-                // Nothing new: the repeated passage's interim text is retracted.
-                Emitted::final_(3, "", ""),
+                Emitted::interim(0, FRENCH_FIRST, ""),
+                Emitted::final_(0, FRENCH_FIRST, ""),
+                Emitted::interim(1, ENGLISH_OPENING, ""),
+                Emitted::final_(1, ENGLISH_OPENING, ""),
+                Emitted::interim(2, STRANDED, ""),
+                // No final came: the segment's end makes its interim text the caption.
+                Emitted::final_(2, STRANDED, ""),
+                Emitted::interim(3, ENGLISH_END, ""),
+                Emitted::final_(3, ENGLISH_END, ""),
+                Emitted::interim(4, FRENCH_AGAIN, ""),
+                Emitted::final_(4, FRENCH_AGAIN, ""),
             ]
         );
     }
 
-    /// A new connection is a new session with an empty text, so its first final is all new.
+    /// Finals are segments, not a growing text: a segment that opens with the previous one's
+    /// first word keeps it.
     #[test]
-    fn each_connection_starts_from_an_empty_text() {
+    fn a_segment_sharing_its_first_word_with_the_last_keeps_it() {
         use crate::realtime::test_support::{Emitted, Harness};
         let mut h = Harness::new(client());
-        h.send(r#"{"setupComplete":{}}"#);
-        h.send(&final_frame(ENGLISH));
-        // The ten-minute handover: the next socket's session knows nothing of the last.
-        h.send(r#"{"setupComplete":{}}"#);
-        h.send(&final_frame(ENGLISH_END));
+        for text in ["The budget.", "The plan."] {
+            h.send(START);
+            h.send(&final_frame(text));
+            h.send(CLOSE);
+            h.send(END);
+        }
         assert_eq!(
             h.captions,
             [
-                Emitted::final_(0, ENGLISH, ""),
-                Emitted::final_(1, ENGLISH_END, ""),
+                Emitted::final_(0, "The budget.", ""),
+                Emitted::final_(1, "The plan.", "")
             ]
         );
     }
 
-    /// When SMART rewrites earlier text, the shown captions stay as they are and the next
-    /// one starts at the first word that changed.
+    /// A final that arrives after its segment was closed on `ACTIVITY_END` is not shown again;
+    /// the next segment's final, after the next `ACTIVITY_START` or interim, is.
     #[test]
-    fn a_rewrite_of_earlier_text_resumes_at_the_first_changed_word() {
+    fn a_late_final_for_a_stranded_segment_is_not_captioned_twice() {
+        use crate::realtime::test_support::{Emitted, Harness};
+        let mut h = Harness::new(client());
+        h.send(START);
+        h.send(&interim_frame(STRANDED));
+        h.send(END);
+        let late = h.send(&final_frame("A speaker is presenting to an audience."));
+        assert_eq!(late.caption, CaptionUpdate::None);
+        h.send(CLOSE);
+        h.send(START);
+        h.send(&final_frame(ENGLISH_END));
+        // Without an ACTIVITY_START, the next segment's interim opens it as well.
+        h.send(END);
+        h.send(&interim_frame("Ceci est"));
+        h.send(&final_frame("Ceci est un enregistrement."));
         assert_eq!(
-            added_text(
-                "We meet at two. See you",
-                "We meet at three. See you there."
-            ),
-            "three. See you there."
+            h.captions,
+            [
+                Emitted::interim(0, STRANDED, ""),
+                Emitted::final_(0, STRANDED, ""),
+                Emitted::final_(1, ENGLISH_END, ""),
+                Emitted::interim(2, "Ceci est", ""),
+                Emitted::final_(2, "Ceci est un enregistrement.", ""),
+            ]
         );
-        assert_eq!(added_text("Hello.", "Hello. Bonjour."), "Bonjour.");
-        assert_eq!(added_text("Hello.", "Hello."), "");
-        assert_eq!(added_text("Delete this.", ""), "");
-        assert_eq!(added_text("", "Première phrase."), "Première phrase.");
-        // A change in the very first word leaves nothing shared.
-        assert_eq!(added_text("Écoute.", "Écoutez bien."), "Écoutez bien.");
+        // A segment's end with nothing pending is not a caption.
+        assert_eq!(h.send(END).caption, CaptionUpdate::None);
     }
 
     #[test]
@@ -1068,31 +1083,127 @@ mod live_probe {
         }
     }
 
-    /// Three passages with six seconds of silence between them — French, English, French —
-    /// under the production setup, printing every frame but the interim ones in arrival
-    /// order. On 23 November 2026 it showed that each SMART final is "the complete updated
-    /// replacement text for the session so far", as the guide says, not its own turn: the
-    /// recording behind `smart_tests::a_smart_final_captions_only_what_it_adds`.
-    #[tokio::test]
-    #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
-    async fn smart_finals_across_three_passages() {
-        three_passages(None).await;
-    }
-
-    /// The same stream in `VERBATIM` mode, Google's default, for comparison.
+    /// Three passages with six seconds of silence between them (French, English, French)
+    /// under the production setup, printing every frame but the interim ones in arrival order.
+    /// On 23 November 2026 its VERBATIM run is the recording behind
+    /// `client_tests::verbatim_segments_are_captioned_one_by_one_and_none_is_lost`.
     #[tokio::test]
     #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
     async fn verbatim_finals_across_three_passages() {
-        three_passages(Some("VERBATIM")).await;
+        three_passages(None).await;
     }
 
-    async fn three_passages(mode: Option<&'static str>) {
+    /// The same stream in `SMART` mode, used through 1.15.0. On 23 November 2026 each final was
+    /// "the complete updated replacement text for the session so far", the repeated passage
+    /// was cleaned away, and finals came 15 to 30 seconds late (`docs/gemini-live-api.md`).
+    #[tokio::test]
+    #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
+    async fn smart_finals_across_three_passages() {
+        three_passages(Some("SMART")).await;
+    }
+
+    /// French, six seconds of silence, English, six seconds, French: about 79 seconds.
+    fn three_passage_stream() -> (Vec<f32>, [f32; 3]) {
         let french = load_fixture(std::path::Path::new("resources/fixtures/rehearsal-fr.wav"))
             .expect("the bundled rehearsal fixture should load");
         let english = load_fixture(std::path::Path::new(FIXTURE))
             .expect("the bundled rehearsal fixture should load");
         let silence = vec![0.0_f32; RATE as usize * 6];
-        let stream: Vec<f32> = [&french[..], &silence, &english, &silence, &french].concat();
+        let seconds = |samples: usize| samples as f32 / RATE as f32;
+        let ends = [
+            seconds(french.len()),
+            seconds(french.len() + silence.len() + english.len()),
+            seconds(2 * (french.len() + silence.len()) + english.len()),
+        ];
+        let stream = [&french[..], &silence, &english, &silence, &french].concat();
+        (stream, ends)
+    }
+
+    /// Records what `run_session` reports, with when.
+    struct Live(std::sync::mpsc::Sender<(std::time::Instant, String, bool)>);
+
+    impl crate::realtime::Events for Live {
+        fn caption(&self, caption: crate::types::Caption<'_>) {
+            let _ = self.0.send((
+                std::time::Instant::now(),
+                caption.text.to_string(),
+                caption.final_,
+            ));
+        }
+
+        fn status(&self, update: crate::types::StatusUpdate) {
+            if let Some(error) = update.message {
+                println!(
+                    "status {:?}: {}",
+                    update.state,
+                    error.detail.unwrap_or_default()
+                );
+            }
+        }
+    }
+
+    /// The three passages through the real runner and the production client, at the pace of
+    /// speech, printing each final caption as the app would show it and how long after its
+    /// passage's audio ended it came.
+    #[tokio::test]
+    #[ignore = "streams about eighty seconds of the bundled fixtures to Google and bills the key; run with --ignored"]
+    async fn captions_across_three_passages_as_the_app_shows_them() {
+        use crate::audio::AudioChunk;
+
+        let (stream, ends) = three_passage_stream();
+        let (events, recorded) = std::sync::mpsc::channel();
+        let (audio, audio_rx) = tokio::sync::mpsc::channel(5);
+        let (_pause, pause_rx) = tokio::sync::watch::channel(false);
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let session = tokio::spawn(crate::realtime::run_session(
+            Live(events),
+            config(&[]).into_client(),
+            audio_rx,
+            cancel.clone(),
+            crate::timing::SessionClock::start(),
+            pause_rx,
+            crate::realtime::Track {
+                lane: 0,
+                turns: crate::realtime::TurnCounter::default(),
+            },
+        ));
+        let started = std::time::Instant::now();
+        for chunk in stream.chunks(chunk_samples(RATE)) {
+            let mut pcm_le = Vec::new();
+            f32_to_pcm16_le(chunk, &mut pcm_le);
+            audio.send(AudioChunk { pcm_le }).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        println!(
+            "audio sent in {:.1}s; passages end at {:.1}s, {:.1}s and {:.1}s of audio",
+            started.elapsed().as_secs_f32(),
+            ends[0],
+            ends[1],
+            ends[2]
+        );
+        // The last segment's final, then Stop: the close drain flushes what is left.
+        tokio::time::sleep(Duration::from_secs(15)).await;
+        cancel.cancel();
+        session.await.unwrap();
+
+        let events: Vec<_> = recorded.try_iter().collect();
+        let mut interims = 0usize;
+        let mut finals = Vec::new();
+        for (at, text, final_) in &events {
+            if *final_ {
+                let at = at.duration_since(started).as_secs_f32();
+                println!("{at:>6.1}s FINAL ({interims} interim before): {text}");
+                interims = 0;
+                finals.push(text.clone());
+            } else {
+                interims += 1;
+            }
+        }
+        assert!(finals.iter().filter(|t| !t.is_empty()).count() >= 3);
+    }
+
+    async fn three_passages(mode: Option<&'static str>) {
+        let (stream, _) = three_passage_stream();
         println!(
             "streaming {:.1}s: French, 6 s silence, English, 6 s silence, French",
             stream.len() as f32 / RATE as f32

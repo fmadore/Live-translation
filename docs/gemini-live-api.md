@@ -113,7 +113,7 @@ message and transcription fields differ.
     },
     "inputAudioTranscription": {
       "languageCodes": [],
-      "mode": "SMART"
+      "mode": "VERBATIM"
     }
   }
 }
@@ -130,13 +130,13 @@ message and transcription fields differ.
   languages", not "100+".
 - A chosen spoken language goes in `languageCodes` instead; see
   [the spoken-language hint](#the-spoken-language-hint).
-- `mode: "SMART"` removes fillers and false starts, resolves spoken self-corrections, and
-  applies punctuation and casing; an audience reading an overlay needs that more than every
-  "um". `VERBATIM` (Google's default) is the alternative, not an extra setting. SMART rules out
-  word-level annotations, which the app does not use. Google's
-  [15 September 2026 audio announcement](https://blog.google/innovation-and-ai/technology/developers-tools/build-real-time-voice-applications-gemini-audio/)
-  confirms the disfluency removal; its Gemini 3.8 Live models are conversational audio models,
-  not replacements for this integration.
+- `mode: "VERBATIM"`, Google's default, returns a literal transcript, one final per speech
+  segment, punctuated and cased, fillers and false starts included; the overlay's
+  [Hide filler words](caption-layout.md#hide-filler-words) filter takes the fillers out on
+  screen. Through 1.15.0 the app sent `SMART`, which cleans the text up but is a dictation
+  mode; see [why VERBATIM](#why-verbatim-not-smart). Google's Gemini 3.8 Live models
+  ([15 September 2026 announcement](https://blog.google/innovation-and-ai/technology/developers-tools/build-real-time-voice-applications-gemini-audio/))
+  are conversational audio models, not replacements for this integration.
 - `customVocabulary` carries the setup's **Names and terms** list, inside
   `inputAudioTranscription` beside `languageCodes`, and is left out when the list is empty.
   Google documents up to 1,000 terms with the best results at up to 100; the app's list holds
@@ -197,15 +197,28 @@ The audio frame is the one live translate uses — 16 kHz mono PCM16 LE, base64 
 
 - `serverContent.interimInputTranscription.text` is a speculative partial hypothesis, revised
   as the speaker talks.
-- `serverContent.inputTranscription.text` is the finalized, authoritative transcript, emitted
-  when the speaker pauses. **In SMART mode it is the whole session's text so far, not the
-  segment** (see [SMART finals are cumulative](#smart-finals-are-cumulative)).
+- `serverContent.inputTranscription.text` is the finalized, authoritative transcript for one
+  speech segment, emitted when the speaker pauses.
+- `voiceActivity` (`ACTIVITY_START`, `ACTIVITY_END`), beside an empty `serverContent`, brackets
+  each segment. The guide does not mention it.
 
-**An interim replaces the caption buffer rather than extending it.** Live translate appends
-`inputTranscription` deltas; doing so here would repeat every revised hypothesis on screen. A
-final becomes one transcript line holding what it adds to the previous final.
+**Both describe the same segment, so each replaces the caption buffer rather than extending
+it.** Live translate appends `inputTranscription` deltas; doing so here would repeat every
+revised hypothesis on screen. One finalized segment becomes one transcript line.
 
-### SMART finals are cumulative
+### A segment can end without a final
+
+On 23 November 2026, in both VERBATIM runs of the three-passage stream below, the second segment
+of the English passage ended (`ACTIVITY_END`) with no `inputTranscription` at all. Its interim
+text stayed pending, the next segment's first interim replaced it, and the words were lost. The
+client now makes that interim text the segment's caption on `ACTIVITY_END`. A final that still
+arrives for it, before the next `ACTIVITY_START` or interim, is not captioned a second time.
+`client_tests::verbatim_segments_are_captioned_one_by_one_and_none_is_lost` replays the
+recording, and `a_late_final_for_a_stranded_segment_is_not_captioned_twice` covers the late
+final, which has not been seen on the wire. When the final comes first, as it does for every
+other segment, `ACTIVITY_END` finds nothing pending and does nothing.
+
+### Why VERBATIM, not SMART
 
 The [guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe) says that in SMART
 mode `input_transcription` "returns the cumulative, cleaned, and formatted transcript for the
@@ -214,40 +227,36 @@ spoken instructions ("delete that", "make it more professional") to all of it. T
 the client took each final for its own segment, so every caption after the first repeated the
 session before it.
 
-`live_probe::smart_finals_across_three_passages` showed it on 23 November 2026: the French
-recording, six seconds of silence, the English one, silence, the French one again. Four finals
-came back, each starting with the whole of the one before: the French passage; the French
-passage and the first two English sentences; the same plus the last English sentence; and,
-after the French passage was spoken again, the third final unchanged, the repetition cleaned
-away. The client now remembers the last final of the connection and captions only what the
-next one adds (`added_text`); when SMART has rewritten earlier text, it resumes at the first
-word that changed, since captions already shown cannot change. A final that adds nothing is
-an empty caption, which retracts the turn's interim text. The remembered text is cleared on
-each `setupComplete`, because a new connection is a new session.
-`smart_tests::a_smart_final_captions_only_what_it_adds` replays the recording.
+`live_probe::smart_finals_across_three_passages` showed it on 23 November 2026, streaming the
+French recording, six seconds of silence, the English one, silence, and the French one again.
+Four finals came back, each starting with the whole of the one before, and:
 
-What the same run showed about SMART, for the choice of mode:
+- **The repeated passage disappeared.** It was shown as interim text, then dropped from the
+  final as a repetition.
+- **Spoken edits would apply.** A speaker saying "delete that" edits the text instead of being
+  captioned.
+- **Finals came late, and later as the session went on:** about 15 seconds after the first
+  passage ended and about 30 seconds after the audio ended, against about 2.5 and 8 seconds in
+  VERBATIM on the same stream (both measured against the server's own audio offsets). Even the
+  `voiceActivity` frames were held back.
 
-- **A repeated passage disappears.** The third passage was shown as interim text and then
-  dropped from the final. A speaker who repeats a sentence loses the repetition.
-- **Spoken edits apply.** A speaker saying "delete that" edits the text rather than being
-  captioned; the client then shows nothing new.
-- **Finals came late, and later as the session went on.** The first final arrived about
-  15 seconds after the French passage ended, against about 2.5 seconds in VERBATIM mode on the
-  same stream; the last about 30 seconds after the audio ended, against about 8. Even the
-  `voiceActivity` frames were held back with them.
+The maintainer chose VERBATIM. Its finals are segments, so the client captions each as it comes
+and keeps no memory of earlier ones: a segment that opens with the previous one's words keeps
+them (`a_segment_sharing_its_first_word_with_the_last_keeps_it`).
 
-`verbatim_finals_across_three_passages` ran the same stream in VERBATIM mode: one final per
-segment, punctuated and cased, and the repeated French passage kept. One segment of the English
-passage ended (`voiceActivity` `ACTIVITY_END`) with no final at all, and the next segment's
-interim text replaced its stranded interim, so those words were lost there too. Moving to
-VERBATIM would change the interface copy about Smart transcription, the
-[privacy notice](privacy.md) and [transcript export](transcript-export.md) notes, and needs a
-fix for that stranded segment; it is left as a decision.
+**Live check, 23 November 2026** (`captions_across_three_passages_as_the_app_shows_them`, the
+production client through the real session runner): five captions, in order: the French
+passage; "This is a rehearsal recording for the live caption system."; the stranded segment,
+from its interim text ("speaker is presenting to an audience … Captions appear a"); the rest of
+the English passage; and the French passage again, whole. Each came within about a second of
+its passage's audio, except the last, three seconds after the audio stopped. The stranded
+caption has what its interim text had: it misses the segment's first word ("A") and stops at
+"Captions appear a", so "moment after the words" reached no caption. Before the fix the whole
+segment was lost.
 
-When a message carries both, the finalized text wins. An empty final or segment close retracts
-an all-filler speculative caption rather than keeping it as speech, and the front end discards
-the pending empty turn (regression-tested; no live probe was run for this 1.4.0 change). The
+When a message carries both, the finalized text wins. An empty final or a segment close with no
+final retracts the speculative caption rather than keeping it as speech, and the front end
+discards the pending empty turn (regression-tested). The
 local [Hide filler words](caption-layout.md#hide-filler-words) filter is separate.
 
 `{"realtimeInput":{"audioStreamEnd":true}}` is sent on close so a last segment can still
@@ -317,11 +326,16 @@ It is `#[ignore]`d, so CI never runs it or bills anyone. Run it before an event 
 change to either setup message; it costs a few cents (about twenty seconds of audio). The key is
 the one saved in the app, read in process and never printed; failing that, `GEMINI_API_KEY` from
 the environment or a `.env` at the repo root (`dotenvy` walks up from the crate directory; copy
-`.env.example`). The same module holds the two spoken-language probes above:
-`every_spoken_language_hint_is_accepted` sends no audio, and
-`the_french_recording_under_a_right_and_a_wrong_hint` streams forty seconds. Its assertions concern the shape of the exchange, not the
-words: setup is accepted, `generationComplete` arrives, and speculative updates outnumber
-finalized segments — which is what makes replace-don't-append correct.
+`.env.example`). Its assertions concern the shape of the exchange, not the words: setup is
+accepted, `generationComplete` arrives, and speculative updates outnumber finalized segments,
+which is what makes replace-don't-append correct.
+
+The same module holds the other probes above. `every_spoken_language_hint_is_accepted` sends no
+audio; `the_french_recording_under_a_right_and_a_wrong_hint` streams forty seconds; the three
+three-passage probes stream about eighty seconds each:
+`captions_across_three_passages_as_the_app_shows_them` (the production client through the
+session runner, the one to rerun), `verbatim_finals_across_three_passages` (every frame) and
+`smart_finals_across_three_passages` (the old mode, for comparison).
 
 ## Target-language catalog
 

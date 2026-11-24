@@ -232,9 +232,9 @@ appearance and overlay rectangle locally in the app's webview storage. Profiles 
 API key, captured audio or caption text. Selected application process identities and rehearsal
 mode are not saved. Profiles remain until deleted with confirmation in Meeting profiles.
 
-Raw transcripts preserve the text returned by the provider. Gemini Smart transcription can
-remove hesitations and resolve spoken corrections before that text reaches this app; turning
-off the local overlay filter does not switch off provider-side cleanup.
+Raw transcripts preserve the text returned by the provider. Gemini Transcribe returns a
+word-for-word transcript, hesitations included; the local overlay filter hides them on screen and
+does not change the transcript.
 
 ## Running in the notification area or the menu bar
 

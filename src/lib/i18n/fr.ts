@@ -23,7 +23,7 @@ import type { Messages } from './en';
 
 export const fr: Messages = {
 	design: {
-		smartSummary: 'La transcription intelligente retire les hésitations et les faux départs.',
+		geminiTranscribeSummary: 'Écrit la parole mot pour mot, hésitations comprises.',
 		captions: 'Sous-titres',
 		reading: 'Lecture',
 		app: 'Application',
@@ -66,8 +66,8 @@ export const fr: Messages = {
 		contrast: 'Contraste élevé',
 		previewHint:
 			'Exemple à la taille choisie ; la surimpression peut avoir une largeur différente.',
-		geminiSmart:
-			'Les sous-titres Gemini utilisent la transcription intelligente : Google retire les hésitations et les faux départs avant de renvoyer la transcription finale. Masquer les hésitations est un filtre local supplémentaire ; le désactiver ne désactive pas le nettoyage de Google.',
+		geminiVerbatim:
+			'Les sous-titres Gemini sont transcrits mot pour mot, hésitations et faux départs compris. Masquer les hésitations les retire de la surimpression, la transcription les conserve.',
 		profiles: 'Profils de réunion',
 		profileName: 'Nom du profil',
 		saveProfile: 'Enregistrer la configuration',

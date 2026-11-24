@@ -245,7 +245,7 @@ presets change appearance. Reset also restores the default reading pace and hold
 switches the filler filter off; the word list keeps its own reset. The real overlay may have
 different dimensions, so finish placement on the presentation display.
 
-Gemini subtitles already request
-[Smart transcription](gemini-live-api.md#gemini-35-transcribe-live), so the local filler
-filter is additional and cannot restore fillers the provider removed. Raw text means the
+Gemini subtitles are requested
+[word for word](gemini-live-api.md#gemini-35-transcribe-live) (`VERBATIM`), fillers included,
+so the local filler filter is what takes them out of the overlay. Raw text means the
 provider's returned text, not a guaranteed verbatim record of speech.

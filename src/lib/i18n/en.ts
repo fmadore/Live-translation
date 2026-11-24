@@ -17,7 +17,7 @@
 
 export const en = {
 	design: {
-		smartSummary: 'Smart transcription removes fillers and false starts.',
+		geminiTranscribeSummary: 'Writes speech word for word, fillers included.',
 		captions: 'Captions',
 		reading: 'Reading',
 		app: 'App',
@@ -60,8 +60,8 @@ export const en = {
 		projector: 'Large room',
 		contrast: 'High contrast',
 		previewHint: 'Sample at your chosen text size; the actual overlay may have a different width.',
-		geminiSmart:
-			'Gemini subtitles use Smart transcription: Google removes fillers and false starts before returning the final transcript. Hide filler words is an additional local overlay filter; switching it off does not disable Google’s cleanup.',
+		geminiVerbatim:
+			'Gemini subtitles are transcribed word for word, fillers and false starts included. Hide filler words takes them out of the overlay; the transcript keeps them.',
 		profiles: 'Meeting profiles',
 		profileName: 'Profile name',
 		saveProfile: 'Save current setup',

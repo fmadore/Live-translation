@@ -237,8 +237,8 @@ Automated tests cover interim batching without starvation, independent sources, 
 finalization, stop cancellation, preference validation, profile round trips and hardware checks,
 profile controls, safe placement, the placement remembered per display layout (its signature,
 saving, the eight-layout cap and the launch restore), concurrent history renames, search,
-keyboard guards and live status classification. Gemini tests cover Smart final/interim
-precedence and empty finals.
+keyboard guards and live status classification. Gemini tests cover final/interim
+precedence, empty finals and a segment that ends without a final.
 German date regressions cover valid and invalid dates, leap years, calendar event handling,
 inclusive bounds and filter reset.
 

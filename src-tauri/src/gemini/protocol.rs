@@ -112,7 +112,7 @@ pub struct AudioTranscriptionConfig {
     /// language the operator chose (`super::transcribe::language_codes`), which bias
     /// recognition toward it.
     pub language_codes: Vec<String>,
-    /// `VERBATIM` or `SMART`.
+    /// `VERBATIM`, Google's default, or `SMART`; see [`MODE_VERBATIM`].
     pub mode: &'static str,
     /// The session's names and terms (`crate::glossary`), which bias recognition toward their
     /// spelling. Up to 1,000 documented, best results at up to 100; left out when empty.
@@ -120,10 +120,12 @@ pub struct AudioTranscriptionConfig {
     pub custom_vocabulary: Vec<String>,
 }
 
-/// Cleaned-up transcription: fillers and false starts removed, self-corrections resolved,
-/// punctuation and casing applied. Subtitles are read by an audience off an overlay, so
-/// readability beats a faithful record of every "um".
-pub const MODE_SMART: &str = "SMART";
+/// A literal transcript, one final per speech segment, punctuated and cased. `SMART`, used
+/// through 1.15.0, is a dictation mode: each final is the whole session's text so far, spoken
+/// instructions edit it, repeated speech is cleaned away, and on 23 November 2026 its finals
+/// came 15 to 30 seconds late (`docs/gemini-live-api.md`). The overlay's own Hide filler
+/// words filter takes the fillers out.
+pub const MODE_VERBATIM: &str = "VERBATIM";
 
 impl TranscribeSetupMessage {
     pub fn live_transcribe(
@@ -141,7 +143,7 @@ impl TranscribeSetupMessage {
                 },
                 input_audio_transcription: AudioTranscriptionConfig {
                     language_codes: language_codes.iter().map(|&code| code.to_owned()).collect(),
-                    mode: MODE_SMART,
+                    mode: MODE_VERBATIM,
                     custom_vocabulary: custom_vocabulary.to_vec(),
                 },
             },
@@ -177,7 +179,20 @@ pub struct ServerMessage {
     pub go_away: Option<serde_json::Value>,
     #[serde(default)]
     pub error: Option<serde_json::Value>,
+    /// Transcribe Live's voice activity: `ACTIVITY_START` and `ACTIVITY_END` around each speech
+    /// segment, beside an empty `serverContent`. Observed on the wire, not in the guide.
+    #[serde(default)]
+    pub voice_activity: Option<VoiceActivity>,
 }
+
+#[derive(Debug, Default, Deserialize)]
+pub struct VoiceActivity {
+    #[serde(rename = "type", default)]
+    pub kind: String,
+}
+
+pub const ACTIVITY_START: &str = "ACTIVITY_START";
+pub const ACTIVITY_END: &str = "ACTIVITY_END";
 
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -248,7 +263,7 @@ mod tests {
         assert_eq!(setup["generationConfig"]["responseModalities"][0], "TEXT");
 
         // Same placement rule as live translate: the sidecar is a setup field.
-        assert_eq!(setup["inputAudioTranscription"]["mode"], "SMART");
+        assert_eq!(setup["inputAudioTranscription"]["mode"], "VERBATIM");
         assert!(
             setup["inputAudioTranscription"]["languageCodes"]
                 .as_array()
@@ -299,7 +314,7 @@ mod tests {
             sidecar["languageCodes"],
             serde_json::json!(["pt-BR", "pt-PT"])
         );
-        assert_eq!(sidecar["mode"], "SMART");
+        assert_eq!(sidecar["mode"], "VERBATIM");
         assert!(
             value["setup"]["generationConfig"]
                 .get("languageCodes")
