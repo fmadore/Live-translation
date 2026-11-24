@@ -66,3 +66,14 @@ and `npm run test:style`; the second runs `cargo fmt --all --check`,
 `cargo test --locked --all-features`, each with `--manifest-path src-tauri/Cargo.toml`, as CI
 does. A change to the Whisper Vulkan helper also runs `npm run verify:vulkan` where the Vulkan
 SDK is installed.
+
+## Worktrees and local branches
+
+Agent sessions leave a worktree under `.claude/worktrees/` and a local branch behind each pull
+request, and they pile up fast. After a pull request merges, and before starting a new batch of
+work, clean up: `git fetch --prune`, then remove each worktree whose branch has merged
+(`git worktree remove`, then `git worktree prune`) and delete its local branch. A branch whose
+remote is `[gone]` is not proof that its work landed: commits pushed after the merge are lost
+with it. Delete a branch only when `git cherry origin/main <branch>` lists no `+` commit, or
+when the work is known to be abandoned; otherwise ask. Only local branches are cleaned up:
+never delete a branch on GitHub, and never `stats`, which keeps the download statistics.
