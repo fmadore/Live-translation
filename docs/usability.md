@@ -56,6 +56,8 @@ spending** offers three optional guards, each set to **Never** until you enable 
 The guard watches cloud engines only, since local Whisper and the demo are free. It checks every
 15 seconds on the existing session clock with zero per-caption overhead.
 
+![Settings, App tab: interface language, theme, the window option and Cloud spending, with each of the three guards set to Never.](assets/guides/spending-guard.png)
+
 ### Notice on the overlay
 
 **Show a notice on the overlay…** (under the overlay controls in the running rail) replaces

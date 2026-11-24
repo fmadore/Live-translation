@@ -351,9 +351,9 @@ the credential-free Whisper and demo routes do not establish acceptance of cloud
 
 ## Screenshots
 
-One caption per image in [`store-screenshots/`](store-screenshots/README.md), captured from
-the 1.7.1 MSIX in each listing language. Each caption is under 200 characters. The images
-predate the Live and Transcript tabs of 1.8.0, so none of them shows the tabs; the captions are
+One caption per image in [`store-screenshots/`](store-screenshots/README.md), captured from a
+1.16.1 release build in each listing language on 24 November 2026. Each caption is under 200
+characters. The captions, written for the 1.7.1 images, still describe the new ones and are
 unchanged.
 
 | Image                            | English                                                                                                       | Français                                                                                                                      | Deutsch                                                                                                                        |

@@ -4,11 +4,13 @@ Capture audio from a single open application instead of everything playing on yo
 
 For **System** or **Both** sources, choose **System capture → One application**, select an open
 window, and run the level-only audio test before starting a live session. Click **Refresh
-applications** to update the list. The other option, **All audio on the selected output**, listens
-to your default or chosen output device as usual. Rehearsal and the built-in demonstration use
+devices**, which also reloads the application list, to update it. The other option, **All audio
+on the selected output**, listens to your default or chosen output device as usual. Rehearsal and the built-in demonstration use
 their own bundled audio and never capture applications. Local Whisper receives the same selected
 process tree as any cloud engine; see [local Whisper](local-whisper.md) for offline buffering and
 setup.
+
+![System audio with System capture set to One application and no application chosen yet: the System audio check asks to choose an application before Start.](assets/guides/application-capture.png)
 
 The list shows accessible processes with visible top-level windows, identified by window title and
 PID. Multiple windows belonging to one process share a single entry; background-only and
@@ -17,7 +19,7 @@ inaccessible processes are omitted.
 Building the list opens a `PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE` handle on each
 listed process to read its start time and check whether it is still running; that handle cannot
 read memory or run code. Handles are opened only while **One application** is selected (when you
-choose that mode or click **Refresh applications**), so capturing the full output never opens a
+choose that mode or click **Refresh devices**), so capturing the full output never opens a
 handle on another process—the safer choice for games whose anti-cheat software monitors process
 handles.
 

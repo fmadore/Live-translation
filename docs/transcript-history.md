@@ -81,6 +81,8 @@ run abruptly to verify its last saved snapshot.
 Saved sessions can be renamed (up to 120 characters; clearing the title restores the date label),
 even while a session is still live. Renaming never modifies caption text.
 
+![Settings, Transcript history tab: a search for gardens finds one session titled Community gardens talk, shown with its title field, Copy transcript, the export format, Save as, Delete and the transcript.](assets/guides/transcript-history.png)
+
 Search matches session titles, caption text, markers and available source text. The language
 filter checks the translation target (either target in a two-language session) or known subtitle
 language; auto-detected languages stay marked unknown rather than guessed. Filters never delete

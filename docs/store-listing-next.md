@@ -10,8 +10,10 @@ once the tag is built.
 
 Only What's new and the certification notes' first paragraph change
 ([store-listing.md](store-listing.md)): Gemini subtitles on Google's VERBATIM mode, which
-1.16.0's What's new already described ([release notes](release-1.16.1.md)). The descriptions,
-features and screenshots stay as 1.16.0 left them.
+1.16.0's What's new already described ([release notes](release-1.16.1.md)). The descriptions
+and features stay as 1.16.0 left them; the screenshots are new, captured from 1.16.1 on
+24 November 2026 in all three languages ([store-screenshots](store-screenshots/README.md)),
+with the same captions.
 
 The positioning is unchanged. Lead the listing with offline Whisper captions, the transparent
 overlay and optional cloud translation; the scripted demo is a secondary way to try the display
@@ -251,11 +253,9 @@ In the Store since 1.13.1 (new in 1.13.0), and kept:
   app, the question before audio first goes to each provider, names and terms for Gemini, and
   the Vulkan helper, which uses only the computer's own memory. It also keeps 1.12.0's Zoom
   sections, so 1.13.0 changed nothing in it.
-- **Screenshots.** The current images are from 1.7.1. 1.13.0 changes what they would show: the
-  setup gains *Use the graphics processor* under the model and, with Both sources, *Leave out the
-  call heard by the room mic*; a Start that cannot be pressed has a neutral look; the
-  custom-colour chips in Settings › Captions moved. The toolbar has had *Zoom captions* since
-  1.12.0. See the [screenshot plan](store-screenshots/README.md).
+- **Screenshots.** Retaken from 1.16.1 on 24 November 2026 in all three languages, so they show
+  the Live tab, *Zoom captions*, the graphics-processor switch and today's engine cards. See the
+  [screenshot plan](store-screenshots/README.md).
 
 No product declaration changes: the purchases-outside-Microsoft-commerce box ticked for 1.11.0
 stays ticked, and neither Zoom captions nor anything in 1.13.0 involves a payment. The MSIX
@@ -288,7 +288,7 @@ Before submission, complete:
   [1.14.0's](store-updates.md#release-1140-handoff),
   [1.13.1's](store-updates.md#release-1131-handoff) and
   [1.13.0's](store-updates.md#release-1130-handoff));
-- the screenshot decision (1.16.0 adds OpenAI as a fifth engine card in Subtitles);
+- uploading the 1.16.1 screenshots in each language, in filename order;
 - the German and French copy review of the 1.16.0 sentences;
 - Windows App Certification Kit on the final packages.
 

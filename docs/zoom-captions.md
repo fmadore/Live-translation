@@ -38,6 +38,8 @@ page.
 4. Click **Send test caption** to post one test line to the meeting and confirm delivery.
 5. **Attendees** turn captions on with **Show Captions** (or **CC**) in their own Zoom controls.
 
+![The Captions in Zoom dialog: the three setup steps, the step-by-step guide link, the Caption link (API token) field, Show captions on this screen too, the status Not sharing and Start sharing.](assets/guides/zoom-captions-dialog.png)
+
 You can start sharing before or during a caption session, and it stays active across Stop and
 Start until you click **Stop sharing** or quit the app. To switch languages or sources, stop
 sharing and start again. Rehearsals and the built-in demo are never sent to Zoom, even while

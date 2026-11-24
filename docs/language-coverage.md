@@ -57,6 +57,8 @@ for scripts the bundled font does not cover.
 
 ## Keyboard and accessibility
 
+![The caption language combobox with English typed: the matching row, EN · English, with its pin button, above the Second caption language field set to None.](assets/guides/language-picker.png)
+
 - Focus/click opens the combobox and selects its displayed text for replacement.
 - Type to filter; Up/Down navigate, Home/End jump, Enter selects a supported row.
 - Escape discards the query and restores the selected value. Clicking outside or moving
