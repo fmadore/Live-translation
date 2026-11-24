@@ -11,7 +11,10 @@ history keep the detail.
 24 November 2026 ([release notes](docs/release-1.16.1.md),
 [handoff](docs/store-updates.md#release-1161-handoff)), puts Gemini Transcribe on VERBATIM:
 1.16.0's notes announced it, but the change had been committed after its pull request merged and
-was left off `main` until [#277](https://github.com/fmadore/Live-translation/pull/277).
+was left off `main` until [#277](https://github.com/fmadore/Live-translation/pull/277). Trying
+it in the app found Gemini losing a word where it cuts continuous speech every 8 to 11 seconds;
+[#280](https://github.com/fmadore/Live-translation/pull/280) keeps what the client can, and
+cutting at real pauses on the client is open ([Gemini notes](docs/gemini-live-api.md)).
 
 The Store serves [**1.16.0**](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)
 (23 November 2026, MSIX 1.16.0.0), read with `Get-AppxPackage` on the maintainer's ARM64 PC on

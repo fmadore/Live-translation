@@ -17,8 +17,7 @@ user guides the home page lists are in [`_data/guides.yml`](https://github.com/f
 
 These guides describe `main`, released as
 **[1.16.1](https://github.com/fmadore/Live-translation/releases/tag/v1.16.1)** (24 November
-2026; the Store submission is still to be made): Gemini subtitles word for word, on Google's
-VERBATIM mode. The version in the Store is
+2026; the Store submission is still to be made): Gemini subtitles on Google's VERBATIM mode, a second or two after a pause. The version in the Store is
 **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)** (23 November
 2026, MSIX 1.16.0.0), read from the installed package on 24 November 2026: OpenAI subtitles,
 continuing a cloud source with offline Whisper in the same session when its engine stops, a

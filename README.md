@@ -18,8 +18,7 @@ Free, with every feature included. If the app is useful to you, you can
 and German interface · MIT licence**
 
 - **Latest release:** **[1.16.1](https://github.com/fmadore/Live-translation/releases/tag/v1.16.1)**
-  (24 November 2026; Microsoft Store submission pending). Gemini subtitles now arrive word for
-  word about a second after a pause, as 1.16.0 announced but did not yet do
+  (24 November 2026; Microsoft Store submission pending). Gemini subtitles now arrive verbatim a second or two after a pause, as 1.16.0 announced but did not yet do
   ([release notes](docs/release-1.16.1.md),
   [Store handoff](docs/store-updates.md#release-1161-handoff)).
 - **Microsoft Store:** **[1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0)**

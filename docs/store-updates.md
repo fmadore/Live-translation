@@ -32,6 +32,12 @@ Since `v1.16.0`:
   caption-layout and usability docs follow (the privacy policy's effective date is unchanged:
   same audio, same recipient, same retention). Also the fallback engine's design note records
   the answers agreed on 23 November, and `AGENTS.md` asks for worktree and branch cleanup.
+- [#280](https://github.com/fmadore/Live-translation/pull/280): found by trying Rehearse on
+  Gemini before the tag. In continuous speech Transcribe Live cuts a segment every 8 to 11
+  seconds and the audio at the cut reaches no text; the app now keeps the opening words of an
+  interim its final leaves out, and puts back the space in run-together sentences. A new probe,
+  `every_frame_of_continuous_speech`, prints every frame; the boundary losses are recorded in
+  [the Gemini notes](gemini-live-api.md) and left open (cutting at real pauses on the client).
 - Docs only: the guides and privacy policy in the home page's look
   ([#276](https://github.com/fmadore/Live-translation/pull/276)), new hero art
   ([#275](https://github.com/fmadore/Live-translation/pull/275)), the Mac App Store 1.16.0 record
@@ -51,6 +57,10 @@ The MSIX template, `bundle.config.json` and the package's capabilities are uncha
   no repetition, each 3 to 5 seconds after its passage's audio; the segment Gemini ended without
   a final was kept from its interim text, missing "A" and "after the words", as on 23 November
   ([notes](gemini-live-api.md)).
+- [x] **In the app, 24 November 2026:** Rehearse on Gemini in a local release build, before and
+  after #280: captions within seconds, no repetition; words lost where Gemini cuts continuous
+  speech ("every sentence is scribed", "Use this the overlay"), the run-together sentence
+  spaced after #280.
 - [ ] The release PR merged, with the version bump in the seven files of
   [the route](#the-route), `CITATION.cff` (1.16.1, 24 November 2026) and
   `docs/release-1.16.1.md`; `npm run verify` and `npm run verify:rust` pass, and its CI passes.

@@ -1,6 +1,6 @@
 # Live Translation & Subtitles 1.16.1
 
-Gemini subtitles as 1.16.0 described them: word for word, about a second after the speaker
+Gemini subtitles as 1.16.0 described them: verbatim, a second or two after the speaker
 pauses.
 
 ## Gemini subtitles
@@ -10,20 +10,29 @@ pauses.
   SMART mode. Its captions no longer repeated the session, yet they could come 15 to 30 seconds
   after the speech, a sentence spoken twice was dropped, and a spoken "delete that" edited the
   text instead of being captioned. 1.16.1 asks for Google's VERBATIM transcription: each caption
-  arrives about a second after the speaker pauses, punctuated and word for word, fillers
+  arrives a second or two after the speaker pauses, punctuated and word for word, fillers
   included (the overlay's [filler filter](https://fmadore.github.io/Live-translation/caption-layout.html#hide-filler-words)
   can still hide them on screen; the transcript keeps them).
 - **A segment Gemini ends without a final transcript is kept.** Now and then Gemini closes a
   stretch of speech without sending its final text, and the next stretch's first words replaced
   it on screen. The app now keeps that segment from the last words it showed, so only the few
   words Gemini never sent are missing.
+- **Words Gemini sent are no longer dropped, and sentences no longer run together.** When
+  Gemini's final text for a stretch left out words its live text had already shown, the app now
+  keeps them; and a sentence Gemini ran into the next ("spoken.Captions") gets its space back.
 - The engine card and the note under *Hide filler words* say Gemini writes word for word, in
   English, French and German.
 
-Checked against Google's service on 24 November 2026 with a French and English recording:
-captions came 3 to 5 seconds after each passage ended, with no repetition, and the French
-passage spoken a second time was captioned whole. Nothing else changes: the same audio, names
-and terms and spoken language go to Google, and the
+**One limit remains, and it is Google's.** In long stretches of speech without a pause, Gemini
+splits the speech every 8 to 11 seconds and can lose a word or two where it splits it (in
+testing, "every sentence is transcribed" came back as "every sentence is scribed"). The app
+cannot recover words Gemini never sends. Cutting the stream at the speaker's real pauses on the
+app's side, so that Gemini's splits fall in silence, is planned.
+
+Checked against Google's service on 24 November 2026, with a French and English recording and
+in the app's Rehearse: captions came 1 to 5 seconds after each passage, with no repetition, and
+the French passage spoken a second time was captioned whole. Nothing else changes: the same
+audio, names and terms and spoken language go to Google, and the
 [privacy policy](https://fmadore.github.io/Live-translation/privacy.html) is unchanged.
 
 Everything in [1.16.0](https://github.com/fmadore/Live-translation/releases/tag/v1.16.0) is
