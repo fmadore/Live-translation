@@ -181,8 +181,10 @@ that listing if it is not already present. For each language, paste:
    supplémentaires* › *Image de Windows et de Xbox* › *Image de super héros 16:9*; expand the
    section if its details are hidden): upload
    [`super-hero-art.png`](store-screenshots/super-hero-art.png) (1920 × 1080). It has no text,
-   so the same file goes into every listing language. Leave the **Xbox images** slots empty:
-   their 1920 × 1080 titled hero art must carry the product title.
+   so the same file goes into every listing language. The art was replaced on 24 November 2026
+   (graphite bars becoming glass caption lines), so replace the image already in each listing.
+   Leave the **Xbox images** slots empty: their 1920 × 1080 titled hero art must carry the
+   product title.
 
 The package's tiles and `StoreLogo` carry the wave-to-words icon, unchanged since 1.6.1, so the
 bundle leaves the icon the Store takes from the package as it is. Since 1.7.1 the package also

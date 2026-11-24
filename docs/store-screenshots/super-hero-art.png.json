@@ -1,25 +1,26 @@
 {
 	"file": "super-hero-art.png",
 	"generator": "OpenAI Image API",
-	"model": "gpt-image-2.5-flare",
-	"prompt": "A single luminous speech waveform, irregular like a real voice recording (bursts of tall peaks, then small ripples), enters from the left edge and travels to the exact horizontal centre of the frame. There it splits into five smooth, rounded ribbons that fan out to the right, spreading both upwards and downwards, like one voice becoming several streams of captions in different languages. Each ribbon gradually straightens into a calm horizontal line made of short rounded bars of varying length, the rhythm of a line of subtitles, but with no letters at all.\n\nEach of the five caption lines has its own subtle tint so they read as distinct languages: pale mint, soft off-white, pale teal, very light sky blue, and pale warm sand. The tints are gentle and harmonious, never saturated.\n\nSetting: an abstract dark space, a deep charcoal gradient from #191d23 at the top to #0e1013 at the bottom, with a soft mint-green glow (#5ad1a0) blooming behind the split point.\n\nComposition: wide 16:9 banner. The split point is at the exact horizontal centre of the image and slightly above the vertical middle. The waveform is large and fills the left half with energy, with tall peaks, so the upper left is not empty. The caption lines end well before the right edge, leaving a clear dark margin of about one tenth of the width on the right; nothing touches any edge. All key shapes stay in the top two thirds; the bottom third is only the dark gradient with a faint, out-of-focus reflection.\n\nStyle and medium: clean, modern abstract 3D illustration, soft glowing translucent tubes with subtle depth of field, crisp but not photographic. Minimal and premium, in the spirit of a Windows app hero image.\n\nPalette: the waveform is mint green #5ad1a0; the caption lines shift from mint green into their own pale tints as they straighten; background charcoal #191d23 to #0e1013.\n\nAvoid: no text, no letters, no numbers, no glyphs or pseudo-writing of any kind, no logos, no flags, no people, no faces, no microphones, no computers, screens, phones or devices, no app interface, no video-call imagery, no watermark, no border. The split must be at the centre, not on the left third; the lines must not reach the right edge.",
+	"operation": "generate",
+	"model": "gpt-image-2.6-flare",
+	"prompt": "Create an image: a studio still-life photograph of a small physical sculpture, for the website of a live-captioning app. The sculpture is a row of evenly spaced thin vertical bars of matte anodised graphite aluminium standing upright on a dark surface, arranged left to right like a sound waveform: tall and irregular on the left, like a speaking voice, then gradually shorter towards the middle. Exactly at the horizontal centre of the image, the bars lie down and continue to the right as four neatly aligned horizontal rows of short rounded bars of varying length, like lines of subtitles. One of the four rows is in satin mint-green enamel (#5ad1a0); the other three are pale frosted glass. Every bar is one clean, solid, separate piece with a rounded end; no fragments, no floating pieces, no bars merging. The idea: spoken sound becoming lines of written captions, rendered as a quiet object.\n\nStyle and medium: high-end product photography, shot from slightly above at a gentle three-quarter angle, 85 mm lens, the whole sculpture in crisp focus. Soft, directional window light from the upper left, gentle soft shadows falling to the lower right, real materials with fine surface texture. Minimal, tactile, premium, in the spirit of an industrial-design catalogue.\n\nComposition: wide 16:9 banner. The sculpture is centred horizontally, its waveform on the left half and its caption rows on the right half, and sits slightly above the vertical middle, with calm breathing room on every side: about one eighth of the width empty on the left and on the right, and nothing touches an edge. The bottom third holds only the dark surface and soft shadow. The background is a deep, even charcoal, #191d23 at the top darkening to #0e1013 at the bottom, so the picture can fade seamlessly into a dark web page.\n\nPalette: charcoal and graphite neutrals, one restrained accent of mint green #5ad1a0, and soft off-white #e9ebef. Low saturation, high craft.\n\nAvoid: no text, letters, numbers or pseudo-writing of any kind, no logos, no flags, no people or faces, no microphones, headphones, screens, phones or devices, no app interface, no neon glow, no lens flare, no bokeh, no mirror reflections, no sci-fi or \"digital\" particles, no watermark, no border.",
 	"size": "2560x1440",
 	"quality": "high",
 	"background": "opaque",
 	"output_format": "png",
-	"created": "2026-10-28T07:54:06.000Z",
+	"created": "2026-11-24T09:36:58.000Z",
 	"usage": {
-		"input_tokens": 982,
+		"input_tokens": 491,
 		"input_tokens_details": {
 			"image_tokens": 0,
-			"text_tokens": 982
+			"text_tokens": 491
 		},
-		"output_tokens": 3685,
+		"output_tokens": 1843,
 		"output_tokens_details": {
-			"image_tokens": 3685,
+			"image_tokens": 1843,
 			"text_tokens": 0
 		},
-		"total_tokens": 4667
+		"total_tokens": 2334
 	},
-	"postprocess": "Rendered at 2560x1440 (variant 2 of 2), resized to 1920x1080 with Pillow Lanczos"
+	"postprocess": "Rendered at 2560x1440, resized to 1920x1080 with Pillow Lanczos. docs/assets/hero.jpg (1600x900) and .github/social-preview-art.jpg (1120x400) are crops of the same render, with the floor outside the sculpture masked and the black point set to 36 so the ground is pure black (the home page blends it with mix-blend-mode: lighten)."
 }
