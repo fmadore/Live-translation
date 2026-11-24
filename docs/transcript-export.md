@@ -1,117 +1,107 @@
-# Transcript export — issue #26
+# Transcript export
 
-Included in **1.2.3**. The user confirmed native Save As on the ARM64 test MSIX on
-8 September 2026; some of the acceptance checks below are still unverified.
+Export your session transcript as plain text, Markdown, SubRip (SRT) or WebVTT, or copy recent
+minutes to the clipboard while a meeting is still under way.
 
-Choose a format in the transcript toolbar and press **Save as…** (**Enregistrer sous…**). The
-choice is remembered through Start, Stop and restarts, and the history view shares it.
-Windows opens its native Save As dialog, owned by the operator window; select any writable
-folder and filename. Windows asks before overwriting a file and adds the default file
-extension.
-The app remembers the folder after a successful save, including across restarts; a missing
-folder falls back to Documents. No filesystem capability is granted to the overlay.
+Choose a format in the transcript toolbar and click **Save as…** (**Enregistrer sous…**). The
+chosen format carries across Start, Stop, restarts and the History view. Your system's native Save
+As dialog opens, asks before overwriting an existing file, and adds the default file extension.
+The app remembers the last successful export folder across restarts, falling back to Documents if
+that folder no longer exists. The overlay window has no filesystem access.
 
-Cancelling leaves the transcript, saved marker and recovery copy unchanged. Cancelling
-Save As from the quit prompt keeps the application open. The quit prompt's Save writes the
-format chosen in the toolbar; when that is WebVTT or SubRip and the transcript has no timing
-(an older recovered one), it writes Markdown instead, so the save cannot fail on the way out.
-A successful export writes a snapshot of finalized captions; captions arriving while the dialog
-is open stay unsaved and eligible for recovery. The app writes a flushed temporary file in the
-chosen folder and then replaces the target with it, so a failed write does not truncate an
-existing export.
+Cancelling the dialog leaves the transcript, saved status and recovery copy untouched; cancelling
+from the quit prompt keeps the app open. Saving from the quit prompt uses the toolbar's chosen
+format, falling back to Markdown if WebVTT or SRT is selected on an older recovered transcript
+with no cue timing. Each export writes a snapshot of finalised captions—anything arriving while
+the dialog is open stays unsaved and eligible for recovery. Writes go to a flushed temporary file
+in the target folder before replacing the destination, so a failed write never truncates an
+existing file.
 
-Markdown and plain text retain paragraph grouping and localised source labels. WebVTT uses
-voice tags, and SRT prefixes each cue with its localised source name. Both retain all
-finalized text, order cues by start time, permit simultaneous microphone/system cues,
-and support durations over 24 hours. One-frame turns get a minimum 1 ms interval.
+Markdown and plain text preserve paragraph grouping and localised source labels. WebVTT uses voice
+tags, and SRT prefixes each cue with its localised source name. Both keep every finalised line,
+order cues by start time, allow overlapping microphone and system cues, and support durations past
+24 hours. Single-frame turns get a minimum 1 ms duration.
 
-Timing comes from the core's monotonic session clock, not wall-clock timestamps or an audio
-recording. Cloud provider latency is included; these are caption timings, not forced alignment
-with speech. Whisper maps segment offsets to capture timestamps, so pending processing time
-does not move cues later; wait for Stop to finish its backlog before saving the complete
-transcript (a confirmed discard leaves an incomplete-transcript notice). Reconnects share the
-session clock. Separate sessions kept in one transcript are concatenated after its last
-cue; idle time between sessions is omitted. Older recovery files without timing remain
-exportable as Markdown/text, with timed export disabled and an explanation rather than guessed
-timestamps or silently omitted text.
+Cue timing comes from the app's monotonic session clock rather than wall-clock timestamps or an
+audio recording. Cloud provider latency is included, so these are caption timings rather than
+forced speech alignment. Whisper maps segment offsets back to capture timestamps so processing
+delays do not drift cues; wait for Stop to finish Whisper's backlog before exporting a complete
+transcript (discarding the backlog inserts an incomplete-transcript notice). Reconnects share the
+session clock, and separate sessions kept in one transcript are appended after the previous last
+cue without idle gaps. Older recovery files without timing remain exportable as Markdown or plain
+text, with timed formats disabled and explained rather than given guessed timestamps.
 
-## Reading back and copying during a session — issue #124
+## Reading back and copying during a session
 
-While a session runs, the stage has two tabs: **Live** (the turns on screen, with the
-transcript under them) and **Transcript**, which gives the whole log the stage's height and
-width. The choice is remembered. The reader shows each turn still being spoken at the bottom,
-and the original speech under each paragraph when **Include original speech** is on, so what
-is on screen is what Save and Copy write. New text does not move the log while the operator
-is scrolled up or has text selected in it; **Jump to latest** returns to the bottom, and
-Ctrl+A in the log selects the log only.
+While a session runs, the stage offers two tabs: **Live** (current turns with the transcript
+underneath) and **Transcript**, which gives the full log the entire stage. Your choice is
+remembered. The transcript view displays turns still being spoken at the bottom, plus the original
+speech under each paragraph when **Include original speech** is ticked, so what you see matches
+what Save and Copy write. New lines never jump the scroll position while you are scrolled up or
+selecting text; click **Jump to latest** to return to the bottom, and press Ctrl+A inside the log
+to select only the transcript.
 
-**Copy** writes plain text to the clipboard — the same text as a plain-text export, with
-speaker labels and no header — for pasting into a chat or an assistant mid-meeting. It takes
-the last 5, 10 or 30 minutes of the caption timeline, or the whole transcript, and includes
-the turns still being spoken. A caption that began before the window but runs into it is
-copied whole. A recovered transcript without timing can only be copied whole, and the range
-says so. Copy does not mark the transcript saved.
+**Copy** puts plain text on the clipboard—matching a plain-text export, with speaker labels and no
+header—ready to paste into chat or notes mid-meeting. Choose the last 5, 10 or 30 minutes or the
+whole transcript, including turns still being spoken. Captions that began before the selected
+window and extend into it are copied whole. A recovered transcript without timing can only be
+copied whole. Copying does not mark the transcript as saved.
 
 Session titles, history search, reading pace, hold duration and the local filler filter never
-change exported text or the date-based filename. Raw export text is what the provider
-returned: Gemini Transcribe returns it word for word, fillers and false starts included. See
-[history titles/search](transcript-history.md#titles-and-search) and
+alter exported text or the date-based filename. Raw export text is what the provider returned:
+Gemini Transcribe returns it word for word, fillers and false starts included. See
+[history titles and search](transcript-history.md#titles-and-search) and
 [reading controls](caption-layout.md#reading-pace-and-preview).
 
 ## Bilingual and two-language exports
 
-Translation keeps what was said before it was translated. When a transcript holds any such
-original speech, **Include original speech** appears beside the format selector (and in the
-history view); the quit prompt's save follows the same choice. Plain text puts `Original: …` under
-each paragraph, Markdown a `> *Original:* …` quote, and WebVTT and SubRip set the original as
-each cue's italic second line (`<i>…</i>`). Subtitles have no separate original, so the option
-is not offered for them. It is off by default.
+Translation keeps what was said before translating it. Whenever a transcript includes original
+speech, **Include original speech** appears beside the format selector (and in History), and the
+quit prompt follows the same choice. Plain text adds `Original: …` beneath each paragraph,
+Markdown uses a `> *Original:* …` blockquote, and WebVTT and SRT put the original on an italic
+second line (`<i>…</i>`). Subtitles have no separate original, so the toggle is hidden. It is off
+by default.
 
-A session captioned in two languages records each line's language. Its paragraphs are grouped
-per language rather than alternating line by line; text and Markdown export one section per
-language, headed by its name; WebVTT and SubRip interleave both languages' cues by start time,
-each labelled with its source and language, which most players show as stacked bilingual
-subtitles. The original speech, when included, is written once, under the first language. A
-transcript in one language exports exactly as before.
+Two-language sessions tag every line with its language. Paragraphs are grouped by language rather
+than alternating line by line: plain text and Markdown export one headed section per language,
+while WebVTT and SRT interleave cues by start time with source and language labels so subtitle
+players stack them cleanly. Original speech, when included, appears once under the first language.
+Single-language transcripts export as usual.
 
 ## Markers
 
-The operator's markers (**Add marker**, see [usability](usability.md#markers-and-find-in-the-transcript))
-are part of the document: each has its text, or none for a numbered section break, and the
-time on the transcript's timeline at which it was added. They are kept beside the caption
-lines rather than among them, so nothing that reads captions — the timed exports, the overlay,
-the Zoom share — can take one for speech, and a marker ends the paragraph it falls in.
+Transcript markers (**Add marker**, see
+[meeting controls](usability.md#markers-and-find-in-the-transcript)) store an optional label and
+the exact session timestamp at which you added them. Because they sit beside the caption lines
+rather than inside them, timed exports, the overlay and Zoom sharing never mistake a marker for
+speech, and each marker cleanly ends the paragraph before it.
 
-- **Plain text:** a separator line between paragraphs, `--- Talk 2 starts · 0:42:10 ---`.
-- **Markdown:** a heading, `## Talk 2 starts · 0:42:10`, one level under the language's
-  heading (`###`) in a two-language transcript, where each language's section repeats it.
-- **WebVTT:** a `NOTE 0:42:10 Talk 2 starts` comment block before the first cue at or after its
-  moment. A marker-only document contains these comments without cues. Players skip comments; cue numbers are unchanged, and a `-->` in the text is written
-  `->`, which would otherwise end the comment.
-- **SubRip:** nothing. SRT has no comments, and a marker cue would be shown as a subtitle, so
-  the file is exactly what it would be without markers.
+- **Plain text:** a divider line between paragraphs, `--- Talk 2 starts · 0:42:10 ---`.
+- **Markdown:** a heading, `## Talk 2 starts · 0:42:10` (or `###` under each language heading in
+  a two-language export).
+- **WebVTT:** a `NOTE 0:42:10 Talk 2 starts` comment block before the first cue at or after that
+  moment (a marker-only document contains just these comments). Players ignore comments, cue
+  numbering is unaffected, and any `-->` inside the label is escaped to `->`.
+- **SubRip:** omitted, because SRT has no comment syntax and a marker cue would appear as a
+  subtitle.
 
-A blank marker is numbered by its place among the document's markers, in the interface
-language (**Section 2**, **Abschnitt 2**). Copy takes the markers inside its time window. The
-history view's Copy and Save write a saved session's markers the same way.
+Blank markers are numbered automatically in the interface language (**Section 2**,
+**Abschnitt 2**). Copy includes markers inside its time window, and History Copy and Save format
+markers identically.
 
 ## Verification
 
-Automated tests cover cancelled saves and quit, captions arriving during a save, atomic
-replacement and failed replacement clean-up, format selection, untimed recovery, source
-overlap, partial replacement, session restart, escaping, and long-duration timestamps. A
-page-level test runs the built-in demo through Start and Stop twice and checks that the
-chosen format survives both and is what the quit prompt saves.
+Automated tests cover cancelled saves and quits, captions arriving while the dialog is open,
+atomic replacement and failed-write clean-up, format persistence, untimed recovery, overlapping
+sources, session restarts, escaping and durations past 24 hours.
 
-Native acceptance checks are still manual, run separately in development, NSIS and Store MSIX
-builds:
+Native manual checks (issue #26, introduced in 1.2.3) remain part of release verification for
+development, NSIS and Store MSIX builds:
 
-- Save each format to a chosen folder, including a path with accents and spaces.
-- Reopen Save As and restart the app; verify that the last successful folder is selected.
-- Choose an existing filename; decline replacement, then accept it on a second attempt.
-- Cancel from both the toolbar and the quit prompt; verify no write and no app exit.
-- Try an unwritable destination; verify that the previous file and the unsaved status survive.
-- Open exported SRT/VTT in a subtitle player and check both-source captions.
-
-Issue #26 was closed at the user’s request for release 1.2.3; that closure does not certify
-every packaging scenario above.
+- Save each format to a chosen folder, including paths with accents and spaces.
+- Reopen Save As and restart the app; confirm the last successful folder is remembered.
+- Pick an existing filename, decline overwriting, then overwrite on a second attempt.
+- Cancel from both the toolbar and the quit prompt; confirm nothing is written and the app stays
+  open.
+- Try an unwritable destination; confirm the previous file and unsaved indicator survive.
+- Open exported SRT and WebVTT files in a subtitle player and check two-source captions.

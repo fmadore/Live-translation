@@ -3,28 +3,28 @@
 # Adding a guide: add it here and to the home page's Guides section, with the same words.
 - page: local-whisper.md
   title: Offline captions with Whisper
-  blurb: Models, languages, translation into English, the graphics processor, and taking over when a cloud engine stops.
+  blurb: Models, languages, offline English translation, GPU acceleration and cloud fallback.
 - page: application-capture.md
   title: Capturing one application
-  blurb: Caption a single app's audio instead of the whole system.
+  blurb: Isolate a single app's audio instead of captioning the whole system.
 - page: zoom-captions.md
   title: Captions in Zoom
-  blurb: Share one caption language with a meeting's caption bar.
+  blurb: Send one caption language directly to a Zoom meeting's caption bar.
 - page: usability.md
   title: Meeting controls and profiles
-  blurb: Pause, two caption languages, profiles and shortcuts.
+  blurb: Pause, two caption languages, spending guard, profiles and shortcuts.
 - page: caption-layout.md
   title: Caption layout
-  blurb: Overlay placement, reading modes and filler-word lists.
+  blurb: Overlay placement, reading modes and custom filler-word lists.
 - page: language-coverage.md
   title: Caption languages
-  blurb: Which languages each engine offers.
+  blurb: Supported spoken and target languages across every engine.
 - page: transcript-export.md
   title: Transcript export
-  blurb: Text, Markdown, SRT and WebVTT.
+  blurb: Plain text, Markdown, SRT and WebVTT, with original speech and markers.
 - page: transcript-history.md
   title: Transcript history
-  blurb: Saving, searching and reopening past sessions.
+  blurb: Automatic local saving, search, bulk actions and reopening past sessions.
 - page: accessibility.md
   title: Accessibility
-  blurb: Keyboard, Narrator, text size and contrast themes.
+  blurb: Keyboard control, Narrator, Windows text scaling and contrast themes.

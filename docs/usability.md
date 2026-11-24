@@ -1,87 +1,76 @@
-# Meeting profiles and live controls
+# Meeting controls and profiles
 
-The controls an operator uses to set up and run a meeting. Native acceptance is tracked in the
-[current release checklist](store-updates.md#release-1120-handoff).
+Run a live session smoothly from start to finish: pause during breaks, guard cloud spending, save
+reusable room profiles, display two caption languages, drop transcript markers and control the
+overlay from the keyboard.
 
 ## Session controls
 
-Start and Stop share a persistent action bar immediately below the app header. The bar
-stays visible while either column scrolls, including the stacked layout at narrow widths
-or enlarged text sizes. Rehearse appears beside Start. Setup, live captions and the saved
-transcript all remain below the session controls.
+Start and Stop sit in a persistent action bar right below the app header, staying visible while
+either column scrolls—including in the single-column layout at narrow widths or enlarged text
+sizes. Rehearse sits beside Start; setup, live captions and the transcript stay below.
 
-Start, Rehearse and Ctrl+Shift+Space read one rule: nothing starts while a start, a stop or a
-profile load is under way, while a caption language is one the engine does not offer, or
-before the engine is ready (its key saved, its Whisper model installed, or the demo checked).
-Start also needs a chosen application to be running; Rehearse plays the bundled sample
-instead, and the built-in demo has no rehearsal.
+Start, Rehearse and Ctrl+Shift+Space share one rule: nothing starts while another start, stop or
+profile load is in progress, while the selected caption language is unsupported by the engine, or
+before the engine is ready (API key saved, Whisper model installed or demo selected). Start also
+requires a chosen application to be running; Rehearse plays the bundled sample instead, and the
+built-in demo has no rehearsal.
 
-New installations open on Whisper with Base and automatic language detection. The
-pre-flight checklist's Whisper row offers the selected model's download, named with its size
-(**Download Base (57 MiB)**), and shows its progress with a Cancel button; it is the same
-download as the model step's, so either shows one started from the other. Switching mode
-returns to the engine last used in that mode (`setup.lastEngines` in webview local storage,
-checked on read); without one, Subtitles opens on Whisper, or the built-in demo on a
-processor that cannot run it, and translation on Gemini. Switching retains the selected audio
-source; it does not start capture or a model download. Existing saved setups are restored on
-launch.
+Fresh installations open on Whisper with Base and automatic language detection. The pre-flight
+checklist's Whisper row includes a direct download button showing the model's size
+(**Download Base (57 MiB)**) with progress and Cancel, synced with the model step. Switching modes
+restores the engine you last used in that mode (`setup.lastEngines` in local storage); without one,
+Subtitles defaults to Whisper (or the built-in demo on unsupported processors) and Live
+translation defaults to Gemini. Switching modes keeps your audio source without starting capture
+or downloading anything, and existing setups carry across upgrades.
 
 ## Pause
 
-**Pause**, beside Stop (or Ctrl+Shift+P), keeps the session, clock and transcript together.
-For cloud engines, each connection closes gracefully and flushes its final turn; after that,
-no audio is streamed or billed until **Resume** connects afresh. The cost estimate counts
-streamed time, each stream at its own engine's rate: a stream that has ended stops adding to
-it, and one continued by offline Whisper costs nothing from then on
-([local Whisper](local-whisper.md#when-a-cloud-engine-stops-continue-with-whisper)). With **Whisper**, Pause stops new audio entering recognition or temporary
-storage while pending speech continues processing. The demo holds between scripted steps.
+**Pause** (beside Stop, or Ctrl+Shift+P) holds the session, clock and transcript together during a
+break. Cloud connections close cleanly after flushing their final turn, so no audio is streamed or
+billed until you click **Resume**. The running cost estimate counts only streamed time per source,
+at each engine's own rate: ended streams stop ticking, and a source switched to offline Whisper
+costs nothing from that point on
+([local Whisper](local-whisper.md#when-a-cloud-engine-stops-continue-with-whisper)). With
+**Whisper**, Pause stops new audio from entering recognition or temporary storage while any queued
+speech finishes decoding. The built-in demo pauses between scripted lines.
 
-Capture and level meters remain active while paused. **Hide overlay** only blanks the
-captions and does not pause capture or provider usage. Normal Stop lets Whisper finish its
-backlog; wait for completion before exporting the full transcript.
+Audio capture and level meters stay live while paused. **Hide overlay** only hides captions on
+screen without pausing capture or cloud billing. Normal Stop lets Whisper finish its backlog; wait
+for completion before exporting a full transcript.
 
 ### Spending guard for cloud engines
 
-A session forgotten over lunch bills every stream it has open, so **Settings → App → Cloud
-spending** offers three choices, each **Never** until one is picked (`guard.idlePauseMinutes`,
-`guard.costWarningUsd`, `guard.durationWarningHours` in webview local storage, read back only
-when they hold one of the offered values):
+Leaving a cloud session running over lunch bills every open stream. **Settings → App → Cloud
+spending** offers three optional guards, each set to **Never** until you enable it
+(`guard.idlePauseMinutes`, `guard.costWarningUsd`, `guard.durationWarningHours`):
 
-- **Pause when nothing has been captioned for** 5, 10, 15 or 30 minutes. When no caption,
-  interim or final, has arrived from any source for that long, the session is paused through
-  the ordinary Pause above: connections close and nothing is billed until **Resume**. The
-  wait runs from the newest caption, or from the moment a source last came to be running (the
-  start, a Resume, a reconnect), whichever is later. A notice above the stage says why, with
-  **Resume** and an offer to put the paused notice on the overlay (below); the window's status
-  region says it once. Resuming by any means, the toolbar and Ctrl+Shift+P included, takes the
-  notice away. It never stops the session or touches the transcript.
+- **Pause when nothing has been captioned for** 5, 10, 15 or 30 minutes. If no interim or final
+  caption arrives from any source during that window, the app pauses the session cleanly so cloud
+  connections close and billing stops until you click **Resume**. A banner above the stage explains
+  why, with **Resume** and a shortcut to show a break notice on the overlay; resuming by any means
+  clears it. It never stops the session or alters the transcript.
 - **Tell me when the estimated cost passes** $1–$50, and **when a session has run for** 1–8
-  hours: a notice above the stage, said once per session by the status region, with **Dismiss**.
-  The cost is the running estimate the rail shows. Nothing is stopped.
+  hours: shows a dismissible notice above the stage once per session without stopping captions.
 
-The guard watches the cloud engines only: local Whisper and the built-in demo cost nothing.
-It does no work per caption — the transcript already records when each source last captioned
-— and checks every 15 seconds on the session clock that already ticks while a session is open.
-The tray's status line is unchanged.
+The guard watches cloud engines only, since local Whisper and the demo are free. It checks every
+15 seconds on the existing session clock with zero per-caption overhead.
 
 ### Notice on the overlay
 
-**Show a notice on the overlay…**, under the overlay controls of the running rail, replaces
-the captions on the overlay with one centred line for a break: a suggestion (**Captions
-paused**, **Back soon**, **Short break**) shows at once, in the caption language when the app
-has a catalogue for it (English, French or German) and in the interface language otherwise. Any
-other line of up to 80 characters is typed and shown with **Show notice**. **Clear notice**
-brings the captions back. With **Remove it when captions resume after a pause** (on by
-default, `overlay.noticeUntilCaptions`), the first caption after a pause — or after a notice
-put up while paused — takes it down by itself. A notice shown while people are still talking,
-over a video clip say, stays until cleared. Stopping the session clears it.
+**Show a notice on the overlay…** (under the overlay controls in the running rail) replaces
+captions with a single centred line during a break. Preset phrases (**Captions paused**, **Back
+soon**, **Short break**) display immediately in the caption language when supported (English,
+French or German) and in the interface language otherwise, or you can type any custom message up
+to 80 characters and click **Show notice**. Click **Clear notice** to restore captions. With
+**Remove it when captions resume after a pause** enabled (the default,
+`overlay.noticeUntilCaptions`), the first caption after a pause clears the notice automatically.
+Notices shown while speech is still running (for instance over a video clip) stay until cleared;
+stopping the session always clears them.
 
-The notice travels in the operator window's configuration push to the overlay
-(`OverlayConfig.notice`), the channel the appearance already uses, so the overlay has no new
-permission. Both windows reduce it to one line of plain text of at most 80 characters. The
-overlay draws it as text, never markup, at the size a single caption row would have in the
-strip, and smaller when the strip is shallow or the line long, down to the 12 px floor that
-rows have. It is never written to the transcript or sent to Zoom, and its text is not stored.
+The notice travels through the existing `OverlayConfig.notice` channel as plain text (capped at
+80 characters, never markup), shrinks down to 12 px if needed to fit a shallow strip, and is never
+saved to the transcript, sent to Zoom or stored on disk.
 
 ## Meeting profiles
 

@@ -1,143 +1,135 @@
-# Local multilingual Whisper transcription
+# Offline captions with Whisper
 
-Included in **1.6.0** ([PR #99](https://github.com/fmadore/Live-translation/pull/99)), following
-[issue #98](https://github.com/fmadore/Live-translation/issues/98), where
-[@valentinrabot](https://github.com/valentinrabot) suggested local transcription for
-same-language meetings without ongoing API costs. Whisper is an additional **Subtitles**
-provider, and since 1.7.0 ([PR #121](https://github.com/fmadore/Live-translation/pull/121))
-also translates into English offline under **Live translation**; see
-[translation into English](#translation-into-english). Whisper can also take over a source
-whose cloud engine stopped mid-session; see
-[when a cloud engine stops](#when-a-cloud-engine-stops-continue-with-whisper).
+Transcribe speech locally in 99 languages—or translate any of them into English—with no account,
+API key or internet connection once a model is downloaded. Whisper also serves as a one-click
+offline fallback if a cloud engine stops mid-session
+([when a cloud engine stops](#when-a-cloud-engine-stops-continue-with-whisper)).
 
-New installations open on Whisper with Base and automatic language detection selected.
-Downloading a model and starting capture both require the user's action. Saved engine, model,
-language and audio choices are kept on upgrade.
+*Background: local transcription arrived in 1.6.0
+([PR #99](https://github.com/fmadore/Live-translation/pull/99)), proposed by
+[@valentinrabot](https://github.com/valentinrabot) in
+[issue #98](https://github.com/fmadore/Live-translation/issues/98); offline English translation
+followed in 1.7.0 ([PR #121](https://github.com/fmadore/Live-translation/pull/121)).*
 
-On a processor that cannot run the Whisper engine (see [processor requirements](#processor-requirements)),
-the setup sheet lists Whisper as unavailable with a one-line reason, Start is not offered for it,
-and a selected Whisper — including the first-launch default — is replaced by the built-in demo,
-so the keyless first launch always opens on something that starts. Whisper's translation is
-listed as unavailable in the same way, but stays selected until the operator chooses a cloud
-engine: the demo cannot translate, so it is no stand-in.
+New installations open on Whisper with the Base model and automatic language detection selected.
+Downloading a model and starting capture both wait for your action, and existing setups are kept
+on upgrade.
+
+On a processor that cannot run Whisper (see [processor requirements](#processor-requirements)),
+Whisper appears in the setup sheet as unavailable with a one-line explanation. Start is disabled
+for it, and a fresh install falls back to the built-in demo so the app still opens ready to run.
+Under Live translation, Whisper stays listed as unavailable until you pick a cloud engine, since
+the demo cannot translate.
 
 ## Using it
 
-1. Choose Subtitles, the microphone/system/application source, and **Whisper** as the engine.
-2. Select a spoken language, or leave **Detect automatically** selected. Choosing the known
-   language helps with short utterances and avoids repeated language guessing.
-3. Download a model. The download needs an internet connection; transcription is then offline.
-4. Start captioning. Captions feed the overlay, history, recovery copy and export, as with any
-   other engine.
-5. Stop when the meeting ends, then let **Finishing the transcript** run to the end before
-   exporting, so the transcript is complete. The pending duration is the audio still to process,
-   not an estimate of how long processing will take. Discarding pending audio asks for
-   confirmation and leaves a notice that the transcript is incomplete.
+1. Choose **Subtitles**, select your microphone, system or application audio source, and pick
+   **Whisper**.
+2. Pick the spoken language, or leave **Detect automatically** selected. Naming the language helps
+   with short utterances and avoids repeated language guessing.
+3. Click **Download model**. You need an internet connection for the download; after that,
+   captioning runs completely offline.
+4. Start captioning. Captions flow to the overlay, transcript, history, recovery copy and exports
+   just like any other engine.
+5. Click **Stop** when the meeting ends, and let **Finishing the transcript** complete before
+   exporting so nothing at the end is cut off. The pending counter shows the length of audio still
+   queued, not the wall-clock time left to decode it. Discarding queued audio asks for
+   confirmation and marks the transcript as incomplete.
 
-Closing the app while audio is still waiting is different from Stop: the close prompt says how
-many seconds remain, closing gives the backlog a few seconds, and whatever is left is then
-discarded so the app can quit. Stop first and let it finish if the transcript has to
-be complete.
+Closing the app while audio is still queued behaves differently from Stop: the close prompt tells
+you how many seconds remain, waits a few seconds for the backlog, and discards whatever is left so
+the app can quit. Always click Stop and wait for completion if you need a full transcript.
 
 | Model | Download | Intended choice |
 | --- | ---: | --- |
-| Tiny Q5_1 | 31 MiB | Lowest CPU and memory demand; try first on slower machines |
-| Base Q5_1 (default) | 57 MiB | A balance between speed and recognition quality |
-| Small Q5_1 | 182 MiB | More capacity, with higher CPU and memory demand |
-| Large v3 Turbo Q5_0 | 547 MiB | The most accurate; transcription only; best with a [graphics processor](#graphics-processor) |
+| Tiny Q5_1 | 31 MiB | Lowest CPU and memory load; try first on older or slower machines |
+| Base Q5_1 (default) | 57 MiB | Balanced speed and accuracy |
+| Small Q5_1 | 182 MiB | Higher accuracy, with heavier CPU and memory demand; recommended for English translation |
+| Large v3 Turbo Q5_0 | 547 MiB | Highest transcription accuracy; subtitles only; best with a [graphics processor](#graphics-processor) |
 
-All four are multilingual models, not the English-only `.en` variants. The selector offers
-the 99 language tokens they share; listing a language does not mean it is recognised as well
-as the others. The separate Cantonese token introduced with large-v3 is not offered.
+All four are multilingual models rather than English-only `.en` variants. The selector offers the
+99 language tokens they share; listing a language does not guarantee equal accuracy across all 99.
+The separate Cantonese token introduced in large-v3 is not offered.
 
-**Large v3 Turbo** is large-v3 with its decoder cut from 32 layers to 4: close to large-v3's
-accuracy at a fraction of its decoding cost, and the same model Kalamu offers. Its encoder is
-still large-v3's, so on the processor alone it needs a fast machine to keep up with speech;
-on a graphics processor it keeps up comfortably. It was trained without Whisper's translate
-task, so **Live translation** does not offer it: a Turbo still selected when the operator
-switches to translation is named with a note to choose Small, Start waits, and the core refuses
-the combination too.
+**Large v3 Turbo** trims large-v3's decoder from 32 layers to 4, delivering accuracy close to
+large-v3 at a fraction of the decoding cost (the same model Kalamu uses). Because its encoder is
+still large-v3's, CPU-only decoding needs a fast machine to keep up with live speech; on a
+graphics processor it keeps up comfortably. Large v3 Turbo was trained without Whisper's translate
+task, so **Live translation** does not offer it: if Turbo is still selected when you switch to
+translation, the app prompts you to choose Small and blocks Start until you do.
 
 Models are pinned to Hugging Face `ggerganov/whisper.cpp` revision
-`5359861c739e955e79d9a303bcbc70fb988958b1`. Exact sizes and SHA-256 digests are in
-`src-tauri/src/whisper/models.rs`. Downloads use HTTPS and can be cancelled. There is no overall
-time limit, so a slow connection still finishes Small; a connection that delivers nothing for
-60 seconds fails instead. Downloads follow the proxy server set in Windows Settings → Network &
-internet → Proxy (manual setup, including its bypass list) and the `HTTPS_PROXY`/`HTTP_PROXY`
-variables; automatic proxy scripts (PAC/WPAD) are not read. The file is written as
-`<model>.part` in the models folder and renamed into place only after its size and SHA-256
-match; a failed or cancelled download deletes it, and starting a download first deletes any
-partial file an interrupted one left behind (quitting mid-download cannot clean up). Installed
-bytes are verified again before they are passed to the native loader. Files in use cannot be
-deleted or replaced.
+`5359861c739e955e79d9a303bcbc70fb988958b1`, with exact sizes and SHA-256 digests in
+`src-tauri/src/whisper/models.rs`. Downloads run over HTTPS and can be cancelled at any time.
+There is no overall timeout—so a slow connection can still finish Small or Turbo—but a stalled
+connection that sends no bytes for 60 seconds fails cleanly. Downloads respect manual proxy
+settings in Windows Settings → Network & internet → Proxy (including its bypass list) and
+`HTTPS_PROXY`/`HTTP_PROXY`; automatic proxy scripts (PAC/WPAD) are not read. Each download writes
+to `<model>.part` in the models folder and moves into place only after size and SHA-256 match.
+Failed or cancelled downloads delete the partial file, and a new download cleans up any leftover
+`.part` file from an interrupted quit. Installed files are verified again before loading, and a
+model currently in use cannot be deleted or replaced.
 
 ## When a cloud engine stops: continue with Whisper
 
-A cloud engine can end a source in the middle of an event: a spent quota, a revoked key, a
-billing problem, or a network that stays down. Since [#248](https://github.com/fmadore/Live-translation/issues/248)
-a banner under the toolbar offers to carry on with offline Whisper in the same session, rather
-than Stop, a change of engine and a new Start.
+Cloud sessions can drop mid-event because of an exhausted quota, a revoked key, a billing error or
+a network outage. Since [#248](https://github.com/fmadore/Live-translation/issues/248), a banner
+under the toolbar lets you switch that source to offline Whisper inside the same session instead
+of stopping, changing engines and restarting.
 
-- **When it appears.** When the provider stops or rejects a source, or when a source has been
-  **Reconnecting** for 30 seconds. In the second case the reconnection carries on beside the
-  banner until you choose; if the connection comes back first, the banner goes away. If Whisper
-  fails to load after the reconnection stops, the source shows the failure. A second active
-  source keeps captioning.
-- **What the button does.** **Continue with offline Whisper** rebuilds that source on Whisper
-  inside the running session: the clock, the transcript, the markers, the history entry and the
-  overlay carry on, and the other source is not touched. With both sources waiting, one click
-  continues both. The transcript gets a marker at the switch (*System audio: offline Whisper
-  from here*), so a reader of the export sees why the captions changed. **Not now** leaves the
-  source as it is.
-- **Which model.** The one chosen in the setup if it is installed (and can translate, when the
-  room reads English), otherwise the most accurate installed model that fits, with the setup's
-  graphics-processor choice. The setup itself is not changed: the next Start uses the engine you
-  chose there.
-- **The spoken-language warning.** Whisper translates into English only, and Large v3 Turbo not
-  at all. When the room reads English and a model that translates is installed, the button says
-  **Continue with offline Whisper** and that Whisper keeps translating into English. Otherwise
-  it says **Continue in the spoken language**, with the reason underneath (the caption language
-  is not English, or only Large v3 Turbo is installed), because the overlay will then show the
-  speaker's own language. Screen readers hear the reason with the button.
-- **When nothing is offered.** In a rehearsal or the built-in demo, in a session with two
-  caption languages, on a processor that cannot run Whisper, with no model installed (or one
-  still downloading), and for a source Whisper has already taken over once in this session.
-- **When the last source has ended.** The session is held open while the banner is shown: the
-  clock keeps running and the history entry stays open. **Not now** or **Stop** then end the
-  session, and its history entry ends at the moment the engine stopped, not when you answered.
+- **When it appears.** Whenever a cloud provider rejects or ends a source, or after a source has
+  been **Reconnecting** for 30 seconds. In the second case, reconnection continues alongside the
+  banner; if the cloud comes back first, the banner disappears. Any second active source keeps
+  captioning uninterrupted.
+- **What the button does.** **Continue with offline Whisper** restarts that source on Whisper
+  inside the running session, keeping the same clock, transcript, markers, history entry and
+  overlay. When both sources are waiting, one click switches both. A marker (*System audio:
+  offline Whisper from here*) is added to the transcript so anyone reading the export sees where
+  the engine changed. **Not now** leaves the source as it is.
+- **Which model is used.** Your selected Whisper model if it is installed (and supports
+  translation when the room is reading English); otherwise the most accurate installed model that
+  fits, using your graphics-processor preference. Your saved setup stays untouched for the next
+  session.
+- **The spoken-language notice.** Whisper translates only into English, and Large v3 Turbo cannot
+  translate at all. If the room is reading English and a translating model is installed, the
+  button reads **Continue with offline Whisper** and confirms English translation continues.
+  Otherwise it reads **Continue in the spoken language** and explains why underneath (either the
+  target language is not English or only Large v3 Turbo is installed), because the overlay will
+  switch to the speaker's own language. Screen readers announce that reason with the button.
+- **When it is not offered.** During a rehearsal or the built-in demo, in two-language sessions,
+  on processors that cannot run Whisper, when no Whisper model is installed (or one is still
+  downloading), or for a source Whisper has already taken over in the same session.
+- **When the last source stops.** The session stays open while the banner is visible so the clock
+  and history entry stay alive. Choosing **Not now** or **Stop** ends the session, recording its
+  history end time at the moment the cloud engine stopped.
 
-From the switch, that source's audio stays on the computer and costs nothing: the running cost
-estimate stops counting a stream once it has ended, and counts the time after the switch as
-free.
+After the switch, that source's audio stays on your computer and costs nothing: the running cost
+estimate stops billing the failed stream and counts Whisper time as free.
 
 ## Names and terms
 
-The setup's **Names and terms** list (step 03, shared with Voxtral and Gemini Transcribe) is
-Whisper's decoder prompt: the terms, joined with commas, stand in for text said before every
-window, which steers its spelling of names and jargon. When translating, it helps Whisper
-recognise the names it carries into English.
+The **Names and terms** list in setup (step 03, shared with Mistral, Gemini Transcribe and OpenAI
+subtitles) feeds Whisper's decoder prompt. The entries, joined with commas, act as preceding
+context for every window to steer the spelling of names, institutions and jargon. During English
+translation, it helps Whisper recognise names carried into English.
 
-- **Size:** whisper.cpp gives a prompt at most 223 tokens (half the 448-token text context,
-  less its opening token), a few dozen names. It would keep the *end* of a longer prompt, so
-  the app tokenises the list once per source at Start and keeps as many terms from the top as
-  fit (`whisper/prompt.rs`). The setup sheet says so under the list.
-- **Each window:** the tokens go in with `set_tokens`, not `set_initial_prompt`, which would
-  tokenise again and leak a C string for every window. `no_context` still drops the text of
-  earlier windows; whisper.cpp clears that history before adding the prompt, and drops the
-  prompt itself on its high-temperature fallbacks.
-- **Echoes:** over noise it cannot make out, Whisper may write the prompt back. A segment made
-  of two or more of the list's terms, in the list's order and nothing else, is dropped; a term
-  said on its own is kept. [Speech detection](#speech-detection) keeps most noise from reaching
+- **Size limit:** whisper.cpp allows up to 223 prompt tokens (half its 448-token text context
+  minus the opening token), enough for a few dozen names. Because whisper.cpp would otherwise keep
+  the *end* of a longer prompt, the app tokenises the list once at Start and keeps as many entries
+  from the top as fit (`whisper/prompt.rs`).
+- **Per-window handling:** tokens are passed via `set_tokens` rather than `set_initial_prompt`,
+  avoiding repeated tokenisation and C-string leaks. `no_context` still drops earlier window text,
+  and whisper.cpp drops the prompt during high-temperature fallbacks.
+- **Prompt echoes:** over indistinct noise, Whisper can repeat its prompt back as a caption. Any
+  segment consisting solely of two or more listed terms in list order is dropped, while a term
+  spoken naturally is kept. [Speech detection](#speech-detection) prevents most noise from reaching
   the model in the first place.
 
-`local_whisper_smoke` runs the English rehearsal again with two terms in the prompt and checks
-that a 100-entry list is cut to what fits the real tokenizer. It also gives the prompt audio with
-little or no speech, where OpenWhispr saw Whisper write a dictation's terms back as its
-transcript (speech detection had cut most of a pause-heavy recording, leaving near-silence and
-the prompt): 25 seconds of silence and of faint noise caption nothing, and the rehearsal with six
-seconds of silence after every three of speech still reads as what was said, never as the terms.
-Speech detection here keeps everything from a window's first words to its last, pauses included,
-so it cannot leave a window that is mostly the prompt.
+`local_whisper_smoke` verifies the prompt with the real tokeniser (including truncating a
+100-entry list) and confirms that 25 seconds of silence or faint noise produce no captions, and
+that pause-heavy speech reads as what was said rather than the prompt terms. Because speech
+detection keeps everything from a window's first words to its last, pauses included, it never
+hands Whisper a near-empty window dominated by the prompt.
 
 ## Translation into English
 
@@ -295,7 +287,7 @@ writer overflow stop the source and report that its transcript may be incomplete
 not grow with the audio backlog.
 
 Recognition uses windows of up to roughly 10 seconds, one second of overlap and conservative
-silence endpointing. It produces finalized captions, not speculative word-by-word interim
+silence endpointing. It produces finalised captions rather than speculative word-by-word interim
 captions. A final short window is padded for inference and its timestamps are clamped to the
 actual audio duration. Pauses keep the meeting's elapsed time, and each window's time is taken
 from the capture timestamp of the audio it starts in rather than counted in samples, so a
