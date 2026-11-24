@@ -1,0 +1,9 @@
+# GitHub Pages builds docs/ with Jekyll. Every Markdown page here (the user guides, the privacy
+# policy and the developers' notes) is rendered with _layouts/default.html, which gives it the
+# home page's look (assets/site.css). The home page, index.html, has no front matter and is
+# served as it is.
+title: Live Translation & Subtitles
+description: Free live captions over meetings, calls and slides, offline with Whisper or translated with your own cloud API key.
+author:
+  name: Frédérick Madore
+  url: https://www.frederickmadore.com/

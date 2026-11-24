@@ -18,5 +18,8 @@
 	"treatConfigHintsAsErrors": true,
 	// scripts/bundle-msix.mjs runs the bundler's CLI by its path in node_modules, to lay the
 	// release-only tauri.vulkan.conf.json in around it, which knip cannot follow.
-	"ignoreDependencies": ["@choochmeque/tauri-windows-bundle"]
+	"ignoreDependencies": ["@choochmeque/tauri-windows-bundle"],
+	// The public site's script, loaded by a <script> tag in docs/index.html and the Jekyll layout
+	// on GitHub Pages, not by any module.
+	"ignore": ["docs/assets/site.js"]
 }

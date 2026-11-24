@@ -93,6 +93,12 @@ Store copy leads with offline captions and optional cloud translation; the scrip
 available as a setup-free display check. Fresh installs select Whisper with Base and automatic
 detection, while upgrades preserve saved setups.
 
+The public site, <https://fmadore.github.io/Live-translation/>, has a home page
+([#252](https://github.com/fmadore/Live-translation/issues/252)); since 24 November 2026 the
+user guides and the privacy policy share its look, with a link to each section and a contents
+list, and every page credits the developer. Its guides still need the work listed under
+[Open verification](#open-verification).
+
 ## Open verification
 
 The code for these has landed; what remains is evidence from Windows hardware, an installed
@@ -144,6 +150,16 @@ package or a native speaker, kept distinct from unit and fixture tests. The
   screenshots for the [caption layout](docs/caption-layout.md), including the overlay's restore
   across launches with a 150% laptop and a 100% projector and its recovery when a display is
   unplugged mid-session.
+
+- **Next test session: screenshots and the guides on the site.** The next hands-on session in
+  the installed app (Windows and Mac) also takes a fresh set of screenshots: the Windows set in
+  the [Store listing](docs/store-listing.md) and on the [home page](https://fmadore.github.io/Live-translation/)
+  still shows 1.7.1, from before the Live and Transcript tabs. Above all, it is the occasion to
+  enrich and much improve the user guides the site links to (local Whisper, application capture,
+  Zoom, meeting controls, caption layout, languages, export, history, accessibility): task by
+  task, with what to click, a screenshot of each step and what to do when it goes wrong, in
+  place of today's mix of user steps, release notes and developers' checks. Each guide's
+  developer and verification notes move to the developers' pages it links to.
 
 ## Planning conventions
 
@@ -302,9 +318,6 @@ glossaries, live corrections and offline text translation are not planned.
   main as a subtitle engine, tried on the rehearsal recordings only
   ([notes](docs/openai-transcribe-api.md)); a live session in a real room comes before it is
   advertised.
-- A public home page ([#252](https://github.com/fmadore/Live-translation/issues/252)): GitHub Pages already serves `docs/`, whose home is the
-  developers' index; a small page with the Store screenshots and the user guides would give the
-  Stores a support URL.
 - A billable provider smoke workflow: an explicitly manual run of live credentials against a
   golden audio fixture. It is intentionally not automatic because it costs money and CI secrets
   are not available to forked pull requests.

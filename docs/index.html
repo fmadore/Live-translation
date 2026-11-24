@@ -1,9 +1,12 @@
 <!doctype html>
 <!--
 	The public home page on GitHub Pages (issue #252), served from `main` /docs at
-	https://fmadore.github.io/Live-translation/. One self-contained file with no build step: its
-	styles are below, and it loads only the fonts in assets/fonts, the images under this folder and
-	Microsoft's Store badge. The developers' index stays at docs/README.md, linked in the footer.
+	https://fmadore.github.io/Live-translation/. A static file with no build step: the styles it
+	shares with the guides (palette, fonts, masthead, footer) are in assets/site.css, its own are
+	below, and assets/site.js adds the # links to the section headings. It loads only those, the
+	fonts in assets/fonts, the images under this folder and Microsoft's Store badge. The guides and
+	the privacy policy are Markdown, rendered by Jekyll with _layouts/default.html. The developers'
+	index stays at docs/README.md, linked in the footer.
 
 	Wording follows docs/store-listing.md, rates follow src/lib/providers.ts with their sources and
 	dates, and privacy statements follow docs/privacy.md: change those first, then this page.
@@ -48,283 +51,14 @@
 			rel="icon"
 			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1024 1024'%3E%3Crect width='1024' height='1024' rx='224' fill='%23191d23'/%3E%3Cg fill='none' stroke-width='72' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath stroke='%235ad1a0' d='M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496'/%3E%3Cpath stroke='%23e9ebef' d='M500 680 L840 680'/%3E%3C/g%3E%3C/svg%3E"
 		/>
+		<link rel="stylesheet" href="assets/site.css" />
+		<script src="assets/site.js" defer></script>
 		<style>
-			/* Archivo and IBM Plex Mono, the app's own faces (src/app.css), Latin subset, under the
-			   SIL Open Font License (assets/fonts/*-OFL.txt). Served from here: no font service. */
-			@font-face {
-				font-family: 'Archivo';
-				font-style: normal;
-				font-display: swap;
-				font-weight: 400;
-				src: url('assets/fonts/archivo-latin-400-normal.woff2') format('woff2');
-			}
-			@font-face {
-				font-family: 'Archivo';
-				font-style: normal;
-				font-display: swap;
-				font-weight: 600;
-				src: url('assets/fonts/archivo-latin-600-normal.woff2') format('woff2');
-			}
-			@font-face {
-				font-family: 'Archivo';
-				font-style: normal;
-				font-display: swap;
-				font-weight: 700;
-				src: url('assets/fonts/archivo-latin-700-normal.woff2') format('woff2');
-			}
-			@font-face {
-				font-family: 'IBM Plex Mono';
-				font-style: normal;
-				font-display: swap;
-				font-weight: 400;
-				src: url('assets/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2');
-			}
-
-			/* The palette of src/app.css: its light theme here, its dark theme (the app's default)
-			   when the system asks for dark. The brand band at the top stays dark in both, as the
-			   app icon does, so the hero art sits on its own ground. */
-			:root {
-				color-scheme: light;
-				--surface-0: #f3f4f6;
-				--surface-1: #ffffff;
-				--surface-2: #e8ebef;
-				--line: #e1e4e9;
-				--line-strong: #cdd2da;
-				--accent: #0b7550;
-				--accent-soft: #0a6646;
-				--accent-wash: rgba(16, 158, 104, 0.08);
-				--accent-chip: rgba(16, 158, 104, 0.14);
-				--accent-border: rgba(11, 117, 80, 0.75);
-				--room: #2f6fe0;
-				--warn: #995200;
-				--warn-wash: rgba(224, 138, 0, 0.08);
-				--warn-border: rgba(224, 138, 0, 0.4);
-				--text-bright: #0d1015;
-				--text-body: #1a1e25;
-				--text-secondary: #394150;
-				--text-muted: #555e6c;
-				--shadow: 0 24px 64px -16px rgba(16, 22, 32, 0.28);
-				--focus: #0a6646;
-
-				/* The brand band: the app icon's colours, the same in both themes. */
-				--brand-tile: #191d23;
-				--brand-ground: #0e1013;
-				--brand-wave: #5ad1a0;
-				--brand-wave-soft: #7fdcb6;
-				--brand-line: #e9ebef;
-				--brand-text: #c3c9d2;
-
-				--font-sans: 'Archivo', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-				--font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
-				--radius-control: 4px;
-				--radius-card: 8px;
-				--tracking-caps: 0.12em;
-				--gutter: 16px;
-				--max: 1160px;
-			}
-			@media (prefers-color-scheme: dark) {
-				:root {
-					color-scheme: dark;
-					--surface-0: #0e1013;
-					--surface-1: #111419;
-					--surface-2: #191d23;
-					--line: #1f242b;
-					--line-strong: #262b33;
-					--accent: #5ad1a0;
-					--accent-soft: #7fdcb6;
-					--accent-wash: rgba(90, 209, 160, 0.08);
-					--accent-chip: rgba(90, 209, 160, 0.14);
-					--accent-border: rgba(90, 209, 160, 0.4);
-					--room: #4f8cff;
-					--warn: #ffb454;
-					--warn-wash: rgba(255, 180, 84, 0.08);
-					--warn-border: rgba(255, 180, 84, 0.4);
-					--text-bright: #f2f4f7;
-					--text-body: #e9ebef;
-					--text-secondary: #c3c9d2;
-					--text-muted: #8b93a1;
-					--shadow: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
-					--focus: #7fdcb6;
-				}
-			}
-			@media (min-width: 720px) {
-				:root {
-					--gutter: 32px;
-				}
-			}
-
-			*,
-			*::before,
-			*::after {
-				box-sizing: border-box;
-			}
-			html {
-				scroll-behavior: smooth;
-				-webkit-text-size-adjust: 100%;
-			}
-			@media (prefers-reduced-motion: reduce) {
-				html {
-					scroll-behavior: auto;
-				}
-			}
-			body {
-				margin: 0;
-				background: var(--surface-0);
-				color: var(--text-body);
-				font-family: var(--font-sans);
-				font-size: 1.0625rem;
-				line-height: 1.55;
-			}
-			img {
-				max-width: 100%;
-				height: auto;
-				display: block;
-			}
-			a {
-				color: var(--accent);
-				text-underline-offset: 0.18em;
-			}
-			a:hover {
-				color: var(--accent-soft);
-			}
-			:focus-visible {
-				outline: 2px solid var(--focus);
-				outline-offset: 2px;
-			}
-			code,
-			.mono {
-				font-family: var(--font-mono);
-				font-size: 0.86em;
-			}
-			h1,
-			h2,
-			h3 {
-				color: var(--text-bright);
-				line-height: 1.2;
-				margin: 0;
-			}
-			h2 {
-				font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.25rem);
-				font-weight: 700;
-				letter-spacing: -0.01em;
-			}
-			h3 {
-				font-size: 1.125rem;
-				font-weight: 600;
-			}
-			p {
-				margin: 0;
-			}
-			.sr-only {
-				position: absolute;
-				width: 1px;
-				height: 1px;
-				margin: -1px;
-				padding: 0;
-				overflow: hidden;
-				clip-path: inset(50%);
-				white-space: nowrap;
-				border: 0;
-			}
-			.skip {
-				position: absolute;
-				left: var(--gutter);
-				top: -100px;
-				z-index: 10;
-				padding: 8px 12px;
-				background: var(--brand-wave);
-				color: #05271b;
-				border-radius: var(--radius-control);
-				font-weight: 600;
-			}
-			.skip:focus {
-				top: 12px;
-			}
-			.skip:hover {
-				color: #05271b;
-			}
-			.wrap {
-				max-width: var(--max);
-				margin: 0 auto;
-				padding: 0 var(--gutter);
-			}
-			.kicker {
-				font-size: 0.75rem;
-				font-weight: 600;
-				letter-spacing: var(--tracking-caps);
-				text-transform: uppercase;
-				color: var(--accent);
-				margin-bottom: 12px;
-			}
 			section {
 				padding: 72px 0;
 			}
 			section + section {
 				border-top: 1px solid var(--line);
-			}
-			.lede {
-				color: var(--text-secondary);
-				max-width: 46rem;
-				margin-top: 14px;
-			}
-
-			/* Brand band: header and hero. */
-			.brand {
-				background:
-					radial-gradient(60% 70% at 70% 30%, rgba(90, 209, 160, 0.12), rgba(90, 209, 160, 0) 70%),
-					linear-gradient(var(--brand-tile), var(--brand-ground));
-				color: var(--brand-text);
-				color-scheme: dark;
-				--focus: var(--brand-wave-soft);
-			}
-			.brand a {
-				color: var(--brand-wave);
-			}
-			.top {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				gap: 16px;
-				padding-top: 18px;
-				padding-bottom: 18px;
-			}
-			.logo {
-				display: flex;
-				align-items: center;
-				gap: 10px;
-				color: var(--brand-line);
-				font-weight: 600;
-				text-decoration: none;
-			}
-			.brand .logo {
-				color: var(--brand-line);
-			}
-			.logo svg {
-				width: 32px;
-				height: 32px;
-				flex: none;
-			}
-			.top nav ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 4px 20px;
-				list-style: none;
-				margin: 0;
-				padding: 0;
-				font-size: 0.9375rem;
-			}
-			.brand .top nav a {
-				color: var(--brand-text);
-				text-decoration: none;
-			}
-			.brand .top nav a:hover {
-				color: var(--brand-line);
-				text-decoration: underline;
-			}
-			@media (max-width: 719px) {
-				.top nav {
-					display: none;
-				}
 			}
 			.hero {
 				display: grid;
@@ -747,38 +481,6 @@
 				color: var(--text-bright);
 				font-weight: 600;
 			}
-			.guides {
-				margin: 24px 0 0;
-				padding: 0;
-				list-style: none;
-				display: grid;
-				gap: 10px;
-				grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
-			}
-			.guides a {
-				display: block;
-				height: 100%;
-				padding: 14px 16px;
-				border: 1px solid var(--line);
-				border-radius: var(--radius-card);
-				background: var(--surface-1);
-				text-decoration: none;
-			}
-			.guides a:hover {
-				border-color: var(--accent-border);
-				background: var(--accent-wash);
-			}
-			.guides strong {
-				display: block;
-				color: var(--text-bright);
-				font-weight: 600;
-			}
-			.guides span {
-				display: block;
-				margin-top: 2px;
-				font-size: 0.875rem;
-				color: var(--text-secondary);
-			}
 			.requirements {
 				display: grid;
 				gap: 16px;
@@ -798,78 +500,40 @@
 			.requirements li + li {
 				margin-top: 4px;
 			}
-			.cta {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 12px;
-				margin-top: 18px;
-			}
-			.button {
-				display: inline-flex;
-				align-items: center;
-				min-height: 44px;
-				padding: 8px 18px;
-				border-radius: var(--radius-control);
-				border: 1px solid var(--line-strong);
-				background: var(--surface-1);
-				color: var(--text-bright);
-				font-weight: 600;
-				text-decoration: none;
-			}
-			.button:hover {
-				border-color: var(--accent-border);
-				color: var(--text-bright);
-				background: var(--accent-wash);
-			}
-
-			footer {
-				border-top: 1px solid var(--line);
-				padding: 40px 0 56px;
-				font-size: 0.875rem;
-				color: var(--text-muted);
-			}
-			footer ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 8px 24px;
-				list-style: none;
-				margin: 0 0 20px;
-				padding: 0;
-			}
-			footer p + p {
-				margin-top: 6px;
-			}
 		</style>
 	</head>
 	<body>
 		<a class="skip" href="#main">Skip to content</a>
+		<div class="sticky-top">
+			<div class="masthead">
+				<header class="wrap top">
+					<a class="logo" href="./" aria-label="Live Translation &amp; Subtitles, home">
+						<svg viewBox="0 0 1024 1024" aria-hidden="true">
+							<rect width="1024" height="1024" rx="224" fill="#111419" />
+							<g fill="none" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
+								<path
+									stroke="#5ad1a0"
+									d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
+								/>
+								<path stroke="#e9ebef" d="M500 680 L840 680" />
+							</g>
+						</svg>
+						<span>Live Translation &amp; Subtitles</span>
+					</a>
+					<nav aria-label="Sections">
+						<ul>
+							<li class="wide"><a href="#features">Features</a></li>
+							<li class="wide"><a href="#tour">Tour</a></li>
+							<li class="wide"><a href="#engines">Engines and costs</a></li>
+							<li><a href="#privacy">Privacy</a></li>
+							<li><a href="#guides">Guides</a></li>
+							<li><a href="#download">Download</a></li>
+						</ul>
+					</nav>
+				</header>
+			</div>
+		</div>
 		<div class="brand">
-			<header class="wrap top">
-				<a class="logo" href="./" aria-label="Live Translation &amp; Subtitles, home">
-					<svg viewBox="0 0 1024 1024" aria-hidden="true">
-						<rect width="1024" height="1024" rx="224" fill="#111419" />
-						<g fill="none" stroke-width="72" stroke-linecap="round" stroke-linejoin="round">
-							<path
-								stroke="#5ad1a0"
-								d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
-							/>
-							<path stroke="#e9ebef" d="M500 680 L840 680" />
-						</g>
-					</svg>
-					<span>Live Translation &amp; Subtitles</span>
-				</a>
-				<nav aria-label="Sections">
-					<ul>
-						<li><a href="#features">Features</a></li>
-						<li><a href="#tour">Tour</a></li>
-						<li><a href="#engines">Engines and costs</a></li>
-						<li><a href="#privacy">Privacy</a></li>
-						<li><a href="#guides">Guides</a></li>
-						<li><a href="#download">Download</a></li>
-					</ul>
-				</nav>
-			</header>
-
 			<div class="wrap hero">
 				<div>
 					<h1>Live captions over any <em>meeting, lecture, video call</em> or slide deck.</h1>
@@ -904,6 +568,11 @@
 						<li>macOS on Apple silicon (new)</li>
 						<li>English, French and German interface</li>
 					</ul>
+					<p class="byline">
+						Developed by
+						<a href="https://www.frederickmadore.com/" rel="author">Frédérick Madore</a>, free and
+						open source.
+					</p>
 				</div>
 				<figure class="hero-art">
 					<img
@@ -1507,7 +1176,11 @@
 						>
 					</li>
 				</ul>
-				<p>Live Translation &amp; Subtitles is free and open source, under the MIT license.</p>
+				<p class="credit">
+					Developed by
+					<a href="https://www.frederickmadore.com/" rel="author">Frédérick Madore</a>. Live
+					Translation &amp; Subtitles is free and open source, under the MIT license.
+				</p>
 				<p>The illustration at the top of this page was generated with OpenAI GPT Image.</p>
 				<p>
 					Zoom is a trademark of Zoom Communications, Inc. Live Translation &amp; Subtitles is not

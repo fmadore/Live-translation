@@ -28,3 +28,7 @@ CITATION.cff
 # reasoning — Prettier re-indents every wrapped list continuation, repads every table and
 # rewrites *emphasis* as _emphasis_, which is churn on files no formatter makes safer.
 *.md
+
+# Jekyll layouts for GitHub Pages: Liquid tags inside HTML, which Prettier's HTML parser would
+# break apart.
+docs/_layouts
