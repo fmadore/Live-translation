@@ -1,44 +1,34 @@
 # Store screenshots
 
-Captured 21 October 2026 from the sideloaded **1.7.1.0 ARM64 MSIX**
-(`49346FMadore.LiveTranslationSubtitles`), with the interface set to each listing language.
-Display: 3440×1440 at 100% scaling; the window was sized to exactly 1920×1080 and captured
+Captured 24 November 2026 from a release build of **v1.16.1**: the tag's code, built for ARM64
+and run unpackaged under the side-by-side *Local Test* identity, with the interface set to each
+listing language and Settings › App › Theme set to **Dark**. The images show what the Store
+package shows; the one difference, the question about checking GitHub for new versions, which
+the Store package never asks, was answered *No thanks* before capturing and appears in none of
+them. Display: 3440×1440 at 125% scaling; the window was sized to exactly 1920×1080 and captured
 pixel for pixel. Upload each language's set in filename order, with the matching
-[caption](../store-listing.md#screenshots).
+[caption](../store-listing.md#screenshots). This set replaces the 1.7.1 one of 21 October 2026,
+which predated the Live and Transcript tabs, *Zoom captions*, the graphics-processor switch and
+the OpenAI and DeepL engine cards.
 
 | File | Shows |
 | --- | --- |
-| `1-whisper.png` | Subtitles mode after a real Local Whisper session: system audio, spoken language set, Base model ready, all pre-flight checks green, transcript below. |
-| `2-overlay.png` | The click-through overlay locked low over a neutral slide during a live session (Stable reading). Cropped to 2194×1234 to drop the screen edge. |
-| `3-bilingual.png` | A Gemini live-translation session with two target languages, the original speech shown above one of them. |
+| `1-whisper.png` | Subtitles mode after a real Local Whisper session: system audio, spoken language set, Local Whisper chosen, all pre-flight checks green, transcript below. |
+| `2-overlay.png` | The click-through overlay locked low over a neutral slide during a live session (Stable reading, white captions on a 95% black backing, 1500 px wide). Cropped to 2194×1234 to drop the screen edge. |
+| `3-bilingual.png` | The Live tab of a Gemini live-translation session with two caption languages, the original speech shown above one of them. |
 | `4-appearance.png` | Settings › Captions: presets, size, typeface, colours, contrast and the bright/dark slide previews. |
 | `5-reading.png` | Settings › Reading: Stable reading and the editable filler-word list. |
 | `6-history.png` | Settings › Transcript history: a titled session found by search, with copy/export controls and the transcript. |
 
-## What has changed since this set
-
-The set predates the Live and Transcript tabs of 1.8.0 and the *Zoom captions* toolbar button
-of 1.12.0. 1.13.0 changes what some of the images would show:
-
-- `1-whisper.png`: the setup gains *Use the graphics processor* under the model, with a line
-  under it saying where the latest session decoded, and the model list gains Large v3 Turbo.
-  With *Both* as the source, *Leave out the call heard by the room mic* appears under it.
-- Any image showing Start while it cannot be pressed: it now has a neutral surface, a border
-  and muted text at full opacity instead of a faded green.
-- `4-appearance.png`: each custom-colour button, labelled *Custom…* (*Personnaliser…*,
-  *Benutzerdefiniert…*), now sits at the end of its own swatches and holds one line in French
-  and German.
-
-None of this makes the current images wrong about what the app does. Whether to retake them
-for 1.13.0 is the maintainer's decision, recorded in the
-[1.13.0 handoff](../store-updates.md#release-1130-handoff); a retake keeps any Zoom window and
-Zoom's artwork out of the images.
-
 ## Content
 
 All speech is a synthesized, neutral talk on community gardens (Windows' Zira, Hortense and
-Hedda voices) played through the default output and captured as system audio. Nothing shows
-a real meeting, API key, account or personal window.
+Hedda voices, at a slightly slow rate) played through the default output and captured as system
+audio. The slide behind the overlay is a plain page made for these images. Nothing shows a real
+meeting, API key, account or personal window. The script that speaks the talk must be saved as
+UTF-8 *with* a byte-order mark: Windows PowerShell 5.1 reads a script without one as ANSI, and
+the voices then read every accented letter as two symbols ("ü" as "Ã¼"), which Whisper and
+Gemini transcribe as nonsense.
 
 | Set | Whisper speech | Bilingual: speech → captions | Overlay: speech → caption |
 | --- | --- | --- | --- |
@@ -46,8 +36,9 @@ a real meeting, API key, account or personal window.
 | `fr/` | French | English → French + German | English → French (Gemini) |
 | `de/` | German | French → German + English | English → German (Gemini) |
 
-Whisper ran on the Base model, so its transcripts keep a few recognition slips (for example
-in the German history detail). Gemini wording is as returned, not edited.
+Whisper ran on the Base model, on the processor, so its transcripts keep a few recognition
+slips (for example "parler déjà d'un partage" in the French set). Gemini wording is as
+returned, not edited ("Mais merci" heard as "But thank you" in the English bilingual image).
 
 ## Mac App Store (English)
 
@@ -105,9 +96,11 @@ render the final once, and regenerate all three files and the social preview tog
 
 ## Recapturing
 
-Re-capture whenever the UI these show changes, from a sideloaded MSIX rather than a dev
-build, and keep the same order and names in every language. Since 1.9.0 the window follows
-Windows' light or dark app mode by default, so set Settings › App › Theme to **Dark** before
+Re-capture whenever the UI these show changes, from a sideloaded MSIX or a release build of the
+release's tag rather than a dev build, and keep the same order and names in every language.
+Launch the app on an unlocked desktop: an overlay created while Windows is locked can stay
+invisible until it is moved and locked again. Since 1.9.0 the window follows Windows' light or
+dark app mode by default, so set Settings › App › Theme to **Dark** before
 capturing, whatever mode the capture PC is in: the whole set has to show one theme, and the
 current shots are dark. Check the current Microsoft
 [screenshot requirements](https://learn.microsoft.com/en-us/windows/apps/publish/publish-your-app/msix/screenshots-and-images)

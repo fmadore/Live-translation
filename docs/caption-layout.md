@@ -67,6 +67,8 @@ screen, so those keep their wrap. The two sources remain independent and share t
 Resizing, changing fonts, adding a second source, or provider corrections can still reflow text.
 The backing is even across the reading area, so top-aligned text is readable over light content.
 
+![Stable reading on the overlay over a light slide: three left-aligned lines of English captions on an even dark backing.](assets/guides/stable-reading-overlay.png)
+
 ## Hide filler words
 
 **Hide filler words** is off by default ([issue #80](https://github.com/fmadore/Live-translation/issues/80)).
@@ -91,6 +93,8 @@ While the option is on, **Settings → Reading** shows the active list under it
 ([issue #85](https://github.com/fmadore/Live-translation/issues/85)). Operators can remove any
 word, including the built-in ones, add words one at a time, and use **Reset to defaults**. Each
 change reaches the overlay at once, without restarting the session.
+
+![Settings, Reading tab: Caption layout set to Stable reading, Hide filler words on with its word list (um, uh, erm, hmm, euh, heu), an Add a word field and Reset to defaults.](assets/guides/reading-settings.png)
 
 - **Whole words only.** A listed word matches only between spaces or punctuation, in any
   script and without regard to case; `eh` never matches inside `ehé`. It is removed wherever it

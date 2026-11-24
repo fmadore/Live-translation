@@ -12,9 +12,10 @@ outstanding acceptance checks.
 
 **For 1.16.1, follow the steps below with these differences:** the package and version are
 `Live.Translation_1.16.1.msixbundle` and **1.16.1.0**; in each language, replace only *What's
-new* and the certification notes' first paragraph ([store-listing.md](store-listing.md)); the
-descriptions, features and screenshots stay as 1.16.0 left them. The rest of this page was
-written for 1.16.0 and is kept as it was.
+new* and the certification notes' first paragraph ([store-listing.md](store-listing.md)), and
+replace the screenshots with the 1.16.1 set ([store-screenshots](store-screenshots/README.md)),
+keeping their captions; the descriptions and features stay as 1.16.0 left them. The rest of
+this page was written for 1.16.0 and is kept as it was.
 
 1.16.0 adds OpenAI subtitles (OpenAI's `gpt-live-transcribe`, on the same key as OpenAI
 translation) and **Continue with offline Whisper**, a banner that offers to carry on a source

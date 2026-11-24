@@ -61,22 +61,34 @@ The MSIX template, `bundle.config.json` and the package's capabilities are uncha
   after #280: captions within seconds, no repetition; words lost where Gemini cuts continuous
   speech ("every sentence is scribed", "Use this the overlay"), the run-together sentence
   spaced after #280.
-- [ ] The release PR merged, with the version bump in the seven files of
+- [x] The release PR ([#279](https://github.com/fmadore/Live-translation/pull/279)) merged on
+  24 November 2026 as `f6aea72`, with the version bump in the seven files of
   [the route](#the-route), `CITATION.cff` (1.16.1, 24 November 2026) and
   `docs/release-1.16.1.md`; `npm run verify` and `npm run verify:rust` pass, and its CI passes.
 - [ ] The French and German What's new sentences for 1.16.1 reviewed by the maintainer.
 
 ### Release and Store acceptance
 
-- [ ] Tag `v1.16.1` (annotated: "Live Translation & Subtitles v1.16.1") on the release PR's
-  merge; the workflow publishes the release with `docs/release-1.16.1.md`, the bundle and the
-  disk image attached.
+- [x] Tag `v1.16.1` (annotated: "Live Translation & Subtitles v1.16.1") on the release PR's
+  merge; the workflow published the release on 24 November 2026 with `docs/release-1.16.1.md`
+  and six assets: the bundle, both MSIX packages, the x64 installers and the disk image.
+- [x] **Exercised in a release build of the tag, 24 November 2026** (ARM64, run unpackaged under
+  the Local Test identity, system audio from a synthesized talk; no DeepL): Whisper Base
+  subtitles in English, French and German, with the model downloaded from the setup; Gemini
+  translation into one language and into two with the original speech; the overlay in Fit
+  window and Stable reading, moved, resized and locked; Transcript history saving, titling,
+  search and bulk deletion; a marker; the *Zoom captions* dialog (opened only); the
+  one-application capture mode (list not opened); the language picker; the interface in
+  English, French and German. Nothing failed. The new [screenshots](store-screenshots/README.md)
+  and the guide images come from these sessions.
 - [ ] Verify the bundle at **1.16.1.0** with the [1.8.0 checks](#release-180-handoff), plus
   `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin` in both packages; the disk image signed
   and stapled.
 - [ ] Submit `Live.Translation_1.16.1.msixbundle` in Partner Center with the 1.16.1 What's new
-  and certification notes ([store-listing.md](store-listing.md)); the descriptions, features and
-  screenshots are 1.16.0's. Rollout **gradual**, starting at 10%.
+  and certification notes ([store-listing.md](store-listing.md)); the descriptions and features
+  are 1.16.0's. Replace the screenshots in each language with the set captured from 1.16.1 on
+  24 November 2026 ([store-screenshots](store-screenshots/README.md)), in filename order, with
+  the unchanged captions. Rollout **gradual**, starting at 10%.
 - [ ] **Mac:** 1.16.0 (build 9) is in App Review. Once it is decided, upload 1.16.1 from its tag
   with the *Mac App Store* workflow and submit it, or wait for the next feature release.
 - [ ] The open checks of the [1.16.0](#release-1160-handoff) handoff carry over.

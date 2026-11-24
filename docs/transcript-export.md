@@ -76,6 +76,8 @@ the exact session timestamp at which you added them. Because they sit beside the
 rather than inside them, timed exports, the overlay and Zoom sharing never mistake a marker for
 speech, and each marker cleanly ends the paragraph before it.
 
+![The Transcript tab during a session: Add marker, Find, the time range, Copy, the export format and Save as, then two caption lines and a marker, Questions from the room, at 0:01:54.](assets/guides/transcript-marker.png)
+
 - **Plain text:** a divider line between paragraphs, `--- Talk 2 starts · 0:42:10 ---`.
 - **Markdown:** a heading, `## Talk 2 starts · 0:42:10` (or `###` under each language heading in
   a two-language export).

@@ -36,6 +36,8 @@ the demo cannot translate.
    queued, not the wall-clock time left to decode it. Discarding queued audio asks for
    confirmation and marks the transcript as incomplete.
 
+![Subtitles with Local Whisper chosen and the Base model selected but not yet downloaded: the Local transcription check offers Download Base (57 MiB), and the running cost reads Free.](assets/guides/whisper-download.png)
+
 Closing the app while audio is still queued behaves differently from Stop: the close prompt tells
 you how many seconds remain, waits a few seconds for the backlog, and discards whatever is left so
 the app can quit. Always click Stop and wait for completion if you need a full transcript.
