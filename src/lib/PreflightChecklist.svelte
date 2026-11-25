@@ -250,6 +250,32 @@
 		{/snippet}
 	</ChecklistRow>
 
+	{#if $options.source === 'both' && $options.provider !== 'ondevice'}
+		<!-- With Both sources, a call on loudspeakers reaches the room mic too and is captioned
+		     twice. The app cannot tell headphones from loudspeakers, so this is a reminder, not
+		     a check: the same switch as the source step's, offered where the operator looks
+		     before Start. A toggle rather than a button that vanishes once used, so focus stays
+		     on it. -->
+		<ChecklistRow
+			status={$options.dropMicEcho ? 'ok' : 'neutral'}
+			glyph="?"
+			title={$t.preflight.echo.title}
+			desc={$options.dropMicEcho ? $t.preflight.echo.on : $t.preflight.echo.off}
+		>
+			{#snippet action()}
+				<ToolButton
+					variant="ghost"
+					size="sm"
+					disabled={locked}
+					aria-pressed={$options.dropMicEcho === true}
+					onclick={() => ($options = { ...$options, dropMicEcho: !$options.dropMicEcho })}
+				>
+					{$t.preflight.echo.action}
+				</ToolButton>
+			{/snippet}
+		</ChecklistRow>
+	{/if}
+
 	<ChecklistRow
 		status={$overlayPlaced ? 'ok' : 'wait'}
 		title={$t.preflight.overlay.title}

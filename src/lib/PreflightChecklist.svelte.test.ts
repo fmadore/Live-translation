@@ -5,6 +5,7 @@ import { forgetKnownKeys } from './ApiKeyPanel.svelte';
 import { operatorContextMap } from './operatorContext';
 import { options, whisperModels } from './stores';
 import { DEFAULT_START_OPTIONS } from './startOptions';
+import { get } from 'svelte/store';
 import { setLocale } from './i18n';
 import type { OverlayController } from './overlayController.svelte';
 import type { PreflightController } from './preflightController.svelte';
@@ -112,6 +113,44 @@ describe('the running cost row', () => {
 	it('names no second source for local Whisper, which bills nothing per stream', () => {
 		const view = mount({ mode: 'transcribe', provider: 'whisper', source: 'both' }, true, true);
 		expect(row(view, 'Running cost')).not.toHaveTextContent('×2 sources');
+	});
+});
+
+describe('the loudspeaker reminder', () => {
+	const both: Partial<StartOptions> = { mode: 'transcribe', provider: 'whisper', source: 'both' };
+
+	it('reminds the operator under Both sources, and turns the echo filter on from the row', async () => {
+		const view = mount(both, true, true);
+		const reminder = row(view, 'Loudspeakers?');
+		expect(reminder).toHaveTextContent('captioned twice');
+		const toggle = within(reminder).getByRole('button', { name: 'Leave out the call' });
+		expect(toggle).toHaveAttribute('aria-pressed', 'false');
+
+		await fireEvent.click(toggle);
+		expect(get(options).dropMicEcho).toBe(true);
+		expect(toggle).toHaveAttribute('aria-pressed', 'true');
+		expect(reminder).toHaveTextContent('will be left out');
+
+		await fireEvent.click(toggle);
+		expect(get(options).dropMicEcho).toBe(false);
+	});
+
+	it('is not shown for one source or for the built-in demo', () => {
+		expect(mount({ ...both, source: 'microphone' }).queryByText('Loudspeakers?')).toBeNull();
+		expect(
+			mount({ ...both, provider: 'ondevice' }, true, true).queryByText('Loudspeakers?')
+		).toBeNull();
+	});
+
+	it('cannot be changed while setup is locked', () => {
+		options.set({ ...DEFAULT_START_OPTIONS, ...both });
+		const view = render(PreflightChecklist, {
+			props: { browserMode: false, locked: true, usesMic: true, usesSystem: true },
+			context: operatorContextMap({ preflight, overlay })
+		});
+		expect(
+			within(row(view, 'Loudspeakers?')).getByRole('button', { name: 'Leave out the call' })
+		).toBeDisabled();
 	});
 });
 

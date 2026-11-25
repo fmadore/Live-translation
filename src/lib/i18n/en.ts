@@ -864,6 +864,15 @@ export const en = {
 			stopTest: 'Stop test'
 		},
 
+		echo: {
+			/** With Both sources: a reminder that a call on loudspeakers reaches the room mic
+			 *  too, and the switch that leaves out its copy (the source step's `dropMicEcho`). */
+			title: 'Loudspeakers?',
+			off: 'If the call plays through loudspeakers, the room mic hears it too and each line is captioned twice. Leave out the call heard by the room mic — not needed with headphones.',
+			on: 'The call heard by the room mic will be left out. Finished mic lines reach the transcript a few seconds later while the call is sounding.',
+			action: 'Leave out the call'
+		},
+
 		overlay: {
 			title: 'Overlay placement',
 			placed: 'Placed — captions will appear where you locked them',

@@ -1,7 +1,7 @@
 # Meeting controls and profiles
 
-Run a live session smoothly from start to finish: pause during breaks, guard cloud spending, save
-reusable room profiles, display two caption languages, drop transcript markers and control the
+Run a live session smoothly from start to finish: caption a call on loudspeakers once, pause
+during breaks, guard cloud spending, save reusable room profiles, display two caption languages, drop transcript markers and control the
 overlay from the keyboard.
 
 ## Session controls
@@ -23,6 +23,29 @@ restores the engine you last used in that mode (`setup.lastEngines` in local sto
 Subtitles defaults to Whisper (or the built-in demo on unsupported processors) and Live
 translation defaults to Gemini. Switching modes keeps your audio source without starting capture
 or downloading anything, and existing setups carry across upgrades.
+
+## Both sources: headphones or loudspeakers
+
+With **Both** sources, the app captions the room microphone and the computer's sound together:
+in a Teams or Zoom call, your own voice comes from the microphone and the other participants
+from the system audio. With headphones, the call goes to your ears only, and each person is
+captioned once.
+
+On loudspeakers, the microphone also hears the call. The remote speaker is then captioned twice:
+once from the system audio, and once from the microphone, as if you had said the same thing.
+To prevent this, turn on **Leave out the call heard by the room mic** under the Both tile in
+*Where the audio comes from*. Since the app cannot tell headphones from loudspeakers, the
+pre-flight checklist also shows a **Loudspeakers?** row under Both, whose **Leave out the call**
+button switches the same setting on or off.
+
+With it on, a microphone line whose words repeat what the system audio captioned at the same
+moment is left out. Nothing is lost: that line is already on screen from the system audio, and
+what you say yourself still appears, since the call does not send your voice back through the
+system audio. While the call is sounding, finished microphone lines reach the transcript a few
+seconds later (up to about 30 seconds with local Whisper), because each waits to be compared
+with the system audio. The comparison is made on the words, so a microphone that hears the call
+badly, in a noisy room or at a low volume, can still let a copy through. With headphones, leave
+the setting off.
 
 ## Pause
 
