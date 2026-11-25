@@ -829,6 +829,13 @@ export const fr: Messages = {
 			stopTest: 'Arrêter le test'
 		},
 
+		echo: {
+			title: 'Haut-parleurs ?',
+			off: 'Si l’appel sort des haut-parleurs, le micro de la salle le capte aussi et chaque ligne est sous-titrée deux fois. Écartez l’appel capté par le micro de la salle — inutile avec un casque.',
+			on: 'L’appel capté par le micro de la salle sera écarté. Pendant l’appel, les lignes terminées du micro arrivent dans la transcription quelques secondes plus tard.',
+			action: 'Écarter l’appel'
+		},
+
 		overlay: {
 			title: 'Placement de la surimpression',
 			placed: 'Placée — les sous-titres apparaîtront là où vous les avez verrouillés',

@@ -823,6 +823,13 @@ export const de: Messages = {
 			stopTest: 'Test beenden'
 		},
 
+		echo: {
+			title: 'Lautsprecher?',
+			off: 'Läuft der Anruf über Lautsprecher, hört ihn auch das Raummikrofon, und jede Zeile wird doppelt untertitelt. Lassen Sie den vom Raummikrofon gehörten Anruf weg – mit Kopfhörern nicht nötig.',
+			on: 'Der vom Raummikrofon gehörte Anruf wird weggelassen. Während des Anrufs erreichen fertige Mikrofonzeilen das Transkript einige Sekunden später.',
+			action: 'Anruf weglassen'
+		},
+
 		overlay: {
 			title: 'Overlay-Platzierung',
 			placed: 'Platziert – Untertitel erscheinen dort, wo Sie sie verankert haben',
