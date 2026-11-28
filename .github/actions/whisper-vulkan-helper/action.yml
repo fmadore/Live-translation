@@ -1,0 +1,48 @@
+name: Whisper Vulkan helper
+description: >-
+  Puts the Whisper Vulkan helper that release.yml's `vulkan-helper` job built in this run where
+  a release build looks for it, src-tauri/binaries/whisper-vulkan-<target>.exe (the sidecar
+  tauri.vulkan.conf.json declares), and checks that it is a Windows program for that target's
+  architecture, so a package never carries a helper built for the other one.
+
+inputs:
+  target:
+    description: The Rust target the helper was built for (x86_64-pc-windows-msvc or aarch64-pc-windows-msvc).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    # Artefacts are this run's only (download-artifact reads no other run without a run id),
+    # and src-tauri/binaries/ is ignored by git, so nothing older can stand in for the helper.
+    - name: Download the helper
+      uses: actions/download-artifact@v8
+      with:
+        name: whisper-vulkan-${{ inputs.target }}
+        path: src-tauri/binaries
+
+    # The PE header's machine field: 0x8664 for x64, 0xAA64 for ARM64.
+    - name: Check the helper's architecture
+      shell: pwsh
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        $machines = @{ 'x86_64-pc-windows-msvc' = 0x8664; 'aarch64-pc-windows-msvc' = 0xAA64 }
+        if (-not $machines.ContainsKey($env:TARGET)) { throw "Unknown target $env:TARGET." }
+        $path = Join-Path 'src-tauri' 'binaries' "whisper-vulkan-$env:TARGET.exe"
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "$path was not downloaded." }
+        $stream = [System.IO.File]::OpenRead((Resolve-Path -LiteralPath $path).Path)
+        try {
+          $reader = [System.IO.BinaryReader]::new($stream)
+          if ($reader.ReadUInt16() -ne 0x5A4D) { throw "$path is not a Windows program." }
+          $stream.Position = 0x3C
+          $stream.Position = $reader.ReadInt32()
+          if ($reader.ReadUInt32() -ne 0x00004550) { throw "$path has no PE header." }
+          $machine = $reader.ReadUInt16()
+        } finally {
+          $stream.Dispose()
+        }
+        if ($machine -ne $machines[$env:TARGET]) {
+          throw ("$path is built for machine 0x{0:X4}, not $env:TARGET (0x{1:X4})." -f $machine, $machines[$env:TARGET])
+        }
+        Write-Output ("$path is a $env:TARGET program (machine 0x{0:X4}), $((Get-Item -LiteralPath $path).Length) bytes." -f $machine)

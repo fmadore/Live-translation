@@ -17,7 +17,8 @@ name: Release installers
 #
 # Normal flow:   git tag v0.1.2 && git push origin v0.1.2. `prepare` checks the tag against
 # the version files, waits for CI to pass on the tagged commit and creates the release as a
-# draft; `build` attaches the installers, `macos` the disk image, `msix` the x64 and ARM64
+# draft; `vulkan-helper` builds the Whisper Vulkan helper once per architecture for the Windows
+# jobs, `build` attaches the installers, `macos` the disk image, `msix` the x64 and ARM64
 # packages and `bundle` the Store bundle. Only then, and only with all six attached, does
 # `bundle` publish the release, with docs/release-<version>.md from the tagged commit as its body. Until that last
 # step nothing is public, so a failed job leaves a draft to re-run rather than a spent version.
@@ -234,8 +235,67 @@ jobs:
           fi
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
-  build:
+  # Whisper on the graphics processor (docs/local-whisper.md#graphics-processor): the helper
+  # program, built once per architecture and handed to the jobs that package it, `build` (x64)
+  # and both `msix` packages. Each consumer used to install the Vulkan SDK and build it cold,
+  # about ten minutes, so x64 was built twice. It is a release-profile build, which nothing on
+  # main makes (CI lints and tests the helper in the debug profile), so there is no cache to
+  # restore, and a tag run's own cache would be scoped to the tag. The artefact is this run's
+  # own: no other run's helper can reach a release, and each consumer checks its architecture.
+  vulkan-helper:
+    name: Whisper Vulkan helper (${{ matrix.arch }})
     needs: prepare
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - arch: arm64
+            runner: windows-11-arm
+            target: aarch64-pc-windows-msvc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          persist-credentials: false
+
+      # The toolchain rust-toolchain.toml pins, as in `build`. Each runner builds for its own
+      # architecture, so the shader compiler the SDK brings runs natively.
+      - name: Install Rust (rust-toolchain.toml)
+        run: rustup toolchain install
+
+      - name: Configure native Whisper compiler
+        uses: ./.github/actions/whisper-compiler
+
+      # The build script uses Node's own modules only: no npm install.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Vulkan SDK
+        uses: ./.github/actions/vulkan-sdk
+
+      - name: Build the Whisper Vulkan helper
+        run: node scripts/build-whisper-vulkan.mjs ${{ matrix.target }}
+
+      # Named after the target, which is also the file's name: a consumer asks for its own
+      # target's artefact and .github/actions/whisper-vulkan-helper checks what it got.
+      - name: Upload the helper
+        uses: actions/upload-artifact@v7
+        with:
+          name: whisper-vulkan-${{ matrix.target }}
+          path: src-tauri/binaries/whisper-vulkan-${{ matrix.target }}.exe
+          retention-days: 1
+          if-no-files-found: error
+
+  build:
+    needs: [prepare, vulkan-helper]
     strategy:
       fail-fast: false
       matrix:
@@ -274,14 +334,13 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      # Whisper on the graphics processor (docs/local-whisper.md#graphics-processor): the helper
-      # is built here and declared as a sidecar by tauri.vulkan.conf.json, for release builds
-      # only, so CI's tests and `tauri dev` never need the Vulkan SDK.
-      - name: Vulkan SDK
-        uses: ./.github/actions/vulkan-sdk
-
-      - name: Build the Whisper Vulkan helper
-        run: node scripts/build-whisper-vulkan.mjs ${{ matrix.target }}
+      # Whisper on the graphics processor: the helper `vulkan-helper` built, declared as a
+      # sidecar by tauri.vulkan.conf.json for release builds only, so CI's tests and
+      # `tauri dev` never need the Vulkan SDK.
+      - name: Whisper Vulkan helper
+        uses: ./.github/actions/whisper-vulkan-helper
+        with:
+          target: ${{ matrix.target }}
 
       # With a release id, tauri-action skips its own release lookup and only uploads, replacing
       # assets of the same name. Draft or published is decided by `prepare` and `bundle`.
@@ -400,12 +459,12 @@ jobs:
   # populated on windows-latest — nothing to install). The package is left unsigned on purpose:
   # the Store re-signs it, and an unsigned package is what Partner Center expects.
   #
-  # Runs beside `build`, which it takes nothing from, and uploads to the same release, which is
-  # still a draft for a new tag. `gh release upload` finds a draft by its tag as well as a
-  # published release.
+  # Runs beside `build`, which it takes nothing from, with the helper `vulkan-helper` built for
+  # its architecture, and uploads to the same release, which is still a draft for a new tag.
+  # `gh release upload` finds a draft by its tag as well as a published release.
   msix:
     name: MSIX package (${{ matrix.arch }})
-    needs: prepare
+    needs: [prepare, vulkan-helper]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
@@ -445,11 +504,10 @@ jobs:
         run: npm ci
 
       # As in `build`: scripts/bundle-msix.mjs puts the helper in the package.
-      - name: Vulkan SDK
-        uses: ./.github/actions/vulkan-sdk
-
-      - name: Build the Whisper Vulkan helper
-        run: node scripts/build-whisper-vulkan.mjs ${{ matrix.target }}
+      - name: Whisper Vulkan helper
+        uses: ./.github/actions/whisper-vulkan-helper
+        with:
+          target: ${{ matrix.target }}
 
       # Writes an architecture-specific .msix and a single-architecture .msixbundle wrapper.
       # Only the bare .msix is kept: the `bundle` job below combines both architectures into
