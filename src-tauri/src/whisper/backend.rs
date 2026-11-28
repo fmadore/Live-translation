@@ -107,9 +107,7 @@ pub fn load(
 
 /// The bundled speech-detection model, where the installer put it.
 fn vad_path(app: &AppHandle) -> Option<PathBuf> {
-    app.path()
-        .resolve(vad::RESOURCE, tauri::path::BaseDirectory::Resource)
-        .ok()
+    vad::bundled(app)
 }
 
 pub(super) fn load_lease(

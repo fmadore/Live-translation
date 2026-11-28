@@ -96,6 +96,23 @@ pub struct TranscribeSetup {
     // Same placement rule as live translate: a `BidiGenerateContentSetup` field, never a
     // `generationConfig` one.
     pub input_audio_transcription: AudioTranscriptionConfig,
+    /// Present only when the client cuts the stream itself (`super::cuts`): Gemini's own
+    /// speech detection off, so `activityStart` and `activityEnd` mark the segments.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub realtime_input_config: Option<RealtimeInputConfig>,
+}
+
+/// `BidiGenerateContentSetup.realtimeInputConfig`, as far as the app sets it.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RealtimeInputConfig {
+    pub automatic_activity_detection: AutomaticActivityDetection,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AutomaticActivityDetection {
+    /// "If disabled, the client must send activity signals" (Live API reference).
+    pub disabled: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -128,10 +145,13 @@ pub struct AudioTranscriptionConfig {
 pub const MODE_VERBATIM: &str = "VERBATIM";
 
 impl TranscribeSetupMessage {
+    /// `client_activity`: the client marks the segments itself, with Gemini's own speech
+    /// detection turned off (`super::cuts`).
     pub fn live_transcribe(
         model: &str,
         language_codes: &[&str],
         custom_vocabulary: &[String],
+        client_activity: bool,
     ) -> Self {
         Self {
             setup: TranscribeSetup {
@@ -146,14 +166,26 @@ impl TranscribeSetupMessage {
                     mode: MODE_VERBATIM,
                     custom_vocabulary: custom_vocabulary.to_vec(),
                 },
+                realtime_input_config: client_activity.then_some(RealtimeInputConfig {
+                    automatic_activity_detection: AutomaticActivityDetection { disabled: true },
+                }),
             },
         }
     }
 }
 
 /// Flushes audio the server has buffered but not yet transcribed, so a final segment can
-/// still arrive during the shared runner's close drain.
+/// still arrive during the shared runner's close drain. With automatic activity detection
+/// only: the reference says it "should only be sent when automatic activity detection is
+/// enabled".
 pub const AUDIO_STREAM_END: &str = r#"{"realtimeInput":{"audioStreamEnd":true}}"#;
+
+/// The start of a segment the client marks, with automatic activity detection disabled
+/// (`ActivityStart` "has no fields"; it "can only be sent if automatic (i.e. server-side)
+/// activity detection is disabled").
+pub const CLIENT_ACTIVITY_START: &str = r#"{"realtimeInput":{"activityStart":{}}}"#;
+/// The end of a segment the client marks; the same conditions as [`CLIENT_ACTIVITY_START`].
+pub const CLIENT_ACTIVITY_END: &str = r#"{"realtimeInput":{"activityEnd":{}}}"#;
 
 impl RealtimeInputMessage {
     pub fn pcm16(base64_data: String) -> Self {
@@ -254,6 +286,7 @@ mod tests {
             "gemini-3.5-transcribe-live",
             &[],
             &[],
+            false,
         ))
         .unwrap();
         let setup = &value["setup"];
@@ -284,6 +317,39 @@ mod tests {
         // Transcription has no translation target and generates no audio to transcribe back.
         assert!(setup["generationConfig"].get("translationConfig").is_none());
         assert!(setup.get("outputAudioTranscription").is_none());
+        // Gemini's own speech detection, unless the client cuts the stream.
+        assert!(setup.get("realtimeInputConfig").is_none());
+    }
+
+    /// The shape of the Live API reference and the transcription guide's manual-detection
+    /// example (read 28 November 2026): `realtimeInputConfig` is a setup field, and the
+    /// activity signals are empty objects in `realtimeInput`.
+    #[test]
+    fn client_cuts_turn_off_automatic_activity_detection() {
+        let value = serde_json::to_value(TranscribeSetupMessage::live_transcribe(
+            "gemini-3.5-transcribe-live",
+            &[],
+            &[],
+            true,
+        ))
+        .unwrap();
+        let setup = &value["setup"];
+        assert_eq!(
+            setup["realtimeInputConfig"],
+            serde_json::json!({ "automaticActivityDetection": { "disabled": true } })
+        );
+        assert!(
+            setup["generationConfig"]
+                .get("realtimeInputConfig")
+                .is_none()
+        );
+        for (frame, field) in [
+            (CLIENT_ACTIVITY_START, "activityStart"),
+            (CLIENT_ACTIVITY_END, "activityEnd"),
+        ] {
+            let value: serde_json::Value = serde_json::from_str(frame).unwrap();
+            assert_eq!(value["realtimeInput"][field], serde_json::json!({}));
+        }
     }
 
     #[test]
@@ -293,6 +359,7 @@ mod tests {
             "gemini-3.5-transcribe-live",
             &[],
             &terms,
+            false,
         ))
         .unwrap();
         assert_eq!(
@@ -307,6 +374,7 @@ mod tests {
             "gemini-3.5-transcribe-live",
             &["pt-BR", "pt-PT"],
             &[],
+            false,
         ))
         .unwrap();
         let sidecar = &value["setup"]["inputAudioTranscription"];

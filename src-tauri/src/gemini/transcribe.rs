@@ -5,11 +5,13 @@
 //! accumulator's `text`, where Live Translate puts its translation, and reaches the export
 //! through the ordinary caption path — the arrangement Mistral already uses.
 
+use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::Result;
 use tokio_tungstenite::tungstenite::handshake::client::Request;
 
+use super::cuts::SpeechCuts;
 use super::gemini_request;
 use super::protocol::{
     ACTIVITY_END, ACTIVITY_START, AUDIO_STREAM_END, RealtimeInputMessage, ServerMessage,
@@ -38,6 +40,9 @@ pub struct GeminiTranscribeConfig {
     pub language_codes: &'static [&'static str],
     /// The session's names and terms, sent as `customVocabulary`.
     pub custom_vocabulary: Vec<String>,
+    /// The bundled speech-detection model when the client cuts the stream at pauses
+    /// (`cuts::speech_model`); `None` leaves the segments to Gemini.
+    pub speech_detection: Option<PathBuf>,
     pub origin: Origin,
 }
 
@@ -139,10 +144,24 @@ pub fn validate_spoken_language(spoken: Option<&str>) -> Result<()> {
 }
 
 impl GeminiTranscribeConfig {
+    /// The client, with Silero started when the client is to cut the stream. Where it cannot
+    /// run, the segments stay Gemini's, as they were before the client could cut them.
     pub fn into_client(self) -> GeminiTranscribeClient {
+        let cuts = self.speech_detection.as_deref().and_then(|model| {
+            let cuts = SpeechCuts::start(model);
+            if cuts.is_none() {
+                tracing::warn!(
+                    origin = ?self.origin,
+                    "Gemini Transcribe keeps Gemini's own speech detection"
+                );
+            }
+            cuts
+        });
         GeminiTranscribeClient {
             config: self,
             closed_without_final: false,
+            cuts,
+            awaiting_final: false,
         }
     }
 }
@@ -155,6 +174,24 @@ pub struct GeminiTranscribeClient {
     /// and is not captioned twice. Cleared by the next `ACTIVITY_START`, the next interim, or a
     /// new connection.
     closed_without_final: bool,
+    /// Where the client cuts the stream itself (`super::cuts`); `None` when Gemini does.
+    cuts: Option<SpeechCuts>,
+    /// With client cuts: the server ended the segment (`ACTIVITY_END`) and its final has not
+    /// come. Whether finals come before or after `ACTIVITY_END` in this mode, or whether that
+    /// frame comes at all, has not been seen on the wire, so the segment's interim text waits
+    /// for its final, and becomes its caption only when the next segment shows itself first.
+    awaiting_final: bool,
+}
+
+#[cfg(test)]
+impl GeminiTranscribeClient {
+    /// The client with cuts from a given detector, for tests that need them at exact chunks.
+    pub(super) fn with_cuts(config: GeminiTranscribeConfig, cuts: SpeechCuts) -> Self {
+        Self {
+            cuts: Some(cuts),
+            ..config.into_client()
+        }
+    }
 }
 
 impl RealtimeProtocol for GeminiTranscribeClient {
@@ -174,6 +211,7 @@ impl RealtimeProtocol for GeminiTranscribeClient {
                 &self.config.model,
                 self.config.language_codes,
                 &self.config.custom_vocabulary,
+                self.cuts.is_some(),
             ),
         )?))
     }
@@ -184,12 +222,27 @@ impl RealtimeProtocol for GeminiTranscribeClient {
         ))?)
     }
 
+    /// With client cuts: `activityStart` before a connection's first chunk, and a cut where a
+    /// pause was found.
+    fn before_audio(&mut self, pcm_le: &[u8]) -> Vec<String> {
+        self.cuts
+            .as_mut()
+            .map(|cuts| cuts.before_audio(pcm_le))
+            .unwrap_or_default()
+    }
+
     fn wait_for_setup_complete(&self) -> bool {
         true
     }
 
+    /// `audioStreamEnd` flushes Gemini's own segment. With client cuts it is not to be sent;
+    /// the open activity's `activityEnd` ends the last segment instead, so its final can still
+    /// come during the drain.
     fn closing_json(&mut self) -> Result<Vec<String>> {
-        Ok(vec![AUDIO_STREAM_END.to_string()])
+        Ok(match &mut self.cuts {
+            Some(cuts) => cuts.closing(),
+            None => vec![AUDIO_STREAM_END.to_string()],
+        })
     }
 
     /// The authoritative final that follows `audioStreamEnd` is the flush it asked for. Waiting
@@ -205,6 +258,11 @@ impl RealtimeProtocol for GeminiTranscribeClient {
 
         if msg.setup_complete.is_some() {
             self.closed_without_final = false;
+            self.awaiting_final = false;
+            // A new socket: no activity is open on it.
+            if let Some(cuts) = &mut self.cuts {
+                cuts.new_connection();
+            }
         }
         if let Some(outcome) = msg.control(self, "Gemini Transcribe error") {
             return outcome;
@@ -213,10 +271,21 @@ impl RealtimeProtocol for GeminiTranscribeClient {
         // A segment the server ends without a final would otherwise keep its interim text
         // pending until the next segment's first interim replaced it, and lose it: on
         // 23 November 2026 a segment of the English rehearsal recording ended that way. Its
-        // last interim text becomes its caption instead.
+        // last interim text becomes its caption instead: at once with Gemini's segments, whose
+        // final came before `ACTIVITY_END` every time it came; with the client's, once the next
+        // segment shows itself (`awaiting_final`).
         if let Some(activity) = &msg.voice_activity {
             match activity.kind.as_str() {
-                ACTIVITY_START => self.closed_without_final = false,
+                ACTIVITY_START => {
+                    self.closed_without_final = false;
+                    if std::mem::take(&mut self.awaiting_final) && !acc.is_empty() {
+                        return MessageOutcome::activity(CaptionUpdate::Final);
+                    }
+                }
+                ACTIVITY_END if !acc.is_empty() && self.cuts.is_some() => {
+                    self.awaiting_final = true;
+                    return MessageOutcome::default();
+                }
                 ACTIVITY_END if !acc.is_empty() => {
                     self.closed_without_final = true;
                     return MessageOutcome::activity(CaptionUpdate::Final);
@@ -230,8 +299,30 @@ impl RealtimeProtocol for GeminiTranscribeClient {
         };
         if content.interim_input_transcription.is_some() {
             self.closed_without_final = false;
+            // The next segment's first words, with the last one's final still missing: the
+            // last one keeps its interim text, and this revision gives way to the next.
+            if content.input_transcription.is_none()
+                && std::mem::take(&mut self.awaiting_final)
+                && !acc.is_empty()
+            {
+                return MessageOutcome::activity(CaptionUpdate::Final);
+            }
         } else if self.closed_without_final && content.input_transcription.is_some() {
             return MessageOutcome::default();
+        }
+        // A segment the server ended that closes with no final keeps its interim text rather
+        // than retracting it.
+        if self.awaiting_final
+            && content.input_transcription.is_none()
+            && (content.generation_complete.unwrap_or(false)
+                || content.turn_complete.unwrap_or(false))
+            && !acc.is_empty()
+        {
+            self.awaiting_final = false;
+            return MessageOutcome::activity(CaptionUpdate::Final);
+        }
+        if content.input_transcription.is_some() {
+            self.awaiting_final = false;
         }
 
         // Empty finalized captions retract speculative text in both windows and the pending
@@ -376,6 +467,7 @@ mod client_tests {
                 host: crate::gemini::DEFAULT_HOST.to_string(),
                 language_codes: &[],
                 custom_vocabulary: Vec::new(),
+                speech_detection: None,
                 origin: Origin::Microphone,
             }
             .into_client(),
@@ -414,6 +506,7 @@ mod client_tests {
             host: crate::gemini::DEFAULT_HOST.to_string(),
             language_codes: &[],
             custom_vocabulary: Vec::new(),
+            speech_detection: None,
             origin: Origin::Microphone,
         };
         let translate = crate::gemini::GeminiConfig {
@@ -452,6 +545,7 @@ mod client_tests {
             host: crate::gemini::DEFAULT_HOST.to_string(),
             language_codes: language_codes(spoken).unwrap(),
             custom_vocabulary: Vec::new(),
+            speech_detection: None,
             origin: Origin::Microphone,
         };
         assert_eq!(
@@ -632,6 +726,7 @@ mod client_tests {
             host: crate::gemini::DEFAULT_HOST.to_string(),
             language_codes: &[],
             custom_vocabulary: Vec::new(),
+            speech_detection: None,
             origin: Origin::Microphone,
         }
         .into_client()
@@ -859,6 +954,7 @@ mod client_tests {
                 host: crate::gemini::DEFAULT_HOST.to_string(),
                 language_codes: &[],
                 custom_vocabulary: Vec::new(),
+                speech_detection: None,
                 origin: Origin::Microphone,
             }
             .into_client(),
@@ -868,6 +964,480 @@ mod client_tests {
         assert!(!h.proto.drain_complete(&interim));
         let last = h.send(r#"{"serverContent":{"inputTranscription":{"text":"And finally."}}}"#);
         assert!(h.proto.drain_complete(&last));
+    }
+}
+
+/// The client cutting the stream itself (`super::cuts`): what it sends around each lifecycle
+/// event, against a loopback server, and how it reads a segment's end. Silero is replaced by a
+/// loudness gate answering inline, so the cuts fall at known chunks. What the server sends back
+/// in this mode has not been seen on the wire, so the replies here are each possibility.
+#[cfg(test)]
+mod cut_tests {
+    use std::time::Duration;
+
+    use base64::Engine;
+    use futures_util::{SinkExt, StreamExt};
+    use tokio::net::{TcpListener, TcpStream};
+    use tokio::time::{sleep, timeout};
+    use tokio_tungstenite::tungstenite::Message;
+    use tokio_tungstenite::tungstenite::client::IntoClientRequest;
+    use tokio_tungstenite::{WebSocketStream, accept_async};
+
+    use super::*;
+    use crate::gemini::cuts::tests::{Loudness, chunk};
+    use crate::gemini::protocol::{CLIENT_ACTIVITY_END, CLIENT_ACTIVITY_START};
+    use crate::realtime::test_support::{Emitted, Harness};
+
+    fn config() -> GeminiTranscribeConfig {
+        GeminiTranscribeConfig {
+            api_key: String::new(),
+            model: DEFAULT_TRANSCRIBE_MODEL.to_string(),
+            host: crate::gemini::DEFAULT_HOST.to_string(),
+            language_codes: &[],
+            custom_vocabulary: Vec::new(),
+            speech_detection: None,
+            origin: Origin::Microphone,
+        }
+    }
+
+    fn cutting() -> GeminiTranscribeClient {
+        GeminiTranscribeClient::with_cuts(config(), SpeechCuts::inline(Box::new(Loudness)))
+    }
+
+    fn interim(text: &str) -> String {
+        serde_json::json!({ "serverContent": { "interimInputTranscription": { "text": text } } })
+            .to_string()
+    }
+
+    fn final_frame(text: &str) -> String {
+        serde_json::json!({ "serverContent": { "inputTranscription": { "text": text } } })
+            .to_string()
+    }
+
+    const READY: &str = r#"{"setupComplete":{}}"#;
+    const START: &str = r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_START"}}"#;
+    const END: &str = r#"{"serverContent":{},"voiceActivity":{"type":"ACTIVITY_END"}}"#;
+    const CLOSE: &str = r#"{"serverContent":{"generationComplete":true}}"#;
+
+    #[test]
+    fn the_setup_and_the_closing_frame_follow_who_cuts() {
+        let mut gemini = config().into_client();
+        assert!(
+            !gemini
+                .setup_json()
+                .unwrap()
+                .unwrap()
+                .contains("realtimeInputConfig")
+        );
+        assert!(gemini.before_audio(&chunk(true)).is_empty());
+        assert_eq!(gemini.closing_json().unwrap(), [AUDIO_STREAM_END]);
+
+        let mut client = cutting();
+        assert!(client.setup_json().unwrap().unwrap().ends_with(
+            r#""realtimeInputConfig":{"automaticActivityDetection":{"disabled":true}}}}"#
+        ));
+        // Nothing sent, nothing to end; `audioStreamEnd` is never sent in this mode.
+        assert!(client.closing_json().unwrap().is_empty());
+        assert_eq!(client.before_audio(&chunk(true)), [CLIENT_ACTIVITY_START]);
+        assert!(client.before_audio(&chunk(true)).is_empty());
+        assert_eq!(client.closing_json().unwrap(), [CLIENT_ACTIVITY_END]);
+        // A model that cannot be loaded leaves the segments to Gemini.
+        let fallback = GeminiTranscribeConfig {
+            speech_detection: Some("no such model".into()),
+            ..config()
+        }
+        .into_client();
+        assert!(fallback.cuts.is_none());
+    }
+
+    /// A final that comes after the server's `ACTIVITY_END` is the segment's caption; the
+    /// interim before it is not made final first.
+    #[test]
+    fn a_final_after_the_segments_end_is_its_caption() {
+        let mut h = Harness::new(cutting());
+        h.send(READY);
+        h.send(START);
+        h.send(&interim("Every sentence is trans"));
+        assert_eq!(h.send(END).caption, CaptionUpdate::None);
+        h.send(&final_frame("Every sentence is transcribed."));
+        h.send(CLOSE);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "Every sentence is trans", ""),
+                Emitted::final_(0, "Every sentence is transcribed.", ""),
+            ]
+        );
+    }
+
+    /// A segment that ends with no final keeps its interim text, whichever way the next one
+    /// shows itself: its `ACTIVITY_START`, its first interim, or a close with no final.
+    #[test]
+    fn a_segment_with_no_final_keeps_its_interim_text() {
+        let mut h = Harness::new(cutting());
+        h.send(START);
+        h.send(&interim("A speaker is presenting"));
+        h.send(END);
+        h.send(START);
+        h.send(&interim("Captions appear"));
+        h.send(END);
+        // No ACTIVITY_START: the next segment's interim closes the last one, and gives way.
+        h.send(&interim("and are corrected"));
+        h.send(&interim("and are corrected once"));
+        h.send(END);
+        h.send(CLOSE);
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "A speaker is presenting", ""),
+                Emitted::final_(0, "A speaker is presenting", ""),
+                Emitted::interim(1, "Captions appear", ""),
+                Emitted::final_(1, "Captions appear", ""),
+                Emitted::interim(2, "and are corrected once", ""),
+                Emitted::final_(2, "and are corrected once", ""),
+            ]
+        );
+        // With no activity frames at all, finals alone end the segments.
+        let mut h = Harness::new(cutting());
+        h.send(&interim("Hello"));
+        h.send(&final_frame("Hello."));
+        h.send(&interim("Again"));
+        h.send(&final_frame("Again."));
+        assert_eq!(
+            h.captions,
+            [
+                Emitted::interim(0, "Hello", ""),
+                Emitted::final_(0, "Hello.", ""),
+                Emitted::interim(1, "Again", ""),
+                Emitted::final_(1, "Again.", ""),
+            ]
+        );
+    }
+
+    /// The client over plain `ws://` to a loopback address; everything else is its own.
+    struct Loopback(GeminiTranscribeClient, String);
+
+    impl RealtimeProtocol for Loopback {
+        const NAME: &'static str = GeminiTranscribeClient::NAME;
+
+        fn origin(&self) -> Origin {
+            self.0.origin()
+        }
+        fn connect_request(&self) -> Result<Request> {
+            Ok(self.1.as_str().into_client_request()?)
+        }
+        fn setup_json(&self) -> Result<Option<String>> {
+            self.0.setup_json()
+        }
+        fn audio_json(&self, base64_pcm: String) -> Result<String> {
+            self.0.audio_json(base64_pcm)
+        }
+        fn before_audio(&mut self, pcm_le: &[u8]) -> Vec<String> {
+            self.0.before_audio(pcm_le)
+        }
+        fn wait_for_setup_complete(&self) -> bool {
+            self.0.wait_for_setup_complete()
+        }
+        fn closing_json(&mut self) -> Result<Vec<String>> {
+            self.0.closing_json()
+        }
+        fn drain_complete(&self, outcome: &MessageOutcome) -> bool {
+            self.0.drain_complete(outcome)
+        }
+        fn handle_message(&mut self, text: &str, acc: &mut TurnAccumulator) -> MessageOutcome {
+            self.0.handle_message(text, acc)
+        }
+        fn finalize_after(&self) -> Option<Duration> {
+            self.0.finalize_after()
+        }
+    }
+
+    /// What the server heard, frame by frame.
+    #[derive(Debug, PartialEq, Eq)]
+    enum Heard {
+        Start,
+        End,
+        StreamEnd,
+        Speech,
+        Quiet,
+        Closed,
+    }
+    use Heard::{Closed, End, Quiet, Speech, Start};
+
+    type Ws = WebSocketStream<TcpStream>;
+
+    /// Captions, as the runner emits them.
+    struct Captions(tokio::sync::mpsc::UnboundedSender<(String, bool)>);
+
+    impl crate::realtime::Events for Captions {
+        fn caption(&self, caption: crate::types::Caption<'_>) {
+            let _ = self.0.send((caption.text.to_string(), caption.final_));
+        }
+        fn status(&self, _update: crate::types::StatusUpdate) {}
+    }
+
+    struct Run {
+        listener: TcpListener,
+        audio: tokio::sync::mpsc::Sender<crate::audio::AudioChunk>,
+        pause: tokio::sync::watch::Sender<bool>,
+        cancel: tokio_util::sync::CancellationToken,
+        task: tokio::task::JoinHandle<()>,
+        captions: tokio::sync::mpsc::UnboundedReceiver<(String, bool)>,
+    }
+
+    /// The paused clock moves by at most a millisecond each time the runtime parks, as in
+    /// `realtime::tests`, so the runner's timeouts are crossed only on purpose.
+    fn tick_clock() {
+        tokio::spawn(async {
+            loop {
+                sleep(Duration::from_millis(1)).await;
+            }
+        });
+    }
+
+    impl Run {
+        async fn start() -> Self {
+            tick_clock();
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let url = format!("ws://{}", listener.local_addr().unwrap());
+            let (events, captions) = tokio::sync::mpsc::unbounded_channel();
+            let (audio, audio_rx) = tokio::sync::mpsc::channel(5);
+            let (pause, pause_rx) = tokio::sync::watch::channel(false);
+            let cancel = tokio_util::sync::CancellationToken::new();
+            let task = tokio::spawn(crate::realtime::run_session(
+                Captions(events),
+                Loopback(cutting(), url),
+                audio_rx,
+                cancel.clone(),
+                crate::timing::SessionClock::start(),
+                pause_rx,
+                crate::realtime::Track::default(),
+            ));
+            Self {
+                listener,
+                audio,
+                pause,
+                cancel,
+                task,
+                captions,
+            }
+        }
+
+        /// The next connection, its setup read and checked, not yet confirmed.
+        async fn accept(&self) -> Ws {
+            let (stream, _) = timeout(GUARD, self.listener.accept())
+                .await
+                .unwrap()
+                .unwrap();
+            stream.set_nodelay(true).unwrap();
+            let mut ws = accept_async(stream).await.unwrap();
+            let setup = loop {
+                if let Message::Text(text) = ws.next().await.unwrap().unwrap() {
+                    break text;
+                }
+            };
+            assert!(setup.contains(r#""automaticActivityDetection":{"disabled":true}"#));
+            ws
+        }
+
+        async fn speak(&self, loud: bool) {
+            let pcm_le = chunk(loud);
+            self.audio
+                .send(crate::audio::AudioChunk { pcm_le })
+                .await
+                .unwrap();
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        async fn caption(&mut self) -> (String, bool) {
+            timeout(GUARD, self.captions.recv()).await.unwrap().unwrap()
+        }
+
+        async fn finished(self) {
+            timeout(GUARD, self.task).await.unwrap().unwrap();
+        }
+    }
+
+    const GUARD: Duration = Duration::from_secs(120);
+
+    /// The next frame the server heard, answering pings on the way.
+    async fn heard(ws: &mut Ws) -> Heard {
+        loop {
+            let message = timeout(GUARD, ws.next())
+                .await
+                .expect("the client sent nothing");
+            let text = match message {
+                Some(Ok(Message::Text(text))) => text,
+                Some(Ok(Message::Close(_)) | Err(_)) | None => return Closed,
+                Some(Ok(_)) => continue,
+            };
+            let value: serde_json::Value = serde_json::from_str(&text).unwrap();
+            let input = &value["realtimeInput"];
+            return if input.get("activityStart").is_some() {
+                Start
+            } else if input.get("activityEnd").is_some() {
+                End
+            } else if input.get("audioStreamEnd").is_some() {
+                Heard::StreamEnd
+            } else {
+                let data = input["audio"]["data"].as_str().unwrap();
+                let pcm = base64::engine::general_purpose::STANDARD
+                    .decode(data)
+                    .unwrap();
+                if pcm.iter().any(|&b| b != 0) {
+                    Speech
+                } else {
+                    Quiet
+                }
+            };
+        }
+    }
+
+    async fn heard_n(ws: &mut Ws, n: usize) -> Vec<Heard> {
+        let mut all = Vec::with_capacity(n);
+        for _ in 0..n {
+            all.push(heard(ws).await);
+        }
+        all
+    }
+
+    /// Keep reading (and answering pings) for `duration`; nothing may arrive meanwhile.
+    async fn hear_nothing_for(ws: &mut Ws, duration: Duration) {
+        let until = tokio::time::Instant::now() + duration;
+        while let Ok(message) = tokio::time::timeout_at(until, ws.next()).await {
+            match message {
+                Some(Ok(Message::Ping(_) | Message::Pong(_))) => {}
+                other => panic!("unexpected {other:?}"),
+            }
+        }
+    }
+
+    fn speech_then(quiet: usize) -> Vec<Heard> {
+        let mut expected = vec![Start];
+        expected.extend(std::iter::repeat_with(|| Speech).take(10));
+        expected.extend(std::iter::repeat_with(|| Quiet).take(quiet));
+        expected
+    }
+
+    /// The first chunk opens an activity, a pause cuts it between two chunks, and Stop ends
+    /// the open one, then waits for its final before closing.
+    #[tokio::test(start_paused = true)]
+    async fn an_activity_opens_is_cut_at_a_pause_and_ends_on_stop() {
+        let mut run = Run::start().await;
+        let mut ws = run.accept().await;
+        ws.send(Message::text(READY)).await.unwrap();
+        for loud in [true; 10].into_iter().chain([false; 8]) {
+            run.speak(loud).await;
+        }
+        let mut expected = speech_then(6);
+        expected.extend([End, Start, Quiet, Quiet]);
+        assert_eq!(heard_n(&mut ws, expected.len()).await, expected);
+
+        ws.send(Message::text(interim("Bye"))).await.unwrap();
+        assert_eq!(run.caption().await, ("Bye".into(), false));
+        run.cancel.cancel();
+        assert_eq!(heard(&mut ws).await, End);
+        ws.send(Message::text(final_frame("Bye."))).await.unwrap();
+        assert_eq!(heard(&mut ws).await, Closed);
+        assert_eq!(run.caption().await, ("Bye.".into(), true));
+        run.finished().await;
+    }
+
+    /// Pause ends the activity on the socket it closes; Resume opens a new one on the next.
+    #[tokio::test(start_paused = true)]
+    async fn pause_ends_the_activity_and_resume_opens_one_on_the_new_socket() {
+        let mut run = Run::start().await;
+        let mut ws = run.accept().await;
+        ws.send(Message::text(READY)).await.unwrap();
+        for _ in 0..3 {
+            run.speak(true).await;
+        }
+        assert_eq!(heard_n(&mut ws, 4).await, [Start, Speech, Speech, Speech]);
+        ws.send(Message::text(interim("Wait"))).await.unwrap();
+        run.caption().await;
+
+        run.pause.send_replace(true);
+        assert_eq!(heard(&mut ws).await, End);
+        ws.send(Message::text(final_frame("Wait."))).await.unwrap();
+        assert_eq!(heard(&mut ws).await, Closed);
+        assert_eq!(run.caption().await, ("Wait.".into(), true));
+
+        run.pause.send_replace(false);
+        let mut next = run.accept().await;
+        next.send(Message::text(READY)).await.unwrap();
+        run.speak(false).await;
+        assert_eq!(heard_n(&mut next, 2).await, [Start, Quiet]);
+        // Stop with nothing pending: the activity still ends before the socket closes.
+        run.cancel.cancel();
+        assert_eq!(heard(&mut next).await, End);
+        assert_eq!(heard(&mut next).await, Closed);
+        run.finished().await;
+    }
+
+    /// Gemini's ten-minute handover: the old socket's activity ends with its drain, the speech
+    /// meanwhile is held, and the new socket gets a fresh `activityStart` before it.
+    #[tokio::test(start_paused = true)]
+    async fn a_handover_ends_the_old_activity_and_replays_the_gap_in_a_new_one() {
+        let mut run = Run::start().await;
+        let mut ws = run.accept().await;
+        ws.send(Message::text(READY)).await.unwrap();
+        for _ in 0..2 {
+            run.speak(true).await;
+        }
+        assert_eq!(heard_n(&mut ws, 3).await, [Start, Speech, Speech]);
+        // Long enough to count as a healthy connection, which hands over without backoff.
+        hear_nothing_for(&mut ws, Duration::from_secs(30)).await;
+        ws.send(Message::text(interim("Moving"))).await.unwrap();
+        run.caption().await;
+
+        ws.send(Message::text(r#"{"goAway":{"timeLeft":"10s"}}"#))
+            .await
+            .unwrap();
+        assert_eq!(heard(&mut ws).await, End);
+        for _ in 0..3 {
+            run.speak(true).await;
+        }
+        ws.send(Message::text(final_frame("Moving.")))
+            .await
+            .unwrap();
+        assert_eq!(heard(&mut ws).await, Closed);
+        assert_eq!(run.caption().await, ("Moving.".into(), true));
+
+        let mut next = run.accept().await;
+        for _ in 0..2 {
+            run.speak(false).await;
+        }
+        next.send(Message::text(READY)).await.unwrap();
+        assert_eq!(
+            heard_n(&mut next, 6).await,
+            [Start, Speech, Speech, Speech, Quiet, Quiet]
+        );
+        run.cancel.cancel();
+        assert_eq!(heard(&mut next).await, End);
+        assert_eq!(heard(&mut next).await, Closed);
+        run.finished().await;
+    }
+
+    /// A socket that fails takes its activity with it; the next one opens its own.
+    #[tokio::test(start_paused = true)]
+    async fn a_reconnect_opens_a_new_activity() {
+        let run = Run::start().await;
+        let mut ws = run.accept().await;
+        ws.send(Message::text(READY)).await.unwrap();
+        for _ in 0..2 {
+            run.speak(true).await;
+        }
+        assert_eq!(heard_n(&mut ws, 3).await, [Start, Speech, Speech]);
+        drop(ws);
+
+        let mut next = run.accept().await;
+        next.send(Message::text(READY)).await.unwrap();
+        run.speak(true).await;
+        assert_eq!(heard_n(&mut next, 2).await, [Start, Speech]);
+        run.cancel.cancel();
+        assert_eq!(heard(&mut next).await, End);
+        assert_eq!(heard(&mut next).await, Closed);
+        run.finished().await;
     }
 }
 
@@ -1060,6 +1630,7 @@ mod live_probe {
             host: DEFAULT_HOST.to_string(),
             language_codes,
             custom_vocabulary: Vec::new(),
+            speech_detection: None,
             origin: Origin::Microphone,
         }
     }
@@ -1393,6 +1964,217 @@ mod live_probe {
             }
         }
         drop(sender.await.unwrap());
+    }
+
+    /// What the English rehearsal recording says (`resources/fixtures/rehearsal-en.wav`).
+    const ENGLISH_SCRIPT: &str = "This is a rehearsal recording for the live caption system. A speaker is presenting to an audience and every sentence is transcribed and shown on screen as it is spoken. Captions appear a moment after the words and are corrected once the sentence becomes clear. Use this recording to check the overlay before the room fills up.";
+
+    /// The English recording twice without a pause, as Rehearse loops it, eight seconds of
+    /// silence, then once more: about seventy seconds.
+    fn continuous_then_silent() -> (Vec<f32>, usize) {
+        let english = load_fixture(std::path::Path::new(FIXTURE))
+            .expect("the bundled rehearsal fixture should load");
+        let silence = vec![0.0_f32; RATE as usize * 8];
+        let stream = [&english[..], &english, &silence, &english].concat();
+        (stream, 3)
+    }
+
+    /// The client cutting the stream with the bundled Silero model.
+    fn cutting_config() -> GeminiTranscribeConfig {
+        let model = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join(crate::whisper::vad::RESOURCE);
+        GeminiTranscribeConfig {
+            speech_detection: Some(model),
+            ..config(&[])
+        }
+    }
+
+    /// The words of `script` that `heard` does not have, in order: a longest common
+    /// subsequence over words compared without case or punctuation.
+    fn missing_words(script: &str, heard: &str) -> Vec<String> {
+        fn words(text: &str) -> Vec<String> {
+            text.split_whitespace()
+                .map(|w| {
+                    w.chars()
+                        .filter(|c| c.is_alphanumeric())
+                        .flat_map(char::to_lowercase)
+                        .collect::<String>()
+                })
+                .filter(|w| !w.is_empty())
+                .collect()
+        }
+        let (a, b) = (words(script), words(heard));
+        let mut table = vec![vec![0usize; b.len() + 1]; a.len() + 1];
+        for i in (0..a.len()).rev() {
+            for j in (0..b.len()).rev() {
+                table[i][j] = if a[i] == b[j] {
+                    table[i + 1][j + 1] + 1
+                } else {
+                    table[i + 1][j].max(table[i][j + 1])
+                };
+            }
+        }
+        let (mut i, mut j, mut missing) = (0, 0, Vec::new());
+        while i < a.len() {
+            if j < b.len() && a[i] == b[j] {
+                i += 1;
+                j += 1;
+            } else if j < b.len() && table[i][j + 1] >= table[i + 1][j] {
+                j += 1;
+            } else {
+                missing.push(a[i].clone());
+                i += 1;
+            }
+        }
+        missing
+    }
+
+    #[test]
+    fn missing_words_are_the_scripts_words_not_heard() {
+        assert_eq!(
+            missing_words(
+                "Every sentence is transcribed and shown.",
+                "every sentence is scribed and shown"
+            ),
+            ["transcribed"]
+        );
+        assert!(missing_words("Use this.", "Use, this").is_empty());
+    }
+
+    /// Issue #281: the stream of `every_frame_of_continuous_speech`, then a silence and the
+    /// recording again, with the client cutting at Silero's pauses (automatic activity
+    /// detection off). Prints every frame the server sends and every activity signal the
+    /// client sends, in order, then the words of the script no final carried. What to look
+    /// for: setup accepted; finals after each `activityEnd`; whether `voiceActivity` and
+    /// `generationComplete` frames still come; what the eight silent seconds produce; and
+    /// "missing words: none".
+    #[tokio::test]
+    #[ignore = "streams about seventy seconds of the bundled fixture to Google and bills the key; run with --ignored"]
+    async fn continuous_speech_cut_by_the_client() {
+        let (stream, passages) = continuous_then_silent();
+        let config = cutting_config();
+        let mut client = config.clone().into_client();
+        assert!(client.cuts.is_some(), "Silero did not start");
+        let socket = setup(&config)
+            .await
+            .unwrap_or_else(|e| panic!("setup with client cuts refused: {e}"));
+        println!("setup with automatic activity detection disabled: accepted");
+        let (mut write, mut read) = socket.split();
+        let started = tokio::time::Instant::now();
+        let sender = tokio::spawn(async move {
+            let mut pcm = Vec::new();
+            for chunk in stream.chunks(chunk_samples(RATE)) {
+                pcm.clear();
+                f32_to_pcm16_le(chunk, &mut pcm);
+                for signal in client.before_audio(&pcm) {
+                    println!("{:>6.2}s  -> {signal}", started.elapsed().as_secs_f32());
+                    if write.send(Message::Text(signal.into())).await.is_err() {
+                        return write;
+                    }
+                }
+                let data = base64::engine::general_purpose::STANDARD.encode(&pcm);
+                let frame = client.audio_json(data).unwrap();
+                if write.send(Message::Text(frame.into())).await.is_err() {
+                    return write;
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            for signal in client.closing_json().unwrap() {
+                println!("{:>6.2}s  -> {signal}", started.elapsed().as_secs_f32());
+                let _ = write.send(Message::Text(signal.into())).await;
+            }
+            write
+        });
+        let deadline = started + Duration::from_secs(120);
+        let mut finals = Vec::new();
+        let (mut activity_frames, mut closes) = (0usize, 0usize);
+        let mut drained_at = None;
+        while let Ok(Some(Ok(message))) = tokio::time::timeout_at(deadline, read.next()).await {
+            let Some(json) = frame_json(&message) else {
+                continue;
+            };
+            println!("{:>6.2}s {json}", started.elapsed().as_secs_f32());
+            let parsed: ServerMessage = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("unparsed server message: {e} :: {json}"));
+            assert!(parsed.error.is_none(), "provider error: {:?}", parsed.error);
+            activity_frames += usize::from(parsed.voice_activity.is_some());
+            if let Some(content) = parsed.server_content {
+                closes += usize::from(content.generation_complete.unwrap_or(false));
+                if let Some(text) = content.input_transcription {
+                    finals.push(text.text);
+                }
+            }
+            if sender.is_finished() {
+                let at = *drained_at.get_or_insert_with(tokio::time::Instant::now);
+                if at.elapsed() > Duration::from_secs(8) {
+                    break;
+                }
+            }
+        }
+        drop(sender.await.unwrap());
+        let heard = finals.join(" ");
+        let script = vec![ENGLISH_SCRIPT; passages].join(" ");
+        println!(
+            "{} final(s), {activity_frames} voiceActivity frame(s), {closes} generationComplete",
+            finals.len()
+        );
+        for (i, text) in finals.iter().enumerate() {
+            println!("--- final {i}: {text}");
+        }
+        println!("missing words: {:?}", missing_words(&script, &heard));
+        assert!(!finals.is_empty(), "no final in manual activity mode");
+    }
+
+    /// The same stream through the real runner and the production client with its cuts, at
+    /// the pace of speech, then Stop: the captions as the app would show them, and the
+    /// script's words none of them carried.
+    #[tokio::test]
+    #[ignore = "streams about seventy seconds of the bundled fixture to Google and bills the key; run with --ignored"]
+    async fn captions_of_continuous_speech_cut_by_the_client() {
+        use crate::audio::AudioChunk;
+
+        let (stream, passages) = continuous_then_silent();
+        let client = cutting_config().into_client();
+        assert!(client.cuts.is_some(), "Silero did not start");
+        let (events, recorded) = std::sync::mpsc::channel();
+        let (audio, audio_rx) = tokio::sync::mpsc::channel(5);
+        let (_pause, pause_rx) = tokio::sync::watch::channel(false);
+        let cancel = tokio_util::sync::CancellationToken::new();
+        let session = tokio::spawn(crate::realtime::run_session(
+            Live(events),
+            client,
+            audio_rx,
+            cancel.clone(),
+            crate::timing::SessionClock::start(),
+            pause_rx,
+            crate::realtime::Track::default(),
+        ));
+        let started = std::time::Instant::now();
+        for chunk in stream.chunks(chunk_samples(RATE)) {
+            let mut pcm_le = Vec::new();
+            f32_to_pcm16_le(chunk, &mut pcm_le);
+            audio.send(AudioChunk { pcm_le }).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+        tokio::time::sleep(Duration::from_secs(5)).await;
+        cancel.cancel();
+        session.await.unwrap();
+
+        let mut finals = Vec::new();
+        for (at, text, final_) in recorded.try_iter() {
+            if final_ {
+                let at = at.duration_since(started).as_secs_f32();
+                println!("{at:>6.1}s FINAL: {text}");
+                finals.push(text);
+            }
+        }
+        let script = vec![ENGLISH_SCRIPT; passages].join(" ");
+        println!(
+            "missing words: {:?}",
+            missing_words(&script, &finals.join(" "))
+        );
+        assert!(finals.iter().filter(|t| !t.is_empty()).count() >= 3);
     }
 
     async fn three_passages(mode: Option<&'static str>) {

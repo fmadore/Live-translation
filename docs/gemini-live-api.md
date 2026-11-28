@@ -15,7 +15,9 @@ Re-verified 27 August 2026 against Google’s
 (last updated 2026-08-26), the [model list](https://ai.google.dev/gemini-api/docs/models) and
 the [Live API reference](https://ai.google.dev/api/live). Live Translate is still preview with
 no stable equivalent (Transcribe went GA), so re-check it before an event; its wire format is
-unchanged since the 12 August 2026 verification.
+unchanged since the 12 August 2026 verification. Manual activity detection, which Transcribe
+Live now uses (see [cutting at real pauses](#cutting-at-real-pauses)), was checked against the
+reference and the transcription guide on 28 November 2026.
 
 ## Gemini 3.5 Live Translate
 
@@ -114,10 +116,17 @@ message and transcription fields differ.
     "inputAudioTranscription": {
       "languageCodes": [],
       "mode": "VERBATIM"
+    },
+    "realtimeInputConfig": {
+      "automaticActivityDetection": { "disabled": true }
     }
   }
 }
 ```
+
+`realtimeInputConfig` is sent when the client cuts the stream itself, the default since issue
+#281; without Silero it is left out and Gemini's own detection segments the speech. See
+[cutting at real pauses](#cutting-at-real-pauses).
 
 - `responseModalities: ["TEXT"]` separates the transcription pipeline from a live agent: no
   generated audio to discard, no output sidecar to read.
@@ -259,8 +268,11 @@ final retracts the speculative caption rather than keeping it as speech, and the
 discards the pending empty turn (regression-tested). The
 local [Hide filler words](caption-layout.md#hide-filler-words) filter is separate.
 
-`{"realtimeInput":{"audioStreamEnd":true}}` is sent on close so a last segment can still
-arrive during the shared runner's drain window. The drain ends on the authoritative final that
+On close, the open activity's `{"realtimeInput":{"activityEnd":{}}}` ends the last segment
+when the client cuts the stream; with Gemini's own detection,
+`{"realtimeInput":{"audioStreamEnd":true}}` is sent instead (the reference says to send it
+only with automatic detection). Either way a last segment can still arrive during the shared
+runner's drain window. The drain ends on the authoritative final that
 follows it, rather than always waiting out the four-second window. The server sends no
 acknowledgement when there is nothing left to flush, so a close with no turn open and nothing
 captioned for three seconds skips the wait altogether.
@@ -313,9 +325,67 @@ Two setups were tried on the same stream and changed nothing worth having:
 `silenceDurationMs: 800` was accepted (the transcribe guide documents only `disabled`) and gave
 the same cuts, one word lost at each ("transcribed" became "described"; "check" and "A" were
 lost); with `disabled: true` and no `activityStart` from the client nothing at all was
-transcribed. Cutting the stream at real pauses on the client, with the bundled Silero speech
-detection sending `activityStart` and `activityEnd`, is the remaining way to keep every word;
-it is not built.
+transcribed. Cutting the stream at real pauses on the client, below, is the remaining way to
+keep every word.
+
+### Cutting at real pauses
+
+Issue #281. The setup turns Gemini's automatic activity detection off and the client marks the
+segments with `activityStart` and `activityEnd`, at pauses the bundled Silero model
+([local Whisper's speech detection](local-whisper.md#speech-detection)) finds, so a cut falls in
+silence rather than in a word. `gemini::cuts` holds it; `SEGMENTATION` there is the one switch
+back to Gemini's segments, with no setting in the interface.
+
+What Google documents (Live API reference and
+[transcription guide](https://ai.google.dev/gemini-api/docs/live-api/live-transcribe), read
+28 November 2026): `automaticActivityDetection.disabled` — "If disabled, the client must send
+activity signals"; `activityStart` and `activityEnd` are empty objects in `realtimeInput` that
+"can only be sent if automatic (i.e. server-side) activity detection is disabled", and the
+guide's push-to-talk example for `gemini-3.5-transcribe-live` sends exactly these frames;
+`audioStreamEnd` "should only be sent when automatic activity detection is enabled". The
+client follows that to the letter. Nothing documented says whether audio outside an activity is
+transcribed or billed (the pricing page bills Transcribe Live's input at 25 audio tokens a
+second, nothing about silence), so the client leaves none outside one.
+
+- **Every chunk is inside an activity.** The first chunk on a connection follows an
+  `activityStart`; a cut is `activityEnd` then `activityStart`, between two chunks. Silero only
+  places the cuts: a word it misses is still sent, inside a segment. A quiet room sends what it
+  sent before, all of its audio, in one long activity that holds no speech and is never cut.
+- **Where a cut goes.** After 480 ms of non-speech that follows at least 224 ms of speech
+  (Silero's frames are 32 ms; a frame is speech from 0.5, quiet below 0.35). A speaker who
+  never pauses is cut in a 160 ms gap between words once the segment has run 6 s from its first
+  speech, in any quiet frame from 7.5 s, and at 8 s wherever the stream is: just under the 8 to
+  11 s Gemini's own detection allowed, in case it keeps such a limit in manual mode. A cut goes
+  only in silence Silero has already heard, except the 8 s one. There is no look-ahead, which
+  would delay every caption. On the rehearsal recording the cuts land at its sentence ends, and
+  once in a gap between words (`cuts::tests::silero_cuts_the_rehearsal_at_its_pauses`).
+- **Where Silero runs.** On a thread of its own per source (two with Both), fed each chunk
+  through a bounded queue as the chunk is sent; the answers are read before the next chunk.
+  Each call re-reads 384 ms of earlier audio, because whisper.cpp starts the model's memory
+  afresh each time. That cost about 21 ms of one core per second of audio per source in the
+  Linux container this was built in (a release build); it has not been measured on a Windows
+  PC or a Mac. Audio the thread cannot take counts as speech, so a detector that
+  falls behind delays cuts and never makes one in speech. The thread ends with the client.
+- **Pause, Stop, handover and reconnect.** Each close drain sends the open activity's
+  `activityEnd` and waits for its final, as it waited after `audioStreamEnd`. A socket that
+  fails takes its activity with it, and every new connection opens its own with its first
+  chunk, after the audio a handover held. The loopback tests in `transcribe::cut_tests` pin
+  each case.
+- **When Silero cannot run** — the model is missing or will not load, or the processor lacks
+  the instruction set ggml was built for (an x64 PC without AVX2, where local Whisper is
+  refused) — the source starts with Gemini's own detection, as before, and the log says why.
+- **Segment ends.** Whether `voiceActivity` frames and `generationComplete` still come in
+  manual mode, and whether a segment's final comes before or after `ACTIVITY_END`, has not been
+  seen. The client works either way: a final ends its segment whenever it comes; an
+  `ACTIVITY_END` with no final makes the segment's interim text its caption only once the next
+  segment shows itself (its `ACTIVITY_START`, its first interim, or a close with no final), or
+  after the three-second idle boundary, instead of at once as with Gemini's segments.
+
+**Live check pending.** No key was used to build this. Before a release, run the two probes
+below with a key and read the "missing words" line: `continuous_speech_cut_by_the_client`
+prints every frame both ways, and `captions_of_continuous_speech_cut_by_the_client` the captions
+the app would show. If words are still lost at the cuts, or finals do not come, set
+`SEGMENTATION` back to `Gemini`.
 
 ### The ten-minute cap
 
@@ -366,7 +436,22 @@ session runner, the one to rerun), `verbatim_finals_across_three_passages` (ever
 `smart_finals_across_three_passages` (the old mode, for comparison).
 `every_frame_of_continuous_speech` streams the English recording twice without a pause, about
 fifty seconds, and prints every frame, interims included: the one to rerun for how segments
-end in continuous speech.
+end in continuous speech. It and the other probes above use Gemini's own segmentation, for
+comparison.
+
+The client's cuts have two probes of their own, each streaming the English recording twice
+without a pause, eight seconds of silence, and the recording again (about seventy seconds):
+
+```powershell
+cargo test --manifest-path src-tauri/Cargo.toml --lib continuous_speech_cut_by_the_client -- --ignored --nocapture
+cargo test --manifest-path src-tauri/Cargo.toml --lib captions_of_continuous_speech_cut_by_the_client -- --ignored --nocapture
+```
+
+The first prints every server frame and every `activityStart` and `activityEnd` the client
+sends, then counts the `voiceActivity` frames and `generationComplete`s and prints the finals;
+the second runs the production client through the session runner and prints its final
+captions. Both end with the words of the script no final carried: `missing words: []` is the
+result #281 is after.
 
 ## Target-language catalog
 

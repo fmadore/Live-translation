@@ -7,11 +7,15 @@
 //!
 //! whisper.cpp's own `vad` switch is not used: it applies only in `whisper_full`, not in
 //! `whisper_full_with_state`, which is what whisper-rs calls, so it would do nothing here.
+//!
+//! Gemini Transcribe uses the same model to find the pauses where it cuts the stream
+//! (`gemini::cuts`), through [`Vad::load_for_cloud`] and [`Vad::probabilities`].
 
 use std::ops::Range;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use tauri::Manager;
 use whisper_rs::{WhisperVadContext, WhisperVadContextParams, WhisperVadParams};
 
 use crate::sync::lock;
@@ -26,7 +30,41 @@ const MARGIN: usize = 16_000 / 5;
 
 pub struct Vad(Mutex<WhisperVadContext>);
 
+/// The bundled model, where the installer put it.
+pub fn bundled(app: &tauri::AppHandle) -> Option<PathBuf> {
+    app.path()
+        .resolve(RESOURCE, tauri::path::BaseDirectory::Resource)
+        .ok()
+}
+
 impl Vad {
+    /// The model for a cloud engine, which has not been through Whisper's processor check.
+    /// whisper.cpp's speech detection runs on the same ggml library, built for a fixed
+    /// instruction set (`cpu.rs`): on a processor that lacks it, the first window would be an
+    /// illegal instruction. `None` (logged) there, as when the model will not load.
+    pub fn load_for_cloud(path: &Path) -> Option<Self> {
+        if let Err(missing) = super::cpu::ensure_supported() {
+            tracing::info!("speech detection is unavailable on this processor ({missing})");
+            return None;
+        }
+        Self::load(path)
+    }
+
+    /// The probability of speech in each 32 ms frame (512 samples) of `samples`, the last
+    /// frame padded with silence; `None` on a failure. The model's memory starts afresh on
+    /// each call, so a caller streaming audio passes some audio it has analysed already
+    /// before the new.
+    pub fn probabilities(&self, samples: &[f32]) -> Option<Vec<f32>> {
+        let mut context = lock(&self.0);
+        match context.detect_speech(samples) {
+            Ok(()) => Some(context.probabilities().to_vec()),
+            Err(error) => {
+                tracing::warn!("speech detection failed: {error}");
+                None
+            }
+        }
+    }
+
     /// The model at `path`, or `None` (logged) when it is missing or will not load: Whisper then
     /// decodes every window, as it did before speech detection.
     pub fn load(path: &Path) -> Option<Self> {

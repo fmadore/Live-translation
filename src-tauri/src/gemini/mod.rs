@@ -2,6 +2,7 @@
 //! endpoint — Live Translate for translated captions, Transcribe Live for subtitles.
 
 pub mod client;
+pub mod cuts;
 pub mod protocol;
 pub mod transcribe;
 
@@ -80,6 +81,7 @@ mod tests {
                 host: DEFAULT_HOST.to_string(),
                 language_codes: &[],
                 custom_vocabulary: Vec::new(),
+                speech_detection: None,
                 origin: Origin::Microphone,
             }
             .into_client(),
@@ -135,6 +137,7 @@ mod tests {
                 host: DEFAULT_HOST.to_string(),
                 language_codes: &[],
                 custom_vocabulary: Vec::new(),
+                speech_detection: None,
                 origin: Origin::Microphone,
             }
             .into_client(),
@@ -156,6 +159,7 @@ mod tests {
                 host: DEFAULT_HOST.to_string(),
                 language_codes: &[],
                 custom_vocabulary: Vec::new(),
+                speech_detection: None,
                 origin: Origin::Microphone,
             }
             .into_client(),

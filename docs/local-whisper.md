@@ -184,7 +184,9 @@ speech in it (`whisper/vad.rs`, from
 [#187](https://github.com/fmadore/Live-translation/issues/187)). A window with none is not
 decoded at all: no processor time is spent on a quiet room, a paused call or music, and Whisper
 gets no chance to invent text over it. A window with speech is decoded from 0.2 s before its
-first words to 0.2 s after its last, and its captions keep their real times.
+first words to 0.2 s after its last, and its captions keep their real times. Gemini
+Transcribe uses the same model, on your PC, to cut its stream at real pauses
+([cutting at real pauses](gemini-live-api.md#cutting-at-real-pauses)).
 
 - **Bundled, not downloaded.** The model ships with the app under `resources/models/`, so it
   works for an operator who downloaded a Whisper model before this version and is offline at
