@@ -185,6 +185,14 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ### On main after 1.16.1
 
+- **Gemini subtitles cut at real pauses** ([#281](https://github.com/fmadore/Live-translation/issues/281)):
+  Gemini Transcribe's own activity detection is turned off and the app marks the segments
+  itself, at pauses the bundled Silero model finds, with a forced cut at 8 seconds
+  ([Gemini notes](docs/gemini-live-api.md)). Tested against recorded messages and loopback
+  servers only: **no live session has run**, so whether a cut still loses a word is unknown.
+  Before a release, run the two `cut_by_the_client` probes the notes give with a Gemini key; if
+  words are lost or finals do not arrive, `SEGMENTATION` in `src-tauri/src/gemini/cuts.rs` goes
+  back to `Segmentation::Gemini`.
 - **Text size for the operator window** ([#283](https://github.com/fmadore/Live-translation/issues/283)):
   Settings › App › Text size offers 90, 100, 115, 130 and 150% of the system's text size, held to
   90–225% in all; on a Mac it is the only factor. The overlay keeps its own caption size. Checked
