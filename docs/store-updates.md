@@ -721,13 +721,14 @@ over unchanged.
    [`Release installers`](https://github.com/fmadore/Live-translation/blob/main/.github/workflows/release.yml) workflow first checks that the tag
    is `v` followed by the version in all four manifests, then that CI passed on the tagged
    commit, waiting up to an hour for a run still going, before anything is built. It then
-   creates the GitHub release as a **draft** and attaches the NSIS and MSI installers, both
-   architectures' `.msix` and one multi-architecture `Live.Translation_<version>.msixbundle`.
-   Only once the bundle is attached does it publish the release, titled "Live Translation &
-   Subtitles X.Y.Z", with `docs/release-X.Y.Z.md` as the body. Download the bundle from there.
+   creates the GitHub release as a **draft** and attaches the NSIS and MSI installers, the
+   macOS disk image, both architectures' `.msix` and one multi-architecture
+   `Live.Translation_<version>.msixbundle`. Only once the bundle is attached does it publish
+   the release, titled "Live Translation & Subtitles X.Y.Z", with `docs/release-X.Y.Z.md` as
+   the body. Download the bundle from there.
 3. **If a job fails, nothing is public.** The release stays a draft; re-run the failed jobs,
-   and the `bundle` job publishes it when it passes; it refuses to publish until the `build`
-   job's installers are attached. If the version or CI check fails, nothing was built and no
+   and the `bundle` job publishes it when it passes; it refuses to publish until all six
+   assets are attached to the release under their exact names. If the version or CI check fails, nothing was built and no
    release exists for the tag, so it can be deleted (`git push origin --delete
    vX.Y.Z` and `git tag -d vX.Y.Z`) and the fixed commit tagged again. A hyphenated tag
    (`vX.Y.Z-rc.1`) builds the same assets into a draft prerelease, which is never published

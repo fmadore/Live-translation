@@ -359,9 +359,11 @@ packaging above: single-architecture, and not what the release workflow uses.
 
 ## What CI does
 
-Once the `prepare` job has created the draft release, the `msix` job in
-`.github/workflows/release.yml` builds the Vulkan helper and runs the same build command
-natively per architecture, checks that the package carries `live-translation.exe`,
+Once the `prepare` job has created the draft release, the `vulkan-helper` job in
+`.github/workflows/release.yml` builds the Vulkan helper once per architecture and hands it on
+as a workflow artefact, which the installer build and the `msix` job download and check is a
+program for their architecture. The `msix` job runs the same build command natively per
+architecture, checks that the package carries `live-translation.exe`,
 `whisper-vulkan.exe` and `models/ggml-silero-v5.1.2.bin`, and uploads
 `Live.Translation_<version>_<arch>.msix`. The `bundle` job then combines both into
 `Live.Translation_<version>.msixbundle` with MakeAppx and uploads that single Store bundle.
