@@ -34,5 +34,7 @@
 		wide && 'wide',
 		className
 	]}
-	{...props}>{@render children?.()}</button
+	{...props}
 >
+	{@render children?.()}
+</button>

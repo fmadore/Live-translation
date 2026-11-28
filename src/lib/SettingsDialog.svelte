@@ -175,10 +175,9 @@
 							stroke-linecap="round"
 							stroke-linejoin="round"
 							aria-hidden="true"
-							><path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path
-								d="M4.5 17.5h15"
-							/></svg
 						>
+							<path d="M12 4v10" /><path d="M8.5 10.5L12 14l3.5-3.5" /><path d="M4.5 17.5h15" />
+						</svg>
 						{$t.window.minimizeToTray}
 					</ToolButton>
 					<Preference

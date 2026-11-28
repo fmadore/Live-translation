@@ -217,9 +217,9 @@
 						}}
 					>
 						<span><b>{row.code.toUpperCase()}</b> · {row.name}</span>
-						{#if !row.supported}<small
-								>{$t.language.unsupported($t.engine[provider], row.name)}</small
-							>{/if}
+						{#if !row.supported}<small>
+								{$t.language.unsupported($t.engine[provider], row.name)}
+							</small>{/if}
 					</div>
 				{/each}
 			</div>

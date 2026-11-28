@@ -28,8 +28,10 @@
 				fill="none"
 				stroke="currentColor"
 				stroke-width="1.75"
-				stroke-linecap="round"><path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" /></svg
+				stroke-linecap="round"
 			>
+				<path d="M4 8.5h13l-3.5-3.5" /><path d="M20 15.5H7l3.5 3.5" />
+			</svg>
 		{/snippet}
 	</ChoiceButton>
 	<ChoiceButton
@@ -47,8 +49,10 @@
 				fill="none"
 				stroke="currentColor"
 				stroke-width="1.75"
-				stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h7" /></svg
+				stroke-linecap="round"
 			>
+				<path d="M4 7h16M4 12h11M4 17h7" />
+			</svg>
 		{/snippet}
 	</ChoiceButton>
 </section>

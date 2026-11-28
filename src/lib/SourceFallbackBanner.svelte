@@ -61,12 +61,9 @@
 		disabled={switching}
 		aria-describedby={note || origins.length > 1 ? noteId : undefined}
 		onclick={onContinue}
-		>{switching
-			? $t.fallback.switching
-			: spoken
-				? $t.fallback.spoken
-				: $t.fallback.whisper}</ToolButton
 	>
+		{switching ? $t.fallback.switching : spoken ? $t.fallback.spoken : $t.fallback.whisper}
+	</ToolButton>
 	<ToolButton disabled={switching} onclick={onDismiss}>{$t.fallback.notNow}</ToolButton>
 </section>
 

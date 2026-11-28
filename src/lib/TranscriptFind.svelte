@@ -96,8 +96,10 @@
 			stroke-width="2"
 			stroke-linecap="round"
 			stroke-linejoin="round"
-			aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg
+			aria-hidden="true"
 		>
+			<path d="m6 15 6-6 6 6" />
+		</svg>
 	</ToolButton>
 	<ToolButton
 		variant="ghost"
@@ -115,8 +117,10 @@
 			stroke-width="2"
 			stroke-linecap="round"
 			stroke-linejoin="round"
-			aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg
+			aria-hidden="true"
 		>
+			<path d="m6 9 6 6 6-6" />
+		</svg>
 	</ToolButton>
 	<ToolButton
 		variant="ghost"
@@ -132,8 +136,10 @@
 			stroke="currentColor"
 			stroke-width="2"
 			stroke-linecap="round"
-			aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg
+			aria-hidden="true"
 		>
+			<path d="M6 6l12 12M18 6 6 18" />
+		</svg>
 	</ToolButton>
 	<p class="sr-only" role="status">{countText}</p>
 </div>

@@ -34,8 +34,8 @@
 		<ToolButton variant="primary" size="lg" onclick={() => onChoice(true)}>
 			{$t.prompt.aiConsent.send(vendor)}
 		</ToolButton>
-		<ToolButton variant="ghost" size="lg" bind:element={cancelEl} onclick={() => onChoice(false)}
-			>{$t.prompt.aiConsent.cancel}</ToolButton
-		>
+		<ToolButton variant="ghost" size="lg" bind:element={cancelEl} onclick={() => onChoice(false)}>
+			{$t.prompt.aiConsent.cancel}
+		</ToolButton>
 	</div>
 </ModalPrompt>

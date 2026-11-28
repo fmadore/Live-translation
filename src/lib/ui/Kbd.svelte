@@ -13,6 +13,6 @@
 	const joiner = isMac ? '' : '+';
 </script>
 
-<kbd class="ui-kbd"
-	>{#each keys as key, i (i)}{#if i}{joiner}<wbr />{/if}{key}{/each}</kbd
->
+<kbd class="ui-kbd">
+	{#each keys as key, i (i)}{#if i}{joiner}<wbr />{/if}{key}{/each}
+</kbd>

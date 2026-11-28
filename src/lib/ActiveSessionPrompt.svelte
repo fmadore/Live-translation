@@ -49,9 +49,9 @@
 		<ToolButton variant="primary" size="lg" bind:element={keepEl} onclick={() => onChoice(false)}>
 			{$t.prompt.activeSession.keep}
 		</ToolButton>
-		<ToolButton variant="danger" size="lg" onclick={() => onChoice(true)}
-			>{$t.prompt.activeSession.stop}</ToolButton
-		>
+		<ToolButton variant="danger" size="lg" onclick={() => onChoice(true)}>
+			{$t.prompt.activeSession.stop}
+		</ToolButton>
 	</div>
 </ModalPrompt>
 

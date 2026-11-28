@@ -266,13 +266,16 @@
 		lang={language ?? ''}
 		dir={captionDirection(language)}
 		data-find={findKey ? `p${findKey}` : undefined}
-		>{text}{#if interim}<span class="caret" aria-hidden="true"></span>{/if}{#if original}<span
+	>
+		{text}{#if interim}<span class="caret" aria-hidden="true"></span>{/if}{#if original}<span
 				class="original"
 				lang=""
 				dir="auto"
-				data-find={findKey ? `o${findKey}` : undefined}>{original}</span
-			>{/if}</span
-	>
+				data-find={findKey ? `o${findKey}` : undefined}
+			>
+				{original}
+			</span>{/if}
+	</span>
 {/snippet}
 
 {#if reader && findOpen}
@@ -316,11 +319,11 @@
 					{:else}
 						{@const paragraph = item.paragraph}
 						<li class="origin-{paragraph.origin}">
-							<span class="side"
-								>{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language"
-										>{paragraph.language}</span
-									>{/if}</span
-							>
+							<span class="side">
+								{sideLabel[paragraph.origin]}{#if paragraph.language}<span class="language">
+										{paragraph.language}
+									</span>{/if}
+							</span>
 							{@render caption(
 								paragraph.text,
 								loggedLanguage(paragraph),
@@ -334,11 +337,11 @@
 				<!-- Keyed by track: a turn keeps its row while it streams, whatever id it has. -->
 				{#each pending as line (`${line.origin}-${line.lane ?? 0}`)}
 					<li class="origin-{line.origin} pending" aria-describedby={pendingNoteId}>
-						<span class="side"
-							>{sideLabel[line.origin]}{#if line.language}<span class="language"
-									>{line.language}</span
-								>{/if}</span
-						>
+						<span class="side">
+							{sideLabel[line.origin]}{#if line.language}<span class="language">
+									{line.language}
+								</span>{/if}
+						</span>
 						{@render caption(
 							line.text,
 							line.language ??

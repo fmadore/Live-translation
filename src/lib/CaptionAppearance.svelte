@@ -80,8 +80,8 @@
 		/>
 		<!-- The rail only: the size is nudged there mid-session, while the overlay is drawing. -->
 		{#if compact}<OverlayFitNotice fit={overlay.overlayFit} />{/if}
-		<label class="face-label"
-			>{$t.overlayControls.captionFace}
+		<label class="face-label">
+			{$t.overlayControls.captionFace}
 			<Select
 				value={$overlayCaptionFace}
 				onchange={(e) => overlay.setCaptionFace(e.currentTarget.value as CaptionFaceId)}
@@ -104,11 +104,9 @@
 						? $t.overlayControls.captionColour
 						: $t.overlayControls.scrimColour}
 				>
-					<span class="swatch-label"
-						>{role === 'text'
-							? $t.overlayControls.captionColour
-							: $t.overlayControls.scrimColour}</span
-					>
+					<span class="swatch-label">
+						{role === 'text' ? $t.overlayControls.captionColour : $t.overlayControls.scrimColour}
+					</span>
 					<div class="swatches">
 						{#each role === 'text' ? TEXT_SWATCHES : SCRIM_SWATCHES as swatch (swatch.hex)}
 							<button

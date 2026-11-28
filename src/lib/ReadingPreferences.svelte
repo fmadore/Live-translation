@@ -27,9 +27,9 @@
 			value={$overlayCaptionLayout}
 			onchange={(e) => overlay.setCaptionLayout(e.currentTarget.value as CaptionLayout)}
 		>
-			<option value="fit">{$t.overlayControls.fitWindow}</option><option value="stable"
-				>{$t.overlayControls.stable}</option
-			><option value="compact">{$t.overlayControls.compact}</option>
+			<option value="fit">{$t.overlayControls.fitWindow}</option><option value="stable">
+				{$t.overlayControls.stable}
+			</option><option value="compact">{$t.overlayControls.compact}</option>
 		</Select>
 	</Field>
 	{#if $overlayCaptionLayout === 'compact'}<Stepper
@@ -57,10 +57,11 @@
 		<Select
 			value={$overlayPace}
 			onchange={(e) => overlay.setPace(e.currentTarget.value === 'steady' ? 'steady' : 'immediate')}
-			><option value="immediate">{$t.usability.immediate}</option><option value="steady"
-				>{$t.usability.steady}</option
-			></Select
 		>
+			<option value="immediate">{$t.usability.immediate}</option><option value="steady">
+				{$t.usability.steady}
+			</option>
+		</Select>
 	</Field>
 	<p>{$t.usability.paceHint}</p>
 	<Preference

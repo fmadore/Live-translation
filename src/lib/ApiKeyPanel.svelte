@@ -134,9 +134,9 @@
 				>
 					{$t.key.replace}
 				</ToolButton>
-				<ToolButton variant="ghost" size="sm" disabled={locked} onclick={clearKey}
-					>{$t.key.remove}</ToolButton
-				>
+				<ToolButton variant="ghost" size="sm" disabled={locked} onclick={clearKey}>
+					{$t.key.remove}
+				</ToolButton>
 			</div>
 		{/snippet}
 	</ChecklistRow>

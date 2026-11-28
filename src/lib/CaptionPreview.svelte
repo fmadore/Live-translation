@@ -26,8 +26,10 @@
 		{#each PRESET_IDS as id (id)}
 			<ToolButton
 				aria-pressed={matchesPreset($appearance, id)}
-				onclick={() => overlay.setAppearance(PRESETS[id])}>{$t.usability[id]}</ToolButton
+				onclick={() => overlay.setAppearance(PRESETS[id])}
 			>
+				{$t.usability[id]}
+			</ToolButton>
 		{/each}
 	</div>
 {:else}

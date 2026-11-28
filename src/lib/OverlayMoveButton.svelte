@@ -74,10 +74,11 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"
 			aria-hidden="true"
-			><path
-				d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
-			/></svg
 		>
+			<path
+				d="M12 3.5v17M3.5 12h17M12 3.5l-3 3M12 3.5l3 3M12 20.5l-3-3M12 20.5l3-3M3.5 12l3-3M3.5 12l3 3M20.5 12l-3-3M20.5 12l-3 3"
+			/>
+		</svg>
 	{/if}
 	{text}
 </ToolButton>

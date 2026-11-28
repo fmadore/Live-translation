@@ -35,9 +35,9 @@
 		<ToolButton variant="primary" size="lg" bind:element={restoreEl} onclick={onRestore}>
 			{$t.prompt.recovery.restore}
 		</ToolButton>
-		<ToolButton variant="danger" size="lg" onclick={onDelete}
-			>{$t.prompt.recovery.delete}</ToolButton
-		>
+		<ToolButton variant="danger" size="lg" onclick={onDelete}>
+			{$t.prompt.recovery.delete}
+		</ToolButton>
 	</div>
 	<p class="note">
 		{$t.prompt.recovery.noteBefore} <code>{path}</code>{$t.prompt.recovery.noteAfter}

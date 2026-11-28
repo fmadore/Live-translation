@@ -46,8 +46,10 @@
 				stroke="currentColor"
 				stroke-width="2.6"
 				stroke-linecap="round"
-				aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" /></svg
+				aria-hidden="true"
 			>
+				<path d="M4 12.5l5 5L20 6.5" />
+			</svg>
 		</span>
 	{:else if status === 'wait'}
 		<span class="mark wait" aria-hidden="true"><span class="dot"></span></span>

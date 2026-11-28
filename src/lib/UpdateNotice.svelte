@@ -44,22 +44,21 @@
 		<p class="sentence" role={place === 'start' ? 'status' : undefined}>{sentence}</p>
 		{#if updates.available}
 			<span class="actions">
-				<ToolButton size="sm" variant="ghost" onclick={openNotes}
-					>{$t.updates.releaseNotes}<span class="sr-only">{$t.support.opensInBrowser}</span
-					></ToolButton
-				>
-				<ToolButton size="sm" variant="ghost" onclick={() => void updates.notNow()}
-					>{$t.updates.notNow}</ToolButton
-				>
+				<ToolButton size="sm" variant="ghost" onclick={openNotes}>
+					{$t.updates.releaseNotes}<span class="sr-only">{$t.support.opensInBrowser}</span>
+				</ToolButton>
+				<ToolButton size="sm" variant="ghost" onclick={() => void updates.notNow()}>
+					{$t.updates.notNow}
+				</ToolButton>
 			</span>
 		{:else if place === 'start' && updates.ask}
 			<span class="actions">
-				<ToolButton size="sm" variant="ghost" onclick={() => void updates.setChecks(true)}
-					>{$t.updates.turnOn}</ToolButton
-				>
-				<ToolButton size="sm" variant="ghost" onclick={() => void updates.setChecks(false)}
-					>{$t.updates.noThanks}</ToolButton
-				>
+				<ToolButton size="sm" variant="ghost" onclick={() => void updates.setChecks(true)}>
+					{$t.updates.turnOn}
+				</ToolButton>
+				<ToolButton size="sm" variant="ghost" onclick={() => void updates.setChecks(false)}>
+					{$t.updates.noThanks}
+				</ToolButton>
 			</span>
 		{/if}
 		{#if error}<span class="failed" role="alert">{error}</span>{/if}

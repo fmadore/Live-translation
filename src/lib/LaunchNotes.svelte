@@ -25,15 +25,15 @@
 	<!-- Led by the button's own name, so the note reads as being about Rehearse rather than
 	     about the checklist above it. Only the sentence is the button's description
 	     (`aria-describedby` in SessionControls): the name would be read twice. -->
-	<span class="rehearse-hint"
-		><strong class="lead">{$t.preflight.rehearse.action}</strong><span aria-hidden="true"
-			>{' · '}</span
-		><span id="rehearse-hint"
-			>{$options.provider === 'ondevice'
+	<span class="rehearse-hint">
+		<strong class="lead">{$t.preflight.rehearse.action}</strong><span aria-hidden="true">
+			{' · '}
+		</span><span id="rehearse-hint">
+			{$options.provider === 'ondevice'
 				? $t.preflight.rehearse.demoHint
-				: $t.preflight.rehearse.hint}</span
-		></span
-	>
+				: $t.preflight.rehearse.hint}
+		</span>
+	</span>
 	<span class="privacy">
 		{$historyEnabled
 			? $t.history.stored

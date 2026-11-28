@@ -160,7 +160,8 @@
 				stroke="currentColor"
 				stroke-width="1.75"
 				aria-hidden="true"
-				><path d="M4 6h16M4 12h16M4 18h16" /><circle
+			>
+				<path d="M4 6h16M4 12h16M4 18h16" /><circle
 					cx="9"
 					cy="6"
 					r="2"
@@ -170,8 +171,8 @@
 					cy="18"
 					r="2"
 					fill="var(--surface-2)"
-				/></svg
-			>
+				/>
+			</svg>
 		</ToolButton>
 	</div>
 	{#if expanded}
@@ -194,8 +195,10 @@
 							onclick={() => {
 								selected = p.id;
 								void load();
-							}}>{$t.usability.loadProfile}</ToolButton
+							}}
 						>
+							{$t.usability.loadProfile}
+						</ToolButton>
 						<ToolButton
 							aria-label={`${$t.design.manageProfiles}: ${p.name}`}
 							aria-expanded={rowMenu === p.id}
@@ -204,19 +207,21 @@
 								rowMenu = rowMenu === p.id ? '' : p.id;
 								confirming = false;
 							}}
-							><svg
+						>
+							<svg
 								width="0.875rem"
 								height="0.875rem"
 								viewBox="0 0 24 24"
 								fill="currentColor"
 								aria-hidden="true"
-								><circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle
+							>
+								<circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle
 									cx="19"
 									cy="12"
 									r="1.5"
-								/></svg
-							></ToolButton
-						>
+								/>
+							</svg>
+						</ToolButton>
 						{#if rowMenu === p.id}
 							<ToolButton
 								disabled={locked || busy}
@@ -226,8 +231,10 @@
 									renameId = p.id;
 									editing = 'rename';
 									confirming = false;
-								}}>{$t.design.rename}</ToolButton
+								}}
 							>
+								{$t.design.rename}
+							</ToolButton>
 							<ConfirmButton
 								variant="danger"
 								confirming={confirming && selected === p.id}
@@ -254,8 +261,10 @@
 				name = '';
 				editing = 'save';
 				confirming = false;
-			}}>{$t.design.newProfile}</ToolButton
+			}}
 		>
+			{$t.design.newProfile}
+		</ToolButton>
 		{#if editing}
 			<form
 				onsubmit={(e) => {
@@ -263,16 +272,16 @@
 					void (editing === 'rename' ? rename() : save());
 				}}
 			>
-				<Field label={$t.usability.profileName}
-					><input maxlength="80" bind:value={name} disabled={locked || busy} /></Field
-				>
+				<Field label={$t.usability.profileName}>
+					<input maxlength="80" bind:value={name} disabled={locked || busy} />
+				</Field>
 				<div class="actions">
-					<ToolButton type="submit" disabled={locked || busy || !name.trim()}
-						>{editing === 'rename' ? $t.design.saveName : $t.usability.saveProfile}</ToolButton
-					>
-					<ToolButton disabled={busy} onclick={() => (editing = null)}
-						>{$t.history.cancel}</ToolButton
-					>
+					<ToolButton type="submit" disabled={locked || busy || !name.trim()}>
+						{editing === 'rename' ? $t.design.saveName : $t.usability.saveProfile}
+					</ToolButton>
+					<ToolButton disabled={busy} onclick={() => (editing = null)}>
+						{$t.history.cancel}
+					</ToolButton>
 				</div>
 			</form>
 		{/if}

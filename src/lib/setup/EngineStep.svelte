@@ -45,16 +45,19 @@
 			>
 				<span class="engine-body">
 					<span class="engine-name">{$t.provider.vendor[id]}</span>
-					<span class="engine-model"
-						>{#if model.length > 1}{#each model as part, i (i)}{#if i}<wbr />{/if}<span
-									class="model-part">{part}</span
-								>{/each}{:else}{model[0]}{/if}</span
-					>{#if id === 'gemini-transcribe'}<span class="hint"
-							>{$t.design.geminiTranscribeSummary}</span
-						>{/if}{#if id === 'deepl'}<span class="hint">{$t.provider.deeplNote}</span
-						>{/if}{#if refused}<span class="hint"
-							>{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}</span
-						>{/if}
+					<span class="engine-model">
+						{#if model.length > 1}{#each model as part, i (i)}{#if i}<wbr />{/if}<span
+									class="model-part"
+								>
+									{part}
+								</span>{/each}{:else}{model[0]}{/if}
+					</span>{#if id === 'gemini-transcribe'}<span class="hint">
+							{$t.design.geminiTranscribeSummary}
+						</span>{/if}{#if id === 'deepl'}<span class="hint">
+							{$t.provider.deeplNote}
+						</span>{/if}{#if refused}<span class="hint">
+							{$t.whisper.cpuUnsupported(preflight.whisperCpuMissing)}
+						</span>{/if}
 				</span>
 				<span class="engine-rate">{rate[0]}<span class="unit">{rate[1]}</span></span>
 			</button>

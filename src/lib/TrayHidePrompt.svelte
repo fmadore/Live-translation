@@ -44,9 +44,9 @@
 		<ToolButton variant="primary" size="lg" bind:element={hideEl} onclick={() => onChoice('hide')}>
 			{$t.prompt.trayHide.hide}
 		</ToolButton>
-		<ToolButton variant="ghost" size="lg" onclick={() => onChoice('quit')}
-			>{$t.prompt.trayHide.quit}</ToolButton
-		>
+		<ToolButton variant="ghost" size="lg" onclick={() => onChoice('quit')}>
+			{$t.prompt.trayHide.quit}
+		</ToolButton>
 	</div>
 </ModalPrompt>
 
