@@ -1,10 +1,18 @@
 // Horizontal overflow across the whole matrix — every state, in English, French and German, at
-// 100, 150 and 225% text — at the operator window's minimum size, where long German and
-// French labels have the least room. Any element whose content is wider than its box fails
-// the run, unless it is listed below as meant.
+// 100, 150 and 225% text, and at the 90% Text size — at the operator window's minimum size,
+// where long German and French labels have the least room. Any element whose content is wider
+// than its box fails the run, unless it is listed below as meant.
 
 import { expect, test } from '@playwright/test';
-import { LOCALES, MINIMUM_WINDOW, openOperator, OVERFLOW_STATE_NAMES, SCALES } from './operator';
+import {
+	LOCALES,
+	MINIMUM_WINDOW,
+	openOperator,
+	OVERFLOW_STATE_NAMES,
+	SCALES,
+	SMALLEST_TEXT_SIZE,
+	type Scale
+} from './operator';
 import { overflow, type Offender } from './probe';
 
 /** Overflows that are part of the design. Each says why, and matches as narrowly as it can:
@@ -40,12 +48,19 @@ function describe(offenders: Offender[]): string {
 
 test.use({ viewport: MINIMUM_WINDOW });
 
+/** Windows' slider at each step, and the smallest Settings › App › Text size on a system at
+ *  100% — the one way the window's text gets smaller than the slider allows (issue #283). */
+const SIZES: { label: string; scale: Scale; textSize?: number }[] = [
+	...SCALES.map((scale) => ({ label: `${scale * 100}%`, scale })),
+	{ label: `${SMALLEST_TEXT_SIZE}% (Text size)`, scale: 1, textSize: SMALLEST_TEXT_SIZE }
+];
+
 for (const locale of LOCALES) {
-	for (const scale of SCALES) {
-		test.describe(`${locale} at ${scale * 100}%`, () => {
+	for (const { label, scale, textSize } of SIZES) {
+		test.describe(`${locale} at ${label}`, () => {
 			for (const state of OVERFLOW_STATE_NAMES) {
 				test(state, async ({ page }) => {
-					await openOperator(page, { state, locale, scale });
+					await openOperator(page, { state, locale, scale, textSize });
 					const unexpected = (await overflow(page)).filter(
 						(o) => !INTENDED.some((intended) => intended.matches(o))
 					);
