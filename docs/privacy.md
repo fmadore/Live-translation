@@ -1,11 +1,11 @@
 # Privacy Policy — Live Translation & Subtitles
 
-**Effective date:** 23 November 2026 (adds OpenAI subtitles, sending audio, entered names and
-terms, and the chosen spoken language to OpenAI; clarifies that names and terms are sent to
-Mistral, Gemini Transcribe and OpenAI subtitles and used locally by Whisper)
+**Effective date:** 28 November 2026 (lists the interface language, theme and text size of the
+main window among the preferences stored on the device; nothing new is sent)
 
-Previous version: 16 November 2026 (added the optional new-version check for GitHub installs,
-optional system-wide shortcuts, and operator transcript markers)
+Previous version: 23 November 2026 (added OpenAI subtitles, sending audio, entered names and
+terms, and the chosen spoken language to OpenAI; clarified that names and terms are sent to
+Mistral, Gemini Transcribe and OpenAI subtitles and used locally by Whisper)
 
 ## What this app is
 
@@ -204,6 +204,8 @@ The app stores ordinary interface preferences locally on your device:
   size, layout (Fit window, Compact or Stable reading), compact line width, caption hold time and
   update pace, filler-word cleanup and its word list, and whether a break notice clears itself
   when captions resume (the notice text itself is never stored).
+- **Main window:** the interface language, the theme (System, Light or Dark) and the text size
+  chosen in Settings › App.
 - **Session and app behaviour:** cloud spending-guard choices, whether history or crash recovery
   is enabled, the new-version check state on GitHub installs
   ([above](#new-version-check-copies-installed-from-github)), whether a running session opens on

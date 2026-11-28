@@ -27,6 +27,8 @@ listing is for Windows: 1.13 and later also ship a Mac app, which the listing do
   App › Text size sets the operator window's text at 90, 100, 115, 130 or 150% of Windows'
   own text size, up to 225% in all; the caption overlay keeps its own size. The features line
   "follows Windows text scaling and contrast themes" can add "and has a text size of its own".
+  The privacy policy's effective date is **28 November 2026**: it now lists the interface
+  language, theme and text size among the preferences kept on the device; nothing new is sent.
 
 ## What 1.16.0 adds
 

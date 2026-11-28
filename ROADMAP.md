@@ -198,7 +198,7 @@ A whole-repository audit of v1.15.0 (`cd0289b`) was checked finding by finding a
 on 20 November 2026. Its fixes shipped in 1.16.0. Since then, on main: the release workflow builds
 the Whisper Vulkan helper once per architecture, in a `vulkan-helper` job whose artefact `build`
 and both `msix` packages take ([#245](https://github.com/fmadore/Live-translation/issues/245); to
-watch on the next tag, which is its first real run). Of [#246](https://github.com/fmadore/Live-translation/issues/246), two items are left on purpose: one
+watch on the next tag, which is its first real run). [#246](https://github.com/fmadore/Live-translation/issues/246) was closed on 28 November 2026 with two items left on purpose: one
 `WhisperState` for both sources, which waits for a memory measurement, and the
 `ProcessGuard` check in the Windows loopback, which is cheap where it is. No structural change is needed; what it found is filed in the milestone
 [1.16 — Audit fixes](https://github.com/fmadore/Live-translation/milestone/4), each issue with
