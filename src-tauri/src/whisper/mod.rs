@@ -30,7 +30,7 @@ mod segment;
 pub mod spool;
 #[cfg(test)]
 mod tests;
-mod vad;
+pub(crate) mod vad;
 
 use anyhow::{Result, ensure};
 

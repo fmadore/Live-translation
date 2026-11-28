@@ -259,11 +259,21 @@ for minutes and Pause went unseen.
 ending its session mid-stream is treated the same way. After a connection that lasted at least
 `STABLE_CONNECTION`, the runner reconnects without backoff and keeps the source Running. First
 it drains the old socket like a Pause, within `min(timeLeft, 4 s)`: it sends the closing frames
-(`audioStreamEnd` for Gemini) and reads until the provider's flush is done, so the audio already
+(`audioStreamEnd` for Gemini; the open activity's `activityEnd` for Gemini Transcribe when it
+cuts the stream itself) and reads until the provider's flush is done, so the audio already
 sent still comes back as text. From the drain on, and while the new socket connects and sets
 up, it keeps reading the producer into a backlog of up to 70 chunks (about seven seconds; the
 oldest go first beyond that), sends it in order once setup completes, then whatever is still
 queued (`next_chunk`'s catch-up) rather than coalescing it as a stall's backlog. The gap becomes latency instead of lost speech.
+
+**Gemini Transcribe's cuts** ([#281](https://github.com/fmadore/Live-translation/issues/281),
+`gemini::cuts`). Silero's speech detection runs on a thread per source, fed through a bounded
+queue by the client as it sends each chunk (`RealtimeProtocol::before_audio`), never in the
+audio callback or on the async runtime; the thread ends when the client is dropped with its
+session. Every chunk is inside an activity: a connection's first chunk opens one, a cut is
+`activityEnd` then `activityStart` between two chunks, and Pause, Stop and a handover's drain
+end the open one, so none is left open across a socket. See
+[cutting at real pauses](gemini-live-api.md#cutting-at-real-pauses).
 
 **A fresh start** (Start, or Resume after a pause) holds audio the same way: the speech that
 begins while the socket opens and the provider confirms its setup goes into the same bounded

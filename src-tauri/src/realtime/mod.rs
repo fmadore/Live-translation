@@ -319,6 +319,13 @@ pub trait RealtimeProtocol {
         self.audio_json(base64::engine::general_purpose::STANDARD.encode(pcm_le))
     }
 
+    /// Frames to send straight before this chunk's audio frame, in order. Gemini Transcribe
+    /// opens an activity with its first chunk on a connection, and cuts the stream at a pause
+    /// it has found, here (`gemini::cuts`). Asked for every chunk sent, as `after_audio` is.
+    fn before_audio(&mut self, _pcm_le: &[u8]) -> Vec<String> {
+        Vec::new()
+    }
+
     /// A frame to send straight after this chunk's audio frame, or `None`. OpenAI's
     /// transcription session has no turn detection of its own and leaves the end of each turn
     /// to the client, which commits the audio buffer here. Asked for every chunk sent: live,

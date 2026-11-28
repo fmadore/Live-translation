@@ -97,16 +97,21 @@ impl Connection {
             .await
     }
 
-    /// One chunk's audio frame, then whatever the provider sends after it
-    /// (`RealtimeProtocol::after_audio`). Both are built before either is sent, for the reason
-    /// `send_audio` gives.
+    /// Whatever the provider sends before a chunk (`RealtimeProtocol::before_audio`), the
+    /// chunk's audio frame, then whatever it sends after it (`after_audio`). All are built
+    /// before any is sent, for the reason `send_audio` gives.
     async fn send_chunk<P: RealtimeProtocol>(
         &mut self,
         proto: &mut P,
         pcm_le: &[u8],
     ) -> Result<(), RunEnd> {
+        let before = proto.before_audio(pcm_le);
         let frame = proto.audio_frame(pcm_le);
         let after = proto.after_audio(pcm_le);
+        for before in before {
+            self.send(Message::Text(before.into()), "failed to send audio chunk")
+                .await?;
+        }
         self.send_audio(frame).await?;
         match after {
             Some(after) => {
