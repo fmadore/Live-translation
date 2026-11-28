@@ -39,6 +39,10 @@ export const macEn: MacMessages = {
 	theme: {
 		note: 'System follows the light or dark appearance set in macOS. The caption overlay keeps its own colours.'
 	},
+	// macOS gives the webview no text size to multiply, so this setting is the only one.
+	textSize: {
+		note: 'Makes the text in this window larger or smaller. The caption overlay keeps its own size.'
+	},
 	// As a Mac writes a key combination: symbols, Shift before Command, nothing between them.
 	keys: {
 		ctrl: '⌘',
@@ -139,6 +143,9 @@ export const macFr: MacMessages = {
 	},
 	theme: {
 		note: '« Système » suit l’apparence claire ou sombre de macOS. La surimpression des sous-titres garde ses propres couleurs.'
+	},
+	textSize: {
+		note: 'Agrandit ou réduit le texte de cette fenêtre. La surimpression des sous-titres garde sa propre taille.'
 	},
 	keys: {
 		ctrl: '⌘',
@@ -242,6 +249,9 @@ export const macDe: MacMessages = {
 	},
 	theme: {
 		note: 'System folgt dem hellen oder dunklen Erscheinungsbild von macOS. Das Untertitel-Overlay behält seine eigenen Farben.'
+	},
+	textSize: {
+		note: 'Vergrößert oder verkleinert den Text dieses Fensters. Das Untertitel-Overlay behält seine eigene Größe.'
 	},
 	keys: {
 		ctrl: '⌘',

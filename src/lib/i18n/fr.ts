@@ -140,6 +140,12 @@ export const fr: Messages = {
 		note: '« Système » suit le mode d’application clair ou sombre de Windows. La surimpression des sous-titres garde ses propres couleurs.'
 	},
 
+	textSize: {
+		label: 'Taille du texte',
+		standard: (percent: string) => `${percent} (par défaut)`,
+		note: 'Agrandit ou réduit le texte de cette fenêtre, en plus de la taille du texte réglée dans Windows (Paramètres > Accessibilité > Taille du texte). La surimpression des sous-titres garde sa propre taille.'
+	},
+
 	// The product's own name is not translated — the Store lists it in English, and inventing a
 	// French one would give the same app a third name. The line under it is prose, so it is.
 	app: {

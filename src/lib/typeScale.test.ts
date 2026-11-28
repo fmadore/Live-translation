@@ -6,11 +6,20 @@
 // arrived, one shade at a time, so the size ramp gets the same kind of guard the colour ramp
 // has in `palette.test.ts`: read the stylesheets, and fail on anything that opted out.
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { applyTextScale, clampTextScale, TEXT_SCALE_DEFAULT, TEXT_SCALE_MAX } from './textScale';
+import {
+	applyTextScale,
+	clampTextScale,
+	combinedTextScale,
+	followTextScale,
+	TEXT_SCALE_DEFAULT,
+	TEXT_SCALE_MAX,
+	TEXT_SCALE_MIN
+} from './textScale';
+import { loadTextSize, TEXT_SIZE_KEY, TEXT_SIZES, textSize } from './textSize';
 
 const SRC = join(process.cwd(), 'src');
 const APP_CSS = readFileSync(join(SRC, 'app.css'), 'utf8');
@@ -191,6 +200,118 @@ describe('clampTextScale', () => {
 	});
 });
 
+// Settings › App › Text size multiplies the system's factor (issue #283).
+describe('combinedTextScale', () => {
+	it('is the system factor at the default 100%', () => {
+		for (const factor of [1, 1.25, 1.5, 2.25]) {
+			expect(combinedTextScale(factor, 100)).toBe(factor);
+		}
+	});
+
+	it('multiplies the system factor by the chosen size', () => {
+		expect(combinedTextScale(1, 90)).toBe(0.9);
+		expect(combinedTextScale(1, 150)).toBe(1.5);
+		expect(combinedTextScale(1.25, 90)).toBe(1.125);
+		expect(combinedTextScale(1.5, 115)).toBe(1.725);
+		expect(combinedTextScale(1.5, 150)).toBe(2.25);
+	});
+
+	// 2.25 is what the layout's `em` breakpoints are verified at, whatever asks for more.
+	it('never goes past the range the layout is verified at', () => {
+		expect(combinedTextScale(2, 150)).toBe(TEXT_SCALE_MAX);
+		expect(combinedTextScale(2.25, 130)).toBe(TEXT_SCALE_MAX);
+		expect(combinedTextScale(9, 900)).toBe(TEXT_SCALE_MAX);
+		expect(combinedTextScale(1, 10)).toBe(TEXT_SCALE_MIN);
+		expect(combinedTextScale(1, -50)).toBe(TEXT_SCALE_MIN);
+		expect(TEXT_SCALE_MIN).toBe(0.9);
+	});
+
+	// Below 100% the system's own floor still holds: a corrupt read of 0.5 is Windows at 100%,
+	// not a request for half-size text.
+	it('holds the system factor to the slider before multiplying', () => {
+		expect(combinedTextScale(0.5, 100)).toBe(1);
+		expect(combinedTextScale(0.5, 90)).toBe(0.9);
+	});
+
+	it('keeps each side when the other is junk', () => {
+		for (const junk of [NaN, Infinity, -Infinity, null, undefined, '2', {}]) {
+			expect(combinedTextScale(junk, 130)).toBe(1.3);
+			expect(combinedTextScale(1.5, junk)).toBe(1.5);
+			expect(combinedTextScale(junk, junk)).toBe(TEXT_SCALE_DEFAULT);
+		}
+	});
+
+	it('gives every choice a real number inside the range at every slider step', () => {
+		for (const size of TEXT_SIZES) {
+			for (const factor of [1, 1.25, 1.5, 1.75, 2, 2.25]) {
+				const scale = combinedTextScale(factor, size);
+				expect(scale).toBeGreaterThanOrEqual(TEXT_SCALE_MIN);
+				expect(scale).toBeLessThanOrEqual(TEXT_SCALE_MAX);
+				expect(String(scale)).toMatch(/^\d(\.\d{1,3})?$/);
+			}
+		}
+	});
+});
+
+describe('the Text size choice', () => {
+	function useStorage(values: Record<string, string>) {
+		Object.defineProperty(globalThis, 'localStorage', {
+			value: {
+				getItem: (key: string) => values[key] ?? null,
+				setItem: (key: string, value: string) => (values[key] = value)
+			},
+			configurable: true
+		});
+	}
+
+	afterEach(() => {
+		Reflect.deleteProperty(globalThis, 'localStorage');
+	});
+
+	it('reads a stored choice back', () => {
+		for (const size of TEXT_SIZES) {
+			useStorage({ [TEXT_SIZE_KEY]: String(size) });
+			expect(loadTextSize()).toBe(size);
+		}
+	});
+
+	it('is 100% for nothing stored, or anything that is not one of the choices', () => {
+		for (const stored of [undefined, '', '0', '95', '1.15', 'NaN', 'large', '-100']) {
+			useStorage(stored === undefined ? {} : { [TEXT_SIZE_KEY]: stored });
+			expect(loadTextSize()).toBe(100);
+		}
+	});
+});
+
+describe('followTextScale', () => {
+	afterEach(() => {
+		textSize.set(100);
+		Reflect.deleteProperty(globalThis, 'document');
+	});
+
+	// In a browser preview there is no system to ask: the chosen size alone applies, and
+	// follows the setting as it changes.
+	it('applies the chosen size without a system factor, and follows it', async () => {
+		const written: Record<string, string> = {};
+		Object.defineProperty(globalThis, 'document', {
+			value: {
+				documentElement: {
+					style: { setProperty: (name: string, value: string) => (written[name] = value) }
+				}
+			},
+			configurable: true
+		});
+		textSize.set(115);
+		const stop = await followTextScale();
+		expect(written['--text-scale']).toBe('1.15');
+		textSize.set(90);
+		expect(written['--text-scale']).toBe('0.9');
+		stop();
+		textSize.set(150);
+		expect(written['--text-scale']).toBe('0.9');
+	});
+});
+
 describe('applyTextScale', () => {
 	function target() {
 		const written: Record<string, string> = {};
@@ -203,6 +324,14 @@ describe('applyTextScale', () => {
 			}
 		};
 	}
+
+	it('writes a factor below 100% that a Text size choice produced', () => {
+		const root = target();
+		applyTextScale(0.9, root);
+		expect(root.written['--text-scale']).toBe('0.9');
+		applyTextScale(0.1, root);
+		expect(root.written['--text-scale']).toBe(String(TEXT_SCALE_MIN));
+	});
 
 	it('writes the clamped factor where the stylesheet reads it', () => {
 		const root = target();
