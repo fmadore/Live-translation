@@ -140,7 +140,8 @@ the spoken language and does not offer translation targets.
 ### Settings and history
 
 Settings has **Captions**, **Reading**, **Transcript history** and **App** tabs. **App** also
-holds the [spending guard](#spending-guard-for-cloud-engines).
+holds the window's [text size](#text-size) and the
+[spending guard](#spending-guard-for-cloud-engines).
 The dialog and tab bar retain their dimensions when switching tabs; the content scrolls
 independently and starts at the top of each newly selected tab. Short tabs intentionally
 leave spare space. Use the Left and Right arrows, Home or End within the tab bar, and Tab to
@@ -152,6 +153,17 @@ language filters and the session reader appear with the first saved session.
 See [caption layout](caption-layout.md#reading-pace-and-preview) for the adjustable reading pause,
 Steadier updates and presets. See [transcript history](transcript-history.md#titles-and-search)
 for session titles, full-text search and inclusive date and language filters.
+
+### Text size
+
+**Settings → App → Text size** makes the operator window's text larger or smaller: 90%, 100%
+(the default), 115%, 130% or 150%. On Windows it applies on top of Windows' own text size
+(Settings > Accessibility > Text size), so 100% is the window exactly as Windows sizes it and
+130% with Windows at 150% draws it at 195%; the window never goes past 225%. On a Mac it is the
+only text size setting the window has. The layout grows and shrinks with the text, and the two
+columns stack into one when they no longer fit. The choice applies at once and is kept for the
+next start. It does not change the caption overlay, whose captions keep their own size under
+**Settings → Captions**. See [accessibility](accessibility.md#text-size-in-the-app).
 
 ## Input status
 

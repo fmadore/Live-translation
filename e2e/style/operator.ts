@@ -21,6 +21,13 @@ export const LOCALES = Object.keys(CATALOGS) as Locale[];
 export const SCALES = [1, 1.5, 2.25] as const;
 export type Scale = (typeof SCALES)[number];
 
+/** `TEXT_SIZE_KEY` in `src/lib/textSize.ts`: Settings › App › Text size, in percent. */
+const TEXT_SIZE_KEY = 'appearance.textSize';
+/** The one Text size below 100% (`TEXT_SIZES`), the only way the window gets smaller than the
+ *  slider allows: the overflow spec walks it on a system at 100%. The choices above 100% land
+ *  inside the slider's range, which `SCALES` already covers. */
+export const SMALLEST_TEXT_SIZE = 90;
+
 /** The operator window's default and minimum sizes, from `src-tauri/tauri.conf.json`. */
 export const DEFAULT_WINDOW = { width: 1200, height: 820 };
 export const MINIMUM_WINDOW = { width: 980, height: 660 };
@@ -334,14 +341,27 @@ export const scopeOf = (state: StateName): string | undefined => (STATES[state] 
  * Load the operator window in `locale` at `scale`, reach `state`, and wait until it is still.
  *
  * Every setting goes in the way the app takes it: the interface language and the theme from
- * their stored choices, the text scale from the core's `text_scale_factor` answer, which
- * `textScale.ts` writes onto the root as `--text-scale`. Each is checked on the page before
+ * their stored choices, the text scale from the core's `text_scale_factor` answer times the
+ * stored Text size, which `textScale.ts` writes onto the root as `--text-scale`. Each is checked on the page before
  * going further. With no theme the window follows the browser's colour scheme, as it follows
  * Windows' app mode in the app; the config pins that to dark.
  */
 export async function openOperator(
 	page: Page,
-	{ state, locale, scale, theme }: { state: StateName; locale: Locale; scale: Scale; theme?: Theme }
+	{
+		state,
+		locale,
+		scale,
+		theme,
+		textSize
+	}: {
+		state: StateName;
+		locale: Locale;
+		scale: Scale;
+		theme?: Theme;
+		/** Settings › App › Text size in percent, stored as the app stores it; 100 if left out. */
+		textSize?: number;
+	}
 ): Promise<Operator> {
 	const t = CATALOGS[locale];
 	const core = await FakeCore.install(page);
@@ -349,6 +369,7 @@ export async function openOperator(
 	(STATES[state] as State).prepare?.(core);
 	const stored: [string, string][] = [[LOCALE_KEY, locale]];
 	if (theme) stored.push([THEME_KEY, theme]);
+	if (textSize !== undefined) stored.push([TEXT_SIZE_KEY, String(textSize)]);
 	await page.addInitScript((entries) => {
 		for (const [key, value] of entries) localStorage.setItem(key, value);
 	}, stored);
@@ -363,7 +384,7 @@ export async function openOperator(
 		.poll(() =>
 			page.evaluate(() => document.documentElement.style.getPropertyValue('--text-scale'))
 		)
-		.toBe(String(scale));
+		.toBe(String((scale * (textSize ?? 100)) / 100));
 	await expect(page.getByRole('button', { name: t.preflight.start.subtitles })).toBeVisible();
 
 	const app = { page, core, t };

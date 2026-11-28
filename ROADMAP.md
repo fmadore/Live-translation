@@ -183,12 +183,24 @@ package or a native speaker, kept distinct from unit and fixture tests. The
 
 ## Next
 
+### On main after 1.16.1
+
+- **Text size for the operator window** ([#283](https://github.com/fmadore/Live-translation/issues/283)):
+  Settings › App › Text size offers 90, 100, 115, 130 and 150% of the system's text size, held to
+  90–225% in all; on a Mac it is the only factor. The overlay keeps its own caption size. Checked
+  in unit tests and in the style suite's overflow walk at 90%; the walk in the installed app on
+  Windows and on a Mac ([accessibility](docs/accessibility.md)) and a fresh Settings › App
+  screenshot for the [guide](docs/usability.md) are still to do.
+
 ### The 20 November audit
 
 A whole-repository audit of v1.15.0 (`cd0289b`) was checked finding by finding against the code
-on 20 November 2026. Its fixes shipped in 1.16.0, except the second part of
-[#245](https://github.com/fmadore/Live-translation/issues/245) (building the x64 Vulkan helper once) and what is left of
-[#246](https://github.com/fmadore/Live-translation/issues/246). No structural change is needed; what it found is filed in the milestone
+on 20 November 2026. Its fixes shipped in 1.16.0. Since then, on main: the release workflow builds
+the Whisper Vulkan helper once per architecture, in a `vulkan-helper` job whose artefact `build`
+and both `msix` packages take ([#245](https://github.com/fmadore/Live-translation/issues/245); to
+watch on the next tag, which is its first real run). Of [#246](https://github.com/fmadore/Live-translation/issues/246), two items are left on purpose: one
+`WhisperState` for both sources, which waits for a memory measurement, and the
+`ProcessGuard` check in the Windows loopback, which is cheap where it is. No structural change is needed; what it found is filed in the milestone
 [1.16 — Audit fixes](https://github.com/fmadore/Live-translation/milestone/4), each issue with
 its files, the fix and its acceptance criteria. Suggested order:
 

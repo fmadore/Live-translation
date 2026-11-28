@@ -139,6 +139,12 @@ export const de: Messages = {
 		note: 'System folgt dem hellen oder dunklen App-Modus von Windows. Das Untertitel-Overlay behält seine eigenen Farben.'
 	},
 
+	textSize: {
+		label: 'Textgröße',
+		standard: (percent: string) => `${percent} (Standard)`,
+		note: 'Vergrößert oder verkleinert den Text dieses Fensters, zusätzlich zur in Windows eingestellten Textgröße (Einstellungen > Barrierefreiheit > Textgröße). Das Untertitel-Overlay behält seine eigene Größe.'
+	},
+
 	app: {
 		name: 'Live Translation & Subtitles'
 	},

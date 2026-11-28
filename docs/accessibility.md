@@ -5,7 +5,8 @@ high-contrast themes or enlarged text—along with what is verified automaticall
 manual checks before release.
 
 The operator window targets WCAG 2.2 AA and the Microsoft Store Windows accessibility checklist:
-full keyboard navigation, Narrator support, Windows contrast themes and live text scaling.
+full keyboard navigation, Narrator support, Windows contrast themes and live text scaling, with
+a text size of its own in Settings › App on Windows and macOS alike.
 
 The caption overlay is handled differently by design. It is projected content shown over slides
 and calls rather than an operator control surface, so its contrast is measured against its own
@@ -18,7 +19,7 @@ and operator text scaling (see [Windows text scaling](#windows-text-scaling)).
 | --- | --- |
 | Text contrast | `src/app.css` — four text levels (bright, body, secondary, muted), every one of which clears 4.5:1 on each of the three surfaces; the muted level also clears it on every tinted wash the stylesheet names. `--faint` carries no text; it is the idle status dot at the 3:1 non-text target. No component paints with a hex literal, so every colour on screen is one the checks have seen. The light theme (`:root[data-theme='light']`, chosen in Settings → App → Theme or followed from Windows' app mode) re-declares every colour and is held to the same floors. |
 | Text size | `src/app.css` — seven type roles (caption 11, small 12, body 13, label 14, title 17, heading 21, display 27px at 100%), each a multiple of `--text-scale`. Spacing is a six-step `rem` scale, so the space around text grows with it too. No component declares its own pixel size or spacing. |
-| Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` writes it onto the document root. |
+| Windows text scaling | `src-tauri/src/textscale.rs` reads `UISettings.TextScaleFactor` and follows its change event; `src/lib/textScale.ts` multiplies it by Settings › App › Text size (`src/lib/textSize.ts`) and writes the product onto the document root. |
 | Reflow | The operator's two columns are a container query in `em`, so the window stacks them and scrolls as one column once the operator's text no longer fits beside itself. |
 | Caption reflow | Fit window measures rendered text against the overlay width and height, keeping the newest words at the chosen font size. Compact keeps a separate width control. Both layouts refit on resizing and font changes; see [caption layout](caption-layout.md). |
 | Caption colours | `src/lib/captionColour.ts` — the operator picks the ink and the scrim, and every ratio is computed on the **composite**: the scrim as it is thinned under the text, over both a white and a black slide, with the halo that rings the glyph. One function settles how dim each step is painted *and* what the readout says, so the two cannot disagree. A single control puts the whole overlay appearance back to what it ships with, because a way into an unreadable palette needs a way out of it. |
@@ -64,8 +65,10 @@ and operator text scaling (see [Windows text scaling](#windows-text-scaling)).
   component declares a bare `font-size` in pixels — a size Windows' text setting cannot reach,
   and a failure invisible on a machine at 100%. It also fails on a size outside the seven
   roles, on a small-capital label not tracked at `--tracking-caps`, on a line-height outside
-  the three `--leading-*` steps (caption text excepted), and covers the clamp that stands
-  between a settings event and every `calc()` in the stylesheet.
+  the three `--leading-*` steps (caption text excepted), and covers the clamps that stand
+  between a settings event, the stored Text size and every `calc()` in the stylesheet.
+- `npm run test:style` → `e2e/style/overflow.spec.ts` walks every state in all three languages
+  at the minimum window at 100, 150 and 225%, and once more at the 90% Text size.
 - `npm test` → `src/lib/spacing.test.ts` does the same for spacing, corners and control boxes:
   every padding, margin and gap is a `--space-*` step (or an optical nudge of a few pixels),
   every radius is a `--radius-*` token at Windows 11 geometry (4px in the page, 8px for
@@ -113,6 +116,12 @@ treats the window.
    a restart. Nothing is clipped or overlapping; the rail's cards keep their proportions; the
    two columns stack into one scrolling column when they no longer fit, and come back when the
    window is widened. The overlay does not change — see below.
+   Then Settings → App → Text size, with the slider back at 100%: walk 90% and 150%, and once
+   at 150% with the slider at 150% (225%, the ceiling) and at 200% (still 225%). The window
+   follows each choice at once, and the choice is still there after a restart. At 90%, the
+   smallest text (chips, key caps, kickers) is still readable at the operator's distance.
+   **On a Mac**, which has no slider for the app, walk every Text size choice the same way,
+   at the minimum size and maximised.
 6. **Display scaling.** 150% and 200%, and a mixed-DPI two-monitor setup with the overlay on
    the second display.
 7. **Reduced motion.** Settings → Accessibility → Visual effects → Animation effects off. No
@@ -140,9 +149,11 @@ window. So the core reads the factor and the operator window applies it:
    text is not shown a frame of 9.5px type before the window could subscribe. The module then
    subscribes to `TextScaleFactorChanged` and emits every later change, so moving the slider
    moves the window without a restart.
-2. `src/lib/textScale.ts` clamps the factor to the slider's own 1 … 2.25 and writes it to
-   `--text-scale` on the document root. Both ends clamp: the value crosses a JSON event
-   boundary, and a `NaN` there would invalidate every `calc()` in the stylesheet at once.
+2. `src/lib/textScale.ts` clamps the factor to the slider's own 1 … 2.25, multiplies it by
+   the operator's [Text size](#text-size-in-the-app), clamps the product to 0.9 … 2.25 and
+   writes it to `--text-scale` on the document root. Both ends clamp: the value crosses a JSON
+   event boundary, and a `NaN` there would invalidate every `calc()` in the stylesheet at once.
+   Each input is checked on its own, so a corrupt read still leaves the other one in force.
 3. `src/app.css` multiplies the whole type ramp by it, and scales the root font size by it as
    well. The ramp is what makes the text grow; the root size is what makes the *layout* grow
    with it, because every gutter and width that has to hold text is expressed in `em`.
@@ -159,11 +170,35 @@ window, so the normal layout is untouched.
 **The overlay opts out**, for the same reason it opts out of contrast themes: its captions are
 not chrome on the operator's screen, they are projected content whose size the operator sets
 for the room, with its own control and its own `--fs`. An accessibility setting on the
-operator's PC has no business resizing what an audience is reading.
+operator's PC has no business resizing what an audience is reading, and neither has the
+app's own Text size.
 
 Verified in a browser preview at 980 × 660 — the window's minimum — with the factor forced to
 every step of the Windows slider: no horizontal overflow, no clipped box, and no overlapping
 region at 225%. The native walk is item 5 of the release checklist.
+
+### Text size in the app
+
+Settings › App › **Text size** offers 90%, 100% (the default), 115%, 130% and 150%
+([#283](https://github.com/fmadore/Live-translation/issues/283)). It is a percentage *of the
+system's* text size, not a replacement for it: on Windows the window is drawn at the slider's
+factor times the choice, so 130% with the slider at 150% is 195%. That is why there is no
+separate *System* choice: 100% is exactly the window as Windows sizes it, and a second entry
+for the same window would only ask the operator to tell two identical things apart. On macOS,
+whose webview reports no text size, the choice is the only factor there is. It applies at
+once, is kept in the operator window's local storage (`appearance.textSize`), and does not
+reach the overlay, whose captions keep their own size control; it is not webview zoom, which
+would also scale the window's chrome and pointer targets.
+
+The top stays at 2.25, the range the `em` breakpoints are verified at, so 150% of 150% is the
+ceiling and anything past it is held there. The one step below 100% was checked against the
+layout before it was offered. Everything that holds text is in `em` or `rem`, so at 0.9 the
+whole window shrinks in proportion: the stacking threshold falls to 774px (two columns at
+every window size the app allows), spacing and control heights shrink with the type, and the
+smallest control box is still 28.8px, above WCAG 2.2's 24px target minimum. What does not
+shrink is drawn in pixels on purpose (borders, corner radii, the focus ring), and only gains
+room. The type ramp's caption step renders at 9.9px, which is why the floor is 90% and not
+lower. `overflow.spec.ts` walks every state at 90% in all three languages.
 
 ## Feature checks
 

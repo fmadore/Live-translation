@@ -136,6 +136,13 @@ export const en = {
 		note: 'System follows the light or dark app mode set in Windows. The caption overlay keeps its own colours.'
 	},
 
+	// Settings › App: the operator window's own text size, a percentage of the system's.
+	textSize: {
+		label: 'Text size',
+		standard: (percent: string) => `${percent} (default)`,
+		note: 'Makes the text in this window larger or smaller, on top of the text size set in Windows (Settings > Accessibility > Text size). The caption overlay keeps its own size.'
+	},
+
 	app: {
 		name: 'Live Translation & Subtitles'
 	},

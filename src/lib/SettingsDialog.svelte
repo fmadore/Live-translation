@@ -19,9 +19,11 @@
 	import type { UpdateCheck } from './updateCheck.svelte';
 	import SupportLink from './SupportLink.svelte';
 	import { supportShown } from './support';
-	import { LOCALE_NAMES, LOCALES, locale, setLocale, t } from './i18n';
+	import Select from './ui/Select.svelte';
+	import { LOCALE_NAMES, LOCALES, locale, localeTag, setLocale, t } from './i18n';
 	import { closeToTray } from './stores';
 	import { THEMES, theme } from './theme';
+	import { TEXT_SIZE_DEFAULT, TEXT_SIZES, textSize, type TextSize } from './textSize';
 
 	/** The settings panel. Everything in it is persisted and applies live, so there is no
 	 *  draft to keep and nothing to cancel — closing is the only exit it needs. */
@@ -53,6 +55,12 @@
 	const idBase = $props.id();
 	const localeHeadingId = `${idBase}-locale`;
 	const themeHeadingId = `${idBase}-theme`;
+	const textSizeHeadingId = `${idBase}-text-size`;
+	const textSizeNoteId = `${idBase}-text-size-note`;
+
+	/** A Text size choice as the interface language writes a percentage: 90%, 90 %, 90 %. */
+	const percent = (size: number) =>
+		new Intl.NumberFormat($localeTag, { style: 'percent' }).format(size / 100);
 </script>
 
 <!-- Modal for the focus handling rather than because it demands an answer, so Escape and
@@ -159,6 +167,27 @@
 						{/each}
 					</div>
 					<p class="hint">{$t.theme.note}</p>
+				</div>
+
+				<div class="divider"></div>
+				<!-- The operator window only, like the theme: the overlay's captions keep the size
+				     chosen for the room. A percentage of the system's own text size, so the default
+				     is the window as Windows sizes it and no separate "System" choice is needed. -->
+				<div class="rail-section">
+					<h2 class="kicker" id={textSizeHeadingId}>{$t.textSize.label}</h2>
+					<Select
+						value={String($textSize)}
+						aria-labelledby={textSizeHeadingId}
+						aria-describedby={textSizeNoteId}
+						onchange={(e) => textSize.set(Number(e.currentTarget.value) as TextSize)}
+					>
+						{#each TEXT_SIZES as size (size)}
+							<option value={String(size)}>
+								{size === TEXT_SIZE_DEFAULT ? $t.textSize.standard(percent(size)) : percent(size)}
+							</option>
+						{/each}
+					</Select>
+					<p class="hint" id={textSizeNoteId}>{$t.textSize.note}</p>
 				</div>
 
 				<div class="divider"></div>
