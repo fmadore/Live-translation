@@ -65,11 +65,12 @@
 			stroke-width="84"
 			stroke-linecap="round"
 			stroke-linejoin="round"
-			><path
+		>
+			<path
 				class="wave"
 				d="M184 496 C222 496 232 344 280 344 C330 344 340 648 390 648 C436 648 444 428 486 428 C524 428 530 544 562 544 C586 544 592 496 620 496 L840 496"
-			/><path class="line" d="M500 680 L840 680" /></svg
-		>
+			/><path class="line" d="M500 680 L840 680" />
+		</svg>
 	</span>
 	<!-- The window's one h1, which every heading in either column sits under. The frame
 	     already shows the name, so it is here for heading navigation only. -->
@@ -106,17 +107,17 @@
 			</svg>
 			{#if zoomState !== 'off'}<span class="zoom-dot {zoomTone[zoomState]}"></span>{/if}
 			{$t.zoom.button}
-			{#if zoomState !== 'off'}<span class="zoom-state {zoomTone[zoomState]}"
-					>{$t.zoom.state[zoomState]}</span
-				>{/if}
+			{#if zoomState !== 'off'}<span class="zoom-state {zoomTone[zoomState]}">
+					{$t.zoom.state[zoomState]}
+				</span>{/if}
 		</ToolButton>
 		<div class="pill {stateTone[$sessionState]}">
 			<span class="pill-dot" aria-hidden="true"></span>
-			<span class="pill-label"
-				>{$sessionState === 'running' && $options.provider === 'ondevice'
+			<span class="pill-label">
+				{$sessionState === 'running' && $options.provider === 'ondevice'
 					? $t.state.demo
-					: $t.state[$sessionState]}</span
-			>
+					: $t.state[$sessionState]}
+			</span>
 			{#if $isRunning && $sessionStartedAt !== null}
 				<span class="pill-time">{elapsed}</span>
 			{/if}

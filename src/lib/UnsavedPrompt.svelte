@@ -67,9 +67,9 @@
 		>
 			{$t.prompt.unsaved.discard}
 		</ToolButton>
-		<ToolButton variant="ghost" size="lg" disabled={busy} onclick={() => onChoice('cancel')}
-			>{$t.prompt.unsaved.cancel}</ToolButton
-		>
+		<ToolButton variant="ghost" size="lg" disabled={busy} onclick={() => onChoice('cancel')}>
+			{$t.prompt.unsaved.cancel}
+		</ToolButton>
 	</div>
 	<p class="note">{$t.prompt.unsaved.note}</p>
 </ModalPrompt>

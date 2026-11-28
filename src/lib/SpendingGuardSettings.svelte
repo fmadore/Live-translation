@@ -25,9 +25,9 @@
 			onchange={(e) => idlePauseMinutes.set(Number(e.currentTarget.value))}
 		>
 			{#each IDLE_PAUSE_CHOICES as minutes (minutes)}
-				<option value={String(minutes)}
-					>{minutes ? $t.guard.minutes(minutes) : $t.guard.never}</option
-				>
+				<option value={String(minutes)}>
+					{minutes ? $t.guard.minutes(minutes) : $t.guard.never}
+				</option>
 			{/each}
 		</Select>
 	</Field>
@@ -37,9 +37,9 @@
 			onchange={(e) => costWarningUsd.set(Number(e.currentTarget.value))}
 		>
 			{#each COST_WARNING_CHOICES as amount (amount)}
-				<option value={String(amount)}
-					>{amount ? formatUsd(amount, $localeTag) : $t.guard.never}</option
-				>
+				<option value={String(amount)}>
+					{amount ? formatUsd(amount, $localeTag) : $t.guard.never}
+				</option>
 			{/each}
 		</Select>
 	</Field>

@@ -87,9 +87,9 @@
 		<h3 class="heading" id="{id}-heading">{$t.overlayNotice.heading}</h3>
 		<div class="presets" role="group" aria-label={$t.overlayNotice.suggestions}>
 			{#each NOTICE_PRESETS as preset (preset)}
-				<ToolButton size="sm" onclick={() => show(presetMessages[preset])}
-					>{presetMessages[preset]}</ToolButton
-				>
+				<ToolButton size="sm" onclick={() => show(presetMessages[preset])}>
+					{presetMessages[preset]}
+				</ToolButton>
 			{/each}
 		</div>
 		<label class="field">
@@ -110,16 +110,16 @@
 		/>
 		<p class="hint" id="{id}-hint">{$t.overlayNotice.hint}</p>
 		<div class="actions">
-			<ToolButton type="submit" variant="primary" disabled={!normalizeNotice(text)}
-				>{$t.overlayNotice.show}</ToolButton
-			>
+			<ToolButton type="submit" variant="primary" disabled={!normalizeNotice(text)}>
+				{$t.overlayNotice.show}
+			</ToolButton>
 			<ToolButton variant="ghost" onclick={closePanel}>{$t.marker.cancel}</ToolButton>
 		</div>
 	</form>
 {:else}
-	<ToolButton wide bind:element={opener} onclick={openPanel}
-		>{$t.overlayNotice.openLabel}</ToolButton
-	>
+	<ToolButton wide bind:element={opener} onclick={openPanel}>
+		{$t.overlayNotice.openLabel}
+	</ToolButton>
 {/if}
 
 <style>

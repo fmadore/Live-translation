@@ -89,7 +89,8 @@
 						aria-label={m.remove(term)}
 						title={m.remove(term)}
 						onclick={() => void remove(term, index)}
-						><span class="term">{term}</span><svg
+					>
+						<span class="term">{term}</span><svg
 							width="0.625rem"
 							height="0.625rem"
 							viewBox="0 0 10 10"
@@ -97,9 +98,11 @@
 							stroke="currentColor"
 							stroke-width="1.6"
 							stroke-linecap="round"
-							aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6" /></svg
-						></ToolButton
-					>
+							aria-hidden="true"
+						>
+							<path d="M2 2l6 6M8 2l-6 6" />
+						</svg>
+					</ToolButton>
 				</li>
 			{/each}
 		</ul>
@@ -107,8 +110,8 @@
 		<p class="note">{m.empty}</p>
 	{/if}
 	<form onsubmit={add}>
-		<Field label={m.add}
-			><input
+		<Field label={m.add}>
+			<input
 				bind:this={field}
 				bind:value={draft}
 				disabled={locked}
@@ -117,8 +120,8 @@
 				aria-invalid={problem ? 'true' : undefined}
 				aria-describedby={problem ? `${id}-problem` : undefined}
 				oninput={() => (problem = null)}
-			/></Field
-		>
+			/>
+		</Field>
 		<ToolButton type="submit" disabled={locked || !draft.trim()}>{m.addButton}</ToolButton>
 	</form>
 	{#if problem}<p class="problem" id="{id}-problem" role="alert">{message}</p>{/if}

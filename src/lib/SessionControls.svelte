@@ -87,8 +87,10 @@
 				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="currentColor"
-				aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2" /></svg
+				aria-hidden="true"
 			>
+				<rect x="6" y="6" width="12" height="12" rx="2" />
+			</svg>
 			{busy ? $t.rail.stopping : $t.rail.stop}
 			<span class="shortcut" aria-hidden="true">{keys}</span>
 		</ToolButton>
@@ -110,8 +112,10 @@
 					height="0.875rem"
 					viewBox="0 0 24 24"
 					fill="currentColor"
-					aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+					aria-hidden="true"
 				>
+					<path d="M8 5.5l11 6.5-11 6.5z" />
+				</svg>
 			{:else}
 				<svg
 					width="0.875rem"
@@ -119,14 +123,15 @@
 					viewBox="0 0 24 24"
 					fill="currentColor"
 					aria-hidden="true"
-					><rect x="6" y="5" width="4" height="14" rx="1.2" /><rect
+				>
+					<rect x="6" y="5" width="4" height="14" rx="1.2" /><rect
 						x="14"
 						y="5"
 						width="4"
 						height="14"
 						rx="1.2"
-					/></svg
-				>
+					/>
+				</svg>
 			{/if}
 			{paused ? $t.rail.resume : $t.rail.pause}
 			<span class="shortcut" aria-hidden="true">{pauseKeys}</span>
@@ -152,8 +157,10 @@
 				height="0.875rem"
 				viewBox="0 0 24 24"
 				fill="currentColor"
-				aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" /></svg
+				aria-hidden="true"
 			>
+				<path d="M8 5.5l11 6.5-11 6.5z" />
+			</svg>
 			{starting
 				? $t.preflight.start.starting
 				: $options.mode === 'translate'
@@ -187,8 +194,9 @@
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				aria-hidden="true"
-				><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" /></svg
 			>
+				<path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M17 8.5l3.5 3.5-3.5 3.5" />
+			</svg>
 			{rehearsing ? $t.preflight.start.starting : $t.preflight.rehearse.action}
 		</ToolButton>
 	{/if}

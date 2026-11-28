@@ -34,9 +34,9 @@
 			: $t.devices.recovery}
 	</p>
 	<ToolButton disabled={busy} onclick={onRetry}>{$t.devices.retry}</ToolButton>
-	<ToolButton disabled={busy} onclick={application ? onReselect : onFallback}
-		>{application ? $t.applications.reselect : $t.devices.fallback}</ToolButton
-	>
+	<ToolButton disabled={busy} onclick={application ? onReselect : onFallback}>
+		{application ? $t.applications.reselect : $t.devices.fallback}
+	</ToolButton>
 </section>
 
 <style>

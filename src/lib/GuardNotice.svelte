@@ -56,14 +56,14 @@
 			{#if notice.kind === 'idle'}
 				<ToolButton size="sm" variant="primary" onclick={onResume}>{$t.guard.resume}</ToolButton>
 				{#if !overlayNoticeShown}
-					<ToolButton size="sm" onclick={onShowNotice}
-						>{$t.guard.showNotice(pausedNotice)}</ToolButton
-					>
+					<ToolButton size="sm" onclick={onShowNotice}>
+						{$t.guard.showNotice(pausedNotice)}
+					</ToolButton>
 				{/if}
 			{/if}
-			<ToolButton size="sm" variant="ghost" onclick={() => guard.dismiss(notice.kind)}
-				>{$t.guard.dismiss}</ToolButton
-			>
+			<ToolButton size="sm" variant="ghost" onclick={() => guard.dismiss(notice.kind)}>
+				{$t.guard.dismiss}
+			</ToolButton>
 		</div>
 	</section>
 {/each}

@@ -358,9 +358,9 @@
 
 	{#if $historyError}
 		<p role="alert">{$t.history.failed} {describeStatus($historyError, $t, $locale)}</p>
-		<ToolButton disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}
-			>{$t.history.retry}</ToolButton
-		>
+		<ToolButton disabled={busy || !$historyEnabled} onclick={() => sessionHistory.retry()}>
+			{$t.history.retry}
+		</ToolButton>
 	{/if}
 	<!-- Until there is a session to find, the search, the dates, the language filter and the
 	     reader would be controls over nothing: the opt-ins and one sentence say all there is.
@@ -374,14 +374,15 @@
 			<Field label={$t.usability.search}><input type="search" bind:value={query} /></Field>
 			<DateField label={$t.usability.from} bind:value={from} />
 			<DateField label={$t.usability.to} bind:value={to} />
-			<Field label={$t.usability.language}
-				><Select bind:value={language}
-					><option value="">{$t.usability.allLanguages}</option
-					>{#each TARGET_LANGUAGES as code (code)}<option value={code}
-							>{languageName(code, $locale)}</option
-						>{/each}<option value="auto">{$t.usability.unknownLanguage}</option></Select
-				></Field
-			>
+			<Field label={$t.usability.language}>
+				<Select bind:value={language}>
+					<option value="">
+						{$t.usability.allLanguages}
+					</option>{#each TARGET_LANGUAGES as code (code)}<option value={code}>
+							{languageName(code, $locale)}
+						</option>{/each}<option value="auto">{$t.usability.unknownLanguage}</option>
+				</Select>
+			</Field>
 		</div>
 		<ToolButton
 			disabled={!query && !from && !to && !language}
@@ -390,31 +391,33 @@
 				from = '';
 				to = '';
 				language = '';
-			}}>{$t.design.clearFilters}</ToolButton
+			}}
 		>
+			{$t.design.clearFilters}
+		</ToolButton>
 		{#if sessions.length && !filtered.length}<p>{$t.usability.noMatches}</p>{/if}
 		<!-- Several sessions at once: tick them in the list, or every one the filters show, then
 		     save them all to one folder or delete them all after one confirmation that counts
 		     them. The reader beside the list keeps acting on the one session it shows. -->
 		<div class="batch">
-			<label class="select-all"
-				><input
+			<label class="select-all">
+				<input
 					type="checkbox"
 					checked={allShown}
 					indeterminate={chosen.length > 0 && !allShown}
 					disabled={busy || !filtered.length}
 					onchange={toggleAll}
-				/>{$t.history.selectAll}</label
-			>
+				/>{$t.history.selectAll}
+			</label>
 			<span class="count" aria-live="polite">{$t.history.selected(chosen.length)}</span>
 			{#if chosen.length}
-				<ToolButton disabled={busy} onclick={() => checked.clear()}
-					>{$t.history.clearSelection}</ToolButton
-				>
+				<ToolButton disabled={busy} onclick={() => checked.clear()}>
+					{$t.history.clearSelection}
+				</ToolButton>
 				<ExportFormatSelect disabled={busy} label={$t.history.selectionFormat} />
-				<ToolButton disabled={busy} onclick={() => void exportChosen()}
-					>{$t.history.saveSelected}</ToolButton
-				>
+				<ToolButton disabled={busy} onclick={() => void exportChosen()}>
+					{$t.history.saveSelected}
+				</ToolButton>
 				<ConfirmButton
 					variant="danger"
 					confirming={confirmBatch}
@@ -453,21 +456,20 @@
 							}}
 						>
 							{#if entry.session}
-								<strong
-									>{entry.session.title ||
-										formatDateTime(entry.session.startedAt, $localeTag)}</strong
-								>
-								{#if entry.session.title}<span
-										>{formatDateTime(entry.session.startedAt, $localeTag)}</span
-									>{/if}
-								<span
-									>{formatElapsed(entry.session.durationMs)} · {entry.session.sourceLanguage ===
+								<strong>
+									{entry.session.title || formatDateTime(entry.session.startedAt, $localeTag)}
+								</strong>
+								{#if entry.session.title}<span>
+										{formatDateTime(entry.session.startedAt, $localeTag)}
+									</span>{/if}
+								<span>
+									{formatElapsed(entry.session.durationMs)} · {entry.session.sourceLanguage ===
 									'auto'
 										? $t.history.auto
 										: entry.session.sourceLanguage.toUpperCase()} → {captionLanguages(
 										entry.session
-									)}</span
-								>
+									)}
+								</span>
 								{#if !entry.session.endedAt}<span>{$t.history.unfinished}</span>{/if}
 							{:else}{$t.history.unreadable} <code>{entry.id}</code>{/if}
 						</ToolButton>
@@ -482,21 +484,22 @@
 							void rename();
 						}}
 					>
-						<Field label={$t.usability.title}
-							><input maxlength="120" bind:value={title} disabled={busy} /></Field
-						>
+						<Field label={$t.usability.title}>
+							<input maxlength="120" bind:value={title} disabled={busy} />
+						</Field>
 						<p class="hint">{$t.usability.titleHint}</p>
-						<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}
-							>{$t.usability.saveTitle}</ToolButton
-						>
+						<ToolButton type="submit" disabled={busy || title.trim() === (selected.title ?? '')}>
+							{$t.usability.saveTitle}
+						</ToolButton>
 					</form>
 					<div class="actions">
-						<ToolButton disabled={busy} onclick={() => action('copy')}>{$t.history.copy}</ToolButton
-						>
+						<ToolButton disabled={busy} onclick={() => action('copy')}>
+							{$t.history.copy}
+						</ToolButton>
 						<ExportFormatSelect disabled={busy} />
-						<ToolButton disabled={busy || !canSaveSelected} onclick={() => action('export')}
-							>{$t.transcript.saveAs}</ToolButton
-						>
+						<ToolButton disabled={busy || !canSaveSelected} onclick={() => action('export')}>
+							{$t.transcript.saveAs}
+						</ToolButton>
 						<ConfirmButton
 							variant="danger"
 							confirming={confirmDelete === selectedId}

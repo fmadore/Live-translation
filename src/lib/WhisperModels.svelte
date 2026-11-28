@@ -53,10 +53,10 @@
 				($options = { ...$options, whisperModel: e.currentTarget.value as WhisperModelId })}
 		>
 			{#each offered as id (id)}
-				<option value={id}
-					>{$t.whisper[id]}{#if $whisperModels.find((m) => m.id === id)}
-						— {Math.ceil($whisperModels.find((m) => m.id === id)!.bytes / 1048576)} MiB{/if}</option
-				>
+				<option value={id}>
+					{$t.whisper[id]}{#if $whisperModels.find((m) => m.id === id)}
+						— {Math.ceil($whisperModels.find((m) => m.id === id)!.bytes / 1048576)} MiB{/if}
+				</option>
 			{/each}
 		</Select>
 	</Field>
@@ -89,16 +89,17 @@
 	{/if}
 	<div class="actions">
 		{#if busy || downloading}
-			<ToolButton disabled={locked || !downloading} onclick={cancel}>{$t.whisper.cancel}</ToolButton
-			>
+			<ToolButton disabled={locked || !downloading} onclick={cancel}>
+				{$t.whisper.cancel}
+			</ToolButton>
 		{:else if model?.installed}
-			<ToolButton disabled={locked || browserMode || model.inUse} onclick={remove}
-				>{$t.whisper.remove}</ToolButton
-			>
+			<ToolButton disabled={locked || browserMode || model.inUse} onclick={remove}>
+				{$t.whisper.remove}
+			</ToolButton>
 		{:else}
-			<ToolButton disabled={locked || browserMode} onclick={download}
-				>{$t.whisper.download}</ToolButton
-			>
+			<ToolButton disabled={locked || browserMode} onclick={download}>
+				{$t.whisper.download}
+			</ToolButton>
 		{/if}
 	</div>
 	<Preference

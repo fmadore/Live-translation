@@ -35,8 +35,10 @@
 				fill="none"
 				stroke="currentColor"
 				stroke-width="2.2"
-				stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5" /></svg
+				stroke-linecap="round"
 			>
+				<path d="M4 12.5l5 5L20 6.5" />
+			</svg>
 		</span>
 	{/if}
 </button>

@@ -39,13 +39,17 @@
 		size="sm"
 		disabled={disabled || value <= min}
 		aria-label={decreaseLabel ?? `${label} −`}
-		onclick={() => onchange(Math.max(min, value - step))}>−</ToolButton
+		onclick={() => onchange(Math.max(min, value - step))}
 	>
+		−
+	</ToolButton>
 	<output>{format ? format(value) : `${value} ${unit}`.trim()}</output>
 	<ToolButton
 		size="sm"
 		disabled={disabled || value >= max}
 		aria-label={increaseLabel ?? `${label} +`}
-		onclick={() => onchange(Math.min(max, value + step))}>+</ToolButton
+		onclick={() => onchange(Math.min(max, value + step))}
 	>
+		+
+	</ToolButton>
 </div>

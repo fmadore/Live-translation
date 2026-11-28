@@ -63,10 +63,11 @@
 			stroke="currentColor"
 			stroke-width="1.75"
 			stroke-linecap="round"
-			><rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path
-				d="M8 10.5V8a4 4 0 0 1 8 0v2.5"
-			/></svg
 		>
+			<rect x="4.5" y="10.5" width="15" height="10" rx="2.5" /><path
+				d="M8 10.5V8a4 4 0 0 1 8 0v2.5"
+			/>
+		</svg>
 	</span>
 	<h2 class="kicker">{$t.rail.locked}</h2>
 </div>
@@ -78,13 +79,13 @@
 	</div>
 	<div class="chip">
 		<span class="chip-label">{$t.rail.chip.source}</span>
-		<span class="chip-value"
-			>{$options.provider === 'ondevice'
+		<span class="chip-value">
+			{$options.provider === 'ondevice'
 				? $t.source.demo
 				: rehearsing
 					? $t.source.sample
-					: $t.source[$options.source]}</span
-		>
+					: $t.source[$options.source]}
+		</span>
 	</div>
 	<div class="chip">
 		<span class="chip-label">{$t.rail.chip.roomReads}</span>

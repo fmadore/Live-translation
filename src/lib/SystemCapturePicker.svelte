@@ -88,9 +88,9 @@
 					<option value={selectionKey}>{$t.applications.missing}</option>
 				{/if}
 				{#each applications as app (app.process.pid)}
-					<option value={`${app.process.pid}:${app.process.createdAt}`}
-						>{app.name} (PID {app.process.pid})</option
-					>
+					<option value={`${app.process.pid}:${app.process.createdAt}`}>
+						{app.name} (PID {app.process.pid})
+					</option>
 				{/each}
 			</Select>
 		</Field>
@@ -106,11 +106,13 @@
 			>
 				<option value="">{$t.rail.systemDefault}</option>
 				{#if $options.systemDeviceId && !outputs.some((d) => d.id === $options.systemDeviceId)}<option
-						value={$options.systemDeviceId}>{devicesLoaded ? $t.devices.missing : '…'}</option
-					>{/if}
-				{#each outputs as dev (dev.id)}<option value={dev.id}
-						>{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}</option
-					>{/each}
+						value={$options.systemDeviceId}
+					>
+						{devicesLoaded ? $t.devices.missing : '…'}
+					</option>{/if}
+				{#each outputs as dev (dev.id)}<option value={dev.id}>
+						{dev.isDefault ? $t.rail.isDefault(dev.name) : dev.name}
+					</option>{/each}
 			</Select>
 		</Field>
 	{/if}

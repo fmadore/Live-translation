@@ -66,10 +66,11 @@
 				stroke-width="1.75"
 				stroke-linecap="round"
 				aria-hidden="true"
-				><rect x="9" y="2.5" width="6" height="11" rx="3" /><path
-					d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
-				/><path d="M12 18v3.5" /></svg
 			>
+				<rect x="9" y="2.5" width="6" height="11" rx="3" /><path
+					d="M5.5 11.5a6.5 6.5 0 0 0 13 0"
+				/><path d="M12 18v3.5" />
+			</svg>
 			<span>{$options.provider === 'ondevice' ? $t.source.demo : $t.source.microphone}</span>
 		</button>
 		<button
@@ -88,8 +89,9 @@
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				aria-hidden="true"
-				><path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6" /></svg
 			>
+				<path d="M4 9.5h3.5L13 5v14L7.5 14.5H4z" /><path d="M16.5 9.2a4.2 4.2 0 0 1 0 5.6" />
+			</svg>
 			<span>{$t.source.system}</span>
 		</button>
 		<button
@@ -106,8 +108,10 @@
 				stroke="currentColor"
 				stroke-width="1.75"
 				stroke-linecap="round"
-				aria-hidden="true"><path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" /></svg
+				aria-hidden="true"
 			>
+				<path d="M3.5 6.5h4.5L12 12l4 5.5h4.5M3.5 17.5h4.5L12 12" />
+			</svg>
 			<span>{$t.source.both}</span>
 		</button>
 	</div>
@@ -135,16 +139,16 @@
 			>
 				<!-- With no input at all there is no default to fall back on either: say so here
 				     rather than only once Start fails. -->
-				<option value=""
-					>{preflight.devicesLoaded && preflight.microphones.length === 0
+				<option value="">
+					{preflight.devicesLoaded && preflight.microphones.length === 0
 						? $t.rail.noMicrophone
-						: $t.rail.systemDefault}</option
-				>
+						: $t.rail.systemDefault}
+				</option>
 				{#if $options.micDeviceId && !preflight.microphones.some((d) => d.id === $options.micDeviceId)}
 					<!-- Not "missing" before the first list has even arrived: that flashed at launch. -->
-					<option value={$options.micDeviceId}
-						>{preflight.devicesLoaded ? $t.devices.missing : '…'}</option
-					>
+					<option value={$options.micDeviceId}>
+						{preflight.devicesLoaded ? $t.devices.missing : '…'}
+					</option>
 				{/if}
 				{#each preflight.microphones as dev (dev.id)}
 					<option value={dev.id}>

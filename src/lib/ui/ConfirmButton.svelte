@@ -44,6 +44,8 @@
 	class={className}
 	{disabled}
 	onclick={() => (confirming ? onconfirm() : onask())}
-	>{confirming ? confirmLabel : label}</ToolButton
->{#if confirming}<ToolButton disabled={cancelDisabled} onclick={oncancel}>{cancelLabel}</ToolButton
-	>{/if}
+>
+	{confirming ? confirmLabel : label}
+</ToolButton>{#if confirming}<ToolButton disabled={cancelDisabled} onclick={oncancel}>
+		{cancelLabel}
+	</ToolButton>{/if}

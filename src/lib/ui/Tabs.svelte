@@ -53,8 +53,10 @@
 			aria-controls={panelId}
 			tabindex={selected === tab.id ? 0 : -1}
 			onclick={() => (selected = tab.id)}
-			onkeydown={(event) => onkeydown(event, index)}>{tab.label}</button
+			onkeydown={(event) => onkeydown(event, index)}
 		>
+			{tab.label}
+		</button>
 	{/each}
 </div>
 

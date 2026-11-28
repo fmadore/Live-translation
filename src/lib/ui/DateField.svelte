@@ -49,10 +49,11 @@
 				stroke="currentColor"
 				stroke-width="1.75"
 				aria-hidden="true"
-				><rect x="3" y="5" width="18" height="16" rx="2" /><path
-					d="M16 3v4M8 3v4M3 11h18M7 15h2M11 15h2M15 15h2M7 18h2M11 18h2"
-				/></svg
 			>
+				<rect x="3" y="5" width="18" height="16" rx="2" /><path
+					d="M16 3v4M8 3v4M3 11h18M7 15h2M11 15h2M15 15h2M7 18h2M11 18h2"
+				/>
+			</svg>
 		</button>
 		<input
 			class="native-picker"

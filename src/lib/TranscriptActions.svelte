@@ -171,12 +171,12 @@
 			{$transcriptDirty ? $t.transcript.unsaved : $t.transcript.saved}
 		</span>
 	{/if}
-	{#if spoolFailing}<span class="state failing" title={describeError($recoveryFailure, $t)}
-			>{$t.transcript.recoveryFailing}</span
-		>{/if}
-	{#if historyFailing}<span class="state failing" title={describeError($historyError, $t)}
-			>{$t.transcript.historyFailing}</span
-		>{/if}
+	{#if spoolFailing}<span class="state failing" title={describeError($recoveryFailure, $t)}>
+			{$t.transcript.recoveryFailing}
+		</span>{/if}
+	{#if historyFailing}<span class="state failing" title={describeError($historyError, $t)}>
+			{$t.transcript.historyFailing}
+		</span>{/if}
 	<div class="spacer"></div>
 	{#if live}<AddMarker request={markerRequest} count={markers.length} />{/if}
 	{#if reader && onFind}

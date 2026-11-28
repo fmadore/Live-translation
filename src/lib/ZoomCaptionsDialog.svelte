@@ -133,9 +133,9 @@
 	<!-- The host's part is several menus deep in Zoom's web portal, outside this app: the guide
 	     walks through it. -->
 	<p class="guide">
-		<a href={ZOOM_GUIDE_URL} onclick={openGuide}
-			>{$t.zoom.guide}<span class="sr-only">{$t.support.opensInBrowser}</span></a
-		>
+		<a href={ZOOM_GUIDE_URL} onclick={openGuide}>
+			{$t.zoom.guide}<span class="sr-only">{$t.support.opensInBrowser}</span>
+		</a>
 		{#if guideError}<span class="failed" role="alert">{describeError(guideError, $t)}</span>{/if}
 	</p>
 
@@ -149,8 +149,8 @@
 		<div class="link">
 			<!-- Masked: the link lets anyone post captions to the meeting, and this screen may be
 			     on a projector. Never bound to anything that persists. -->
-			<Field label={$t.zoom.link}
-				><input
+			<Field label={$t.zoom.link}>
+				<input
 					bind:this={linkEl}
 					bind:value={zoom.link}
 					type="password"
@@ -161,8 +161,8 @@
 					aria-describedby={hintId}
 					disabled={active}
 					readonly={zoom.pending !== null}
-				/></Field
-			>
+				/>
+			</Field>
 			<p class="hint" id={hintId}>{$t.zoom.linkHint}</p>
 		</div>
 
@@ -218,14 +218,18 @@
 					size="lg"
 					bind:element={testEl}
 					aria-busy={zoom.pending === 'test'}
-					onclick={() => void zoom.sendTest($t.zoom.testCaption)}>{$t.zoom.test}</ToolButton
+					onclick={() => void zoom.sendTest($t.zoom.testCaption)}
 				>
+					{$t.zoom.test}
+				</ToolButton>
 				<ToolButton
 					variant="ghost"
 					size="lg"
 					aria-busy={zoom.pending === 'stop'}
-					onclick={() => void stop()}>{$t.zoom.stop}</ToolButton
+					onclick={() => void stop()}
 				>
+					{$t.zoom.stop}
+				</ToolButton>
 			{:else}
 				<ToolButton
 					type="submit"
@@ -234,8 +238,9 @@
 					bind:element={startEl}
 					disabled={!ready}
 					aria-busy={zoom.pending === 'start'}
-					>{zoom.pending === 'start' ? $t.preflight.start.starting : $t.zoom.start}</ToolButton
 				>
+					{zoom.pending === 'start' ? $t.preflight.start.starting : $t.zoom.start}
+				</ToolButton>
 			{/if}
 		</div>
 	</form>
